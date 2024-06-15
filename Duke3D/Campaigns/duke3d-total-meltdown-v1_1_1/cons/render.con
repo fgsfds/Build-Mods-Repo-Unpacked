@@ -1,0 +1,172 @@
+// New blend tables for translucency levels
+
+appendevent EVENT_ANIMATESPRITES
+  ifand tspr[].tsprcstat CSTAT_SPRITE_TRANSLUCENT
+  {
+    ifand tspr[].tsprcstat CSTAT_SPRITE_TRANS_FLIP
+      settspr[].tsprblend D_Transpal_additive
+    else
+      settspr[].tsprblend D_Transpal_alpha
+  }
+endevent
+
+appendevent EVENT_WORLD
+  for V_This_Wall allwalls
+  {
+    ifand wall[V_This_Wall].cstat 128
+    {
+      ifand wall[V_This_Wall].cstat CSTAT_WALL_TRANS_FLIP
+        setwall[V_This_Wall].blend D_Transpal_additive
+      else
+        setwall[V_This_Wall].blend D_Transpal_alpha
+    }
+  }
+endevent
+
+// Underwater and NVG effects
+
+appendevent EVENT_DISPLAYSTART
+  ife V_Mark_DISPLAYSTART 1
+    break
+  set V_Old_palette player[].palette
+  ifn rendmode REND_CLASSIC
+    setplayer[].palette 0
+endevent
+
+appendevent EVENT_DISPLAYEND
+  ife V_Mark_DISPLAYSTART 0
+    break
+  ifn rendmode REND_CLASSIC
+    setplayer[].palette V_Old_palette
+endevent
+
+defstate S_Display_Basepal_Tint
+  ifg V_Old_pals_time 0 // "palfrom" breaks the effect
+    break
+
+  switch V_Old_palette
+  case WATERPAL
+  case SLIMEPAL
+    ife V_Old_palette SLIMEPAL
+    {
+      setuserdef[].global_r 0
+      setuserdef[].global_b 0
+      setuserdef[].global_g 32
+    }
+    else
+    {
+      setuserdef[].global_r 0
+      setuserdef[].global_b 32
+      setuserdef[].global_g 0
+    }
+    set V_Alpha D_Transpal_additive
+    inv V_Alpha
+
+    // 1/2 pixel bleed
+    rotatespritea 160 100 1314816 0 D_Black 0 D_Pal_Invert 1032 V_Alpha windowx1 windowy1 windowx2 windowy2 // RS_NOCLIP (8), RS_STRETCH (1024)
+
+    setuserdef[].global_r 255
+    setuserdef[].global_g 255
+    setuserdef[].global_b 255
+    set V_Alpha D_Transpal_Invert
+    inv V_Alpha
+
+    // 1/2 pixel bleed
+    rotatespritea 160 100 1314816 0 D_Black 0 D_Pal_Invert 1032 V_Alpha windowx1 windowy1 windowx2 windowy2 // RS_NOCLIP (8), RS_STRETCH (1024)
+
+    ife V_Old_palette SLIMEPAL
+    {
+      setuserdef[].global_r 16
+      setuserdef[].global_b 16
+      setuserdef[].global_g 0
+    }
+    else
+    {
+      setuserdef[].global_r 16
+      setuserdef[].global_b 0
+      setuserdef[].global_g 16
+    }
+    set V_Alpha D_Transpal_additive
+    inv V_Alpha
+
+    // 1/2 pixel bleed
+    rotatespritea 160 100 1314816 0 D_Black 0 D_Pal_Invert 1032 V_Alpha windowx1 windowy1 windowx2 windowy2 // RS_NOCLIP (8), RS_STRETCH (1024)
+
+    setuserdef[].global_r 255
+    setuserdef[].global_g 255
+    setuserdef[].global_b 255
+    set V_Alpha D_Transpal_Invert
+    inv V_Alpha
+
+    // 1/2 pixel bleed
+    rotatespritea 160 100 1314816 0 D_Black 0 D_Pal_Invert 1032 V_Alpha windowx1 windowy1 windowx2 windowy2 // RS_NOCLIP (8), RS_STRETCH (1024)
+  break
+  endswitch
+ends
+
+appendevent EVENT_DISPLAYREST // Draw underwater and NVG effects above everything but the menu
+  ifn rendmode REND_CLASSIC
+    state S_Display_Basepal_Tint
+endevent
+
+// Screen tinting
+
+appendevent EVENT_DISPLAYSTART
+  ife V_Mark_DISPLAYSTART 1
+    break
+  ifn rendmode REND_CLASSIC
+  {
+    set V_Old_pals_time player[].pals_time
+    setplayer[].pals_time 0
+  }
+  setplayer[].loogcnt 0 // Disable SPIT screen tinting
+endevent
+
+appendevent EVENT_DISPLAYEND
+  ife V_Mark_DISPLAYSTART 0
+    break
+  ifn rendmode REND_CLASSIC
+    setplayer[].pals_time V_Old_pals_time
+endevent
+
+defstate S_Display_palfrom_Tint
+  ifg V_Old_pals_time 0
+  {
+    ife player[].pals 0 0
+    ife player[].pals 1 0
+    ife player[].pals 2 0
+      break
+
+    set V_Alpha D_Transpal_additive
+    inv V_Alpha
+
+    set V_Red player[].pals 0
+    set V_Green player[].pals 1
+    set V_Blue player[].pals 2
+    add V_Blue player[].pals 1 // Blue is added to green
+    mul V_Red V_Old_pals_time
+    mul V_Green V_Old_pals_time
+    mul V_Blue V_Old_pals_time
+    shiftr V_Red 4
+    shiftr V_Green 4
+    shiftr V_Blue 4
+    clamp V_Red 0 255
+    clamp V_Green 0 255
+    clamp V_Blue 0 255
+    setuserdef[].global_r V_Red
+    setuserdef[].global_g V_Green
+    setuserdef[].global_b V_Blue
+
+    // 1/2 pixel bleed
+    rotatespritea 160 100 1314816 0 D_Black 0 D_Pal_Invert 1032 V_Alpha windowx1 windowy1 windowx2 windowy2 // RS_NOCLIP (8), RS_STRETCH (1024)
+
+    setuserdef[].global_r 255
+    setuserdef[].global_g 255
+    setuserdef[].global_b 255
+  }
+ends
+
+appendevent EVENT_DISPLAYREST // Draw screen tinting above everything but the menu
+  ifn rendmode REND_CLASSIC
+    state S_Display_palfrom_Tint
+endevent

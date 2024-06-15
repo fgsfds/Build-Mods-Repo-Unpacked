@@ -1,0 +1,271 @@
+// Menu parameters
+
+appendevent EVENT_SETDEFAULTS
+  setuserdef[].screenfade 0
+
+  setuserdef[].menutext_tracking 65536
+
+  setuserdef[].gametext_tracking 65536
+  setuserdef[].gametext_palselected 0
+  setuserdef[].gametext_palselected_right 0
+  setuserdef[].gametext_paldeselected 0
+  setuserdef[].gametext_paldeselected_right 0
+  setuserdef[].gametext_paldisabled 1
+  setuserdef[].gametext_paldisabled_right 1
+
+  setuserdef[].minitext_zoom 32768 // STARTALPHANUM is too large for minitext, halve the scale
+  setuserdef[].minitext_palselected 0
+  setuserdef[].minitext_palselected_right 0
+  setuserdef[].minitext_paldeselected 0
+  setuserdef[].minitext_paldeselected_right 0
+  setuserdef[].minitext_paldisabled 1
+  setuserdef[].minitext_paldisabled_right 1
+
+  setuserdef[].menu_slidebarmargin 262144
+  set V_Temp1 65536
+  shiftl V_Temp1 1
+  div V_Temp1 3
+  setuserdef[].menu_slidecursorz V_Temp1
+endevent
+
+appendevent EVENT_MENUCURSORLEFT
+  set RETURN SPINNINGNUKEICON
+endevent
+
+appendevent EVENT_MENUCURSORRIGHT
+  set RETURN SPINNINGNUKEICON
+endevent
+
+appendevent EVENT_MENUCURSORSHADE
+  set RETURN 4
+  set V_Temp1 totalclock
+  shiftl V_Temp1 4
+  sin V_Temp1 V_Temp1
+  shiftr V_Temp1 10
+  sub RETURN V_Temp1
+endevent
+
+appendevent EVENT_MENUSHADESELECTED
+  set RETURN 4
+  set V_Temp1 totalclock
+  shiftl V_Temp1 5
+  sin V_Temp1 V_Temp1
+  shiftr V_Temp1 10
+  sub RETURN V_Temp1
+endevent
+
+// Mouse cursor is not transparent (same as crosshair)
+
+appendevent EVENT_DISPLAYCURSOR
+  set RETURN -1
+
+  set V_Alpha userdef[].return 3
+  sub V_Alpha 85
+  mul V_Alpha 3
+  shiftr V_Alpha 1
+
+  setarrayseq A_State_Draw userdef[].return 1 userdef[].return 2 65536 0 CROSSHAIR 0 CROSSHAIR_PAL ROTATESPRITE_FULL16 V_Alpha D_Aspect_Pc
+  state S_Draw_Sprite
+endevent
+
+// Main menu title
+
+defstate S_Display_Main_Menu_Title
+  ife RETURN MENU_MAIN
+  {
+    set V_X 10485760
+    ife D_Enable_Pal_Ver 1
+      set V_Y 2621440
+    else
+      set V_Y 3145728
+    add V_X userdef[].return 1
+    add V_Y userdef[].return 2
+
+    setarrayseq A_State_Draw V_X V_Y 65536 0 MENUTITLE 0 0 ROTATESPRITE_FULL16 0 D_Aspect_Psx_or_D_Aspect_T
+    state S_Draw_Sprite
+  }
+ends
+
+appendevent EVENT_DISPLAYMENU
+  state S_Display_Main_Menu_Title
+endevent
+
+appendevent EVENT_DISPLAYINACTIVEMENU
+  state S_Display_Main_Menu_Title
+endevent
+
+// Menu position
+// Move only the main menu because elements cannot be moved separately
+
+defstate S_Set_Menu_Pos
+  ife RETURN MENU_MAIN
+  {
+    set V_Y 5767168
+    sub V_Y 3604480 // Old position
+
+    add V_Y userdef[].return 2
+    setuserdef[].return 2 V_Y
+  }
+ends
+
+appendevent EVENT_DISPLAYMENU
+  state S_Set_Menu_Pos
+endevent
+
+appendevent EVENT_DISPLAYINACTIVEMENU
+  state S_Set_Menu_Pos
+endevent
+
+// Display pause text at the bottom of menu
+// Move to the bottom of the status bar
+
+appendevent EVENT_DISPLAYMENU
+  ifand player[].gm MODE_GAME
+  ifand player[].gm MODE_MENU
+  {
+    // If the game is running while the menu is displayed
+    ife V_Mark_pause_on 0
+    {
+      ifg numplayers 1 // If there's another Human player
+        break
+      ife userdef[].recstat 2
+        break
+    }
+
+    set V_X 10485760
+    ife D_Enable_Pal_Ver 1
+      set V_Y 12451840
+    else
+      set V_Y 11141120
+
+    set V_Temp1 tilesizy[BOTTOMSTATUSBAR]
+    shiftl V_Temp1 16
+    add V_Y V_Temp1
+    /* ifge userdef[].screen_size 4
+    {
+      scalevar V_Temp1 V_Temp1 userdef[].statusbarscale 100
+      sub V_Y V_Temp1
+    } */
+
+    set V_Temp1 totalclock
+    and V_Temp1 127
+    ifle V_Temp1 80
+      set V_Shade 8
+    else
+      set V_Shade 0
+
+    set V_Orient RS_TOPLEFT
+
+    redefinequote D_Quote_Temp1 GAME PAUSED
+    setarrayseq A_State_Draw STARTALPHANUM V_X V_Y 65536 0 0 D_Quote_Temp1 V_Shade 0 ROTATESPRITE_FULL16 1 0 TEXT_XCENTER D_Aspect_Psx_or_D_Aspect_B
+    state S_Draw_Quote
+  }
+endevent
+
+// Menu sounds
+
+appendevent EVENT_OPENMENUSOUND
+  switch V_Open_Menu_Sound
+  case 0
+    set RETURN LASERTRIP_EXPLODE
+  break
+  case 1
+    set RETURN DUKE_GRUNT
+  break
+  case 2
+    set RETURN DUKE_LAND_HURT
+  break
+  case 3
+    set RETURN CHAINGUN_FIRE
+  break
+  case 4
+    set RETURN SQUISHED
+  break
+  case 5
+    set RETURN KICK_HIT
+  break
+  case 6
+    set RETURN PISTOL_RICOCHET
+  break
+  case 7
+    set RETURN PISTOL_BODYHIT
+  break
+  case 8
+    set RETURN PISTOL_FIRE
+  break
+  case 9
+    set RETURN SHOTGUN_FIRE
+  break
+  /* case 10
+    set RETURN BOS1_WALK
+  break */
+  case 10
+    set RETURN RPG_EXPLODE
+  break
+  case 11
+    set RETURN PIPEBOMB_BOUNCE
+  break
+  case 12
+    set RETURN PIPEBOMB_EXPLODE
+  break
+  case 13
+    set RETURN NITEVISION_ONOFF
+  break
+  case 14
+    set RETURN RPG_SHOOT
+  break
+  case 15
+    set RETURN SELECT_WEAPON
+  break
+  endswitch
+
+  add V_Open_Menu_Sound 1
+  and V_Open_Menu_Sound 15
+endevent
+
+appendevent EVENT_SOUND
+  ife RETURN EXITMENUSOUND
+    set RETURN PISTOL_BODYHIT
+endevent
+
+// Play skill speech during loading screen
+
+appendevent EVENT_SOUND
+  ifand player[].gm MODE_MENU
+  {
+    switch RETURN
+    case JIBBED_ACTOR6
+    case BONUS_SPEECH1
+    case DUKE_GETWEAPON2
+    case JIBBED_ACTOR5
+      set RETURN -1
+    break
+    endswitch
+  }
+endevent
+
+appendevent EVENT_NEWGAME
+  set V_Skill_Sound 1
+endevent
+
+appendevent EVENT_DISPLAYLOADINGSCREEN
+  ife V_Skill_Sound 0
+    break
+
+  setuserdef[].vm_player myconnectindex
+  switch userdef[].m_player_skill
+  case 1
+    screensound JIBBED_ACTOR6
+  break
+  case 2
+    screensound BONUS_SPEECH1
+  break
+  case 3
+    screensound DUKE_GETWEAPON2
+  break
+  case 4
+    screensound JIBBED_ACTOR5
+  break
+  endswitch
+  set V_Skill_Sound 0
+endevent

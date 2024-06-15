@@ -1,0 +1,118 @@
+// Gibs don't inherit owner pal
+
+/* appendevent EVENT_WORLD
+  for V_This_Sprite spritesofstatus STAT_MISC
+  {
+    setuserdef[].vm_sprite V_This_Sprite
+    ife V_Sprite_Count 0
+    {
+      switch sprite[].picnum
+      case JIBS1
+      case JIBS2
+      case JIBS3
+      case JIBS4
+      case JIBS5
+      case JIBS6
+      case HEADJIB1
+      case ARMJIB1
+      case LEGJIB1
+      case LIZMANHEAD1
+      case LIZMANARM1
+      case LIZMANLEG1
+      case DUKETORSO
+      case DUKEGUN
+      case DUKELEG
+      case BLOODSPLAT1
+      case BLOODSPLAT2
+      case BLOODSPLAT3
+      case BLOODSPLAT4
+        ifspritepal 6
+        {
+          ifand tiledata[sprite[].htpicnum].gameflags SFLAG_BADGUY
+            spritepal 6
+          else
+          ifand tiledata[sprite[].htpicnum].gameflags SFLAG_HARDCODED_BADGUY
+            spritepal 6
+          else
+            spritepal 0
+        }
+        else
+          spritepal 0
+      break
+      endswitch
+    }
+  }
+endevent */
+
+// Don't change FIRE/FIRE2 cstat
+
+/* appendevent EVENT_ANIMATESPRITES
+  switch sprite[].picnum
+  case FIRE
+  case FIRE2
+    settspr[].tsprcstat sprite[].cstat
+  break
+  endswitch
+endevent */
+
+// Stop music during loading
+
+appendevent EVENT_DISPLAYLOADINGSCREEN
+  ifn userdef[].music_episode D_Temp_Volume
+  ifn userdef[].music_level MUS_NULL
+    swaptrackslot D_Temp_Volume MUS_NULL // stopallmusic is broken
+endevent
+
+// Misc parameters
+
+appendevent EVENT_SETDEFAULTS
+  setuserdef[].menubackground 0
+
+  setuserdef[].menu_shadedeselected 0
+  setuserdef[].menu_shadedisabled 0
+
+  // Don't set modern status bar by default
+  setuserdef[].screen_size 8
+  setuserdef[].statusbarmode 0
+  setuserdef[].althud 0
+  setuserdef[].crosshairscale 100
+
+  // Don't display the level name when the game starts
+  setuserdef[].show_level_text 0
+endevent
+
+// Revert menu background
+
+appendevent EVENT_GETMENUTILE
+  set RETURN BIGHOLE
+endevent
+
+// Disable menu closing sound
+
+/* appendevent EVENT_SOUND
+  ife RETURN EXITMENUSOUND
+  {
+    switch current_menu
+    case MENU_MAIN_INGAME
+    case MENU_COLCORR_INGAME
+    case MENU_QUIT_INGAME
+    case MENU_SOUND_INGAME
+      set RETURN -1
+    break
+    endswitch
+  }
+endevent */
+
+// Don't change restart level quote
+
+appendevent EVENT_SETDEFAULTS
+  // redefinequote 13 PRESS ANY BUTTON TO CONTINUE
+  redefinequote 13 PRESS ANY KEY TO CONTINUE
+endevent
+
+// Display quick kick quote normally
+
+appendevent EVENT_QUICKKICK
+  ife RETURN 0
+    quote 80
+endevent

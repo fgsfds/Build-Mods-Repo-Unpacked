@@ -1,0 +1,220 @@
+// FLYING CYCLOID BOSS
+// sprites by sebabdukeboss20, code by Dan Gaskill
+
+// define BOSS2FLY 5597
+// define BOSS2FLYSTRENGTH 2500
+spriteflags BOSS2FLY 5251072
+action ABOSS2FLYFORW  0  3  5  1  10
+action ABOSS2FLYBACK  10  3  5  -1  10
+action ABOSS2FLYSHOOT 15  3  5  1  10
+action ABOSS2FLYSHOOTBACK 25  3  5  -1  10
+action ABOSS2FLYHURT 30  1  1  1  10
+action ABOSS2FLYDIE  31  1  1  1  60
+action ABOSS2FLYDEAD 32  1  1  1  10
+action ABOSS2REGDEAD -2838  1  1  1  10
+action ABOSS2REVIVING -2838 9  1  -1  20
+action ABOSS2REVIVED -2887  1  1  1  10
+
+move BOSS2HOVERUP 128 -48
+move BOSS2HOVERDOWN 192 8
+move BOSS2FALLDOWN 0 24
+move BOSS2SHOOTVELS 0 -2
+move BOSS2FLYGROUND
+
+ai AIBOSS2FLYSEEK ABOSS2FLYFORW BOSS2HOVERUP faceplayerslow getv
+ai AIBOSS2FLYSHOOT ABOSS2FLYSHOOT BOSS2SHOOTVELS faceplayer getv
+ai AIBOSS2FLYFALL ABOSS2FLYHURT BOSS2FALLDOWN geth getv
+
+state boss2flyrpg
+
+	geta[].x xvel
+	geta[].y yvel
+	
+	set x2 sprite[].x
+	add x2 644
+	rotatepoint sprite[].x sprite[].y x2 sprite[].y sprite[].ang x y
+	seta[].x x
+	seta[].y y
+	sound RPG_SHOOT
+	cactor BOSS2
+	shoot RPG
+	cactor BOSS2FLY
+	
+	seta[].x xvel
+	seta[].y yvel
+
+ends
+
+state boss2flydropshit
+
+	ifn bottarget -1
+	{
+		ldist temp THISACTOR bottarget
+		ifl temp 3072
+		ifrnd 64
+		{
+			set temp player[].player_par
+			modvar temp 15
+			ife temp 0
+			{
+				espawn LIZMINE
+				setav[RETURN].team team
+				seta[RETURN].xrepeat 40
+				seta[RETURN].yrepeat 40
+				seta[RETURN].pal sprite[].pal
+			}
+		}
+	}
+
+ends
+
+eventloadactor BOSS2FLY sizeat 60 45 cstator 257 enda
+
+useractor enemy BOSS2FLY BOSS2FLYSTRENGTH
+
+ifai 0
+{
+	sizeat 60 45
+	cstat 257
+	clipdist 164
+	ai AIBOSS2FLYSEEK
+	seta[].mdflags 16
+	sound BOS2_RECOG
+}
+fall
+
+ifaction ABOSS2FLYFORW ifactioncount 3 { ifrnd 1 sound BOS2_ROAM action ABOSS2FLYBACK } else
+ifaction ABOSS2FLYBACK ifactioncount 3 { sound WINGSOUND action ABOSS2FLYFORW }
+
+ifaction ABOSS2FLYSHOOT 
+{
+	state boss2flydropshit
+	ifactioncount 3
+	{
+		action ABOSS2FLYSHOOTBACK 
+		state boss2flyrpg	
+	}
+	
+}
+else
+ifaction ABOSS2FLYSHOOTBACK
+{ 
+	state boss2flydropshit
+	ifactioncount 3
+	{
+		sound WINGSOUND 
+		action ABOSS2FLYSHOOT
+		state boss2flyrpg
+		ifrnd 96 ai AIBOSS2FLYSEEK
+	}
+}
+
+ifn bottarget -1
+{
+	geta[bottarget].z zdist
+	sub zdist 8192
+}
+else
+getp[].posz zdist
+
+
+sub zdist sprite[].z
+ifg zdist 65535 { ifmove BOSS2HOVERUP move BOSS2HOVERDOWN faceplayerslow getv } else
+ifl zdist 32768 { ifmove BOSS2HOVERDOWN move BOSS2HOVERUP faceplayerslow getv }
+
+state monsterai
+
+
+
+ifai AIBOSS2FLYFALL
+{
+	ifaction ABOSS2FLYHURT
+	{
+		iffloordistl 16
+		{
+			globalsound CYBOSS_LAND
+			soundonce BOS2_PAIN
+			guts JIBS6 10
+			spawn BLOODPOOL
+			action ABOSS2FLYDIE
+			move BOSS2FLYGROUND
+			quake 20
+		}
+		break
+	}
+	ifaction ABOSS2FLYDIE
+	{
+		ifactioncount 1
+			action ABOSS2FLYDEAD
+		break
+	}
+	ifaction ABOSS2FLYDEAD
+	{
+		ifcount 100
+		{
+			action ABOSS2REGDEAD
+			// sizeat 70 53
+			debris SCRAP1 10
+			debris SCRAP2 10
+			debris SCRAP3 10
+			debris SCRAP4 10
+			debris SCRAP5 10
+			debris SCRAP6 10
+			quake 90
+		}
+	}
+	ifaction ABOSS2REGDEAD
+	{
+		ifactioncount 3
+		{
+			action ABOSS2REVIVING
+			
+		}
+	}
+	ifaction ABOSS2REVIVING
+	{
+		ifactioncount 7
+		{
+			cactor BOSS2
+			ai AIBOSS2RUNENEMY
+			sound BOS2_ATTACK 
+			cstat 257
+			// strength BOSS2FLYSTRENGTH
+			set temp inithp
+			div temp 2
+			seta[].extra temp
+		}
+	}
+	break
+}
+
+ifhitweapon
+{
+	debris SCRAP1 1
+	soundonce BOS2_PAIN
+	ifdead
+	{
+		ai AIBOSS2FLYFALL
+		cstat 0
+		set float -1
+	}
+}
+
+ifai AIBOSS2FLYSEEK
+ifcount 20
+{
+	ifrnd 4
+	  ifn bottarget -1
+		ife seemytarget YES
+			ife targetalive YES
+	{
+		sound BOS2_ATTACK
+		ai AIBOSS2FLYSHOOT
+	}
+}
+
+enda
+
+useractor enemystayput BOSS2FLYPUT BOSS2FLYSTRENGTH sizeat 60 45 cstator 257 cactor BOSS2FLY enda
+
+eventloadactor BOSS2FLYPUT sizeat 60 45 cstator 257 enda

@@ -1,0 +1,453 @@
+// --- Game Code -----------------------------------------
+
+
+onevent EVENT_GETMENUTILE
+    setvar RETURN 2507
+endevent
+
+
+defstate prepare_menu_coords
+    shiftvarl x 16
+    shiftvarl y 16
+
+    addvarvar x userdef[].m_origin_x
+    addvarvar y userdef[].m_origin_y
+ends
+
+
+defstate hint_gamefont
+    state prepare_menu_coords
+
+    // draw shadow
+    addvar x 65536
+    addvar y 65536
+    screentext STARTALPHANUM x y 40000 0 0 q 0  4 2072 0 327680 524288 0 0 8192 0 0 xdimminus ydimminus
+
+    // draw text
+    subvar x 65536
+    subvar y 65536
+    screentext STARTALPHANUM x y 40000 0 0 q 0 12 2072 0 327680 524288 0 0 8192 0 0 xdimminus ydimminus
+ends
+
+state drawhint
+    // Draws info about unlocking content
+    ifvarn dhbeaten 1
+    {
+        setvar x 50 setvar y 155 setvar q 135 state hint_gamefont // Finish the episode on 'COME GET SOME'
+        setvar x 50 setvar y 160 setvar q 136 state hint_gamefont // to unlock extra content.
+    }
+ends
+
+
+state drawextras
+    // Draws info about current status of unlockables
+    ifvarn dhbeaten 1
+    {
+        setvar x 50 setvar y 155 setvar q 134 state hint_gamefont // 'USER MAP' menu not yet unlocked.
+    }
+ends
+
+
+state drawrand
+    setvar x 50 setvar y 155 setvar q 138 state hint_gamefont // Quit to title.
+ends
+
+
+state togglerandomizer
+    ifvare dhbeaten 1
+    {
+        getplayer[THISACTOR].gm temp
+
+        ifvarand temp 4 // MODE_GAME
+        {
+            // Don't allow this
+        }
+        else
+        {
+            ifvare randenabled 0
+                setvar randenabled 1
+            else
+                setvar randenabled 0
+
+            stopsound 2
+            screensound 2
+        }
+    }
+ends
+
+
+define DH_MENU_NULL -2147483648 // INT32_MIN
+
+onevent EVENT_CHANGEMENU
+    ifvare RETURN 100
+        setvar usermap 0
+
+    ifvare RETURN 101
+    {
+        // User map menu
+        ifvarn dhbeaten 1
+        {
+            stopsound 2
+            stopsound 207
+            screensound 207
+            setvar RETURN DH_MENU_NULL
+        }
+        else
+        {
+            setvar usermap 1
+        }
+    }
+
+    getuserdef .m_volume_number selectedvolume
+
+    ifvare RETURN 110
+    {
+        // Toggle the randomizer yo
+        ifvare selectedvolume 1
+        {
+            stopsound 2
+            state togglerandomizer
+            setvar RETURN DH_MENU_NULL
+        }
+        else
+        {
+            // Allow usermaps
+            ifvarn usermap 1
+            {
+                // Show the intro
+                ifvare selectedvolume 0
+                    setuserdef .m_volume_number 3
+            }
+        }
+    }
+
+    // Display only our credits + EDuke32 credits
+    ifvare RETURN 991
+        setvar RETURN 993
+    ifvare RETURN 992
+        setvar RETURN 990
+endevent
+
+
+onevent EVENT_SOUND
+    getplayer[THISACTOR].gm temp
+
+    ifvarand temp 1 // MODE_MENU
+    {
+        ifvare RETURN INTRO4_B // vol42a
+            setvar RETURN -1
+        ifvare RETURN INTRO4_6 // vol43a
+            setvar RETURN -1
+    }
+
+    ifvarand temp 8 // MODE_EOL
+    {
+        ifvare RETURN VOL4ENDSND1
+            setvar RETURN -1
+
+        ifvare RETURN BIGBANG
+            setvar RETURN -1
+
+        ifvare RETURN DUKE_UNDERWATER
+        {
+            ifvarn endingsoundplayed 1
+            {
+                setvar RETURN OUTRO
+                setvar endingsoundplayed 1
+            }
+            else
+            {
+                setvar RETURN -1
+            }
+        }
+    }
+endevent
+
+
+defstate menu_bigfont
+    state prepare_menu_coords
+
+    screentext BIGALPHANUM x y 65536 0 0 q 10 p 2072 0 327680 1048576 0 0 1056770 0 0 xdimminus ydimminus
+ends
+
+defstate menu_gamefont
+    state prepare_menu_coords
+
+    screentext STARTALPHANUM x y 65536 0 0 q 0 textpalette 2072 0 327680 524288 0 0 262144 0 0 xdimminus ydimminus
+ends
+
+state drawselector
+    ifvarn dhbeaten 1
+    {
+        setvar p 1
+
+        // Randomizer
+        redefinequote 140 - Locked -
+        setvar x 160 setvar y 66 setvar q 140 state menu_bigfont
+
+        // User map
+        redefinequote 140 User Map
+        setvar x 160 setvar y 92 setvar q 140 state menu_bigfont
+    }
+    else
+    {
+        redefinequote 140 Randomizer
+
+        ifvarn randenabled 1
+        {
+            setvar textpalette 12
+            redefinequote 141 Disabled
+        }
+        else
+        {
+            setvar textpalette 0
+            redefinequote 141 Enabled
+        }
+
+        getplayer[THISACTOR].gm temp
+
+        ifvarand temp 4 // MODE_GAME
+            setvar p 1
+        else
+            setvar p 12
+
+        setvar x 160 setvar y 66 setvar q 140 state menu_bigfont
+
+        setvar x 170 setvar y 77 setvar q 141 state menu_gamefont
+
+        ifvare RETURN 100
+        {
+            getplayer[THISACTOR].gm temp
+            ifvarand temp 4
+            {
+                ifvare randenabled 1
+                {
+                    state drawrand
+                }
+            }
+        }
+    }
+ends
+
+
+defstate credits_bigfont
+    state prepare_menu_coords
+
+    screentext BIGALPHANUM x y 65536 0 0 q 0 0 2072 0 327680 1048576 0 0 1056770 0 0 xdimminus ydimminus
+ends
+
+state credits_minifont
+    state prepare_menu_coords
+
+    // draw shadow: shade 127, pal 4
+    addvar x 65536
+    addvar y 65536
+    screentext MINIFONT x y 65536 0 0 q 127 4 2072 0 262144 393216 65536 0 f 0 0 xdimminus ydimminus
+
+    // draw text
+    subvar x 65536
+    subvar y 65536
+    screentext MINIFONT x y 65536 0 0 q 0 p 2072 0 262144 393216 65536 0 f 0 0 xdimminus ydimminus
+ends
+
+state displaystory
+    // Draw the basic menu screen
+    setvar x 160 setvar y 100 state prepare_menu_coords rotatesprite x y 65536 0 MENUSCREEN 16 0 2056 0 0 xdimminus ydimminus
+    // The bar
+    setvar x 160 setvar y  19 state prepare_menu_coords rotatesprite x y 65536 0 MENUBAR 16 0 2056 0 0 xdimminus ydimminus
+    // DUKE HARD Credits
+    redefinequote 151 The Story So Far
+    setvar x 160 setvar y 12 setvar q 151 state credits_bigfont
+
+    redefinequote 152 High above the city of L.A.,
+    setvar x 160 setvar y 60 setvar q 152 setvar p 12 setvar f 8194 state credits_minifont
+    redefinequote 152 a team of aliens has seized a building,
+    setvar x 160 setvar y 66 setvar q 152 setvar p 12 setvar f 8194 state credits_minifont
+    redefinequote 152 taken hostages, and declared war.
+    setvar x 160 setvar y 72 setvar q 152 setvar p 12 setvar f 8194 state credits_minifont
+
+    redefinequote 152 One man has managed to escape...
+    setvar x 160 setvar y 90 setvar q 152 setvar p 12 setvar f 8194 state credits_minifont
+    redefinequote 152 An alien ass-kicker hiding somewhere inside.
+    setvar x 160 setvar y 96 setvar q 152 setvar p 12 setvar f 8194 state credits_minifont
+
+    redefinequote 152 He's alone, tired...
+    setvar x 160 setvar y 114 setvar q 152 setvar p 12 setvar f 8194 state credits_minifont
+    redefinequote 152 and the only chance anyone has got.
+    setvar x 160 setvar y 120 setvar q 152 setvar p 12 setvar f 8194 state credits_minifont
+
+    redefinequote 152 "^10Hmm... I'm going in^12", he shrugs.
+    setvar x 160 setvar y 138 setvar q 152 setvar p 12 setvar f 8194 state credits_minifont
+ends
+
+
+state displaycredits
+    // Draw the basic menu screen
+    setvar x 160 setvar y 100 state prepare_menu_coords rotatesprite x y 65536 0 MENUSCREEN 16 0 2056 0 0 xdimminus ydimminus
+    // The bar
+    setvar x 160 setvar y  19 state prepare_menu_coords rotatesprite x y 65536 0 MENUBAR 16 0 2056 0 0 xdimminus ydimminus
+    // DUKE HARD Credits
+    setvar x 160 setvar y 12 setvar q 150 state credits_bigfont
+
+    // Draw some Cycloid Emperor action
+    setvar x  70 setvar y  90 state prepare_menu_coords rotatesprite x y 42000 0 2750 16 0 2056 0 0 xdim ydim
+    setvar x 255 setvar y 160 state prepare_menu_coords rotatesprite x y 40000 0 2576 16 0 2056 0 0 xdim ydim
+
+    // Draw the credits
+    redefinequote 151 Project Lead
+    setvar x 160 setvar y 41 setvar q 151 setvar p 8 setvar f 8194 state credits_minifont
+    redefinequote 152 MetHy
+    setvar x 160 setvar y 47 setvar q 152 setvar p 12 setvar f 8194 state credits_minifont
+
+    redefinequote 151 Level Designers
+    setvar x 160 setvar y 56 setvar q 151 setvar p 8 setvar f 8194 state credits_minifont
+    redefinequote 152 Cage
+    setvar x 155 setvar y 62 setvar q 152 setvar p 12 setvar f 8193 state credits_minifont
+    redefinequote 152 Daedolon
+    setvar x 155 setvar y 68 setvar q 152 setvar p 12 setvar f 8193 state credits_minifont
+    redefinequote 152 Dukebot
+    setvar x 155 setvar y 74 setvar q 152 setvar p 12 setvar f 8193 state credits_minifont
+    redefinequote 152 Forge
+    setvar x 155 setvar y 80 setvar q 152 setvar p 12 setvar f 8193 state credits_minifont
+    redefinequote 152 High Treason
+    setvar x 155 setvar y 86 setvar q 152 setvar p 12 setvar f 8193 state credits_minifont
+    redefinequote 152 James Stanfield
+    setvar x 155 setvar y 92 setvar q 152 setvar p 12 setvar f 8193 state credits_minifont
+    redefinequote 152 MetHy
+    setvar x 155 setvar y 98 setvar q 152 setvar p 12 setvar f 8193 state credits_minifont
+    redefinequote 152 Micky C
+    setvar x 155 setvar y 104 setvar q 152 setvar p 12 setvar f 8193 state credits_minifont
+    redefinequote 152 Mikko Sandt
+    setvar x 165 setvar y 62 setvar q 152 setvar p 12 setvar f 8192 state credits_minifont
+    redefinequote 152 Mister Sinister
+    setvar x 165 setvar y 68 setvar q 152 setvar p 12 setvar f 8192 state credits_minifont
+    redefinequote 152 MRCK
+    setvar x 165 setvar y 74 setvar q 152 setvar p 12 setvar f 8192 state credits_minifont
+    redefinequote 152 Paul B
+    setvar x 165 setvar y 80 setvar q 152 setvar p 12 setvar f 8192 state credits_minifont
+    redefinequote 152 Steambull
+    setvar x 165 setvar y 86 setvar q 152 setvar p 12 setvar f 8192 state credits_minifont
+    redefinequote 152 Stumpy
+    setvar x 165 setvar y 92 setvar q 152 setvar p 12 setvar f 8192 state credits_minifont
+    redefinequote 152 Taivo
+    setvar x 165 setvar y 98 setvar q 152 setvar p 12 setvar f 8192 state credits_minifont
+
+    redefinequote 151 Beta Testing
+    setvar x 160 setvar y 113 setvar q 151 setvar p 8 setvar f 8194 state credits_minifont
+    redefinequote 152 Drek
+    setvar x 155 setvar y 119 setvar q 152 setvar p 12 setvar f 8193 state credits_minifont
+    redefinequote 152 MetHy
+    setvar x 155 setvar y 125 setvar q 152 setvar p 12 setvar f 8193 state credits_minifont
+    redefinequote 152 Mister Sinister
+    setvar x 165 setvar y 119 setvar q 152 setvar p 12 setvar f 8192 state credits_minifont
+    redefinequote 152 Steambull
+    setvar x 165 setvar y 125 setvar q 152 setvar p 12 setvar f 8192 state credits_minifont
+
+    redefinequote 151 Artwork
+    setvar x 100 setvar y 134 setvar q 151 setvar p 8 setvar f 8194 state credits_minifont
+    redefinequote 152 Daedolon
+    setvar x 100 setvar y 140 setvar q 152 setvar p 12 setvar f 8194 state credits_minifont
+    redefinequote 152 Cage
+    setvar x 100 setvar y 146 setvar q 152 setvar p 12 setvar f 8194 state credits_minifont
+
+    redefinequote 151 Programming
+    setvar x 160 setvar y 134 setvar q 151 setvar p 8 setvar f 8194 state credits_minifont
+    redefinequote 152 Daedolon
+    setvar x 160 setvar y 140 setvar q 152 setvar p 12 setvar f 8194 state credits_minifont
+    redefinequote 152 Hendricks266
+    setvar x 160 setvar y 146 setvar q 152 setvar p 12 setvar f 8194 state credits_minifont
+
+    redefinequote 151 Cutscenes
+    setvar x 220 setvar y 134 setvar q 151 setvar p 8 setvar f 8194 state credits_minifont
+    redefinequote 152 MetHy
+    setvar x 220 setvar y 140 setvar q 152 setvar p 12 setvar f 8194 state credits_minifont
+
+    redefinequote 151 Special Thanks to
+    setvar x 160 setvar y 155 setvar q 151 setvar p 8 setvar f 8194 state credits_minifont
+    redefinequote 152 Cage, Hendricks266, High Treason, Daedolon
+    setvar x 160 setvar y 161 setvar q 152 setvar p 12 setvar f 8194 state credits_minifont
+    redefinequote 151 ...AND YOU FOR PLAYING!
+    setvar x 160 setvar y 170 setvar q 151 setvar p 8 setvar f 8194 state credits_minifont
+ends
+
+defstate displaydukehardmenu
+    state dimprepare
+
+    // Menu stuff
+    definequote 134 'USER MAP' menu not yet unlocked.
+    definequote 135 Finish the episode on 'COME GET SOME'
+    definequote 136 to unlock extra content.
+    definequote 140 Randomizer
+    definequote 141 Disabled
+    definequote 143 You have already unlocked all of
+    definequote 144 the hidden extras, enjoy!
+    definequote 145 Other secrets await you as well!
+
+    definequote 150 DUKE HARD Credits
+    definequote 151 Project Lead
+    definequote 152 MetHy
+
+    ifvare RETURN 100 // episode
+    {
+        state drawselector
+        state drawextras
+    }
+
+    ifvare RETURN 110 // skill
+        state drawhint
+
+    ifvare RETURN 990 // credits
+        state displaycredits
+
+    ifvare RETURN 400 // story
+        state displaystory
+ends
+
+onevent EVENT_DISPLAYMENUREST
+    state displaydukehardmenu
+endevent
+onevent EVENT_DISPLAYINACTIVEMENUREST
+    state displaydukehardmenu
+endevent
+
+
+onevent EVENT_GAME
+    ifvare randenabled 0
+    {
+        ifvarg eog 0
+        {
+            setuserdef .eog 1
+            subvar eog 1
+        }
+
+        ifvarl eog 0
+        {
+            setuserdef .eog 0
+            addvar eog 1
+        }
+    }
+
+    getuserdef .eog temp
+
+    // should have a timebeforeexit temp2 check added later
+
+    ifvarn temp 0
+        setuserdef .volume_number 3 // Show correct outro
+endevent
+
+
+onevent EVENT_ENTERLEVEL
+    ifvare randenabled 0
+    {
+        setvar eog -2
+
+        ifvare VOLUME 0
+        {
+            // Should make more reliable
+            ifvare LEVEL 15
+            {
+                setvar eog 2
+            }
+        }
+    }
+endevent

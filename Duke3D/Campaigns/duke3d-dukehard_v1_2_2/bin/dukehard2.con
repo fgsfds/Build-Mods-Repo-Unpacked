@@ -1,0 +1,378 @@
+// --- Duke Hard Game Code -------------------------------
+
+
+/*********************************************************
+ * Level Order Randomizer       v 0.6        by Daedolon *
+ * - CUSTOM DUKE HARD EDITION -           & Hendricks266 *
+ *                                                       *
+ * This is a custom version of a mod that allows the     *
+ * complete randomization of a level order in any given  *
+ * episode.                                              *
+ *                                                       *
+ * For full documentation and a download link for the    *
+ * stand-alone version please visit:                     *
+ * http://forums.duke4.net/topic/7246-randomizer/        *
+ *                                                       *
+ * Cheers~                                               *
+ *********************************************************/
+
+
+// ### LEVEL RANDOMIZER BEGIN ###
+
+
+// #### DEFINE VARIABLES BEGIN ####
+
+
+gamevar showprogress      1 1    // Will show your progress throughout the game  (default: ON)
+
+gamevar temp              0 0    // Generic
+gamevar temp1             0 0
+gamevar temp2             0 0
+gamevar temp3             0 0
+gamevar temp4             0 0
+gamevar temp5             0 0
+
+gamevar x                 0 0
+gamevar y                 0 0
+gamevar p                 0 0
+gamevar q                 0 0
+gamevar f                 0 0
+
+gamevar for1              0 0
+gamevar for2              0 0
+
+gamevar LOGO_FLAGS  1573119 0 // Display neither
+gamevar eog               0 0
+gamevar endingsoundplayed 0 0
+
+gamevar dhbeaten       0 1024
+gamevar randenabled    0 1024
+
+gamevar debugmode         0 2    // Will display the level order when enabled
+gamevar random            0 0    // Variable for randomly generated level number
+gamevar duplicate         0 0    // Bool for possible duplicates
+gamevar valueokay         0 0    // Bool for aok
+gamevar volume            0 0    // Stores the VOLUME variable as a local variable for no reason
+gamevar volumesize        0 0    // Stores the size of the current episode
+gamevar uservalue         0 0
+gamevar currentmap        0 0    // Stores the value for what level to be loaded next
+gamevar currentlevel      0 0    // .last_level
+gamevar usermap           0 0
+gamevar playergm          0 1
+
+gamearray map 17                 // Initialize the map randomizer array size
+                                 // NOTE: You will need to set this value to the number of levels
+                                 //       in your custom modification's longest episode
+
+gamevar xdimminus         0 0
+gamevar ydimminus         0 0
+
+gamevar selectedvolume    0 0
+gamevar textpalette       0 0
+
+
+state dimprepare
+    setvarvar xdimminus xdim
+    subvar xdimminus 1
+    setvarvar ydimminus ydim
+    subvar ydimminus 1
+ends
+
+
+definequote 137 Congratulations!
+definequote 138 Quit to title to disable randomizer.
+
+
+// #### DEFINE VARIABLES ENDS ####
+
+
+// #### SET EVENTS BEGIN ####
+
+
+onevent EVENT_INIT
+    readgamevar uservalue
+    setvarvar dhbeaten uservalue
+endevent
+
+
+onevent EVENT_NEWGAME
+    // This event handles the randomization. Every time you
+    // start a new game from the main menu, it creates a new
+    // sequence of levels.
+
+    setvar endingsoundplayed 0
+
+    // Get the episode number
+    setvarvar volume VOLUME
+    setvar currentmap 0
+
+    // Make sure the array size is correct for each episode
+    switch volume
+        case 0										// Duke Hard
+            resizearray map 17
+        break
+    endswitch
+
+    // Get the number of levels in each map
+    getarraysize map volumesize
+
+    ifvare randenabled 1
+    {
+        setvar for1 0
+        whilevarvarn for1 volumesize				// Randomize the levels
+        {
+            setvarvar temp volumesize				// Make sure we're not generating more numbers than necessary
+            subvar temp 1							// For the uhh something
+
+
+            setvar valueokay 0
+            whilevarn valueokay 1					// Start the loop for checking
+            {
+                setvar duplicate 0					// Start fresh
+                randvarvar random temp				// Generate a new number
+
+                setvar for2 0
+                whilevarvarn for2 for1				// Check for duplicates
+                {
+                    ifvarvare map[for2] random		// If current is duplicate
+                    {
+                        addvar duplicate 1			// Mark it and weep
+                    }
+
+                    addvar for2 1
+                }
+
+                ifvare duplicate 0					// AOK
+                    setvar valueokay 1				// break
+            }
+
+            // Add the map to the queue
+            setarray map[for1] random
+
+            // addlogvar random
+
+            addvar for1 1
+        }
+
+        // Change the initial level
+        setvarvar temp map[0]
+        setuserdef .level_number temp
+    }
+    else
+    {
+        getuserdef .volume_number temp
+        ifvare temp 3
+            setuserdef .volume_number 0
+    }
+endevent
+
+
+onevent EVENT_ENTERLEVEL
+    // Add to the number of maps played
+    addvar currentmap 1
+endevent
+
+
+state drawgratz
+    state dimprepare
+
+    rotatesprite 160 100 65536 0 2504 16 0 8 0 0 xdimminus ydimminus
+
+    redefinequote 137 Congratulations!
+    screentext STARTALPHANUM 160  65 65536 0 0 137 0 12 16 0 5 8 0 0 8194 0 0 xdimminus ydimminus
+
+    redefinequote 137 You have completed the ^10DUKE HARD
+    screentext STARTALPHANUM 160  81 65536 0 0 137 0 12 16 0 5 8 0 0 8194 0 0 xdimminus ydimminus
+
+    redefinequote 137 episode on a difficulty of 'COME GET
+    screentext STARTALPHANUM 160  89 65536 0 0 137 0 12 16 0 5 8 0 0 8194 0 0 xdimminus ydimminus
+
+    redefinequote 137 SOME' or higher.
+    screentext STARTALPHANUM 160  97 65536 0 0 137 0 12 16 0 5 8 0 0 8194 0 0 xdimminus ydimminus
+
+    redefinequote 137 ^10Level Order Randomizer^12 and ^10level
+    screentext STARTALPHANUM 160 113 65536 0 0 137 0 12 16 0 5 8 0 0 8194 0 0 xdimminus ydimminus
+
+    redefinequote 137 ^10selection^12 (User Map) are now unlocked
+    screentext STARTALPHANUM 160 121 65536 0 0 137 0 12 16 0 5 8 0 0 8194 0 0 xdimminus ydimminus
+
+    redefinequote 137 and available in the main menu!
+    screentext STARTALPHANUM 160 129 65536 0 0 137 0 12 16 0 5 8 0 0 8194 0 0 xdimminus ydimminus
+ends
+
+
+onevent EVENT_DISPLAYBONUSSCREEN
+    state dimprepare
+
+    ifvare randenabled 1
+    {
+        // Change the level
+        getarraysize map temp2
+
+        ifvarvare currentmap temp2
+        {
+            setuserdef .eog 1
+        }
+        else
+        {
+            setvarvar temp map[currentmap]
+            setuserdef .level_number temp
+        }
+    }
+endevent
+
+onevent EVENT_ACTIVATECHEAT
+    // Come on? Fuckers!
+    setvar currentmap -1
+endevent
+
+
+state drawprogress
+    redefinequote 129 Levels
+
+    // Draws your level progress so you don't forget
+
+    setvar for1 0
+    setvarvar temp2 currentmap
+    subvar temp2 1
+    redefinequote 130 %s %d
+    whilevarvarn for1 currentmap
+    {
+        setvarvar temp3 map[for1]		// Map number
+        addvar temp3 1					// User-friendly
+
+        ifvarvare for1 temp2
+            redefinequote 130 %s^2 %d
+
+        qsprintf 129 130 129 temp3
+
+        addvar for1 1
+    }
+
+    getuserdef .screen_size temp
+
+    ifvarg temp 0
+    {
+        // Level order
+        screentext MINIFONT 8 6 65536 0 0 129 127  4 24 0 4 5 1 0 8192 0 0 xdimminus ydimminus // Levels (Shadow)
+        screentext MINIFONT 7 5 65536 0 0 129   0 12 24 0 4 5 1 0 8192 0 0 xdimminus ydimminus // Levels
+    }
+ends
+
+
+state drawdebug
+    // Draws the debug info
+
+    // Current episode
+    redefinequote 129 Volume  %d
+    qsprintf 129 129 volume
+
+    gametext 3072 12 6 129 0 4 16 0 0 xdim ydim
+    gametext 3072 10 5 129 0 12 16 0 0 xdim ydim
+
+    // Level order
+    state drawprogress
+
+    // Current level
+    redefinequote 129 Current  %d
+    qsprintf 129 129 currentmap
+
+    gametext 3072 12 26 129 0 4 16 0 0 xdim ydim
+    gametext 3072 10 25 129 0 12 16 0 0 xdim ydim
+ends
+
+
+onevent EVENT_DISPLAYMENUREST
+    andvarvar randenabled dhbeaten
+
+    // Randomizes even the first scramble. Remove if you want to customize this for MP.
+    ifvare randenabled 1
+        randvarvar random volumesize
+endevent
+
+
+onevent EVENT_DISPLAYREST
+    state dimprepare
+
+    ifvare randenabled 1
+    {
+        definequote 129 Number
+        definequote 130 Volume
+        definequote 131 Levels
+        definequote 132 
+        redefinequote 132 Current  %d
+        qsprintf 132 132 currentmap
+
+        // Will display the level order in-game if the debug mode is enabled
+        ifvarn debugmode 0
+            state drawdebug
+        else
+            ifvare showprogress 1
+                state drawprogress
+    }
+endevent
+
+
+onevent EVENT_GAME
+    ifvare randenabled 1
+    {
+        setuserdef .eog 0
+
+        // If all maps have been played, end the episode regardless
+        ifvarvare currentmap volumesize
+        {
+            // Yay
+            setuserdef .eog 1
+        }
+    }
+
+    getuserdef .player_skill temp3
+
+    ifvarg temp3 2
+    {
+        setvarvar temp volumesize
+        getuserdef .last_level temp2
+        subvar temp 1
+
+        ifvarn randenabled 1
+        {
+            ifvarvare temp2 temp
+            {
+                ifvarvare LEVEL temp
+                {
+                    ifvarg currentmap 15
+                    {
+                        setvar LOGO_FLAGS 524543
+
+                        setvar dhbeaten 1
+                        setvarvar uservalue dhbeaten
+                        savegamevar uservalue
+                    }
+                }
+            }
+        }
+    }
+endevent
+
+
+onevent EVENT_LOADACTOR
+    ifvare randenabled 1
+    {
+        // Generic event to tie up some loose ends
+
+        // Convert all secret level nukebuttons to normal
+        // ones in order to maintain level structure
+        ifactor 142
+        {
+            getactor[THISACTOR].pal temp
+            ifvare temp 14
+                setactor[THISACTOR].pal 0
+        }
+    }
+endevent
+
+
+// #### SET EVENTS ENDS ####
+
+
+// ### LEVEL RANDOMIZER ENDS ###

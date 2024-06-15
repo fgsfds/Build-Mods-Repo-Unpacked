@@ -1,0 +1,2468 @@
+// DUKEBOT NPC
+// sprites by 3D Realms and sebabdukeboss20, code by Dan Gaskill
+
+// define DUKEBOT 7470
+// define DUKEBOTCROUCH 7525
+define DUKEBIGHURT 40
+define DUKEHURT 80
+define MAXDUKETURN 48
+define JUMPDIST 384
+
+spriteflags DUKEBOT 4202497 // 37756929
+spriteflags DUKEBOTCROUCH 4202497
+
+// action ADUKESTAND			0  1  5  1  10
+action ADUKEJETPACK		5 1  5  1  20
+action ADUKERUN			10 4  5  1  10
+action ADUKEKICK1			30 1  5  1  15
+action ADUKEKICK2			35 1  5  1  25
+action ADUKEKICK3			30 1  5  1  15
+action ADUKEJUMP1			40 1  5  1  18
+action ADUKEJUMP2			45 1  5  1  9
+action ADUKEJUMP3			50 1  5  1  16
+action ADUKEFALL			50 1  5  1  20
+
+// from crouching actor
+action ADUKECROUCH		0 1  5  1  10 
+action ADUKECRAWL			0 3  5  1  18
+
+action ADUKESWIM		   70 4  5  1  13
+action ADUKEFLINTCH	   90 1  1  1  10
+action ADUKEDIE		   90 6  1  1  18
+action ADUKEDEAD		   95 1  1  1  10
+action ADUKEDOWN		   41 2  5  1  50
+
+// lastang is the angle she should face
+// angvel is the angle she should move in
+
+move DUKEJUMPVELS 300
+move DUKEJUMPCTF 300 -108
+move DUKEWANDERVELS 256
+move DUKESHRUNKVELS 38
+
+ai AIDUKEFLINTCH ADUKEFLINTCH BOTNOMOVE geth
+ai AIDUKERUN ADUKERUN STOPPED geth
+ai AIDUKEWANDER ADUKERUN STOPPED geth
+// ai AIDUKESTAND ADUKESTAND STOPPED geth
+ai AIDUKECROUCH ADUKECROUCH STOPPED geth
+ai AIDUKECRAWL ADUKECRAWL STOPPED geth
+ai AIDUKEJUMP ADUKEJUMP1 DUKEJUMPVELS jumptoplayer
+ai AIDUKEDIE ADUKEDIE STOPPED geth
+ai AIDUKEJETPACK ADUKEJETPACK STOPPED geth
+ai AIDUKESWIM ADUKESWIM STOPPED geth
+ai AIDUKEKICK ADUKEKICK1 STOPPED geth
+ai AIDUKESHRUNK ADUKERUN DUKESHRUNKVELS fleeenemy
+ai AIDUKEFROZEN ADUKESTAND STOPPED geth
+ai AIDUKEDOWN ADUKEDOWN STOPPED geth
+
+state dukeflintch
+
+	ifcount 8
+	ife stun 0
+	{
+		cactor DUKEBOT
+		ai AIDUKERUN
+	}
+
+ends
+
+
+state dukebotpainsounds
+
+		ifstrength SHELLYBIGHURT
+        {
+          ifrnd 64
+            sound DUKE_LONGTERM_PAIN2
+          else
+            ifrnd 64
+              sound DUKE_LONGTERM_PAIN3
+          else
+            ifrnd 64
+              sound DUKE_LONGTERM_PAIN4
+          else
+            sound DUKE_DEAD
+        }
+        else
+		ifstrength SHELLYHURT
+        {
+          ifrnd 64
+            sound DUKE_LONGTERM_PAIN5
+          else ifrnd 64
+            sound DUKE_LONGTERM_PAIN6
+          else ifrnd 64
+            sound DUKE_LONGTERM_PAIN7
+          else
+            sound DUKE_LONGTERM_PAIN8
+        }
+ends
+
+state dukebotweap
+	
+	set TMP_A thirdbaseval // save the current value
+	
+	ifn target -1
+	ifl xydist 2048
+	{
+		ifrnd 128 set thirdbaseval 9 else
+		set thirdbaseval 2
+	}
+	else
+	{
+		
+		rand temp 9
+		switch temp
+		case 0 case 1 case 2 case 3 case 4
+			set thirdbaseval 2 // shotgun
+			
+			ifn bottarget -1
+			ifl xydist 9216
+			ife actorvar[bottarget].shrunken 0
+			ifrnd 96
+			{
+				set TMP_A 500
+				ife pchar 1
+				set tempb bweaplevel[6]
+				else set tempb dweaplevel[6]
+				mul tempb 180
+				add TMP_A temp
+				set TMP_B plevel
+				mul TMP_B 50
+				
+				add TMP_A TMP_B
+				
+				ifle sprite[bottarget].extra TMP_A 
+					set thirdbaseval 6  
+			}
+			
+		break
+		
+		case 5 case 6 case 7
+			set thirdbaseval 9 // freezer
+		break
+		
+		case 8 case 9
+			set thirdbaseval 4 // rpg
+		break
+		endswitch
+		
+	}
+	
+	ifn bottarget -1 ife sprite[bottarget].pal 1 set thirdbaseval 2
+	ifn bottarget -1 ife sprite[bottarget].picnum GREENSLIME set thirdbaseval 2
+	
+	switch thirdbaseval
+	case 2
+		rand botclip 3 add botclip 2
+	break
+	case 4
+		rand botclip 2 add botclip 1
+	break
+	case 6
+		set botclip 5
+	break
+	case 9
+		rand botclip 10 add botclip 10
+	break
+	endswitch
+	
+	ife TMP_A thirdbaseval set float 0 else
+	set float -10
+
+ends
+
+state dukereviveplayer
+	ifai AIDUKERUN { cactor DUKEBOT ai AIDUKECROUCH }
+	ifai AIDUKESTAND { cactor DUKEBOT ai AIDUKECROUCH }
+	set bottarget -1
+	set spriteid player[].i
+	state facesprite
+	addphealth 1
+	// ifg sprite[player[].i].extra 50 addphealth 1
+	addstrength -1
+	ife sprite[].extra 30 setav[spriteid].ikicked -96
+	ifstrength 1 strength 1
+	ife sprite[player[].i].extra 10
+	{
+		ife pchar 2 globalsound DUKE_HEAL2
+		else
+		{
+		rand temp 3
+		ife temp 0 globalsound DUKE_HEAL1
+		ife temp 1 globalsound DUKE_HEAL2
+		ife temp 2 globalsound DUKE_HEAL3
+		ife temp 3 globalsound DUKE_HEAL4
+		}
+					
+	}
+	palfrom 16 0 10 63
+	espawn CAPTUREPLUS
+	seta[RETURN].x player[].posx
+	seta[RETURN].y player[].posy
+	seta[RETURN].z sprite[player[].i].z
+	seta[RETURN].pal 1
+	rand x 512
+	sub x 256
+	add x sprite[].x
+	seta[RETURN].x x
+	rand y 512
+	sub y 256
+	add y sprite[].y
+	seta[RETURN].y y
+ends
+
+state dukecheckorders
+
+	switch cmode
+		case 1 // awaiting command
+		break
+		case 2 // player pressed forward
+			ifhitspace
+			{
+				quote 142
+				ifrnd 84 sound DUKE_ROGER1 else
+				ifrnd 128 sound DUKE_ROGER2 else sound DUKE_ROGER3
+				set countvarc 0
+				set monstatus 70
+				set countvarb 0
+				seta[].htactorstayput sprite[].sectnum 
+				set cmode 0
+			}
+		break
+		case 3 // player pressed left
+			ifhitspace
+			{
+				ifl sprite[].extra healthbuff
+				{
+					state healmybot
+				}
+				else quote 1135			
+				set cmode 0
+			}
+		break
+		case 4 // player pressed right
+			ifhitspace
+			{
+				ifn player[].cursectnum -1
+				ifn sprite[myshelly].sectnum -1
+				ife shellysquish NO
+				ifp palive
+				ifg sprite[myshelly].xrepeat 22
+				ifg sprite[player[].i].xrepeat 32
+				{
+					set x sprite[myshelly].x
+					set y sprite[myshelly].y
+					set z sprite[myshelly].z
+					set angvar sprite[myshelly].ang
+					set mysector sprite[myshelly].sectnum
+					
+					setav[myshelly].monstatus 60 // trigger to switch characters
+					
+					ife switchmode 0
+					{
+						getp[].posz zdist add zdist 8192
+						setsprite myshelly player[].posx player[].posy z
+						changespritesect myshelly player[].cursectnum
+						setsprite player[].i x y z
+						changespritesect player[].i mysector
+						setp[].posx x
+						setp[].posy y
+						sub z 8192
+						setp[].posz z
+						setp[].ang angvar
+					}
+					 
+					
+					globalsound BONUS_SPEECH4 set pchar 0 
+					ifge dukecharge FULLBOTCHARGE
+					{
+						set dukecharge 0
+						set switchboost SWITCHBOOSTTIME
+					}
+					
+				}
+				set cmode 0
+			}
+		break
+	endswitch
+	
+	ifn cmode 0 
+	{ 
+		ife cmode -1 set cmode 0 
+		ifpdistg 4096 set cmode 0
+		// ifp pfacing nullop else set cmode 0
+		ife pdown YES set cmode 0
+		break 
+	}
+
+	add countvarb 1
+
+	ife monstatus 70
+	{
+		ife pdown YES
+		{
+			set monstatus 30
+			seta[].htactorstayput -1
+			break
+		}
+		iffloordistl 32
+		ifpdistl 1280
+		ifp pfacing
+		ifp palive
+		ifg countvarb 30
+		ife seeplayer YES
+		{
+			ifl player[].fta 30
+			quote 144
+			ifhitspace
+			{
+				ifrnd 84 sound DUKE_ROGER1 else
+				ifrnd 128 sound DUKE_ROGER2 else
+				sound DUKE_ROGER3
+				set monstatus 30
+				seta[].htactorstayput -1
+				quote 146
+				set countvarb 0
+			}
+		}
+		else ife player[].ftq 144 setp[].fta 0
+		break
+	}
+	else seta[].htactorstayput -1
+	
+	ifn vendor_screen 0 break
+	
+	ife subtitle_time 0
+	ife pdown NO
+	ife monstatus 30
+	iffloordistl 32
+	ifpdistl 1280
+	ifp pfacing
+	ifp palive
+	ifg countvarb 30
+	ifn gametype CTF ifn gametype CONTROL
+	ife seeplayer YES
+	{
+		ifinwater ifl sprite[player[].i].z sprite[].z nullop else
+		{
+			ifl player[].fta 60
+			quote 139
+			ifhitspace
+			{
+				ifl player[].fta 60
+				{ quote 139 setp[].fta 88 }
+				ifhitspace	
+				ife player[].newowner -1
+				ifl player[].fta 90
+				set cmode 1
+			}
+		}
+	}
+	else ife player[].ftq 139 setp[].fta 0
+ends
+
+state resetdukemultiplayer
+	cactor DUKEBOT
+	set monstatus 30
+	// strength DUKESTRENGTH
+	seta[].extra healthbuff
+	ai AIDUKESTAND
+	ife gametype DM
+	ifg pstarts 0
+	{
+		set tempb pstarts
+		sub tempb 1
+		rand temp tempb
+		set mysector 0
+		updatesectorz loadx[temp] loady[temp] loadz[temp] mysector
+		ifn temp -1
+		{
+			seta[].x loadx[temp]
+			seta[].y loady[temp]
+			seta[].z loadz[temp]
+			seta[].sectnum mysector
+		}
+	}
+	else
+	setsprite THISACTOR loadx[LEVEL] loady[LEVEL] loadz[LEVEL]
+	set bottarget -1
+	set navpoint -1
+ends
+
+state dukeshrunkstate
+
+  ifcount SHRUNKDONECOUNT
+  {
+    seta[].htextra -1
+    ai AIDUKESTAND
+	cactor DUKEBOT
+	ifl sprite[].extra 1 strength 1
+  }
+  else
+    ifcount SHRUNKCOUNT
+	{
+      sizeto 42 36
+	  ifgapzl 48 
+	  {
+			cactor DUKEBOTCROUCH 
+			action ADUKECROUCH	
+	  }
+	}
+  else
+    state genericshrunkcode
+
+ends
+
+state dukefrozenstate
+
+	ife ikicked -2 count 1000
+	ifcount THAWTIME
+    {
+	  ife team 1
+	  set monstatus 30
+	  else set monstatus 1
+	  set ikicked 0
+      ai AIDUKESTAND
+      getlastpal
+    }
+    else
+      ifcount FROZENDRIPTIME
+    {
+      ifactioncount 26
+      {
+        spawn WATERDRIP
+        resetactioncount
+      }
+    }
+    ifhitweapon
+    {
+      ifwasweapon FREEZEBLAST
+      {
+	    resetcount resetactioncount
+        strength 0
+        break
+      }
+
+      ifrnd 84
+        spawn BLOODPOOL
+	  lotsofglass 30
+	  // state lite_jibs
+      sound GLASS_BREAKING
+      // killit
+	  cactor DUKEBOTCROUCH
+	  ifrnd 128 sound DUKE_DOWNED1 else sound DUKE_DOWNED2
+	  ai AIDUKEDOWN
+	  quote 134
+	  set countvarc 0
+	  strength 5
+	  getlastpal
+    }
+
+ends
+
+state moveduke
+
+	ifmove BOTNOMOVE break
+	ifn padmove 0 { set angvel padang break }
+	// ifg gametype 0 set lastangvel angvel
+	getincangle temp lastangvel angvel
+	abs temp
+	shiftr temp 4
+	add SPRITELOTAG temp
+	sub SPRITELOTAG 8
+	
+	ifg SPRITELOTAG 128 set SPRITELOTAG 128
+	ifl SPRITELOTAG 56 set SPRITELOTAG 56
+	
+	// ifg ptargeted 0 
+	// ife pdown NO ife bottarget -1 
+	// ifpdistl 1280 
+	// add angvel 256
+	
+	ife pdown NO ife bottarget -1 
+	ifpdistl 2560
+	ifpdistg 844
+	ife seeplayer YES
+	ifn angvel player[].ang
+	ifn player[].cursectnum -1
+	ife sector[player[].cursectnum].lotag 0
+	ife mtype 0
+	{
+		set B YES
+		headspritesect spriteid player[].cursectnum
+		whilevarn spriteid -1
+		{
+			ife sprite[spriteid].picnum SECTOREFFECTOR
+			ife sprite[spriteid].lotag 14
+				set B NO
+			nextspritesect spriteid spriteid
+		}
+		ife B YES
+		{
+			geta[].x x2
+			geta[].y y2
+			sub x2 player[].posx
+			sub y2 player[].posy
+			getangle angvar x2 y2
+			
+			getincangle tempb angvar player[].ang
+			ifge tempb 0 add angvel 256 else sub angvel 256
+		}
+	}
+	
+	// hack to force bot to go towards player when down in matches
+	ifg gametype 0
+	ife pdown YES
+	ifai AIDUKERUN
+	ifpdistl 5120
+	ife seeplayer YES
+	{
+		geta[player[].i].x x2
+		geta[player[].i].y y2
+		sub x2 sprite[].x
+		sub y2 sprite[].y
+		getangle angvel x2 y2
+	}
+	
+	cos xvel angvel
+	sin tempb angvel
+	// shiftr xvel 6
+	// shiftr tempb 6
+	div xvel SPRITELOTAG
+	div tempb SPRITELOTAG
+	ifaction ADUKECRAWL { shiftr xvel 1 shiftr tempb 1 }
+	geta[].ang TMP_A
+	movesprite THISACTOR xvel tempb 0 CLIPMASK0 mtype
+	seta[].ang TMP_A
+	ifn mtype 0 set dodgetime 0
+	
+	set temp mtype
+	ifn temp 0
+	// ifg navpoint -1
+	{
+		// bumping something
+		sub temp 49152
+		ifl temp 16384 ifg temp -1 // bumping a sprite
+		{
+			set B NO
+			ife actorvar[temp].monstatus 1
+			ife actorvar[temp].team team set B YES
+			ifg gametype 0 ifvarand sprite[temp].cstat 16 set B YES
+			ife B YES
+			{
+				set x2 sprite[].x
+				add x2 256
+				rotatepoint sprite[].x sprite[].y x2 sprite[].y sprite[].ang x y
+				setsprite THISACTOR x y sprite[].z
+				seta[].htmovflag 0
+			}
+		}
+	}
+
+	set lastangvel angvel
+ends
+
+state dukestartwander
+
+	ifaction ADUKEFALL break
+	
+	set B 0
+	set xydist 2048
+	whilevarn B 32
+	{
+		add B 1
+		geta[].z z
+		sub z 4096
+		rand angvar 2047
+		cos mycos angvar
+		sin mysin angvar
+		hitscan sprite[].x sprite[].y z sprite[].sectnum mycos mysin 0 hitsector hitwall hitsprite hitx hity hitz CLIPMASK1
+		
+		set startx sprite[].x
+		sub startx hitx
+		mul startx startx
+		set y2 sprite[].y
+		sub y2 hity
+		mul y2 y2
+		add startx y2
+		sqrt startx startx
+		
+		ifg startx xydist set B 32
+		ife B 32 set angvel angvar
+		
+	}
+	cactor DUKEBOT
+	ai AIDUKEWANDER
+	// ifgapzl 48 { cactor DUKEBOTCROUCH action ADUKECRAWL }
+	ifl gametype 1
+	{
+		ifl countvarc 150
+		set crumbwait 30
+	}
+	else { set crumbwait 6 set dodgetime 6 }
+
+ends
+
+state dukewander
+
+	ifg gametype 0
+	{
+		state moveduke
+		ife crumbwait 0
+		{
+			cactor DUKEBOT
+			ai AIDUKERUN
+		}
+		break
+	}
+	
+	ife seeplayer YES { cactor DUKEBOT ai AIDUKERUN }
+	
+	ifai AIDUKERUN break
+	state moveduke
+	ifl crumbwait 1 sub crumbwait 1
+	
+	ifl crumbwait 0 
+	{
+	    ifpdistl 1280 { cactor DUKEBOT ai AIDUKESTAND set SPRITELOTAG 128 break }
+		ifrnd 2 state dukestartwander else
+		ifn mtype 0 { ifn gametype -1 set navpoint -1 state dukestartwander }
+	}
+	
+
+ends
+
+state dukehitscan
+
+	geta[].sectnum mysector
+	ife mysector -1 break
+	getceilzofslope mysector sprite[].x sprite[].y z
+	sub z sprite[].z
+	ifg z -16384 break
+	
+	ifai AIDUKECRAWL nullop else
+	ifai AIDUKERUN nullop else break
+
+	// we want to scan at waist heigh in the direction angvel
+	// then another scan much higher if there is an obstacle
+
+	geta[].z z
+	sub z 4096
+	cos mycos angvel
+	sin mysin angvel
+	hitscan sprite[].x sprite[].y z sprite[].sectnum mycos mysin 0 hitsector hitwall hitsprite hitx hity hitz CLIPMASK1
+
+	set startx sprite[].x
+	sub startx hitx
+	mul startx startx
+	set y2 sprite[].y
+	sub y2 hity
+	mul y2 y2
+	add startx y2
+	sqrt startx startx
+	
+
+	set temp NO
+	ifl startx JUMPDIST set temp YES
+	ifn mtype 0 { set startx 256 set temp YES }
+		
+	ifn hitsprite -1 
+	{
+		ife actorvar[hitsprite].monstatus 1 set temp NO
+		ife sprite[hitsprite].picnum APLAYER set temp NO
+	}
+	ife pdown YES ifpdistl 644 set temp NO
+	// iffloordistl 4
+	ife sprite[].zvel 0
+	ife temp YES
+	{
+		sub z 18432
+		hitscan sprite[].x sprite[].y z sprite[].sectnum mycos mysin 0 tempd hitwall hitsprite hitx hity hitz CLIPMASK1
+		
+		// ifn hitsector -1
+		// ife hitsector tempd break
+		
+		set starty sprite[].x
+		sub starty hitx
+		mul starty starty
+		set y2 sprite[].y
+		sub y2 hity
+		mul y2 y2
+		add starty y2
+		sqrt starty starty
+		
+		ifg starty startx // new scan goes farther
+		{
+			sub starty startx
+			ifg starty 256 // enough space to stand on
+			{
+				cactor DUKEBOT
+				ai AIDUKEJUMP
+				ifg gametype 0 move DUKEJUMPCTF geth getv
+			}
+		}
+	}
+	else ifg startx 384 ifl startx 1280
+	ife gametype 0
+	ifn player[].cursectnum sprite[].sectnum ifn player[].cursectnum -1
+	ifpdistg 1560 operate
+
+ends
+
+state dukefindplayercrumb
+
+	ife monstatus 70 break // ordered to wait for player
+	ife seeplayer YES { set shotpitch 0 set countvarc 0 }
+	else 
+	{ 
+		add shotpitch 1 add countvarc 1 
+		ifg ptargeted 0 { add shotpitch 1 add countvarc 2 }
+	}
+	
+	ifg shotpitch 120
+	{
+		set savedvalue -1
+		set xydist2 0
+		headspritestat spriteid 999
+		ife spriteid -1
+		{
+			setsprite THISACTOR player[].posx player[].posy player[].posz
+			cactor DUKEBOT
+			ai AIDUKERUN
+			set shotpitch 0
+		}
+		else
+		{
+			whilevarn spriteid -1
+			{
+				canseespr spriteid player[].i temp
+				
+				ifg countvarc 180
+				{
+					ife temp YES set savedvalue spriteid
+				}
+				else
+				{
+					ife bottarget -1
+					ife temp NO set savedvalue spriteid
+				}
+				
+				
+				nextspritestat spriteid spriteid
+				ifn savedvalue -1 set spriteid -1
+			}
+			ifn savedvalue -1
+			{
+				setsprite THISACTOR sprite[savedvalue].x sprite[savedvalue].y sprite[savedvalue].z
+				cactor DUKEBOT
+				ai AIDUKERUN
+				ifp phigher ai AIDUKEJETPACK
+				set shotpitch 0
+			}
+		}
+	}
+
+	ifg crumbwait 0 { sub crumbwait 1 break }
+
+
+	ife seeplayer YES ifawayfromwall set xydist2 4096
+	else set xydist2 2048
+
+	set B -1 // reset crumb and search from scratch
+	// linked list of sprites already in order from most recent to oldest
+	headspritestat spriteid 999
+	whilevarn spriteid -1
+	{
+		ldist xydist THISACTOR spriteid
+		ifg xydist 384 ifl xydist xydist2
+		ifge actorvar[spriteid].mtype lastcrumb
+		{
+			canseespr THISACTOR spriteid temp
+			ife temp YES
+			{ set B spriteid getav[B].mtype lastcrumb }
+		}
+		
+		nextspritestat spriteid spriteid
+		ifn B -1 set spriteid -1
+	}
+
+	ife B -1 // longer distance check
+	{
+		mul xydist2 2
+		headspritestat spriteid 999
+		whilevarn spriteid -1
+		{
+			ldist xydist THISACTOR spriteid
+			ifg xydist 384 ifl xydist xydist2 
+			ifge actorvar[spriteid].mtype lastcrumb
+			{
+				canseespr THISACTOR spriteid temp
+				ife temp YES
+				{ set B spriteid getav[B].mtype lastcrumb }
+			}
+			nextspritestat spriteid spriteid
+			ifn B -1 set spriteid -1
+		}
+	}
+	
+	ife B -1
+	ife seeplayer YES
+	getp[].i B
+
+	ifn B -1 // face crumb
+	{
+		geta[B].x x
+		geta[B].y y
+		sub x sprite[].x
+		sub y sprite[].y
+		getangle angvel x y
+		set droptile B
+		ifai AIDUKEWANDER { cactor DUKEBOT ai AIDUKERUN }
+		
+		ifai AIDUKEJETPACK nullop else
+		ifn mtype 0 // bumping into something
+		{
+
+			set temp mtype
+			add temp 16384
+			ife temp player[].i break
+				
+			set crumbwait 20
+			geta[].z z
+			geta[B].z temp
+			sub z temp
+			ifg z 10240 // jump trigger
+			{
+				ifinwater nullop else
+				ifai AIDUKEJUMP
+				{
+					ifaction ADUKEJUMP2
+					{
+						cactor DUKEBOT
+						ai AIDUKEJETPACK
+						sound DUKE_JETPACK_ON
+					}
+				}
+				else
+				iffloordistl 4
+				{
+					cactor DUKEBOT
+					ai AIDUKEJUMP
+					ifg gametype 0 move DUKEJUMPCTF geth getv
+				}
+			}
+			
+		}
+	}
+	else 
+	{
+		set droptile -1
+		ifg shotpitch 90
+		{
+			ifai AIDUKEWANDER nullop else state dukestartwander
+		}
+		
+	}
+	
+	
+	
+
+ends
+
+state dukejetpack
+
+	set FEMFALLDMG 0
+	ifactorsound THISACTOR DUKE_JETPACK_IDLE nullop else sound DUKE_JETPACK_IDLE
+	
+	getincangle temp lastangvel angvel
+	ifl temp 0 mul temp -1
+	shiftr temp 4
+	add SPRITELOTAG temp
+	sub SPRITELOTAG 8
+	
+	ifg SPRITELOTAG 160 set SPRITELOTAG 160
+	ifl SPRITELOTAG 80 set SPRITELOTAG 80
+	
+	cos xvel angvel
+	sin tempb angvel
+
+	div xvel SPRITELOTAG
+	div tempb SPRITELOTAG
+	set targethigher NO
+	ifl gametype 1 { getp[].posz zdist ifp phigher set targethigher YES } else
+	{
+		ifg navpoint -1 geta[navpoint].z zdist
+		else
+		ifn bottarget -1 { geta[bottarget].z zdist sub zdist 8192 }
+		ifl zdist sprite[].z set targethigher YES
+	}
+	sub zdist 2560
+	
+	sub zdist sprite[].z
+	ifn mtype 0 
+	{
+		ife targethigher YES sub zdist 1560 else 
+		iffloordistl 512
+		{
+			stopactorsound THISACTOR DUKE_JETPACK_IDLE
+			sound DUKE_JETPACK_OFF
+			ai AIDUKESTAND
+		}
+	}
+	
+	ifl zdist -2560 set zdist -2560
+	ifg zdist 2560 set zdist 2560
+	ifceilingdistl 24 ifl zdist 0 set zdist 0
+	
+	// add adjustments for gapz and ceilingdist
+	set dodgetime 0
+	
+	ife targethigher NO
+	ifn droptile -1 // most recent crumb followed
+	{
+		geta[droptile].z z
+		add z 4096
+		ifl sprite[].z z add zdist 2048
+		iffloordistl 64 nullop else
+		{
+			sub z 6144
+			ifl z sprite[].z sub zdist 1560
+		}
+	}
+	
+	ifp pjetpack ifpdistl 1280 nullop else
+	movesprite THISACTOR xvel tempb zdist 16385 mtype
+	
+	
+	set lastangvel angvel
+	
+	ife targethigher NO
+	ifpdistl 2048
+	ife sprite[].sectnum player[].cursectnum
+	ifp ponground
+	{
+		stopactorsound THISACTOR DUKE_JETPACK_IDLE
+		sound DUKE_JETPACK_OFF
+		ai AIDUKESTAND
+	}
+	
+	ifcount 30 iffloordistl 8
+	{
+		stopactorsound THISACTOR DUKE_JETPACK_IDLE
+		sound DUKE_JETPACK_OFF
+		ai AIDUKESTAND
+	}
+	ifvarand player[].player_par 1
+	{
+		geta[].z z
+		sub z 6144
+		seta[].z z
+		espawn BIGSMOKE
+		seta[RETURN].cstat 514
+		add z 6144
+		seta[].z z
+	}
+	
+	ifonwater nullop else
+	ifg gametype 0
+	ifrnd 8
+	{
+		stopactorsound THISACTOR DUKE_JETPACK_IDLE
+		sound DUKE_JETPACK_OFF
+		ai AIDUKESTAND
+	}
+	
+ends
+
+state dukeswimstate
+
+	set FEMFALLDMG 0
+	set mysector sprite[].sectnum
+	updatesectorz sprite[].x sprite[].y sprite[].z mysector
+	ifn sprite[].sectnum mysector ifn mysector -1 { changespritesect THISACTOR mysector }
+	
+	set B YES
+	ife pdown NO ife player[].cursectnum sprite[].sectnum ifpdistl 2048
+	set B NO
+	ife B YES
+	{
+		getincangle temp lastangvel angvel
+		ifl temp 0 mul temp -1
+		shiftr temp 4
+		add SPRITELOTAG temp
+		sub SPRITELOTAG 8
+		
+		ifg SPRITELOTAG 160 set SPRITELOTAG 160
+		ifl SPRITELOTAG 80 set SPRITELOTAG 80
+		
+		cos xvel angvel
+		sin tempb angvel
+
+		div xvel SPRITELOTAG
+		div tempb SPRITELOTAG
+		
+		ifn droptile -1 // most recent crumb followed
+			geta[droptile].z zdist
+		else
+		getp[].posz zdist
+		add zdist 8192
+		sub zdist sprite[].z
+		
+		ifl zdist -2560 set zdist -2560
+		ifg zdist 2560 set zdist 2560
+		ifceilingdistl 12 ifl zdist 0 set zdist 0
+		iffloordistl 12 ifg zdist 0 set zdist 0
+		
+		set dodgetime 0
+		ifpdistg 512
+		movesprite THISACTOR xvel tempb zdist CLIPMASK0 mtype
+		set lastangvel angvel
+		
+		ife pdown YES 
+		ifge sprite[].extra 30
+		ife team 1
+		{
+			ldist temp THISACTOR player[].i
+			ifl temp 768
+			ifpdistl 1560
+			state dukereviveplayer
+		}
+	}
+	ifrnd 12 spawn WATERBUBBLE
+	
+	getplayer[].cursectnum mysector
+		ifn mysector -1
+		gets[mysector].lotag tempc
+		else set tempc 0
+	set tempd 0 // to be used as flag during loop below
+	ifn tempc 2 // player not in water!
+	{
+		geta[].sectnum mysector
+		ifn mysector -1
+		{
+			headspritesect spriteid mysector
+			whilevarn spriteid -1
+			{
+				ife sprite[spriteid].picnum SECTOREFFECTOR
+				ife sprite[spriteid].lotag 7
+				{
+					geta[spriteid].statnum tempb
+					geta[spriteid].hitag B // B is shared by the SE in the sector it goes to
+					headspritestat temp 9
+					whilevarn temp -1
+					{
+						ife sprite[temp].lotag 7
+						ifn spriteid temp
+						ife sprite[temp].hitag B // the matching water SE
+						ife sprite[temp].sectnum player[].cursectnum
+						{
+							geta[spriteid].x x
+							sub x sprite[temp].x
+							geta[spriteid].y y
+							sub y sprite[temp].y
+							changespritesect THISACTOR sprite[temp].sectnum
+							geta[].x x2
+							sub x2 x
+							seta[].x x2
+							geta[].y y2
+							sub y2 y
+							seta[].y y2
+							seta[].z player[].posz
+							set tempd YES
+						}
+						nextspritestat temp temp
+						ife tempd YES set temp -1
+					}
+				}
+				nextspritesect spriteid spriteid
+				ife tempd YES set spriteid -1
+			}
+		}
+	}
+
+ends
+
+state dukejetpackcheck
+
+	ifp pjumping break
+	ifp pfalling break
+	ifceilingdistl 64 break
+
+	getp[].posz z
+	add z 32768 // 24576
+	ifl z sprite[].z // player way above you
+	// ifn sprite[].sectnum player[].cursectnum 
+	ife player[].poszv 0
+	ife seeplayer YES
+	{
+		cactor DUKEBOT
+		ai AIDUKEJETPACK
+		sound DUKE_JETPACK_ON
+	}
+	else
+	ifp phigher
+	ifp pjetpack
+	ifpdistg 1560
+	{
+		cactor DUKEBOT
+		ai AIDUKEJETPACK
+		sound DUKE_JETPACK_ON
+	}
+	else
+	ifg FEMFALLDMG 39
+	iffloordistl 64
+	{
+		ifonwater nullop else
+		{
+			cactor DUKEBOT
+			ai AIDUKEJETPACK
+			sound DUKE_JETPACK_ON
+		}
+	}
+ends
+
+defstate dukestartdodge
+
+	state incoming_eval
+	
+	ife actorvar[myspawner].monstatus 1
+	{
+		ifl x xydist sub angvel 256 else
+		add angvel 256
+	}
+		
+	ife team 0 set dodgetime 15 else
+	set dodgetime 12
+	set crumbwait 10
+	set myspawner -1
+	cactor DUKEBOT
+	ai AIDUKERUN
+		
+ends
+
+state dukefollowplayer
+
+	set B NO
+	
+	ife pdown YES
+	ifpdistl 1560
+	ife team 1
+	{
+		ifge sprite[].extra 30
+		{
+			
+			ldist temp THISACTOR player[].i
+			ifl temp 768
+			{	
+				ifonwater set B YES
+				ifinwater set B YES
+				ifai AIDUKESTAND set B YES
+				ifai AIDUKECROUCH set B YES
+				ifai AIDUKERUN set B YES
+				ifn dodgetime 0 set B NO
+				ife seeplayer NO
+				{
+					ifonwater nullop else set B NO
+					ifinwater nullop else set B NO
+				}
+			}
+		}
+		else
+		ifg player[].firstaid_amount 0
+			state healmybot
+		else ife bigmsgcount 0
+		{
+			set bigmsgcount 64
+			set bigmsg 1159
+		}
+	}
+	
+	ife B YES
+		state dukereviveplayer
+		
+	// hack to make her leave standing position to kick an enemy if she is reloading
+	ifgapzl 48 nullop else
+	ifpdistl FOLLOWRANGE // MAXRANGE
+	ifn bottarget -1
+	ifn thirdbaseval 4
+	ife ikicked 0
+	ife FEMKILLCOUNT 0
+	ifn monstatus 70 // don't do this if ordered to wait for player
+	iffloordistl 4
+	{
+		set temp NO
+		
+		ifg sprite[].extra SHELLYBIGHURT
+		// don't run into bosses!
+		ifl actorvar[bottarget].inithp 1000
+		ifn sprite[bottarget].picnum GREENSLIME
+		ifn sprite[bottarget].picnum ROTATEGUN
+		ifl targetdist 3072
+		set temp YES
+		
+		ifl targetdist 8192
+		ifn actorvar[bottarget].shrunken 0 set temp YES
+		
+		ife temp YES
+		{
+			ife avoid_melee YES
+			ife actorvar[bottarget].shrunken 0
+			{
+				ifl float 0 
+				{
+					set myspawner bottarget
+					state dukestartdodge
+				}
+			}
+			else
+			{
+				state moveduke
+				cactor DUKEBOT
+				ifai AIDUKERUN nullop else ai AIDUKERUN
+				set initflags bottarget
+				break
+			}
+		}
+	}
+	
+
+	findplayer xydist
+	ife monstatus 70 set xydist 64 // waiting for player, not following
+	else ife team 1 set monstatus 30 // failsafe
+	else set monstatus 1
+	
+	ife player[].cursectnum -1 set xydist2 768
+	else
+	{
+		ifg PSHRINKING 0 { set xydist 64 set xydist2 2048 } else
+		ife pdown YES set xydist2 768 else
+		ife bottarget -1 ifg ptargeted 0 set xydist2 768
+		else
+		ifn bottarget -1 ifg targetdist 4096 ifl targetdist 10240 set xydist2 FOLLOWRANGE
+		else
+		ife sprite[].sectnum player[].cursectnum set xydist2 FOLLOWRANGE else
+		ifg sector[player[].cursectnum].lotag 2 set xydist2 768 else
+		ifg sector[player[].cursectnum].hitag 0 set xydist2 768 else
+		ife seeplayer YES 
+		{
+			ifp pfacing set xydist2 1280
+			else
+			set xydist2 3072
+		}
+		else set xydist2 1560
+	}
+	
+	ifg xydist xydist2
+	{
+		ifn FEMKILLCOUNT 0 ifai AIDUKECROUCH ifg countvar 10 set countvar 9
+		
+		ifg countvar 10
+		{
+		
+			ifai AIDUKEJETPACK nullop 
+			else
+				state dukejetpackcheck
+			
+			state moveduke
+			
+			
+			ifai AIDUKESTAND ai AIDUKERUN
+			
+			ifai AIDUKERUN
+			ifn mtype 0 ife gametype 0
+			{
+				set temp player[].player_par
+				mod temp 15
+				ife temp 0
+				{
+					cactor DUKEBOT
+					ai AIDUKEJUMP
+					move DUKEJUMPCTF geth
+				}
+			}
+			
+			ifai AIDUKECROUCH ai AIDUKECRAWL
+			
+			ifai AIDUKECRAWL
+			{
+				ifgapzl 48 nullop else
+				{
+					cactor DUKEBOT
+					ai AIDUKERUN
+				}
+			}
+		}
+		add countvar 1
+	}
+	else
+	{
+		ifp pfacing
+		ifpdistl 1280
+		ifg forwinput 2
+		ife pdown NO
+		{
+			resetcount
+			set angvel player[].ang
+			state moveduke
+			
+			ifaction ADUKEFALL break
+			
+			ifai AIDUKESTAND ai AIDUKERUN
+			ifai AIDUKECROUCH ai AIDUKECRAWL
+			
+			ifai AIDUKECRAWL
+			ife FEMKILLCOUNT 0
+			{
+				ifgapzl 48 nullop else
+				{
+					cactor DUKEBOT
+					ai AIDUKERUN
+				}
+			}
+			break
+		}
+		set countvar 0
+		
+		ifaction ADUKEFALL break
+		
+		ifai AIDUKERUN 
+		{
+			ifonwater
+			{
+				cactor DUKEBOT
+				ai AIDUKESTAND
+			}
+			else
+			ifrnd 128
+			{
+				cactor DUKEBOT
+				ai AIDUKESTAND
+			}	
+			else
+			{
+				cactor DUKEBOTCROUCH
+				ai AIDUKECROUCH
+			}
+			set SPRITELOTAG 128 
+		}
+		ifai AIDUKECRAWL ai AIDUKECROUCH
+	}
+ends
+
+state dukekickcode
+
+	ifn bottarget -1
+	{
+		geta[bottarget].x x2
+		geta[bottarget].y y2
+		sub x2 sprite[].x
+		sub y2 sprite[].y
+		getangle angvel x2 y2
+
+		dist xydist THISACTOR bottarget
+		
+		ifg xydist 512
+		{
+			cos xvel angvel
+			sin tempb angvel
+			shiftr xvel 7
+			shiftr tempb 7
+			movesprite THISACTOR xvel tempb 0 CLIPMASK0 mtype
+		}
+	}
+
+	set myspawner -1
+	ifaction ADUKEKICK1 ifactioncount 1
+	{
+		action ADUKEKICK2
+		ifn bottarget -1
+		{
+			ifl xydist 1024
+			{
+				sound KICKIMPACT
+				seta[bottarget].htowner THISACTOR
+				seta[bottarget].htang sprite[].ang
+				seta[bottarget].htextra KNEE_WEAPON_STRENGTH
+				seta[bottarget].htpicnum KNEE
+				set ikicked 150
+				set initsprite -1
+			}
+		}
+	}
+	ifaction ADUKEKICK2 ifactioncount 1
+	{
+		action ADUKEKICK3
+	}
+	ifaction ADUKEKICK3 ifactioncount 1
+	{
+		ai AIDUKESTAND
+	}
+	
+
+ends
+
+state dukefallhandling
+
+	ifai AIDUKEJETPACK break
+	ifai AIDUKESWIM break
+
+	ifg sprite[].zvel 0
+		add FEMFALLDMG 2
+		
+	ifg FEMFALLDMG 6
+	{
+		ifactor DUKEBOT
+		{
+		ifaction ADUKESTAND action ADUKEFALL else
+		ifaction ADUKERUN action ADUKEFALL
+		}
+		ifactor DUKEBOTCROUCH { cactor DUKEBOT ai AIDUKESTAND action ADUKEFALL }
+		// ifaction ADUKECROUCH { cactor DUKEBOT ai AIDUKESTAND action ADUKEFALL }
+	}
+	
+	ife globalnofall YES ifg FEMFALLDMG 8 set FEMFALLDMG 8
+		
+	iffloordistl 4
+	{
+		ifonwater set FEMFALLDMG 0
+		ifinwater set FEMFALLDMG 0
+		ifg FEMFALLDMG 0
+		{
+			sub FEMFALLDMG 40
+			ifg FEMFALLDMG 0
+			{
+				state dukebotpainsounds
+				// seta[].htextra FEMFALLDMG
+				// seta[].htpicnum SHOTSPARK1
+				// seta[].htowner THISACTOR
+				// ifg FEMFALLDMG 15 { sound SQUISHED guts JIBS6 4 }
+				ifonwater
+				{
+					cactor DUKEBOT
+					ai AIDUKESTAND
+				}
+				cactor DUKEBOTCROUCH	
+				ai AIDUKECROUCH
+			}
+			set FEMFALLDMG 0
+		}
+		ifaction ADUKEFALL
+		{
+			ifonwater
+			{
+				cactor DUKEBOT
+				ai AIDUKESTAND
+				break
+			}
+			ifai AIDUKESTAND { cactor DUKEBOTCROUCH ai AIDUKECROUCH }
+			ifai AIDUKERUN action ADUKERUN
+		}
+	}
+
+
+ends
+
+state dukemultiplayer
+
+	ifai AIDUKESTAND
+	ife gametype SURVIVAL ifl player[].player_par 150 break
+	
+	// hack to make her leave standing position to kick an enemy if she is reloading
+	ifgapzl 48 nullop else
+	ifn bottarget -1
+	ifn redcarrier THISACTOR
+	ifn bluecarrier THISACTOR
+	ifn thirdbaseval 4
+	ife ikicked 0
+	ife FEMKILLCOUNT 0
+	ifn monstatus 70 // don't do this if ordered to wait for player
+	iffloordistl 4
+	// don't run into bosses!
+	ifl actorvar[bottarget].inithp 1000
+	ifn avoid_melee YES
+	ifn sprite[bottarget].picnum GREENSLIME
+	ifn sprite[bottarget].picnum ROTATEGUN
+	{
+		dist xydist THISACTOR bottarget
+		ifl xydist 3072
+		{
+			set angvel initsprite
+			set navpoint -1
+			state moveduke
+			cactor DUKEBOT
+			ifai AIDUKERUN nullop else ai AIDUKERUN
+			break
+		}
+	}
+	
+	
+	// ifai AIDUKEJETPACK nullop 
+	// else
+		// state dukejetpackcheck
+	
+	ifai AIDUKEJUMP nullop else
+	state moveduke
+	
+	ifai AIDUKESTAND ai AIDUKERUN
+	
+	ifai AIDUKECROUCH ai AIDUKECRAWL
+	
+	ifai AIDUKECRAWL
+	ife FEMKILLCOUNT 0
+	{
+		ifgapzl 48 nullop else
+		{
+			cactor DUKEBOT
+			ai AIDUKERUN
+		}
+	}
+	
+	
+	ifn mtype 0 { set navpoint -1 ifn gametype -1 state dukestartwander }
+	ifl navpoint 0 ife crumbwait 0 state dukestartwander
+	
+	ife gametype SURVIVAL
+	iffloordistl 8 ifonwater
+	ifl navpoint 0
+		setsprite THISACTOR loadx[LEVEL] loady[LEVEL] loadz[LEVEL]
+
+ends
+
+state dukebotcode
+
+	ifg stun 0 sub stun 1
+	ife pchar 0 ife myshelly THISACTOR
+	ifn monstatus 60
+	{
+		set monstatus 60
+		ifstrength 10 strength 10
+	}
+	
+	seta[].mdflags 16
+	ife monstatus 60
+	{
+		set monstatus 30
+		ifvarand startmode 2
+		{
+			cactor SHELLY
+			ai AISHELLYSTAND
+			sizeat 23 21
+			cstat 257
+			set navpoint -1
+			set botclip 30
+			set thirdbaseval 3
+			set float -30
+			seta[].pal shellypal
+			break
+		}
+		else
+		ifvarand startmode 4
+		{
+			cactor WESBOT
+			ai AIWESBOTSTAND
+			sizeat 22 20
+			cstat 257
+			set navpoint -1
+			set botclip 3
+			set thirdbaseval 2
+			set float -20
+			seta[].pal wespal
+			break
+		}
+	}
+
+	ifai AIDUKEJETPACK seta[].zvel 0 else
+	ifai AIDUKESWIM seta[].zvel 0 else
+	fall
+	
+	ifai 0
+	{
+		set SPRITELOTAG 128
+		set botclip 3
+		set thirdbaseval 2
+		set initflags -1
+		getp[].max_actors_killed temp
+		sub temp 1
+		setp[].max_actors_killed temp
+		cstator 257
+		sizeat 42 36
+		ifvarand monstflags 131072 
+		{ 
+			seta[].extra bluebaseval
+			clipdist 32 spritepal 17 
+		} 
+		else
+		{
+			clipdist 20
+			seta[].pal dukepal
+		}
+		geta[].ang lastang
+		
+		orvar monstflags YES
+		ifvarand monstflags 131072 
+			ai AIDUKESTAND
+		else
+		{
+			ifl shellyhp 10 set shellyhp 10
+			ife gametype SURVIVAL { strength 200 set shellyhp 200 }
+			else ife attmode YES { set shellyhp pdamage seta[].extra pdamage }
+			ifspawnedby APLAYER { seta[].extra shellyhp orvar startmode 1 }
+			ifcansee ifpdistl 4096
+			{
+				set monstatus 30
+				set team 1
+				ai AIDUKESTAND
+				ifg player[].player_par 60
+				{
+					ife pchar 1
+					sound DUKE_GREET1
+					else
+					sound BONUS_SPEECH4
+				}
+			}
+			else { seta[].extra shellyhp seta[].htextra -1 break }
+		}
+	}
+	
+	ife spawnprotect 0
+	ife monstatus 30 ifspritepal 33 seta[].pal dukepal
+	
+	ife team 1
+	{
+		ifcansee set seeplayer YES else set seeplayer NO
+		ifn monstatus 2 ifge sprite[].extra 30 set shellyinmap 10
+		set myshelly THISACTOR
+		ife charsel 6 al charsel
+		orvar charsel 1
+		orvar startmode 1
+		ife monstatus 1 set monstatus 30
+		set mlevel plevel
+		set inithp player[].max_player_health
+		state checksectvisited
+		state dukecheckorders
+		ifn myshelly -1 ife sprite[].htextra -1 ifg sprite[].extra 0 geta[].extra shellyhp
+	}
+	else state monsterai
+	
+	// ifn monstatus 2 ife mysignpost -1 state spawnmysignpost
+	
+	ifai AIDUKESHRUNK { state dukeshrunkstate break }
+	ifai AIDUKEFROZEN { state dukefrozenstate break }
+	ifai AIDUKEDIE
+	{
+		strength 0
+		ifaction ADUKEDIE
+		{
+			ifinwater fall // falls too slow under water otherwise
+			ifactioncount 5
+			{
+				action ADUKEDEAD
+				ifhitweapon { }
+			}
+		}
+		ifaction ADUKEDEAD
+		{
+			// iffloordistl 4
+			ife team 0 
+			{
+				ifwasweapon RADIUSEXPLOSION seta[].htpicnum RPG
+				ifhitweapon
+				ifwasweapon RPG
+				{
+				  sound SQUISHED
+				  state standard_jibs
+				  killit
+				}
+				break
+			}
+			ifactioncount 4
+			{
+				set B NO
+				ifl gametype 1 set B YES
+				ife gametype SURVIVAL set B YES
+				ife B YES
+				{
+					cactor DUKEBOTCROUCH
+					ifrnd 128 sound DUKE_DOWNED1 else sound DUKE_DOWNED2
+					ai AIDUKEDOWN
+					quote 134
+					set countvarc 0
+					strength 5
+				}
+				else ifcount 150
+				{
+					state resetdukemultiplayer
+					break
+				}
+			}
+
+		}
+		break
+	}
+	ifai AIDUKEDOWN
+	{
+		set monstatus 2
+		set shellysquish NO
+		ifg gametype 0
+		ifn gametype SURVIVAL
+		{
+			ifcount 120
+			state resetdukemultiplayer
+			break
+		}
+		set burning 0
+		set dukecharge 0
+		ifhitweapon 
+		{
+			ifstrength 5 strength 5
+		}
+		ife ikicked -2 // healed by medic
+		{
+			addstrength 4 // 5
+			ifspritepal 33 getlastpal else spritepal 33
+		}
+		else
+		{
+			set TMP_A player[].player_par
+			sub TMP_A ikicked
+			
+			set temp NO
+			
+			ife pdown NO
+			ifpdistl 1280
+			ifp pfacing
+			ifp palive
+			ife seeplayer YES
+			ifhitspace
+			set temp YES
+			
+			ifphealthl 100 nullop else
+			ifvarand perks 1024
+			ifge TMP_A 300 set temp YES
+			
+			ife temp NO
+			ife pdown YES
+			ifvarand perks 1024
+			ifg player[].firstaid_amount 0
+			state healmybot
+			
+			ife temp YES
+			{
+				ifvarand perks 1024
+				ifge TMP_A 300 nullop else
+				quote 136
+				
+				set temp NO
+				ifhitspace set temp YES
+				
+				ifvarand perks 1024 ifge TMP_A 300 set temp YES
+				
+				ife temp YES
+				{
+					resetcount
+					ifphealthl 5
+					{
+						quote 130
+						ifspritepal 33 getlastpal
+						
+						cactor DUKEBOTCROUCH
+						ai AIDUKECROUCH
+						// sound BONUS_SPEECH4
+						cstat 257
+						ife player[].ftq 130 setp[].fta 0
+						ife player[].ftq 136 setp[].fta 0
+						
+						ifrnd 84 sound DUKE_REVIVE1 else
+						ifrnd 128 sound DUKE_REVIVE2 else
+						sound DUKE_REVIVE3
+						ifstrength 10 strength 10
+						set monstatus 30
+						set ikicked 0
+						seta[].pal dukepal
+						set countvarc 0
+						set shotpitch 0
+						set mtype 0
+						set bottarget -1
+						seta[].htextra -1 set burning 0 set bleeding 0
+						seta[].htowner THISACTOR
+						break
+						
+					}
+					else
+					{
+						ifstrength 10
+						ife pchar 1
+						{
+							rand temp 2
+							ife temp 0 globalsound B_TRYNOTODIE
+							ife temp 1 globalsound B_HANGINTHERE
+							ife temp 2 globalsound B_TRUSTME
+						}
+						addstrength 5
+						set countvarb 0
+						ifspritepal 33 getlastpal else spritepal 33
+						ifg player[].firstaid_amount 0
+						{
+							getp[].firstaid_amount temp
+							sub temp 1
+							setp[].firstaid_amount temp
+						}
+						else addphealth -1
+					}
+				}
+				else ifspritepal 33 getlastpal
+			}
+			else 
+			{
+				ifcount 360
+				ifp palive
+				{
+					ife player[].fta 0 quote 135
+					ifhitspace add countvarc 1
+					else set countvarc 0
+					ifg countvarc 25
+					{
+						spawn TRANSPORTERSTAR
+						globalsound TELEPORTER
+						setsprite THISACTOR player[].posx player[].posy player[].posz
+						ifn player[].cursectnum -1 changespritesect THISACTOR player[].cursectnum
+						spawn TRANSPORTERSTAR
+						resetcount
+						set countvarc 0
+						ife player[].ftq 133 setp[].fta 0
+					}
+				}
+				
+				ifspritepal 33 getlastpal
+				ife player[].ftq 130 setp[].fta 0
+				ife player[].ftq 136 setp[].fta 0
+			}
+		}
+		
+		set temp NO
+		ifge sprite[].extra player[].max_player_health set temp YES
+		ife pdown YES ifge sprite[].extra 100 set temp YES
+		ife temp YES
+		{
+			set shellyhp sprite[].extra
+			// strength DUKESTRENGTH
+			ife gametype SURVIVAL { strength 200 set shellyhp 200 }
+			// else ife attmode YES { set shellyhp pdamage seta[].extra pdamage }
+			cactor DUKEBOTCROUCH
+			ai AIDUKECROUCH
+			ifrnd 84 sound DUKE_REVIVE1 else
+			ifrnd 128 sound DUKE_REVIVE2 else
+			sound DUKE_REVIVE3
+			set ikicked 0
+			set shotpitch 0
+			set mtype 0
+			set bottarget -1
+			seta[].htextra -1 set burning 0 set bleeding 0
+			seta[].htowner THISACTOR
+			set monstatus 30
+			cstat 257
+			ife player[].ftq 130 setp[].fta 0
+			ife player[].ftq 136 setp[].fta 0
+			ifspritepal 33 getlastpal
+			set spawnprotect 150
+		}
+		break
+	}
+	
+	ife player[].crack_time 300
+	ife seeplayer YES
+	ife team 1
+	{
+		ifrnd 128
+		sound DUKE_IMPATIENT
+		else sound DUKE_WAIT1
+	}
+	
+	findnearspritez LASERLINE 1024 10240 spriteid
+	ifn spriteid -1 
+	{
+		geta[spriteid].x x2
+		geta[spriteid].y y2
+		sub x2 sprite[].x
+		sub y2 sprite[].y
+		getangle angvar x2 y2
+		getincangle temp angvar sprite[].ang
+		abs temp
+		ifl temp 512
+		set FEMKILLCOUNT 8
+	}
+	
+	ifg FEMKILLCOUNT 0 sub FEMKILLCOUNT 1
+	
+	ifg dodgetime 0 sub dodgetime 1
+	
+	ife team 1
+	{
+		ife gametype -1 set dukecharge 0 else
+		add dukecharge 1
+		ife gametype 0
+		ifge dukecharge FULLBOTCHARGE
+		ifl damagecount BOOSTMIN sub dukecharge 1
+	}
+	
+	ife myspawner -1
+	ife dodgetime 0
+	{
+		ifp pfacing ife seeplayer YES 
+		{
+			ifpdistl 1408 ifg player[].curr_weapon KNEE_WEAPON ifvarand bits 4
+			set myspawner player[].i
+			
+			ifn team actorvar[player[].i].team
+			ifp pfacing
+			ifpdistl 8192
+			ife bottarget player[].i
+			ifn player[].kickback_pic 0
+			ifl player[].curr_weapon RPG_WEAPON
+				set myspawner player[].i
+		}
+	}
+	
+	ifai AIDUKEKICK set myspawner -1
+	ifai AIDUKEJETPACK set myspawner -1
+	ifai AIDUKEFLINTCH set myspawner -1
+	ifaction ADUKEFALL set myspawner -1
+	ifn myspawner -1 state dukestartdodge
+	
+	state dukehitscan
+	seta[].ang lastang
+	ifl gametype 1
+	{
+		state dukefindplayercrumb
+		getp[].cursectnum mysector
+		ifn mysector -1
+		ifn mysector sprite[].sectnum
+		ifn monstatus 70
+		ife switchmode 0
+		{
+			ife seeplayer NO
+			ifg sector[mysector].lotag 2
+			ifpdistg 6144
+			ife bottarget -1
+				setsprite THISACTOR player[].posx player[].posy sprite[player[].i].z
+		}
+	}
+	else
+	{
+		set navmode 2
+		ife dodgetime 0
+		state navigationsmart
+	}
+	state spawnprotectcode
+	ifg padmove 0 state jumppadmove
+	add float 1
+	
+	
+	ife pdown YES ifpdistl 1024 set bottarget -1 else
+	state targetsearch
+	
+	ifn bottarget -1 
+	{
+		ife team actorvar[bottarget].team set bottarget -1 else
+		dist targetdist THISACTOR bottarget
+	}
+	ifg bot_taunt 0 sub bot_taunt 1
+	ifg ikicked 0 { sub ikicked 1 ifn bottarget -1 ifn actorvar[bottarget].shrunken 0 ifg ikicked 10 set ikicked 10 }
+	ifai AIDUKEFLINTCH set bottarget -1
+	ife bottarget -1 ifactorsound THISACTOR FREEZELOOP stopactorsound THISACTOR FREEZELOOP
+	ifn thirdbaseval 9 ifactorsound THISACTOR FREEZELOOP stopactorsound THISACTOR FREEZELOOP
+	ifn bottarget -1
+	{
+		dist xydist THISACTOR bottarget
+		
+		ife bot_taunt 0 
+		{ 
+			ife VOLUME 6 ifl LEVEL 10 
+			{
+				ifrnd 192 ifoutside sound D_ASSWIPE else
+				sound D_SUCKBOOM 
+			}
+			set bot_taunt 2000 
+		}
+		geta[bottarget].x x2
+		geta[bottarget].y y2
+		sub x2 sprite[].x
+		sub y2 sprite[].y
+		getangle initsprite x2 y2
+		
+		ifl gametype 1
+		ifpdistl FOLLOWRANGE // MAXRANGE
+			ifn thirdbaseval 4
+				ife initflags bottarget
+			{
+				set angvel initsprite
+				set navpoint -1
+				state avoidboss
+			}
+				
+		
+		
+		ifai AIDUKEKICK nullop else
+		ifai AIDUKEJETPACK nullop else
+		ifai AIDUKESWIM nullop else
+		ifgapzl 48 nullop else
+		iffloordistl 4
+		ifl xydist 1024
+		ife ikicked 0
+		ife actorvar[bottarget].stun 0
+		{
+			cactor DUKEBOT
+			ai AIDUKEKICK
+		}
+		
+		ifai AIDUKEKICK nullop else
+		ife pdown YES
+		ife dodgetime 0
+		ifpdistl 4096
+		ife seeplayer YES
+		{
+			getp[].posx x2
+			getp[].posy y2
+			sub x2 sprite[].x
+			sub y2 sprite[].y
+			getangle angvel x2 y2
+		}
+		
+		
+		ifle botclip 0 state dukebotweap
+		
+		// thirdbaseval which weapon selected
+		// botclip how many left in clip
+		// float time between shots
+		getincangle temp lastang initsprite
+		ifl temp 0 mul temp -1
+		ifai AIDUKEKICK nullop else
+		ifl temp 64
+		{
+			ife sprite[bottarget].picnum GREENSLIME set thirdbaseval 2
+			switch thirdbaseval
+			case 2 // shotgun
+			
+				ife float 14
+				{
+					sound SHOTGUN_COCK
+					espawn SHOTGUNSHELL
+				}
+				ifge float 29
+				{
+					set float 0
+					sub botclip 1
+					ifactor DUKEBOTCROUCH { geta[].z z add z 3072 seta[].z z }
+					ifai AIDUKESWIM { geta[].z z add z 3072 seta[].z z }
+					spawn AIRFLASH1
+					ifactor DUKEBOTCROUCH { geta[].z z sub z 3072 seta[].z z }
+					ifai AIDUKESWIM { geta[].z z sub z 3072 seta[].z z }
+					ifg plevel 3 sound NEWSHOTFIRE else
+					sound SHOTGUN_FIRE
+					state hitscan_targetprep
+					state randzshoot
+					zshoot tempb SHOTGUN
+					state randzshoot
+					zshoot tempb SHOTGUN
+					state randzshoot
+					zshoot tempb SHOTGUN
+					state randzshoot
+					zshoot tempb SHOTGUN
+					state hitscan_targetprep
+					state randzshoot
+					zshoot tempb SHOTGUN
+					state randzshoot
+					zshoot tempb SHOTGUN
+					state randzshoot
+					zshoot tempb SHOTGUN
+					ifg plevel 3
+					{
+						state randzshoot
+						zshoot tempb SHOTGUN
+						state randzshoot
+						zshoot tempb SHOTGUN
+					}
+				}
+			break
+			case 4 // RPG
+				ifge float 20
+				{
+					set float 0
+					
+					set target bottarget
+					state friendlyfirecheck
+					ifn target -1
+					{
+						ifg plevel 5 sound ROCKETFIRE2 else
+						sound RPG_SHOOT
+						sub botclip 1
+						geta[].x savx
+						geta[].y savy
+						set x savx
+						add x 256
+						rotatepoint sprite[].x sprite[].y x sprite[].y sprite[].ang x2 y2
+						seta[].x x2
+						seta[].y y2
+						
+						set xvel 644
+						state rpg_targetprep
+						
+						ezshoot zdist RPG
+						seta[RETURN].extra RPG_WEAPON_STRENGTH
+						ifg plevel 5 
+						{
+							setav[RETURN].mtype TARGETLOCK
+							setav[RETURN].bottarget bottarget
+						}
+						seta[].x savx
+						seta[].y savy
+					}
+					ifle xydist 2048 state dukebotweap
+				}
+			break
+			case 6 // shrinker
+				ifge float 18
+				{
+					set target bottarget
+					state friendlyfirecheck
+					ifn target -1
+					{
+						set x2 sprite[].x
+						add x2 512
+						rotatepoint sprite[].x sprite[].y x2 sprite[].y sprite[].ang savx savy
+								
+						sound SHRINKER_FIRE
+						sub botclip 1
+						set float 0
+						ifle botclip 0 set float -60
+						set xvel 644
+						state rpg_targetprep
+						ezshoot zdist SHRINKER
+						seta[RETURN].x savx
+						seta[RETURN].y savy
+					}
+				}
+				ifn bottarget -1 ifn actorvar[bottarget].shrunken 0 ifg botclip 0
+				{
+					set botclip 0
+					set float -60
+				}
+			break
+			case 9 // freezer
+				set temp NO
+				ifg plevel 4 ifge float 4 set temp YES else
+				ifge float 5 set temp YES
+				ife temp YES
+				{
+					set float 0
+					
+					set target bottarget
+					state friendlyfirecheck
+					ifn target -1
+					{
+						ifg plevel 4
+						{
+							sound FREEZEBOLT_FIRE
+							state hitscan_targetprep
+							zshoot zdist ICEBEAM
+							ifactorsound THISACTOR FREEZELOOP nullop else sound FREEZELOOP
+						}
+						else
+						{
+							set xvel 644
+							state rpg_targetprep
+							sub botclip 1
+							ezshoot zdist FREEZEBLAST
+							seta[RETURN].ang sprite[].ang
+							setav[RETURN].team team
+						}
+					}
+				}
+				ifn bottarget -1 ife sprite[bottarget].pal 1 state dukebotweap
+			break
+			endswitch
+		}
+	
+	}
+	else
+	set initsprite angvel
+	
+	ife dodgetime 0
+	ifcount 2
+	ifn sprite[].ang initsprite
+	{
+		geta[].ang angvar
+		getincangle temp angvar initsprite
+		set B MAXDUKETURN
+		mul B -1
+		ifg temp B ifl temp MAXDUKETURN
+			seta[].ang initsprite
+		else
+		{
+			ifl temp 0 sub angvar MAXDUKETURN
+			else add angvar MAXDUKETURN
+			seta[].ang angvar
+		}
+		set lastang sprite[].ang
+	}
+	
+	ifaction ADUKEJUMP1
+	{
+		set countvar 0
+		ifactioncount 2
+		{
+			action ADUKEJUMP2
+			move DUKEJUMPVELS geth
+		}
+	}
+	ifaction ADUKEJUMP2
+	{
+		ifactioncount 2
+			action ADUKEJUMP3
+			
+		iffloordistl 4
+		{
+			cactor DUKEBOTCROUCH
+			ai AIDUKECROUCH
+			set countvar 11
+			ifonwater 
+			{
+				cactor DUKEBOT
+				ai AIDUKESTAND
+				sound LANDWATER
+			}
+			else
+			ifg FEMFALLDMG 40
+			sound LANDNORMAL
+		}
+	}
+	ifaction ADUKEJUMP3
+	{
+		iffloordistl 4
+		{
+			cactor DUKEBOTCROUCH
+			ai AIDUKECROUCH
+			set countvar 11
+			ifonwater 
+			{
+				cactor DUKEBOT
+				ai AIDUKESTAND
+				sound LANDWATER
+			}
+			else
+			ifg FEMFALLDMG 40
+			sound LANDNORMAL
+		}
+	}
+	
+	ifgapzl 48 
+	{
+		// ifgapzl 24 nullop else
+		ifaction ADUKERUN 
+		{
+			cactor DUKEBOTCROUCH 
+			ai AIDUKECRAWL 
+		} else
+		ifai AIDUKESTAND
+		{
+			cactor DUKEBOTCROUCH
+			ai AIDUKECROUCH
+		}
+	}
+	else
+	ifaction ADUKECRAWL
+	ife FEMKILLCOUNT 0
+	{
+		cactor DUKEBOT
+		ai AIDUKERUN
+	}
+	
+	state botblocking
+	state dukefallhandling
+
+	ifg dodgetime 0 state moveduke else
+	ifai AIDUKEWANDER state dukewander
+	else ifai AIDUKEKICK state dukekickcode
+	else ifai AIDUKEFLINTCH state dukeflintch
+	else ifai AIDUKEJETPACK state dukejetpack
+	else ifai AIDUKESWIM state dukeswimstate
+	else 
+	{
+		ife pdown YES state dukefollowplayer else
+		ifg gametype 0 state dukemultiplayer
+		else state dukefollowplayer
+	}
+	
+	ifg FEMKILLCOUNT 0 ifai AIDUKERUN
+	{
+		cactor DUKEBOTCROUCH 
+		ife seeplayer YES ifpdistl 8192 ai AIDUKECROUCH else
+		ai AIDUKECRAWL
+	}
+	
+	getplayer[].cursectnum mysector
+		ifn mysector -1
+		gets[mysector].lotag tempc
+		else set tempc 0
+			
+		
+	geta[].htflags temp orvar temp 134234112 seta[].htflags temp
+	
+	ifinwater { ifai AIDUKESWIM nullop else { cactor DUKEBOT ai AIDUKESWIM } }
+	else ifai AIDUKESWIM
+	{
+		ifgapzl 48 { cactor DUKEBOTCROUCH ai AIDUKECROUCH }
+		else
+		ai AIDUKEJUMP
+	}
+	// ifsquished
+	// {
+		// seta[].htextra 200
+		// seta[].htpicnum RPG
+		// seta[].htowner THISACTOR
+		// sound SQUISHED
+		// set shellysquish YES
+		// quote 164
+	// }
+	// else 
+	
+	ife team 1
+	{
+		ifn monstatus 2
+		ifgapzl 24 set shellysquish YES
+		else set shellysquish NO
+		ifg burning 0 state imonfire
+		state predamage
+	}
+	
+	ifg sprite[].htextra 0
+	{
+		set blueiteration 90
+		ife sprite[].htextra 1
+		ife sprite[].htpicnum SHOTSPARK1
+		ife sprite[].extra 0 // hardcoded falling damage
+		{
+			seta[].htextra -1
+			seta[].extra shellyhp
+		}
+		
+		
+		geta[].htowner spriteid
+		geta[].htextra temp
+		ife gametype DM
+		{
+			ife team actorvar[spriteid].team set temp -1
+		}
+		else
+		ifn sprite[].htpicnum BURNING
+		shiftr temp 1
+		ife team 1 ife spriteid player[].i shiftr temp 1
+		ifl temp 1 set temp 1
+		seta[].htextra temp
+	}
+	else ifg blueiteration 0 sub blueiteration 1
+	
+	ifhitweapon
+	{
+		ife team 1 ifn myshelly -1 geta[].extra shellyhp
+		
+		ife team 1
+		ifwasweapon SHRINKSPARK
+		{	
+		  cactor DUKEBOT
+		  sound ACTOR_SHRINKING
+		  ai AIDUKESHRUNK
+		  // set shrunken 1
+		  break
+		}
+		else
+			ifwasweapon GROWSPARK
+			  sound SPARKLESOUND
+		ifwasweapon FREEZEBLAST nullop else state random_wall_jibs
+		ifdead
+		{
+			cactor DUKEBOT
+			getp[].player_par ikicked
+			ifwasweapon FREEZEBLAST
+			{
+			  sound NEWFREEZE
+			  spritepal 1
+			  cactor DUKEBOT
+			  ai AIDUKEFROZEN
+			  strength 0
+			  state freezeme
+			  break
+			}
+			ife team 1 set monstatus 2
+			else state enemy_death
+			ifg gametype 0 
+			ife team 1
+			{ 
+				ife gametype DM set tempb 1 else set tempb 5
+				ife team 0 add bluescore tempb else ife team 1 add redscore tempb 
+				state playerscorecheck
+			}
+			
+			 ifrnd 64
+            sound DUKE_LONGTERM_PAIN2
+          else
+            ifrnd 64
+              sound DUKE_LONGTERM_PAIN3
+          else
+            ifrnd 64
+              sound DUKE_LONGTERM_PAIN4
+          else
+            sound DUKE_DEAD
+			guts JIBS6 4
+			ife gametype 0 money 6
+			cstat 0
+			strength 0
+			ai AIDUKEDIE
+		}
+		else 
+		{
+			state dukebotpainsounds
+			ifg stun 0
+			{
+				set TMP_B plevel
+				mul TMP_B 8
+				rand TMP_A 100
+				ifl TMP_A TMP_B
+				set stun 0
+				else
+				{
+					cactor DUKEBOT
+					ai AIDUKEFLINTCH
+				}
+			}
+		}
+	}
+	
+ends
+
+useractor enemy DUKEBOT DUKESTRENGTH ADUKESTAND state dukebotcode enda
+useractor enemy DUKEBOTCROUCH DUKESTRENGTH ADUKESTAND state dukebotcode enda
+
+appendevent	EVENT_KILLIT
+
+switch sprite[].picnum
+	case DUKEBOT
+	case DUKEBOTCROUCH
+	ife team 1 
+	{
+	hitradius 768 2 2 2 2
+	cactor DUKEBOTCROUCH
+    ai AIDUKEDOWN
+	set monstatus 2
+	getp[].player_par ikicked
+    quote 134
+    set countvarc 0
+    strength 5
+	set RETURN 1
+	cstat 257
+	sizeat 42 36
+	}
+	break
+endswitch
+
+endevent
+

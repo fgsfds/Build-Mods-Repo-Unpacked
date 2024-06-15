@@ -1,0 +1,477 @@
+// SECURITY GUARD
+
+// ANIMATION TEST
+// ifhitspace ifcount 10
+// {
+	// resetcount
+	// ifaction AGUARDSTAND action AGUARDWALK else
+	// ifaction AGUARDWALK action AGUARDRUN else
+	// ifaction AGUARDRUN action AGUARDSMOKE else
+	// ifaction AGUARDSMOKE action AGUARDSIT else
+	// ifaction AGUARDSIT action AGUARDCROUCH else
+	// ifaction AGUARDCROUCH action AGUARDSHOOT1 else
+	// ifaction AGUARDSHOOT1 action AGUARDSHOOT2 else
+	// ifaction AGUARDSHOOT2 action AGUARDDIE else
+	// ifaction AGUARDDIE action AGUARDDEAD else
+	// ifaction AGUARDDEAD action AGUARDSTAND
+// }
+
+eventloadactor GUARD sizeat 26 24 cstator 257 enda
+
+action AGUARDSTAND  0  1  5  1  10
+action AGUARDWALK   5  3  5  1  14
+action AGUARDWALK2	10  1  5  1  14
+action AGUARDRUN	20 4  5  1  8
+action AGUARDSMOKE  40 2  5  1  80
+action AGUARDSIT    -5 1  5  1  20
+action AGUARDCROUCH 0  1  5  1  20
+action AGUARDSHOOT1 60 1  5  1  20
+action AGUARDSHOOT2 65 1  5  1  16
+action AGUARDDIE	70 3  1  1  20
+action AGUARDDEAD   72 1  1  1  10
+action AGUARDFROZEN 0  1  5  1  10
+action AGUARDGROW   20 1  5  1  10
+action AGUARDSHRUNK 20 4  5  1  8
+
+move GUARDSHRUNKVEL 32
+// move GUARDWALKVEL 74
+// move GUARDFOLLOWVEL 108
+move GUARDRUNVEL 128
+
+ai AIGUARDRUN AGUARDRUN GUARDRUNVEL geth
+ai AIGUARDWAIT AGUARDSTAND STOPPED geth
+ai AIGUARDWALK AGUARDWALK GUARDWALKVEL furthestdir
+ai AIGUARDDYING AGUARDDIE STOPPED geth
+ai AIGUARDSHRUNK AGUARDRUN GUARDSHRUNKVEL fleeenemy
+ai AIGUARDSHOOT AGUARDSHOOT1 STOPPED geth
+ai AIGUARDCROUCH AGUARDCROUCH STOPPED geth
+
+state guardshootbullet
+
+	spawn SHELL
+	state hitscan_targetprep
+	zshoot zdist CHAINGUN
+	sound NEW_PISTOL_FIRE
+	sub botclip 1
+
+ends
+
+state guardshootstate
+
+	ifaction AGUARDSHOOT1
+	{
+		ifactioncount 1
+		{
+			ifg botclip 0
+			ife targetalive YES
+			ife seemytarget YES
+			ife shootmytarget YES
+			nullop else
+			{
+				ifn myvictim -1
+				ife actorvar[myvictim].monstatus 2
+				{
+					ifrnd 84 sound G_BRINGITON else
+					ifrnd 128 sound G_GOTONE else
+					sound G_GOTANOTHER
+					set myvictim -1
+				}
+				set initsprite NO
+				ai AIGUARDWAIT
+				ife botclip 0
+				{
+					set botclip 8
+					sound SHELLYCLIPOUT
+					espawn SHELL
+					setav[RETURN].mtype CLIPFALL
+				}
+				break
+			}
+		}
+		ife initsprite NO // has not fired yet
+		{
+			ifactioncount 5
+			{
+				set initsprite YES
+				action AGUARDSHOOT2
+				state guardshootbullet
+			}
+		}
+		else ifactioncount 1
+		{
+			action AGUARDSHOOT2
+			state guardshootbullet
+		}
+	}
+	else ifactioncount 1 action AGUARDSHOOT1
+
+ends
+
+state guardcomment
+
+	ifsound G_LATER break
+	ifsound G_ROAM1 break
+	ifsound G_ROAM2 break
+	ifsound G_ROAM3 break
+	
+	ifrnd 84 sound G_ROAM1 else
+	ifrnd 128 sound G_ROAM2 else
+	sound G_ROAM3
+
+ends
+
+state guard_ff
+
+	ifactorsound THISACTOR G_FRIENDLY_F1 break
+	ifactorsound THISACTOR G_FRIENDLY_F2 break
+	ifactorsound THISACTOR G_FRIENDLY_F3 break
+	ifrnd 84 sound G_FRIENDLY_F1 else
+	ifrnd 128 sound G_FRIENDLY_F2 else
+	sound G_FRIENDLY_F3
+
+ends
+
+state guardpainsounds
+	ifactorsound THISACTOR G_FALLHURT break
+	ifactorsound THISACTOR G_PAIN1 break
+	ifactorsound THISACTOR G_PAIN2 break
+	ifactorsound THISACTOR G_PAIN3 break
+	ifrnd 84 sound G_PAIN1 else
+	ifrnd 128 sound G_PAIN2 else
+	sound G_PAIN3
+
+ends
+
+state guarddeathsounds
+
+	ifrnd 84 sound G_PAIN1 else
+	ifrnd 128 sound G_DIE1 else
+	sound G_DIE2
+
+ends
+
+state guardshootcheck
+
+	ife targetalive YES
+	ife shootmytarget YES
+	ifl targetdist 10240
+	ifrnd 12
+	{
+		set dodgetime 0
+		ifrnd 128 sound G_STANDBACK
+		else sound G_FREEZE
+		cactor GUARD
+		ai AIGUARDSHOOT
+	}
+	else ife gametype 0 set dodgetime 2 // hack to prevent facing enemy prematurely
+
+ends
+
+state guardwaitstate
+	
+	ifp palive
+	ifp pfacing
+	ifhitspace
+	ifpdistl 1560
+	ifcount 30
+	{
+		resetcount
+		getangletotarget FEMVAR
+		seta[].ang FEMVAR
+
+		ifn SPRITELOTAG 0 { state corruption break }
+		
+		ifrnd 128 sound G_LATER
+		else state guardcomment
+		action AGUARDSTAND
+		break
+	}
+	
+	ifcount 90
+		ifrnd 4 ai AIGUARDWALK
+		
+	state guardshootcheck
+
+ends
+
+state guardwalkstate
+
+	// GUARD has a 3 frame walk cycle and requires special kludge code!
+	ifaction AGUARDWALK ifactioncount 3 action AGUARDWALK2 else
+	ifaction AGUARDWALK2 ifactioncount 1 action AGUARDWALK
+	
+	ifrnd 1 ifrnd 128 ifpdistl 8192 ife bottarget -1 state guardcomment
+	
+	ifcount 60
+		ifrnd 6
+	{
+		ai AIGUARDWAIT
+		ifrnd 128 
+			action AGUARDSMOKE
+	}
+	
+	state guardshootcheck
+
+ends
+
+state guardcrouchstate
+
+	set dodgetime 2
+	ifcount 90
+	{
+		cactor GUARD
+		ai AIGUARDWAIT
+	}
+
+ends
+
+state guardrunstate
+
+	set dodgetime 2
+	ifnotmoving
+	{
+		cactor GUARDCROUCH
+		ai AIGUARDCROUCH
+		break
+	}
+	ifcount 100 ai AIGUARDWAIT
+
+ends
+
+state guarddyingstate
+
+state deadsquished
+ifaction AGUARDDIE
+{
+	ifhitweapon state random_wall_jibs
+	ifactioncount 2 
+	{ 
+		action AGUARDDEAD
+		cstat 0 strength 0 
+	}
+}
+ifaction AGUARDDEAD
+{
+	ifhitweapon
+	{
+		sound SQUISHED
+		state standard_jibs
+		killit
+	}
+}
+
+ends
+
+state guardshrunkstate
+
+  set dodgetime 2
+  ifcount SHRUNKDONECOUNT
+    ai AIGUARDWAIT
+  else
+    ifcount SHRUNKCOUNT
+      sizeto 26 24
+  else
+    state genericshrunkcode
+
+ends
+
+state guardcode
+
+ifai 0
+{
+	ai AIGUARDWAIT
+	sizeat 26 24
+	clipdist 48
+	getp[].max_actors_killed temp
+	sub temp 1
+	setp[].max_actors_killed temp
+	cstator 257
+	set team 1
+	ifspritepal 42 { addstrength 50 set team 0 }
+	set botclip 8
+	geta[].htflags temp
+	orvar temp 8192
+	seta[].htflags temp
+}
+fall
+state monsterai
+
+ifaction AGUARDFROZEN
+{
+  ifcount THAWTIME
+	{
+	  ai AIGUARDWAIT
+	  ifrnd 128 
+		action AGUARDSMOKE
+	  getlastpal
+	}
+	else
+	  ifcount FROZENDRIPTIME
+	{
+	  ifactioncount 26
+	  {
+		spawn WATERDRIP
+		resetactioncount
+	  }
+	}
+	ifhitweapon
+	{
+	  ifwasweapon FREEZEBLAST
+	  {
+		strength 0
+		break
+	  }
+
+	  ifrnd 84
+		spawn BLOODPOOL
+	  lotsofglass 30
+	  state lite_jibs
+	  sound GLASS_BREAKING
+	   ifrnd 128
+		sound DUKE_HIT_STRIPPER1
+	  else
+		sound DUKE_HIT_STRIPPER2
+
+	  killit
+	}
+	ifn team actorvar[player[].i].team
+	ifp pfacing
+	  ifpdistl FROZENQUICKKICKDIST
+		state pkick_check
+	break
+}
+ifaction AGUARDGROW
+{
+	state genericgrowcode
+	break
+}
+
+ifai AIGUARDDYING { state guarddyingstate break }
+ifai AIGUARDSHRUNK { state guardshrunkstate break }
+
+ifai AIGUARDWAIT state guardwaitstate else
+ifai AIGUARDWALK state guardwalkstate else
+ifai AIGUARDRUN state guardrunstate else
+ifai AIGUARDCROUCH state guardcrouchstate else
+ifai AIGUARDSHOOT state guardshootstate
+
+state femfallcheck
+ifg sprite[].htextra 0 sound G_FALLHURT
+state checkfemsquished
+
+ifhitweapon
+  {
+    ifdead
+    {
+	  ifactor GUARDCROUCH cactor GUARD
+	  
+      ifwasweapon GROWSPARK
+      {
+	    set monstatus 2
+        cstat 0
+		ifrnd SPAWNAMMOODDS spawn AMMO
+        move STOPPED
+        sound ACTOR_GROWING
+        action AGUARDGROW
+        break
+      }
+      else ifwasweapon FREEZEBLAST
+      {
+        ifai AIGUARDSHRUNK
+          break
+
+        action AGUARDFROZEN
+		move STOPPED
+		spritepal 1
+		strength 0
+        sound NEWFREEZE
+		state freezeme
+        break
+      }
+	  set monstatus 2
+	  ifrnd SPAWNAMMOODDS spawn AMMO
+      ifrnd 128
+        sound DUKE_HIT_STRIPPER1
+      else
+        sound DUKE_HIT_STRIPPER2
+	  spawn BLOODPOOL
+	  state random_wall_jibs
+	  ifwasweapon RPG
+	  {
+		 sound SQUISHED
+         state standard_jibs
+		 killit
+	  }
+      ifwasweapon RADIUSEXPLOSION
+	  {
+	     sound SQUISHED
+         state standard_jibs
+		 killit
+	  }
+	  ai AIGUARDDYING
+	  set burning 0
+	  
+      state guarddeathsounds
+    }
+    else
+    {
+      ifwasweapon SHRINKSPARK
+      {
+        sound ACTOR_SHRINKING
+		// sound FC_PAIN
+		// set shrunken 1
+		cactor GUARD
+        ai AIGUARDSHRUNK
+        break
+      }
+      else
+        ifwasweapon GROWSPARK
+          sound SPARKLESOUND
+	  state random_wall_jibs
+	  
+	  ifai AIGUARDRUN nullop else
+	  ifrnd 128
+	  ifn actorvar[sprite[].htowner].team team
+	  {
+		sound G_RUNYELL
+		cactor GUARD
+		ai AIGUARDRUN
+		seta[].ang sprite[].htang
+		set dodgetime 2
+		break
+	  }
+	  
+	  ife actorvar[sprite[].htowner].team team
+	  state guard_ff
+	  else
+	  {
+		  state guardpainsounds
+		  ifai AIGUARDSHOOT nullop else
+		  ife targetalive YES
+		  ife shootmytarget YES
+		  ifactor GUARD
+			ai AIGUARDSHOOT
+	  }
+	  
+    }
+  }
+
+ends
+
+useractor enemy GUARD GUARDSTRENGTH state guardcode enda
+useractor enemy GUARDCROUCH GUARDSTRENGTH state guardcode enda
+
+useractor enemy GUARDPOOP GUARDSTRENGTH
+	sizeat 26 24
+	cstator 257
+	ifrnd 2 sound FART
+	ifcount 90
+  {
+    sound FLUSH_TOILET
+	ifg sprite[].htextra 5 spawn FECES
+    operate
+    cactor GUARD
+  }
+	ifg sprite[].htextra 0 count 100
+	
+enda

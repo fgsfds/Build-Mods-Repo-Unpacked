@@ -1,0 +1,203 @@
+// CON Files for the 'Duke Carribean Add-on' by SunStorm Interactive
+//
+// Actor - BEACHBATHER - Sprite #1683
+//
+// --- Resources ---
+//
+// Sounds:
+// Beach Bather Comments   - BATHCOM1.WAV/BATHCOM2.WAV
+// Beach Bather Hurt Sound - BATHHURT.WAV
+//
+// Art:
+// 1 * 1 frame(s)          - Normal Beach Bather
+// 1 * 1 frame(s)          - Activated Beach Bather
+
+define BEACHBATHER1 1312
+define BEACHBATHERSTRENGTH 30
+
+move   BEACHBATHERSPEED
+
+action BEACHBATHER       2338
+action BEACHBATHERACTION 2340 7 1 1 10
+
+ai AIBEACHBATHERIDLE BEACHBATHER BEACHBATHERSPEED
+ai AIBEACHBATHERSHRUNK BEACHBATHER BEACHBATHERSPEED
+ai AIBEACHBATHERFROZEN BEACHBATHER BEACHBATHERSPEED
+
+state BEACHBATHERIDLESTATE
+ends
+
+state BEACHBATHERSTATE
+
+ifaction BEACHBATHERACTION
+  {
+  ifactioncount 14
+     {
+     ifhitspace
+       {
+       resetactioncount
+       }
+       else
+       {
+       action BEACHBATHER
+       }
+     }
+  }
+  else
+  {
+  ifp pfacing
+    ifpdistl 1400
+      ifhitspace
+	{
+	ifrnd 64
+	  sound BATHCOMM1
+	  else
+	  ifrnd 85
+	  sound BATHCOMM2
+	  else
+	  ifrnd 128
+	  sound BATHCOMM3
+	  else
+	  sound BATHCOMM4
+	action BEACHBATHERACTION
+        }
+  }
+  
+
+ifai NO
+  {
+  ai AIBEACHBATHERIDLE
+  sizeat 42 40
+  }
+
+ifai AIBEACHBATHERSHRUNK
+  {
+  ifcount SHRUNKDONECOUNT
+    {
+    ai AIBEACHBATHERIDLE
+    cstat 257
+    }
+    else
+    {
+    ifcount SHRUNKCOUNT
+      sizeto 40 40
+      else
+      state genericshrunkcode
+    }
+  }
+
+
+ifai AIBEACHBATHERFROZEN
+  {
+  ifhitweapon
+    {
+    ifwasweapon FREEZEBLAST
+      {
+      strength 0
+      break
+      }
+    lotsofglass 30
+    sound GLASS_BREAKING
+    respawnhitag
+    ifrnd 84
+      spawn BLOODPOOL
+    killit
+    }
+    else
+    {
+    ifp pfacing
+      ifpdistl FROZENQUICKKICKDIST
+        {
+        pkick
+        break
+        }  
+    }
+  ifcount THAWTIME
+    {
+    getlastpal
+    ai AIBEACHBATHERIDLE
+    }
+    else
+    {
+    ifcount FROZENDRIPTIME
+      {
+      ifactioncount 26
+        {
+	spawn WATERDRIP
+        resetactioncount
+        }
+      }
+    }
+  }
+
+
+ifhitweapon
+  {
+  ai AIBEACHBATHERIDLE
+  ifdead
+    {
+      ifwasweapon FREEZEBLAST
+	{
+	  ai AIBEACHBATHERFROZEN
+	move 0
+	spritepal 1
+	strength 0
+	sound SOMETHINGFROZE
+	break
+	}
+
+   ifrnd 128
+    sound DUKE_HIT_STRIPPER1
+    else
+    sound DUKE_HIT_STRIPPER2
+
+   respawnhitag
+   state standard_jibs
+   state standard_jibs
+   state random_wall_jibs
+   spawn BLOODPOOL
+   spritepal 6
+   soundonce BABESCREAM4
+   killit
+   }
+   else
+   {
+   ifwasweapon SHRINKSPARK
+     {
+     sound ACTOR_SHRINKING
+     move 0
+     ai AIBEACHBATHERSHRUNK
+     cstat 0
+     break
+     }
+     else
+     sound SQUISHED
+   guts JIBS6 1
+   }
+
+ }
+
+
+ifdead
+  {
+  state standard_jibs
+  sound SQUISHED
+  killit
+  }
+
+ifai AIBEACHBATHERIDLE
+  {
+  state BEACHBATHERIDLESTATE
+  }
+
+ends
+
+actor BEACHBATHER1 BEACHBATHERSTRENGTH BEACHBATHER
+fall
+state BEACHBATHERSTATE
+break
+enda
+
+
+
+

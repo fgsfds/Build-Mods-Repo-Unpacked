@@ -1,0 +1,777 @@
+// Caribbean vacation code remastered
+
+// uncommented tile definitions are in AADEFS.CON
+// define BEACHBALL 11340
+// spriteshadow BEACHBALL
+// define BOTTLE20 11272
+// define BOTTLE21 11277
+// define BOTTLE22 11111
+// define FEM14 11282
+// spriteshadow FEM14
+// define HANGFISH 11035
+// define HANGFISHDEAD 11036
+// define FEM15 11330
+
+// action BALLPROJAN  -1  8  1  1  8
+// action BALLPROJANSLOW  -1  8  1  1  16
+
+// define BEACHBALLPROJ 11341
+
+
+
+// useractor notenemy BEACHBALLPROJ 50 BALLPROJAN enda
+
+// action BALLANIMATEFAST  0  8  1  1  4
+// action BALLANIMATE  0  8  1  1  8
+// action BALLANIMATESLOW  0  8  1  1  16
+
+move BALLSPEED1 512 -72
+move BALLSPEED2 384 -48
+move BALLSPEED3 256 -32
+move BALLSPEED4 160
+move BALLSPEED5 72
+move BALLSPEED6 40
+move BALLDIESPEED 256 -40
+move BALLDEAD
+
+// state checkbounce
+
+	// ifnotmoving
+	// {
+		// geta[].htmovflag hitwall
+		
+		// sound BOUNCESOUND
+		// ifmove BALLSPEED1
+			// move BALLSPEED2 geth getv 
+		// else
+		// ifmove BALLSPEED2
+			// move BALLSPEED2 geth getv 
+		// else
+		// ifmove BALLSPEED3
+			// move BALLSPEED3 geth
+		// else
+		// ifmove BALLSPEED4
+			// move BALLSPEED4 geth
+		// else
+		// ifmove BALLSPEED5
+			// move BALLSPEED6 geth
+				
+		// set temp hitwall
+		// andvar temp 49152
+		// ife temp 32768
+		// {
+			// andvar hitwall 16383 // temp is now the wall ID that it hit
+			// getwall[hitwall].point2 B
+	
+			// getw[B].x x2
+			// getw[B].y y2
+			// sub x2 wall[hitwall].x
+			// sub y2 wall[hitwall].y
+			// getangle angvar x2 y2
+
+			// getincangle temp angvar sprite[].ang
+			// sub angvar temp
+			// seta[].ang angvar
+		// }
+		// else { rand angvar 2047 seta[].ang angvar }
+	// }
+	// iffloordistl 2
+	// {
+		// geta[].z z
+		// sub z 256
+		// seta[].z z
+		// geta[].zvel z
+		// mul z -4
+		// sub z 512
+		// seta[].zvel z
+	// }
+
+// ends
+
+state addrandang
+
+	rand angvar 16
+	sub angvar 8
+	add angvar sprite[].ang
+	seta[].ang angvar
+
+ends
+
+// useractor notenemy BEACHBALL 50
+
+	// ifmove BALLDIESPEED
+	// {
+		// spawn SMALLSMOKE
+		// sizeto 40 4
+		// fall
+		// ifcount 30 { action ANULLACTION move BALLDEAD }
+	// }
+	
+	// ifmove 0
+	// {
+		// move STOPPED
+		// cstator 256
+		// ifl sprite[].xrepeat 10 sizeat 32 32
+	// }
+
+	// fall
+	// ifmove BALLDEAD break
+	// geta[].zvel z
+	// ifg z 0 { mul z 8 div z 9 seta[].zvel z }
+	
+	
+	// ifhitweapon
+	// {
+		// sound BOUNCESOUND
+		// ifmove STOPPED set zdist -4096 else set zdist -1560
+		// ezshoot zdist BEACHBALLPROJ
+		// seta[RETURN].ang sprite[].htang
+		// seta[RETURN].pal sprite[].pal
+		// killit
+
+	// }
+	// else
+	// ifmove BALLSPEED1 nullop
+	// else
+	// ifpdistl 1280
+	// ifp pfacing
+	// ifcansee
+	// {
+		// ifhitspace
+		// {
+			// soundonce BOUNCESOUND
+			// ifmove STOPPED set zdist -4096 else set zdist -1560
+			// ezshoot zdist BEACHBALLPROJ
+			// seta[RETURN].ang player[].ang
+			// seta[RETURN].pal sprite[].pal
+			// killit
+
+		// }
+		// else
+		// ifpdistl 844
+		// {
+			// soundonce BOUNCESOUND
+			// ifmove STOPPED set zdist -2048 else set zdist -1024
+			// ezshoot zdist BEACHBALLPROJ
+			// seta[RETURN].ang player[].ang
+			// seta[RETURN].xvel 480
+			// seta[RETURN].pal sprite[].pal
+			// killit
+		// }
+	// }
+	
+	// ifmove BALLSPEED1
+	// {
+		// state checkbounce
+		// ifcount 8 move BALLSPEED2 geth getv
+	// }
+	// ifmove BALLSPEED2
+	// {
+		// state checkbounce
+		// state addrandang
+		// ifcount 10 move BALLSPEED3 geth getv
+	// }
+	// ifmove BALLSPEED3
+	// {
+		// state checkbounce
+		// state addrandang
+		// ifcount 12 { move BALLSPEED4 geth getv action BALLANIMATESLOW }
+	// }
+	// ifmove BALLSPEED4
+	// {
+		// state checkbounce
+		// state addrandang
+		// ifcount 14 iffloordistl 4 move BALLSPEED5 geth getv
+	// }
+	// ifmove BALLSPEED5
+	// {
+		// state checkbounce
+		// state addrandang
+		// ifcount 16 iffloordistl 4 move BALLSPEED6 geth getv
+	// }
+	// ifmove BALLSPEED6
+	// {
+		// ifcount 18 
+		// iffloordistl 4
+		// {
+			// move STOPPED
+			// action ANULLACTION
+		// }
+	// }
+
+// enda
+
+move SBALLROLL0 72
+move SBALLROLL1 192
+move SBALLROLL2 256
+move SBALLROLL3 360
+move SBALLFLY 512
+
+action ASBALLROLLSLOW 0  5  1  1  8
+action ASBALLROLLMED 0  5  1  1  6
+action ASBALLROLLFAST 0  5  1  1  4
+action ASBALLROLLFLY 0  5  1  1  3
+useractor notenemy SBALLACTOR 100
+
+fall
+ifg sprite[].zvel 0
+{
+	geta[].zvel z
+	sub z 96
+	seta[].zvel z
+	add FEMFALLDMG 1
+}
+else
+iffloordistl 2
+{
+	ifg sprite[].xvel 256
+	ifg FEMFALLDMG 6
+	{
+		sound BOUNCESOUND
+		geta[].z z, sub z 1024, seta[].z z
+		seta[].zvel -1280
+	}
+	set FEMFALLDMG 0
+}
+
+ifmove 0
+{
+	sizeat 22 22
+	cstat 256
+	clipdist 16
+	action ANULLACTION
+	move STOPPED
+}
+set B NO
+
+ifmove STOPPED nullop else
+ife dodgetime 0
+ifcount 20
+{
+	ifmove SBALLFLY
+	{
+		move SBALLROLL3 geth
+		action ASBALLROLLFAST
+	}
+	else
+	ifmove SBALLROLL3
+	{
+		move SBALLROLL2 geth
+		action ASBALLROLLFAST
+	}
+	else
+	ifmove SBALLROLL2
+	{
+		move SBALLROLL1 geth
+		action ASBALLROLLMED
+	}
+	else
+	ifmove SBALLROLL1
+	{
+		move SBALLROLL0 geth
+		action ASBALLROLLSLOW
+	}
+	else
+	ifmove SBALLROLL0
+	{
+		move STOPPED geth
+		action ANULLACTION
+	}
+}
+
+set B NO
+state damagepush
+
+ifmove SBALLFLY nullop else 
+ife B NO
+ifpdistl 1408
+ifhitspace
+ifcansee
+ifp palive
+ifp pfacing
+{
+	set B YES
+	set angvel player[].ang
+}
+ife B YES
+{
+	sound BOUNCESOUND
+	action ASBALLROLLFLY
+	move SBALLFLY geth
+	seta[].ang angvel
+	iffloordistl 4
+	{
+		geta[].z z, sub z 2048, seta[].z z
+	}
+	seta[].zvel -2308
+}
+
+ifp pstanding nullop else
+ifl sprite[].xvel 296
+{
+	findplayer temp
+
+	ife dodgetime 0
+	ifcansee
+	ifp palive
+	ifl temp 844
+	{
+		set B YES
+		getp[].posx x2
+		getp[].posy y2
+		sub x2 sprite[].x
+		sub y2 sprite[].y
+		getangle angvel x2 y2
+		add angvel 1024
+		
+		cos xvel angvel
+		sin yvel angvel
+		
+		shiftvarr xvel 6
+		shiftvarr yvel 6
+		
+		movesprite THISACTOR xvel yvel 0 CLIPMASK0 RETURN 
+		
+		ife dodgetime 0 
+		{ 
+			soundonce BOUNCESOUND seta[].ang angvel 
+			move SBALLROLL2 geth 
+			action ASBALLROLLFAST
+		}
+		add dodgetime 10
+		
+	}
+}
+
+ifg dodgetime 0 sub dodgetime 1
+
+ifnotmoving
+	state spritebounce
+	
+ifhitweapon strength 100
+
+enda
+
+
+action BALLANIMATEFAST  0  8  1  1  4
+action BALLANIMATE  0  8  1  1  8
+action BALLANIMATESLOW  0  8  1  1  16
+
+
+useractor notenemy BEACHBALL 50
+
+fall
+ifg sprite[].zvel 0
+{
+	geta[].zvel z
+	sub z 128
+	seta[].zvel z
+	add FEMFALLDMG 1
+}
+else
+iffloordistl 2
+{
+	ifg sprite[].xvel 256
+	ifg FEMFALLDMG 6
+	{
+		sound BOUNCESOUND
+		geta[].z z, sub z 1024, seta[].z z
+		seta[].zvel -1560
+	}
+	set FEMFALLDMG 0
+}
+
+ifmove 0
+{
+	ifl sprite[].xrepeat 10 sizeat 32 32
+	cstat 256
+	clipdist 16
+	action ANULLACTION
+	move STOPPED
+}
+set B NO
+
+ifmove STOPPED nullop else
+ife dodgetime 0
+ifcount 20
+{
+	ifmove SBALLFLY
+	{
+		move SBALLROLL3 geth
+		action BALLANIMATEFAST
+	}
+	else
+	ifmove SBALLROLL3
+	{
+		move SBALLROLL2 geth
+		action BALLANIMATEFAST
+	}
+	else
+	ifmove SBALLROLL2
+	{
+		move SBALLROLL1 geth
+		action BALLANIMATE
+	}
+	else
+	ifmove SBALLROLL1
+	{
+		move SBALLROLL0 geth
+		action BALLANIMATESLOW
+	}
+	else
+	ifmove SBALLROLL0
+	{
+		move STOPPED geth
+		action ANULLACTION
+	}
+}
+
+set B NO
+state damagepush
+
+ifmove SBALLFLY nullop else 
+ife B NO
+ifpdistl 1408
+ifhitspace
+ifcansee
+ifp palive
+ifp pfacing
+{
+	set B YES
+	set angvel player[].ang
+}
+ife B YES
+{
+	sound BOUNCESOUND
+	action BALLANIMATEFAST
+	move SBALLFLY geth
+	seta[].ang angvel
+	state addrandang
+	iffloordistl 4
+	{
+		geta[].z z, sub z 2048, seta[].z z
+	}
+	seta[].zvel -4096
+}
+
+ifp pstanding nullop else
+ifl sprite[].xvel 296
+{
+	findplayer temp
+
+	ife dodgetime 0
+	ifcansee
+	ifp palive
+	ifl temp 844
+	{
+		set B YES
+		getp[].posx x2
+		getp[].posy y2
+		sub x2 sprite[].x
+		sub y2 sprite[].y
+		getangle angvel x2 y2
+		add angvel 1024
+		cos xvel angvel
+		sin yvel angvel
+		
+		shiftvarr xvel 6
+		shiftvarr yvel 6
+		
+		movesprite THISACTOR xvel yvel 0 CLIPMASK0 RETURN 
+		
+		ife dodgetime 0 
+		{ 
+			soundonce BOUNCESOUND seta[].ang angvel 
+			move SBALLROLL2 geth 
+			action BALLANIMATEFAST
+			iffloordistl 8
+			{
+				geta[].z z, sub z 2048, seta[].z z
+				geta[].zvel z sub z 3072
+				seta[].zvel z
+			}
+			
+		}
+		add dodgetime 10
+		
+	}
+}
+
+ifg dodgetime 0 sub dodgetime 1
+
+ifnotmoving
+	state spritebounce
+	
+ifhitweapon strength 100
+	
+enda
+
+eventloadactor BOTTLE20 cstator 256 enda
+eventloadactor BOTTLE21 cstator 256 enda
+
+useractor notenemy BOTTLE20
+
+ifhitweapon
+{
+	sound GLASS_BREAKING
+	lotsofglass 6
+	spritepal 32
+	guts JIBS6 2
+	killit
+}
+fall
+enda
+
+// state liquidbottle
+
+	// ifspawnedby APLAYER ifmove 0 { move STOPPED sizeat 32 32 cstator 256 }
+	// ifhitweapon
+	// {
+		// sound GLASS_BREAKING
+		// lotsofglass 6
+		// ifspritepal 0 spritepal 1
+		// ifl sprite[].pal 10 guts JIBS6 3
+		// else ifspritepal 10 guts JIBS6 3 else
+		// ifspritepal 21 guts JIBS6 3
+		// killit
+	// }
+	// fall
+
+// ends
+
+useractor notenemy BOTTLE21 state liquidbottle enda
+useractor notenemy BOTTLE22 state liquidbottle enda
+
+eventloadactor FEM14 cstator 256 enda
+useractor notenemy FEM14 TOUGH FEMANIMATE
+  state tipme
+  state femcode
+enda
+
+eventloadactor FEM15 cstator 256 rand mtype 3 enda
+useractor notenemy FEM15 TOUGH FEMANIMATE
+  state tipme
+  state femcode
+enda
+
+eventloadactor FEM16 cstator 256 enda
+useractor notenemy FEM16 TOUGH FEMANIMATE
+  state femcode
+enda
+
+eventloadactor FEM17 cstator 256 enda
+useractor notenemy FEM17 TOUGH FEMANIMATE
+  state tipme
+  state femcode
+enda
+
+eventloadactor FEM18 cstator 256 enda
+useractor notenemy FEM18 TOUGH FEMANIMATE
+  state tipme
+  state femcode
+enda
+
+eventloadactor FEM19 cstator 256 enda
+useractor notenemy FEM19 TOUGH FEMANIMATE
+  state femcode
+enda
+
+eventloadactor FEM20 cstator 256 enda
+useractor notenemy FEM20 TOUGH FEMANIMATE
+  state femcode
+enda
+
+eventloadactor FEM21 cstator 256 enda
+useractor notenemy FEM21 TOUGH FEMANIMATE
+  state femcode
+enda
+
+eventloadactor SLAVE1 cstator 256 enda
+useractor notenemy SLAVE1 TOUGH FEMANIMATE
+  state femcode
+enda
+
+eventloadactor SLAVE2 cstator 256 enda
+useractor notenemy SLAVE2 TOUGH FEMANIMATE
+  state femcode
+enda
+
+eventloadactor SLAVE3 cstator 256 enda
+useractor notenemy SLAVE3 TOUGH FEMANIMATE
+  state femcode
+enda
+
+eventloadactor TUBEGUY cstator 256 enda
+useractor notenemy TUBEGUY TOUGH FEMANIMATE
+  state femcode
+enda
+
+eventloadactor FROGMASCOT cstator 256 enda
+useractor notenemy FROGMASCOT TOUGH FEMANIMATE
+  state femcode
+enda
+
+state hangfishcode
+	
+	cstator 256
+	ifhitweapon
+	{
+		sound SQUISHED
+		guts JIBS6 4
+		ifdead
+		{
+			ifactor HANGFISH
+			{
+				cactor HANGFISHDEAD
+				strength TOUGH
+				break
+			}
+			guts JIBS4 2
+			killit
+		}
+		
+	}
+
+ends
+
+useractor notenemy HANGFISH TOUGH state hangfishcode enda
+useractor notenemy HANGFISHDEAD TOUGH state hangfishcode enda
+
+define SEAGULL 11326
+define SEAGULLSHIT 1638
+define SEAGULLSTRENGTH 20
+spriteshadow SEAGULL
+
+move SEAGULLSPEED 100
+move SEAGULLATTACK 200
+
+ai     AISEAGULLFLY ANULLACTION SEAGULLSPEED randomangle geth getv 
+ai     AISEAGULLATTACK ANULLACTION SEAGULLATTACK faceplayer
+
+state SEAGULLATTACKSTATE
+
+	ifp pdead ai AISEAGULLFLY
+
+	ifrnd 2
+	  sound SEAGULLROAM
+
+	ifrnd 1
+	  ifrnd 196 ai AISEAGULLFLY
+
+  ifpdistl 2500
+  {
+	geta[].z savz
+	sub savz 8192
+	seta[].z savz
+    spawn SEAGULLSHIT
+	add savz 8192
+	seta[].z savz
+    ai AISEAGULLFLY
+  }
+ 
+ends
+
+
+state SEAGULLFLYSTATE
+
+	ifrnd 4 ai AISEAGULLFLY
+	
+	iffloordistl 64
+	{
+		geta[].z z
+		sub z 512
+		seta[].z z
+	}
+	ifceilingdistl 16
+	{
+		geta[].z z
+		add z 512
+		seta[].z z
+	}
+
+	ifp pdead break
+
+	ifrnd 1 
+	  sound SEAGULLROAM
+
+	ifpdistl 8000
+	  {
+	  ifrnd 2
+		ifp palive
+		   ai AISEAGULLATTACK
+	  }
+	  else
+	  {
+	  ifrnd 4
+		ifp palive
+		   ai AISEAGULLATTACK
+	  }
+
+ends
+
+action ASEAGULLSHIT -1 1 1 
+move SEAGULLSHITSPEED 50 100 
+ai AISEAGULLSHIT ASEAGULLSHIT SEAGULLSHITSPEED geth getv 
+
+useractor enemy SEAGULLSHIT 
+
+sizeto 8 8
+ifai 0 
+{ 
+	getp[].max_actors_killed temp, sub temp 1, setp[].max_actors_killed temp
+	sound SEAGULLSHITSOUND ai AISEAGULLSHIT action ASEAGULLSHIT
+}
+
+
+fall
+
+iffloordistl 10
+  {
+  ifpdistl 1900 { addphealth -1 sound DUKE_GRUNT palfrom 32 wackplayer }
+  debris SCRAP3 4
+  spawn WATERSPLASH2
+  killit
+  }
+
+enda
+spriteflags SEAGULL SFLAG_NOWATERSECTOR SFLAG_NOWATERDIP
+
+eventloadactor SEAGULL sizeat 16 16 enda
+useractor enemy SEAGULL SEAGULLSTRENGTH
+
+ifai 0
+{
+  ai AISEAGULLFLY
+  sizeat 16 16
+  cstator 256
+}
+
+
+ifhitweapon
+{
+  sound SQUISHED
+  ifdead
+  {
+    state lite_jibs
+    sound SEAGULLDIE
+    killit
+  }
+  else
+  {
+    guts JIBS4 1
+    soundonce SEAGULLHURT
+  }
+}
+
+
+ifai AISEAGULLFLY
+  {
+  state SEAGULLFLYSTATE
+  }
+  else
+ifai AISEAGULLATTACK
+  {
+  state SEAGULLATTACKSTATE
+  }
+
+enda

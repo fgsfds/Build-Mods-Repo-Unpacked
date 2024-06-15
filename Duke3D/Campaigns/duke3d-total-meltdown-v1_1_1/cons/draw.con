@@ -1,0 +1,705 @@
+// Common drawing functions
+
+defstate S_Set_Draw_Parameters
+  ifand V_Draw_Orient ROTATESPRITE_FULL16
+    nullop
+  else
+  {
+    or V_Draw_Orient ROTATESPRITE_FULL16
+    shiftl V_Draw_X 16
+    shiftl V_Draw_Y 16
+  }
+ends
+
+defstate S_Set_Draw_Quote_Parameters
+  state S_Set_Draw_Parameters
+
+  shiftl V_Draw_X_Between 16
+
+  or V_Draw_Txt_Flags TEXT_INTERNALSPACE
+
+  switch V_Draw_Picnum
+  case DIGITALNUM
+  case THREEBYFIVE
+    or V_Draw_Txt_Flags TEXT_DIGITALNUMBER
+  break
+  case BIGALPHANUM
+    or V_Draw_Txt_Flags TEXT_UPPERCASE
+    or V_Draw_Txt_Flags TEXT_BIGALPHANUM
+  break
+  endswitch
+ends
+
+defstate S_Set_Draw_Psx_Scale
+  ifand V_Draw_Aspect D_Aspect_Psx
+  {
+    ifand V_Draw_Aspect D_Aspect_T
+      nullop // ifandn
+    else
+    ifand V_Draw_Aspect D_Aspect_B
+    {
+      add V_Draw_Y 13107200
+      sub V_Draw_Y D_Psx_Screen_H
+    }
+    else
+    {
+      add V_Draw_Y 6553600
+      sub V_Draw_Y D_Psx_Screen_H_div_2
+    }
+  }
+
+  // Sprites are not scaled to the view area size on PSX
+  ifand V_Draw_Orient RS_NOCLIP
+    nullop // ifandn
+  else
+  {
+    or V_Draw_Orient RS_NOCLIP
+
+    set V_Draw_Win_X1 windowx1
+    set V_Draw_Win_X2 windowx2
+    set V_Draw_Win_Y1 windowy1
+    set V_Draw_Win_Y2 windowy2
+
+    // Adjust the position of weapons without the status bar
+    ifg userdef[].screen_size 4
+    ife userdef[].statusbarmode 0
+      nullop
+    else
+    {
+      set V_Draw_Temp1 tilesizy[BOTTOMSTATUSBAR]
+      shiftl V_Draw_Temp1 15
+      add V_Draw_Y V_Draw_Temp1
+    }
+  }
+ends
+
+defstate S_Get_Screen_Pivot
+  ifand V_Draw_Orient RS_ALIGN_L
+    set V_Draw_Pivot_X 0
+  else
+  ifand V_Draw_Orient RS_ALIGN_R
+    set V_Draw_Pivot_X 20971520
+  else
+    set V_Draw_Pivot_X 10485760
+
+  ifand V_Draw_Aspect D_Aspect_Psx
+  {
+    ifand V_Draw_Aspect D_Aspect_T
+      set V_Draw_Pivot_Y 0
+    else
+    ifand V_Draw_Aspect D_Aspect_B
+      set V_Draw_Pivot_Y D_Psx_Screen_H
+    else
+      set V_Draw_Pivot_Y D_Psx_Screen_H_div_2
+  }
+  else
+  {
+    ifand V_Draw_Aspect D_Aspect_T
+      set V_Draw_Pivot_Y 0
+    else
+    ifand V_Draw_Aspect D_Aspect_B
+      set V_Draw_Pivot_Y 13107200
+    else
+      set V_Draw_Pivot_Y 6553600
+  }
+ends
+
+// Screen drawing functions
+
+defstate S_Convert_Win_X
+  set V_State_Win_X V_State_X
+
+  sub V_State_Win_X 10485760
+  scalevar V_State_Win_X V_State_Win_X ydim 15728640
+
+  shiftl V_State_Win_X 1
+  add V_State_Win_X xdim
+  shiftr V_State_Win_X 1
+
+  clamp V_State_Win_X 0 xdim_sub_1
+ends
+
+/* defstate S_Convert_Win_X_Stretched
+  scalevar V_State_Win_X V_State_X xdim 20971520
+
+  clamp V_State_Win_X 0 xdim_sub_1
+ends */
+
+defstate S_Convert_Win_Y
+  set V_State_Win_Y V_State_Y
+ 
+  add V_State_Win_Y 7864320
+  sub V_State_Win_Y D_Psx_Screen_H_div_2
+
+  divscale V_TempB1 6553600 userdef[].draw_yxaspect 16
+  sub V_State_Win_Y V_TempB1
+  mulscale V_State_Win_Y V_State_Win_Y userdef[].draw_yxaspect 16
+  scalevar V_State_Win_Y V_State_Win_Y ydim 13107200
+
+  shiftl V_State_Win_Y 1
+  add V_State_Win_Y ydim
+  shiftr V_State_Win_Y 1
+
+  clamp V_State_Win_Y 0 ydim_sub_1
+ends
+
+defstate S_Draw_Black_Screen
+  set V_Draw_Scale 21037056 // 1/2 pixel bleed
+  div V_Draw_Scale tilesizx[0]
+  set V_Draw_Temp1 13172736 // 1/2 pixel bleed
+  div V_Draw_Temp1 tilesizy[0]
+  ifl V_Draw_Scale V_Draw_Temp1
+    set V_Draw_Scale V_Draw_Temp1
+
+  rotatespritea 160 100 V_Draw_Scale 0 0 127 4 1032 0 0 0 xdim_sub_1 ydim_sub_1 // RS_NOCLIP (8), RS_STRETCH (1024)
+ends
+
+defstate S_Draw_Black_Rectangle
+  getarrayseq A_State_Draw V_Draw_Win_X1 V_Draw_Win_Y1 V_Draw_Win_X2 V_Draw_Win_Y2
+
+  set V_Draw_X V_Draw_Win_X1
+  set V_Draw_Y V_Draw_Win_Y1
+  set V_Draw_Scale V_Draw_Win_X2
+  sub V_Draw_Scale V_Draw_Win_X1
+  set V_Draw_Scale2 V_Draw_Win_Y2
+  sub V_Draw_Scale2 V_Draw_Win_Y1
+  add V_Draw_Scale 1
+  add V_Draw_Scale2 1
+
+  scalevar V_Draw_X V_Draw_X 20971520 xdim
+  scalevar V_Draw_Y V_Draw_Y 13107200 ydim
+  scalevar V_Draw_Scale V_Draw_Scale 20971520 xdim
+  scalevar V_Draw_Scale2 V_Draw_Scale2 13107200 ydim
+
+  // 1/2 pixel bleed
+  sub V_Draw_X 32768
+  sub V_Draw_Y 32768
+  add V_Draw_Scale 65536
+  add V_Draw_Scale2 65536
+
+  div V_Draw_Scale tilesizx[0]
+  div V_Draw_Scale2 tilesizy[0]
+  ifg V_Draw_Scale2 V_Draw_Scale
+    set V_Draw_Scale V_Draw_Scale2
+
+  rotatespritea V_Draw_X V_Draw_Y V_Draw_Scale 0 0 127 4 3096 0 V_Draw_Win_X1 V_Draw_Win_Y1 V_Draw_Win_X2 V_Draw_Win_Y2 // RS_NOCLIP (8), RS_TOPLEFT (16), RS_STRETCH (1024), ROTATESPRITE_FULL16 (2048)
+ends
+
+defstate S_Draw_Sprite
+  getarrayseq A_State_Draw V_Draw_X V_Draw_Y V_Draw_Scale V_Draw_Ang V_Draw_Picnum V_Draw_Shade V_Draw_Pal V_Draw_Orient V_Draw_Alpha V_Draw_Aspect
+
+  or V_Draw_Orient RS_NOCLIP
+  state S_Set_Draw_Parameters
+  state S_Set_Draw_Psx_Scale
+
+  rotatespritea V_Draw_X V_Draw_Y V_Draw_Scale V_Draw_Ang V_Draw_Picnum V_Draw_Shade V_Draw_Pal V_Draw_Orient V_Draw_Alpha 0 0 xdim_sub_1 ydim_sub_1
+ends
+
+defstate S_Draw_Quote
+  getarrayseq A_State_Draw V_Draw_Picnum V_Draw_X V_Draw_Y V_Draw_Scale V_Draw_Ang V_Draw_Char_Ang V_Draw_Quote V_Draw_Shade V_Draw_Pal V_Draw_Orient V_Draw_Alpha V_Draw_X_Between V_Draw_Txt_Flags V_Draw_Aspect
+
+  or V_Draw_Orient RS_NOCLIP
+  state S_Set_Draw_Quote_Parameters
+  state S_Set_Draw_Psx_Scale
+
+  screentext V_Draw_Picnum V_Draw_X V_Draw_Y V_Draw_Scale V_Draw_Ang V_Draw_Char_Ang V_Draw_Quote V_Draw_Shade V_Draw_Pal V_Draw_Orient V_Draw_Alpha 0 0 V_Draw_X_Between 0 V_Draw_Txt_Flags 0 0 xdim_sub_1 ydim_sub_1
+ends
+
+defstate S_Draw_Sprite_Windowed
+  getarrayseq A_State_Draw V_Draw_X V_Draw_Y V_Draw_Scale V_Draw_Ang V_Draw_Picnum V_Draw_Shade V_Draw_Pal V_Draw_Orient V_Draw_Alpha V_Draw_Win_X1 V_Draw_Win_Y1 V_Draw_Win_X2 V_Draw_Win_Y2 V_Draw_Aspect
+
+  or V_Draw_Orient RS_NOCLIP
+  state S_Set_Draw_Parameters
+  state S_Set_Draw_Psx_Scale
+
+  rotatespritea V_Draw_X V_Draw_Y V_Draw_Scale V_Draw_Ang V_Draw_Picnum V_Draw_Shade V_Draw_Pal V_Draw_Orient V_Draw_Alpha V_Draw_Win_X1 V_Draw_Win_Y1 V_Draw_Win_X2 V_Draw_Win_Y2
+ends
+
+defstate S_Draw_View_Sprite
+  getarrayseq A_State_Draw V_Draw_X V_Draw_Y V_Draw_Scale V_Draw_Ang V_Draw_Picnum V_Draw_Shade V_Draw_Pal V_Draw_Orient V_Draw_Alpha V_Draw_Aspect
+
+  state S_Set_Draw_Parameters
+  state S_Set_Draw_Psx_Scale
+
+  rotatespritea V_Draw_X V_Draw_Y V_Draw_Scale V_Draw_Ang V_Draw_Picnum V_Draw_Shade V_Draw_Pal V_Draw_Orient V_Draw_Alpha windowx1 windowy1 windowx2 windowy2
+ends
+
+defstate S_Draw_Sprite_Tiled
+  getarrayseq A_State_Draw V_Draw_Picnum V_Draw_Shade
+
+  set V_Draw_Scale 20971520
+  div V_Draw_Scale xdim
+
+  set V_Old_yxaspect yxaspect
+  setaspect viewingrange 65536
+
+  set V_Draw_Y 0
+  whilel V_Draw_Y ydim
+  {
+    scalevar V_Draw_Calc_Y V_Draw_Y 20971520 xdim
+
+    add V_Draw_Calc_Y 6553600
+    scalevar V_Draw_Temp1 10485760 ydim xdim
+    sub V_Draw_Calc_Y V_Draw_Temp1
+
+    set V_Draw_X 0
+    whilel V_Draw_X xdim_sub_1
+    {
+      scalevar V_Draw_Calc_X V_Draw_X 20971520 xdim
+      rotatespritea V_Draw_Calc_X V_Draw_Calc_Y V_Draw_Scale 0 V_Draw_Picnum V_Draw_Shade 0 3160 0 0 0 xdim_sub_1 ydim_sub_1 // RS_NOCLIP (8), RS_TOPLEFT (16), RS_NOMASK (64), RS_STRETCH (1024), ROTATESPRITE_FULL16 (2048)
+
+      add V_Draw_X tilesizx[V_Draw_Picnum]
+    }
+
+    add V_Draw_Y tilesizy[V_Draw_Picnum]
+  }
+
+  setaspect viewingrange V_Old_yxaspect
+ends
+
+defstate S_Draw_Vector
+  getarrayseq A_State_Draw V_Draw_Win_X1 V_Draw_Win_Y1 V_Draw_Win_X2 V_Draw_Win_Y2 V_Draw_Color V_Draw_Rgb
+
+  /* scalevar V_Draw_Win_X1 V_Draw_Win_X1 ydim 240
+  scalevar V_Draw_Win_Y1 V_Draw_Win_Y1 ydim 240
+  scalevar V_Draw_Win_X2 V_Draw_Win_X2 ydim 240
+  scalevar V_Draw_Win_Y2 V_Draw_Win_Y2 ydim 240 */
+
+  set V_Draw_Temp1 windowx1
+  shiftl V_Draw_Temp1 12
+  add V_Draw_Win_X1 V_Draw_Temp1
+  add V_Draw_Win_X2 V_Draw_Temp1
+
+  set V_Draw_Temp1 windowy1
+  shiftl V_Draw_Temp1 12
+  add V_Draw_Win_Y1 V_Draw_Temp1
+  add V_Draw_Win_Y2 V_Draw_Temp1
+
+  // Hack for pixel position in Polymost
+  add V_Draw_Win_X1 2048
+  add V_Draw_Win_X2 2048
+  add V_Draw_Win_Y1 2048
+  add V_Draw_Win_Y2 2048
+  shiftr V_Draw_Win_X1 12
+  shiftr V_Draw_Win_X2 12
+  shiftr V_Draw_Win_Y1 12
+  shiftr V_Draw_Win_Y2 12
+  ifn V_Draw_Win_X1 V_Draw_Win_X2
+  {
+    ifl V_Draw_Win_X2 V_Draw_Win_X1
+      add V_Draw_Win_X1 1
+    else
+      add V_Draw_Win_X2 1
+  }
+  else
+  ifn rendmode REND_CLASSIC
+  {
+    add V_Draw_Win_X1 1
+    add V_Draw_Win_X2 1
+  }
+  ifn V_Draw_Win_Y1 V_Draw_Win_Y2
+  {
+    ifl V_Draw_Win_Y2 V_Draw_Win_Y1
+      add V_Draw_Win_Y1 1
+    else
+      add V_Draw_Win_Y2 1
+  }
+  shiftl V_Draw_Win_X1 12
+  shiftl V_Draw_Win_X2 12
+  shiftl V_Draw_Win_Y1 12
+  shiftl V_Draw_Win_Y2 12
+
+  drawlinergb V_Draw_Win_X1 V_Draw_Win_Y1 V_Draw_Win_X2 V_Draw_Win_Y2 V_Draw_Color V_Draw_Rgb
+ends
+
+// Cutscene drawing functions
+
+defstate S_Set_Draw_Cutscene_Scale
+  // Same scaling as cutscene playback
+
+  sub V_Draw_X 10485760
+  sub V_Draw_Y 6553600
+  add V_Draw_Y userdef[].draw_y
+
+  scalevar V_Draw_Temp1 ydim 20971520 D_Psx_Cutscene_H
+  ifg V_Draw_Temp1 xdim
+  {
+    set V_Draw_Temp2 xdim
+    mul V_Draw_Temp2 3
+    set V_Draw_Temp3 ydim
+    shiftl V_Draw_Temp3 2
+  }
+  else
+  {
+    set V_Draw_Temp2 15728640
+    set V_Draw_Temp3 D_Psx_Cutscene_H
+  }
+
+  scalevar V_Draw_X V_Draw_X V_Draw_Temp2 V_Draw_Temp3
+  scalevar V_Draw_Y V_Draw_Y V_Draw_Temp2 V_Draw_Temp3
+  scalevar V_Draw_Scale V_Draw_Scale V_Draw_Temp2 V_Draw_Temp3
+
+  add V_Draw_X 10485760
+  add V_Draw_Y 6553600
+  sub V_Draw_Y userdef[].draw_y
+ends
+
+defstate S_Draw_Cutscene_Sprite
+  getarrayseq A_State_Draw V_Draw_X V_Draw_Y V_Draw_Scale V_Draw_Ang V_Draw_Picnum V_Draw_Shade V_Draw_Pal V_Draw_Orient V_Draw_Alpha V_Draw_Aspect
+
+  set V_Draw_Temp1 65536
+  mul V_Draw_Temp1 5
+  div V_Draw_Temp1 6
+  setuserdef[].draw_yxaspect V_Draw_Temp1
+
+  or V_Draw_Orient RS_NOCLIP
+  state S_Set_Draw_Parameters
+  state S_Set_Draw_Psx_Scale
+  state S_Set_Draw_Cutscene_Scale
+
+  rotatespritea V_Draw_X V_Draw_Y V_Draw_Scale V_Draw_Ang V_Draw_Picnum V_Draw_Shade V_Draw_Pal V_Draw_Orient V_Draw_Alpha 0 0 xdim_sub_1 ydim_sub_1
+
+  setuserdef[].draw_yxaspect 65536
+ends
+
+// Scoresheet drawing functions
+
+defstate S_Set_Draw_Scoresheet_Scale
+  ifn D_Max_Players 0
+  ifg MULTIMODE D_Max_Players
+  {
+    set V_Draw_Temp1 D_Max_Players
+    add V_Draw_Temp1 3
+    set V_Draw_Temp2 MULTIMODE
+    add V_Draw_Temp2 3
+
+    // Pivot
+    sub V_Draw_X 10485760
+    sub V_Draw_Y 5963776
+
+    mul V_Draw_X V_Draw_Temp1
+    div V_Draw_X V_Draw_Temp2
+    mul V_Draw_Y V_Draw_Temp1
+    div V_Draw_Y V_Draw_Temp2
+    mul V_Draw_Scale V_Draw_Temp1
+    div V_Draw_Scale V_Draw_Temp2
+
+    add V_Draw_X 10485760
+    add V_Draw_Y 5963776
+  }
+ends
+
+defstate S_Draw_Scoresheet_Sprite
+  getarrayseq A_State_Draw V_Draw_X V_Draw_Y V_Draw_Scale V_Draw_Ang V_Draw_Picnum V_Draw_Shade V_Draw_Pal V_Draw_Orient V_Draw_Alpha V_Draw_Aspect
+
+  or V_Draw_Orient RS_NOCLIP
+  state S_Set_Draw_Parameters
+  state S_Set_Draw_Scoresheet_Scale
+  state S_Set_Draw_Psx_Scale
+
+  rotatespritea V_Draw_X V_Draw_Y V_Draw_Scale V_Draw_Ang V_Draw_Picnum V_Draw_Shade V_Draw_Pal V_Draw_Orient V_Draw_Alpha 0 0 xdim_sub_1 ydim_sub_1
+ends
+
+defstate S_Draw_Scoresheet_Quote
+  getarrayseq A_State_Draw V_Draw_Picnum V_Draw_X V_Draw_Y V_Draw_Scale V_Draw_Ang V_Draw_Char_Ang V_Draw_Quote V_Draw_Shade V_Draw_Pal V_Draw_Orient V_Draw_Alpha V_Draw_X_Between V_Draw_Txt_Flags V_Draw_Aspect
+
+  or V_Draw_Orient RS_NOCLIP
+  state S_Set_Draw_Quote_Parameters
+  state S_Set_Draw_Scoresheet_Scale
+  state S_Set_Draw_Psx_Scale
+
+  screentext V_Draw_Picnum V_Draw_X V_Draw_Y V_Draw_Scale V_Draw_Ang V_Draw_Char_Ang V_Draw_Quote V_Draw_Shade V_Draw_Pal V_Draw_Orient V_Draw_Alpha 0 0 V_Draw_X_Between 0 V_Draw_Txt_Flags 0 0 xdim_sub_1 ydim_sub_1
+ends
+
+// Status bar drawing functions
+
+defstate S_Draw_Sbar_Black_Rectangle
+  getarrayseq A_State_Sbar V_Draw_Win_X1 V_Draw_Win_Y1 V_Draw_Win_X2 V_Draw_Win_Y2
+
+  ife D_Enable_Pal_Ver 1
+  ife userdef[].althud 0
+  {
+    add V_Draw_Win_Y1 1507328
+    add V_Draw_Win_Y2 1507328
+  }
+
+  ifn userdef[].statusbarscale 100
+  {
+    set V_Draw_Orient 0
+    set V_Draw_Aspect D_Aspect_Psx_or_D_Aspect_B
+
+    state S_Get_Screen_Pivot
+    sub V_Draw_Win_X1 V_Draw_Pivot_X
+    sub V_Draw_Win_Y1 V_Draw_Pivot_Y
+    sub V_Draw_Win_X2 V_Draw_Pivot_X
+    sub V_Draw_Win_Y2 V_Draw_Pivot_Y
+
+    scalevar V_Draw_Win_X1 V_Draw_Win_X1 userdef[].statusbarscale 100
+    scalevar V_Draw_Win_Y1 V_Draw_Win_Y1 userdef[].statusbarscale 100
+    scalevar V_Draw_Win_X2 V_Draw_Win_X2 userdef[].statusbarscale 100
+    scalevar V_Draw_Win_Y2 V_Draw_Win_Y2 userdef[].statusbarscale 100
+
+    add V_Draw_Win_X1 V_Draw_Pivot_X
+    add V_Draw_Win_Y1 V_Draw_Pivot_Y
+    add V_Draw_Win_X2 V_Draw_Pivot_X
+    add V_Draw_Win_Y2 V_Draw_Pivot_Y
+  }
+
+  set V_State_X V_Draw_Win_X1
+  state S_Convert_Win_X
+  set V_Draw_Win_X1 V_State_Win_X
+  set V_State_X V_Draw_Win_X2
+  state S_Convert_Win_X
+  set V_Draw_Win_X2 V_State_Win_X
+  set V_State_Y V_Draw_Win_Y1
+  state S_Convert_Win_Y
+  set V_Draw_Win_Y1 V_State_Win_Y
+  set V_State_Y V_Draw_Win_Y2
+  state S_Convert_Win_Y
+  set V_Draw_Win_Y2 V_State_Win_Y
+
+  sub V_Draw_Win_X2 1
+  sub V_Draw_Win_Y2 1
+
+  setarrayseq A_State_Draw V_Draw_Win_X1 V_Draw_Win_Y1 V_Draw_Win_X2 V_Draw_Win_Y2
+  state S_Draw_Black_Rectangle
+ends
+
+defstate S_Set_Draw_Sbar_Scale
+  ifn userdef[].statusbarscale 100
+  {
+    state S_Get_Screen_Pivot
+    sub V_Draw_X V_Draw_Pivot_X
+    sub V_Draw_Y V_Draw_Pivot_Y
+
+    scalevar V_Draw_X V_Draw_X userdef[].statusbarscale 100
+    scalevar V_Draw_Y V_Draw_Y userdef[].statusbarscale 100
+
+    scalevar V_Draw_Scale V_Draw_Scale userdef[].statusbarscale 100
+
+    add V_Draw_X V_Draw_Pivot_X
+    add V_Draw_Y V_Draw_Pivot_Y
+  }
+
+  ife D_Enable_Pal_Ver 1
+  ife userdef[].althud 0
+  {
+    ife userdef[].screen_size 4
+      sub V_Draw_Y 196608
+    else
+      add V_Draw_Y 1507328
+  }
+ends
+
+state Set_Draw_Shadow
+  ifand V_Draw_Orient ROTATESPRITE_FULL16
+  {
+    add V_Draw_X 65536
+    add V_Draw_Y 65536
+  }
+  else
+  {
+    add V_Draw_X 1
+    add V_Draw_Y 1
+  }
+  or V_Draw_Orient 33 // RS_TRANS1 (1), RS_TRANS2 (32)
+ends
+
+defstate S_Draw_Sbar_Sprite
+  ife V_Draw_Shadow 1
+  ifn rendmode REND_CLASSIC
+  {
+    getarrayseq A_State_Draw V_Draw_X V_Draw_Y V_Draw_Scale V_Draw_Ang V_Draw_Picnum V_Draw_Shade V_Draw_Pal V_Draw_Orient V_Draw_Alpha V_Draw_Aspect
+
+    state Set_Draw_Shadow
+
+    or V_Draw_Orient RS_NOCLIP
+    state S_Set_Draw_Quote_Parameters
+    state S_Set_Draw_Sbar_Scale
+    state S_Set_Draw_Psx_Scale
+
+    rotatespritea V_Draw_X V_Draw_Y V_Draw_Scale V_Draw_Ang V_Draw_Picnum 127 4 V_Draw_Orient V_Draw_Alpha 0 0 xdim_sub_1 ydim_sub_1
+  }
+
+  getarrayseq A_State_Draw V_Draw_X V_Draw_Y V_Draw_Scale V_Draw_Ang V_Draw_Picnum V_Draw_Shade V_Draw_Pal V_Draw_Orient V_Draw_Alpha V_Draw_Aspect
+
+  or V_Draw_Orient RS_NOCLIP
+  state S_Set_Draw_Parameters
+  state S_Set_Draw_Sbar_Scale
+  state S_Set_Draw_Psx_Scale
+
+  rotatespritea V_Draw_X V_Draw_Y V_Draw_Scale V_Draw_Ang V_Draw_Picnum V_Draw_Shade V_Draw_Pal V_Draw_Orient V_Draw_Alpha 0 0 xdim_sub_1 ydim_sub_1
+ends
+
+defstate S_Draw_Sbar_Quote
+  ife V_Draw_Shadow 1
+  ifn rendmode REND_CLASSIC
+  {
+    getarrayseq A_State_Draw V_Draw_Picnum V_Draw_X V_Draw_Y V_Draw_Scale V_Draw_Ang V_Draw_Char_Ang V_Draw_Quote V_Draw_Shade V_Draw_Pal V_Draw_Orient V_Draw_Alpha V_Draw_X_Between V_Draw_Txt_Flags V_Draw_Aspect
+
+    state Set_Draw_Shadow
+
+    or V_Draw_Orient RS_NOCLIP
+    state S_Set_Draw_Quote_Parameters
+    state S_Set_Draw_Sbar_Scale
+    state S_Set_Draw_Psx_Scale
+
+    screentext V_Draw_Picnum V_Draw_X V_Draw_Y V_Draw_Scale V_Draw_Ang V_Draw_Char_Ang V_Draw_Quote 127 4 V_Draw_Orient V_Draw_Alpha 0 0 V_Draw_X_Between 0 V_Draw_Txt_Flags 0 0 xdim_sub_1 ydim_sub_1
+  }
+
+  getarrayseq A_State_Draw V_Draw_Picnum V_Draw_X V_Draw_Y V_Draw_Scale V_Draw_Ang V_Draw_Char_Ang V_Draw_Quote V_Draw_Shade V_Draw_Pal V_Draw_Orient V_Draw_Alpha V_Draw_X_Between V_Draw_Txt_Flags V_Draw_Aspect
+
+  or V_Draw_Orient RS_NOCLIP
+  state S_Set_Draw_Quote_Parameters
+  state S_Set_Draw_Sbar_Scale
+  state S_Set_Draw_Psx_Scale
+
+  screentext V_Draw_Picnum V_Draw_X V_Draw_Y V_Draw_Scale V_Draw_Ang V_Draw_Char_Ang V_Draw_Quote V_Draw_Shade V_Draw_Pal V_Draw_Orient V_Draw_Alpha 0 0 V_Draw_X_Between 0 V_Draw_Txt_Flags 0 0 xdim_sub_1 ydim_sub_1
+ends
+
+// Level stats drawing functions
+
+defstate S_Set_Draw_Stats_Scale
+  // Remove palettes
+  set V_Draw_Pal 0
+  or V_Draw_Txt_Flags TEXT_IGNOREESCAPE
+
+  ifn userdef[].textscale 400
+  {
+    state S_Get_Screen_Pivot
+    sub V_Draw_X V_Draw_Pivot_X
+    sub V_Draw_Y V_Draw_Pivot_Y
+
+    scalevar V_Draw_X V_Draw_X userdef[].textscale 400
+    scalevar V_Draw_Y V_Draw_Y userdef[].textscale 400
+
+    scalevar V_Draw_Scale V_Draw_Scale userdef[].textscale 400
+
+    add V_Draw_X V_Draw_Pivot_X
+    add V_Draw_Y V_Draw_Pivot_Y
+  }
+
+  ife userdef[].screen_size 4
+  ife userdef[].althud 1
+  ife userdef[].hudontop 1
+    nullop
+  else
+  ifn userdef[].screen_size 0
+  {
+    ife userdef[].screen_size 4
+    {
+      ife userdef[].althud 1
+      {
+        set V_Draw_Temp1 tilesizy[BIGALPHANUM]
+        add V_Draw_Temp1 8
+      }
+      else
+        set V_Draw_Temp1 tilesizy[INVENTORYBOX]
+    }
+    else
+    ifg userdef[].screen_size 4
+      set V_Draw_Temp1 tilesizy[BOTTOMSTATUSBAR]
+    shiftl V_Draw_Temp1 16
+    scalevar V_Draw_Temp1 V_Draw_Temp1 userdef[].statusbarscale 100
+    sub V_Draw_Y V_Draw_Temp1
+  }
+ends
+
+defstate S_Draw_Stats_Quote
+  getarrayseq A_State_Draw V_Draw_Picnum V_Draw_X V_Draw_Y V_Draw_Scale V_Draw_Ang V_Draw_Char_Ang V_Draw_Quote V_Draw_Shade V_Draw_Pal V_Draw_Orient V_Draw_Alpha V_Draw_X_Between V_Draw_Txt_Flags V_Draw_Aspect
+
+  or V_Draw_Orient RS_NOCLIP
+  state S_Set_Draw_Quote_Parameters
+  state S_Set_Draw_Stats_Scale
+  state S_Set_Draw_Psx_Scale
+
+  screentext V_Draw_Picnum V_Draw_X V_Draw_Y V_Draw_Scale V_Draw_Ang V_Draw_Char_Ang V_Draw_Quote V_Draw_Shade V_Draw_Pal V_Draw_Orient V_Draw_Alpha 0 0 V_Draw_X_Between 0 V_Draw_Txt_Flags 0 0 xdim_sub_1 ydim_sub_1
+ends
+
+// Body/weapon drawing functions
+
+defstate S_Set_Draw_Weap_Scale
+  ifand userdef[].globalgameflags DUKE3D_NO_WIDESCREEN_PINNING
+  {
+    ifand V_Draw_Orient RS_ALIGN_L
+      xor V_Draw_Orient RS_ALIGN_L
+    else
+    ifand V_Draw_Orient RS_ALIGN_R
+      xor V_Draw_Orient RS_ALIGN_R
+  }
+
+  ifn userdef[].weaponscale 100
+  {
+    state S_Get_Screen_Pivot
+    sub V_Draw_X V_Draw_Pivot_X
+    sub V_Draw_Y V_Draw_Pivot_Y
+
+    scalevar V_Draw_X V_Draw_X userdef[].weaponscale 100
+    scalevar V_Draw_Y V_Draw_Y userdef[].weaponscale 100
+
+    scalevar V_Draw_Scale V_Draw_Scale userdef[].weaponscale 100
+
+    add V_Draw_X V_Draw_Pivot_X
+    add V_Draw_Y V_Draw_Pivot_Y
+  }
+ends
+
+defstate S_Draw_Body_Sprite
+  getarrayseq A_State_Draw V_Draw_X V_Draw_Y V_Draw_Scale V_Draw_Ang V_Draw_Picnum V_Draw_Shade V_Draw_Pal V_Draw_Orient V_Draw_Alpha V_Draw_Aspect
+
+  state S_Set_Draw_Parameters
+  state S_Set_Draw_Psx_Scale
+
+  rotatespritea V_Draw_X V_Draw_Y V_Draw_Scale V_Draw_Ang V_Draw_Picnum V_Draw_Shade V_Draw_Pal V_Draw_Orient V_Draw_Alpha windowx1 windowy1 windowx2 windowy2
+ends
+
+defstate S_Draw_Weap_Sprite
+  getarrayseq A_State_Draw V_Draw_X V_Draw_Y V_Draw_Scale V_Draw_Ang V_Draw_Picnum V_Draw_Shade V_Draw_Pal V_Draw_Orient V_Draw_Alpha V_Draw_Aspect
+
+  state S_Set_Draw_Parameters
+  state S_Set_Draw_Weap_Scale
+  state S_Set_Draw_Psx_Scale
+
+  rotatespritea V_Draw_X V_Draw_Y V_Draw_Scale V_Draw_Ang V_Draw_Picnum V_Draw_Shade V_Draw_Pal V_Draw_Orient V_Draw_Alpha windowx1 windowy1 windowx2 windowy2
+ends
+
+// Common drawing code
+
+defstate S_Set_Draw_Values
+  set xdim_sub_1 xdim
+  sub xdim_sub_1 1
+  set ydim_sub_1 ydim
+  sub ydim_sub_1 1
+  /* set windowx2_add_1 windowx2
+  add windowx2_add_1 1 */
+  set windowy2_add_1 windowy2
+  add windowy2_add_1 1
+ends
+
+appendevent EVENT_DISPLAYSTART
+  state S_Set_Draw_Values
+endevent
+
+appendevent EVENT_GETMENUTILE
+  state S_Set_Draw_Values
+endevent
+
+appendevent EVENT_SCREEN
+  state S_Set_Draw_Values
+endevent
+
+appendevent EVENT_DISPLAYSTART
+  setuserdef[].vm_player screenpeek
+endevent
+
+appendevent EVENT_DISPLAYROOMS
+  setuserdef[].vm_player screenpeek
+endevent
+
+appendevent EVENT_DISPLAYREST
+  setuserdef[].vm_player screenpeek
+endevent
+
+appendevent EVENT_DISPLAYEND
+  setuserdef[].vm_player screenpeek
+endevent

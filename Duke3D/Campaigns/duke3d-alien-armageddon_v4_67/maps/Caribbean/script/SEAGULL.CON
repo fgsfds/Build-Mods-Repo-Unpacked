@@ -1,0 +1,141 @@
+// CON Files for the 'Duke Carribean Add-on' by SunStorm Interactive
+//
+// Actor - SEAGULL     - Sprite #1553 
+// Actor - SEAGULLSHIT - Sprite #1638
+//
+// --- Resources ---
+//
+// Sounds:
+// Sea Gull Hurt Sound    - GULLHURT.WAV
+// Sea Gull Roam Sound    - GULLROAM.WAV
+// Sea Gull Dying Sound   - GULLDIE.WAV
+// Sea Gull Shit Sound    - GULLSHIT.WAV
+//
+// Art:
+// 3 * 1 frame(s)         - Parallaxed Sea Gull
+// 1 * 1 frame(s)         - Sea Gull Shit
+
+define SEAGULL 2150
+define SEAGULLSHIT 1638
+
+define SEAGULLSTRENGTH 20
+
+action SEAGULLFLY 1496 3 1 1 20
+
+move   SEAGULLSPEED 100
+move   SEAGULLATTACK 200
+
+ai     AISEAGULLFLY SEAGULLFLY SEAGULLSPEED randomangle geth getv 
+ai     AISEAGULLATTACK SEAGULLFLY SEAGULLATTACK faceplayer
+
+state SEAGULLFLYSTATE
+
+ifrnd 4 ai AISEAGULLFLY
+
+ifp pdead break
+
+ifrnd 1 
+  {
+  sound SEAGULLROAM
+  ifrnd 32
+    {
+//    spawn SEAGULLSHIT
+    }
+  }
+
+ifpdistl 8000
+  {
+  ifrnd 2
+    ifp palive
+       ai AISEAGULLATTACK
+  }
+  else
+  {
+  ifrnd 4
+    ifp palive
+       ai AISEAGULLATTACK
+  }
+
+ends
+
+state SEAGULLATTACKSTATE
+
+ifp pdead ai AISEAGULLFLY
+
+ifrnd 2
+  sound SEAGULLROAM
+
+ifrnd 1
+  ifrnd 196 ai AISEAGULLFLY
+
+ifpdistl 2500
+  {
+  spawn SEAGULLSHIT
+  ai AISEAGULLFLY
+  }
+ 
+ends
+
+
+
+action ASEAGULLSHIT -1 1 1 
+
+move SEAGULLSHITSPEED 50 100 
+
+ai AISEAGULLSHIT ASEAGULLSHIT SEAGULLSHITSPEED geth getv 
+
+useractor enemy SEAGULLSHIT 
+
+sizeto 20 20
+ifai NO { sound SEAGULLSHITSOUND ai AISEAGULLSHIT action ASEAGULLSHIT }
+
+
+fall
+
+iffloordistl 10
+  {
+  ifpdistl 1900 { addphealth -1 sound DUKE_GRUNT palfrom 32 wackplayer }
+  debris SCRAP3 4
+  spawn WATERSPLASH2
+  killit
+  }
+
+enda
+
+actor SEAGULL SEAGULLSTRENGTH SEAGULLFLY
+
+ifai NO
+  ai AISEAGULLFLY
+
+
+ifhitweapon
+  {
+  sound SQUISHED
+  ifdead
+    {
+    state standard_jibs
+    state standard_jibs
+    sound SEAGULLDIE
+    killit
+    }
+    else
+    {
+    guts JIBS4 1
+    soundonce SEAGULLHURT
+    }
+  }
+
+
+ifai AISEAGULLFLY
+  {
+  state SEAGULLFLYSTATE
+  }
+  else
+ifai AISEAGULLATTACK
+  {
+  state SEAGULLATTACKSTATE
+  }
+
+enda
+
+

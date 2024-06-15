@@ -1,0 +1,2092 @@
+// WARMAGEDDON CODE
+
+// instructions for using NAVSPRITE nodes
+// they are tile 35, place them to form paths that actors can walk
+// a distance of between 3K and 8K build units is generally good, but longer is possible
+// do not tag them unless you want to limit the choices that an actor has when moving from
+// one node to another (for example to prevent actor from walking into a pit)
+// to tag them, put a lotag on each node that you want to limit choices from
+// put the same numbered tag on each node that the actor can reach from the lotaged node
+// do not use the same tag number in line of sight to a different group of tagged nodes
+
+define SPAWNTIME1 150
+define SPAWNTIME2 300
+define SPAWNTIME3 600
+define SPAWNTIME4 900
+define SPAWNTIME5 1350
+define SPAWNTIME6 2700
+define SPAWNTIME7 3600
+define DONTSPAWN 99999
+
+state genericammosetup
+
+	// randomly set initsprite to one of the starting weapon's ammo sprites
+
+	// bitfield
+	// 1 = pistol
+	// 2 = shotgun
+	// 4 = chaingun
+	// 8 = RPG
+	// 16 = pipebombs
+	// 32 = shrinker
+	// 64 = devastator
+	// 128 = spider-bombs
+	// 256 = freezer
+	// 512 = babifier
+	// 1024 = terminator gun
+	// 2048 = light saber
+	// 4096 = chainsaw
+	// 8192 = alien blaster
+	// 16384 = railgun
+	
+	// first we need to know how many possible ammo types there are
+	set countvarc 0
+	ifvarand startguns 16384 { setarray tmpar1[countvarc] RAILGUNAMMO add countvarc 1 }
+	ifvarand startguns 8192 { setarray tmpar1[countvarc] LASERPISTOL add countvarc 1 }
+	// ifvarand startguns 4096 { setarray tmpar1[countvarc] SAWAMMO add countvarc 1 }
+	// ifvarand startguns 2048 { setarray tmpar1[countvarc] SABERSPRITE add countvarc 1 }
+	ife startguns 4096 { setarray tmpar1[countvarc] SAWAMMO add countvarc 1 }
+	ife startguns 2048 { setarray tmpar1[countvarc] SABERSPRITE add countvarc 1 }
+	ifvarand startguns 1024 { setarray tmpar1[countvarc] PLASMAAMMO add countvarc 1 }
+	ifvarand startguns 512 { setarray tmpar1[countvarc] GROWAMMO add countvarc 1 }
+	ifvarand startguns 256 { setarray tmpar1[countvarc] FREEZEAMMO add countvarc 1 }
+	ifvarand startguns 128 { setarray tmpar1[countvarc] SPIDERMINESPRITE add countvarc 1 }
+	ifvarand startguns 64 { setarray tmpar1[countvarc] DEVISTATORAMMO add countvarc 1 }
+	ifvarand startguns 32 { setarray tmpar1[countvarc] CRYSTALAMMO add countvarc 1 }
+	ifvarand startguns 16 { setarray tmpar1[countvarc] HBOMBAMMO add countvarc 1 }
+	ifvarand startguns 8 { setarray tmpar1[countvarc] RPGAMMO add countvarc 1 }
+	ifvarand startguns 4 { setarray tmpar1[countvarc] BATTERYAMMO add countvarc 1 }
+	ifvarand startguns 2 { setarray tmpar1[countvarc] SHOTGUNAMMO add countvarc 1 }
+	ifvarand startguns 1 { setarray tmpar1[countvarc] AMMO add countvarc 1 }
+	sub countvarc 1
+	randvarvar countvarb countvarc
+	// next, each of the countvarb must correspond to an ammo type in startguns
+	set initsprite tmpar1[countvarb]
+
+ends
+
+state sizetable
+
+	switch initsprite
+	case LIZTROOP case OCTABRAIN case ZOMBIETROOP
+	case PIGCOP sizeat 40 40 ife do_upscale YES sizeat 20 20 break
+	case COMMANDER 
+	case NEWCOMM sizeat 30 28 break
+	case ARMPIG sizeat 26 24 break
+	case NEWTROOP sizeat 24 22 break
+	case CYBERBEAST sizeat 32 28 break
+	case NEWPIG case LIZMAN sizeat 28 26 break
+	case NEWBEAST case NEWBEASTCROUCH sizeat 32 30 break
+	case FEMCIV case FEMCIVCROUCH case FEMCIV2 case FEMCIV2CROUCH
+	case MALECIV1 case MALECIV1CROUCH case MALECIV2 case MALECIV2CROUCH 
+	case NAKEDBABE case NAKEDBABECROUCH case SHOWERGIRL case SCHOOLGIRL
+	case STRIPPER case STRIPPERCROUCH case KBABE case KBABECROUCH case CHEERLEADER
+	case CAVEGIRL case CAVEGIRLCROUCH case BIKINIBABE case BIKINIBABE2
+	case CRYSTAL case CHEERLEADERCROUCH case HOOKER case HOOKERCROUCH case POLEDANCER sizeat 28 26 break
+	case TANK sizeat 60 60 break
+	case GUARD sizeat 27 25 break
+	case TERMINATOR case TERMINATORCRAWLING case TERMINATORSTAYPUT case TERMINATORDUCKING 
+	sizeat 28 24 break
+	case SPACEBULL sizeat 26 26 break
+	case MECHBRAIN case MECHBRAINSTAYPUT sizeat 40 38 break
+	case RECON sizeat 48 48 ife do_upscale YES sizeat 24 24 break
+	case SHARK sizeat 60 60 ife do_upscale YES sizeat 30 30 break
+	case QUEEN sizeat 42 40 break
+	case BOSS1 case BOSS2 case BOSS3 case BOSS4
+		ife droptile 0 sizeat 64 60 else sizeat 32 30
+		ife do_upscale YES { ife droptile 0 sizeat 64 64 else sizeat 20 20 }
+	break
+	case NEWBATLORD ife droptile 0 sizeat 72 60 else sizeat 36 30 break
+	case BATBOSS sizeat 32 30 break
+	case LIZRANGER case LIZRANGERDUCKING case LIZRANGERSTAYPUT sizeat 30 28 break
+	case LIZBOSS
+		ife droptile 0 sizeat 64 56 else sizeat 32 28 
+		break
+	case PIGBOSS
+		ife droptile 0 sizeat 66 60 ife droptile 42 sizeat 66 60 else sizeat 33 30
+	break
+	case DEVOURER ife droptile 19 sizeat 30 28 else sizeat 18 16 break
+	case ROTATEGUN sizeat 40 40 break
+	case EDFTROOP sizeat 25 22 break
+	case ARMEDF sizeat 28 26 break
+	case EDFDRONE sizeat 36 32 break
+	case NEWSENTRY sizeat 36 32 break
+	case EDFSNIPER case EDFSNIPERCROUCH case EDFSNIPERSTAYPUT sizeat 30 28 break
+	case LIZELITE sizeat 23 23 break
+	case MANDOFETT sizeat 26 24 break
+	case ARMYANT case ARMYANTCRAWLPUT sizeat 24 24 break
+	case PSPIDER sizeat 54 48 break
+	case SITH case SYTH sizeat 30 27 break
+
+	case FIRSTGUNSPRITE
+	case SHOTGUNSPRITE
+	case CHAINGUNSPRITE
+	case RPGSPRITE
+	case HBOMBAMMO
+	case FREEZESPRITE
+	
+	case HEAVYHBOMB
+	case TRIPBOMBSPRITE
+	case DEVISTATORSPRITE
+
+	case SHOTGUNAMMO
+	case BATTERYAMMO
+	case RPGAMMO
+	case GROWAMMO
+	case CRYSTALAMMO
+	case DEVISTATORAMMO
+	case FREEZEAMMO
+	case COLA
+	case SIXPAK
+	case ATOMICHEALTH
+	case FIRSTAID
+	case SHIELD
+	case STEROIDS
+	case HOLODUKE
+	case AIRTANK
+	case JETPACK
+	case HEATSENSOR
+	case BOOTS
+	case SAWAMMO
+		sizeat 40 40
+	break
+	case SHRINKERSPRITE
+	case GROWSPRITEICON
+	case SPIDERMINESPRITE
+	case PLASMASPRITE
+	case PLASMAAMMO
+	case GLOCKSPRITE
+	case ATOMICSHOTTY
+	case BOWSPRITE case QUIVERSPRITE
+	sizeat 32 32
+	break
+	case AMMO
+	sizeat 24 24
+	break
+	case SABERSPRITE sizeat 18 18 break
+	default sizeat 42 40 break
+	endswitch
+
+ends
+
+state wavecode
+
+	sizeat 32 32
+	switch wave
+	case 1
+		// ifrnd 128
+		// {
+			// set initsprite LIZTROOP
+			// set droptile 16
+		// }
+		ifrnd 84
+		{
+			set initsprite COMMANDER
+			// set droptile 16
+		}
+		else
+		{
+			set initsprite SPACEBULL
+			rand temp 5
+			ife temp 1 set droptile 13
+			ife temp 2 set droptile 14
+			ife temp 3 set droptile 16
+			ife temp 4 set droptile 21
+			ife temp 5 set droptile 51
+		}
+		state sizetable
+	break
+	case 2
+		ife spawnsleft 2
+		set initsprite PSPIDER
+		else set initsprite CANHEAD
+		set droptile 3
+	break
+
+	case 7
+		rand temp 100
+		ifl temp 50 { set initsprite NEWTROOP ifrnd 32 set droptile 16 } else
+		ifl temp 65 set initsprite LIZRANGER else
+		ifl temp 80 set initsprite CYBERBEAST else
+		{
+			set initsprite SPACEBULL
+			rand temp 5
+			ife temp 1 set droptile 13
+			ife temp 2 set droptile 14
+			ife temp 3 set droptile 16
+			ife temp 4 set droptile 21
+			ife temp 5 set droptile 51
+		}
+	break
+	
+	case 8 // sith battle
+	break
+	
+	case 11 // regular survival wave
+		rand temp 100
+		ifl temp 40 { set initsprite LIZRANGER set droptile 0 } else
+		ifl temp 70 { set initsprite SYTH set droptile 21 } else
+		{ set initsprite LIZELITE ifrnd 128 set droptile 12 else set droptile 21 }
+
+	break
+	
+	case 12 // boss survival wave
+		ife spawnsleft 3 { set initsprite BOSS2FLY set droptile 3 } else
+		ife spawnsleft 2 { set initsprite LIZBOSS set droptile 0 } else
+		{ set initsprite PIGBOSS set droptile 0 }
+	break
+	
+	case 21 // first edelheim wave
+		ife spawnsleft 50 set initsprite COMBINEDMEN
+		else
+		set initsprite ZOMBIE
+		
+	break
+	
+	case 22 // second edelheim wave
+		rand droptile 13
+		add droptile 10
+		set initsprite NEWTROOP
+	break
+	
+	case 23
+		rand droptile 13
+		add droptile 10
+		set initsprite LIZMAN
+	break
+	
+	case 24
+		rand droptile 13
+		add droptile 10
+		set initsprite DRONE
+	break
+	
+	case 25
+		rand droptile 13
+		add droptile 10
+		set initsprite NEWPIG
+		ifrnd 84 
+		{
+			ifrnd 160 set initsprite ARMPIG else
+			set initsprite TANK
+		}
+	break
+	
+	case 26
+		rand droptile 13
+		add droptile 10
+		set initsprite OCTABRAIN
+		ifrnd 48 set initsprite MEGABRAIN
+	break
+	
+	case 27
+		rand droptile 13
+		add droptile 10
+		set initsprite NEWBEAST
+		ifrnd 96 set initsprite CYBERBEAST
+	break
+	
+	case 28
+		rand droptile 13
+		add droptile 10
+		set initsprite ARMYANT
+	break
+	
+	case 29
+		rand droptile 13
+		add droptile 10
+		set initsprite COMMANDER
+	break
+	
+	case 30
+		rand droptile 13
+		add droptile 10
+		set initsprite LIZRANGER
+	break
+	
+	case 31
+		rand droptile 13
+		add droptile 10
+		set initsprite MECHBRAIN
+	break
+	
+	case 32
+		rand droptile 13
+		add droptile 10
+		set initsprite SPACEBULL
+	break
+	
+	case 33
+		rand droptile 13
+		add droptile 10
+		set initsprite TERMINATOR
+	break
+	
+	case 34
+		set temp spawnsleft
+		modvar temp 2
+		ife temp 0
+		set droptile 12 else set droptile 21
+		set initsprite LIZELITE
+	break
+	
+	case 35
+		set temp spawnsleft
+		modvar temp 2
+		ife temp 0
+		set initsprite BOSS3 else set initsprite LIZBOSS
+		set droptile 21
+	break
+	
+	case 39
+	break
+	
+	case 40 // first CYCLOIDMAX wave
+		ifl spawnsleft 5
+		{
+			set initsprite LIZBOSS
+			set droptile 21
+		}
+		else set initsprite NEWSENTRY
+	break
+	
+	case 41 
+	break
+	
+	case 42 // second CYCLOIDMAX wave
+		ifl spawnsleft 9
+		{
+			set initsprite CYBERBEAST
+			set droptile 24
+		}
+		else set initsprite NEWSENTRY
+	break
+	
+	default break
+	endswitch
+
+ends
+
+state teamspawn
+
+	
+	ife gametime -1 break // match is over
+	
+	ife gametype SURVIVAL 
+	ifn mtype 0
+	{
+		state wavecode
+		ifl spawnsleft 1 { cstat 32768 break }
+	}
+	ife initsprite -1 break
+	ifn myspawner -1 ife actorvar[myspawner].monstatus 2
+	ifg sprite[myspawner].htg_t 0 30 // move count >30
+	{
+		seta[myspawner].picnum BIGSMOKE // turn body into smoke
+		seta[myspawner].xrepeat 0
+		seta[myspawner].yrepeat 0
+		seta[myspawner].htpicnum TEAMSPAWNER
+	}
+	espawnvar initsprite
+	setav[RETURN].teamspawned THISACTOR
+	setav[RETURN].spawnprotect 30
+	seta[RETURN].pal droptile
+	ifn team 0 setav[RETURN].team team
+	ifg monstflags 1 setav[RETURN].monstflags monstflags
+	ife gametype CONTROL
+	{
+		geta[RETURN].htflags temp
+		orvar temp 64
+		seta[RETURN].htflags temp
+	}
+	set myspawner RETURN
+	spawn TRANSPORTERSTAR
+	cstat 32768
+	ife gametype SURVIVAL ifn mtype 0 sub spawnsleft 1
+
+ends
+
+state randomrespawncheck
+
+	ife gametype DM
+	ifg pstarts 0
+	{
+		set tempb pstarts
+		sub tempb 1
+		rand temp tempb
+		set mysector 0
+		updatesectorz loadx[temp] loady[temp] loadz[temp] mysector
+		ifn temp -1
+		{
+			seta[].x loadx[temp]
+			seta[].y loady[temp]
+			seta[].z loadz[temp]
+			seta[].sectnum mysector
+		}
+	}
+ends
+
+state startrespawn
+
+	ife initflags GENERICAMMO state genericammosetup
+	
+	switch initsprite
+	case FIRSTGUNSPRITE
+	case GLOCKSPRITE
+	case SHOTGUNSPRITE
+	case CHAINGUNSPRITE
+	case RPGSPRITE
+	case HBOMBAMMO
+	case FREEZESPRITE
+	case SHRINKERSPRITE
+	case HEAVYHBOMB
+	case TRIPBOMBSPRITE
+	case DEVISTATORSPRITE
+	case AMMO
+	case SHOTGUNAMMO
+	case BATTERYAMMO
+	case RPGAMMO
+	case GROWAMMO
+	case CRYSTALAMMO
+	case DEVISTATORAMMO
+	case FREEZEAMMO
+	case COLA
+	case SIXPAK
+
+	case RAILGUNAMMO
+	case SAWAMMO
+	case SABERSPRITE
+	case SAWSPRITE
+	case PLASMAAMMO
+	case LASERPISTOL
+	case SPIDERMINESPRITE
+	case QUIVERSPRITE
+		set countvar SPAWNTIME6
+		ife gametype DM ife LEVEL 25 set countvar SPAWNTIME7
+		break
+	
+	case ATOMICHEALTH
+	case FIRSTAID
+	case SHIELD
+	case STEROIDS
+	case HOLODUKE
+	case AIRTANK
+	case JETPACK
+	case HEATSENSOR
+	case BOOTS
+	case NUKESPRITE
+		set countvar SPAWNTIME7
+	break
+	
+	case LIZELITE
+	case MANDOFETT
+		ife gametype SURVIVAL ifn mtype 0 ifl spawnsleft 1 set countvar DONTSPAWN
+		else
+		set countvar SPAWNTIME2
+		ife unbalanced YES ifn gametype DM { mul countvar 4 div countvar 5 } // reduced respawn time
+		
+		state randomrespawncheck
+	break
+	
+	case PIGBOSS
+	case LIZBOSS
+	case BOSS1
+	case BOSS2
+	case BOSS3
+	case BOSS4
+	case PSPIDER
+	case QUEEN
+	case NEWBATLORD
+	case BATBOSS
+		ife gametype SURVIVAL ifn mtype 0 ifl spawnsleft 1 set countvar DONTSPAWN
+		else
+		set countvar SPAWNTIME5
+		ife unbalanced YES ifn gametype DM { mul countvar 4 div countvar 5 } // reduced respawn time
+		state randomrespawncheck
+	break
+	default
+		ife gametype SURVIVAL ifn mtype 0 ifl spawnsleft 1 set countvar DONTSPAWN
+		else
+		set countvar SPAWNTIME4
+		ife unbalanced YES ifn gametype DM { mul countvar 4 div countvar 5 } // reduced respawn time
+		state randomrespawncheck
+	break
+	endswitch
+	
+	ife gametype SURVIVAL ifn mtype 0 // ifn countvar DONTSPAWN
+	{
+		switch wave
+		case 7 set countvar SPAWNTIME2 break
+		case 11 set countvar SPAWNTIME3 break
+		case 21 case 22
+		case 23 case 24 case 25 case 26 case 27
+		case 28 case 29 case 30 case 31 case 32
+		case 33 case 34 case 35
+		case 39 case 40 case 41 case 42
+			set countvar SPAWNTIME1 
+		break
+		endswitch
+	}
+
+ends
+
+spritenoshade TEAMSPAWNER
+spritenopal TEAMSPAWNER
+
+useractor notenemy TEAMSPAWNER 0
+
+	set burning 0
+	ifn thiscam -1 break
+	ife initflags 1 ife unbalanced NO break
+	ifmove 0
+	{
+		ife initsprite ARMYANTCRAWLPUT cstator 8
+		
+		ife countvar 0
+		{
+			set countvar 90
+			ife droptile 0
+			geta[].pal droptile
+			ifn mtype 0 { set gametype SURVIVAL set countvar 300 set survivor_winner NO }
+			seta[].mdflags 16
+			spritepal 33
+			ife initflags GENERICAMMO state genericammosetup
+			break
+		}
+		else
+		{
+			sub countvar 1
+			ife countvar 0
+			{
+				move STOPPED
+				ife mtype 0
+				{
+					state sizetable
+					state teamspawn
+				}
+				else 
+				{
+					set gametype SURVIVAL
+					set survivor_winner NO
+					state teamspawn
+				}
+			}
+			else break
+		}
+		
+	}
+	ife countvar 0
+	ife myspawner -1
+	ifn mtype 0 // I spawn monsters
+	ifg spawnsleft 0 // something got messed up!
+		set countvar 90
+		
+	ifg countvar 0
+	{
+		ifn myspawner -1
+		ife sprite[myspawner].statnum 1024 
+		{
+			set myspawner -1
+		}
+		sub countvar 1
+		
+		ife countvar 0
+		{
+			state sizetable
+			state teamspawn
+		}
+		else
+		ifl countvar 150 // SPAWNTIME2
+		{
+			ife countvar 20 sound ITEMPORT
+			ifn mtype 0 cstat 32768
+			else
+			{
+				ifrnd 84 cstat 0 else
+				ifrnd 128 cstat 2 else
+				cstat 514
+				set shade countvar
+				sub shade 100
+				ifg shade 127 set shade 127
+				ifl shade -127 set shade -127
+				seta[].shade shade
+			}
+		}
+		else cstat 32768
+		
+		// safety check in case myspawner has been revived
+		ifn countvar 0
+		ifn myspawner -1 ife actorvar[myspawner].monstatus 1
+		{
+			set countvar 0
+			cstat 32768
+		}
+	}
+	ifn myspawner -1
+	ife countvar 0
+	{
+		ifg sprite[myspawner].statnum 2 { set myspawner -1 state startrespawn }
+		else ife actorvar[myspawner].monstatus 2 state startrespawn
+		else ife sprite[myspawner].statnum 2 // asleep
+		{
+			changespritestat myspawner 1
+			seta[myspawner].httimetosleep 100
+		}
+	}
+enda
+
+state setbaseval
+
+	ife team 0
+	{
+		setav[spriteid].redbaseval mtype
+		// setav[spriteid].redowner THISACTOR
+		setav[spriteid].rediteration 0
+		setav[spriteid].redtimer countvar
+	}
+	else
+	ife team 1
+	{
+		setav[spriteid].bluebaseval mtype
+		// setav[spriteid].blueowner THISACTOR
+		setav[spriteid].blueiteration 0
+		setav[spriteid].bluetimer countvar
+	}
+	seta[spriteid].htpicnum sprite[].picnum
+
+ends
+
+state setcontrolval
+
+	ifactor CONTROL_A
+	{
+		setav[spriteid].redbaseval mtype
+		setav[spriteid].rediteration 0
+		setav[spriteid].redtimer countvar
+	}
+	else
+	ifactor CONTROL_B
+	{
+		setav[spriteid].bluebaseval mtype
+		setav[spriteid].blueiteration 0
+		setav[spriteid].bluetimer countvar
+	}
+	else
+	ifactor CONTROL_C
+	{
+		setav[spriteid].thirdbaseval mtype
+		setav[spriteid].thirdbaseiteration 0
+		setav[spriteid].thirdbasetimer countvar
+	}
+
+ends
+
+state setvalueloop
+
+	getp[].player_par countvar
+	add countvar 1
+	headspritestat spriteid 979 // 980
+	whilevarn spriteid -1
+	{
+		set temp YES
+		
+		ifn sprite[spriteid].sectnum sprite[].sectnum
+		ifn actorvar[spriteid].SPRITELOTAG 0 
+		{
+			set temp NO
+			ifg actorvar[spriteid].SPRITELOTAG 999
+			ifn sprite[spriteid].pal 0 set temp YES
+		}
+		
+		ife temp YES
+		{
+			geta[].z z
+			subvar z 8192
+			seta[].z z
+			canseespr THISACTOR spriteid temp
+			add z 8192
+			seta[].z z
+			ife temp YES
+			{
+				dist xydist THISACTOR spriteid
+				ifl xydist MAXNAVDIST
+				{
+					set mtype 16777216
+					shiftl xydist 5
+					sub mtype xydist
+					ifg mtype 0 
+					{
+						switch sprite[].picnum
+						case REDFLAGATBASE 
+						case BLUEFLAGATBASE
+							state setbaseval
+						break
+						case CONTROL_A
+						case CONTROL_B
+						case CONTROL_C
+							state setcontrolval
+						break
+						endswitch
+					}
+				}
+			}
+		}
+		nextspritestat spriteid spriteid
+	}
+
+ends
+
+state setdynamicvalue
+
+	ife mysignpost -1
+	{
+		espawn NAVSPRITE
+		setav[RETURN].mysignpost THISACTOR
+		set mysignpost RETURN
+		changespritestat RETURN 980
+	}
+	getp[].player_par countvar
+	add countvar 1
+	ifactor BLUEFLAG
+	{
+		setav[mysignpost].blueflagval 17000000
+		setav[mysignpost].blueiteration 0
+		setav[mysignpost].bluetimer countvar
+		seta[mysignpost].htpicnum BLUEFLAG
+	}
+	else
+	ifactor REDFLAG
+	{
+		setav[mysignpost].redflagval 17000000
+		setav[mysignpost].rediteration 0
+		setav[mysignpost].redtimer countvar
+		seta[mysignpost].htpicnum REDFLAG
+	}
+	seta[mysignpost].htpicnum sprite[].picnum
+	geta[].z savz sub savz 6144
+	setsprite mysignpost sprite[].x sprite[].y savz
+	setav[mysignpost].countvar 0
+
+ends
+
+/*
+state setdynamicvalue
+
+	getp[].player_par countvar
+	add countvar 1
+	headspritestat spriteid 980
+	whilevarn spriteid -1
+	{
+
+		set temp YES
+		ifn sprite[spriteid].sectnum sprite[].sectnum
+		ifn actorvar[spriteid].SPRITELOTAG 0 
+		{
+			set temp NO
+			ifg actorvar[spriteid].SPRITELOTAG 999
+			ifn sprite[spriteid].pal 0 set temp YES
+		}
+
+		ife temp YES
+		{
+			geta[].z z
+			subvar z 8192
+			seta[].z z
+			canseespr THISACTOR spriteid temp
+			add z 8192
+			seta[].z z
+			ife temp YES
+			{
+				geta[].z z
+				subvar z 8192
+				geta[spriteid].z z2
+				sub z2 z
+				abs z2
+				ifg z MAXHEIGHTDIFF set temp NO
+				else
+				ifg actorvar[spriteid].SPRITELOTAG 999
+					ife sprite[spriteid].pal 0
+				set temp NO
+				ife temp YES
+				{
+					ldist xydist THISACTOR spriteid
+					ifl xydist MAXNAVDIST
+					{
+						set mtype 17000000
+						shiftl xydist 5
+						sub mtype xydist
+						ifg mtype 0 
+						{
+							ifactor BLUEFLAG
+							{
+								setav[spriteid].blueflagval mtype
+								// setav[spriteid].redowner THISACTOR
+								setav[spriteid].blueiteration 0
+								setav[spriteid].bluetimer countvar
+								seta[spriteid].htpicnum BLUEFLAG
+							}
+							else
+							ifactor REDFLAG
+							{
+								setav[spriteid].redflagval mtype
+								// setav[spriteid].blueowner THISACTOR
+								setav[spriteid].rediteration 0
+								setav[spriteid].redtimer countvar
+								seta[spriteid].htpicnum REDFLAG
+							}
+							seta[spriteid].htpicnum sprite[].picnum
+						}
+					}
+				}
+			}
+		}
+		nextspritestat spriteid spriteid
+	}
+
+ends
+*/
+
+state killblueflagval
+
+	headspritestat spriteid 980
+	whilevarn spriteid -1
+	{
+		setav[spriteid].blueflagval 0
+		setav[spriteid].blueiteration 99999
+		seta[spriteid].htpicnum NAVSPRITE
+		nextspritestat spriteid spriteid
+	}
+	set blueflagid -1
+ends
+
+state killredflagval
+
+	headspritestat spriteid 980
+	whilevarn spriteid -1
+	{
+		setav[spriteid].redflagval 0
+		setav[spriteid].rediteration 99999
+		seta[spriteid].htpicnum NAVSPRITE
+		nextspritestat spriteid spriteid
+	}
+	set redflagid -1
+ends
+
+state flagcaptured
+	setav[spriteid].navpoint -1
+	setav[spriteid].savedvalue -1
+	ifactor REDFLAGATBASE 
+	{	
+		ifn gametime -1 screensound GRAB_RED_FLAG
+		quote 197
+		cactor REDBASENOFLAG
+		set monstatus 0
+		set redcarrier spriteid
+		espawn REDFLAG
+		seta[RETURN].pal 10
+		set myspawner RETURN
+		setav[RETURN].myspawner THISACTOR
+	}
+	ifactor BLUEFLAGATBASE
+	{
+		ifn gametime -1 screensound GRAB_BLUE_FLAG
+		quote 196
+		cactor BLUEBASENOFLAG
+		set monstatus 0
+		set bluecarrier spriteid
+		espawn BLUEFLAG
+		set myspawner RETURN
+		setav[RETURN].myspawner THISACTOR
+	}
+	
+ends
+
+state grabflag
+	
+	setav[spriteid].navpoint -1
+	setav[spriteid].savedvalue -1
+	ife team actorvar[spriteid].team
+	{
+		set monstatus 2
+		setav[myspawner].mtype 1
+		// flag returned
+		ifactor BLUEFLAG
+		{
+			quote 205
+			ife subtitle_time 0
+			{
+				findnearactor REDFLAGATBASE 8192 spriteid
+				ifn spriteid -1
+				{
+					screensound DENIED
+					screensound DENIED
+					screensound DENIED
+					screensound DENIED
+					set emp_overlay_tile 12266
+					set cutcamtime player[].player_par
+					set emp_overlay 70
+					set subtitle_time 70
+					set subtitle_start 740
+					set subtitle_numlines 1
+				}
+			}
+		}
+		ifactor REDFLAG 
+		{
+			quote 206
+			ife subtitle_time 0
+			{
+				findnearactor BLUEFLAGATBASE 8192 spriteid
+				ifn spriteid -1
+				{
+					screensound DENIED
+					screensound DENIED
+					screensound DENIED
+					screensound DENIED
+					set emp_overlay_tile 12266
+					set cutcamtime player[].player_par
+					set emp_overlay 70
+					set subtitle_time 70
+					set subtitle_start 740
+					set subtitle_numlines 1
+				}
+			}
+		}
+	}
+	else
+	{
+		ifactor BLUEFLAG set bluecarrier spriteid
+		else
+		ifactor REDFLAG set redcarrier spriteid
+		
+		ife sprite[spriteid].picnum DEANOVA sound DEA_ENEMYFLAG
+	}
+
+ends
+
+move DROPPED
+
+state flagcode
+
+	strength 100
+	ife monstatus 2 
+	{
+		ifn gametime -1 screensound RETURNFLAG
+		ifactor BLUEFLAG state killblueflagval  else
+		ifactor REDFLAG state killredflagval
+		ifn mysignpost -1 setav[mysignpost].monstatus 2
+		killit
+	}
+	ifmove 0
+	{
+		move STOPPED
+		cstat 0
+		sizeat 40 36
+		set initsprite -1
+		ifactor REDFLAG 
+		{
+			set team 0
+			set redflagval 33554432
+			set monstatus REDFLAG
+		}
+		else
+		ifactor BLUEFLAG 
+		{
+			set team 1
+			set blueflagval 33554432
+			set monstatus BLUEFLAG
+		}
+	}
+	fall
+	ifactor REDFLAG
+	{
+		ife redcarrier player[].i 
+		{
+			ife player[].over_shoulder_on NO cstat 32768 else cstat 0
+			ifhitspace 
+			{ 
+				resetcount set redcarrier -1 
+				sound RETURNFLAG
+				quote 359
+				move DROPPED
+			}
+		}
+		else cstat 0
+		
+		set redflagid THISACTOR
+		ifn redcarrier -1
+		{
+			set countvarb 0
+			geta[redcarrier].ang angvar
+			add angvar 1024
+			set x sprite[redcarrier].x
+			add x 128
+			rotatepoint sprite[redcarrier].x sprite[redcarrier].y x sprite[redcarrier].y angvar x2 y2
+		
+			setsprite THISACTOR x2 y2 sprite[redcarrier].z
+			
+			ifg sprite[redcarrier].sectnum -1
+			ifl sprite[redcarrier].sectnum 4096
+			changespritesect THISACTOR sprite[redcarrier].sectnum
+			
+			ife sprite[redcarrier].statnum 1024 set redcarrier -1
+			else
+			ife actorvar[redcarrier].monstatus 2 set redcarrier -1
+			ife redcarrier -1 quote 208
+			
+			ife team actorvar[redcarrier].team
+			{
+				resetcount set redcarrier -1 
+				move DROPPED
+			}
+		}
+		else 
+		{
+			fall
+			set temp sprite[].sectnum
+			updatesectorz sprite[].x sprite[].y sprite[].z temp
+			ifn temp -1 changespritesect THISACTOR temp
+			add countvarb 1
+			ifg countvarb 1799
+			{
+				ifn gametime -1 screensound RETURNFLAG
+				set monstatus 2
+				setav[myspawner].mtype 1
+				state killredflagval quote 206
+				killit
+			}
+		}
+			
+		state setdynamicvalue
+	}
+	ifactor BLUEFLAG
+	{
+		ife bluecarrier player[].i ife player[].over_shoulder_on NO cstat 32768 else cstat 0
+		
+		set blueflagid THISACTOR
+		ifn bluecarrier -1
+		{
+			set countvarb 0
+			geta[bluecarrier].ang angvar
+			add angvar 1024
+			set x sprite[bluecarrier].x
+			add x 128
+			rotatepoint sprite[bluecarrier].x sprite[bluecarrier].y x sprite[bluecarrier].y angvar x2 y2
+		
+			setsprite THISACTOR x2 y2 sprite[bluecarrier].z
+			
+			ifg sprite[bluecarrier].sectnum -1
+			ifl sprite[bluecarrier].sectnum 4096
+			changespritesect THISACTOR sprite[bluecarrier].sectnum
+			
+			ife sprite[bluecarrier].statnum 1024 set bluecarrier -1
+			else
+			ife actorvar[bluecarrier].monstatus 2 set bluecarrier -1
+			ife bluecarrier -1 quote 207
+			
+			ife team actorvar[bluecarrier].team
+			{
+				resetcount set bluecarrier -1 
+				move DROPPED
+			}
+		}
+		else 
+		{
+			set temp sprite[].sectnum
+			updatesectorz sprite[].x sprite[].y sprite[].z temp
+			ifn temp -1 changespritesect THISACTOR temp
+			fall
+			add countvarb 1
+			ifg countvarb 1799
+			{
+				ifn gametime -1 screensound RETURNFLAG
+				set monstatus 2
+				setav[myspawner].mtype 1
+				state killblueflagval quote 205
+				killit
+			}
+		}
+			
+		state setdynamicvalue
+	}
+	
+	set temp NO
+	ifactor BLUEFLAG ife bluecarrier -1 set temp YES
+	ifactor REDFLAG ife redcarrier -1 set temp YES
+	
+	ife temp YES
+	{
+		ifn actorvar[player[].i].monstatus 2
+		ifp palive
+			ifpdistl 768
+			ifmove STOPPED
+			ife spectate NO
+			{
+				getp[].i spriteid
+				state grabflag
+				break
+			}
+			else ifpdistg 844 ifmove DROPPED move STOPPED
+		
+		
+		headspritestat spriteid 1
+		whilevarn spriteid -1
+		{
+			set temp NO
+			ife actorvar[spriteid].monstatus 1 set temp YES
+			ife actorvar[spriteid].monstatus 30 set temp YES
+			ife temp YES
+			{
+				ldist xydist THISACTOR spriteid
+				
+				ifl xydist 480
+				{
+					geta[spriteid].z z
+					sub z sprite[].z
+					abs z
+					ifl z 10240
+					ifn sprite[spriteid].picnum LIZTURRET
+					ifn sprite[spriteid].picnum EDFTURRET
+					ifn sprite[spriteid].picnum SIDEGUN
+					ifl actorvar[spriteid].team 2
+					ifn actorvar[spriteid].FEMKILLCOUNT 2400
+					{
+						state grabflag
+						set spriteid -1
+					}
+				}
+				
+				ifle xydist 4096 // 1560
+				ifn spriteid -1
+				{
+					geta[].z z
+					subvar z 8192
+					seta[].z z
+					canseespr THISACTOR spriteid temp
+					add z 8192
+					seta[].z z
+					ife temp YES
+					{
+						geta[].z z
+						geta[spriteid].z z2
+						sub z z2
+						abs z
+						ifl z MAXHEIGHTDIFF
+							setav[spriteid].navpoint THISACTOR
+					}
+				}
+				
+				
+			}
+			ifn spriteid -1
+			nextspritestat spriteid spriteid
+			ife monstatus 2 set spriteid -1
+		}
+		
+	}
+	
+
+ends
+
+state scorecheck
+	ife gametime -1 break
+	ife gametime 0 ifn redscore bluescore { setp[].timebeforeexit 180 set endgametime gametime set gametime -1 }
+	ifge bluescore scorelimit ifg bluescore redscore { setp[].timebeforeexit 180 set endgametime gametime set gametime -1 }
+	ifge redscore scorelimit ifg redscore bluescore { setp[].timebeforeexit 180 set endgametime gametime set gametime -1 }
+ends
+
+state flagscored 
+
+	// the base runs this code when a flag is brought back to score
+	// spriteid is ID of the flag sprite of the other team
+	ife team 0 // red team scores
+	{
+		ifn gametime -1 screensound RED_SCORES
+		quote 199
+		ifn bluecarrier -1 { setav[bluecarrier].navpoint -1 setav[bluecarrier].savedvalue -1 }
+		ifn gametime -1 
+		{
+			add redscore 100
+			state scorecheck
+		}
+		getav[spriteid].myspawner temp
+		setav[temp].mtype 1 // signal to other team's base to reset itself
+		setav[spriteid].monstatus 2 // signal to flag to delete itself
+		set bluecarrier -1
+	}
+	else ife team 1 // blue team scores
+	{
+		ifn gametime -1 screensound BLUE_SCORES
+		quote 198
+		ifn redcarrier -1 { setav[redcarrier].navpoint -1 setav[redcarrier].savedvalue -1 }
+		ifn gametime -1 
+		{
+			add bluescore 100
+			state scorecheck
+		}
+		getav[spriteid].myspawner temp
+		setav[temp].mtype 1 // signal to other team's base to reset itself
+		setav[spriteid].monstatus 2 // signal to flag to delete itself
+		set redcarrier -1
+	}
+
+ends
+
+action FLAGANIMATE 2838
+
+state flagatbasecode
+
+	strength 100
+	ifaction FLAGANIMATE nullop else { action FLAGANIMATE cstat 0 }
+	ifmove 0
+	{
+		
+		move STOPPED
+		cstat 0
+		sizeat 48 42
+		set gametype CTF
+		set scorelimit 800 // placeholder
+		ifactor REDFLAGATBASE 
+		{
+			set team 0
+			set redbaseval 30000000
+			set monstatus REDFLAG
+		}
+		else
+		ifactor BLUEFLAGATBASE 
+		{
+			set team 1
+			set bluebaseval 30000000
+			set monstatus BLUEFLAG
+		}
+	}
+	
+	headspritesect spriteid sprite[].sectnum
+	whilevarn spriteid -1
+	{
+		ifn actorvar[spriteid].team team
+		{
+			ife team 0 set picnum BLUEFLAG else
+			ife team 1 set picnum REDFLAG
+			
+			ife sprite[spriteid].picnum picnum
+			{
+				dist xydist THISACTOR spriteid
+				ifl xydist 1024
+					state flagscored
+				
+			}
+			else
+			{
+				ife sprite[spriteid].picnum APLAYER
+				ife thiscam -1
+				ifp palive
+				{
+					ifpdistl 1024
+						state flagcaptured
+				}
+				
+				ifn sprite[].picnum REDBASENOFLAG
+				ifn sprite[].picnum BLUEBASENOFLAG
+				{
+					set temp NO
+						
+					ife actorvar[spriteid].monstatus 1 set temp YES
+					ife actorvar[spriteid].monstatus 30 set temp YES
+					
+					ife temp YES
+					ife sprite[spriteid].statnum 1
+					ifn sprite[spriteid].picnum LIZTURRET
+					ifn sprite[spriteid].picnum EDFTURRET
+					ifn sprite[spriteid].picnum SIDEGUN
+					ifl actorvar[spriteid].team 2
+					ifn actorvar[spriteid].FEMKILLCOUNT 2400
+					{
+						dist xydist THISACTOR spriteid
+						ifl xydist 844
+							state flagcaptured
+						else
+							ifl xydist 1560
+							{
+								geta[spriteid].z z
+								sub z sprite[].z
+								abs z
+								ifl z 8192
+								setav[spriteid].navpoint THISACTOR
+							}
+					}
+				}
+			}
+		}
+		else // same team
+		{
+			set target -1
+			ife spriteid bluecarrier set target bluecarrier
+			ife spriteid redcarrier set target redcarrier
+			ifn target -1
+			{
+				dist xydist THISACTOR target
+				ifl xydist 1560
+				{
+					geta[spriteid].z z
+					sub z sprite[].z
+					abs z
+					ifl z 8192
+					setav[spriteid].navpoint THISACTOR
+				}
+			}
+		}
+			
+		
+		nextspritesect spriteid spriteid
+		ifactor REDBASENOFLAG set spriteid -1
+		ifactor BLUEBASENOFLAG set spriteid -1
+	}
+	
+	state setvalueloop
+
+ends
+
+state basenoflagcode
+
+	strength 100
+	ifaction FLAGANIMATE { action ANULLACTION cstat 32768 }
+	ifmove 0
+	{
+		move STOPPED
+		cstat 0
+		sizeat 48 42
+		set gametype CTF
+		set scorelimit 800 // placeholder
+		ifactor REDBASENOFLAG set team 0 else
+		ifactor BLUEBASENOFLAG set team 1
+	}
+	
+	ife mtype 1
+	{
+		set myspawner -1
+		set mtype 0
+		ife team 0 { cactor REDFLAGATBASE set monstatus REDFLAG } else
+		ife team 1 { cactor BLUEFLAGATBASE set monstatus BLUEFLAG }
+	}
+
+ends
+
+spritenoshade CAPTUREPLUS
+spritenopal CAPTUREPLUS
+
+move PLUSMOVE 0 -32
+
+useractor notenemy CAPTUREPLUS
+
+ifmove 0
+{
+	sizeat 32 32
+	move PLUSMOVE geth getv
+	seta[].shade -100
+}
+ifcount 30 sizeto 0 0
+ifcount 60 killit
+
+enda
+
+ // stat 0 == neutral
+ // negative stat goes towards red, REDLOCKDOWN means captured by red
+ // positive stat goes towards blue, LOCKDOWN means captured by blue
+ 
+ action CONTROLACTION 3
+ spritenoshade CONTROL_A
+ spritenoshade CONTROL_B
+ spritenoshade CONTROL_C
+ spritenopal CONTROL_A
+ spritenopal CONTROL_B
+ spritenopal CONTROL_C
+ 
+state controlpointcode
+
+	strength 100
+	ifmove 0
+	{
+		move STOPPED
+		action CONTROLACTION
+		sizeat 32 32
+		cstat 0
+		gets[].floorz z
+		sub z 10240
+		seta[].z z
+		sets[].floorpal 13
+		spritepal 13
+		seta[].shade -100
+	}
+	ifn thiscam -1 break
+	set radaron YES
+	state setvalueloop
+	
+	ifactor CONTROL_A { set mtype redbasestat set A_ID THISACTOR set monstatus CONTROL_A_HUD }
+	ifactor CONTROL_B { set mtype bluebasestat set B_ID THISACTOR set monstatus CONTROL_B_HUD }
+	ifactor CONTROL_C { set mtype thirdbasestat set C_ID THISACTOR set monstatus CONTROL_C_HUD }
+	
+	set temp NO
+	ifge mtype LOCKDOWN set temp YES
+	ifle mtype REDLOCKDOWN set temp YES
+	// first we check to see whether control point is locked down
+	headspritesect spriteid sprite[].sectnum
+	whilevarn spriteid -1
+	{
+		set B NO
+		ife actorvar[spriteid].monstatus 1 set B YES
+		ife sprite[spriteid].picnum APLAYER ifg sprite[player[].i].extra 0 set B YES
+		ife spriteid myshelly ifn actorvar[spriteid].monstatus 2 set B YES
+		ife B YES
+		{
+			geta[].z z
+			sub z sprite[spriteid].z
+			abs z
+			ifl z 16384
+			{
+				ife actorvar[spriteid].team 0
+				{
+					ifle mtype REDLOCKDOWN set mtype -99999 // locked to red
+				}
+				else
+				ife actorvar[spriteid].team 1
+				{
+					ifge mtype LOCKDOWN set mtype 99999 // locked to blue
+				}
+			}
+		}
+		nextspritesect spriteid spriteid
+	}
+	
+	set countvar 0 // blue count
+	set countvarb 0 // red count
+	
+	ifn mtype 99999 ifn mtype -99999
+	{
+		headspritesect spriteid sprite[].sectnum
+		whilevarn spriteid -1
+		{
+			set B NO
+			ife actorvar[spriteid].monstatus 1 ifg sprite[spriteid].extra 0 set B YES
+			ife sprite[spriteid].picnum APLAYER ifg sprite[player[].i].extra 0 set B YES
+			ife spriteid myshelly ifn actorvar[spriteid].monstatus 2 set B YES
+			ife B YES
+			{
+				geta[].z z
+				sub z sprite[spriteid].z
+				abs z
+				ifl z 16384
+				{
+					ife actorvar[spriteid].team 0
+					{
+						ifg countvar 0 set mtype 99999 // freeze the process
+						else
+						{
+							add countvarb 1
+							espawn CAPTUREPLUS
+							seta[RETURN].pal 2
+							rand x 4096
+							sub x 2048
+							add x sprite[].x
+							seta[RETURN].x x
+							rand y 4096
+							sub y 2048
+							add y sprite[].y
+							seta[RETURN].y y
+							seta[RETURN].z sector[].floorz
+							ifactorsound THISACTOR CAPTURING nullop else sound CAPTURING
+							
+						}
+					}
+					else
+					ife actorvar[spriteid].team 1
+					{
+						ifg countvarb 0 set mtype 99999 // freeze the process
+						else
+						{
+							add countvar 1
+							espawn CAPTUREPLUS
+							seta[RETURN].pal 1
+							rand x 4096
+							sub x 2048
+							add x sprite[].x
+							seta[RETURN].x x
+							rand y 4096
+							sub y 2048
+							add y sprite[].y
+							seta[RETURN].y y
+							seta[RETURN].z sector[].floorz
+							ifactorsound THISACTOR CAPTURING nullop else sound CAPTURING
+						}
+					}
+				}
+			}
+			nextspritesect spriteid spriteid
+		}
+	}
+	else set direction 0
+	
+	ifn mtype 99999
+	ifn mtype -99999
+	{
+		ife countvar countvarb set direction 0 else
+		ifg countvar countvarb set direction 1 else
+		ifg countvarb countvar set direction -1
+		add mtype countvar
+		sub mtype countvarb
+		ifle mtype 0
+		{
+			ife sector[].floorpal 1
+			{
+				// remove control from blue team
+				sets[].floorpal 13
+				spritepal 13
+				set team 0
+				// sound etc.
+			}
+			ifle mtype REDLOCKDOWN
+			{
+				set mtype REDLOCKDOWN
+				ifn sector[].floorpal 2
+				{
+					sets[].floorpal 2
+					spritepal 10
+					set team -1
+					ifactorsound THISACTOR CAPTURING stopactorsound THISACTOR CAPTURING
+					ifn gametime -1 screensound ZONE_RED
+				}
+			}
+		}
+		ifg mtype 0
+		{
+			ife sector[].floorpal 2
+			{
+				// remove control from red team
+				sets[].floorpal 13
+				spritepal 13
+				set team 0
+				// sound etc.
+			}
+			ifge mtype LOCKDOWN
+			{
+				set mtype LOCKDOWN
+				ifn sector[].floorpal 1
+				{
+					sets[].floorpal 1
+					spritepal 0
+					set team 1
+					ifactorsound THISACTOR CAPTURING stopactorsound THISACTOR CAPTURING
+					ifn gametime -1 screensound ZONE_BLUE
+				}
+			}
+		}
+		ifactor CONTROL_A set redbasestat mtype
+		ifactor CONTROL_B set bluebasestat mtype
+		ifactor CONTROL_C set thirdbasestat mtype
+		
+		
+	}
+	
+	ife team 1 
+	{ 
+		add bluetimer 1 
+		ifge bluetimer 30 
+		{
+			ifn gametime -1 
+			{
+				add bluescore 1
+				state scorecheck
+				
+			}
+			set bluetimer 0
+		}
+	}
+	else set bluetimer 0
+	
+	ife team -1
+	{ 
+		add redtimer 1 
+		ifge redtimer 30 
+		{
+			ifn gametime -1 
+			{
+				add redscore 1
+				state scorecheck
+			}
+			set redtimer 0
+		}
+	}
+	else set redtimer 0
+	
+	ife countvar 0 ife countvarb 0 { ifactorsound THISACTOR CAPTURING stopactorsound THISACTOR CAPTURING }
+
+ends
+
+useractor notenemy REDFLAGATBASE 0 state flagatbasecode enda
+
+useractor notenemy BLUEFLAGATBASE 0 state flagatbasecode enda
+
+useractor notenemy REDFLAG 0 state flagcode enda
+
+useractor notenemy BLUEFLAG 0 state flagcode enda
+
+useractor notenemy REDBASENOFLAG 0 state basenoflagcode enda
+
+useractor notenemy BLUEBASENOFLAG 0 state basenoflagcode enda
+
+useractor notenemy CONTROL_A 0 state controlpointcode enda
+
+useractor notenemy CONTROL_B 0 state controlpointcode enda
+
+useractor notenemy CONTROL_C 0 state controlpointcode enda
+
+state npcnavcode
+
+	ife debugaa NO cstat 32768 else cstat 0
+
+	ife SPRITELOTAG tourgoal
+	{
+		getp[].player_par curr_tick
+		add curr_tick 1
+		headspritestat spriteid 980
+		whilevarn spriteid -1
+		{
+			set temp YES
+			ifn sprite[spriteid].sectnum sprite[].sectnum
+			ifn actorvar[spriteid].SPRITELOTAG 0 
+			{
+				set temp NO
+				ifg actorvar[spriteid].SPRITELOTAG 999
+				ifn sprite[spriteid].pal 0 set temp YES
+			}
+			
+			ife spriteid mynavsprite set temp NO
+			
+			ife temp YES
+			{
+				geta[].z z
+				subvar z 8192
+				seta[].z z
+				canseespr THISACTOR spriteid temp
+				add z 8192
+				seta[].z z
+				ife temp YES
+				{
+					dist xydist THISACTOR spriteid
+					ife sprite[spriteid].pal 8 set TMP_A HALFNAVDIST else set TMP_A MAXNAVDIST
+					ifl xydist TMP_A
+					{
+						set mtype 17000000
+						shiftl xydist 5
+						sub mtype xydist
+						ifg mtype 0 
+						{
+							setav[spriteid].redflagval mtype
+							setav[spriteid].rediteration 0
+							setav[spriteid].redtimer curr_tick
+							// seta[spriteid].htpicnum REDFLAG
+							
+							seta[spriteid].htpicnum sprite[].picnum
+						}
+					}
+				}
+			}
+			nextspritestat spriteid spriteid
+		}
+		ifpdistl 8192
+		{
+			ifg tourgoal 8
+			{
+				findnearactorz DEANOVA 512 8192 spriteid
+				ifn spriteid -1
+				{
+					ife actorvar[spriteid].myspawner -1
+					ifg actorvar[spriteid].SPRITELOTAG 0
+					{
+						espawn DIALOGBUB
+						setav[spriteid].myspawner RETURN
+						setsprite RETURN sprite[].x sprite[].y sprite[].z
+						seta[RETURN].cstat 32768
+					}
+				}
+			}
+			else
+			{
+				findnearactorz FEMCIV3 512 8192 spriteid
+				ifn spriteid -1
+				{
+					ife actorvar[spriteid].botclip 10 // tourguide
+					ife actorvar[spriteid].myspawner -1
+					{
+						espawn DIALOGBUB
+						setav[spriteid].myspawner RETURN
+						setsprite RETURN sprite[].x sprite[].y sprite[].z
+					}
+				}
+			}
+		}
+	}
+	else ifg tourgoal SPRITELOTAG 
+	{
+		getp[].player_par curr_tick
+		add curr_tick 1
+		headspritestat spriteid 980
+		whilevarn spriteid -1
+		{
+			setav[spriteid].redflagval 0
+			setav[spriteid].rediteration 99999
+			setav[spriteid].redtimer curr_tick
+			nextspritestat spriteid spriteid
+		}
+		al spriteid
+		killit
+	}
+
+ends
+
+useractor notenemy NPCNAV 0 state npcnavcode enda
+
+eventloadactor NPCNAV
+	set gametype -1
+	cstat 32768
+	geta[].lotag SPRITELOTAG
+	seta[].lotag 0
+	ifl SPRITELOTAG tourgoal set tourgoal SPRITELOTAG
+enda
+
+eventloadactor REDFLAGATBASE
+	set gametype CTF
+	set switchmode 0
+	set attmode 0
+	set scorelimit 800 // placeholder
+	cstat 0
+	sizeat 48 42
+	spritepal 10
+enda
+
+eventloadactor BLUEFLAGATBASE
+	set gametype CTF
+	set switchmode 0
+	set attmode 0
+	set scorelimit 800 // placeholder
+	cstat 0
+	sizeat 48 42
+enda
+
+eventloadactor CONTROL_A
+	set gametype CONTROL // control
+	set switchmode 0
+	set attmode 0
+	set radaron YES
+	set scorelimit 1000 
+	cstat 32768
+enda
+
+eventloadactor CONTROL_B
+	set gametype CONTROL // control
+	set switchmode 0
+	set attmode 0
+	set radaron YES
+	set scorelimit 1000 
+	cstat 32768
+enda
+
+eventloadactor CONTROL_C
+	set gametype CONTROL // control
+	set switchmode 0
+	set attmode 0
+	set radaron YES
+	set scorelimit 1000 
+	cstat 32768
+enda
+
+spriteshadow SHIELDVENDOR
+spriteshadow GUNVENDOR
+
+useractor notenemy SHIELDVENDOR 500
+
+	cstator 256
+	ifhitweapon strength 100
+
+ifp pfacing
+ifpdistl 2304
+ifp palive
+ifhitspace
+ife scannedsprite THISACTOR
+ife vendor_screen 0
+{
+	set lastscreen 1
+	set vendor_screen -10
+	sound MONITOR_ACTIVE
+	ifrnd 128 sound SLARTY1 else sound SLARTY2 
+}
+
+enda
+
+useractor notenemy GUNVENDOR 500
+
+	cstator 256
+	ifhitweapon strength 100
+	
+	ife wave 3
+	{
+		ife myspawner -1
+		{
+			espawn DIALOGBUB
+			setav[RETURN].myspawner THISACTOR
+			setsprite RETURN sprite[].x sprite[].y sprite[].z
+			set myspawner RETURN
+		}
+
+		ifp pfacing
+		ifpdistl 2304
+		ifp palive
+		ifhitspace
+		ife scannedsprite THISACTOR
+		{
+			ife award_screen 0
+			ifn myspawner -1
+			{
+				screensound OGUS_SHOTTY
+				set award_screen 8909 // ATOMIC SHOTTY
+				set award_string 309 
+				setav[myspawner].monstatus 2
+				set subtitle_time 540
+				set subtitle_start 436
+				set subtitle_numlines 8
+				set wave 4
+			}
+		}
+	}
+	ifg wave 3
+	ife award_screen 0
+	ifp pfacing
+	ifpdistl 2048
+	ifp palive
+	ifhitspace
+	ife scannedsprite THISACTOR
+	ife vendor_screen 0
+	{
+		stopsound OGUS_SHOTTY
+		ifl lastscreen 10 set lastscreen 10
+		ifg lastscreen 29 set lastscreen 29
+		set vendor_screen -21
+		sound MONITOR_ACTIVE
+		rand temp 5
+		switch temp
+		case 0 sound OGUS_CARNAGE break
+		case 1 ife pchar 0 sound OGUS_LEGENDHIMSELF else sound OGUS_LEGENDHERSELF break
+		case 2 sound OGUS_SUREFIRE break
+		case 3 sound OGUS_TOTALASSHOLE break
+		case 4 sound OGUS_WELCOMEBACK break
+		case 5 sound OGUS_KILLINGIT break 
+		endswitch
+	}
+
+enda
+
+spritenoshade DATACRYSTAL
+
+eventloadactor DATACRYSTAL geta[].lotag SPRITELOTAG seta[].lotag 0 geta[].hitag initsprite seta[].hitag 0 enda
+
+useractor notenemy DATACRYSTAL 0
+
+	ifp pfacing
+	ifpdistl 1280
+	ifp palive
+	ifcansee
+	{
+		ifn SPRITELOTAG 0
+		{
+			ife ancients SPRITELOTAG
+			{
+				globalsound DUKE_GET
+				palfrom 20 0 32
+				add ancients 1
+				quote 721 
+				killit
+			}
+			else quote 720
+		}
+		ifn initsprite 0
+		{
+			ife ancients initsprite
+			{
+				globalsound DUKE_GET
+				palfrom 20 0 32
+				add ancients 1
+				quote 722
+				cstat 0
+				seta[].shade -100
+			}
+		}
+	}
+	
+	ifn initsprite 0
+	ife ancients initsprite
+	{
+		state shadepulse
+		seta[].shade shade
+	}
+
+enda
+
+eventloadactor PPVSITH geta[].lotag SPRITELOTAG seta[].lotag 0 enda
+
+state ppvcode
+
+	ifactor PPVSITH ifg wave 8 cactor PPVSITHGRAF else
+	ifactor PPVSITHGRAF ifg wave 12 cactor PPVLITMEN else
+	ifactor PPVLITMEN ifg wave 15 cactor PPVLITMENGRAF else
+	ifactor PPVLITMENGRAF ifg wave 17 cactor PPVMANDO else
+	ifactor PPVMANDO ifg wave 19 cactor PPVMANDOGRAF
+
+ends
+
+useractor notenemy PPVSITH 0 state ppvcode enda
+useractor notenemy PPVSITHGRAF 0 state ppvcode enda
+useractor notenemy PPVLITMEN 0 state ppvcode enda
+useractor notenemy PPVLITMENGRAF 0 state ppvcode enda
+useractor notenemy PPVMANDO 0 state ppvcode enda
+
+state scoreboardcode
+
+	ifactor SCOREBOARD1 ifg wave 2 cactor SCOREBOARD2 else
+	ifactor SCOREBOARD2 ifg wave 4 cactor SCOREBOARD3 else
+	ifactor SCOREBOARD3 ifg wave 5 cactor SCOREBOARD4 else
+	ifactor SCOREBOARD4 ifg wave 8 cactor SCOREBOARD5 else
+	ifactor SCOREBOARD5 ifg wave 10 cactor SCOREBOARD6 else
+	ifactor SCOREBOARD6 ifg wave 13 cactor SCOREBOARD7 else
+	ifactor SCOREBOARD7 ifg wave 15 cactor SCOREBOARD8 else
+	ifactor SCOREBOARD8 ifg wave 19 cactor SCOREBOARD9
+
+ends
+
+useractor notenemy SCOREBOARD1 0 state scoreboardcode enda
+useractor notenemy SCOREBOARD2 0 state scoreboardcode enda
+useractor notenemy SCOREBOARD3 0 state scoreboardcode enda
+useractor notenemy SCOREBOARD4 0 state scoreboardcode enda
+useractor notenemy SCOREBOARD5 0 state scoreboardcode enda
+useractor notenemy SCOREBOARD6 0 state scoreboardcode enda
+useractor notenemy SCOREBOARD7 0 state scoreboardcode enda
+useractor notenemy SCOREBOARD8 0 state scoreboardcode enda
+useractor notenemy SCOREBOARD9 0 state scoreboardcode enda
+// -530
+action AGHOST1 -539
+action AGHOST2 -538
+action AGHOST3 -533
+action AGHOST4 -495
+action AGHOST5 -465
+action AGHOST6 -61
+action AGHOST7 -60
+action AGHOST8 -52
+action AGHOST9 -45
+action AGHOST10 -2
+action AGHOST11 -6605
+
+spritenoshade ALIENGHOST
+
+state ghostaction
+
+	rand temp 9
+	switch temp
+	case 0 action AGHOST1 break
+	case 1 action AGHOST2 break
+	case 2 action AGHOST3 break
+	case 3 action AGHOST4 break
+	case 4 action AGHOST5 break
+	case 5 action AGHOST6 break
+	case 6 action AGHOST7 break
+	case 7 action AGHOST8 break
+	case 8 action AGHOST9 break
+	case 9 action AGHOST10 break
+	case 10 action AGHOST11 break
+	
+	endswitch
+	
+	ifrnd 128 cstat 2 else cstat 6
+	ifrnd 96 cstat 32768
+	
+	rand temp 9
+	switch temp
+	case 0 spritepal 0 break
+	case 1 spritepal 11 break
+	case 2 spritepal 12 break
+	case 3 spritepal 14 break
+	case 4 spritepal 15 break
+	case 5 spritepal 21 break
+	case 6 spritepal 24 break
+	case 7 spritepal 28 break
+	case 8 spritepal 35 break
+	case 9 spritepal 42 break
+	
+	endswitch
+	
+	rand x 3
+	add x 24
+	ifaction AGHOST11 add x 20
+	seta[].xrepeat x
+	rand y 3
+	add y 23
+	ifaction AGHOST11 add y 16
+	seta[].yrepeat y
+	
+	seta[].x startx
+	seta[].y starty
+
+ends
+
+useractor notenemy ALIENGHOST 0
+
+	ifaction 0
+	{
+		sizeat 26 24
+		spritepal 12
+		geta[].x startx
+		geta[].y starty
+		state ghostaction
+		
+	}
+	geta[].z savz
+	sub savz 8192
+	seta[].z savz
+	
+	ifcansee
+	{
+		set countvar 30
+		findplayer xydist
+		set xydist2 32768
+		sub xydist2 xydist
+		shiftr xydist2 7
+		add xydist2 16
+		seta[].alpha xydist2
+		set stepcount 0
+		stopsound THUD
+		stopsound LANDNORMAL
+		
+		ifpdistg 6144
+		{
+			geta[].x x
+			geta[].y y
+			sub x player[].posx
+			sub y player[].posy
+			getangle angvar x y
+			getincangle B player[].ang angvar
+			abs B
+			ifg B 640 state ghostaction
+		}
+	}
+	else
+	{
+		sub countvar 1
+		ife countvar 0
+		{
+			state ghostaction
+			set countvar 30
+		}
+	}
+	
+	add savz 8192
+	seta[].z savz
+
+enda

@@ -1,0 +1,821 @@
+// ARMEDF
+
+action AARMEDFWALK		0  4  5  1  14
+action AARMEDFSHOOT1	20  1  5  1  30
+action AARMEDFSTAND		20  1  5  1  10
+action AARMEDFFROZEN	20  1  5  1  10
+action AARMEDFSHOOT2	25  1  5  1  20
+action AARMEDFJUMP1		30  1  5  1  20
+action AARMEDFJUMP2		35  1  5  1  20
+action AARMEDFRECOVER	37  1  1  1  20
+action AEDFCHARGEPREP	40 1  5  1  60
+action AARMEDFCHARGE 	45  4  5  1  12
+action AARMEDFSHOULDER 	65  1  5  1  60
+action AARMEDFHURT		141  1  5  1  10
+action AARMEDFGROW		70  1  1  1  10
+action AARMEDFDIE		70  5  1  1  30
+action AARMEDFDEAD		74  1  1  1  10
+
+move ARMEDFWALKVELS 128
+move ARMEDFSHRUNKVELS 32
+move ARMEDFCHARGEVELS 288
+move ARMEDFCHARGEFAST 512
+move ARMEDFJUMPVELS 288
+
+ai AIARMEDFWAIT AARMEDFSTAND STOPPED geth
+ai AIARMEDFSEEK AARMEDFWALK ARMEDFWALKVELS geth
+ai AIARMEDFCHARGE AEDFCHARGEPREP STOPPED geth
+ai AIARMEDFJUMP AARMEDFJUMP1 ARMEDFJUMPVELS jumptoplayer
+ai AIARMEDFSHOOT AARMEDFSHOOT1 STOPPED geth
+ai AIARMEDFSHRUNK AARMEDFCHARGE ARMEDFSHRUNKVELS fleeenemy
+ai AIARMEDFFROZEN ANOSHLDFROZEN STOPPED geth
+ai AIARMEDFGROW AARMEDFGROW STOPPED geth
+ai AIARMEDFHIT AARMEDFHURT STOPPED geth
+ai AIARMEDFDYING AARMEDFDIE STOPPED geth
+
+state armedvictimsounds
+
+	ifactorsound THISACTOR M1SEARCHDESTROY break
+	ifg myvictim -1
+	{
+		set temp NO
+		ife actorvar[myvictim].monstatus 2 set temp YES
+		ife sprite[myvictim].statnum 1024 set temp YES
+		ife temp YES
+		ifn myvictim -2
+		{
+			ifactorsound THISACTOR M1BOOM break
+			ifactorsound THISACTOR M1DIEBITCH break
+			ifactorsound THISACTOR M1NAILEDEM break
+			ifactorsound THISACTOR M1OBJECTDESTROY break
+			ifactorsound THISACTOR M1SUCKITDOWN break
+			ifactorsound THISACTOR M1YOUSUCK break
+			ifactorsound THISACTOR M1NASTY break
+			
+			// stopactorsound THISACTOR EDFG_PAIN1
+			// stopactorsound THISACTOR EDFG_PAIN2
+			// stopactorsound THISACTOR EDFG_MEDIC
+			// stopactorsound THISACTOR EDFL_PAIN1
+			// stopactorsound THISACTOR EDFL_PAIN2
+			// stopactorsound THISACTOR EDFL_PAIN3
+
+			ife sprite[myvictim].statnum 1024
+			{
+				ifrnd 84 sound M1BOOM else
+				ifrnd 128 sound M1NASTY else
+				sound M1SUCKITDOWN
+			}
+			else
+			ifrnd 84 sound M1DIEBITCH
+			else ifrnd 128 sound M1YOUSUCK
+			else sound M1NAILEDEM
+		}
+		set myvictim -1
+	}
+
+ends
+
+state armedfroamsounds
+
+	ifactorsound THISACTOR M1SEARCHDESTROY break
+
+	ife gametype CTF
+	{
+		ife team 1 ifn bluecarrier -1 { soundonce M1GETFLAGBACK break }
+		else
+		ife team 0 ifn redcarrier -1 { soundonce M1GETFLAGBACK break }
+	}
+	ifrnd 128
+	soundonce M1SEARCHDESTROY
+
+ends
+
+state armedfhurtstate
+
+	ifvarg stun 0 resetcount
+	ifcount 12
+	{
+		ife targetalive YES
+		{
+			ifrnd 96
+			{
+				ai AIARMEDFSHOOT
+				set initsprite 0
+			}
+			else
+			ifrnd 96
+			ife seemytarget YES
+				ifg targetdist 3072
+					ifl targetdist 16384
+					{
+						// height check
+						ifn bottarget -1
+						{
+							geta[].z z
+							geta[bottarget].z z2
+							sub z z2
+							abs z
+							ifl z 20480 ai AIARMEDFCHARGE
+						}
+						else
+						ai AIARMEDFCHARGE
+					}
+			else
+				ai AIARMEDFSEEK	
+		}
+		else
+			ai AIARMEDFSEEK	
+	}
+
+ends
+
+state armedffrozenstate 
+
+	ifsquished	
+	{ geta[].htextra temp add temp 10 seta[].htextra temp seta[].htpicnum RPG }
+
+    ifcount THAWTIME
+    {
+      ai AIARMEDFWAIT
+      getlastpal
+    }
+    else
+      ifcount FROZENDRIPTIME
+    {
+      ifactioncount 26
+      {
+        spawn WATERDRIP
+        resetactioncount
+      }
+    }
+    ifhitweapon
+    {
+      ifwasweapon FREEZEBLAST
+      {
+	    resetcount resetactioncount
+        strength 0
+        break
+      }
+	  ife gametype 0
+	  {
+		  ifrnd 192
+		  spawn SHOTGUNSPRITE
+		  else
+		  spawn SHIELD
+	  }
+      // addkills 1 
+	  state enemy_death
+
+      ifrnd 84
+        spawn BLOODPOOL
+	  lotsofglass 30
+      state standard_jibs
+      sound GLASS_BREAKING
+      killit
+    }
+	ifn team actorvar[player[].i].team
+    ifp pfacing
+      ifpdistl FROZENQUICKKICKDIST
+        state pkick_check
+  
+ends
+
+state armedfdyingstate 
+
+
+	ifaction AARMEDFRECOVER
+	{
+		ifhitweapon 
+		{
+			state random_wall_jibs
+			ifdead
+			{
+				sound SQUISHED
+				spawn BLOODPOOL
+				state standard_jibs	
+				killit
+			}
+		}
+		ifactioncount 5
+		{
+			strength ARMEDFSTRENGTH
+			addstrength -150
+			set ikicked 0
+			set monstatus 1
+			ai AIARMEDFWAIT
+			seta[].htextra -1
+		}
+		break
+	}
+	strength 0
+	ifaction AARMEDFDIE
+	{
+		ifhitweapon state random_wall_jibs
+		ifactioncount 4
+		{
+			ifg shrunken 10 ifl shrunken SHRUNKCOUNT
+				setp[].sound_pitch SHRUNKPITCH
+			globalsound THUD
+			ifg shrunken 10 ifl shrunken SHRUNKCOUNT
+				setp[].sound_pitch 0
+			cstat 0
+			action AARMEDFDEAD
+			// state spawngunstate
+			break
+		}
+	}
+	ifaction AARMEDFDEAD
+	{
+		state deadsquished
+		ifhitweapon
+		{
+			ifwasweapon RPG
+			{
+				sound SQUISHED
+				spawn BLOODPOOL
+				state standard_jibs
+				killit
+			}
+			ifwasweapon RADIUSEXPLOSION
+			{
+				sound SQUISHED
+				spawn BLOODPOOL
+				state standard_jibs
+				killit
+			}
+		}
+		ife ikicked -2
+		{
+			action AARMEDFRECOVER
+			strength 50
+			cstat 257
+			seta[].htextra -1
+			break
+		}
+
+	}
+
+
+ends
+
+state armedfshrunkstate 
+
+  ifcount SHRUNKDONECOUNT
+    ai AIARMEDFWAIT
+  else
+    ifcount SHRUNKCOUNT
+      sizeto 28 26 // 48 40
+  else
+    state genericshrunkcode
+
+ends
+
+state armedfgrowstate 
+
+	state genericgrowcode
+
+ends
+
+state armedfire
+	
+	ifspritepal 21
+	{
+		sound FLAMER_SHOOT
+		ifn bottarget -1
+		{
+			state hitscan_targetprep
+			state randzshoot
+			zshoot tempb FIREBOLT zshoot tempb FIREBOLT
+			state randzshoot
+			zshoot tempb FIREBOLT zshoot tempb FIREBOLT
+			state randzshoot
+			zshoot tempb FIREBOLT zshoot tempb FIREBOLT
+			state randzshoot
+			zshoot tempb FIREBOLT zshoot tempb FIREBOLT
+		}
+		else
+		{
+			setprojectile[FIREBOLT].workslike 1
+			shoot FIREBOLT shoot FIREBOLT
+			shoot FIREBOLT shoot FIREBOLT
+			shoot FIREBOLT shoot FIREBOLT
+			shoot FIREBOLT shoot FIREBOLT
+			setprojectile[FIREBOLT].workslike 4097
+		}
+		
+	}
+	else
+	{
+		sound PIG_ATTACK
+		ifn bottarget -1
+		{
+			state hitscan_targetprep
+			state randzshoot
+			zshoot tempb SHOTSPARK1 zshoot tempb SHOTSPARK1
+			state randzshoot
+			zshoot tempb SHOTSPARK1 zshoot tempb SHOTSPARK1
+			state randzshoot
+			zshoot tempb SHOTSPARK1 zshoot tempb SHOTSPARK1
+			state randzshoot
+			zshoot tempb SHOTSPARK1 zshoot tempb SHOTSPARK1
+		}
+		else
+		{
+			shoot SHOTSPARK1 shoot SHOTSPARK1
+			shoot SHOTSPARK1 shoot SHOTSPARK1
+			shoot SHOTSPARK1 shoot SHOTSPARK1
+			shoot SHOTSPARK1 shoot SHOTSPARK1
+		}
+	}
+
+ends
+
+state armedfshootstate
+
+	ife initsprite 0 // ready shooting frame
+	{
+		ifactioncount 1
+		{
+			state armedfire
+			action AARMEDFSHOOT2
+			set initsprite 1
+			move STOPPED geth
+		}
+	}
+	ife initsprite 1 // firing frame
+	{
+		ifactioncount 1
+		{
+			action AARMEDFSHOOT1
+			set initsprite 2
+		}
+	}
+	ife initsprite 2 // done firing frame
+	{
+		ifactioncount 1
+		{
+			ife seemytarget YES ife shootmytarget YES
+			ifrnd 96
+			{
+				ifn bottarget -1 move STOPPED geth
+				else
+				move STOPPED faceplayer
+				action AARMEDFSHOOT1
+				set initsprite 0
+				break
+			}
+			set initsprite 0
+			ai AIARMEDFSEEK
+		}
+	}
+
+ends
+
+state armedfseekstate
+
+	ifrnd 1 ifrnd 128 state armedfroamsounds
+
+	ifnotmoving ifrnd 32 operate
+	
+	ifcount 60 
+		ifrnd 8
+		  ifl navpoint 0
+	ai AIARMEDFWAIT
+	
+	ife seemytarget YES ife shootmytarget YES
+		ife targetalive YES
+	{
+		ifl targetdist 2048 
+		ifcount 10
+		{ 
+			ifrnd 84 ai AIARMEDFCHARGE
+			else
+			{
+				ai AIARMEDFSHOOT
+				set initsprite 0
+			}
+			break 
+		}
+		ifcount 30 ifrnd 16
+		{
+			ifl targetdist 16384
+			ifrnd 96 
+			{
+				// height check
+				ifn bottarget -1
+				{
+					geta[].z z
+					geta[bottarget].z z2
+					sub z z2
+					abs z
+					ifl z 20480 ai AIARMEDFCHARGE
+				}
+				else
+				ai AIARMEDFCHARGE
+				ifai AIARMEDFCHARGE break 
+			}
+			else
+			{
+				ai AIARMEDFSHOOT
+				set initsprite 0
+			}
+		}
+	}
+	
+	ifceilingdistl 128 nullop else
+	ifnotmoving ifrnd 32 
+	{
+		ai AIARMEDFJUMP
+		ifg navpoint 0
+		{
+			set spriteid navpoint
+			state facesprite
+		}
+	}
+	ifai AIARMEDFJUMP nullop
+	else ifcount 30
+	{
+		ife targethigher YES // ifp ponground
+		ifl targetdist 6144 ai AIARMEDFJUMP
+		
+	}
+	
+
+ends
+
+state armedfwaitstate 
+
+	ifn thiscam -1 break
+	ife gametype SURVIVAL ifl player[].player_par 150 break
+	ifcount 20 ai AIARMEDFSEEK
+	
+ends
+
+state edfshoulderhitplayer
+
+	ife bottarget player[].i set target player[].i else
+	ife bottarget -1 set target player[].i else
+	set target bottarget
+	ifpdistl 3072 quake 12
+	sound CYBOSS_LAND
+	
+	ife target player[].i
+	{
+		ifphealthl 60 sound SQUISHED
+		wackplayer
+		getp[].ang temp
+		add temp 1024
+		cos tempb temp
+		sin tempc temp
+		shiftvarl tempb 9
+		shiftvarl tempc 9
+		setp[].posxv tempb
+		setp[].posyv tempc
+	}
+	else
+	{
+		seta[target].xvel -1024
+		getav[target].stun temp
+		add temp 30
+		setav[target].stun temp
+		geta[target].z z
+		sub z 1024
+		seta[target].z z
+		geta[target].zvel z
+		sub z 2048
+		seta[target].zvel z
+	}
+	
+	geta[target].htextra tempc
+	rand tempb 10
+	add tempb 40
+	add tempc tempb
+	seta[target].htextra tempc
+	seta[target].htpicnum RPG
+	seta[target].htowner THISACTOR
+	seta[target].htang sprite[].ang
+	
+	action AARMEDFSHOULDER
+	move STOPPED geth
+
+ends
+
+
+state edfshoulderhitobject
+
+	ifpdistl 6144 quake 12
+	debris SCRAP1 4
+	debris SCRAP2 4
+	debris SCRAP3 4
+	debris SCRAP4 4
+	debris SCRAP5 4
+	debris SCRAP6 4
+	sound CYBOSS_LAND
+	
+	hitradius 2048 10 20 30 40
+	
+	action AARMEDFSHOULDER
+	move STOPPED geth
+
+ends
+
+state armedfchargestate
+
+	ife bottarget -1 ife team actorvar[player[].i].team
+	{
+		ai AIARMEDFSEEK
+		break
+	}
+	
+	ife seemytarget YES ifl targetdist 4096
+	set crumbwait 2 else
+	ifmove ARMEDFCHARGEFAST set crumbwait 2
+	else ifn team actorvar[player[].i].team
+	{ set crumbwait 0 state crumbcode }
+	
+	ifaction AEDFCHARGEPREP
+	{
+		ifg targetdist 1024
+		state strafechecklong
+		ifactioncount 1
+		{
+			// sound PIGBROAR2
+			action AARMEDFCHARGE
+			ifn bottarget -1 move ARMEDFCHARGEVELS geth
+			else
+			ifn team actorvar[player[].i].team
+			move ARMEDFCHARGEVELS faceplayersmart
+			else
+			move ARMEDFCHARGEVELS geth
+		}
+	}
+	ifaction AARMEDFCHARGE
+	{
+		ifg targetdist 1024
+		state strafechecklong
+
+		ifn bottarget -1
+		{
+			geta[].z z
+			sub z sprite[bottarget].z
+			ifl targetdist 6144
+			{
+				ifg z 8192
+				{
+					ai AIARMEDFJUMP
+					move ARMEDFCHARGEFAST jumptoplayer
+					break
+				}
+			}
+			else
+			ifg z 16384
+			ife sector[].floorslope 0
+			{
+				ai AIARMEDFSEEK
+				break
+			}
+		}
+		ifmove ARMEDFCHARGEVELS
+		ifcount 30
+		{
+			move ARMEDFCHARGEFAST geth
+			ifn bottarget -1
+			{
+				set spriteid bottarget
+				state facesprite
+			}
+			geta[].ang float
+		}
+		ifmove ARMEDFCHARGEFAST
+		{
+			spawn FRAMEEFFECT1
+			seta[].ang float
+		}
+		ifl targetdist 1280
+			state edfshoulderhitplayer
+		ifnotmoving
+			state edfshoulderhitobject
+		ifaction AARMEDFCHARGE // did not hit anything
+		ifcount 60
+		{
+			action AARMEDFSHOULDER
+			move STOPPED geth
+		}
+		
+	}
+	else
+	ifaction AARMEDFSHOULDER
+	{
+		seta[].ang float
+		ifactioncount 1
+			ai AIARMEDFSEEK
+	}
+
+ends
+
+state armedfjumpstate
+
+	ifg navpoint 0
+	{
+		set spriteid navpoint
+		state facesprite
+	}
+
+	ifaction AARMEDFJUMP1
+	{
+		ifactioncount 3
+			action AARMEDFJUMP2
+	}
+	ifaction AARMEDFJUMP2
+	{
+		iffloordistl 8
+			ai AIARMEDFSEEK	
+	}
+	ifcount 8
+	ifl targetdist 1280
+	ife seemytarget YES ife shootmytarget YES
+	  ife targetalive YES
+	{
+		geta[].ang float
+		set crumbwait 2
+		ai AIARMEDFCHARGE
+		state edfshoulderhitplayer
+	}
+
+ends
+
+useractor enemy ARMEDF ARMEDFSTRENGTH
+
+ifaction 0
+{
+	ai AIARMEDFWAIT
+	sizeat 28 26 // 42 40
+	cstat 257
+	clipdist 56 // 80
+	set team 1
+	ifspritepal 42 { addstrength 50 set team 0 }
+	set navmode 3
+	ife gametype SURVIVAL addstrength ARMEDFSTRENGTH
+	sound M1LETSROCK
+	getp[].max_actors_killed temp
+	sub temp 1
+	setp[].max_actors_killed temp
+	geta[].htflags temp
+	orvar temp 8192
+	seta[].htflags temp
+}
+
+fall
+// state summondespawn
+
+ifai AIARMEDFFROZEN { state armedffrozenstate break }
+ifai AIARMEDFDYING { state armedfdyingstate break }
+ifspritepal 21 set burning 0
+state avoidcliffs
+state monsterai
+ife team 1 
+{
+	state summondespawn
+	state botblocking
+}
+
+
+ife bottarget -1 add countvarc 1 else
+set countvarc 0
+ifg countvarc 300
+ifp palive
+ifg FEMKILLCOUNT 0
+{
+	set countvarc 0
+	sound TELEPORTER
+	spawn GLARESTAR
+	state spawnoutline
+	setsprite THISACTOR player[].posx player[].posy player[].posz
+	sound TELEPORTER
+	spawn GLARESTAR
+	state spawnoutline
+}
+
+ifg sprite[].zvel 0 add FEMFALLDMG 1
+else
+{
+	ifg FEMFALLDMG 30
+	{
+		ifpdistl 3072 quake 12
+		sound CYBOSS_LAND
+	}
+	set FEMFALLDMG 0
+} 
+
+ifai AIARMEDFSHRUNK state armedfshrunkstate else
+ifai AIARMEDFGROW state armedfgrowstate else
+ifai AIARMEDFWAIT state armedfwaitstate else
+ifai AIARMEDFSEEK state armedfseekstate else
+ifai AIARMEDFSHOOT state armedfshootstate else
+ifai AIARMEDFCHARGE state armedfchargestate else
+ifai AIARMEDFJUMP state armedfjumpstate else
+ifai AIARMEDFHIT state armedfhurtstate
+
+
+ife monstatus -1 break
+ifhitweapon
+{
+    ifwasweapon SHRINKSPARK
+	{
+	  sound ACTOR_SHRINKING
+	  ai AIARMEDFSHRUNK
+	  // set shrunken 1
+	  break
+	}
+	else
+        ifwasweapon GROWSPARK
+          sound SPARKLESOUND
+	state random_wall_jibs
+	ifdead
+	{
+		ifwasweapon FREEZEBLAST
+		{
+		  sound NEWFREEZE
+		  spritepal 1
+		  ai AIARMEDFFROZEN
+		  strength 0
+		  state freezeme
+		  break
+		}
+		ifwasweapon GROWSPARK
+		{
+		  cstat 0
+		  sound ACTOR_GROWING
+		  ai AIARMEDFGROW
+		  break
+		}
+		// addkills 1
+		getp[].player_par ikicked
+		state enemy_death
+		ife gametype 0
+		{
+			ifrnd 192
+			spawn SHOTGUNSPRITE
+			else
+			spawn SHIELD
+		}
+		ai AIARMEDFDYING
+		guts JIBS6 8
+		ifwasweapon RPG
+		{
+			sound SQUISHED
+			spawn BLOODPOOL
+			state standard_jibs
+			killit
+        }
+		ifwasweapon RADIUSEXPLOSION
+		{
+			sound SQUISHED
+			spawn BLOODPOOL
+			state standard_jibs
+			killit
+        }
+		
+		sound EDFL_DEATH1
+		setactorsoundpitch THISACTOR EDFL_DEATH1 -640
+		break
+	}
+	ifrnd 4
+		spawn BLOODPOOL
+	// sound PIG_PAIN
+	ifn sprite[].htowner -1
+	ife team actorvar[sprite[].htowner].team
+	{
+		ifsound M1SAMETEAM nullop else
+		ifsound M1IDIOT nullop else
+		ifrnd 128 soundonce M1SAMETEAM else
+		soundonce M1IDIOT
+	}
+	
+	ifai AIARMEDFCHARGE nullop else
+	ifai AIARMEDFJUMP nullop else
+	ifai AIARMEDFSHRUNK nullop else
+	{
+		ifrnd 16 
+		ifn sprite[].htpicnum BURNING
+	    ifn sprite[].htpicnum RADWOUND
+		{ 
+			// sound PIG_PAIN 
+			ai AIARMEDFHIT 
+			break 
+		}
+		else ifg stun 0 
+		{ 
+			// sound PIG_PAIN 
+			ai AIARMEDFHIT 
+			break 
+		}
+		
+	}
+
+}
+state checksquished
+
+state armedvictimsounds
+
+enda

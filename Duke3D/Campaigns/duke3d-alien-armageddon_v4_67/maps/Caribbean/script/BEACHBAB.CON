@@ -1,0 +1,334 @@
+// CON Files for the 'Duke Carribean Add-on' by SunStorm Interactive
+//
+// Actor - BEACHBABE - Sprite #1683/#2003
+//
+// --- Resources ---
+//
+// Sounds:
+// Beach Babe Comments    - BABECOM1.WAV/BABECOM2.WAV
+// Beach Babe Hurt        - BABEHURT.WAV
+//
+// Art:
+// 3 * 5 frame(s)         - Beach Babe Walking Frames
+
+define BEACHBABE1 2165
+define BEACHBABESTRENGTH 30
+
+move BEACHBABEWALKSPEED 70
+move BEACHBABERUNSPEED  140
+move BEACHBABESHRUNKSPEED  40
+
+action BEACHBABEWALK   1505 3 5 1 20
+action BEACHBABERUN    1505 3 5 1 13
+action BEACHBABEFROZE  1505 1 5
+
+ai AIBEACHBABEROAM BEACHBABEWALK BEACHBABEWALKSPEED randomangle geth getv
+ai AIBEACHBABEWANTDUKE BEACHBABEWALK BEACHBABEWALKSPEED faceplayerslow geth getv
+ai AIBEACHBABERUNAWAY BEACHBABERUN BEACHBABERUNSPEED randomangle geth getv
+ai AIBEACHBABESHRUNK BEACHBABEWALK BEACHBABESHRUNKSPEED randomangle geth getv
+ai AIBEACHBABEGROW BEACHBABEWALK BEACHBABEWALKSPEED faceplayerslow geth getv
+ai AIBEACHBABEFROZEN BEACHBABEFROZE BEACHBABEWALKSPEED faceplayerslow geth getv
+
+ai AIBEACHBABEFLEE BEACHBABEWALK BEACHBABEWALKSPEED fleeenemy geth getv
+
+state BABEREMARK
+
+ifactioncount 1
+  {
+  resetactioncount
+  ifrnd 1
+    sound BABECOMM1
+    else
+    ifrnd 1
+     sound BABECOMM2
+     else
+     ifrnd 1
+       sound BABECOMM3
+       else
+       ifrnd 1
+	 sound BABECOMM4
+	 else
+	 ifrnd 1
+	 sound BABECOMM5
+   }
+
+ends
+state BABEHURTREMARK
+
+ends
+
+state BEACHBABEFLEESTATE
+
+state BABEREMARK
+
+ifcount 5
+  {
+  ifpdistl 2000
+    {
+    ai AIBEACHBABEFLEE
+    resetcount
+    break
+    }
+  ai AIBEACHBABEWANTDUKE
+  }
+ends
+
+state BEACHBABEROAMSTATE
+
+ifrnd 16 ai AIBEACHBABEROAM
+
+ifcansee
+  {
+  ifpdistl 10000
+    {  
+    ifrnd 32
+      {
+      ai AIBEACHBABEWANTDUKE
+      }
+    }
+  } 
+
+ends
+
+state BEACHBABEWANTDUKESTATE
+
+ifcansee { } 
+
+ifpdistl 2000
+  {
+  ai AIBEACHBABEFLEE
+  }
+
+ifpdistg 10000
+  {
+  ifrnd 32
+    {
+    ai AIBEACHBABEROAM
+    break
+    }
+
+  }
+
+state BABEREMARK
+
+ends
+
+
+state BEACHBABERUNAWAYSTATE
+
+ifactioncount 1
+  {
+  resetactioncount
+
+ifrnd 2 sound BABESCREAM1
+    else
+    ifrnd 2
+    sound BABESCREAM2
+    else
+    ifrnd 2
+    sound BABESCREAM3
+    else ifrnd 2  sound BABESCREAM4
+  }
+
+ifrnd 16 ai AIBEACHBABERUNAWAY
+
+ends
+
+state BEACHBABESTATE
+fall
+
+state checksquished
+
+ifai NO
+  {
+  ifrnd 64
+    sound BABECOMM1
+    else
+    ifrnd 85
+     sound BABECOMM2
+     else
+     ifrnd 128
+       sound BABECOMM3
+       else
+       sound BABECOMM4
+  ai AIBEACHBABEROAM
+  }
+
+ifai AIBEACHBABESHRUNK
+  {
+  ifcount SHRUNKDONECOUNT
+    {
+    ai AIBEACHBABERUNAWAY
+    cstat 257
+    }
+    else
+    {
+    ifcount SHRUNKCOUNT
+      sizeto 40 40
+      else
+      state genericshrunkcode
+    }
+  }
+  else 
+  {
+  ifai AIBEACHBABEGROW
+    {
+    ifcount 32
+      {
+      respawnhitag
+      guts JIBS4 20
+      guts JIBS6 20
+      guts JIBS4 20
+      guts JIBS6 20
+      spawn EXPLOSION2
+      sound PIPEBOMB_EXPLODE
+      spritepal 6
+      soundonce BABESCREAM4
+      debris SCRAP3 4
+      sound SQUISHED
+      killit
+      } 
+      else
+      {
+      sizeto MAXXSTRETCH MAXYSTRETCH
+      break 
+      }
+    }
+  }
+
+ifai AIBEACHBABEFROZEN
+  {
+  ifhitweapon
+    {
+    ifwasweapon FREEZEBLAST
+      {
+      strength 0
+      break
+      }
+    lotsofglass 30
+    sound GLASS_BREAKING
+    respawnhitag
+    ifrnd 84
+      spawn BLOODPOOL
+    killit
+    }
+    else
+    { 
+    ifp pfacing
+      ifpdistl FROZENQUICKKICKDIST
+        {
+        pkick
+        break
+        }  
+    }
+  ifcount THAWTIME
+    {
+    getlastpal
+    ai AIBEACHBABERUNAWAY
+    }
+    else
+    {
+    ifcount FROZENDRIPTIME
+      {
+      ifactioncount 26
+        {
+        spawn WATERDRIP
+        resetactioncount
+        }
+      }
+    }
+  }
+
+
+ifhitweapon
+  {
+  ai AIBEACHBABERUNAWAY 
+  ifdead
+    {
+    ifwasweapon GROWSPARK
+      {
+      cstat 0
+      move 0
+//      sound ACTOR_GROWING
+      ai AIBEACHBABEGROW
+      break
+      }
+      else 
+      ifwasweapon FREEZEBLAST
+        {
+ 	  ai AIBEACHBABEFROZEN
+        move 0
+        spritepal 1
+        strength 0
+        sound SOMETHINGFROZE
+        break
+        }
+
+   ifrnd 128
+    sound DUKE_HIT_STRIPPER1
+    else
+    sound DUKE_HIT_STRIPPER2
+
+   respawnhitag
+   state standard_jibs
+   state standard_jibs
+   state random_wall_jibs
+   spawn BLOODPOOL
+   spritepal 6
+   soundonce BABESCREAM4
+   killit
+   }
+   else
+   {
+   ifwasweapon SHRINKSPARK
+     {
+     sound ACTOR_SHRINKING
+     move 0
+     ai AIBEACHBABESHRUNK
+     cstat 0
+     break
+     }
+     else
+     ifwasweapon GROWSPARK
+       sound EXPANDERHIT
+       else 
+       sound SQUISHED
+
+   guts JIBS6 1
+   }
+
+ }
+
+
+ifdead
+  {
+  state standard_jibs
+  sound SQUISHED
+  killit
+  }
+
+ifai AIBEACHBABEROAM
+  {
+  state BEACHBABEROAMSTATE
+  }
+  else
+ifai AIBEACHBABEWANTDUKE
+  {
+  state BEACHBABEWANTDUKESTATE
+  }
+  else
+ifai AIBEACHBABERUNAWAY
+  {
+  state BEACHBABERUNAWAYSTATE
+  }
+  else
+ifai AIBEACHBABEFLEE
+  {
+  state BEACHBABEFLEESTATE
+  }
+
+
+ends
+
+actor  BEACHBABE1 BEACHBABESTRENGTH BEACHBABEWALK state BEACHBABESTATE enda
+

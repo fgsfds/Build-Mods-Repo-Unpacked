@@ -1,0 +1,1209 @@
+
+// Based on the electric bike from SkyTown TC by Lezing Entertainment
+
+gamevar e1 0 2
+gamevar e2 0 2
+gamevar e3 0 2
+gamevar e4 0 2
+gamevar e5 0 2
+gamevar e6 0 2
+gamevar e7 0 2
+gamevar e8 0 2
+gamevar e9 0 2
+gamevar ea 0 2
+gamevar eb 0 2
+gamevar ec 0 2
+gamevar ed 0 2
+gamevar ee 0 2
+gamevar ef 0 2
+/*
+gamevar x 0 0
+gamevar y 0 0
+gamevar z 0 0
+*/
+gamevar a 0 0
+gamevar stat 0 0
+gamevar x1 0 0
+gamevar y1 0 0
+gamevar x2 0 0
+gamevar y2 0 0
+gamevar tilenum 0 0
+gamevar orientation 0 0
+gamevar pal 0 0
+gamevar shade 0 0
+
+action DA 0 1 1 0 1
+
+gamevar CMD_THRUST 0 1
+gamevar CMD_BACK 0 1
+gamevar CMD_LEFT 0 1
+gamevar CMD_RIGHT 0 1
+gamevar CMD_BRAKE 0 1
+gamevar CMD_FORCE 0 1
+gamevar PLAYERONTHEBIKE 0 1
+gamevar CURRENTBIKECHARGE 0 1
+gamevar CURRENTBIKEVELOCITY 0 1
+gamevar CURRENTBIKEACCELERATION 0 1
+gamevar CURRENTBIKEINTEGRITY 0 1
+gamevar BIKEID 0 1
+
+gamevar BIKEVEL 0 2
+gamevar BIKEANG 0 2
+gamevar BIKEANGVEL 0 2
+gamevar BIKESTATE 0 2
+gamevar INTCOUNTER 0 2
+
+gamevar TEST_TOTALLENGTH 0 1
+gamevar TEST_STATELENGTH 0 1
+gamevar TEST_STATETIME 0 1
+gamevar TEST_REALSPEED 0 1
+gamevar TEST_NEWSTATE 0 1
+
+gamevar paoposx 0 2
+gamevar paoposy 0 2
+gamevar paoposz 0 2
+gamevar paooposx 0 2
+gamevar paooposy 0 2
+gamevar paooposz 0 2
+gamevar pazvel 0 2
+
+state regactorposition
+setvarvar paooposx paoposx
+getactor[THISACTOR].x paoposx
+setvarvar paooposy paoposy
+getactor[THISACTOR].y paoposy
+setvarvar paooposz paoposz
+getactor[THISACTOR].z paoposz
+ends
+
+define EBIKE_BOUNCE 413
+definesound EBIKE_BOUNCE         EBIKEBNC.VOC    -256   256    255 0   0
+define EBIKE_DESTROYED 414
+definesound EBIKE_DESTROYED      EBIKEDST.VOC    -256   256    255 0   0
+define EBIKE_SKIDDING 415
+definesound EBIKE_SKIDDING       EBIKESKD.VOC      0     0     255 0   0
+define EBIKE_COLLIDE1 416
+definesound EBIKE_COLLIDE1       EBIKECLW.VOC    -256   256    255 0   0
+define EBIKE_COLLIDE2 417
+definesound EBIKE_COLLIDE2       EBIKECLS.VOC    -256   256    255 0   0
+
+definesound 418                  EBIKERUN.VOC    -2048     -2048     255 0   12288
+definesound 419                  EBIKERUN.VOC    -1874     -1874     255 0   11776
+definesound 420                  EBIKERUN.VOC    -1719     -1719     255 0   11264
+definesound 421                  EBIKERUN.VOC    -1578     -1578     255 0   10752
+definesound 422                  EBIKERUN.VOC    -1449     -1449     255 0   10240
+definesound 423                  EBIKERUN.VOC    -1331     -1331     255 0   9728
+definesound 424                  EBIKERUN.VOC    -1222     -1222     255 0   9216
+definesound 425                  EBIKERUN.VOC    -1120     -1120     255 0   8704
+definesound 426                  EBIKERUN.VOC    -1024     -1024     255 0   8192
+definesound 427                  EBIKERUN.VOC    -935     -935     255 0   7680
+definesound 428                  EBIKERUN.VOC    -850     -850     255 0   7168
+definesound 429                  EBIKERUN.VOC    -771     -771     255 0   6656
+definesound 430                  EBIKERUN.VOC    -695     -695     255 0   6144
+definesound 431                  EBIKERUN.VOC    -623     -623     255 0   5632
+definesound 432                  EBIKERUN.VOC    -554     -554     255 0   5120
+definesound 433                  EBIKERUN.VOC    -488     -488     255 0   4608
+definesound 434                  EBIKERUN.VOC    -425     -425     255 0   4096
+definesound 435                  EBIKERUN.VOC    -365     -365     255 0   3584
+definesound 436                  EBIKERUN.VOC    -307     -307     255 0   3072
+definesound 437                  EBIKERUN.VOC    -251     -251     255 0   2560
+definesound 438                  EBIKERUN.VOC    -198     -198     255 0   2048
+definesound 439                  EBIKERUN.VOC    -146     -146     255 0   1536
+definesound 440                  EBIKERUN.VOC    -96     -96     255 0   1024
+definesound 441                  EBIKERUN.VOC    -47     -47     255 0   512
+definesound 442                  EBIKERUN.VOC    0     0     255 0   0
+definesound 443                  EBIKERUN.VOC    45     45     255 0   0
+definesound 444                  EBIKERUN.VOC    89     89     255 0   0
+definesound 445                  EBIKERUN.VOC    132     132     255 0   0
+definesound 446                  EBIKERUN.VOC    174     174     255 0   0
+definesound 447                  EBIKERUN.VOC    214     214     255 0   0
+definesound 448                  EBIKERUN.VOC    253     253     255 0   0
+definesound 449                  EBIKERUN.VOC    292     292     255 0   0
+definesound 450                  EBIKERUN.VOC    329     329     255 0   0
+definesound 451                  EBIKERUN.VOC    366     366     255 0   0
+definesound 452                  EBIKERUN.VOC    401     401     255 0   0
+definesound 453                  EBIKERUN.VOC    436     436     255 0   0
+definesound 454                  EBIKERUN.VOC    470     470     255 0   0
+definesound 455                  EBIKERUN.VOC    503     503     255 0   0
+definesound 456                  EBIKERUN.VOC    536     536     255 0   0
+definesound 457                  EBIKERUN.VOC    567     567     255 0   0
+definesound 458                  EBIKERUN.VOC    599     599     255 0   0
+definesound 459                  EBIKERUN.VOC    629     629     255 0   0
+definesound 460                  EBIKERUN.VOC    659     659     255 0   0
+definesound 461                  EBIKERUN.VOC    688     688     255 0   0
+definesound 462                  EBIKERUN.VOC    717     717     255 0   0
+definesound 463                  EBIKERUN.VOC    745     745     255 0   0
+definesound 464                  EBIKERUN.VOC    773     773     255 0   0
+definesound 465                  EBIKERUN.VOC    800     800     255 0   0
+definesound 466                  EBIKERUN.VOC    826     826     255 0   0
+definesound 467                  EBIKERUN.VOC    852     852     255 0   0
+definesound 468                  EBIKERUN.VOC    878     878     255 0   0
+definesound 469                  EBIKERUN.VOC    903     903     255 0   0
+definesound 470                  EBIKERUN.VOC    928     928     255 0   0
+definesound 471                  EBIKERUN.VOC    953     953     255 0   0
+definesound 472                  EBIKERUN.VOC    977     977     255 0   0
+definesound 473                  EBIKERUN.VOC    1000     1000     255 0   0
+definesound 474                  EBIKERUN.VOC    1024     1024     255 0   0
+definesound 475                  EBIKERUN.VOC    1046     1046     255 0   0
+definesound 476                  EBIKERUN.VOC    1069     1069     255 0   0
+definesound 477                  EBIKERUN.VOC    1091     1091     255 0   0
+definesound 478                  EBIKERUN.VOC    1113     1113     255 0   0
+definesound 479                  EBIKERUN.VOC    1135     1135     255 0   0
+definesound 480                  EBIKERUN.VOC    1156     1156     255 0   0
+definesound 481                  EBIKERUN.VOC    1177     1177     255 0   0
+definesound 482                  EBIKERUN.VOC    1198     1198     255 0   0
+definesound 483                  EBIKERUN.VOC    1218     1218     255 0   0
+definesound 484                  EBIKERUN.VOC    1238     1238     255 0   0
+definesound 485                  EBIKERUN.VOC    1258     1258     255 0   0
+definesound 486                  EBIKERUN.VOC    1277     1277     255 0   0
+definesound 487                  EBIKERUN.VOC    1297     1297     255 0   0
+
+define EBIKE_ACTIVE 488
+definesound EBIKE_ACTIVE         ELECTRIC.VOC     0     0     255 0   0
+
+
+definesound BIKESTART	START.VOC		 0	0  0  0  0
+definesound BIKEIDLE    LOOP.VOC         0  0  0  0  0
+definesound BIKEOFF	    STOP.VOC		 0	0  0  0	 0
+
+define THEEBIKE 3841
+
+onevent EVENT_MOVEFORWARD
+ifvare PLAYERONTHEBIKE 1 ifsound BIKESTART nullop else
+setvar CMD_THRUST 1
+endevent
+onevent EVENT_MOVEBACKWARD
+ifvarg BIKEID -1 {
+  getactorvar[BIKEID].BIKEVEL e1
+  ifvarg e1 0 setvar CMD_BRAKE 4 else setvar CMD_BACK 1
+  ifsound BIKESTART setvar CMD_BACK 0
+  
+}
+endevent
+onevent EVENT_STRAFELEFT
+setvar CMD_LEFT 1
+endevent
+onevent EVENT_STRAFERIGHT
+setvar CMD_RIGHT 1
+endevent
+onevent EVENT_TURNLEFT
+ifvarg PLAYERONTHEBIKE 0 setvar CMD_LEFT 1
+endevent
+onevent EVENT_TURNRIGHT
+ifvarg PLAYERONTHEBIKE 0 setvar CMD_RIGHT 1
+endevent
+onevent EVENT_JUMP
+setvar CMD_BRAKE 4
+endevent
+/*
+onevent EVENT_CROUCH
+setvar CMD_FORCE 1
+endevent
+*/
+move EBIKEVELS 1
+
+define EBIKE_ENGINEPOWERF 120
+define EBIKE_ENGINEPOWERB -2
+define EBIKE_COLLISIONDAMAGEDIV 1024
+define EBIKE_COLLISIONDOFFSET 3072
+define EBIKE_COLLISIONSTART 256
+define EBIKE_STEERINGMULL -8
+define EBIKE_STEERINGMULR 8
+define EBIKE_MAXBATTERYCHARGE 115200
+
+state destroybike
+  sound EBIKE_DESTROYED
+  hitradius 1536 16 32 64 128
+  spawn EXPLOSION2
+  addphealth -999
+  setvar e1 -8192
+  move EBIKEVELS getv
+  setactor[THISACTOR].zvel e1
+  spritepal 4
+  setvar BIKESTATE 2
+  cstat 0
+  sizeat 24 19
+  resetactioncount
+  setvar e1 0
+ends
+
+state updatesprisect
+
+getactor[THISACTOR].x e1
+getactor[THISACTOR].y e6
+getactor[THISACTOR].z e3
+updatesectorz e1 e6 e3 e7
+// updatesector e1 e6 e7
+changespritesect THISACTOR e7
+/*
+getflorzofslope e7 e1 e6 e2
+getceilzofslope e7 e1 e6 e3
+setactor[THISACTOR].htfloorz e2
+setactor[THISACTOR].htceilingz e3
+setactor[THISACTOR].z e3
+*/
+ends
+
+useractor notenemy THEEBIKE 200
+ifaction 0
+{
+  sizeat 24 19
+  cstat 1
+  // clipdist 112
+  clipdist 60 //48
+  action DA
+	setvar INTCOUNTER EBIKE_MAXBATTERYCHARGE
+  getactor[THISACTOR].ang BIKEANG
+	mulvar BIKEANG 256
+  spritepal 0
+  /*
+  randvar e1 10
+  ifvare e1 0 spritepal 0
+  ifvare e1 1 spritepal 10
+  ifvare e1 2 spritepal 11
+  ifvare e1 3 spritepal 12
+  ifvare e1 4 spritepal 13
+  ifvare e1 5 spritepal 14
+  ifvare e1 6 spritepal 15
+  ifvare e1 7 spritepal 16
+  ifvare e1 8 spritepal 21
+  ifvare e1 9 spritepal 23
+  */
+}
+fall
+sleeptime 100
+/*
+getactor[THISACTOR].ang e1
+addvar e1 32
+modvar e1 2048
+setactor[THISACTOR].ang e1
+*/
+ifvare BIKESTATE 0
+{
+	ifactorsound THISACTOR BIKEIDLE stopactorsound THISACTOR BIKEIDLE
+  // ifrnd 1 state destroybike
+  // fall
+  state updatesprisect
+  ifp palive ifcansee
+  {
+    ifp pshrunk nullop else
+    {
+      ifp pfacing
+        ifpdistl 1024
+          ifhitspace ifactioncount 32
+          {
+            setvar BIKESTATE 1
+            setvar CMD_THRUST 0
+            setvar CMD_BACK 0
+            setvar CMD_LEFT 0
+            setvar CMD_RIGHT 0
+            setvar CMD_BRAKE 0
+            setvar CMD_FORCE 0
+            setvar CURRENTBIKEACCELERATION 0
+            cstat 32768
+            sizeat 18 255
+            move EBIKEVELS geth
+            getactor[THISACTOR].ang e5
+            mulvar e5 256
+            resetactioncount
+            sound BIKESTART
+          }
+    }
+  }
+  // state createbikeskin
+  /*
+  setvar e1 192 // Width/2
+  setvar e2 480 // Depth/2
+  setvar e3 6144 // Height
+  state makedummybox
+  */
+}
+else ifvare BIKESTATE 1
+{
+	ifvare CMD_THRUST 0 
+	{
+		ifactorsound THISACTOR BIKESTART nullop else
+		ifvarl CURRENTBIKEVELOCITY 15 soundonce BIKEIDLE
+	}
+	else ifactorsound THISACTOR BIKEIDLE stopactorsound THISACTOR BIKEIDLE
+  setvarvar e1 BIKEVEL
+  ifvarl e1 0 mulvar e1 -1
+  divvar e1 474
+  ifvarg e1 77 setvar e1 77
+  ifvarg e1 7
+  {
+    addvar e1 410
+    soundoncevar e1
+  }
+  setvar PLAYERONTHEBIKE 1
+  setvarvar BIKEID THISACTOR
+	setvarvar CURRENTBIKECHARGE INTCOUNTER
+  setvarvar e2 BIKEVEL
+  ifvarl e2 0 mulvar e2 -1
+  
+  ifhitspace ifvarg e1 0 ifactioncount 32 setvar CMD_BRAKE 4
+  
+  ifhitspace 
+  ifactioncount 32 ifvarl e2 4096 // 2048
+  {
+	sound BIKEOFF
+    setvar BIKESTATE 0
+    setvar BIKEVEL 0
+    cstat 1
+    sizeat 24 19
+    setvar e1 0 // setplayer[THISACTOR].holster_weapon e1
+    setvar e1 9 setplayer[THISACTOR].weapon_pos e1
+    resetactioncount
+  }
+  else {
+    setvar e1 1 // setplayer[THISACTOR].holster_weapon e1
+    setvar e1 -9 setplayer[THISACTOR].weapon_pos e1
+  }
+  ifp pshrunk
+  {
+    setvar BIKESTATE 0
+    cstat 0
+    sizeat 24 19
+    resetactioncount
+  }
+  ifp pdead
+  {
+    setvar BIKESTATE 0
+    cstat 0
+    sizeat 24 19
+    resetactioncount
+  }
+  setvar e1 0 setplayer[THISACTOR].on_ground e1
+  setplayer[THISACTOR].pyoff e1
+  getactor[THISACTOR].x e1
+  setplayer[THISACTOR].posx e1
+  getactor[THISACTOR].y e1
+  setplayer[THISACTOR].posy e1
+  getactor[THISACTOR].z e1
+  addvar e1 -6144
+  setplayer[THISACTOR].posz e1
+  getactor[THISACTOR].ang e1
+  setvarvar e2 BIKEANGVEL
+  // divvar e2 2
+  addvarvar e1 e2
+  ifvare CMD_THRUST 1
+  {
+    setvarvar e3 BIKEVEL
+    ifvarl e3 0 divvar e3 -8192 else divvar e3 8192
+  }
+  else
+    setvar e3 0
+  addvarvar e1 e3
+  andvar e1 2047
+  setplayer[THISACTOR].ang e1
+  getplayer[THISACTOR].oang e1
+  subvarvar e1 e3
+  andvar e1 2047
+  setplayer[THISACTOR].oang e1
+	
+	/*
+	getactor[THISACTOR].x e1
+	ifvarg e1 680000
+	{
+	  setvar e1 3072
+		setactor[THISACTOR].x e1
+		state regactorposition
+	}
+	*/
+	
+	getactor[THISACTOR].zvel e1
+	ifvare e1 0
+	{
+		getactor[THISACTOR].z e3
+		subvarvar e3 paoposz
+    /*
+    ifvarg e3 256
+      sound EBIKE_ELEVATE
+    */
+		ifvarl e3 -256
+		{
+      sound EBIKE_BOUNCE
+		  mulvarvar e3 BIKEVEL
+			divvar e3 16384
+		  addvarvar e1 e3
+		  setactor[THISACTOR].zvel e1
+			/*
+			randvar e1 65
+			subvar e1 32
+			addvarvar BIKEANGVEL e1
+			*/
+		}
+	}
+  /*
+  sin e3 e1
+  mulvarvar e3 BIKEVEL
+  divvar e3 16384
+  setactor[THISACTOR].yvel e3
+  cos e3 e1
+  mulvarvar e3 BIKEVEL
+  divvar e3 16384
+  setactor[THISACTOR].xvel e3
+  */
+  setvarvar e3 BIKEVEL
+  divvar e3 16
+  setactor[THISACTOR].xvel e3
+  /*
+  setvar e1 1
+  setactor[THISACTOR].htmovflag e1
+  */
+  
+  iffloordistl 1 ifvarn BIKEVEL 0
+  {
+    getactor[THISACTOR].z e1
+  	subvarvar e1 paoposz
+    mulvar e1 2048
+    divvarvar e1 BIKEVEL
+    addvarvar BIKEVEL e1
+  }
+  
+	getactor[THISACTOR].x e1
+	subvarvar e1 paoposx
+	getactor[THISACTOR].y e3
+	subvarvar e3 paoposy
+	getactor[THISACTOR].z e6
+	subvarvar e6 paoposz
+	divvar e6 64
+	mulvarvar e1 e1
+	mulvarvar e3 e3
+	mulvarvar e6 e6
+	addvarvar e1 e3
+	addvarvar e1 e6
+	sqrt e1 e1
+	
+	setvarvar e2 e1
+	divvar e2 4
+  addvarvar TEST_TOTALLENGTH e2
+	addvarvar TEST_STATELENGTH e2
+	setvarvar TEST_REALSPEED e1
+	mulvar TEST_REALSPEED 288
+	divvar TEST_REALSPEED 1000
+  
+  setvarvar e2 e1
+  mulvar e2 80
+  setvarvar e3 BIKEVEL
+  ifvarl e3 0 mulvar e3 -1
+  subvarvar e2 e3
+  ifvarl e2 0 mulvar e2 -1
+  ifvarg e2 256
+  {
+    ifsound EBIKE_SKIDDING nullop else sound EBIKE_SKIDDING
+  }
+  else
+    stopsound EBIKE_SKIDDING
+	
+	setvarvar e7 paoposx
+	subvarvar e7 paooposx
+	setvarvar e3 paoposy
+	subvarvar e3 paooposy
+	setvarvar e6 paoposz
+	subvarvar e6 paooposz
+	divvar e6 64
+	mulvarvar e7 e7
+	mulvarvar e3 e3
+	mulvarvar e6 e6
+	addvarvar e7 e3
+	addvarvar e7 e6
+  sqrt e7 e7
+	subvarvar e1 e7
+  
+  setvarvar e3 CURRENTBIKEACCELERATION
+  setvarvar e2 e1
+  ifvarl BIKEVEL 0 mulvar e2 -1
+  mulvar e2 32
+  subvarvar e2 e3
+  divvar e2 16
+  addvarvar e3 e2
+  setvarvar CURRENTBIKEACCELERATION e3
+  // setvarvar CURRENTBIKEACCELERATION e1
+  
+  setvarvar e3 e1
+  /*
+	ifvarl e3 0
+	  mulvar e3 -1
+  */
+  mulvarvar e3 e3
+ 
+  ifnotmoving
+  {
+    mulvar BIKEVEL 10
+    divvar BIKEVEL 11
+  }
+ 
+	ifvarg e3 EBIKE_COLLISIONDOFFSET
+	{
+    sound EBIKE_COLLIDE2
+	  getactor[THISACTOR].extra e1
+		setvarvar e6 e3
+		subvar e6 EBIKE_COLLISIONDOFFSET
+		
+		getactor[THISACTOR].htmovflag peractor1
+		addvar peractor1 16384
+		ifvarl peractor1 16384 ifvarg peractor1 -1 // hit a sprite
+		ifvarg e6 15
+		{
+			setvarvar tempb e6
+			divvar tempb 16
+			setactor[peractor1].htextra tempb
+			setactor[peractor1].htpicnum KNEE
+			setactor[peractor1].htowner player[THISACTOR].i
+			ifvarvarg tempb sprite[peractor1].extra // enemy should die
+			{
+				getactor[peractor1].picnum tempc
+				switch tempc
+				case LIZTROOP
+				case LIZMAN
+				case PIGCOP
+				case EDFTROOP
+				case OCTABRAIN
+				case BOSS1 case BOSS2 case BOSS3 case BOSS4
+				case TANK case NEWBEAST case ROTATEGUN
+				
+					getactor[peractor1].cstat tempd
+					ifvarand tempd 1 xorvar tempd 1
+					setactor[peractor1].cstat tempd
+					divvar e6 8
+				break
+				endswitch
+			}
+			
+		}
+		
+		divvar e6 EBIKE_COLLISIONDAMAGEDIV
+		subvarvar e1 e6
+		// setvar e1 200
+		ifvarl e1 0
+		{
+      state destroybike
+		}
+		else
+		{
+			getplayer[THISACTOR].i temp
+			setactor[temp].htextra e6
+			setactor[temp].htpicnum RPG
+			setactor[temp].htowner temp
+		}
+		// setactor[THISACTOR].extra e1
+	  // soundonce 409
+	}
+  else ifvarg e3 EBIKE_COLLISIONSTART sound EBIKE_COLLIDE1
+	
+  getplayer[THISACTOR].i e1
+  getactor[e1].extra e3
+  getplayer[THISACTOR].last_extra e1
+  subvarvar e1 e3
+//  ifvarg e1 0
+//  {
+//    mulvar e1 32
+//    randvarvar e2 e1
+//    divvar e1 2
+//    subvarvar e2 e1
+//    divvar e1 16
+//    addvarvar BIKEANGVEL e2
+//    
+//    getactor[THISACTOR].extra e3
+//		subvarvar e3 e1
+//		ifvarl e3 0
+//		{
+//      state destroybike
+//		}
+//    setactor[THISACTOR].extra e3
+//  }
+	setvarvar e3 BIKEVEL
+	
+/*   ifvarg BIKEVEL 32768
+  {
+    mulvar BIKEVEL 160
+    divvar BIKEVEL 161
+  }
+  else
+  {
+    ifvarg BIKEVEL 16384
+    {
+      mulvar BIKEVEL 180
+      divvar BIKEVEL 181
+    }
+    else
+    {
+      mulvar BIKEVEL 200
+      divvar BIKEVEL 201
+    }
+  } */
+  
+  // Air resistance
+  mulscale e7 BIKEVEL BIKEVEL 24
+  ifvarl BIKEVEL 0 mulvar e7 -1
+  subvarvar BIKEVEL e7
+  
+	ifvare CMD_BRAKE 0
+	{
+    // stopsound EBIKE_SKIDDING
+    /*
+    setvarvar e7 BIKEANGVEL
+    divvar e7 2
+    ifvarg e7 0
+      mulvar e7 -1
+    mulvarvar BIKEVEL e7
+    addvar e7 1
+    ifvarn e7 0 divvarvar BIKEVEL e7
+    */
+    mulscale e1 BIKEANGVEL BIKEVEL 16
+    mulscale e1 e1 BIKEANGVEL 10
+    
+	  addvar e1 8
+	}
+	else
+	{
+	  ifvarn TEST_NEWSTATE 1
+		{
+		  setvar TEST_NEWSTATE 1
+			setvar TEST_STATETIME 0
+			setvar TEST_STATELENGTH 0
+		}
+	  addvar TEST_STATETIME 1
+    // subvar INTCOUNTER 128
+    /*
+    ifvarg BIKEVEL 512
+    {
+      ifsound EBIKE_SKIDDING nullop else sound EBIKE_SKIDDING
+    }
+    else { ifvarl BIKEVEL -512
+    {
+      ifsound EBIKE_SKIDDING nullop else sound EBIKE_SKIDDING
+    }
+    else
+      stopsound EBIKE_SKIDDING }
+    */
+	  setvarvar e7 BIKEANGVEL
+		divvar e7 2
+		ifvarg e7 0
+		  mulvar e7 -1
+	  addvar e7 320 // 320
+	  mulvarvar BIKEVEL e7
+		addvar e7 1
+		ifvarn e7 0 divvarvar BIKEVEL e7
+	  setvar e1 256
+		subvar CMD_BRAKE 1
+	}
+  ifvarvarg BIKEVEL e1
+    subvarvar BIKEVEL e1
+  else {
+    mulvar e1 -1
+    ifvarvarl BIKEVEL e1 subvarvar BIKEVEL e1 else setvar BIKEVEL 0
+  }
+	
+  setvar e1 0
+	// ifvare LEC_currweapon 9 { setvar CMD_THRUST 1 setvar BIKEANG 0 }
+  ifvare CMD_FORCE 1
+  {
+    iffloordistl 1
+		ifvarg INTCOUNTER 31
+		{
+      getactor[THISACTOR].zvel e1
+	    addvar e1 -4096
+      setactor[THISACTOR].zvel e1
+			subvar INTCOUNTER 32
+		}
+    setvar CMD_FORCE 0
+  }
+	ifvare CMD_THRUST 1
+  {
+    iffloordistl 1
+		ifvarg INTCOUNTER 0
+		{
+		  ifvarn TEST_NEWSTATE 2
+			{
+			  setvar TEST_NEWSTATE 2
+				setvar TEST_STATETIME 0
+				setvar TEST_STATELENGTH 0
+			}
+		  addvar TEST_STATETIME 1
+      setvarvar e2 INTCOUNTER
+      subvar e2 EBIKE_MAXBATTERYCHARGE
+      mulvar e2 8
+      divvar e2 EBIKE_MAXBATTERYCHARGE
+      addvar e2 EBIKE_ENGINEPOWERF
+      setvarvar e4 BIKEVEL ifvarl e4 0 mulvar e4 -1
+      ifvarl e4 8192 setvar e4 8192
+      shiftvarl e2 15 divvarvar e2 e4
+	    addvarvar BIKEVEL e2
+      setvar e1 1
+			subvar INTCOUNTER 1
+		}
+    setvar CMD_THRUST 0
+  }
+  else
+  {
+    ifvare CMD_BACK 1
+    {
+      iffloordistl 1
+  		ifvarg INTCOUNTER 0
+  		{
+			  ifvarn TEST_NEWSTATE 3
+				{
+				  setvar TEST_NEWSTATE 3
+					setvar TEST_STATETIME 0
+					setvar TEST_STATELENGTH 0
+				}
+			  addvar TEST_STATETIME 1
+        setvarvar e2 INTCOUNTER
+        subvar e2 EBIKE_MAXBATTERYCHARGE
+        mulvar e2 -8
+        divvar e2 EBIKE_MAXBATTERYCHARGE
+        addvar e2 EBIKE_ENGINEPOWERB
+        setvarvar e4 BIKEVEL ifvarl e4 0 mulvar e4 -1
+        ifvarl e4 512 setvar e4 512
+        shiftvarl e2 15 divvarvar e2 e4
+  			addvarvar BIKEVEL e2
+        setvar e1 1
+  			subvar INTCOUNTER 1
+  		}
+  		setvar CMD_BACK 0
+    }
+  }
+  ifvare e1 1
+    soundonce EBIKE_ACTIVE
+  else
+    stopsound EBIKE_ACTIVE
+	
+	subvarvar e3 BIKEVEL
+	subvarvar eb e3
+	setvar e6 64
+	whilevarn e6 0
+	{
+	  ifvarn e2 0
+	  {
+	    ifvarg eb 0
+	      subvar eb 1
+	    else
+	      addvar eb 1
+	  }
+		subvar e6 1
+	}
+	mulvar eb 8
+	divvar eb 9
+	addvarvar eb e3
+	
+	setvarvar e1 eb
+	divvar e1 -16
+	addvar e1 100
+	setplayer[THISACTOR].horiz e1
+  
+  setvarvar e1 BIKEANGVEL
+  mulvarvar e1 BIKEVEL
+  divvar e1 -512
+	mulvarvar e1 BIKEVEL
+  divvar e1 -16384
+	ifvarl e1 0
+	{
+	  mulvar e1 -1
+		setvar ea 1
+	}
+	else
+	  setvar ea 0
+	setvar e9 0
+	setvar e8 0
+	setvar e3 1
+	whilevarn e3 0 // fake arctangent for screen rotation
+	{
+	  setvar e3 1
+		sin e6 e9
+		cos e7 e9
+		mulvar e6 16384
+		divvarvar e6 e7
+		ifvarvarl e6 e1
+		{
+			setvarvar e8 e6
+			addvar e9 1
+		}
+		else
+		{
+		  setvar e3 0
+		}
+
+		ifvarg e9 512 setvar e3 0
+	}
+	ifvare ea 0
+	  mulvar e9 -1
+  setplayer[THISACTOR].rotscrnang e9
+  
+  mulvar BIKEANGVEL 32
+  divvar BIKEANGVEL 33
+  ifvarn BIKEANGVEL 0
+  {
+    ifvarg BIKEANGVEL 0
+      subvar BIKEANGVEL 1
+    else
+      addvar BIKEANGVEL 1
+  }
+  setvarvar e3 BIKEVEL
+  ifvarg e3 2048
+    setvar e3 2048
+  ifvarl e3 -2048
+    setvar e3 -2048
+  mulvarvar e3 BIKEANGVEL
+  divvar e3 64
+  addvarvar BIKEANG e3
+  
+  setvarvar e1 BIKEANG
+  divvar e1 256
+  andvar e1 2047
+  setactor[THISACTOR].ang e1
+  
+	getactor[THISACTOR].extra CURRENTBIKEINTEGRITY
+	setvarvar CURRENTBIKEVELOCITY BIKEVEL
+	divvar CURRENTBIKEVELOCITY 275 // km/h
+	ifvarl CURRENTBIKEVELOCITY 0 mulvar CURRENTBIKEVELOCITY -1
+	// setplayer[THISACTOR].shield_amount e1
+	
+	
+  ifvarn CMD_LEFT 0
+  {
+    setvar e1 EBIKE_STEERINGMULL
+    mulvarvar e1 CMD_LEFT
+    addvarvar BIKEANGVEL e1
+    setvar CMD_LEFT 0
+  }
+  ifvarn CMD_RIGHT 0
+  {
+    setvar e1 EBIKE_STEERINGMULR
+    mulvarvar e1 CMD_RIGHT
+    addvarvar BIKEANGVEL e1
+    setvar CMD_RIGHT 0
+  }
+
+  setplayer[THISACTOR].jumping_counter 0
+  setplayer[THISACTOR].jumping_toggle 0
+}
+else ifvare BIKESTATE 2
+{
+  // fall
+  // espawn PRTMIDSMOKE state shiftit3
+  /*
+	setvar e1 192 // Width/2
+  setvar e2 480 // Depth/2
+  setvar e3 6144 // Height
+  state makedummybox
+  */
+}
+// state updatesprisect
+state regactorposition
+enda
+
+
+state velocitydigdisp
+
+
+	// CURRENTBIKEVELOCITY
+	ifvarl CURRENTBIKEVELOCITY 10 setvar tilenum 3842 else
+	ifvarl CURRENTBIKEVELOCITY 20 setvar tilenum 3843 else
+	ifvarl CURRENTBIKEVELOCITY 30 setvar tilenum 3844 else
+	ifvarl CURRENTBIKEVELOCITY 40 setvar tilenum 3845 else
+	ifvarl CURRENTBIKEVELOCITY 50 setvar tilenum 3846 else
+	ifvarl CURRENTBIKEVELOCITY 60 setvar tilenum 3847 else
+	ifvarl CURRENTBIKEVELOCITY 70 setvar tilenum 3848 else
+	ifvarl CURRENTBIKEVELOCITY 80 setvar tilenum 3849 else
+	ifvarl CURRENTBIKEVELOCITY 90 setvar tilenum 3850 else
+	ifvarl CURRENTBIKEVELOCITY 100 setvar tilenum 3851 else
+	ifvarl CURRENTBIKEVELOCITY 110 setvar tilenum 3852 else
+	ifvarl CURRENTBIKEVELOCITY 120 setvar tilenum 3853 else
+	ifvarl CURRENTBIKEVELOCITY 20 setvar tilenum 3854 else
+	setvar tilenum 3855
+	rotatesprite x y z a tilenum gs pal orientation 0 0 xdim ydim
+	
+// ifvare e1 0
+// {
+  // subvar x 11
+	// subvar y 1
+	// setvar orientation 17
+	// setvar tilenum 3853
+	// myospalx x y tilenum shade orientation pal
+	// addvar x 1
+	// addvar y 1
+	// setvar orientation 16
+	// setvar tilenum 3842
+	// myospalx x y tilenum shade orientation pal
+// }
+// ifvare e1 1
+// {
+  // subvar x 8
+	// subvar y 1
+	// setvar orientation 17
+	// setvar tilenum 3854
+	// myospalx x y tilenum shade orientation pal
+	// addvar x 1
+	// addvar y 1
+	// setvar orientation 16
+	// setvar tilenum 3843
+	// myospalx x y tilenum shade orientation pal
+// }
+// ifvare e1 2
+// {
+  // subvar x 12
+	// subvar y 1
+	// setvar orientation 17
+	// setvar tilenum 3855
+	// myospalx x y tilenum shade orientation pal
+	// addvar x 1
+	// addvar y 1
+	// setvar orientation 16
+	// setvar tilenum 3844
+	// myospalx x y tilenum shade orientation pal
+// }
+// ifvare e1 3
+// {
+  // subvar x 11
+	// subvar y 1
+	// setvar orientation 17
+	// setvar tilenum 3856
+	// myospalx x y tilenum shade orientation pal
+	// addvar x 1
+	// addvar y 1
+	// setvar orientation 16
+	// setvar tilenum 3845
+	// myospalx x y tilenum shade orientation pal
+// }
+// ifvare e1 4
+// {
+  // subvar x 10
+	// subvar y 1
+	// setvar orientation 17
+	// setvar tilenum 3857
+	// myospalx x y tilenum shade orientation pal
+	// addvar x 1
+	// addvar y 1
+	// setvar orientation 16
+	// setvar tilenum 3846
+	// myospalx x y tilenum shade orientation pal
+// }
+// ifvare e1 5
+// {
+  // subvar x 11
+	// subvar y 1
+	// setvar orientation 17
+	// setvar tilenum 3858
+	// myospalx x y tilenum shade orientation pal
+	// addvar x 1
+	// addvar y 1
+	// setvar orientation 16
+	// setvar tilenum 3847
+	// myospalx x y tilenum shade orientation pal
+// }
+// ifvare e1 6
+// {
+  // subvar x 11
+	// subvar y 1
+	// setvar orientation 17
+	// setvar tilenum 3859
+	// myospalx x y tilenum shade orientation pal
+	// addvar x 1
+	// addvar y 1
+	// setvar orientation 16
+	// setvar tilenum 3848
+	// myospalx x y tilenum shade orientation pal
+// }
+// ifvare e1 7
+// {
+  // subvar x 11
+	// subvar y 1
+	// setvar orientation 17
+	// setvar tilenum 3860
+	// myospalx x y tilenum shade orientation pal
+	// addvar x 1
+	// addvar y 1
+	// setvar orientation 16
+	// setvar tilenum 3849
+	// myospalx x y tilenum shade orientation pal
+// }
+// ifvare e1 8
+// {
+  // subvar x 11
+	// subvar y 1
+	// setvar orientation 17
+	// setvar tilenum 3861
+	// myospalx x y tilenum shade orientation pal
+	// addvar x 1
+	// addvar y 1
+	// setvar orientation 16
+	// setvar tilenum 3850
+	// myospalx x y tilenum shade orientation pal
+// }
+// ifvare e1 9
+// {
+  // subvar x 11
+	// subvar y 1
+	// setvar orientation 17
+	// setvar tilenum 3862
+	// myospalx x y tilenum shade orientation pal
+	// addvar x 1
+	// addvar y 1
+	// setvar orientation 16
+	// setvar tilenum 3851
+	// myospalx x y tilenum shade orientation pal
+// }
+ends
+
+state bikechargeinddisp
+ifvarg e3 0
+  setvar shade 0
+else
+  setvar shade 20
+setvar pal 1
+// myospalx x y tilenum shade orientation pal
+addvar x 1
+subvar e3 1
+ends
+
+state bikeinteginddisp
+ifvarg e3 0
+  setvar shade 0
+else
+  setvar shade 20
+setvar pal 8
+// myospalx x y tilenum shade orientation pal
+addvar x 1
+subvar e3 1
+ends
+
+state theebikehudstate
+  getactor[BIKEID].ang e1
+  getplayer[THISACTOR].ang e2
+  getplayer[THISACTOR].look_ang e3
+  addvarvar e2 e3
+  subvarvar e1 e2
+  sin e3 e1
+  cos e4 e1
+  mulvar e3 160
+  ifvarn e4 0 divvarvar e3 e4
+  addvar e3 160
+  // setvar e1 0
+  setvarvar x e3
+  getplayer[THISACTOR].horiz y
+  addvar y 24
+  setvar z 16777216
+  setvarvar e1 CURRENTBIKEACCELERATION
+  addvar e1 320
+  ifvarn e1 0 divvarvar z e1
+  setvar a 0
+  getplayer[THISACTOR].cursectnum pal
+  getsector[pal].floorpal pal
+  ifvare pal 0 getactor[BIKEID].pal pal
+  setvar orientation 0
+  setvar tilenum 3864
+  rotatesprite x y z a tilenum gs pal orientation 0 0 xdim ydim
+  state velocitydigdisp
+  setvar tilenum 3865
+  setvar x 30
+  setvar y 172
+  setvar shade 0
+  setvar orientation 0
+  setvar pal 0
+  // myospalx x y tilenum shade orientation pal
+  
+  setvar tilenum 3867
+  setvar x 21
+  setvar y 164
+  setvar shade 0
+  setvar orientation 0
+  setvar pal 0
+  // myospalx x y tilenum shade orientation pal
+  
+  setvar tilenum 3866
+  setvar x 7
+  setvar y 172
+  setvar shade 0
+  setvar orientation 257
+  setvar pal 0
+  setvarvar e3 CURRENTBIKECHARGE
+  mulvar e3 48
+  divvar e3 EBIKE_MAXBATTERYCHARGE
+  state bikechargeinddisp state bikechargeinddisp state bikechargeinddisp state bikechargeinddisp state bikechargeinddisp state bikechargeinddisp
+  state bikechargeinddisp state bikechargeinddisp state bikechargeinddisp state bikechargeinddisp state bikechargeinddisp state bikechargeinddisp
+  state bikechargeinddisp state bikechargeinddisp state bikechargeinddisp state bikechargeinddisp state bikechargeinddisp state bikechargeinddisp
+  state bikechargeinddisp state bikechargeinddisp state bikechargeinddisp state bikechargeinddisp state bikechargeinddisp state bikechargeinddisp
+  state bikechargeinddisp state bikechargeinddisp state bikechargeinddisp state bikechargeinddisp state bikechargeinddisp state bikechargeinddisp
+  state bikechargeinddisp state bikechargeinddisp state bikechargeinddisp state bikechargeinddisp state bikechargeinddisp state bikechargeinddisp
+  state bikechargeinddisp state bikechargeinddisp state bikechargeinddisp state bikechargeinddisp state bikechargeinddisp state bikechargeinddisp
+  state bikechargeinddisp state bikechargeinddisp state bikechargeinddisp state bikechargeinddisp state bikechargeinddisp state bikechargeinddisp
+  
+  setvar tilenum 3865
+  setvar x 30
+  setvar y 153
+  setvar shade 0
+  setvar orientation 0
+  setvar pal 0
+  // myospalx x y tilenum shade orientation pal
+  
+  setvar tilenum 3868
+  setvar x 27
+  setvar y 145
+  setvar shade 0
+  setvar orientation 0
+  setvar pal 0
+  // myospalx x y tilenum shade orientation pal
+  
+  setvar tilenum 3866
+  setvar x 7
+  setvar y 153
+  setvar shade 0
+  setvar orientation 257
+  setvar pal 0
+  setvarvar e3 CURRENTBIKEINTEGRITY
+  mulvar e3 48
+  divvar e3 200
+  state bikeinteginddisp state bikeinteginddisp state bikeinteginddisp state bikeinteginddisp state bikeinteginddisp state bikeinteginddisp
+  state bikeinteginddisp state bikeinteginddisp state bikeinteginddisp state bikeinteginddisp state bikeinteginddisp state bikeinteginddisp
+  state bikeinteginddisp state bikeinteginddisp state bikeinteginddisp state bikeinteginddisp state bikeinteginddisp state bikeinteginddisp
+  state bikeinteginddisp state bikeinteginddisp state bikeinteginddisp state bikeinteginddisp state bikeinteginddisp state bikeinteginddisp
+  state bikeinteginddisp state bikeinteginddisp state bikeinteginddisp state bikeinteginddisp state bikeinteginddisp state bikeinteginddisp
+  state bikeinteginddisp state bikeinteginddisp state bikeinteginddisp state bikeinteginddisp state bikeinteginddisp state bikeinteginddisp
+  state bikeinteginddisp state bikeinteginddisp state bikeinteginddisp state bikeinteginddisp state bikeinteginddisp state bikeinteginddisp
+  state bikeinteginddisp state bikeinteginddisp state bikeinteginddisp state bikeinteginddisp state bikeinteginddisp state bikeinteginddisp
+  
+  setvar x 264
+  setvar y 154
+  setvar shade 0
+  setvar pal 0
+  subvar x 1
+  subvar y 1
+  setvar orientation 17
+  setvar tilenum 3863
+  myospalx x y tilenum shade orientation pal
+  addvar x 1
+  addvar y 1
+  setvar orientation 16
+  setvar tilenum 3852
+  // myospalx x y tilenum shade orientation pal
+  
+  setvar x 262
+  setvar y 151
+  setvarvar e1 CURRENTBIKEVELOCITY
+  modvar e1 10
+  // state velocitydigdisp
+  ifvarg CURRENTBIKEVELOCITY 9
+  {
+    setvarvar e1 CURRENTBIKEVELOCITY
+    divvar e1 10
+    modvar e1 10
+    // state velocitydigdisp
+  }
+  ifvarg CURRENTBIKEVELOCITY 99
+  {
+    setvarvar e1 CURRENTBIKEVELOCITY
+    divvar e1 100
+    modvar e1 10
+    // state velocitydigdisp
+  }
+ends
+
+onevent EVENT_DISPLAYWEAPON
+  ifvarg PLAYERONTHEBIKE 0 state theebikehudstate
+endevent
+
+onevent EVENT_FIRE
+ifvare PLAYERONTHEBIKE 1 setvar RETURN -1
+endevent

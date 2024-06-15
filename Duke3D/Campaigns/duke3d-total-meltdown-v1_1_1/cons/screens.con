@@ -1,0 +1,1030 @@
+// Screen drawing functions
+
+defstate S_Set_Player_Text_Color
+  set V_Pal player[V_State_Player].palookup
+  switch V_Pal
+  case 0 // Player setup uses pal 0 as the default player pal
+  case 3 // Player setup uses pal 3 as the default team pal
+    set V_Pal 9
+  break
+  endswitch
+  sub V_Pal 8
+ends
+
+// Bonus screen
+
+defstate S_Display_Bonus_Screen
+  ife RETURN 1
+  {
+    ifl V_Screen_Count 600
+      set V_Screen_Count 600
+    else
+    ifl V_Screen_Count 1000000000
+      set V_Screen_Count 1000000000
+  }
+  ifge V_Screen_Count 1000000320
+    set RETURN 1
+  else
+    set RETURN 0
+
+  ifl V_Last_Screen_Count 0
+  {
+    starttrackslot D_Temp_Volume MUS_BONUS
+    stopallsounds
+  }
+
+  // Must be the same as the cutscene
+  ife VOLUME 1
+  {
+    // Display easy/medium/hard based on health
+
+    ifl player[].last_extra 40
+      set V_Picnum D_Cutscene_Frame_SPACE_L
+    else
+    ifl player[].last_extra 90
+      set V_Picnum D_Cutscene_Frame_SPACE_M
+    else
+      set V_Picnum D_Cutscene_Frame_SPACE_H
+  }
+  else
+  {
+    // Display easy/medium/hard sequence based on health
+
+    ifl player[].last_extra 40
+      set V_Picnum D_Cutscene_Frame_LA_L
+    else
+    ifl player[].last_extra 90
+      set V_Picnum D_Cutscene_Frame_LA_M
+    else
+      set V_Picnum D_Cutscene_Frame_LA_H
+  }
+  ife userdef[].eog 1
+  {
+    // Display end sequence after bonus sequence
+
+    stopallsounds
+    switch VOLUME
+    default
+      set V_Picnum D_Cutscene_Frame_CINEMA1
+    break
+    case 1
+      set V_Picnum D_Cutscene_Frame_CINEMA2
+    break
+    case 2
+      set V_Picnum D_Cutscene_Frame_CINEMA3
+    break
+    case 3
+      set V_Picnum D_Cutscene_Frame_EXTRO
+    break
+    endswitch
+  }
+
+  ife D_Enable_Pal_Ver 1
+    setarrayseq A_State_Draw 160 120 65536 0 V_Picnum 0 0 0 0 D_Aspect_Psx
+  else
+    setarrayseq A_State_Draw 160 107 65536 0 V_Picnum 0 0 0 0 D_Aspect_Psx
+  state S_Draw_Cutscene_Sprite
+
+  ifge V_Screen_Count 1000000080
+  ifl V_Last_Screen_Count 1000000080
+  {
+    screensound SHOTGUN_COCK
+    displayrandvar V_Temp1 3
+    switch V_Temp1
+    case 0
+      screensound BONUS_SPEECH1
+    break
+    case 1
+      screensound BONUS_SPEECH2
+    break
+    case 2
+      screensound BONUS_SPEECH3
+    break
+    case 3
+      screensound BONUS_SPEECH4
+    break
+    endswitch
+  }
+
+  set V_Old_level_number userdef[].level_number
+  set V_Temp1 userdef[].last_level
+  sub V_Temp1 1
+  setuserdef[].level_number V_Temp1
+  qgetsysstr D_Quote_Temp1 STR_MAPNAME
+  setuserdef[].level_number V_Old_level_number
+
+  setarrayseq A_State_Draw BIGALPHANUM 160 3 65536 0 0 D_Quote_Temp1 0 0 RS_TOPLEFT 0 D_Font_X_Between TEXT_XCENTER D_Aspect_Psx_or_D_Aspect_T
+  state S_Draw_Quote
+
+  redefinequote D_Quote_Temp1 COMPLETED
+
+  setarrayseq A_State_Draw BIGALPHANUM 160 19 65536 0 0 D_Quote_Temp1 0 0 RS_TOPLEFT 0 D_Font_X_Between TEXT_XCENTER D_Aspect_Psx_or_D_Aspect_T
+  state S_Draw_Quote
+
+  // redefinequote D_Quote_Temp1 PRESS X TO CONTINUE
+  redefinequote D_Quote_Temp1 PRESS ANY KEY TO CONTINUE
+
+  ife D_Enable_Pal_Ver 1
+    setarrayseq A_State_Draw STARTALPHANUM 160 210 65536 0 0 D_Quote_Temp1 16 0 RS_TOPLEFT 0 D_Font_X_Between TEXT_XCENTER D_Aspect_Psx_or_D_Aspect_B
+  else
+    setarrayseq A_State_Draw STARTALPHANUM 160 192 65536 0 0 D_Quote_Temp1 16 0 RS_TOPLEFT 0 D_Font_X_Between TEXT_XCENTER D_Aspect_Psx_or_D_Aspect_B
+  state S_Draw_Quote
+
+  ifge V_Screen_Count 180
+  {
+    set V_Y 68
+
+    redefinequote D_Quote_Temp1 Your Time:
+
+    setarrayseq A_State_Draw STARTALPHANUM 25 V_Y 65536 0 0 D_Quote_Temp1 0 0 RS_TOPLEFT 0 D_Font_X_Between 0 D_Aspect_Psx
+    state S_Draw_Quote
+  }
+  ifge V_Screen_Count 240
+  {
+    qgetsysstr D_Quote_Temp1 STR_YOURTIME
+    qsubstr D_Quote_Temp1 D_Quote_Temp1 0 5 // Eduke32: Remove centiseconds
+
+    setarrayseq A_State_Draw STARTALPHANUM 250 V_Y 65536 0 0 D_Quote_Temp1 0 0 RS_TOPLEFT 0 D_Font_X_Between TEXT_GAMETEXTNUMHACK D_Aspect_Psx
+    state S_Draw_Quote
+
+    // Not enough space for "New record!" text
+    /* ifl player[].player_par userdef[].playerbest
+    {
+      redefinequote D_Quote_Temp1 New record!
+
+      setarrayseq A_State_Draw STARTALPHANUM 169 V_Y 65536 0 0 D_Quote_Temp1 0 0 RS_TOPLEFT 0 D_Font_X_Between 0 D_Aspect_Psx
+      state S_Draw_Quote
+    } */
+  }
+  ifge V_Screen_Count 180
+  {
+    ife D_Enable_Pal_Ver 1
+      add V_Y 10
+    else
+      add V_Y 9
+
+    redefinequote D_Quote_Temp1 Par Time:
+
+    setarrayseq A_State_Draw STARTALPHANUM 25 V_Y 65536 0 0 D_Quote_Temp1 0 0 RS_TOPLEFT 0 D_Font_X_Between 0 D_Aspect_Psx
+    state S_Draw_Quote
+  }
+  ifge V_Screen_Count 240
+  {
+    qgetsysstr D_Quote_Temp1 STR_PARTIME
+
+    setarrayseq A_State_Draw STARTALPHANUM 250 V_Y 65536 0 0 D_Quote_Temp1 0 0 RS_TOPLEFT 0 D_Font_X_Between TEXT_GAMETEXTNUMHACK D_Aspect_Psx
+    state S_Draw_Quote
+  }
+  ifge V_Screen_Count 180
+  {
+    ife D_Enable_Pal_Ver 1
+      add V_Y 10
+    else
+      add V_Y 9
+
+    redefinequote D_Quote_Temp1 Record Time:
+
+    setarrayseq A_State_Draw STARTALPHANUM 25 V_Y 65536 0 0 D_Quote_Temp1 0 0 RS_TOPLEFT 0 D_Font_X_Between 0 D_Aspect_Psx
+    state S_Draw_Quote
+  }
+  ifge V_Screen_Count 240
+  {
+    qgetsysstr D_Quote_Temp1 STR_DESIGNERTIME
+
+    setarrayseq A_State_Draw STARTALPHANUM 250 V_Y 65536 0 0 D_Quote_Temp1 0 0 RS_TOPLEFT 0 D_Font_X_Between TEXT_GAMETEXTNUMHACK D_Aspect_Psx
+    state S_Draw_Quote
+  }
+  /* ifg userdef[].playerbest 0
+  {
+    ifge V_Screen_Count 180
+    {
+      ife D_Enable_Pal_Ver 1
+        add V_Y 10
+      else
+        add V_Y 9
+
+      ifl player[].player_par userdef[].playerbest
+        redefinequote D_Quote_Temp1 Prev Best Time:
+      else
+        redefinequote D_Quote_Temp1 Your Best Time:
+
+      setarrayseq A_State_Draw STARTALPHANUM 25 V_Y 65536 0 0 D_Quote_Temp1 0 0 RS_TOPLEFT 0 D_Font_X_Between 0 D_Aspect_Psx
+      state S_Draw_Quote
+    }
+    ifge V_Screen_Count 240
+    {
+      qgetsysstr D_Quote_Temp1 STR_BESTTIME
+
+      setarrayseq A_State_Draw STARTALPHANUM 250 V_Y 65536 0 0 D_Quote_Temp1 0 0 RS_TOPLEFT 0 D_Font_X_Between TEXT_GAMETEXTNUMHACK D_Aspect_Psx
+      state S_Draw_Quote
+    }
+  } */
+  ifge V_Screen_Count 240
+  ifl V_Last_Screen_Count 240
+    screensound PIPEBOMB_EXPLODE
+
+  ifge V_Screen_Count 360
+  {
+    ife D_Enable_Pal_Ver 1
+      add V_Y 22
+    else
+      add V_Y 19
+
+    redefinequote D_Quote_Temp1 Enemies Killed:
+
+    setarrayseq A_State_Draw STARTALPHANUM 25 V_Y 65536 0 0 D_Quote_Temp1 0 0 RS_TOPLEFT 0 D_Font_X_Between 0 D_Aspect_Psx
+    state S_Draw_Quote
+  }
+  ifge V_Screen_Count 420
+  {
+    redefinequote D_Quote_Temp1 %d
+    qsprintf D_Quote_Temp1 D_Quote_Temp1 player[].actors_killed
+
+    setarrayseq A_State_Draw STARTALPHANUM 250 V_Y 65536 0 0 D_Quote_Temp1 0 0 RS_TOPLEFT 0 D_Font_X_Between TEXT_GAMETEXTNUMHACK D_Aspect_Psx
+    state S_Draw_Quote
+  }
+  ifge V_Screen_Count 360
+  {
+    ife D_Enable_Pal_Ver 1
+      add V_Y 10
+    else
+      add V_Y 9
+
+    redefinequote D_Quote_Temp1 Enemies Left:
+
+    setarrayseq A_State_Draw STARTALPHANUM 25 V_Y 65536 0 0 D_Quote_Temp1 0 0 RS_TOPLEFT 0 D_Font_X_Between 0 D_Aspect_Psx
+    state S_Draw_Quote
+  }
+  ifge V_Screen_Count 420
+  {
+    ifg userdef[].player_skill 3
+      redefinequote D_Quote_Temp1 N/A
+    else
+    {
+      redefinequote D_Quote_Temp1 %d
+      set V_Value player[].max_actors_killed
+      sub V_Value player[].actors_killed
+      ifl V_Value 0
+        set V_Value 0
+      qsprintf D_Quote_Temp1 D_Quote_Temp1 V_Value
+    }
+
+    setarrayseq A_State_Draw STARTALPHANUM 250 V_Y 65536 0 0 D_Quote_Temp1 0 0 RS_TOPLEFT 0 D_Font_X_Between TEXT_GAMETEXTNUMHACK D_Aspect_Psx
+    state S_Draw_Quote
+  }
+  ifge V_Screen_Count 420
+  ifl V_Last_Screen_Count 420
+    screensound PIPEBOMB_EXPLODE
+
+  ifge V_Screen_Count 540
+  {
+    ife D_Enable_Pal_Ver 1
+      add V_Y 30
+    else
+      add V_Y 21
+
+    redefinequote D_Quote_Temp1 Secrets Found:
+
+    setarrayseq A_State_Draw STARTALPHANUM 25 V_Y 65536 0 0 D_Quote_Temp1 0 0 RS_TOPLEFT 0 D_Font_X_Between 0 D_Aspect_Psx
+    state S_Draw_Quote
+  }
+  ifge V_Screen_Count 600
+  {
+    redefinequote D_Quote_Temp1 %d
+    qsprintf D_Quote_Temp1 D_Quote_Temp1 player[].secret_rooms
+
+    setarrayseq A_State_Draw STARTALPHANUM 250 V_Y 65536 0 0 D_Quote_Temp1 0 0 RS_TOPLEFT 0 D_Font_X_Between TEXT_GAMETEXTNUMHACK D_Aspect_Psx
+    state S_Draw_Quote
+  }
+  ifge V_Screen_Count 540
+  {
+    ife D_Enable_Pal_Ver 1
+      add V_Y 10
+    else
+      add V_Y 9
+
+    redefinequote D_Quote_Temp1 Secrets Missed:
+
+    setarrayseq A_State_Draw STARTALPHANUM 25 V_Y 65536 0 0 D_Quote_Temp1 0 0 RS_TOPLEFT 0 D_Font_X_Between 0 D_Aspect_Psx
+    state S_Draw_Quote
+  }
+  ifge V_Screen_Count 600
+  {
+    set V_Value player[].max_secret_rooms
+    sub V_Value player[].secret_rooms
+    redefinequote D_Quote_Temp1 %d
+    qsprintf D_Quote_Temp1 D_Quote_Temp1 V_Value
+
+    setarrayseq A_State_Draw STARTALPHANUM 250 V_Y 65536 0 0 D_Quote_Temp1 0 0 RS_TOPLEFT 0 D_Font_X_Between TEXT_GAMETEXTNUMHACK D_Aspect_Psx
+    state S_Draw_Quote
+  }
+  ifge V_Screen_Count 600
+  ifl V_Last_Screen_Count 600
+    screensound PIPEBOMB_EXPLODE
+ends
+
+// Deathmatch frag screen
+// Scale scoresheet if there are more than 2 players
+
+defstate S_Display_Frag_Screen
+  ifl V_Last_Screen_Count 0
+  {
+    starttrackslot D_Temp_Volume MUS_BONUS
+    stopallsounds
+  }
+
+  state S_Draw_Black_Screen
+
+  setarrayseq A_State_Draw BIGHOLE 8
+  state S_Draw_Sprite_Tiled
+
+  ife D_Enable_Pal_Ver 1
+    setarrayseq A_State_Draw 160 40 65536 0 MENUTITLE 0 0 0 0 D_Aspect_Psx_or_D_Aspect_T
+  else
+    setarrayseq A_State_Draw 160 38 65536 0 MENUTITLE 0 0 0 0 D_Aspect_Psx_or_D_Aspect_T
+  state S_Draw_Sprite
+
+  redefinequote D_Quote_Temp1 MULTIPLAYER TOTALS
+
+  ife D_Enable_Pal_Ver 1
+    setarrayseq A_State_Draw STARTALPHANUM 160 70 65536 0 0 D_Quote_Temp1 0 0 RS_TOPLEFT 0 D_Font_X_Between TEXT_XCENTER D_Aspect_Psx_or_D_Aspect_T
+  else
+    setarrayseq A_State_Draw STARTALPHANUM 160 62 65536 0 0 D_Quote_Temp1 0 0 RS_TOPLEFT 0 D_Font_X_Between TEXT_XCENTER D_Aspect_Psx_or_D_Aspect_T
+  state S_Draw_Quote
+
+
+  set V_Old_level_number userdef[].level_number
+  set V_Temp1 userdef[].last_level
+  sub V_Temp1 1
+  setuserdef[].level_number V_Temp1
+  qgetsysstr D_Quote_Temp1 STR_MAPNAME
+  setuserdef[].level_number V_Old_level_number
+
+  ife D_Enable_Pal_Ver 1
+    setarrayseq A_State_Draw BIGALPHANUM 160 79 65536 0 0 D_Quote_Temp1 0 0 RS_TOPLEFT 0 D_Font_X_Between TEXT_XCENTER D_Aspect_Psx_or_D_Aspect_T
+  else
+    setarrayseq A_State_Draw BIGALPHANUM 160 71 65536 0 0 D_Quote_Temp1 0 0 RS_TOPLEFT 0 D_Font_X_Between TEXT_XCENTER D_Aspect_Psx_or_D_Aspect_T
+  state S_Draw_Quote
+
+  // redefinequote D_Quote_Temp1 PRESS X TO CONTINUE
+  redefinequote D_Quote_Temp1 PRESS ANY KEY TO CONTINUE
+
+  ife D_Enable_Pal_Ver 1
+    setarrayseq A_State_Draw STARTALPHANUM 160 212 65536 0 0 D_Quote_Temp1 0 0 RS_TOPLEFT 0 D_Font_X_Between TEXT_XCENTER D_Aspect_Psx_or_D_Aspect_B
+  else
+    setarrayseq A_State_Draw STARTALPHANUM 160 195 65536 0 0 D_Quote_Temp1 0 0 RS_TOPLEFT 0 D_Font_X_Between TEXT_XCENTER D_Aspect_Psx_or_D_Aspect_B
+  state S_Draw_Quote
+
+  set V_Offset_X 0
+  set V_Offset_Y 0
+
+  ifn D_Max_Players 0
+  ifg MULTIMODE D_Max_Players
+  {
+    set V_Offset_X MULTIMODE
+    sub V_Offset_X D_Max_Players
+    set V_Offset_Y V_Offset_X
+    mul V_Offset_X 60
+    shiftr V_Offset_X 1
+
+    shiftl V_Offset_Y 4
+  }
+
+  set V_X 30
+  sub V_X V_Offset_X
+
+  redefinequote D_Quote_Temp1 NAME
+
+  ife D_Enable_Pal_Ver 1
+    setarrayseq A_State_Draw BIGALPHANUM V_X 99 65536 0 0 D_Quote_Temp1 4 0 RS_TOPLEFT 0 D_Font_X_Between 0 D_Aspect_Psx
+  else
+    setarrayseq A_State_Draw BIGALPHANUM V_X 91 65536 0 0 D_Quote_Temp1 4 0 RS_TOPLEFT 0 D_Font_X_Between 0 D_Aspect_Psx
+  state S_Draw_Scoresheet_Quote
+
+  set V_X 226
+  add V_X V_Offset_X
+
+  redefinequote D_Quote_Temp1 KILLS
+
+  ife D_Enable_Pal_Ver 1
+    setarrayseq A_State_Draw BIGALPHANUM V_X 99 65536 0 0 D_Quote_Temp1 4 0 RS_TOPLEFT 0 D_Font_X_Between 0 D_Aspect_Psx
+  else
+    setarrayseq A_State_Draw BIGALPHANUM V_X 91 65536 0 0 D_Quote_Temp1 4 0 RS_TOPLEFT 0 D_Font_X_Between 0 D_Aspect_Psx
+  state S_Draw_Scoresheet_Quote
+
+  set V_X 130
+  sub V_X V_Offset_X
+
+  for V_This_Player range MULTIMODE
+  ife player[V_This_Player].connected 1
+  {
+    set V_State_Player V_This_Player
+    state S_Set_Player_Text_Color
+
+    set V_Value V_This_Player
+    add V_Value 1
+    redefinequote D_Quote_Temp1 %d
+    qsprintf D_Quote_Temp1 D_Quote_Temp1 V_Value
+
+    ife D_Enable_Pal_Ver 1
+      setarrayseq A_State_Draw BIGALPHANUM V_X 99 65536 0 0 D_Quote_Temp1 0 V_Pal RS_TOPLEFT 0 D_Font_X_Between 0 D_Aspect_Psx
+    else
+      setarrayseq A_State_Draw BIGALPHANUM V_X 91 65536 0 0 D_Quote_Temp1 0 V_Pal RS_TOPLEFT 0 D_Font_X_Between 0 D_Aspect_Psx
+    state S_Draw_Scoresheet_Quote
+
+    add V_X 60
+  }
+
+  add V_Y 24
+
+  for V_This_Player range MULTIMODE
+  ife player[V_This_Player].connected 1
+  {
+    set V_X 30
+    sub V_X V_Offset_X
+
+    set V_State_Player V_This_Player
+    state S_Set_Player_Text_Color
+
+    getpname D_Quote_Temp1 V_This_Player
+
+    setarrayseq A_State_Draw BIGALPHANUM V_X V_Y 65536 0 0 D_Quote_Temp1 0 V_Pal RS_TOPLEFT 0 D_Font_X_Between 0 D_Aspect_Psx
+    state S_Draw_Scoresheet_Quote
+
+    set V_X 130
+    sub V_X V_Offset_X
+
+    for V_Other_Player range MULTIMODE
+    ife player[V_Other_Player].connected 1
+    {
+      ife V_This_Player V_Other_Player
+        set V_Shade 8
+      else
+        set V_Shade 0
+
+      redefinequote D_Quote_Temp1 %d
+      qsprintf D_Quote_Temp1 D_Quote_Temp1 player[V_This_Player].frags V_Other_Player
+
+      setarrayseq A_State_Draw BIGALPHANUM V_X V_Y 65536 0 0 D_Quote_Temp1 V_Shade 0 RS_TOPLEFT 0 D_Font_X_Between 0 D_Aspect_Psx
+      state S_Draw_Scoresheet_Quote
+
+      add V_X 60
+    }
+
+    set V_X 250
+    add V_X V_Offset_X
+
+    set V_State_Player V_This_Player
+    state S_Set_Player_Text_Color
+
+    ife V_This_Player myconnectindex
+    {
+      set V_Shade V_Screen_Count
+      shiftl V_Shade 5
+      sin V_Shade V_Shade
+      mul V_Shade 5
+      shiftr V_Shade 12
+    }
+    else
+      set V_Shade 1
+
+    set V_Value player[V_This_Player].frag
+    sub V_Value player[V_This_Player].fraggedself
+    redefinequote D_Quote_Temp1 %d
+    qsprintf D_Quote_Temp1 D_Quote_Temp1 V_Value
+
+    setarrayseq A_State_Draw BIGALPHANUM V_X V_Y 65536 0 0 D_Quote_Temp1 V_Shade V_Pal RS_TOPLEFT 0 D_Font_X_Between 0 D_Aspect_Psx
+    state S_Draw_Scoresheet_Quote
+
+    ife D_Enable_Pal_Ver 1
+      add V_Y 18
+    else
+      add V_Y 16
+  }
+
+  set V_X 30
+  sub V_X V_Offset_X 
+  add V_Y 8
+
+  redefinequote D_Quote_Temp1 DEATHS
+
+  setarrayseq A_State_Draw BIGALPHANUM V_X V_Y 65536 0 0 D_Quote_Temp1 4 0 RS_TOPLEFT 0 D_Font_X_Between 0 D_Aspect_Psx
+  state S_Draw_Scoresheet_Quote
+
+  set V_X 130
+  sub V_X V_Offset_X
+
+  for V_This_Player range MULTIMODE
+  ife player[V_This_Player].connected 1
+  {
+    set V_State_Player V_This_Player
+    state S_Set_Player_Text_Color
+
+    ife V_This_Player myconnectindex
+    {
+      set V_Shade V_Screen_Count
+      shiftl V_Shade 5
+      sin V_Shade V_Shade
+      mul V_Shade 5
+      shiftr V_Shade 12
+    }
+    else
+      set V_Shade 1
+
+    set V_Value player[V_This_Player].deaths
+    add V_Value player[V_This_Player].fraggedself
+    redefinequote D_Quote_Temp1 %d
+    qsprintf D_Quote_Temp1 D_Quote_Temp1 V_Value
+
+    setarrayseq A_State_Draw BIGALPHANUM V_X V_Y 65536 0 0 D_Quote_Temp1 V_Shade V_Pal RS_TOPLEFT 0 D_Font_X_Between 0 D_Aspect_Psx
+    state S_Draw_Scoresheet_Quote
+  }
+
+  ife player[].connected 1
+  {
+    ife D_Enable_Pal_Ver 1
+      set V_Y 189
+    else
+      set V_Y 177
+    add V_Y V_Offset_Y
+
+    set V_Shade V_Screen_Count
+    shiftl V_Shade 5
+    sin V_Shade V_Shade
+    mul V_Shade 5
+    shiftr V_Shade 12
+
+    set V_State_Player myconnectindex
+    state S_Set_Player_Text_Color
+
+    getpname D_Quote_Temp1 myconnectindex
+
+    setarrayseq A_State_Draw BIGALPHANUM 40 V_Y 65536 0 0 D_Quote_Temp1 V_Shade V_Pal RS_TOPLEFT 0 D_Font_X_Between 0 D_Aspect_Psx
+    state S_Draw_Scoresheet_Quote
+
+    // Find out the match result
+    set V_Find_Player -1
+    for V_This_Player range MULTIMODE
+    ifn V_This_Player userdef[].vm_player
+    ife player[V_This_Player].connected 1
+    {
+      ife V_Find_Player -1
+        set V_Find_Player V_This_Player
+      else
+      {
+        set V_Temp1 player[V_Find_Player].frag
+        sub V_Temp1 player[V_Find_Player].fraggedself
+        set V_Temp2 player[V_This_Player].frag
+        sub V_Temp2 player[V_This_Player].fraggedself
+        ifg V_Temp2 V_Temp1
+          set V_Find_Player V_This_Player
+      }
+    }
+
+    set V_Temp1 player[].frag
+    sub V_Temp1 player[].fraggedself
+    set V_Temp2 player[V_Find_Player].frag
+    sub V_Temp2 player[V_Find_Player].fraggedself
+    ifg V_Temp2 V_Temp1
+    {
+      set V_X 130
+      redefinequote D_Quote_Temp1 YOU KICK BUTT!
+    }
+    else
+    ifl V_Temp2 V_Temp1
+    {
+      set V_X 130
+      redefinequote D_Quote_Temp1 YOU SUCK BUTT!
+    }
+    else
+    {
+      set V_X 161
+      redefinequote D_Quote_Temp1 DRAW
+    }
+
+    setarrayseq A_State_Draw BIGALPHANUM V_X V_Y 65536 0 0 D_Quote_Temp1 V_Shade 0 RS_TOPLEFT 0 D_Font_X_Between 0 D_Aspect_Psx
+    state S_Draw_Scoresheet_Quote
+  }
+
+  ifn D_Max_Players 0
+  ifg MULTIMODE D_Max_Players
+  {
+    set V_Scale MULTIMODE
+    sub V_Scale D_Max_Players
+    mul V_Scale 60
+    add V_Scale tilesizx[D_Menu_Line]
+    shiftl V_Scale 16
+    div V_Scale tilesizx[D_Menu_Line]
+  }
+
+  ife D_Enable_Pal_Ver 1
+    setarrayseq A_State_Draw 161 117 V_Scale 0 D_Menu_Line 0 0 0 0 D_Aspect_Psx
+  else
+    setarrayseq A_State_Draw 161 109 V_Scale 0 D_Menu_Line 0 0 0 0 D_Aspect_Psx
+  state S_Draw_Scoresheet_Sprite
+
+  ife D_Enable_Pal_Ver 1
+    set V_Y 161
+  else
+    set V_Y 149
+  add V_Y V_Offset_Y
+
+  setarrayseq A_State_Draw 161 V_Y V_Scale 0 D_Menu_Line 0 0 0 0 D_Aspect_Psx
+  state S_Draw_Scoresheet_Sprite
+ends
+
+// Common screen code
+
+defstate S_Display_Curr_Screen
+  switch V_Curr_Screen
+  case D_Screen_Bonus
+    state S_Display_Bonus_Screen
+  break
+  case D_Screen_Frag
+    state S_Display_Frag_Screen
+  break
+  endswitch
+ends
+
+appendevent EVENT_SCREEN
+  set V_Screen_Count totalclock
+  sub V_Screen_Count V_Screen_totalclock
+  sub V_Screen_Count V_Screen_Count_Offset
+
+  state S_Display_Curr_Screen
+
+  set V_Last_Screen_Count V_Screen_Count
+
+  // This allows forcing V_Screen_Count to another value
+  set V_Screen_Count_Offset totalclock
+  sub V_Screen_Count_Offset V_Screen_totalclock
+  sub V_Screen_Count_Offset V_Screen_Count
+endevent
+
+defstate S_Start_Screen
+  set V_Last_Screen_Count -1
+  set V_Screen_totalclock totalclock
+  set V_Screen_Count_Offset 0
+  startscreen
+ends
+
+appendevent EVENT_SKIPCUTSCENE
+  ife D_Bypass_Cutscenes 1
+    break
+  set V_Temp1 totalclock
+  sub V_Temp1 V_Screen_totalclock
+
+  switch V_Curr_Cutscene
+  default
+    set RETURN 0
+  break
+  case D_Cutscene_GTLOGO
+  case D_Anm_GTLOGO
+  case D_Cutscene_3DREALMS
+  case D_Anm_3DREALMS
+  case D_Cutscene_AARDLOGO
+  case D_Anm_AARDLOGO
+  case D_Cutscene_TITLE2
+  case D_Anm_TITLE2
+    ifl V_Temp1 504
+      set RETURN 0
+  break
+  case D_Cutscene_RADLOGO
+  case D_Anm_RADLOGO
+    ifl V_Temp1 204
+      set RETURN 0
+  break
+  case D_Cutscene_CINEMA2
+  case D_Anm_CINEMA2
+    ifge V_Temp1 1044
+      set RETURN 1
+    else
+      set RETURN 0
+  break
+  endswitch
+endevent
+
+defstate S_Start_Cutscene
+  set V_Screen_totalclock totalclock
+  stopallmusic
+  stopallsounds
+
+  switch V_Curr_Cutscene
+  case D_Cutscene_TITLE2
+    screensound D_Audio_TITLE2
+  break
+  case D_Cutscene_RADLOGO
+    screensound D_Audio_RADLOGO
+  break
+  case D_Cutscene_LA_H
+    screensound D_Audio_LA_H
+  break
+  case D_Cutscene_LA_M
+    screensound D_Audio_LA_M
+  break
+  case D_Cutscene_LA_L
+    screensound D_Audio_LA_L
+  break
+  case D_Cutscene_SPACE_H
+    screensound D_Audio_SPACE_H
+  break
+  case D_Cutscene_SPACE_M
+    screensound D_Audio_SPACE_M
+  break
+  case D_Cutscene_SPACE_L
+    screensound D_Audio_SPACE_L
+  break
+  case D_Cutscene_CINEMA1
+    screensound D_Audio_CINEMA1
+  break
+  case D_Cutscene_CINEMA2
+    screensound D_Audio_CINEMA2
+  break
+  case D_Cutscene_CINEMA3
+    screensound D_Audio_CINEMA3
+  break
+  case D_Cutscene_EXTRO
+    screensound D_Audio_EXTRO
+  break
+  endswitch
+
+  ife rendmode REND_CLASSIC
+  {
+    switch V_Curr_Cutscene
+    case D_Cutscene_LEGAL
+      set V_Curr_Cutscene D_Anm_LEGAL
+    break
+    case D_Cutscene_RADLOGO
+      set V_Curr_Cutscene D_Anm_RADLOGO
+    break
+    case D_Cutscene_CINEMA1
+      set V_Curr_Cutscene D_Anm_CINEMA1
+    break
+    case D_Cutscene_CINEMA2
+      set V_Curr_Cutscene D_Anm_CINEMA2
+    break
+    case D_Cutscene_CINEMA3
+      set V_Curr_Cutscene D_Anm_CINEMA3
+    break
+    case D_Cutscene_EXTRO
+      set V_Curr_Cutscene D_Anm_EXTRO
+    break
+    case D_Cutscene_LA_L
+      set V_Curr_Cutscene D_Anm_LA_L
+    break
+    case D_Cutscene_LA_M
+      set V_Curr_Cutscene D_Anm_LA_M
+    break
+    case D_Cutscene_LA_H
+      set V_Curr_Cutscene D_Anm_LA_H
+    break
+    case D_Cutscene_SPACE_L
+      set V_Curr_Cutscene D_Anm_SPACE_L
+    break
+    case D_Cutscene_SPACE_M
+      set V_Curr_Cutscene D_Anm_SPACE_M
+    break
+    case D_Cutscene_SPACE_H
+      set V_Curr_Cutscene D_Anm_SPACE_H
+    break
+    case D_Cutscene_WARNING
+      set V_Curr_Cutscene D_Anm_WARNING
+    break
+    case D_Cutscene_3DREALMS
+      set V_Curr_Cutscene D_Anm_3DREALMS
+    break
+    case D_Cutscene_GTLOGO
+      set V_Curr_Cutscene D_Anm_GTLOGO
+    break
+    case D_Cutscene_AARDLOGO
+      set V_Curr_Cutscene D_Anm_AARDLOGO
+    break
+    case D_Cutscene_TITLE2
+      set V_Curr_Cutscene D_Anm_TITLE2
+    break
+    endswitch
+  }
+
+  ife V_Curr_Cutscene 0
+    break
+  startcutscene V_Curr_Cutscene
+ends
+
+// Start screens/cutscenes when game starts
+
+appendevent EVENT_MAINMENUSCREEN
+  ife V_Did_Logo 0 // Don't display if return to main menu
+  {
+    set V_Did_Logo 1
+
+    // Disable WARNING.STR and LEGAL.STR movies
+
+    /* set V_Curr_Cutscene D_Cutscene_WARNING
+    state S_Start_Cutscene
+
+    stopallsounds
+
+    set V_Curr_Cutscene D_Cutscene_LEGAL
+    state S_Start_Cutscene
+
+    stopallsounds */
+
+    set V_Curr_Cutscene D_Cutscene_GTLOGO
+    state S_Start_Cutscene
+
+    stopallsounds
+
+    set V_Curr_Cutscene D_Cutscene_3DREALMS
+    state S_Start_Cutscene
+
+    stopallsounds
+
+    set V_Curr_Cutscene D_Cutscene_AARDLOGO
+    state S_Start_Cutscene
+
+    stopallsounds
+
+    set V_Curr_Cutscene D_Cutscene_TITLE2
+    state S_Start_Cutscene
+  }
+
+  stopallsounds
+
+  set V_Curr_Cutscene D_Cutscene_RADLOGO
+  state S_Start_Cutscene
+endevent
+
+// Display loading screen
+
+// Setting RETURN to -1 in EVENT_GETLOADTILE prevents EVENT_DISPLAYLOADINGSCREEN from being executed
+appendevent EVENT_DISPLAYLOADINGSCREEN
+  state S_Draw_Black_Screen
+
+  // Fill the gap between tiles by drawing another tile offset by 1/2 pixel
+
+  ife D_Enable_Pal_Ver 1
+    setarrayseq A_State_Draw 5275648 7864320 65536 0 LOADSCREEN2 0 0 ROTATESPRITE_FULL16 0 D_Aspect_Psx
+  else
+    setarrayseq A_State_Draw 5275648 7012352 65536 0 LOADSCREEN2 0 0 ROTATESPRITE_FULL16 0 D_Aspect_Psx
+  state S_Draw_Cutscene_Sprite
+
+  ife D_Enable_Pal_Ver 1
+    setarrayseq A_State_Draw 80 120 65536 0 LOADSCREEN2 0 0 RS_NOCLIP 0 D_Aspect_Psx
+  else
+    setarrayseq A_State_Draw 80 107 65536 0 LOADSCREEN2 0 0 RS_NOCLIP 0 D_Aspect_Psx
+  state S_Draw_Cutscene_Sprite
+
+  ife D_Enable_Pal_Ver 1
+    setarrayseq A_State_Draw 240 120 65536 1024 LOADSCREEN2 0 0 RS_YFLIP 0 D_Aspect_Psx
+  else
+    setarrayseq A_State_Draw 240 107 65536 1024 LOADSCREEN2 0 0 RS_YFLIP 0 D_Aspect_Psx
+  state S_Draw_Cutscene_Sprite
+
+  ife userdef[].user_map 1
+  {
+    redefinequote D_Quote_Temp1 ENTERING USER MAP
+
+    setarrayseq A_State_Draw BIGALPHANUM 160 79 65536 0 0 D_Quote_Temp1 0 0 RS_TOPLEFT 0 D_Font_X_Between TEXT_XCENTER D_Aspect_Psx
+    state S_Draw_Quote
+
+    qgetsysstr D_Quote_Temp1 STR_USERMAPFILENAME
+
+    setarrayseq A_State_Draw STARTALPHANUM 160 101 65536 0 0 D_Quote_Temp1 14 2 RS_TOPLEFT 0 D_Font_X_Between TEXT_XCENTER D_Aspect_Psx
+    state S_Draw_Quote
+  }
+  else
+  {
+    redefinequote D_Quote_Temp1 ENTERING
+
+    setarrayseq A_State_Draw BIGALPHANUM 160 79 65536 0 0 D_Quote_Temp1 0 0 RS_TOPLEFT 0 D_Font_X_Between TEXT_XCENTER D_Aspect_Psx
+    state S_Draw_Quote
+
+    qgetsysstr D_Quote_Temp1 STR_MAPNAME
+
+    setarrayseq A_State_Draw BIGALPHANUM 160 103 65536 0 0 D_Quote_Temp1 0 0 RS_TOPLEFT 0 D_Font_X_Between TEXT_XCENTER D_Aspect_Psx
+    state S_Draw_Quote
+  }
+
+  // Loading bar
+
+  setarrayseq A_State_Draw 160 138 65536 0 D_Loading_Bar_1 0 0 0 0 D_Aspect_Psx
+  state S_Draw_Sprite
+
+  ifl RETURN 1
+  ifn RETURN -2
+    break
+
+  ifl RETURN 100
+  ifn RETURN -2
+  {
+    set V_State_X 7864320
+    scalevar V_Temp1 5242880 RETURN 100
+    add V_State_X V_Temp1
+    state S_Convert_Win_X
+    set V_Win_X2 V_State_Win_X
+    sub V_Win_X2 1
+
+    setarrayseq A_State_Draw 160 138 65536 0 D_Loading_Bar_2 0 0 0 0 0 0 V_Win_X2 ydim_sub_1 D_Aspect_Psx
+    state S_Draw_Sprite_Windowed
+  }
+  else
+  {
+    setarrayseq A_State_Draw 160 138 65536 0 D_Loading_Bar_2 0 0 0 0 D_Aspect_Psx
+    state S_Draw_Sprite
+  }
+endevent
+
+// Start screens/cutscenes when level ends
+
+appendevent EVENT_ENDLEVELSCREEN
+  set RETURN -1
+
+  ifmultiplayer
+  ifand gametype_flags GAMETYPE_SCORESHEET
+  {
+    set V_Curr_Screen D_Screen_Frag
+    state S_Start_Screen
+
+    break
+  }
+
+  ife VOLUME 1
+  {
+    // Display easy/medium/hard based on player health
+
+    ifl player[].last_extra 40
+    {
+      set V_Curr_Cutscene D_Cutscene_SPACE_L
+      state S_Start_Cutscene
+    }
+    else
+    ifl player[].last_extra 90
+    {
+      set V_Curr_Cutscene D_Cutscene_SPACE_M
+      state S_Start_Cutscene
+    }
+    else
+    {
+      set V_Curr_Cutscene D_Cutscene_SPACE_H
+      state S_Start_Cutscene
+    }
+  }
+  else
+  {
+    // Display easy/medium/hard sequence based on player health
+
+    ifl player[].last_extra 40
+    {
+      set V_Curr_Cutscene D_Cutscene_LA_L
+      state S_Start_Cutscene
+    }
+    else
+    ifl player[].last_extra 90
+    {
+      set V_Curr_Cutscene D_Cutscene_LA_M
+      state S_Start_Cutscene
+    }
+    else
+    {
+      set V_Curr_Cutscene D_Cutscene_LA_H
+      state S_Start_Cutscene
+    }
+  }
+  ife userdef[].eog 1
+  {
+    // Display end sequence after bonus sequence
+
+    stopallsounds
+    switch VOLUME
+    default
+      set V_Curr_Cutscene D_Cutscene_CINEMA1
+      state S_Start_Cutscene
+    break
+    case 1
+      set V_Curr_Cutscene D_Cutscene_CINEMA2
+      state S_Start_Cutscene
+    break
+    case 2
+      set V_Curr_Cutscene D_Cutscene_CINEMA3
+      state S_Start_Cutscene
+    break
+    case 3
+      set V_Curr_Cutscene D_Cutscene_EXTRO
+      state S_Start_Cutscene
+    break
+    endswitch
+  }
+
+  set V_Curr_Screen D_Screen_Bonus
+  state S_Start_Screen
+endevent
+
+appendevent EVENT_EXITGAMESCREEN
+  set RETURN -1
+  ifmultiplayer
+  ifand gametype_flags GAMETYPE_SCORESHEET
+  {
+    set V_Curr_Screen D_Screen_Frag
+    state S_Start_Screen
+  }
+endevent

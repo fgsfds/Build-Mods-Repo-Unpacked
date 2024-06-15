@@ -1,0 +1,399 @@
+// Make "ifhitweapon" returns true for any input if the player is dead
+
+/* appendevent EVENT_PROCESSINPUT
+  ifdead
+  {
+    set V_Temp1 input[].bits
+    ifand V_Temp1 INPUT_RUNNING
+      xor V_Temp1 INPUT_RUNNING
+    ifand V_Temp1 INPUT_AIM_MODE
+      xor V_Temp1 INPUT_AIM_MODE
+    ifg V_Temp1 0
+    {
+      set V_Temp2 input[].bits
+      or V_Temp2 INPUT_OPEN
+      setinput[].bits V_Temp2
+    }
+  }
+endevent */
+
+// Disable cracking knuckles
+
+appendevent EVENT_ENTERLEVEL
+  for V_This_Player range MULTIMODE
+  {
+    setuserdef[].vm_player V_This_Player
+    setplayer[].weapon_pos 10
+    ife player[].curr_weapon PISTOL_WEAPON
+      setplayer[].reloading 1
+  }
+endevent
+
+appendevent EVENT_WORLD
+  for V_This_Player range MULTIMODE
+    setplayer[V_This_Player].knuckle_incs 0
+endevent
+
+// "addweapon" changes the inventory icon to the tripbomb
+
+appendevent EVENT_PREWORLD
+  for V_This_Player range MULTIMODE
+    setplayer[V_This_Player].gotweapon TRIPBOMB_WEAPON 1
+endevent
+
+appendevent EVENT_WORLD
+  for V_This_Player range MULTIMODE
+  {
+    setuserdef[].vm_player V_This_Player
+    setplayer[].gotweapon TRIPBOMB_WEAPON 0
+    ifl V_Last_ammo_amount_8 player[].ammo_amount TRIPBOMB_WEAPON
+      setplayer[].inven_icon ICON_TRIPBOMB
+    set V_Last_ammo_amount_8 player[].ammo_amount TRIPBOMB_WEAPON
+  }
+endevent
+
+appendevent EVENT_ACTIVATECHEAT
+  switch RETURN
+  case CHEAT_STUFF
+  case CHEAT_ITEMS
+  case CHEAT_INVENTORY
+    set V_Last_ammo_amount_8 player[].max_ammo_amount TRIPBOMB_WEAPON
+  break
+  endswitch
+endevent
+
+appendevent EVENT_RESETPLAYER
+  set V_Last_ammo_amount_8 0
+endevent
+
+// Add keys for using the tripbomb in the inventory
+
+defstate S_Check_Inv_Amount
+  set V_State_True 0
+  switch V_State_Inv
+  case ICON_FIRSTAID
+    ifg player[].firstaid_amount 0
+      set V_State_True 1
+  break
+  case ICON_STEROIDS
+    ifg player[].steroids_amount 0
+      set V_State_True 1
+  break
+  case ICON_HOLODUKE
+    ifg player[].holoduke_amount 0
+      set V_State_True 1
+  break
+  case ICON_JETPACK
+    ifg player[].jetpack_amount 0
+      set V_State_True 1
+  break
+  case ICON_HEATS
+    ifg player[].heat_amount 0
+      set V_State_True 1
+  break
+  case ICON_SCUBA
+    ifg player[].scuba_amount 0
+      set V_State_True 1
+  break
+  case ICON_BOOTS
+    ifg player[].boot_amount 0
+      set V_State_True 1
+  break
+  case ICON_TRIPBOMB
+    ifg player[].ammo_amount TRIPBOMB_WEAPON 0
+      set V_State_True 1
+  break
+  endswitch
+ends
+
+defstate S_Refresh_Inv
+  for V_This_Inv range D_Max_Inv
+  {
+    add V_This_Inv 1
+    set V_State_Inv ICON_FIRSTAID
+    state S_Check_Inv_Amount
+    ife V_State_True 1
+    {
+      setplayer[].inven_icon V_This_Inv
+      set V_This_Inv D_Max_Inv
+    }
+    else
+    ife V_This_Inv D_Max_Inv
+      setplayer[].inven_icon ICON_NONE
+  }
+ends
+
+defstate S_Use_Tripbomb_Inv
+  cos V_Cos player[].ang
+  sin V_Sin player[].ang
+  set V_Horiz 100
+  sub V_Horiz player[].horiz
+  sub V_Horiz player[].horizoff
+  mul V_Horiz 2048
+  hitscan player[].posx player[].posy player[].posz player[].cursectnum V_Cos V_Sin V_Horiz V_Hit_Sect V_Hit_Wall V_Hit_Sprite V_Hit_X V_Hit_Y V_Hit_Z CLIPMASK1
+  ifg V_Hit_Sect -1
+  ifg V_Hit_Wall -1
+  ife V_Hit_Sprite -1
+  {
+    ifg sector[V_Hit_Sect].lotag 2
+      break
+    ife wall[V_Hit_Wall].overpicnum BIGFORCE
+      break
+    ifand wall[V_Hit_Wall].cstat CSTAT_WALL_MASKED
+      break
+    ifg wall[V_Hit_Wall].nextsector -1
+    ifg sector[wall[V_Hit_Wall].nextsector].lotag 2
+      break
+    set V_Continue 0
+    for V_This_Sprite spritesofsector V_Hit_Sect
+    ife sprite[V_This_Sprite].picnum TRIPBOMB
+    {
+      set V_Temp1 sprite[V_This_Sprite].z
+      sub V_Temp1 V_Hit_Z
+      abs V_Temp1
+      ifl V_Temp1 3072
+      {
+        set V_Dist_X sprite[V_This_Sprite].x
+        sub V_Dist_X V_Hit_X
+        set V_Dist_Y sprite[V_This_Sprite].y
+        sub V_Dist_Y V_Hit_Y
+        calchypotenuse V_Dist V_Dist_X V_Dist_Y
+        ifl V_Dist 290
+          set V_Continue 1
+      }
+    }
+    ife V_Continue 1
+      break
+    set V_Dist_X V_Hit_X
+    sub V_Dist_X player[].posx
+    set V_Dist_Y V_Hit_Y
+    sub V_Dist_Y player[].posy
+    calchypotenuse V_Dist V_Dist_X V_Dist_Y
+    ifg V_Dist 290
+      break
+    eshoot HANDHOLDINGLASER
+    ifg RETURN -1
+    {
+      quote QUOTE_TRIPBOMB_PLACED
+      set V_Temp1 player[].ammo_amount TRIPBOMB_WEAPON
+      sub V_Temp1 1
+      setplayer[].ammo_amount TRIPBOMB_WEAPON V_Temp1
+      setplayer[].inven_icon ICON_TRIPBOMB
+      ife player[].ammo_amount TRIPBOMB_WEAPON 0
+        state S_Refresh_Inv
+    }
+  }
+ends
+
+// Weapon 9 key selects freezer instead of tripbomb
+appendevent EVENT_WEAPKEY9
+  set RETURN 9
+endevent
+
+// Borrow weapon 10 key for tribomb shortcut
+appendevent EVENT_WEAPKEY10
+  set RETURN -1
+  ife player[].newowner -1
+  ifg player[].ammo_amount TRIPBOMB_WEAPON 0
+  {
+    state S_Use_Tripbomb_Inv
+    set RETURN -1
+  }
+endevent
+
+appendevent EVENT_INVENTORY
+  ife player[].inven_icon ICON_TRIPBOMB
+  ifg player[].ammo_amount TRIPBOMB_WEAPON 0
+    state S_Use_Tripbomb_Inv
+endevent
+
+appendevent EVENT_CHANGEWEAPON
+  ife RETURN TRIPBOMB_WEAPON
+    set RETURN -1
+endevent
+
+// Recreate inventory selection system
+
+defstate S_Set_Inv_Quotes
+  switch player[].inven_icon
+  case ICON_FIRSTAID
+    quote QUOTE_MEDKIT
+  break
+  case ICON_STEROIDS
+    quote QUOTE_STEROIDS
+  break
+  case ICON_HOLODUKE
+    quote QUOTE_HOLODUKE
+  break
+  case ICON_JETPACK
+    quote QUOTE_JETPACK
+  break
+  case ICON_HEATS
+    quote QUOTE_NVG
+  break
+  case ICON_SCUBA
+    quote QUOTE_SCUBA
+  break
+  case ICON_BOOTS
+    quote QUOTE_BOOTS
+  break
+  case ICON_TRIPBOMB
+    quote QUOTE_TRIPBOMB
+  break
+  endswitch
+ends
+
+appendevent EVENT_INVENTORYRIGHT
+  set RETURN -1
+  set V_Continue 0
+  for V_This_Inv range D_Max_Inv
+  {
+    add V_This_Inv 1
+    set V_State_Inv V_This_Inv
+    state S_Check_Inv_Amount
+    add V_Continue V_State_True
+  }
+  ife V_Continue 0
+    break
+  set V_Curr_Inv player[].inven_icon
+  set V_While 0
+  whilen V_While 1
+  {
+    add V_Curr_Inv 1
+    ifg V_Curr_Inv D_Max_Inv
+      sub V_Curr_Inv D_Max_Inv
+    set V_State_Inv V_Curr_Inv
+    state S_Check_Inv_Amount
+    set V_While V_State_True
+  }
+  setplayer[].inven_icon V_Curr_Inv
+  state S_Set_Inv_Quotes
+endevent
+
+appendevent EVENT_INVENTORYLEFT
+  set RETURN -1
+  set V_Continue 0
+  for V_This_Inv range D_Max_Inv
+  {
+    add V_This_Inv 1
+    set V_State_Inv V_This_Inv
+    state S_Check_Inv_Amount
+    add V_Continue V_State_True
+  }
+  ife V_Continue 0
+    break
+  set V_Curr_Inv player[].inven_icon
+  set V_While 0
+  whilen V_While 1
+  {
+    sub V_Curr_Inv 1
+    ifl V_Curr_Inv 1
+      add V_Curr_Inv D_Max_Inv
+    set V_State_Inv V_Curr_Inv
+    state S_Check_Inv_Amount
+    set V_While V_State_True
+  }
+  setplayer[].inven_icon V_Curr_Inv
+  state S_Set_Inv_Quotes
+endevent
+
+// Disable expander
+
+appendevent EVENT_WORLD
+  for V_This_Player range MULTIMODE
+  {
+    setuserdef[].vm_player V_This_Player
+    setplayer[].gotweapon GROW_WEAPON 0
+    setplayer[].bsubweapon GROW_WEAPON 0
+  }
+endevent
+
+// Next weapon key changes to pipebomb if detonator is selected
+
+appendevent EVENT_SELECTWEAPON
+  ife V_Mark_SELECTWEAPON 1
+  {
+    ife player[].curr_weapon HANDREMOTE_WEAPON
+    ifg player[].ammo_amount HANDBOMB_WEAPON 0
+      set RETURN HANDBOMB_WEAPON
+    set V_Mark_SELECTWEAPON 0
+  }
+endevent
+
+appendevent EVENT_NEXTWEAPON
+  set V_Mark_SELECTWEAPON 1
+endevent
+
+// Opaque player in 3rd person view mode (only accessible in PSX with cheating device)
+
+/* appendevent EVENT_ANIMATESPRITES
+  ifactor APLAYER
+  ife player[].i THISACTOR
+  ifn tspr[].tsprstatnum TSPR_TEMP
+  ifand tspr[].tsprcstat CSTAT_SPRITE_TRANSLUCENT
+  {
+    ifand sprite[].cstat CSTAT_SPRITE_TRANSLUCENT
+      nullop // ifandn
+    else
+    {
+      set V_Temp1 tspr[].tsprcstat
+      xor V_Temp1 CSTAT_SPRITE_TRANSLUCENT
+      settspr[].tsprcstat V_Temp1
+    }
+  }
+endevent */
+
+// Cheats treat tripbomb as an inventory item
+// Cheats don't give expander
+
+appendevent EVENT_ACTIVATECHEAT
+  switch RETURN
+  case CHEAT_STUFF
+  case CHEAT_WEAPONS
+    for V_This_Weap range MAX_WEAPONS
+    ifn V_This_Weap KNEE_WEAPON
+    ifn V_This_Weap TRIPBOMB_WEAPON
+    ifn V_This_Weap GROW_WEAPON
+    {
+      setplayer[].gotweapon V_This_Weap 1
+      setplayer[].ammo_amount V_This_Weap player[].max_ammo_amount V_This_Weap
+    }
+  break
+  endswitch
+  ife RETURN CHEAT_STUFF
+  {
+    setplayer[].steroids_amount 400
+    setplayer[].heat_amount 1200
+    setplayer[].boot_amount 200
+    setplayer[].shield_amount 100
+    setplayer[].scuba_amount 6400
+    setplayer[].holoduke_amount 2400
+    setplayer[].jetpack_amount 1600
+    setplayer[].firstaid_amount player[].max_player_health
+    setplayer[].got_access 7
+    setplayer[].inven_icon ICON_FIRSTAID
+  }
+  switch RETURN
+  case CHEAT_STUFF
+  case CHEAT_ITEMS
+  case CHEAT_INVENTORY
+    setplayer[].ammo_amount TRIPBOMB_WEAPON player[].max_ammo_amount TRIPBOMB_WEAPON
+  break
+  endswitch
+
+  switch RETURN
+  case CHEAT_STUFF
+    quote QUOTE_CHEAT_EVERYTHING
+  break
+  case CHEAT_WEAPONS
+    quote QUOTE_CHEAT_ALL_WEAPONS
+  break
+  endswitch
+
+  switch RETURN
+  case CHEAT_STUFF
+  case CHEAT_WEAPONS
+    set RETURN -1
+  break
+  endswitch
+endevent

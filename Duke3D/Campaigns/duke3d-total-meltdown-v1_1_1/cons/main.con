@@ -1,0 +1,417 @@
+// Common sprite functions
+
+defstate S_Delete_Sprite
+  sizeat 0 0
+  setactor[].statnum STAT_ACTOR
+ends
+
+// Common sprite code
+
+appendevent EVENT_EGS
+  set V_Orig_owner sprite[].owner
+endevent
+
+appendevent EVENT_PRELEVEL
+  for V_This_Sprite allsprites
+  {
+    setuserdef[].vm_sprite V_This_Sprite
+    set V_Temp1 sprite[].mdflags
+    or V_Temp1 SPREXT_TSPRACCESS
+    setactor[].mdflags V_Temp1
+  }
+endevent
+
+appendevent EVENT_EGS
+  set V_Spawn_Temp1 sprite[].mdflags
+  or V_Spawn_Temp1 SPREXT_TSPRACCESS
+  setactor[].mdflags V_Spawn_Temp1
+endevent
+
+// Replace missing sounds for each level
+
+appendevent EVENT_INIT
+  ife D_Enable_Per_Level_Sounds 0
+    break
+
+  // mapsounds.bin is a file with 22000 bits (400 sounds * 11 levels * 5 episodes)
+  // It lists all sounds defined in the PMP files
+  // Values:
+  // 1 = Sound was defined in the PMP but the file is missing
+  // 2 = Sound was defined in the PMP and the file is present
+
+  readarrayfromfile A_Sound_Table D_Sound_Table
+endevent
+
+appendevent EVENT_ENTERLEVEL
+  for V_This_Sound range D_Max_Valid_Sounds
+    setarray A_Replace_Sound[V_This_Sound] V_This_Sound
+
+  ife D_Enable_Per_Level_Sounds 0
+    break
+
+  ifl VOLUME 5
+  ifl LEVEL 11
+  ife userdef[].user_map 0
+  {
+    set V_Index VOLUME
+    mul V_Index 5
+    add V_Index LEVEL
+    mul V_Index D_Max_Valid_Sounds
+
+    copy A_Sound_Table[V_Index] A_Include_Sound[0] D_Max_Valid_Sounds
+  }
+  else
+  {
+    for V_This_Sound range D_Max_Valid_Sounds
+      setarray A_Include_Sound[V_This_Sound] 1
+  }
+
+  setarray A_Include_Sound[GENERIC_AMBIENCE8] 0
+  setarray A_Include_Sound[WAR_AMBIENCE5] 0
+  setarray A_Include_Sound[BOS3_DYING] 0
+  setarray A_Include_Sound[KTIT] 0
+  setarray A_Include_Sound[FOUNDJONES] 0
+  setarray A_Include_Sound[COMM_RECOG] 0
+  setarray A_Include_Sound[NEWPIG2_ROAM2] 0
+  setarray A_Include_Sound[NEWSPEECH9] 0
+
+
+  for V_This_Sound_Group range D_Max_Sound_Groups
+  {
+    switch V_This_Sound_Group
+    case 0
+      setarrayseq A_Sound_Group JIBBED_ACTOR1 NEWSPEECH1 NEWSPEECH2 NEWSPEECH3 NEWSPEECH4 NEWSPEECH5 NEWSPEECH6 NEWSPEECH7 NEWSPEECH8 NEWSPEECH9 NEWSPEECH10 NEWSPEECH11 JIBBED_ACTOR2 JIBBED_ACTOR3 JIBBED_ACTOR4 JIBBED_ACTOR5 JIBBED_ACTOR6 JIBBED_ACTOR7 JIBBED_ACTOR8 JIBBED_ACTOR9 JIBBED_ACTOR10 JIBBED_ACTOR12 JIBBED_ACTOR13 JIBBED_ACTOR14 JIBBED_ACTOR15 MDEVSPEECH SMACKED
+    break
+    case 1
+      setarrayseq A_Sound_Group DUKE_GETWEAPON1 DUKE_GETWEAPON2 DUKE_GETWEAPON3 DUKE_GETWEAPON4 DUKE_GETWEAPON6
+    break
+    case 2
+      setarrayseq A_Sound_Group DUKE_TIP1 DUKE_TIP2
+    break
+    case 3
+      setarrayseq A_Sound_Group PIG_ROAM3 PIG_ROAM2 PIG_ROAM
+    break
+    case 4
+      setarrayseq A_Sound_Group NEWPIG_ROAM3 NEWPIG_ROAM2 NEWPIG_ROAM
+    break
+    case 5
+      setarrayseq A_Sound_Group NEWPIG2_ROAM NEWPIG2_ROAM2
+    break
+    case 6
+      setarrayseq A_Sound_Group DUKE_HIT_STRIPPER1 DUKE_HIT_STRIPPER2
+    break
+    case 7
+      setarrayseq A_Sound_Group DUKE_KILLED5 DUKE_KILLED3 DUKE_KILLED1 DUKE_KILLED2
+    break
+    case 8
+      setarrayseq A_Sound_Group DUKE_DEAD DUKE_LONGTERM_PAIN2 DUKE_LONGTERM_PAIN3 DUKE_LONGTERM_PAIN4
+    break
+    case 9
+      setarrayseq A_Sound_Group DUKE_LONGTERM_PAIN8 DUKE_LONGTERM_PAIN5 DUKE_LONGTERM_PAIN6 DUKE_LONGTERM_PAIN7
+    break
+    case 10
+      setarrayseq A_Sound_Group DUKE_LONGTERM_PAIN4 DUKE_LONGTERM_PAIN2 DUKE_LONGTERM_PAIN3
+    break
+    case 11
+      setarrayseq A_Sound_Group PRED_ROAM PRED_ROAM2
+    break
+    case 12
+      setarrayseq A_Sound_Group GLASS_BREAKING GLASS_HEAVYBREAK
+    break
+    case 13
+      setarrayseq A_Sound_Group DUKE_GETWEAPON1 DUKE_GETWEAPON2 DUKE_GETWEAPON3 DUKE_GETWEAPON4 DUKE_GETWEAPON6
+    break
+    case 14
+      setarrayseq A_Sound_Group JIBBED_ACTOR1 JIBBED_ACTOR2 JIBBED_ACTOR3 JIBBED_ACTOR4 JIBBED_ACTOR5 JIBBED_ACTOR6 JIBBED_ACTOR7 JIBBED_ACTOR8 JIBBED_ACTOR9 JIBBED_ACTOR10 JIBBED_ACTOR11 JIBBED_ACTOR12 JIBBED_ACTOR13 JIBBED_ACTOR14 JIBBED_ACTOR15 SMACKED MDEVSPEECH
+    break
+    endswitch
+
+    getarraysize A_Sound_Group V_Sound_Group_Size
+
+    // If there's any sound or missing sound in the group
+    set V_Count 0
+    for V_This_Sound range V_Sound_Group_Size
+      add V_Count A_Include_Sound[A_Replace_Sound[A_Sound_Group[V_This_Sound]]]
+    ifg V_Count 0
+    ifl V_Count V_Sound_Group_Size
+    {
+      set V_Other_Sound 0
+      for V_This_Sound range V_Sound_Group_Size
+      ife A_Include_Sound[A_Replace_Sound[A_Sound_Group[V_This_Sound]]] 1 // If sound is missing
+      {
+        set V_While 1
+        whilen V_While 0
+        {
+          // Replace with another sound in the same group
+          ife A_Include_Sound[A_Replace_Sound[A_Sound_Group[V_Other_Sound]]] 0
+          {
+            set V_While 0
+            setarray A_Replace_Sound[A_Sound_Group[V_This_Sound]] A_Replace_Sound[A_Sound_Group[V_Other_Sound]]
+          }
+
+          add V_Other_Sound 1
+          mod V_Other_Sound V_Sound_Group_Size
+        }
+      }
+    }
+  }
+
+  resizearray A_Sound_Group 0 // Free memory
+endevent
+
+appendevent EVENT_SOUND
+  // Don't replace menu sounds because of E1L9.PMP
+  ifand player[].gm MODE_MENU
+    break
+  ife V_Skill_Sound 1
+    break
+
+  ifg RETURN -1
+  ifl RETURN D_Max_Valid_Sounds
+    set RETURN A_Replace_Sound[RETURN]
+endevent
+
+// To do: return to main menu after a level ends in deathmatch
+
+// Broken mirrors remain reflective
+
+appendevent EVENT_PRELEVEL
+  resizearray A_Mark_Wall_Mirror NUMWALLS
+endevent
+
+appendevent EVENT_WORLD
+  for V_This_Wall allwalls
+  {
+    ife wall[V_This_Wall].overpicnum MIRROR
+    ifand wall[V_This_Wall].cstat CSTAT_WALL_1WAY
+      setarray A_Mark_Wall_Mirror[V_This_Wall] 1
+    ife wall[V_This_Wall].overpicnum MIRRORBROKE
+    ife A_Mark_Wall_Mirror[V_This_Wall] 1
+    {
+      setwall[V_This_Wall].overpicnum MIRROR
+      setwall[V_This_Wall].pal 4
+    }
+  }
+endevent
+
+// SE 40 (change level music)
+// Eduke32: Preserve the music state when a saved game is loaded
+
+appendevent EVENT_SPAWN
+  ifactor SECTOREFFECTOR
+  ife sprite[].lotag 40
+  {
+    sizeat 64 64
+    cstat CSTAT_SPRITE_INVISIBLE
+  }
+endevent
+
+appendevent EVENT_WORLD
+  for V_This_Sprite spritesofstatus STAT_EFFECTOR
+  {
+    setuserdef[].vm_sprite V_This_Sprite
+    ifactor SECTOREFFECTOR
+    ife sprite[].lotag 40
+    for V_Other_Sprite spritesofsector sprite[].sectnum
+    ife sprite[V_Other_Sprite].picnum APLAYER
+    ifl sprite[V_Other_Sprite].yvel MULTIMODE
+    ife player[sprite[V_Other_Sprite].yvel].i V_Other_Sprite
+    ifn playervar[sprite[V_Other_Sprite].yvel].V_Curr_Track sprite[].hitag
+    {
+      ife sprite[V_Other_Sprite].yvel myconnectindex
+      {
+        set V_Continue 0
+        for V_This_Track range V_Num_Tracks
+        {
+          ife userdef[].music_episode A_Track_Volume[V_This_Track]
+          ife userdef[].music_level A_Track_Level[V_This_Track]
+            set V_Continue 1
+        }
+
+        ife V_Continue 1
+          swaptrackslot A_Track_Volume[sprite[].hitag] A_Track_Level[sprite[].hitag]
+      }
+      setplayervar[sprite[V_Other_Sprite].yvel].V_Curr_Track sprite[].hitag
+    }
+  }
+endevent
+
+appendevent EVENT_ENTERLEVEL
+  set V_Curr_Track 0
+
+  ife VOLUME 0
+  ife LEVEL 1
+  {
+    setarrayseq A_Track_Volume VOLUME D_Temp_Volume D_Temp_Volume
+    setarrayseq A_Track_Level LEVEL MUS_BARMUSIC1 MUS_BARMUSIC2
+  }
+  else
+  ife VOLUME 2
+  ife LEVEL 0
+  {
+    setarrayseq A_Track_Volume VOLUME D_Temp_Volume
+    setarrayseq A_Track_Level LEVEL MUS_2BWILD
+  }
+  else
+  ife VOLUME 3
+  ife LEVEL 5
+  {
+    setarrayseq A_Track_Volume VOLUME D_Temp_Volume D_Temp_Volume
+    setarrayseq A_Track_Level LEVEL MUS_CHEMHEAD1 MUS_CHEMHEAD2
+  }
+  else
+  ife VOLUME 4
+  ife LEVEL 5
+  {
+    setarrayseq A_Track_Volume VOLUME D_Temp_Volume D_Temp_Volume
+    setarrayseq A_Track_Level LEVEL MUS_CHEMHEAD1 MUS_CHEMHEAD2
+  }
+  else
+  {
+    resizearray A_Track_Volume 0
+    resizearray A_Track_Level 0
+  }
+
+  getarraysize A_Track_Level V_Num_Tracks
+endevent
+
+defstate S_Precache_Music
+  for V_This_Track range V_Num_Tracks
+    preloadtrackslotforswap A_Track_Volume[V_This_Track] A_Track_Level[V_This_Track]
+ends
+
+appendevent EVENT_ENTERLEVEL
+  ife V_Num_Tracks 0
+    break
+  state S_Precache_Music
+  // swaptrackslot A_Track_Volume[V_Curr_Track] A_Track_Level[V_Curr_Track]
+endevent
+
+appendevent EVENT_LOADGAME
+  ife V_Num_Tracks 0
+    break
+  state S_Precache_Music
+  // swaptrackslot A_Track_Volume[V_Curr_Track] A_Track_Level[V_Curr_Track]
+endevent
+
+// If the music is changed with F5, the SE won't have effect
+appendevent EVENT_PLAYLEVELMUSICSLOT
+  ife V_Num_Tracks 0
+    break
+
+  set V_Continue 1
+  for V_This_Track range V_Num_Tracks
+  {
+    ife userdef[].music_episode A_Track_Volume[V_This_Track]
+    ife userdef[].music_level A_Track_Level[V_This_Track]
+      set V_Continue 0
+  }
+  ifn V_Continue 0
+    break
+
+  for V_This_Track range V_Num_Tracks
+  {
+    ife userdef[].return 1 A_Track_Volume[V_This_Track]
+    ife userdef[].return 2 A_Track_Level[V_This_Track]
+    {
+      swaptrackslot A_Track_Volume[V_Curr_Track] A_Track_Level[V_Curr_Track]
+      set RETURN -1
+    }
+  }
+endevent
+
+appendevent EVENT_CONTINUELEVELMUSICSLOT
+  for V_This_Track range V_Num_Tracks
+  {
+    ife userdef[].music_episode A_Track_Volume[V_This_Track]
+    ife userdef[].music_level A_Track_Level[V_This_Track]
+      swaptrackslot A_Track_Volume[V_Curr_Track] A_Track_Level[V_Curr_Track]
+  }
+endevent
+
+// Remove monsters sleep time delay
+
+appendevent EVENT_WORLD
+  ife D_Enable_Sleep_Dist 1
+    break
+  for V_This_Sprite spritesofstatus STAT_ACTOR
+  {
+    setuserdef[].vm_sprite V_This_Sprite
+    ifg sprite[].httimetosleep 0
+    {
+      ifcansee
+        nullop
+      else
+      {
+        set V_Continue 0
+        ifand tiledata[].gameflags SFLAG_BADGUY
+          set V_Continue 1
+        else
+        ifand tiledata[].gameflags SFLAG_HARDCODED_BADGUY
+          set V_Continue 1
+        ife V_Continue 1
+        {
+          ifg sprite[].xrepeat 60
+            set V_Continue 0
+          else
+          ife RESPAWN_MONSTERS 1
+          ifle sprite[].extra 0
+            set V_Continue 0
+        }
+        ife V_Continue 1
+        {
+          findplayer V_Dist
+          ifg V_Dist 30000
+          {
+            setactor[].statnum STAT_ZOMBIEACTOR
+            setactor[].httimetosleep 0
+          }
+        }
+      }
+    }
+  }
+endevent
+
+// Don't preview security cameras
+
+appendevent EVENT_ANIMATESPRITES
+  switch sprite[].picnum
+  case VIEWSCREEN
+  case VIEWSCREEN2
+    settspr[].tsprpicnum sprite[].picnum
+    settspr[].tsprcstat sprite[].cstat
+
+    // Eduke32: Reset VIEWSCREEN/VIEWSCREEN2 scale
+    settspr[].tsprxrepeat sprite[].xrepeat
+    settspr[].tspryrepeat sprite[].yrepeat
+  break
+  endswitch
+endevent
+
+// Remove TRANSPORTERBEAM
+
+appendevent EVENT_SPAWN
+  ifactor TRANSPORTERBEAM
+    state S_Delete_Sprite
+endevent
+
+// Remove EXPLOSION2BOT
+
+appendevent EVENT_SPAWN
+  ifactor EXPLOSION2BOT
+    state S_Delete_Sprite
+endevent
+
+// Halve the number of COOLEXPLOSION1 frames
+
+appendevent EVENT_ANIMATESPRITES
+  ifactor COOLEXPLOSION1
+  {
+    set V_Temp1 tspr[].tsprpicnum
+    sub V_Temp1 COOLEXPLOSION1
+    shiftr V_Temp1 1
+    shiftl V_Temp1 1
+    add V_Temp1 COOLEXPLOSION1
+    settspr[].tsprpicnum V_Temp1
+  }
+endevent

@@ -1,0 +1,1738 @@
+// Body drawing parameters
+
+defstate S_Set_Floor_Pal
+  ife paldata[sector[].floorpal].nofloorpal 1
+    set V_Pal 0
+  else
+    set V_Pal sector[].floorpal
+ends
+
+defstate S_Set_Frozen_Pal
+  ifspritepal 1
+    set V_Pal 1
+  else
+    state S_Set_Floor_Pal
+ends
+
+defstate S_Set_Knee_Pal
+  ife sprite[].pal 1
+    set V_Pal 1
+  else
+  {
+    state S_Set_Floor_Pal
+    ife V_Pal 0
+      set V_Pal player[].palookup
+  }
+ends
+
+// Body/weapon drawing functions
+
+defstate S_Set_Weap_Pos
+  add V_X weapon_xoffset
+  sub V_Y gun_pos
+
+  add V_X looking_angSR1
+  add V_Y looking_arc
+ends
+
+defstate S_Set_Weap_Edge_Pos
+  add V_X weapon_xoffset
+  sub V_Y gun_pos
+
+  set V_TempB1 looking_arc
+  shiftl V_TempB1 1
+  add V_Draw_Y V_TempB1
+ends
+
+defstate S_Set_Draw_Weap_Scale
+  ifand V_Draw_Orient ROTATESPRITE_FULL16
+    nullop
+  else
+  {
+    or V_Draw_Orient ROTATESPRITE_FULL16
+    shiftl V_Draw_X 16
+    shiftl V_Draw_Y 16
+  }
+
+  ifand userdef[].globalgameflags DUKE3D_NO_WIDESCREEN_PINNING
+  {
+    ifand V_Draw_Orient RS_ALIGN_L
+      xor V_Draw_Orient RS_ALIGN_L
+    else
+    ifand V_Draw_Orient RS_ALIGN_R
+      xor V_Draw_Orient RS_ALIGN_R
+  }
+
+  ifn userdef[].weaponscale 100
+  {
+    ifand V_Draw_Orient RS_ALIGN_L
+      set V_Draw_Pivot_X 0
+    else
+    ifand V_Draw_Orient RS_ALIGN_R
+      set V_Draw_Pivot_X 20971520
+    else
+      set V_Draw_Pivot_X 10485760
+    sub V_Draw_X V_Draw_Pivot_X
+    sub V_Draw_Y 13107200
+
+    scalevar V_Draw_X V_Draw_X userdef[].weaponscale 100
+    scalevar V_Draw_Y V_Draw_Y userdef[].weaponscale 100
+
+    scalevar V_Draw_Scale V_Draw_Scale userdef[].weaponscale 100
+
+    add V_Draw_X V_Draw_Pivot_X
+    add V_Draw_Y 13107200
+  }
+ends
+
+defstate S_Draw_Body_Sprite
+  getarrayseq A_State_Draw V_Draw_X V_Draw_Y V_Draw_Scale V_Draw_Ang V_Draw_Picnum V_Draw_Shade V_Draw_Pal V_Draw_Orient V_Draw_Alpha
+
+  rotatespritea V_Draw_X V_Draw_Y V_Draw_Scale V_Draw_Ang V_Draw_Picnum V_Draw_Shade V_Draw_Pal V_Draw_Orient V_Draw_Alpha windowx1 windowy1 windowx2 windowy2
+ends
+
+defstate S_Draw_Weap_Sprite
+  getarrayseq A_State_Draw V_Draw_X V_Draw_Y V_Draw_Scale V_Draw_Ang V_Draw_Picnum V_Draw_Shade V_Draw_Pal V_Draw_Orient V_Draw_Alpha
+
+  state S_Set_Draw_Weap_Scale
+
+  rotatespritea V_Draw_X V_Draw_Y V_Draw_Scale V_Draw_Ang V_Draw_Picnum V_Draw_Shade V_Draw_Pal V_Draw_Orient V_Draw_Alpha windowx1 windowy1 windowx2 windowy2
+ends
+
+// Nukebutton fist
+
+appendevent EVENT_DISPLAYFIST
+  set RETURN 1
+
+  set V_Count player[].fist_incs
+  ifg V_Count 32
+    set V_Count 32
+
+  set looking_arc player[].look_ang
+  div looking_arc 9
+
+  set V_Scale 65536
+  set V_Offset_Y 512
+  set V_Temp1 V_Count
+  shiftl V_Temp1 6
+  add V_Offset_Y V_Temp1
+  sin V_Offset_Y V_Offset_Y
+  shiftl V_Offset_Y 2
+  sub V_Scale V_Offset_Y
+  clamp V_Scale 40920 90612
+
+  set V_Offset_Y 194
+  set V_Temp1 6
+  add V_Temp1 V_Count
+  shiftl V_Temp1 7
+  sin V_Temp1 V_Temp1
+  shiftr V_Temp1 9
+  add V_Offset_Y V_Temp1
+
+  state S_Set_Frozen_Pal
+
+  set V_X -V_Count
+  add V_X 222
+  set V_Temp1 input[].avel
+  shiftr V_Temp1 4
+  add V_X V_Temp1
+
+  set V_Y looking_arc
+  add V_Y V_Offset_Y
+
+  // Full screen without orientation 16
+
+  setarrayseq A_State_Draw V_X V_Y V_Scale 0 FIST gs V_Pal 0 0
+  state S_Draw_View_Sprite
+endevent
+
+// Cracking knuckles
+
+appendevent EVENT_DISPLAYKNUCKLES
+  set RETURN 1
+
+  ifle sprite[].extra 0
+    break
+
+  set V_Temp1 player[].knuckle_incs
+  shiftr V_Temp1 1
+  switch V_Temp1
+  case 0
+  case 10
+    set V_Count 0
+  break
+  case 1
+  case 9
+    set V_Count 1
+  break
+  case 2
+  case 3
+  case 7
+  case 8
+    set V_Count 2
+  break
+  case 4
+  case 5
+  case 6
+    set V_Count 3
+  break
+  endswitch
+
+  set looking_arc player[].look_ang
+  abs looking_arc
+  div looking_arc 9
+  set V_Temp1 player[].hard_landing
+  shiftl V_Temp1 3
+  sub looking_arc V_Temp1
+
+  state S_Set_Frozen_Pal
+
+  set V_X 160
+  set V_Temp1 input[].avel
+  shiftr V_Temp1 4
+  add V_X V_Temp1
+  set V_Temp1 player[].look_ang
+  shiftr V_Temp1 1
+  sub V_X V_Temp1
+
+  set V_Y looking_arc
+  add V_Y 180
+  set V_Temp1 player[].horiz
+  sub V_Temp1 player[].horizoff
+  shiftr V_Temp1 4
+  sub V_Y V_Temp1
+
+  set V_Picnum CRACKKNUCKLES
+  add V_Picnum V_Count
+
+  setarrayseq A_State_Draw V_X V_Y 65536 1024 V_Picnum gs V_Pal RS_YFLIP 0
+  state S_Draw_View_Sprite
+endevent
+
+// Tipping hand
+
+appendevent EVENT_DISPLAYTIP
+  set RETURN 1
+
+  ifg player[].tipincs 24
+    break
+
+  switch player[].tipincs
+  case 0
+  case 21
+    set V_Count 0
+  break
+  case 1
+    set V_Count -8
+  break
+  case 2
+  case 20
+    set V_Count -16
+  break
+  case 3
+  case 19
+    set V_Count -32
+  break
+  case 4
+  case 18
+    set V_Count -64
+  break
+  case 5
+    set V_Count -84
+  break
+  case 6
+  case 7
+  case 8
+  case 9
+  case 10
+  case 11
+  case 12
+  case 13
+  case 14
+  case 15
+    set V_Count -108
+  break
+  case 16
+    set V_Count -96
+  break
+  case 17
+    set V_Count -72
+  break
+  case 22
+    set V_Count 16
+  break
+  case 23
+    set V_Count 32
+  break
+  case 24
+    set V_Count 48
+  break
+  endswitch
+
+  set looking_arc player[].look_ang
+  abs looking_arc
+  div looking_arc 9
+  set V_Temp1 player[].hard_landing
+  shiftl V_Temp1 3
+  sub looking_arc V_Temp1
+
+  state S_Set_Frozen_Pal
+
+  set V_X 170
+  set V_Temp1 input[].avel
+  shiftr V_Temp1 4
+  add V_X V_Temp1
+  set V_Temp1 player[].look_ang
+  shiftr V_Temp1 1
+  sub V_X V_Temp1
+
+  set V_Y V_Count
+  shiftr V_Y 1
+  add V_Y looking_arc
+  add V_Y 240
+  set V_Temp1 player[].horiz
+  sub V_Temp1 player[].horizoff
+  shiftr V_Temp1 4
+  sub V_Y V_Temp1
+
+  set V_Picnum TIP
+  set V_Temp1 26
+  sub V_Temp1 player[].tipincs
+  shiftr V_Temp1 4
+  add V_Picnum V_Temp1
+
+  setarrayseq A_State_Draw V_X V_Y 65536 0 V_Picnum gs V_Pal 0 0
+  state S_Draw_View_Sprite
+endevent
+
+// Hand hold access card
+
+appendevent EVENT_DISPLAYACCESS
+  set RETURN 1
+
+  ifle sprite[].extra 0
+    break
+
+  switch player[].access_incs
+  case 0
+    set V_Count 0
+  break
+  case 1
+    set V_Count -8
+  break
+  case 2
+  case 20
+    set V_Count -16
+  break
+  case 3
+  case 19
+    set V_Count -32
+  break
+  case 4
+  case 18
+    set V_Count -64
+  break
+  case 5
+    set V_Count -84
+  break
+  case 6
+  case 7
+  case 8
+  case 9
+  case 10
+  case 11
+  case 12
+  case 13
+  case 14
+  case 15
+    set V_Count -108
+  break
+  case 16
+    set V_Count -96
+  break
+  case 17
+    set V_Count -72
+  break
+  endswitch
+
+  set looking_arc V_Count
+  set V_Temp1 player[].look_ang
+  div V_Temp1 9
+  abs V_Temp1
+  add looking_arc V_Temp1
+  set V_Temp1 player[].hard_landing
+  shiftl V_Temp1 3
+  sub looking_arc V_Temp1
+
+  set V_X 170
+  set V_Temp1 input[].avel
+  shiftr V_Temp1 4
+  add V_X V_Temp1
+  set V_Temp1 player[].look_ang
+  shiftr V_Temp1 1
+  sub V_X V_Temp1
+  set V_Temp1 V_Count
+  shiftr V_Temp1 2
+  add V_X V_Temp1
+
+  set V_Y looking_arc
+  add V_Y 266
+  set V_Temp1 player[].horiz
+  sub V_Temp1 player[].horizoff
+  shiftr V_Temp1 4
+  sub V_Y V_Temp1
+
+  state S_Set_Floor_Pal
+
+  ifl player[].access_incs 11
+  {
+    ife V_Pal 0
+      set V_Pal sprite[player[].access_spritenum].pal
+
+    setarrayseq A_State_Draw V_X V_Y 65536 1024 HANDHOLDINGACCESS gs V_Pal RS_YFLIP 0
+    state S_Draw_View_Sprite
+  }
+  else
+  {
+    set V_Picnum HANDHOLDINGLASER
+    set V_Temp1 player[].access_incs
+    shiftr V_Temp1 3
+    add V_Picnum V_Temp1
+
+    setarrayseq A_State_Draw V_X V_Y 65536 0 V_Picnum gs V_Pal 0 0
+    state S_Draw_View_Sprite
+  }
+endevent
+
+// Stomping knee
+
+appendevent EVENT_DISPLAYKNEE
+  set RETURN -1
+
+  ifg player[].knee_incs 11
+    break
+  ifle sprite[].extra 0
+    break
+
+  switch player[].knee_incs
+  case 0
+    set V_Count 0
+  break
+  case 1
+    set V_Count -8
+  break
+  case 2
+    set V_Count -16
+  break
+  case 3
+    set V_Count -32
+  break
+  case 4
+    set V_Count -64
+  break
+  case 5
+    set V_Count -84
+  break
+  case 6
+  case 7
+  case 8
+    set V_Count -108
+  break
+  case 9
+    set V_Count -72
+  break
+  case 10
+    set V_Count -32
+  break
+  case 11
+    set V_Count -8
+  break
+  endswitch
+
+  set looking_arc V_Count
+  set V_Temp1 player[].look_ang
+  div V_Temp1 9
+  abs V_Temp1
+  add looking_arc V_Temp1
+
+  set V_Temp1 player[].hard_landing
+  shiftl V_Temp1 3
+  sub looking_arc V_Temp1
+
+  set V_X 105
+  set V_Temp1 input[].avel
+  shiftr V_Temp1 4
+  add V_X V_Temp1
+  set V_Temp1 player[].look_ang
+  shiftr V_Temp1 1
+  sub V_X V_Temp1
+  set V_Temp1 V_Count
+  shiftr V_Temp1 2
+  add V_X V_Temp1
+
+  set V_Y looking_arc
+  add V_Y 280
+  set V_Temp1 player[].horiz
+  sub V_Temp1 player[].horizoff
+  shiftr V_Temp1 4
+  sub V_Y V_Temp1
+
+  state S_Set_Knee_Pal
+
+  setarrayseq A_State_Draw V_X V_Y 65536 1024 KNEE gs V_Pal RS_YFLIP 0
+  state S_Draw_View_Sprite
+endevent
+
+// Shrunk fists
+
+defstate S_Display_Fists
+  ife player[].jetpack_on 0
+  {
+    set V_Temp1 sprite[].xvel
+    add looking_arc 32
+    shiftr V_Temp1 1
+    sub looking_arc V_Temp1
+
+    add V_Draw_Fists_Count V_Temp1
+  }
+
+  set V_Old_weapon_xoffset weapon_xoffset
+  sin V_Sin V_Draw_Fists_Count
+  shiftr V_Sin 10
+  add weapon_xoffset V_Sin
+
+  set V_X weapon_xoffset
+  add V_X 250
+  set V_Temp1 player[].look_ang
+  shiftr V_Temp1 1
+  sub V_X V_Temp1
+
+  set V_Y looking_arc
+  add V_Y 258
+  sin V_Sin2 V_Draw_Fists_Count
+  shiftr V_Sin2 8
+  abs V_Sin2
+  sub V_Y V_Sin2
+
+  state S_Set_Floor_Pal
+
+  guniqhudid 101
+
+  setarrayseq A_State_Draw V_X V_Y 65536 0 FIST gs V_Pal 0 0
+  state S_Draw_View_Sprite
+
+  set weapon_xoffset V_Old_weapon_xoffset
+  sub weapon_xoffset V_Sin
+
+  set V_X weapon_xoffset
+  add V_X 40
+  sub V_X V_Temp1
+
+  set V_Y looking_arc
+  add V_Y 200
+  add V_Y V_Sin2
+
+  guniqhudid 102
+
+  setarrayseq A_State_Draw V_X V_Y 65536 1024 FIST gs V_Pal RS_YFLIP 0
+  state S_Draw_View_Sprite
+
+  guniqhudid 0
+ends
+
+// Quick kick
+
+defstate S_Display_Quick_Kick
+  ifn player[].quick_kick 0
+  {
+    state S_Set_Knee_Pal
+
+    guniqhudid 100
+
+    ifle player[].quick_kick 9
+    ifge player[].quick_kick 5
+    {
+      set V_X 144
+      set V_Y 214
+      state S_Set_Weap_Pos
+
+      setarrayseq A_State_Draw V_X V_Y 65536 1024 KNEE_add_1 gs V_Pal RS_YFLIP 0
+      state S_Draw_Weap_Sprite
+    }
+    else
+    {
+      set V_X 80
+      set V_Y 250
+      state S_Set_Weap_Pos
+
+      setarrayseq A_State_Draw V_X V_Y 65536 1024 KNEE gs V_Pal RS_YFLIP 0
+      state S_Draw_Weap_Sprite
+    }
+
+    guniqhudid 0
+  }
+ends
+
+// Mighty boot
+
+defstate S_Display_Knee_Weap
+  ifg weaponcount 0
+  {
+    state S_Set_Knee_Pal
+
+    ifg weaponcount 4
+    ifl weaponcount 10
+    {
+      set V_X 160
+      set V_Y 214
+      state S_Set_Weap_Pos
+
+      setarrayseq A_State_Draw V_X V_Y 65536 0 KNEE_add_1 gs V_Pal 0 0
+      state S_Draw_Weap_Sprite
+    }
+    else
+    {
+      set V_X 220
+      set V_Y 250
+      state S_Set_Weap_Pos
+
+      setarrayseq A_State_Draw V_X V_Y 65536 0 KNEE gs V_Pal 0 0
+      state S_Draw_Weap_Sprite
+    }
+  }
+ends
+
+// Pistol
+
+defstate S_Display_Pistol_Weap
+  state S_Set_Frozen_Pal
+
+  ifl weaponcount 5
+  {
+    set V_X 183
+    ife weaponcount 2
+      sub V_X 3
+    set V_Y 244
+    state S_Set_Weap_Pos
+
+    set V_Picnum FIRSTGUN
+    ifl weaponcount 3
+      add V_Picnum weaponcount
+
+    setarrayseq A_State_Draw V_X V_Y 65536 0 V_Picnum gs V_Pal 0 0
+    state S_Draw_Weap_Sprite
+  }
+  else
+  {
+    ifl weaponcount 10
+    {
+      set V_X 194
+      set V_Y 230
+      state S_Set_Weap_Pos
+
+      setarrayseq A_State_Draw V_X V_Y 65536 0 FIRSTGUN_add_4 gs V_Pal RS_ALIGN_R 0
+      state S_Draw_Weap_Sprite
+    }
+    else
+    ifl weaponcount 15
+    {
+      set V_X 244
+      set V_Temp1 weaponcount
+      shiftl V_Temp1 3
+      add V_X V_Temp1
+      set V_Y 130
+      set V_Temp1 weaponcount
+      shiftl V_Temp1 4
+      add V_Y V_Temp1
+      state S_Set_Weap_Pos
+
+      guniqhudid 1
+
+      setarrayseq A_State_Draw V_X V_Y 65536 0 FIRSTGUN_add_6 gs V_Pal RS_ALIGN_R 0
+      state S_Draw_Weap_Sprite
+
+      set V_X 224
+      set V_Y 220
+      state S_Set_Weap_Pos
+
+      guniqhudid 0
+
+      setarrayseq A_State_Draw V_X V_Y 65536 0 FIRSTGUN_add_5 gs V_Pal RS_ALIGN_R 0
+      state S_Draw_Weap_Sprite
+    }
+    else
+    ifl weaponcount 20
+    {
+      set V_X 124
+      set V_Temp1 weaponcount
+      shiftl V_Temp1 1
+      add V_X V_Temp1
+      set V_Y 430
+      set V_Temp1 weaponcount
+      shiftl V_Temp1 3
+      add V_Y V_Temp1
+      state S_Set_Weap_Pos
+
+      guniqhudid 1
+
+      setarrayseq A_State_Draw V_X V_Y 65536 0 FIRSTGUN_add_6 gs V_Pal RS_ALIGN_R 0
+      state S_Draw_Weap_Sprite
+
+      set V_X 224
+      set V_Y 220
+      state S_Set_Weap_Pos
+
+      guniqhudid 0
+
+      setarrayseq A_State_Draw V_X V_Y 65536 0 FIRSTGUN_add_5 gs V_Pal RS_ALIGN_R 0
+      state S_Draw_Weap_Sprite
+    }
+    else
+    ifl weaponcount 23
+    {
+      set V_X 184
+      set V_Y 235
+      state S_Set_Weap_Pos
+
+      guniqhudid 2
+
+      setarrayseq A_State_Draw V_X V_Y 65536 0 FIRSTGUN_add_8 gs V_Pal RS_ALIGN_R 0
+      state S_Draw_Weap_Sprite
+
+      set V_X 224
+      set V_Y 210
+      state S_Set_Weap_Pos
+
+      guniqhudid 0
+
+      setarrayseq A_State_Draw V_X V_Y 65536 0 FIRSTGUN_add_5 gs V_Pal RS_ALIGN_R 0
+      state S_Draw_Weap_Sprite
+    }
+    else
+    ifl weaponcount 25
+    {
+      set V_X 164
+      set V_Y 245
+      state S_Set_Weap_Pos
+
+      guniqhudid 2
+
+      setarrayseq A_State_Draw V_X V_Y 65536 0 FIRSTGUN_add_8 gs V_Pal RS_ALIGN_R 0
+      state S_Draw_Weap_Sprite
+
+      set V_X 224
+      set V_Y 220
+      state S_Set_Weap_Pos
+
+      guniqhudid 0
+
+      setarrayseq A_State_Draw V_X V_Y 65536 0 FIRSTGUN_add_5 gs V_Pal RS_ALIGN_R 0
+      state S_Draw_Weap_Sprite
+    }
+    else
+    ifl weaponcount 27
+    {
+      set V_X 194
+      set V_Y 235
+      state S_Set_Weap_Pos
+
+      guniqhudid 0
+
+      setarrayseq A_State_Draw V_X V_Y 65536 0 FIRSTGUN_add_5 gs V_Pal RS_ALIGN_R 0
+      state S_Draw_Weap_Sprite
+    }
+  }
+ends
+
+// Shotgun
+
+defstate S_Display_Shotgun_Weap
+  state S_Set_Frozen_Pal
+
+  switch weaponcount
+  case 1
+  case 2
+    set V_X 168
+    set V_Y 201
+    state S_Set_Weap_Pos
+
+    guniqhudid 1
+
+    setarrayseq A_State_Draw V_X V_Y 65536 0 SHOTGUN_add_2 -128 V_Pal 0 0
+    state S_Draw_Weap_Sprite
+  case 0
+  case 6
+  case 7
+  case 8
+    set V_X 146
+    set V_Y 202
+    state S_Set_Weap_Pos
+
+    guniqhudid 0
+
+    setarrayseq A_State_Draw V_X V_Y 65536 0 SHOTGUN gs V_Pal 0 0
+    state S_Draw_Weap_Sprite
+  break
+  case 3
+  case 4
+  case 5
+  case 9
+  case 10
+  case 11
+  case 12
+    ifg weaponcount 1
+    ifl weaponcount 5
+    {
+      sub gun_pos 40
+      add weapon_xoffset 20
+
+      set V_X 178
+      set V_Y 194
+      state S_Set_Weap_Pos
+
+      set V_Picnum SHOTGUN_add_1
+      set V_Temp1 player[].kickback_pic
+      sub V_Temp1 1
+      shiftr V_Temp1 1
+      add V_Picnum V_Temp1
+
+      guniqhudid 1
+
+      setarrayseq A_State_Draw V_X V_Y 65536 0 V_Picnum gs V_Pal 0 0
+      state S_Draw_Weap_Sprite
+    }
+
+    set V_X 158
+    set V_Y 220
+    state S_Set_Weap_Pos
+
+    guniqhudid 0
+
+    setarrayseq A_State_Draw V_X V_Y 65536 0 SHOTGUN_add_3 gs V_Pal 0 0
+    state S_Draw_Weap_Sprite
+  break
+  case 13
+  case 14
+  case 15
+    set V_X 198
+    set V_Y 210
+    state S_Set_Weap_Pos
+
+    setarrayseq A_State_Draw V_X V_Y 65536 0 SHOTGUN_add_4 gs V_Pal 0 0
+    state S_Draw_Weap_Sprite
+  break
+  case 16
+  case 17
+  case 18
+  case 19
+    set V_X 234
+    set V_Y 196
+    state S_Set_Weap_Pos
+
+    setarrayseq A_State_Draw V_X V_Y 65536 0 SHOTGUN_add_5 gs V_Pal 0 0
+    state S_Draw_Weap_Sprite
+  break
+  case 20
+  case 21
+  case 22
+  case 23
+    set V_X 240
+    set V_Y 196
+    state S_Set_Weap_Pos
+
+    setarrayseq A_State_Draw V_X V_Y 65536 0 SHOTGUN_add_6 gs V_Pal 0 0
+    state S_Draw_Weap_Sprite
+  break
+  case 24
+  case 25
+  case 26
+  case 27
+    set V_X 234
+    set V_Y 196
+    state S_Set_Weap_Pos
+
+    setarrayseq A_State_Draw V_X V_Y 65536 0 SHOTGUN_add_5 gs V_Pal 0 0
+    state S_Draw_Weap_Sprite
+  break
+  case 28
+  case 29
+  case 30
+    set V_X 188
+    set V_Y 206
+    state S_Set_Weap_Pos
+
+    setarrayseq A_State_Draw V_X V_Y 65536 0 SHOTGUN_add_4 gs V_Pal 0 0
+    state S_Draw_Weap_Sprite
+  break
+  endswitch
+ends
+
+// Chaingun
+
+defstate S_Display_Chaingun_Weap
+  set V_X 168
+  set V_Y 260
+  ifg weaponcount 0
+  {
+    set V_Temp1 weaponcount
+    shiftl V_Temp1 7
+    sin V_Temp1 V_Temp1
+    shiftr V_Temp1 12
+    sub gun_pos V_Temp1
+
+    ifn sprite[].pal 1
+    {
+      add weapon_xoffset 1
+      displayrandvar V_Temp1 3
+      sub weapon_xoffset V_Temp1
+    }
+  }
+  state S_Set_Weap_Pos
+
+  state S_Set_Frozen_Pal
+
+  setarrayseq A_State_Draw V_X V_Y 65536 0 CHAINGUN gs V_Pal 0 0
+  state S_Draw_Weap_Sprite
+
+  ife weaponcount 0
+  {
+    set V_X 178
+    set V_Y 233
+    state S_Set_Weap_Pos
+
+    guniqhudid 1
+
+    setarrayseq A_State_Draw V_X V_Y 65536 0 CHAINGUN_add_1 gs V_Pal 0 0
+    state S_Draw_Weap_Sprite
+  }
+  else
+  {
+    ifg weaponcount 4
+    ifl weaponcount 12
+    {
+      set V_X 136
+      set V_Y 208
+      set V_Temp1 weaponcount
+      shiftr V_Temp1 1
+      sub V_Y V_Temp1
+      ifn sprite[].pal 1
+      {
+        displayrandvar V_Temp1 7
+        add V_X V_Temp1
+        displayrandvar V_Temp1 7
+        add V_Y V_Temp1
+      }
+      state S_Set_Weap_Pos
+
+      set V_Picnum CHAINGUN_add_5
+      set V_Temp1 weaponcount
+      sub V_Temp1 4
+      div V_Temp1 5
+      add V_Picnum V_Temp1
+
+      guniqhudid 2
+
+      setarrayseq A_State_Draw V_X V_Y 65536 0 V_Picnum gs V_Pal 0 0
+      state S_Draw_Weap_Sprite
+
+      set V_X 180
+      set V_Y 208
+      set V_Temp1 weaponcount
+      shiftr V_Temp1 1
+      sub V_Y V_Temp1
+      ifn sprite[].pal 1
+      {
+        displayrandvar V_Temp1 7
+        add V_X V_Temp1
+        displayrandvar V_Temp1 7
+        add V_Y V_Temp1
+      }
+      state S_Set_Weap_Pos
+
+      guniqhudid 4
+
+      setarrayseq A_State_Draw V_X V_Y 65536 0 V_Picnum gs V_Pal 0 0
+      state S_Draw_Weap_Sprite
+    }
+
+    ifl weaponcount 8
+    {
+      set V_X 158
+      set V_Y 208
+      set V_Temp1 weaponcount
+      shiftr V_Temp1 1
+      sub V_Y V_Temp1
+      // Don't check for pal 1
+      displayrandvar V_Temp1 7
+      add V_X V_Temp1
+      add V_Y V_Temp1
+      state S_Set_Weap_Pos
+
+      set V_Picnum CHAINGUN_add_5
+      set V_Temp1 weaponcount
+      sub V_Temp1 2
+      div V_Temp1 5
+      add V_Picnum V_Temp1
+
+      guniqhudid 3
+
+      setarrayseq A_State_Draw V_X V_Y 65536 0 V_Picnum gs V_Pal 0 0
+      state S_Draw_Weap_Sprite
+
+      set V_X 178
+      set V_Y 233
+      state S_Set_Weap_Pos
+
+      set V_Picnum CHAINGUN_add_1
+      set V_Temp1 weaponcount
+      shiftr V_Temp1 1
+      add V_Picnum V_Temp1
+
+      guniqhudid 1
+
+      setarrayseq A_State_Draw V_X V_Y 65536 0 V_Picnum gs V_Pal 0 0
+      state S_Draw_Weap_Sprite
+    }
+    else
+    {
+      set V_X 178
+      set V_Y 233
+      state S_Set_Weap_Pos
+
+      guniqhudid 1
+
+      setarrayseq A_State_Draw V_X V_Y 65536 0 CHAINGUN_add_1 gs V_Pal 0 0
+      state S_Draw_Weap_Sprite
+    }
+  }
+
+  guniqhudid 0
+ends
+
+// RPG
+
+defstate S_Display_Rpg_Weap
+  set V_Temp1 weaponcount
+  shiftl V_Temp1 7
+  add V_Temp1 768
+  sin V_Temp1 V_Temp1
+  shiftr V_Temp1 11
+  sub weapon_xoffset V_Temp1
+  add gun_pos V_Temp1
+
+  state S_Set_Frozen_Pal
+
+  ifg weaponcount 1
+  ifl weaponcount 8
+  {
+    set V_X 164
+    set V_Y 176
+    state S_Set_Weap_Edge_Pos
+
+    set V_Picnum RPGGUN
+    set V_Temp1 weaponcount
+    shiftr V_Temp1 1
+    add V_Picnum V_Temp1
+
+    guniqhudid 1
+
+    setarrayseq A_State_Draw V_X V_Y 65536 0 V_Picnum gs V_Pal RS_ALIGN_R 0
+    state S_Draw_Weap_Sprite
+  }
+
+  set V_X 164
+  set V_Y 176
+  state S_Set_Weap_Edge_Pos
+
+  guniqhudid 0
+
+  setarrayseq A_State_Draw V_X V_Y 65536 0 RPGGUN gs V_Pal RS_ALIGN_R 0
+  state S_Draw_Weap_Sprite
+ends
+
+// Pipebomb
+
+defstate S_Display_Pipebomb_Weap
+  state S_Set_Frozen_Pal
+
+  ifn weaponcount 0
+  {
+    switch weaponcount
+    case 0
+    case 1
+    case 2
+    case 3
+    case 4
+      set V_Count 0
+    break
+    case 5
+    case 6
+    case 7
+    case 8
+    case 9
+    case 10
+    case 11
+      set V_Count 1
+    break
+    case 12
+    case 13
+    case 14
+    case 15
+    case 16
+    case 17
+    case 18
+    case 19
+    case 20
+      set V_Count 2
+    break
+    endswitch
+
+    set V_X 190
+    set V_Y 250
+    ifl weaponcount 7
+    {
+      set V_Temp1 weaponcount
+      mul V_Temp1 10
+      sub gun_pos V_Temp1
+    }
+    else
+    ifl weaponcount 12
+    {
+      set V_Temp1 weaponcount
+      sub V_Temp1 10
+      mul V_Temp1 20
+      add gun_pos V_Temp1
+    }
+    else
+    ifl weaponcount 20
+    {
+      set V_Temp1 weaponcount
+      sub V_Temp1 14
+      mul V_Temp1 9
+      sub gun_pos V_Temp1
+    }
+    state S_Set_Weap_Pos
+
+    set V_Picnum HANDTHROW
+    add V_Picnum V_Count
+
+    setarrayseq A_State_Draw V_X V_Y 65536 0 V_Picnum gs V_Pal 0 0
+    state S_Draw_Weap_Sprite
+  }
+  else
+  {
+    set V_X 190
+    set V_Y 260
+    state S_Set_Weap_Pos
+
+    setarrayseq A_State_Draw V_X V_Y 65536 0 HANDTHROW gs V_Pal 0 0
+    state S_Draw_Weap_Sprite
+  }
+ends
+
+// Detonator
+
+defstate S_Display_Detonator_Weap
+  state S_Set_Frozen_Pal
+
+  switch weaponcount
+  case 0
+  case 6
+  case 7
+  case 8
+  case 9
+  case 10
+    set V_Count 0
+  break
+  case 1
+  case 2
+  case 4
+  case 5
+    set V_Count 1
+  break
+  case 3
+    set V_Count 2
+  break
+  endswitch
+
+  set weapon_xoffset -48
+
+  ifn weaponcount 0
+  {
+    set V_X 150
+    set V_Y 258
+    state S_Set_Weap_Pos
+
+    set V_Picnum HANDREMOTE
+    add V_Picnum V_Count
+
+    setarrayseq A_State_Draw V_X V_Y 65536 0 V_Picnum gs V_Pal 0 0
+    state S_Draw_Weap_Sprite
+  }
+  else
+  {
+    set V_X 150
+    set V_Y 258
+    state S_Set_Weap_Pos
+
+    setarrayseq A_State_Draw V_X V_Y 65536 0 HANDREMOTE gs V_Pal 0 0
+    state S_Draw_Weap_Sprite
+  }
+ends
+
+// Shrinker and expander
+
+defstate S_Display_Shrinker_Weap
+  add weapon_xoffset 28
+  add looking_arc 18
+
+  state S_Set_Frozen_Pal
+
+  ife weaponcount 0
+  {
+    set V_Shade 16
+    sin V_Sin player[].random_club_frame
+    shiftr V_Sin 10
+    sub V_Shade V_Sin
+
+    ife currentweapon GROW_WEAPON
+    {
+      set V_X 184
+      set V_Y 240
+      state S_Set_Weap_Pos
+
+      setarrayseq A_State_Draw V_X V_Y 65536 0 SHRINKER_add_2 V_Shade 2 0 0
+      state S_Draw_Weap_Sprite
+
+      set V_X 188
+      set V_Y 240
+      state S_Set_Weap_Pos
+
+      guniqhudid 1
+
+      setarrayseq A_State_Draw V_X V_Y 65536 0 SHRINKER_sub_2 gs V_Pal 0 0
+      state S_Draw_Weap_Sprite
+    }
+    else
+    {
+      set V_X 184
+      set V_Y 240
+      state S_Set_Weap_Pos
+
+      setarrayseq A_State_Draw V_X V_Y 65536 0 SHRINKER_add_2 V_Shade 0 0 0
+      state S_Draw_Weap_Sprite
+
+      set V_X 188
+      set V_Y 240
+      state S_Set_Weap_Pos
+
+      guniqhudid 1
+
+      setarrayseq A_State_Draw V_X V_Y 65536 0 SHRINKER gs V_Pal 0 0
+      state S_Draw_Weap_Sprite
+    }
+  }
+  else
+  {
+    ifn sprite[].pal 1
+    {
+      displayrandvar V_Temp1 3
+      add weapon_xoffset V_Temp1
+      displayrandvar V_Temp1 3
+      add gun_pos V_Temp1
+    }
+
+    ife currentweapon GROW_WEAPON
+    {
+      set V_X 184
+      set V_Y 240
+      state S_Set_Weap_Pos
+
+      set V_Picnum SHRINKER_add_3
+      displayrandvar V_Temp1 3
+      add V_Picnum V_Temp1
+
+      setarrayseq A_State_Draw V_X V_Y 65536 0 V_Picnum -32 2 0 0
+      state S_Draw_Weap_Sprite
+
+      set V_X 188
+      set V_Y 240
+      state S_Set_Weap_Pos
+
+      guniqhudid 1
+
+      setarrayseq A_State_Draw V_X V_Y 65536 0 SHRINKER_sub_1 gs V_Pal 0 0
+      state S_Draw_Weap_Sprite
+    }
+    else
+    {
+      set V_X 184
+      set V_Y 240
+      state S_Set_Weap_Pos
+
+      set V_Picnum SHRINKER_add_3
+      displayrandvar V_Temp1 3
+      add V_Picnum V_Temp1
+
+      setarrayseq A_State_Draw V_X V_Y 65536 0 V_Picnum -32 0 0 0
+      state S_Draw_Weap_Sprite
+
+      set V_X 188
+      set V_Y 240
+      state S_Set_Weap_Pos
+
+      guniqhudid 1
+
+      setarrayseq A_State_Draw V_X V_Y 65536 0 SHRINKER_add_1 gs V_Pal 0 0
+      state S_Draw_Weap_Sprite
+    }
+  }
+
+  guniqhudid 0
+ends
+
+// Devastator
+
+defstate S_Display_Devastator_Weap
+  state S_Set_Frozen_Pal
+
+  ifn weaponcount 0
+  {
+    switch weaponcount
+    default
+      set V_Count 0
+    break
+    case 1
+    case 5
+      set V_Count 4
+    break
+    case 2
+    case 4
+      set V_Count 12
+    break
+    case 3
+      set V_Count 24
+    break
+    endswitch
+
+    set V_Offset_Picnum weaponcount
+    shiftr V_Offset_Picnum 2
+    ifg V_Offset_Picnum 0
+      set V_Offset_Picnum 1
+    else
+    ifl V_Offset_Picnum 0
+      set V_Offset_Picnum -1
+
+    ifn player[].hbomb_hold_delay 0
+    {
+      set V_X V_Count
+      shiftr V_X 1
+      add V_X 268
+      set V_Y V_Count
+      add V_Y 238
+      state S_Set_Weap_Pos
+
+      set V_Picnum DEVISTATOR
+      add V_Picnum V_Offset_Picnum
+
+      setarrayseq A_State_Draw V_X V_Y 65536 0 V_Picnum -32 V_Pal 0 0
+      state S_Draw_Weap_Sprite
+
+      set V_X 30
+      set V_Y 240
+      state S_Set_Weap_Pos
+
+      guniqhudid 1
+
+      setarrayseq A_State_Draw V_X V_Y 65536 1024 DEVISTATOR gs V_Pal RS_YFLIP 0
+      state S_Draw_Weap_Sprite
+
+      guniqhudid 0
+    }
+    else
+    {
+      set V_X -V_Count
+      shiftr V_X 1
+      add V_X 30
+      set V_Y V_Count
+      add V_Y 240
+      state S_Set_Weap_Pos
+
+      set V_Picnum DEVISTATOR
+      add V_Picnum V_Offset_Picnum
+
+      guniqhudid 1
+
+      setarrayseq A_State_Draw V_X V_Y 65536 1024 V_Picnum gs V_Pal RS_YFLIP 0
+      state S_Draw_Weap_Sprite
+
+      set V_X 268
+      set V_Y 238
+      state S_Set_Weap_Pos
+
+      guniqhudid 0
+
+      setarrayseq A_State_Draw V_X V_Y 65536 0 DEVISTATOR -32 V_Pal 0 0
+      state S_Draw_Weap_Sprite
+    }
+  }
+  else
+  {
+    set V_X 268
+    set V_Y 238
+    state S_Set_Weap_Pos
+
+    setarrayseq A_State_Draw V_X V_Y 65536 0 DEVISTATOR gs V_Pal 0 0
+    state S_Draw_Weap_Sprite
+
+    set V_X 30
+    set V_Y 240
+    state S_Set_Weap_Pos
+
+    guniqhudid 1
+
+    setarrayseq A_State_Draw V_X V_Y 65536 1024 DEVISTATOR gs V_Pal RS_YFLIP 0
+    state S_Draw_Weap_Sprite
+
+    guniqhudid 0
+  }
+ends
+
+// Tripbomb
+
+defstate S_Display_Tripbomb_Weap
+  state S_Set_Frozen_Pal
+
+  add weapon_xoffset 8
+  sub gun_pos 10
+
+  ifg weaponcount 6
+  {
+    set V_Temp1 weaponcount
+    shiftl V_Temp1 3
+    add looking_arc V_Temp1
+  }
+  else
+  ifl weaponcount 4
+  {
+    set V_X 142
+    set V_Y 234
+    state S_Set_Weap_Pos
+
+    setarrayseq A_State_Draw V_X V_Y 65536 0 HANDHOLDINGLASER_add_3 gs V_Pal 0 0
+    state S_Draw_Weap_Sprite
+  }
+
+  set V_X 130
+  set V_Y 249
+  state S_Set_Weap_Pos
+
+  set V_Temp1 weaponcount
+  shiftr V_Temp1 2
+  add V_Picnum V_Temp1 
+
+  guniqhudid 1
+
+  setarrayseq A_State_Draw V_X V_Y 65536 0 V_Picnum gs V_Pal 0 0
+  state S_Draw_Weap_Sprite
+
+  set V_X 152
+  set V_Y 249
+  state S_Set_Weap_Pos
+
+  guniqhudid 2
+
+  setarrayseq A_State_Draw V_X V_Y 65536 1024 V_Picnum gs V_Pal RS_YFLIP 0
+  state S_Draw_Weap_Sprite
+
+  guniqhudid 0
+ends
+
+// Freezer
+
+defstate S_Display_Freezer_Weap
+  state S_Set_Frozen_Pal
+
+  ifn weaponcount 0
+  ifn sprite[].pal 1
+  {
+    switch weaponcount
+    case 0
+    case 1
+      set V_Count 0
+    break
+    case 2
+    case 3
+      set V_Count 1
+    break
+    case 4
+    case 5
+      set V_Count 2
+    break
+    endswitch
+
+    rand V_Rand 3
+    add weapon_xoffset V_Rand
+    rand V_Rand 3
+    add looking_arc V_Rand
+
+    set V_X 210
+    set V_Y 261
+    state S_Set_Weap_Pos
+
+    setarrayseq A_State_Draw V_X V_Y 65536 0 FREEZE_add_2 -32 V_Pal RS_ALIGN_R 0
+    state S_Draw_Weap_Sprite
+
+    set V_X 210
+    set V_Y 235
+    state S_Set_Weap_Pos
+
+    state V_Picnum FREEZE_add_3
+    add V_Picnum V_Count
+
+    setarrayseq A_State_Draw V_X V_Y 65536 0 V_Picnum -32 V_Pal RS_ALIGN_R 0
+    state S_Draw_Weap_Sprite
+  }
+  else
+  {
+    set V_X 210
+    set V_Y 261
+    state S_Set_Weap_Pos
+
+    setarrayseq A_State_Draw V_X V_Y 65536 0 FREEZE gs V_Pal RS_ALIGN_R 0
+    state S_Draw_Weap_Sprite
+  }
+ends
+
+// Display weapons
+
+appendevent EVENT_DISPLAYWEAPON
+  set RETURN -1
+
+  ife userdef[].drawweapon 1
+    state S_Display_Quick_Kick
+  ifl sprite[].xrepeat 40
+  {
+    state S_Display_Fists
+    break
+  }
+
+  ife userdef[].drawweapon 2
+  ifn currentweapon KNEE_WEAPON
+  {
+    set V_Y 180
+    set V_Temp1 player[].weapon_pos
+    mul V_Temp1 player[].weapon_pos
+    add V_Y V_Temp1
+
+    scalevar V_Scale 65536 userdef[].statusbarscale 100
+
+    switch currentweapon
+    case PISTOL_WEAPON
+      set V_Picnum FIRSTGUNSPRITE
+    break
+    case SHOTGUN_WEAPON
+      set V_Picnum SHOTGUNSPRITE
+    break
+    case CHAINGUN_WEAPON
+      set V_Picnum CHAINGUNSPRITE
+    break
+    case RPG_WEAPON
+      set V_Picnum RPGSPRITE
+    break
+    case HANDREMOTE_WEAPON
+    case HANDBOMB_WEAPON
+      set V_Picnum HEAVYHBOMB
+    break
+    case SHRINKER_WEAPON
+      set V_Picnum SHRINKERSPRITE
+    break
+    case GROW_WEAPON
+      set V_Picnum GROWSPRITEICON
+    break
+    case DEVISTATOR_WEAPON
+      set V_Picnum DEVISTATORSPRITE
+    break
+    case TRIPBOMB_WEAPON
+      set V_Picnum TRIPBOMBSPRITE
+    break
+    case FREEZE_WEAPON
+      set V_Picnum FREEZESPRITE
+    break
+    endswitch
+
+    setarrayseq A_State_Draw 160 V_Y V_Scale 0 V_Picnum 0 0 0 0
+    state S_Draw_View_Sprite
+  }
+
+  ifn userdef[].drawweapon 1
+    break
+  switch currentweapon
+  case KNEE_WEAPON
+    state S_Display_Knee_Weap
+  break
+  case PISTOL_WEAPON
+    state S_Display_Pistol_Weap
+  break
+  case SHOTGUN_WEAPON
+    state S_Display_Shotgun_Weap
+  break
+  case CHAINGUN_WEAPON
+    state S_Display_Chaingun_Weap
+  break
+  case RPG_WEAPON
+    state S_Display_Rpg_Weap
+  break
+  case HANDBOMB_WEAPON
+    state S_Display_Pipebomb_Weap
+  break
+  case HANDREMOTE_WEAPON
+    state S_Display_Detonator_Weap
+  break
+  case SHRINKER_WEAPON
+  case GROW_WEAPON
+    state S_Display_Shrinker_Weap
+  break
+  case DEVISTATOR_WEAPON
+    state S_Display_Devastator_Weap
+  break
+  case TRIPBOMB_WEAPON
+    state S_Display_Tripbomb_Weap
+  break
+  case FREEZE_WEAPON
+    state S_Display_Freezer_Weap
+  break
+  endswitch
+endevent
+
+// Lizman spit
+
+appendevent EVENT_DISPLAYSPIT
+  set RETURN -1
+
+  set V_Offset_Y player[].loogcnt
+  shiftl V_Offset_Y 2
+
+  for V_Range range player[].numloogs
+  {
+    set V_Offset_Ang player[].loogcnt
+    add V_Offset_Ang V_Range
+    shiftl V_Offset_Ang 5
+    and V_Offset_Ang 2047
+    sin V_Offset_Ang V_Offset_Ang
+    abs V_Offset_Ang
+    shiftr V_Offset_Ang 5
+
+    set V_Offset_Scale player[].loogcnt
+    add V_Offset_Scale V_Range
+    shiftl V_Offset_Scale 9
+    add V_Offset_Scale 4096
+
+    set V_Offset_X player[].loogcnt
+    add V_Offset_X V_Range
+    shiftl V_Offset_X 6
+    and V_Offset_X 2047
+    sin V_Offset_X V_Offset_X
+    shiftr V_Offset_X 10
+    add V_Offset_X input[].avel
+
+    set V_X player[].loogiex V_Range
+    add V_X V_Offset_X
+
+    set V_Y 200
+    add V_Y player[].loogiey V_Range
+    sub V_Y V_Offset_Y
+
+    set V_Scale V_Offset_Scale
+    set V_Temp1 V_Range
+    shiftr V_Temp1 8
+    sub V_Scale V_Temp1
+
+    set V_Ang 256
+    sub V_Ang V_Offset_Ang
+
+    // Full screen without orientation 16
+
+    setarrayseq A_State_Draw V_X V_Y V_Scale V_Ang LOOGIE 0 0 0 0
+    state S_Draw_View_Sprite
+  }
+endevent
+
+// Scuba gear
+
+appendevent EVENT_DISPLAYSCUBA
+  set RETURN -1
+
+  state S_Set_Frozen_Pal
+
+  set V_Y 13107200
+  set V_Temp1 tilesizy[SCUBAMASK]
+  shiftl V_Temp1 16
+  sub V_Y V_Temp1
+  ifg userdef[].screen_size 4
+  ife userdef[].statusbarmode 0
+  {
+    set V_Temp1 8
+    shiftl V_Temp1 16
+    scalevar V_Temp1 V_Temp1 userdef[].statusbarscale 100
+    sub V_Y V_Temp1
+  }
+
+  // Fill the gap between tiles by drawing another tile offset by 1/2 pixel
+
+  setarrayseq A_State_Draw 2850816 V_Y 65536 0 SCUBAMASK gs V_Pal RS_TOPLEFT_or_ROTATESPRITE_FULL16 0
+  state S_Draw_Weap_Sprite
+
+  setarrayseq A_State_Draw 2818048 V_Y 65536 0 SCUBAMASK gs V_Pal RS_TOPLEFT_or_ROTATESPRITE_FULL16 0
+  state S_Draw_Weap_Sprite
+
+  setarrayseq A_State_Draw 18153472 V_Y 65536 1024 SCUBAMASK gs V_Pal RS_YFLIP_or_RS_TOPLEFT_or_ROTATESPRITE_FULL16 0
+  state S_Draw_Weap_Sprite
+endevent
+
+// Security camera overlay
+
+appendevent EVENT_DISPLAYCAMERAOSD
+  set RETURN -1
+
+  ifn sprite[].htg_t 0 1
+  {
+    setarrayseq A_State_Draw 24 33 65536 0 CAMCORNER 0 0 0 0
+    state S_Draw_View_Sprite
+
+    setarrayseq A_State_Draw 294 33 65536 0 CAMCORNER_add_1 0 0 0 0
+    state S_Draw_View_Sprite
+
+    setarrayseq A_State_Draw 22 163 65536 1024 CAMCORNER_add_1 0 0 0 0
+    state S_Draw_View_Sprite
+
+    setarrayseq A_State_Draw 300 163 65536 0 CAMCORNER_add_1 0 0 RS_YFLIP 0
+    state S_Draw_View_Sprite
+
+    set V_Temp1 totalclock
+    and V_Temp1 31
+    ifge V_Temp1 16
+    {
+      setarrayseq A_State_Draw 46 32 65536 0 CAMLIGHT 0 0 0 0
+      state S_Draw_View_Sprite
+    }
+  }
+  else
+  {
+    set V_Orient totalclock
+    shiftl V_Orient 1
+    and V_Orient 48
+
+    whilel V_X 394
+    {
+      whilel V_Y 200
+      {
+        setarrayseq A_State_Draw V_X V_Y 65536 0 STATIC 0 0 V_Orient 0
+        state S_Draw_View_Sprite
+
+        add V_Y 64
+      }
+      add V_X 64
+    }
+  }
+endevent

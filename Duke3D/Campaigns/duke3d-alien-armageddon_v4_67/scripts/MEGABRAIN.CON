@@ -1,0 +1,551 @@
+// MEGABRAIN
+// sprites by sebabdukeboss20, code by Dan Gaskill
+// version .90 February 19, 2018
+
+// define MEGABRAIN 5811
+
+spriteflags MEGABRAIN 6299648
+move MEGAJIBMOVE 192
+action MEGAJIBFRAMES 0 2 1 1 6
+
+useractor notenemy MEGAJIB 0 MEGAJIBFRAMES
+
+ifmove 0
+{
+	sizeat 32 32
+	ifrnd 128 cstator 4
+	ifrnd 128 cstator 8
+	seta[].zvel -3072
+	move MEGAJIBMOVE geth randomangle
+}
+
+ifcount 5
+	ifrnd 128
+{
+	randvar temp 3
+	ife temp 0 cstat 0
+	ife temp 1 cstat 4
+	ife temp 2 cstat 8
+	ife temp 3 cstat 12
+}
+fall
+iffloordistl 2 killit
+
+enda
+
+spritenoshade BIGSHOCKER
+spritenopal BIGSHOCKER
+action ABIGSHOCKFRAMES -1 4 1 1 4
+move BIGSHOCKVELS 464
+useractor notenemy BIGSHOCKER 33 ABIGSHOCKFRAMES
+
+ifmove 0
+{
+	sizeat 32 32
+	cstat 256
+	cstator 130
+	move BIGSHOCKVELS faceplayerslow
+	seta[].shade -100
+	seta[].blend 1
+	
+	ife rendmode 4
+	{
+		espawn SMALLSMOKE
+		seta[RETURN].lotag 49
+		seta[RETURN].hitag 10240
+		seta[RETURN].xrepeat 2
+		seta[RETURN].yrepeat 2
+		seta[RETURN].xvel 192 // R value
+		seta[RETURN].yvel 192 // G value
+		seta[RETURN].zvel 255 // B value
+		setav[RETURN].myspawner THISACTOR
+		geta[].picnum picnum
+		setav[RETURN].mtype picnum
+		seta[RETURN].picnum SECTOREFFECTOR
+		seta[RETURN].cstat 0
+		changespritestat RETURN 3
+	}
+}
+
+state targetsearch
+ife bottarget -1 getp[].i bottarget
+
+
+	geta[].z z
+	subvar z 8192
+	seta[].z z
+	geta[bottarget].z tempb
+	ifle tempb z set targethigher YES else set targethigher NO
+	subvar tempb 8192
+	seta[bottarget].z tempb
+	canseespr THISACTOR bottarget seemytarget
+	add z 8192
+	seta[].z z
+	add tempb 8192
+	seta[bottarget].z tempb
+	ife seemytarget YES set shootmytarget YES // temp stand in for hitscan verification
+	dist targetdist THISACTOR bottarget
+	ifn actorvar[bottarget].monstatus 2 set targetalive YES
+	else set targetalive NO
+		
+	geta[bottarget].x x
+	geta[bottarget].y y
+	sub x sprite[].x
+	sub y sprite[].y
+	getangle angvar x y
+	
+	geta[].ang temp
+	getincangle tempb angvar temp
+	ifl tempb 0 add temp 24 else sub temp 24
+	seta[].ang temp
+
+ifactorsound THISACTOR MEGASHOCK nullop else sound MEGASHOCK
+ifcount 240
+{
+	strength 0
+	seta[].htextra 10
+	seta[].htpicnum SHOTSPARK1
+	seta[].htowner player[].i
+}
+
+ifhitweapon
+{
+	ifdead
+	{
+		// spawn ELEC_EXP
+		spawn SHOCK_ACTOR
+		spawn AIRSHOCK
+		spawn AIRSHOCK
+		sound MEGAIMPACT2
+		hitradius 2048 24 28 32 36
+		ifpdistl 2048 seta[player[].i].htowner THISACTOR
+		stopactorsound THISACTOR MEGASHOCK
+		killit
+	}
+}
+ife seemytarget YES
+ifl targetdist 1280
+{
+	spawn SHOCK_ACTOR
+	spawn AIRSHOCK
+	spawn AIRSHOCK
+	sound MEGAIMPACT2
+	hitradius 2048 24 28 32 36
+	ifpdistl 1280
+	ife pdown NO
+	palfrom 63 56 56 60
+	stopactorsound THISACTOR MEGASHOCK
+	killit
+}
+
+findplayer xydist
+setvar xydist2 4096
+subvarvar xydist2 xydist
+ifvarg xydist2 0
+ifcansee
+{
+	shiftvarr xydist2 6
+	addvar xydist2 16
+	ifvarg xydist2 63 setvar xydist2 63
+	ifvarvarl player[THISACTOR].pals_time xydist2
+	setplayer[THISACTOR].pals_time xydist2
+	setplayer[THISACTOR].pals 0 56
+	setplayer[THISACTOR].pals 1 56
+	setplayer[THISACTOR].pals 2 63
+}
+
+geta[bottarget].z zdist
+sub zdist 8192
+geta[].z z
+sub zdist z
+ifl zdist -2048
+{
+	ifceilingdistl 8 nullop else
+	{
+		sub z 644
+		seta[].z z
+	}
+}
+else ifg zdist 2048
+{
+	iffloordistl 8 nullop else
+	{
+		add z 644
+		seta[].z z
+	}
+}
+
+enda
+
+action MEGAPROJFRAMES 9652 4 1 1 3
+useractor notenemy MEGAPROJ MEGAPROJSTRENGTH MEGAPROJFRAMES enda
+
+action AMEGAWALK    0   3   5   1   15
+action AMEGASTAND     0   1   5   1   15
+action AMEGAHIT    20   2   1   1   10
+action AMEGASHOOT    15   1   5   1   10
+action AMEGASHOCK    25   1   5   1   20
+action AMEGADYING    20   5   1   1   20
+action AMEGAFROZEN   0  1  5  1  10
+move MEGAWALKVELS 128 -22
+move MEGAUPVELS 128 -65
+move MEGASTOPPED 0 -30
+move MEGAINWATER 128 24
+
+ai AIMEGAGETENEMY AMEGAWALK MEGAWALKVELS seekplayer
+ai AIMEGASHOOTENEMY AMEGASHOOT MEGASTOPPED faceplayer
+ai AIMEGASHOCK AMEGASHOCK MEGASTOPPED faceplayerslow
+ai AIMEGAHIT AMEGAHIT MEGASTOPPED faceplayer
+ai AIMEGASHRUNK AMEGAWALK SHRUNKVELS fleeenemy
+ai AIMEGAGROW AMEGASTAND MEGASTOPPED faceplayerslow
+ai AIMEGADYING AMEGADYING MEGASTOPPED geth
+
+state megagetenemystate
+
+  ifinwater nullop else
+  ifmove MEGAWALKVELS
+  ifnotmoving ifcount 30
+  {
+	  move MEGAUPVELS seekplayer getv
+  }
+  
+
+  ife targethigher NO
+  {
+	  ifmove MEGAUPVELS ifcount 90 ifrnd 8
+	  move MEGAWALKVELS seekplayer
+  }
+  ifmove MEGAUPVELS ifceilingdistl 96
+  ifcount 60
+	move MEGAWALKVELS seekplayer
+
+  ife seemytarget YES
+  {
+    set temp NO
+	ifge SKILL 4 { ifactioncount 16 set temp YES }
+	else ifactioncount 28 set temp YES
+	
+    ife temp YES
+    {
+      ifrnd 48
+        ife shootmytarget YES
+		  ife targetalive YES
+      {
+	    findnearactor BIGSHOCKER 16384 spriteid
+		ife spriteid -1
+		ife shrunken 0
+	    ifrnd 96 ai AIMEGASHOCK
+		else
+        ai AIMEGASHOOTENEMY
+        break
+      }
+    }
+  }
+
+ends
+
+state megashootenemystate
+  ifcount 17
+  {
+    ifcount 18
+      ai AIMEGAGETENEMY
+  }
+  else
+    ifcount 16
+	{
+	  sound MEGAFIRE
+      shoot MEGAPROJ
+	  eshoot MEGAPROJ
+	  geta[RETURN].ang angvar
+	  sub angvar 64
+	  seta[RETURN].ang angvar
+	  eshoot MEGAPROJ
+	  geta[RETURN].ang angvar
+	  add angvar 64
+	  seta[RETURN].ang angvar
+	}
+  else
+    ifactioncount 5
+      resetactioncount
+ends
+
+state checkmegahitstate
+  ifwasweapon SHRINKSPARK
+  {
+    sound ACTOR_SHRINKING
+    // ai AIMEGASHRUNK
+	set shrunken 1
+  }
+  else
+  {
+    ifdead
+    {
+      ifwasweapon FREEZEBLAST
+      {
+        sound NEWFREEZE
+        spritepal 1
+        move 0
+        action AMEGAFROZEN
+        strength 0
+		state freezeme
+        break
+      }
+
+      addkills 1 state enemy_death
+
+        state rf
+		spritepal 10
+        ai AIMEGADYING
+        seta[].mdflags 0
+		seta[].htflags 4
+		seta[].shade -127
+		ifg shrunken 10 ifl shrunken SHRUNKCOUNT
+		{
+			setp[].sound_pitch 1560
+			sound MEGADEATH
+			setp[].sound_pitch 0
+		}
+		else
+      sound MEGADEATH
+    }
+    else
+    {
+        ifwasweapon GROWSPARK
+          sound SPARKLESOUND
+		
+		
+		ifactorsound THISACTOR MEGAPAIN nullop else 
+		{
+			sound MEGAPAIN
+			ifg shrunken 10 ifl shrunken SHRUNKCOUNT
+				setactorsoundpitch THISACTOR MEGAPAIN SHRUNKPITCH
+		}
+		
+
+	  ifn sprite[].htpicnum FREEZEBLAST
+	  ifn sprite[].htpicnum SHRINKSPARK
+	  ife shrunken 0
+      spawn BLOOD
+      ifai AIMEGAHIT nullop else
+      ifrnd 32
+	  ifn sprite[].htpicnum BURNING
+	  ifn sprite[].htpicnum RADWOUND
+        ai AIMEGAHIT
+      else
+      ifvarg stun 0
+        ai AIMEGAHIT
+    }
+  }
+  state random_wall_jibs
+ends
+
+state megashrunkstate
+  ifcount SHRUNKDONECOUNT
+    ai AIMEGAGETENEMY
+  else
+    ifcount SHRUNKCOUNT
+	{
+	  ifspritepal 19 sizeat 60 52 else
+      sizeto 48 40
+	}
+  else
+    state genericshrunkcode
+ends
+
+state megashockstate
+
+ifl targetdist 1280
+{
+	ifn bottarget -1
+	{
+		geta[bottarget].htextra temp
+		add temp 2
+		seta[bottarget].htextra temp
+		seta[bottarget].htowner THISACTOR
+		seta[bottarget].htang sprite[].ang
+		seta[bottarget].htpicnum BIGSHOCKER
+		ife bottarget player[].i palfrom 56 56 56 60
+	}
+	else
+	{
+		palfrom 56 56 56 60
+		addphealth -1
+	}
+}
+ifcount 17
+  {
+    ifcount 18
+      ai AIMEGAGETENEMY
+  }
+  else
+    ifcount 16
+	{
+	  sound MEGAFIRE
+      espawn BIGSHOCKER
+	  geta[RETURN].z temp
+	  sub temp 10240
+	  seta[RETURN].z temp
+	  setav[RETURN].team team
+	}
+  else
+    ifactioncount 5
+      resetactioncount
+	  
+ends
+
+state megadyingstate
+  ifcount 21 nullop else ifcount 20 
+  {
+	state standard_jibs
+	geta[].z savz
+	set temp savz
+	sub temp 10240
+	seta[].z temp
+	spawn MEGAJIB
+	spawn MEGAJIB
+	spawn MEGAJIB
+	spawn MEGAJIB
+	seta[].z savz
+  }
+  ifactioncount 5 killit
+ends
+
+useractor enemy MEGABRAIN MEGASTRENGTH
+
+  fall
+  state checksquished
+  ifai 0
+  {
+	ifl sprite[].xrepeat 4 spawn GLARESTAR
+    ai AIMEGAGETENEMY
+	sound MEGARECOG
+	sizeat 48 40
+	ifspritepal 19 { sizeat 60 52 addstrength 300 }
+	clipdist 96
+	cstat 257
+	seta[].mdflags 16
+  }
+	
+  state monsterai
+  
+  ifaction AMEGAFROZEN
+  {
+    ifcount THAWTIME
+    {
+      ai AIMEGAGETENEMY
+      getlastpal
+    }
+    else
+      ifcount FROZENDRIPTIME
+      {
+        ifactioncount 26
+        {
+          spawn WATERDRIP
+          resetactioncount
+        }
+      }
+    ifhitweapon
+    {
+      addkills 1 state enemy_death
+      ifwasweapon FREEZEBLAST
+      {
+	    resetcount resetactioncount
+        strength 0
+        break
+      }
+	  lotsofglass 10
+      state standard_jibs
+	  geta[].z savz
+	  set temp savz
+	  sub temp 10240
+	  seta[].z temp
+	  spawn MEGAJIB
+	  spawn MEGAJIB
+	  spawn MEGAJIB
+	  spawn MEGAJIB
+	  seta[].z savz
+      ifrnd 84
+        spawn BLOODPOOL
+      sound GLASS_BREAKING
+      killit
+    }
+    ifp pfacing
+      ifpdistl FROZENQUICKKICKDIST
+        state pkick_check
+    break
+  }
+  else
+  {
+    ifrnd 1
+	{
+	  	ifg shrunken 10 ifl shrunken SHRUNKCOUNT
+		nullop
+		else
+		{
+			ifactorsound THISACTOR MEGAROAM1 nullop else
+			ifactorsound THISACTOR MEGAROAM2 nullop else
+			{
+				ifrnd 128 sound MEGAROAM1 else sound MEGAROAM2
+			}
+		}
+	}
+
+    ifai AIMEGAGETENEMY
+      state megagetenemystate
+    else
+      ifai AIMEGAHIT
+      {
+	    ifvarg stun 0 resetcount
+        ifcount 8
+          ai AIMEGASHOOTENEMY
+      }
+    else
+      ifai AIMEGADYING
+      {
+        state megadyingstate
+        break
+      }
+    else
+      ifai AIMEGASHOOTENEMY
+        state megashootenemystate
+    else
+	  ifai AIMEGASHOCK
+	    state megashockstate
+	else
+      ifai AIMEGASHRUNK
+      {
+        state megashrunkstate
+        break
+      }
+    else
+      ifai AIMEGAGROW
+        state genericgrowcode
+
+    ifmove MEGAUPVELS nullop
+    else
+      ife targethigher YES
+	  {	
+	    ifceilingdistl 96 nullop else
+		ifcount 20
+        move MEGAUPVELS seekplayer
+	  }
+    else
+      ifmove MEGAINWATER nullop
+      else
+        ifinwater
+          move MEGAINWATER seekplayer
+	 
+	ife monstatus -1 break
+	
+	geta[].htextra temp
+	ifg temp 0 ife sprite[].htpicnum RPG
+	{
+		mul temp 2
+		seta[].htextra temp
+	}
+	
+    ifhitweapon
+      state checkmegahitstate
+	else state checksquished
+  }
+enda

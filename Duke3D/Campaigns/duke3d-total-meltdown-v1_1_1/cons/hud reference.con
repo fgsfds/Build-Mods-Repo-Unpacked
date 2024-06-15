@@ -1,0 +1,1079 @@
+// Status bar drawing functions
+
+defstate S_Set_Draw_Sbar_Scale
+  ifn userdef[].statusbarscale 100
+  {
+    ifand V_Draw_Orient RS_ALIGN_L
+      set V_Draw_Pivot_X 0
+    else
+    ifand V_Draw_Orient RS_ALIGN_R
+      set V_Draw_Pivot_X 20971520
+    else
+      set V_Draw_Pivot_X 10485760
+    sub V_Draw_X V_Draw_Pivot_X
+    sub V_Draw_Y 13107200
+
+    scalevar V_Draw_X V_Draw_X userdef[].statusbarscale 100
+    scalevar V_Draw_Y V_Draw_Y userdef[].statusbarscale 100
+
+    scalevar V_Draw_Scale V_Draw_Scale userdef[].statusbarscale 100
+
+    add V_Draw_X V_Draw_Pivot_X
+    add V_Draw_Y 13107200
+  }
+ends
+
+state Set_Draw_Shadow
+  ifand V_Draw_Orient ROTATESPRITE_FULL16
+  {
+    add V_Draw_X 65536
+    add V_Draw_Y 65536
+  }
+  else
+  {
+    add V_Draw_X 1
+    add V_Draw_Y 1
+  }
+  or V_Draw_Orient RS_TRANS1_or_RS_TRANS2
+ends
+
+defstate S_Draw_Sbar_Sprite
+  ife V_Draw_Shadow 1
+  ifn rendmode REND_CLASSIC
+  {
+    getarrayseq A_State_Draw V_Draw_X V_Draw_Y V_Draw_Scale V_Draw_Ang V_Draw_Picnum V_Draw_Shade V_Draw_Pal V_Draw_Orient V_Draw_Alpha
+
+    state Set_Draw_Shadow
+
+    or V_Draw_Orient RS_NOCLIP
+    state S_Set_Draw_Quote_Parameters
+    state S_Set_Draw_Sbar_Scale
+
+    rotatespritea V_Draw_X V_Draw_Y V_Draw_Scale V_Draw_Ang V_Draw_Picnum 127 4 V_Draw_Orient V_Draw_Alpha 0 0 xdim_sub_1 ydim_sub_1
+  }
+
+  getarrayseq A_State_Draw V_Draw_X V_Draw_Y V_Draw_Scale V_Draw_Ang V_Draw_Picnum V_Draw_Shade V_Draw_Pal V_Draw_Orient V_Draw_Alpha
+
+  or V_Draw_Orient RS_NOCLIP
+  state S_Set_Draw_Parameters
+  state S_Set_Draw_Sbar_Scale
+
+  rotatespritea V_Draw_X V_Draw_Y V_Draw_Scale V_Draw_Ang V_Draw_Picnum V_Draw_Shade V_Draw_Pal V_Draw_Orient V_Draw_Alpha 0 0 xdim_sub_1 ydim_sub_1
+ends
+
+defstate S_Draw_Sbar_Quote
+  ife V_Draw_Shadow 1
+  ifn rendmode REND_CLASSIC
+  {
+    getarrayseq A_State_Draw V_Draw_Picnum V_Draw_X V_Draw_Y V_Draw_Scale V_Draw_Ang V_Draw_Char_Ang V_Draw_Quote V_Draw_Shade V_Draw_Pal V_Draw_Orient V_Draw_Alpha V_Draw_X_Between V_Draw_Txt_Flags
+
+    state Set_Draw_Shadow
+
+    or V_Draw_Orient RS_NOCLIP
+    state S_Set_Draw_Quote_Parameters
+    state S_Set_Draw_Sbar_Scale
+
+    screentext V_Draw_Picnum V_Draw_X V_Draw_Y V_Draw_Scale V_Draw_Ang V_Draw_Char_Ang V_Draw_Quote 127 4 V_Draw_Orient V_Draw_Alpha 0 0 V_Draw_X_Between 0 V_Draw_Txt_Flags 0 0 xdim_sub_1 ydim_sub_1
+  }
+
+  getarrayseq A_State_Draw V_Draw_Picnum V_Draw_X V_Draw_Y V_Draw_Scale V_Draw_Ang V_Draw_Char_Ang V_Draw_Quote V_Draw_Shade V_Draw_Pal V_Draw_Orient V_Draw_Alpha V_Draw_X_Between V_Draw_Txt_Flags
+
+  or V_Draw_Orient RS_NOCLIP
+  state S_Set_Draw_Quote_Parameters
+  state S_Set_Draw_Sbar_Scale
+
+  screentext V_Draw_Picnum V_Draw_X V_Draw_Y V_Draw_Scale V_Draw_Ang V_Draw_Char_Ang V_Draw_Quote V_Draw_Shade V_Draw_Pal V_Draw_Orient V_Draw_Alpha 0 0 V_Draw_X_Between 0 V_Draw_Txt_Flags 0 0 xdim_sub_1 ydim_sub_1
+ends
+
+// Level stats drawing functions
+
+defstate S_Set_Draw_Stats_Scale
+  ifn userdef[].textscale 400
+  {
+    sub V_Draw_Y 13107200
+
+    scalevar V_Draw_X V_Draw_X userdef[].textscale 400
+    scalevar V_Draw_Y V_Draw_Y userdef[].textscale 400
+
+    scalevar V_Draw_Scale V_Draw_Scale userdef[].textscale 400
+
+    add V_Draw_Y 13107200
+  }
+
+  ife userdef[].screen_size 4
+  ife userdef[].althud 1
+  ife userdef[].hudontop 1
+    nullop
+  else
+  ifn userdef[].screen_size 0
+  {
+    ife userdef[].screen_size 4
+    {
+      ife userdef[].althud 1
+      {
+        set V_Draw_Temp1 tilesizy[BIGALPHANUM]
+        add V_Draw_Temp1 8
+      }
+      else
+        set V_Draw_Temp1 tilesizy[INVENTORYBOX]
+    }
+    else
+    ifg userdef[].screen_size 4
+      set V_Draw_Temp1 tilesizy[BOTTOMSTATUSBAR]
+    shiftl V_Draw_Temp1 16
+    scalevar V_Draw_Temp1 V_Draw_Temp1 userdef[].statusbarscale 100
+    sub V_Draw_Y V_Draw_Temp1
+  }
+ends
+
+
+
+
+
+
+
+
+
+
+// Pause text
+
+appendevent EVENT_DISPLAYSTART
+  ife userdef[].pause_on 1
+  {
+    set V_Mark_pause_on 1
+    setuserdef[].pause_on 2
+  }
+  else
+  ife userdef[].pause_on 0
+    set V_Mark_pause_on 0
+endevent
+
+appendevent EVENT_DISPLAYREST
+  ifn V_Mark_pause_on 1
+    break
+
+  ifand player[].gm MODE_MENU
+    break
+
+  redefinequote D_Quote_Temp1 GAME PAUSED
+
+  setarrayseq A_State_Draw BIGALPHANUM 160 100 65536 0 0 D_Quote_Temp1 0 0 RS_TOPLEFT 0 0 TEXT_XCENTER
+  state S_Draw_Quote
+endevent
+
+// 2D map text
+
+appendevent EVENT_DISPLAYOVERHEADMAPTEXT
+  set RETURN -1
+
+  ifn userdef[].overhead_on 2
+    break
+
+  set V_Y 11927552
+  ifge userdef[].screen_size 4
+  {
+    scalevar V_Temp1 2293760 userdef[].statusbarscale 100
+    sub V_Y V_Temp1
+  }
+
+  ifand LOGO_FLAGS LOGO_HIDEEPISODE
+    nullop
+  else
+  ife userdef[].user_map 0
+  {
+    qgetsysstr D_Quote_Temp1 STR_VOLUMENAME
+
+    setarrayseq A_State_Draw MINITEXT 65536 V_Y 65536 0 0 D_Quote_Temp1 0 0 RS_TOPLEFT_or_RS_ALIGN_L_or_ROTATESPRITE_FULL16 0 1 0
+    state S_Draw_Quote
+  }
+
+  add V_Y 393216
+  qgetsysstr D_Quote_Temp1 STR_MAPNAME
+
+  setarrayseq A_State_Draw MINITEXT 65536 V_Y 65536 0 0 D_Quote_Temp1 0 0 RS_TOPLEFT_or_RS_ALIGN_L_or_ROTATESPRITE_FULL16 0 1 0
+  state S_Draw_Quote
+endevent
+
+// Crosshair
+
+appendevent EVENT_DISPLAYCROSSHAIR
+  set RETURN -1
+
+  set V_X 160
+  set V_Temp1 player[].look_ang
+  shiftr V_Temp1 1
+  sub V_X V_Temp1
+
+  scalevar V_Scale 65536 userdef[].crosshairscale 100
+
+  setarrayseq A_State_Draw V_X 100 V_Scale 0 CROSSHAIR 0 CROSSHAIR_PAL 0 0
+  state S_Draw_View_Sprite
+endevent
+
+appendevent EVENT_DISPLAYPOINTER
+  set RETURN -1
+
+  setarrayseq A_State_Draw userdef[].return 1 userdef[].return 2 65536 0 CROSSHAIR 0 CROSSHAIR_PAL ROTATESPRITE_FULL16 0
+  state S_Draw_View_Sprite
+endevent
+
+// Quotes
+
+appendevent EVENT_DISPLAYSTART
+  ife V_Mark_DISPLAYSBAR 0
+  {
+    set V_Old_fta player[].fta
+    setplayer[].fta 0
+  }
+endevent
+
+appendevent EVENT_DISPLAYREST
+  ife V_Mark_DISPLAYSBAR 1
+    setplayer[].fta V_Old_fta
+endevent
+
+appendevent EVENT_DISPLAYSBAR
+  ifg V_Old_fta 0
+  {
+    switch player[].ftq
+    default
+      set V_Y 0
+    break
+    case QUOTE_RESERVED
+    case QUOTE_RESERVED2
+    case QUOTE_RESERVED3
+      ifg userdef[].screen_size 0
+        set V_Y 151
+      else
+        set V_Y 188
+    break
+    endswitch
+
+    ifg V_Old_fta 4
+    {
+      setarrayseq A_State_Draw STARTALPHANUM 160 V_Y 65536 0 0 player[].ftq 0 0 RS_TOPLEFT 0 0 TEXT_XCENTER
+      state S_Draw_Quote
+    }
+    else
+    {
+      setarrayseq A_State_Draw STARTALPHANUM 160 V_Y 65536 0 0 player[].ftq 0 0 RS_RS_TRANS1_or_TOPLEFT 0 0 TEXT_XCENTER
+      state S_Draw_Quote
+    }
+    else
+    {
+      setarrayseq A_State_Draw STARTALPHANUM 160 V_Y 65536 0 0 player[].ftq 0 0 RS_RS_TRANS1_or_TOPLEFT_or_RS_TRANS2 0 0 TEXT_XCENTER
+      state S_Draw_Quote
+    }
+  }
+endevent
+
+// Inventory bar
+
+appendevent EVENT_DISPLAYSTART
+  ife V_Mark_DISPLAYSTART 1
+    break
+  set V_Old_invdisptime player[].invdisptime
+  setplayer[].invdisptime 0
+endevent
+
+appendevent EVENT_DISPLAYREST
+  ife V_Mark_DISPLAYSTART 0
+    break
+  setplayer[].invdisptime V_Old_invdisptime
+endevent
+
+appendevent EVENT_DISPLAYSBAR
+  ifg V_Old_invdisptime 0
+  {
+    // If any inventory is avaiable
+    set V_Count 0
+    for V_This_Inv range D_Max_Inv
+    {
+      add V_This_Inv 1
+      set V_State_Inv V_This_Inv
+      state S_Check_Inv_Amount
+      add V_Count V_State_True
+    }
+    ifg V_Count 0
+    {
+      set V_X 10485760
+      set V_Temp1 V_Count
+      mul V_Temp1 720896
+      sub V_X V_Temp1
+
+      ifg userdef[].screen_size 4
+        set V_Y 10092544
+      else
+        set V_Y 11272192
+
+      ifg userdef[].screen_size 4
+      {
+        set V_Temp1 tilesizy[BOTTOMSTATUSBAR]
+        shiftl V_Temp1 15
+        add V_Y V_Temp1
+
+        ife userdef[].statusbarmode 1
+          shiftl V_Temp1 1
+        scalevar V_Temp1 V_Temp1 userdef[].statusbarscale 100
+        sub V_Y V_Temp1
+      }
+      else
+      ife userdef[].screen_size 4
+      {
+        ife userdef[].althud 1
+        {
+          scalevar V_Temp1 1638400 userdef[].statusbarscale 100
+          sub V_Y V_Temp1
+        }
+        else
+        {
+          ifmultiplayer
+            set V_Temp1 3670016
+          else
+            set V_Temp1 4259840
+          scalevar V_Temp1 V_Temp1 userdef[].statusbarscale 100
+          add V_X V_Temp1
+        }
+      }
+
+      for V_This_Inv range D_Max_Inv
+      {
+        add V_This_Inv 1
+        set V_State_Inv V_This_Inv
+        state S_Check_Inv_Amount
+        ife V_State_True 1
+        {
+          set V_X2 V_X
+          set V_Y2 V_Y
+
+          switch V_This_Inv
+          case ICON_FIRSTAID
+            setarrayseq A_State_Draw V_X2 V_Y2 65536 0 FIRSTAID_ICON 0 0 RS_TOPLEFT_or_ROTATESPRITE_FULL16 0
+            state S_Draw_View_Sprite
+          break
+          case ICON_STEROIDS
+            add V_X2 65536
+
+            setarrayseq A_State_Draw V_X2 V_Y2 65536 0 STEROIDS_ICON 0 0 RS_TOPLEFT_or_ROTATESPRITE_FULL16 0
+            state S_Draw_View_Sprite
+          break
+          case ICON_HOLODUKE
+            add V_X2 131072
+
+            setarrayseq A_State_Draw V_X2 V_Y2 65536 0 HOLODUKE_ICON 0 0 RS_TOPLEFT_or_ROTATESPRITE_FULL16 0
+            state S_Draw_View_Sprite
+          break
+          case ICON_JETPACK
+            setarrayseq A_State_Draw V_X2 V_Y2 65536 0 JETPACK_ICON 0 0 RS_TOPLEFT_or_ROTATESPRITE_FULL16 0
+            state S_Draw_View_Sprite
+          break
+          case ICON_HEATS
+            setarrayseq A_State_Draw V_X2 V_Y2 65536 0 HEAT_ICON 0 0 RS_TOPLEFT_or_ROTATESPRITE_FULL16 0
+            state S_Draw_View_Sprite
+          break
+          case ICON_SCUBA
+            setarrayseq A_State_Draw V_X2 V_Y2 65536 0 AIRTANK_ICON 0 0 RS_TOPLEFT_or_ROTATESPRITE_FULL16 0
+            state S_Draw_View_Sprite
+          break
+          case ICON_BOOTS
+            sub V_Y2 65536
+
+            setarrayseq A_State_Draw V_X2 V_Y2 65536 0 BOOT_ICON 0 0 RS_TOPLEFT_or_ROTATESPRITE_FULL16 0
+            state S_Draw_View_Sprite
+          break
+          endswitch
+
+          add V_X 1441792
+
+          ife player[].inven_icon V_This_Inv
+          {
+            set V_X2 V_X
+            set V_Y2 V_Y
+
+            sub V_X2 131072
+            add V_Y2 1245184
+
+            setarrayseq A_State_Draw V_X2 V_Y2 65536 1024 ARROW -32 0 RS_TOPLEFT_or_ROTATESPRITE_FULL16 0
+            state S_Draw_View_Sprite
+          }
+        }
+      }
+    }
+  }
+endevent
+
+// Status bar
+
+defstate S_Display_Sbar_Inv
+  getarrayseq A_State_Sbar V_Sbar_X V_Sbar_Y V_Sbar_Orient
+
+  set V_X V_Sbar_X
+  set V_Y V_Sbar_Y
+
+  switch player[].inven_icon
+  case ICON_FIRSTAID
+    set V_Picnum FIRSTAID_ICON
+  break
+  case ICON_STEROIDS
+    set V_Picnum STEROIDS_ICON
+  break
+  case ICON_HOLODUKE
+    set V_Picnum HOLODUKE_ICON
+  break
+  case ICON_JETPACK
+    set V_Picnum JETPACK_ICON
+  break
+  case ICON_HEATS
+    set V_Picnum HEAT_ICON
+  break
+  case ICON_SCUBA
+    set V_Picnum AIRTANK_ICON
+  break
+  case ICON_BOOTS
+    set V_Picnum BOOT_ICON
+  break
+  case ICON_TRIPBOMB
+    set V_Picnum TRIPBOMB_ICON
+  break
+  endswitch
+
+  or V_Sbar_Orient RS_TOPLEFT
+
+  setarrayseq A_State_Draw V_X V_Y 65536 0 V_Picnum 0 0 V_Sbar_Orient 0
+  state S_Draw_Sbar_Sprite
+
+  set V_X V_Sbar_X
+  set V_Y V_Sbar_Y
+
+  add V_X 30
+  add V_Y 11
+
+  // -1 = Skip
+  // 0 = Off
+  // 1 = On
+  // 2 = Auto
+
+  switch player[].inven_icon
+  case ICON_FIRSTAID
+    set V_Amount player[].firstaid_amount
+
+    set V_Mode -1
+  break
+  case ICON_STEROIDS
+    set V_Amount player[].steroids_amount
+    add V_Amount 3
+    shiftr V_Amount 2
+
+    set V_Mode -1
+  break
+  case ICON_HOLODUKE
+    set V_Amount player[].holoduke_amount
+    add V_Amount 15
+    div V_Amount 24
+    ifn player[].holoduke_on -1
+
+      set V_Mode 1
+    else
+      set V_Mode 0
+  break
+  case ICON_JETPACK
+    set V_Amount player[].jetpack_amount
+    add V_Amount 15
+    shiftr V_Amount 4
+    ifn player[].jetpack_on 0
+
+      set V_Mode 1
+    else
+      set V_Mode 0
+  break
+  case ICON_HEATS
+    set V_Amount player[].heat_amount
+    div V_Amount 12
+
+    set V_Mode player[].heat_on
+  break
+  case ICON_SCUBA
+    set V_Amount player[].scuba_amount
+    add V_Amount 63
+    shiftr V_Amount 6
+
+    set V_Mode 2
+  break
+  case ICON_BOOTS
+    set V_Amount player[].boot_amount
+    shiftr V_Amount 1
+
+    set V_Mode 2
+  break
+  endswitch
+
+  redefinequote D_Quote_Temp1 %d
+  qsprintf D_Quote_Temp1 D_Quote_Temp1 V_Amount
+
+  setarrayseq A_State_Draw THREEBYFIVE V_X V_Y 65536 0 0 D_Quote_Temp1 0 0 V_Sbar_Orient 0 1 TEXT_XRIGHT
+  state S_Draw_Sbar_Quote
+
+  add V_X 1
+  redefinequote D_Quote_Temp1 %
+
+  setarrayseq A_State_Draw MINIFONT V_X V_Y 65536 0 6 D_Quote_Temp1 0 0 V_Sbar_Orient 0 1 0
+  state S_Draw_Sbar_Quote
+
+  ifn V_Mode -1
+  {
+    ife V_Mode 0
+    {
+      set V_X V_Sbar_X
+      set V_Y V_Sbar_Y
+
+      add V_X 23
+      sub V_Y 1
+
+      redefinequote D_Quote_Temp1 OFF
+
+      setarrayseq A_State_Draw MINIFONT V_X V_Y 65536 0 2 D_Quote_Temp1 0 0 V_Sbar_Orient 0 1 0
+      state S_Draw_Sbar_Quote
+    }
+    else
+    ife V_Mode 1
+    {
+      set V_X V_Sbar_X
+      set V_Y V_Sbar_Y
+
+      add V_X 27
+      sub V_Y 1
+
+      redefinequote D_Quote_Temp1 ON
+
+      setarrayseq A_State_Draw MINIFONT V_X V_Y 65536 0 0 D_Quote_Temp1 0 0 V_Sbar_Orient 0 1 0
+      state S_Draw_Sbar_Quote
+    }
+    else
+    ife V_Mode 2
+    {
+      set V_X V_Sbar_X
+      set V_Y V_Sbar_Y
+
+      add V_X 18
+      sub V_Y 1
+
+      redefinequote D_Quote_Temp1 AUTO
+
+      setarrayseq A_State_Draw MINIFONT V_X V_Y 65536 0 2 D_Quote_Temp1 0 0 V_Sbar_Orient 0 1 0
+      state S_Draw_Sbar_Quote
+    }
+  }
+ends
+
+defstate S_Display_Weap_Num
+  set V_X V_Sbar_X
+  set V_Y V_Sbar_Y
+
+  sub V_X 4
+  add V_Y 4
+  set V_Picnum THREEBYFIVE
+
+  redefinequote D_Quote_Temp1 %d
+  qsprintf D_Quote_Temp1 D_Quote_Temp1 V_Sbar_Num
+
+  ife player[].curr_weapon HANDREMOTE_WEAPON
+  ife V_Sbar_Weap HANDBOMB_WEAPON
+    set V_Shade 0
+  else
+  ife player[].curr_weapon V_Sbar_Weap
+    set V_Shade 0
+  else
+  ife player[].gotweapon V_Sbar_Weap 1
+    set V_Shade 3
+  else
+    set V_Shade 12
+
+  setarrayseq A_State_Draw V_Picnum V_X V_Y 65536 0 7 D_Quote_Temp1 V_Shade 0 V_Sbar_Orient 0 1 TEXT_XRIGHT V_Sbar_Aspect
+  state S_Draw_Sbar_Quote
+
+  set V_X V_Sbar_X
+  set V_Y V_Sbar_Y
+
+  sub V_X 4
+  add V_Y 4
+
+  ifg V_Shade 0
+    add V_Shade 9
+
+  setarrayseq A_State_Draw V_X V_Y 65536 0 THREEBYFIVE_add_10 V_Shade 0 V_Sbar_Orient 0 V_Sbar_Aspect
+  state S_Draw_Sbar_Sprite
+ends
+
+defstate S_Display_Weap_Num_2_Digits
+  getarrayseq A_State_Sbar V_Sbar_X V_Sbar_Y V_Sbar_Num V_Sbar_Weap V_Sbar_Orient V_Sbar_Aspect
+
+  state S_Display_Weap_Num
+
+  set V_X V_Sbar_X
+  set V_Y V_Sbar_Y
+
+  add V_X 9
+  add V_Y 4
+
+  setarrayseq A_State_Draw V_X V_Y 65536 0 THREEBYFIVE_add_11 V_Shade 0 V_Sbar_Orient 0 V_Sbar_Aspect
+  state S_Draw_Sbar_Sprite
+
+  set V_X V_Sbar_X
+
+  add V_X 7
+
+  set V_Value player[].ammo_amount V_Sbar_Weap
+  ifg V_Value 99
+    set V_Value 99
+  redefinequote D_Quote_Temp1 %d
+  qsprintf D_Quote_Temp1 D_Quote_Temp1 V_Value
+
+  setarrayseq A_State_Draw THREEBYFIVE V_X V_Y 65536 0 0 D_Quote_Temp1 V_Shade 0 V_Sbar_Orient 0 1 TEXT_XRIGHT V_Sbar_Aspect
+  state S_Draw_Sbar_Quote
+
+  set V_X V_Sbar_X
+
+  add V_X 14
+
+  set V_Value player[].max_ammo_amount V_Sbar_Weap
+  ifg V_Value 99
+    set V_Value 99
+  redefinequote D_Quote_Temp1 %d
+  qsprintf D_Quote_Temp1 D_Quote_Temp1 V_Value
+
+  setarrayseq A_State_Draw THREEBYFIVE V_X V_Y 65536 0 0 D_Quote_Temp1 V_Shade 0 V_Sbar_Orient 0 1 0 V_Sbar_Aspect
+  state S_Draw_Sbar_Quote
+ends
+
+defstate S_Display_Weap_Num_3_Digits
+  getarrayseq A_State_Sbar V_Sbar_X V_Sbar_Y V_Sbar_Num V_Sbar_Weap V_Sbar_Orient V_Sbar_Aspect
+
+  state S_Display_Weap_Num
+
+  set V_X V_Sbar_X
+  set V_Y V_Sbar_Y
+
+  add V_X 13
+  add V_Y 4
+
+  setarrayseq A_State_Draw V_X V_Y 65536 0 THREEBYFIVE_add_11 V_Shade 0 V_Sbar_Orient 0 V_Sbar_Aspect
+  state S_Draw_Sbar_Sprite
+
+  set V_X V_Sbar_X
+
+  add V_X 11
+
+  set V_Value player[].ammo_amount V_Sbar_Weap
+  ifg V_Value 999
+    set V_Value 999
+  redefinequote D_Quote_Temp1 %d
+  qsprintf D_Quote_Temp1 D_Quote_Temp1 V_Value
+
+  setarrayseq A_State_Draw THREEBYFIVE V_X V_Y 65536 0 0 D_Quote_Temp1 V_Shade 0 V_Sbar_Orient 0 1 TEXT_XRIGHT V_Sbar_Aspect
+  state S_Draw_Sbar_Quote
+
+  set V_X V_Sbar_X
+
+  add V_X 17
+
+  set V_Value player[].max_ammo_amount V_Sbar_Weap
+  ifg V_Value 999
+    set V_Value 999
+  redefinequote D_Quote_Temp1 %d
+  qsprintf D_Quote_Temp1 D_Quote_Temp1 V_Value
+
+  setarrayseq A_State_Draw THREEBYFIVE V_X V_Y 65536 0 0 D_Quote_Temp1 V_Shade 0 V_Sbar_Orient 0 1 0 V_Sbar_Aspect
+  state S_Draw_Sbar_Quote
+ends
+
+defstate S_Display_Sbar
+  setarrayseq A_State_Draw 160 197 65536 0 BOTTOMSTATUSBAR 0 0 0 0 D_Aspect_Psx_or_D_Aspect_B
+  state S_Draw_Sbar_Sprite
+
+  ifmultiplayer
+  ifand gametype_flags GAMETYPE_FRAGBAR
+  {
+    setarrayseq A_State_Draw 277 173 65536 0 KILLSICON 0 0 RS_TOPLEFT 0 D_Aspect_Psx_or_D_Aspect_B
+    state S_Draw_Sbar_Sprite
+  }
+
+  // To-do: Draw rectangles in the areas that are updated
+
+  ifmultiplayer
+  ifand gametype_flags GAMETYPE_FRAGBAR
+  {
+    set V_Value player[].frag
+    sub V_Value player[].fraggedself
+    redefinequote D_Quote_Temp1 %d
+    qsprintf D_Quote_Temp1 D_Quote_Temp1 V_Value
+
+    setarrayseq A_State_Draw DIGITALNUM 286 197 65536 0 0 D_Quote_Temp1 0 0 RS_TOPLEFT 0 D_Font_X_Between TEXT_XCENTER D_Aspect_Psx_or_D_Aspect_B
+    state S_Draw_Sbar_Quote
+  }
+  else
+  {
+    ifand player[].got_access 4
+    {
+      setarrayseq A_State_Draw 280 198 65536 0 ACCESS_ICON 0 23 0 0 D_Aspect_Psx_or_D_Aspect_B
+      state S_Draw_Sbar_Sprite
+    }
+    ifand player[].got_access 2
+    {
+      setarrayseq A_State_Draw 293 198 65536 0 ACCESS_ICON 0 21 0 0 D_Aspect_Psx_or_D_Aspect_B
+      state S_Draw_Sbar_Sprite
+    }
+    ifand player[].got_access 1
+    {
+      setarrayseq A_State_Draw 286 205 65536 0 ACCESS_ICON 0 0 0 0 D_Aspect_Psx_or_D_Aspect_B
+      state S_Draw_Sbar_Sprite
+    }
+  }
+
+  set V_Value player[].last_extra
+  ifspritepal 1
+  ifl V_Value 2
+    set V_Value 1
+  redefinequote D_Quote_Temp1 %d
+  qsprintf D_Quote_Temp1 D_Quote_Temp1 V_Value
+
+  setarrayseq A_State_Draw DIGITALNUM 32 197 65536 0 0 D_Quote_Temp1 0 0 RS_TOPLEFT 0 D_Font_X_Between TEXT_XCENTER D_Aspect_Psx_or_D_Aspect_B
+  state S_Draw_Sbar_Quote
+
+  redefinequote D_Quote_Temp1 %d
+  qsprintf D_Quote_Temp1 D_Quote_Temp1 player[].shield_amount
+
+  setarrayseq A_State_Draw DIGITALNUM 64 197 65536 0 0 D_Quote_Temp1 0 0 RS_TOPLEFT 0 D_Font_X_Between TEXT_XCENTER D_Aspect_Psx_or_D_Aspect_B
+  state S_Draw_Sbar_Quote
+
+  redefinequote D_Quote_Temp1 %d
+  ife player[].curr_weapon HANDREMOTE_WEAPON
+    qsprintf D_Quote_Temp1 D_Quote_Temp1 player[].ammo_amount HANDBOMB_WEAPON
+  else
+    qsprintf D_Quote_Temp1 D_Quote_Temp1 player[].ammo_amount player[].curr_weapon
+
+  setarrayseq A_State_Draw DIGITALNUM 208 197 65536 0 0 D_Quote_Temp1 0 0 RS_TOPLEFT 0 D_Font_X_Between TEXT_XCENTER D_Aspect_Psx_or_D_Aspect_B
+  state S_Draw_Sbar_Quote
+
+  setarrayseq A_State_Sbar 96 192 1 PISTOL_WEAPON 0 D_Aspect_Psx_or_D_Aspect_B
+  state S_Display_Weap_Num_3_Digits
+  setarrayseq A_State_Sbar 96 198 2 SHOTGUN_WEAPON 0 D_Aspect_Psx_or_D_Aspect_B
+  state S_Display_Weap_Num_3_Digits
+  setarrayseq A_State_Sbar 96 204 3 CHAINGUN_WEAPON 0 D_Aspect_Psx_or_D_Aspect_B
+  state S_Display_Weap_Num_3_Digits
+  setarrayseq A_State_Sbar 135 192 4 RPG_WEAPON 0 D_Aspect_Psx_or_D_Aspect_B
+  state S_Display_Weap_Num_2_Digits
+  setarrayseq A_State_Sbar 135 198 5 HANDBOMB_WEAPON 0 D_Aspect_Psx_or_D_Aspect_B
+  state S_Display_Weap_Num_2_Digits
+  ife player[].bsubweapon GROW_WEAPON 1
+    setarrayseq A_State_Sbar 135 204 6 GROW_WEAPON 0 D_Aspect_Psx_or_D_Aspect_B
+  else
+    setarrayseq A_State_Sbar 135 204 6 SHRINKER_WEAPON 0 D_Aspect_Psx_or_D_Aspect_B
+  state S_Display_Weap_Num_2_Digits
+  setarrayseq A_State_Sbar 166 192 7 DEVISTATOR_WEAPON 0 D_Aspect_Psx_or_D_Aspect_B
+  state S_Display_Weap_Num_2_Digits
+  setarrayseq A_State_Sbar 166 198 8 FREEZE_WEAPON 0 D_Aspect_Psx_or_D_Aspect_B
+  state S_Display_Weap_Num_2_Digits
+  setarrayseq A_State_Sbar 166 204 -1 TRIPBOMB_WEAPON 0 D_Aspect_Psx_or_D_Aspect_B
+  state S_Display_Weap_Num_2_Digits
+
+  ifn player[].inven_icon ICON_NONE
+  {
+    setarrayseq A_State_Sbar 231 193 0 D_Aspect_Psx_or_D_Aspect_B
+    state S_Display_Sbar_Inv
+  }
+ends
+
+defstate S_Display_Mini_Sbar
+  setarrayseq A_State_Draw 5 172 65536 0 HEALTHBOX 0 0 RS_TOPLEFT_or_RS_ALIGN_L 0 D_Aspect_Pc_or_D_Aspect_B
+  state S_Draw_Sbar_Sprite
+  ifn player[].inven_icon ICON_NONE
+  {
+    setarrayseq A_State_Draw 69 170 65536 0 INVENTORYBOX 0 0 RS_TOPLEFT_or_RS_ALIGN_L 0 D_Aspect_Pc_or_D_Aspect_B
+    state S_Draw_Sbar_Sprite
+  }
+
+  redefinequote D_Quote_Temp1 %d
+  set V_Value player[].last_extra
+  ifspritepal 1
+  ifl V_Value 2
+    set V_Value 1
+  qsprintf D_Quote_Temp1 D_Quote_Temp1 V_Value
+
+  setarrayseq A_State_Draw DIGITALNUM 20 183 65536 0 0 D_Quote_Temp1 0 0 RS_TOPLEFT_or_RS_ALIGN_L 0 D_Font_X_Between TEXT_XCENTER D_Aspect_Pc_or_D_Aspect_B
+  state S_Draw_Sbar_Quote
+
+  setarrayseq A_State_Draw 37 172 65536 0 AMMOBOX 0 0 RS_TOPLEFT_or_RS_ALIGN_L 0 D_Aspect_Pc_or_D_Aspect_B
+  state S_Draw_Sbar_Sprite
+
+  redefinequote D_Quote_Temp1 %d
+  ife player[].curr_weapon HANDREMOTE_WEAPON
+    qsprintf D_Quote_Temp1 D_Quote_Temp1 player[].ammo_amount HANDBOMB_WEAPON
+  else
+    qsprintf D_Quote_Temp1 D_Quote_Temp1 player[].ammo_amount player[].curr_weapon
+
+  setarrayseq A_State_Draw DIGITALNUM 52 183 65536 0 0 D_Quote_Temp1 0 0 RS_TOPLEFT_or_RS_ALIGN_L 0 D_Font_X_Between TEXT_XCENTER D_Aspect_Pc_or_D_Aspect_B
+  state S_Draw_Sbar_Quote
+
+  ifn player[].inven_icon ICON_NONE
+  {
+    setarrayseq A_State_Sbar 73 179 RS_ALIGN_L D_Aspect_Pc_or_D_Aspect_B
+    state S_Display_Sbar_Inv
+  }
+ends
+
+// Eduke32 new status bar
+
+defstate S_Display_Alt_Hud
+  set V_Draw_Shadow 1
+
+  setarrayseq A_State_Draw 2 179 49152 0 COLA 0 0 RS_TOPLEFT_or_RS_ALIGN_L 0 D_Aspect_Pc_or_D_Aspect_B
+  state S_Draw_Sbar_Sprite
+
+  set V_Temp1 1
+  set V_Temp2 player[].max_player_health
+  div V_Temp2 4
+  ifle player[].last_extra V_Temp1
+  {
+    set V_Continue totalclock
+    shiftr V_Continue 5
+    and V_Continue 1
+  }
+  else
+    set V_Continue 1
+  ife V_Continue 1
+  {
+    ifg player[].last_extra player[].max_player_health
+    {
+      set V_Shade totalclock
+      shiftl V_Shade 5
+      sin V_Shade V_Shade
+      shiftr V_Shade 11
+    }
+    else
+      set V_Shade 0
+
+    set V_Value player[].last_extra
+    ifspritepal 1
+    ifl V_Value 2
+      set V_Value 1
+    redefinequote D_Quote_Temp1 %d
+    qsprintf D_Quote_Temp1 D_Quote_Temp1 V_Value
+
+    setarrayseq A_State_Draw BIGALPHANUM 40 178 65536 0 0 D_Quote_Temp1 V_Shade 0 RS_TOPLEFT_or_RS_ALIGN_L 0 1 TEXT_XCENTER D_Aspect_Pc_or_D_Aspect_B
+    state S_Draw_Sbar_Quote
+  }
+
+  setarrayseq A_State_Draw 62 175 49152 0 SHIELD 0 0 RS_TOPLEFT_or_RS_ALIGN_L 0 D_Aspect_Pc_or_D_Aspect_B
+  state S_Draw_Sbar_Sprite
+
+  redefinequote D_Quote_Temp1 %d
+  qsprintf D_Quote_Temp1 D_Quote_Temp1 player[].shield_amount
+
+  setarrayseq A_State_Draw BIGALPHANUM 105 178 65536 0 0 D_Quote_Temp1 0 0 RS_TOPLEFT_or_RS_ALIGN_L 0 1 TEXT_XCENTER D_Aspect_Pc_or_D_Aspect_B
+  state S_Draw_Sbar_Quote
+
+  ifn player[].inven_icon ICON_NONE
+  {
+    setarrayseq A_State_Sbar 129 176 RS_ALIGN_L D_Aspect_Pc_or_D_Aspect_B
+    state S_Display_Sbar_Inv
+  }
+
+  ifg player[].got_access 0
+  {
+    ifand player[].got_access 1
+    {
+      setarrayseq A_State_Draw 281 157 32768 0 ACCESSCARD 0 0 RS_TOPLEFT_or_RS_ALIGN_R 0 D_Aspect_Pc_or_D_Aspect_B
+      state S_Draw_Sbar_Sprite
+    }
+    ifand player[].got_access 4
+    {
+      setarrayseq A_State_Draw 286 159 32768 0 ACCESSCARD 0 23 RS_TOPLEFT_or_RS_ALIGN_R 0 D_Aspect_Pc_or_D_Aspect_B
+      state S_Draw_Sbar_Sprite
+    }
+    ifand player[].got_access 2
+    {
+      setarrayseq A_State_Draw 291 161 32768 0 ACCESSCARD 0 21 RS_TOPLEFT_or_RS_ALIGN_R 0 D_Aspect_Pc_or_D_Aspect_B
+      state S_Draw_Sbar_Sprite
+    }
+  }
+
+  ifn player[].curr_weapon KNEE_WEAPON
+  {
+    switch player[].curr_weapon
+    case KNEE_WEAPON
+      set V_Picnum BOOTS
+    break
+    case PISTOL_WEAPON
+      set V_Picnum AMMO
+    break
+    case SHOTGUN_WEAPON
+      set V_Picnum SHOTGUNAMMO
+    break
+    case CHAINGUN_WEAPON
+      set V_Picnum BATTERYAMMO
+    break
+    case RPG_WEAPON
+      set V_Picnum RPGAMMO
+    break
+    case HANDBOMB_WEAPON
+    case HANDREMOTE_WEAPON
+      set V_Picnum HBOMBAMMO
+    break
+    case SHRINKER_WEAPON
+      set V_Picnum CRYSTALAMMO
+    break
+    case GROW_WEAPON
+      set V_Picnum GROWAMMO
+    break
+    case DEVISTATOR_WEAPON
+      set V_Picnum DEVISTATORAMMO
+    break
+    case TRIPBOMB_WEAPON
+      set V_Picnum TRIPBOMBSPRITE
+    break
+    case FREEZE_WEAPON
+      set V_Picnum FREEZEAMMO_add_1
+    break
+    endswitch
+
+    ifge tilesizy[V_Picnum] 50
+      set V_Scale 16384
+    else
+      set V_Scale 32768
+
+    setarrayseq A_State_Draw 263 185 V_Scale 0 V_Picnum 0 0 RS_ALIGN_R 0 D_Aspect_Pc_or_D_Aspect_B
+    state S_Draw_Sbar_Sprite
+
+    ife player[].curr_weapon HANDREMOTE_WEAPON
+      set V_Weap HANDBOMB_WEAPON
+    else
+      set V_Weap player[].curr_weapon
+    set V_Temp1 player[].max_ammo_amount V_Weap
+    div V_Temp1 10
+    ifle player[].ammo_amount V_Weap V_Temp1
+    {
+      set V_Continue totalclock
+      shiftr V_Continue 5
+      and V_Continue 1
+    }
+    else
+      set V_Continue 1
+    ife V_Continue 1
+    {
+      redefinequote D_Quote_Temp1 %d
+      qsprintf D_Quote_Temp1 D_Quote_Temp1 player[].ammo_amount V_Weap
+
+      setarrayseq A_State_Draw BIGALPHANUM 299 178 65536 0 0 D_Quote_Temp1 0 0 RS_TOPLEFT_or_RS_ALIGN_R 0 1 TEXT_XCENTER D_Aspect_Pc_or_D_Aspect_B
+      state S_Draw_Sbar_Quote
+    }
+  }
+
+  set V_Draw_Shadow 0
+ends
+
+// Display status bar
+
+appendevent EVENT_DISPLAYSBAR
+  set RETURN -1
+
+  ifl userdef[].screen_size 4
+    break
+
+  ife userdef[].screen_size 4
+  ife userdef[].althud 1
+    state S_Display_Alt_Hud
+  else
+  {
+    ife userdef[].screen_size 4
+      state S_Display_Mini_Sbar
+    else
+      state S_Display_Sbar
+  }
+endevent
+
+// Level stats
+
+defstate S_Draw_Stats_Quote
+  getarrayseq A_State_Draw V_Draw_Picnum V_Draw_X V_Draw_Y V_Draw_Scale V_Draw_Ang V_Draw_Char_Ang V_Draw_Quote V_Draw_Shade V_Draw_Pal V_Draw_Orient V_Draw_Alpha V_Draw_X_Between V_Draw_Txt_Flags V_Draw_Aspect
+
+  or V_Draw_Orient RS_NOCLIP
+  state S_Set_Draw_Quote_Parameters
+  state S_Set_Draw_Stats_Scale
+  state S_Set_Draw_PSX_Scale
+
+  screentext V_Draw_Picnum V_Draw_X V_Draw_Y V_Draw_Scale V_Draw_Ang V_Draw_Char_Ang V_Draw_Quote V_Draw_Shade V_Draw_Pal V_Draw_Orient V_Draw_Alpha 0 0 V_Draw_X_Between 0 V_Draw_Txt_Flags 0 0 xdim_sub_1 ydim_sub_1
+ends
+
+appendevent EVENT_DISPLAYLEVELSTATS
+  set RETURN -1
+  set V_Mark_DISPLAYLEVELSTATS 1
+endevent
+
+appendevent EVENT_DISPLAYSBAR
+  ife V_Mark_DISPLAYLEVELSTATS 1
+  {
+    set V_Mark_DISPLAYLEVELSTATS 0
+
+    set V_Temp1 STARTALPHANUM
+    add V_Temp1 32
+    set V_X_Between tilesizx[V_Temp1]
+
+    set V_Value player[].player_par
+    div V_Value REALGAMETICSPERSEC
+    div V_Value 60
+    set V_Value2 player[].player_par
+    div V_Value2 REALGAMETICSPERSEC
+    mod V_Value2 60
+    set V_Value4 player[].player_par
+    mod V_Value4 REALGAMETICSPERSEC
+    mul V_Value4 33
+    div V_Value4 10
+    set V_Value3 V_Value2
+    div V_Value2 10
+    mod V_Value3 10
+    set V_Value5 V_Value4
+    div V_Value4 10
+    mod V_Value5 10
+    redefinequote D_Quote_Temp1 T:^15%d:%d%d.%d%d
+    qsprintf D_Quote_Temp1 D_Quote_Temp1 V_Value V_Value2 V_Value3 V_Value4 V_Value5
+
+    setarrayseq A_State_Draw STARTALPHANUM 2 177 65536 0 0 D_Quote_Temp1 0 10 RS_TOPLEFT_or_RS_ALIGN_L 0 V_X_Between TEXT_XOFFSETZERO D_Aspect_Pc_or_D_Aspect_B
+    state S_Draw_Stats_Quote
+
+    ifmultiplayer
+    ifand gametype_flags GAMETYPE_PLAYERSFRIENDLY // GAMETYPE_FRAGBAR
+    {
+      redefinequote D_Quote_Temp1 K:^15%d
+      set V_Value player[].frag
+      sub V_Value player[].fraggedself
+      qsprintf D_Quote_Temp1 D_Quote_Temp1 V_Value
+    }
+    else
+    {
+      set V_Value player[].max_actors_killed
+      ifl V_Value player[].actors_killed
+        set V_Value player[].actors_killed
+
+      ife userdef[].respawn_monsters 1
+        redefinequote D_Quote_Temp1 K:^15%d
+      else
+      ifge player[].actors_killed player[].max_actors_killed
+        redefinequote D_Quote_Temp1 K:%d/%d
+      else
+        redefinequote D_Quote_Temp1 K:^15%d/%d
+      qsprintf D_Quote_Temp1 D_Quote_Temp1 player[].actors_killed V_Value
+    }
+
+    setarrayseq A_State_Draw STARTALPHANUM 2 184 65536 0 0 D_Quote_Temp1 0 10 RS_TOPLEFT_or_RS_ALIGN_L 0 V_X_Between TEXT_XOFFSETZERO D_Aspect_Pc_or_D_Aspect_B
+    state S_Draw_Stats_Quote
+
+    ifl player[].secret_rooms player[].max_secret_rooms
+      redefinequote D_Quote_Temp1 S:^15%d/%d
+    else
+      redefinequote D_Quote_Temp1 S:%d/%d
+    qsprintf D_Quote_Temp1 D_Quote_Temp1 player[].secret_rooms player[].max_secret_rooms
+
+    setarrayseq A_State_Draw STARTALPHANUM 2 191 65536 0 0 D_Quote_Temp1 0 10 RS_TOPLEFT_or_RS_ALIGN_L 0 V_X_Between TEXT_XOFFSETZERO D_Aspect_Pc_or_D_Aspect_B
+    state S_Draw_Stats_Quote
+  }
+endevent

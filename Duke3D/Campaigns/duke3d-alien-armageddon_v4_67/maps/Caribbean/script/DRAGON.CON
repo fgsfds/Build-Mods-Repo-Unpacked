@@ -1,0 +1,363 @@
+// CON Files for the 'Duke Carribean Add-on' by SunStorm Interactive
+//
+// Actor - DRAGON - Sprite #3585
+//
+// --- Resources ---
+//
+// Sounds:
+// Dragon Dying Sound     - DRAGDIE.WAV
+// Dragon Hurt Sound      - DRAGHURT.WAV
+// Dragon Roam Sound      - DRAGROAM.WAV
+// Dragon Wake-up Sound   - DRAGRECO.WAV
+//
+// Art:
+// 5 * 5 frame(s)         - Dragon Bouncing Animation
+// 6 * 1 frame(s)         - Dragon Dying Animation  
+// 5 * 2 frame(s)         - Dragon Firing Animation
+
+define DRAGON 2120
+define DRAGONSTRENGTH 50
+
+action DRAGONBOUNCE 1465 2 5 1 20
+action DRAGONBOUNCE2 1475 3 5 1 20
+action DRAGONSHOOT 1496 2 5 1 40
+action DRAGONSHRUNK 1465 5 5 1 30
+action DRAGONGROW   1465 5 5 1 30
+action DRAGONFROZEN 1496 1 5 1
+action DRAGONDEAD   1495 1 1
+action DRAGONDYING  1490 6 1 1 12
+move   DRAGONSPEED 60 0
+move   DRAGONFLEE  300 0
+move   DRAGONSTOPPED
+move   DRAGONBACK  -250 0
+move   DRAGONSHRUNKSPEED 50 0
+
+ai AIDRAGONFLEE     DRAGONBOUNCE DRAGONFLEE fleeenemy randomangle
+ai AIDRAGONBOUNCESEE  DRAGONBOUNCE DRAGONSPEED seekplayer
+ai AIDRAGONBOUNCE  DRAGONBOUNCE DRAGONSPEED faceplayer
+
+ai AIDRAGONFLEE2     DRAGONBOUNCE2 DRAGONFLEE fleeenemy randomangle
+ai AIDRAGONBOUNCESEE2  DRAGONBOUNCE2 DRAGONSPEED faceplayerslow
+ai AIDRAGONBOUNCE2  DRAGONBOUNCE2 DRAGONSPEED faceplayer
+
+ai AIDRAGONSHOOT   DRAGONSHOOT DRAGONSTOPPED faceplayer
+ai AIDRAGONSHRUNK  DRAGONBOUNCE DRAGONSHRUNKSPEED fleeenemy randomangle
+ai AIDRAGONGROW    DRAGONBOUNCE DRAGONSPEED faceplayer
+ai AIDRAGONDYING   DRAGONDYING  DRAGONBACK  faceplayer
+
+state dragon_jibs
+  debris SCRAP1 20
+  debris SCRAP2 22
+  debris SCRAP3 22
+  debris SCRAP4 22
+  debris SCRAP5 22
+  state jib_sounds
+ends
+
+state DRAGONBOUNCESTATESEE
+
+ifbulletnear { ai AIDRAGONFLEE }
+
+ifai AIDRAGONBOUNCESEE
+  {
+  ifactioncount 2
+    {
+    sound DRAGONROAM
+    ai AIDRAGONBOUNCESEE2
+    }
+  }
+  else
+  {
+  ifactioncount 3
+    {
+    ai AIDRAGONBOUNCESEE
+    }
+  }
+
+
+ifpdistl 6000
+  {
+  ifrnd 5
+    ifp palive
+      ai AIDRAGONSHOOT
+  }
+
+ifcansee
+  {
+  }
+  else
+  ai AIDRAGONBOUNCE
+
+ends
+
+state DRAGONBOUNCESTATE
+
+ifai AIDRAGONBOUNCE
+  {
+  ifactioncount 2
+    {
+    sound DRAGONROAM
+    ai AIDRAGONBOUNCE2
+    }
+  }
+  else
+  {
+  ifactioncount 3
+    {
+    ai AIDRAGONBOUNCE
+    }
+  }
+
+ifcansee ifrnd 64 ifcanshoottarget { ifp palive { ai AIDRAGONSHOOT } else { ai AIDRAGONBOUNCESEE } }
+
+ends
+
+
+state DRAGONSHOOTSTATE
+
+ifcount 8 { } else ifcount 7 { shoot RPG sound DRAGONSHOOTING }
+ifactioncount 2 { ifrnd 100 { resetcount resetactioncount } else { ai AIDRAGONBOUNCESEE resetcount resetactioncount  } }
+
+ends
+
+state DRAGONHITSTATE
+ifdead
+  {
+  state random_wall_jibs
+
+  ifwasweapon GROWSPARK
+    {
+//    sound ACTOR_GROWING
+    ai AIDRAGONGROW
+    break
+    }
+  addkills 1
+
+  ifwasweapon FREEZEBLAST
+    {
+    sound SOMETHINGFROZE
+    spritepal 1
+    move 0
+    action DRAGONFROZEN
+    strength 0
+    break
+    }
+  ifwasweapon RADIUSEXPLOSION
+    {
+    sound SQUISHED
+    state dragon_jibs
+    killit
+    }
+    else
+  ifwasweapon RPG
+    {
+    sound SQUISHED
+    state dragon_jibs
+    killit
+    }
+    else
+    {
+    ai AIDRAGONDYING
+    }
+
+  sound BALLEXPLODE
+  }
+  else
+  {
+  sound DRAGONPAIN
+  state random_wall_jibs
+  state random_wall_jibs
+  state random_wall_jibs
+  debris SCRAP3 5
+
+  ifwasweapon SHRINKSPARK
+    {
+    sound ACTOR_SHRINKING
+    ai AIDRAGONSHRUNK
+    }
+    else
+    ifwasweapon GROWSPARK
+      sound EXPANDERHIT
+      else
+      ifrnd 64 { ifai AIDRAGONSHOOT { } else { ai AIDRAGONSHOOT } }
+  }
+ends
+
+state DRAGONFLEESTATE
+
+ifai AIDRAGONFLEE
+  {
+  ifactioncount 2
+    {
+    sound DRAGONROAM
+    ai AIDRAGONFLEE2
+    }
+  }
+  else
+  {
+  ifactioncount 3
+    {
+    ai AIDRAGONFLEE
+    }
+  }
+
+ifrnd 15
+  {
+  ai AIDRAGONBOUNCE
+  }
+
+
+ends
+
+state DRAGONSHRINKSTATE
+ifcount SHRUNKDONECOUNT
+    {
+    ai AIDRAGONBOUNCE
+
+    }
+  else
+    ifcount SHRUNKCOUNT
+      sizeto 42 50
+  else
+    state genericshrunkcode
+ends
+
+state DRAGONDYINGSTATE
+ifactioncount 6
+  {
+  state rf
+  iffloordistl 8
+    sound THUD
+  action DRAGONDEAD
+  move DRAGONSTOPPED
+  break
+  }
+ends
+
+actor DRAGON DRAGONSTRENGTH DRAGONBOUNCE
+fall
+
+state checksquished
+
+ifaction DRAGONDEAD
+  {
+  ifrespawn
+    ifcount RESPAWNACTORTIME
+       {
+       spawn TRANSPORTERSTAR
+       cstat 257
+       strength DRAGONSTRENGTH
+       ai AIDRAGONBOUNCE
+
+       }
+       else
+       {
+       strength 0
+       ifhitweapon
+	 ifwasweapon RADIUSEXPLOSION
+	 {
+	 sound BALLEXPLODE
+         state dragon_jibs
+         killit
+         }
+       break
+       }
+  }
+  else
+  ifaction DRAGONFROZEN
+    {
+    ifcount THAWTIME
+      {
+      ai AIDRAGONBOUNCE
+      getlastpal
+      }
+      else
+      ifcount FROZENDRIPTIME
+        ifrnd 8
+          spawn WATERDRIP
+
+    ifhitweapon
+      {
+      ifwasweapon FREEZEBLAST
+        {
+	strength 0
+        break
+        }
+      addkills 1
+
+      lotsofglass 30
+      ifrnd 84 spawn BLOODPOOL
+      sound GLASS_BREAKING
+      killit
+      }
+    ifp pfacing
+      ifpdistl FROZENQUICKKICKDIST
+	pkick
+    break
+    }
+
+ifai AIDRAGONDYING
+  {
+  state DRAGONDYINGSTATE
+  break
+  }
+
+ifhitweapon
+  state DRAGONHITSTATE
+
+ifai NO
+  {
+  ai AIDRAGONBOUNCE
+  }
+
+
+ifai AIDRAGONGROW
+  {
+  state genericshrunkcode
+  }
+  else
+ifai AIDRAGONSHRUNK
+  {
+  state DRAGONSHRINKSTATE
+  }
+  else
+  {
+  sizeto 42 50
+ifai AIDRAGONBOUNCESEE
+  {
+  state DRAGONBOUNCESTATESEE
+  }
+  else
+ifai AIDRAGONBOUNCE
+  {
+  state DRAGONBOUNCESTATE
+  }
+  else
+ifai AIDRAGONSHOOT
+  {
+  state DRAGONSHOOTSTATE
+  }
+  else
+ifai AIDRAGONFLEE
+  {
+  state DRAGONFLEESTATE
+  }
+  else
+ifai AIDRAGONFLEE2
+  {
+  state DRAGONFLEESTATE
+  }
+  else
+ifai AIDRAGONBOUNCESEE2
+  {
+  state DRAGONBOUNCESTATESEE
+  }
+  else
+ifai AIDRAGONBOUNCE2
+  {
+  state DRAGONBOUNCESTATE
+  }
+  }
+
+
+enda

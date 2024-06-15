@@ -1,0 +1,919 @@
+// Female Alien or Lizard Ranger
+// sprites by sebabdukeboss20, code by Dan Gaskill
+// version .90 February 9, 2018
+
+// define LIZRANGER 5270 // aka "Lizmila Pavlizenko"
+// define LIZRANGERSTAYPUT 5271
+// define LIZRANGERDUCKING 5300
+// define RAILGUNSPRITE 5329
+// define RANGERTRAIL 5320
+// define RANGERPROJ 5264
+
+
+move RANGERMOVE
+
+spritenoshade RAILIMPACT
+action RAILIMPACTFRAMES 0 4 1 1 10
+
+useractor notenemy RAILIMPACT 0 RAILIMPACTFRAMES
+ifmove 0
+{
+	seta[].shade -127
+	seta[].blend 1
+	move RANGERMOVE
+	cstat 130
+	sizeat 24 24
+	spritepal 21
+	spawn SPARKFALL
+	spawn SPARKFALL
+	spawn SPARKFALL
+	spawn SPARKFALL
+}
+ifactioncount 4 killit
+
+enda
+
+spritenoshade RANGERTRAIL
+action RANGERFRAMES 0 9 1 1 6
+action FIREXPFRAMES 0 9 1 1 10
+
+useractor notenemy RANGERTRAIL 0 RANGERFRAMES
+ifmove 0
+{
+	changespritesect THISACTOR player[].cursectnum
+	seta[].shade -127
+	seta[].blend 1
+	move RANGERMOVE
+	cstat 144
+	sizeat 4 4
+	spritepal 21
+	ifspawnedby INFERNO { sizeat 56 56 spritepal 83 cstat 128 action FIREXPFRAMES } else
+	ifspawnedby RANGERPROJ sizeat 6 6 else
+	ifvarand THISACTOR 1 killit
+}
+// ifactioncount 3 cstator 2
+// ifactioncount 6 cstator 512
+geta[].alpha temp
+add temp 16
+seta[].alpha temp
+ifactioncount 8 killit
+
+enda
+
+state rangershootbot
+
+	ifvarand initflags 32
+	{
+		state hitscan_targetprep
+		setprojectile[SHOCKBEAM].extra 24
+		ezshoot zdist SHOCKBEAM
+		setprojectile[SHOCKBEAM].extra 52
+		sound LIGHTNINGFIRE
+	}
+	else
+	{
+		state calczdist
+		setprojectile[RANGERPROJ].workslike 36866
+		mulvar zdist 844
+		div zdist xydist
+		ezshoot zdist RANGERPROJ
+		setprojectile[RANGERPROJ].workslike 32770
+	}
+
+ends
+
+action ARANGERWALK		0  4  5  1  16
+action ARANGERRUN		0  4  5  1  8
+action ARANGERSTAND 	20 1  5  1  10
+action ARANGERSHOOT1	20 1  5  1  60
+action ARANGERSHOOT2	25 1  5  1  20
+action ARANGERCROUCH1	0 1  5  1  50 // only used by LIZRANGERDUCKING
+action ARANGERCROUCH2	5 1  5  1  20 // firing
+// action ARANGERKICK		41 3  1  1  20
+action ARANGERKICK		3961 3  5  1  20
+action ARANGERFLINCH	13622 1  5  1  18 // 44
+action ARANGERDIE		44 5  1  1  18
+action ARANGERDEAD		49 1  1  1  10
+action ARANGERFROZEN 	20 1  5  1  10
+action ARANGERDECAP	    9450  5  1  1  18
+action ARANGERDECAPDEAD 9455  1  1  1  10
+action ARANGERROLL		9426  5  5  1  12
+action ARANGERDIE2		5544  6  1  1  18
+action ARANGERDEAD2		5549  1  1  1  10
+
+move RANGERFIRED
+move RANGERKICKED
+move RANGERSHRUNKVELS 40
+move RANGERWALKVELS 140
+move RANGERRUNVELS 256
+
+ai AIRANGERFROZEN ARANGERFROZEN STOPPED geth
+ai AIRANGERSHRUNK ARANGERRUN RANGERSHRUNKVELS fleeenemy
+ai AIRANGERWAIT ARANGERSTAND STOPPED geth
+ai AIRANGERSEEK ARANGERWALK RANGERWALKVELS seekplayer
+ai AIRANGERDODGE ARANGERROLL RANGERRUNVELS dodgebullet
+ai AIRANGERSHOOT ARANGERSHOOT1 STOPPED faceplayer
+ai AIRANGERHURT ARANGERFLINCH STOPPED faceplayer
+ai AIRANGERDYING ARANGERDIE STOPPED geth
+ai AIRANGERGROW ARANGERFLINCH STOPPED faceplayer
+ai AIRANGERKICK ARANGERKICK STOPPED faceplayer
+ai AIRANGERCROUCH ARANGERCROUCH1 STOPPED faceplayer
+
+state rangerkickcheck
+	
+	ifrnd 96
+	ifn sector[].lotag 1
+	{
+		ifrnd 128
+		{
+			ai AIRANGERDODGE
+			cactor LIZRANGERDUCKING
+			set dodgetime 8
+		}
+		else
+		{
+			cactor LIZRANGERDUCKING
+			ai AIRANGERCROUCH
+		}
+	}
+	else
+	{
+		ai AIRANGERKICK
+		ife bottarget myshelly setav[myshelly].myspawner THISACTOR
+		cactor LIZRANGER
+	}
+ends
+state rangerattackcheck
+	ife seemytarget YES
+	// ifcanshoottarget
+	ife targetalive YES
+	ifn bottarget -1
+	{
+		ifl targetdist 1280
+		{
+			ai AIRANGERKICK
+			ife bottarget myshelly setav[myshelly].myspawner THISACTOR
+			cactor LIZRANGER
+		}
+		else
+		{
+			cactor LIZRANGERDUCKING 
+			ai AIRANGERCROUCH 
+			ifn bottarget -1
+			{
+				set spriteid bottarget
+				state facesprite
+			}
+			
+			ifg shrunken 10 ifl shrunken SHRUNKCOUNT nullop else
+			sound RIFLEREADY
+		}
+	}
+	else 
+	{
+		ai AIRANGERSEEK
+		cactor LIZRANGER
+	}
+ends
+
+state rangercheckdodge
+
+	iffloordistl 8 ifonwater break
+
+	ifcount 6 nullop else break
+	
+	ifp pfacing
+	// ife seemytarget YES
+	// ifl targetdist 8192
+	ifpdistl 10240
+	ife seeplayer YES
+	ifn player[].kickback_pic 0
+	ifn player[].curr_weapon 5
+	{
+		cactor LIZRANGERDUCKING
+		set dodgetime 12
+		ai AIRANGERDODGE
+		break
+	}
+	
+	ifn bottarget -1
+	ifn bottarget player[].i
+	ifl targetdist 8192
+	ife actorvar[bottarget].bottarget THISACTOR
+	ifrnd 32
+	{
+		cactor LIZRANGERDUCKING
+		set dodgetime 12
+		ai AIRANGERDODGE
+		break
+	}
+	
+	ifg targetdist 2560
+	ifbulletnear
+	{
+		cactor LIZRANGERDUCKING
+		set dodgetime 12
+		ai AIRANGERDODGE
+	}
+ends
+
+state rangerroamsounds
+	
+	ifactorsound THISACTOR RANGERROAM1 break
+	ifactorsound THISACTOR RANGERROAM2 break
+	ifactorsound THISACTOR RANGERROAM3 break
+	
+	ifrnd 85 sound RANGERROAM1 else
+	ifrnd 128 sound RANGERROAM2 else
+	sound RANGERROAM3
+	ifg shrunken 10 ifl shrunken SHRUNKCOUNT
+	{
+		setactorsoundpitch THISACTOR RANGERROAM1 SHRUNKPITCH
+		setactorsoundpitch THISACTOR RANGERROAM2 SHRUNKPITCH
+		setactorsoundpitch THISACTOR RANGERROAM3 SHRUNKPITCH
+	}
+	
+ends
+
+state rangerdodgestate
+
+	ifl dodgetime 2 set dodgetime 2
+	ifrnd 1 ifrnd 64 state rangerroamsounds
+	ifactioncount 5
+		state rangerattackcheck
+	else
+	ifnotmoving
+		state rangerattackcheck
+		
+		
+ends
+
+state rangergrowstate state genericgrowcode ends
+
+state rangershrunkstate
+
+  ifcount SHRUNKDONECOUNT
+    ai AIRANGERSEEK
+  else
+    ifcount SHRUNKCOUNT
+      sizeto 30 28
+  else
+    state genericshrunkcode
+
+ends
+
+state rangerfrozenstate
+
+    ifcount THAWTIME
+    {
+      ai AIRANGERSEEK
+      getlastpal
+    }
+    else
+      ifcount FROZENDRIPTIME
+    {
+      ifactioncount 26
+      {
+        spawn WATERDRIP
+        resetactioncount
+      }
+    }
+    ifhitweapon
+    {
+      ifwasweapon FREEZEBLAST
+      {
+	    resetcount resetactioncount
+        strength 0
+        break
+      }
+	  ifn gametype SURVIVAL
+	  ifrnd SPAWNAMMOODDS spawn RAILGUNSPRITE
+      addkills 1 
+	  state enemy_death
+
+      ifrnd 84
+        spawn BLOODPOOL
+	  lotsofglass 30
+	  state ranger_body_jibs
+	  state lite_jibs
+      sound GLASS_BREAKING
+      killit
+    }
+    ifp pfacing
+      ifpdistl FROZENQUICKKICKDIST
+	  ifn team actorvar[player[].i].team
+        state pkick_check
+  
+ends
+
+state rangerdyingstate
+
+	state deadsquished
+	strength 0
+	ifaction ARANGERDIE2
+	{
+		ifhitweapon state random_wall_jibs
+		ifactioncount 5
+		{
+			geta[].cstat temp
+			ifvarand temp 256 xorvar temp 256
+			seta[].cstat temp
+			action ARANGERDEAD2
+			iffloordistl 8 sound THUD
+			ifrnd SPAWNAMMOODDS spawn RAILGUNSPRITE
+			ifrnd 128 spawn BLOODPOOL
+			break
+		}
+	}
+
+	ifaction ARANGERDECAP
+	{
+		ifhitweapon state random_wall_jibs
+		ifactioncount 5
+		{
+			cstat 0
+			action ARANGERDECAPDEAD
+			iffloordistl 8 sound THUD
+			ife gametype 0
+			ifrnd SPAWNAMMOODDS spawn RAILGUNSPRITE
+			ifrnd 128 spawn BLOODPOOL
+			break
+		}
+	}
+	
+	ifaction ARANGERDECAPDEAD
+	{
+		ifhitweapon
+		{
+			ifwasweapon RPG
+			{
+				sound SQUISHED
+				spawn BLOODPOOL
+				state standard_jibs
+				killit
+			}
+			ifwasweapon RADIUSEXPLOSION
+			{
+				sound SQUISHED
+				spawn BLOODPOOL
+				state standard_jibs
+				killit
+			}
+		}
+		// ifcount RESPAWNACTORTIME
+		// ifrespawn ife gametype 0
+		// {
+		  // addkills -1 set monstatus 1
+		  // spawn TRANSPORTERSTAR
+		  // cstat 257
+		  // strength RANGERSTRENGTH
+		  // ai AIRANGERSEEK
+		// }
+	}
+	
+	ifaction ARANGERDIE
+	{
+		ifhitweapon state random_wall_jibs
+		ifactioncount 5
+		{
+			cstat 0
+			action ARANGERDEAD
+			iffloordistl 8 sound THUD
+			ifrnd SPAWNAMMOODDS spawn RAILGUNSPRITE
+			ifrnd 128 spawn BLOODPOOL
+			break
+		}
+	}
+	set temp NO
+	ifaction ARANGERDEAD set temp YES
+	ifaction ARANGERDEAD2 set temp YES
+	ife temp YES
+	{
+		ifhitweapon
+		{
+			ifwasweapon RPG
+			{
+				sound SQUISHED
+				spawn BLOODPOOL
+				// state standard_jibs
+				state ranger_body_jibs
+				state lite_jibs
+				killit
+			}
+			ifwasweapon RADIUSEXPLOSION
+			{
+				sound SQUISHED
+				spawn BLOODPOOL
+				// state standard_jibs
+				state ranger_body_jibs
+				state lite_jibs
+				killit
+			}
+		}
+		// ifcount RESPAWNACTORTIME
+		// ifrespawn
+		// {
+		  // addkills -1 set monstatus 1
+		  // spawn TRANSPORTERSTAR
+		  // cstat 257
+		  // strength RANGERSTRENGTH
+		  // ai AIRANGERSEEK
+		// }
+	}
+	
+ends
+
+state rangerwaitstate
+
+	ifrnd 1 ifrnd 64 state rangerroamsounds
+
+	ife shootmytarget YES
+	ife targetalive YES
+	ifn bottarget -1
+	{
+		ifcount 8
+		{
+			ifonwater iffloordistl 8
+			{
+				ifl targetdist 1280 state rangerkickcheck
+				else
+				{
+					ai AIRANGERSHOOT
+					sound RIFLEREADY
+					ifg shrunken 10 ifl shrunken SHRUNKCOUNT setactorsoundpitch THISACTOR RIFLEREADY SHRUNKPITCH
+				}
+				break
+			}
+			ifl targetdist 1280 state rangerkickcheck
+			else
+			ifl targetdist 3072 
+			{
+				cactor LIZRANGERDUCKING
+				ai AIRANGERDODGE
+				set dodgetime 8
+			}
+			else
+			{
+				state lowlineofsight
+				ifrnd 128 ife B YES
+				ifl targetdist 8192
+				{ 
+					cactor LIZRANGERDUCKING 
+					ai AIRANGERCROUCH 
+					ifn bottarget -1
+					{
+						set spriteid bottarget
+						state facesprite
+					}
+				}
+				else 
+				ai AIRANGERSHOOT
+				sound RIFLEREADY
+				ifg shrunken 10 ifl shrunken SHRUNKCOUNT setactorsoundpitch THISACTOR RIFLEREADY SHRUNKPITCH
+				
+			}
+		}
+	}
+	else ai AIRANGERSEEK
+
+ends
+
+state rangerseekstate
+
+	ifrnd 1 ifrnd 64 state rangerroamsounds
+
+	ifl targetdist 1280 
+		ife seemytarget YES
+		  ife targetalive YES
+	{
+		state rangerkickcheck
+		break
+	}
+		
+	state rangercheckdodge
+	ifai AIRANGERSEEK
+	{
+		ifnotmoving ifcount 12 
+		ife bottarget -1
+		ife dodgetime 0
+		{ 
+			ifrnd 32 
+			{
+				operate ai AIRANGERWAIT 
+			}
+			else
+			{
+				state setfarang
+				set dodgetime 12
+				set crumbwait 12
+				resetcount
+			}
+		}
+		
+		set temp NO
+		ifge SKILL 4 { ifcount 20 set temp YES }
+		else ifcount 40 set temp YES
+		
+		// ifcanshoottarget 
+		ife shootmytarget YES
+		ife temp YES ai AIRANGERWAIT
+		
+		ifl navpoint 0
+		ifcount 50 ifrnd 14 ai AIRANGERWAIT
+		
+		ifactornotstayput nullop else
+		ifawayfromwall nullop else
+		ifl navpoint 0
+		ife dodgetime 0
+		ifrnd 12 ai AIRANGERWAIT
+	}
+	
+ends
+
+state rangerkickstate
+
+	ifmove STOPPED
+	ifactioncount 1
+	{
+		move RANGERKICKED
+		ife shrunken 0
+		ife seemytarget YES ifl targetdist 1560
+		ife targetalive YES
+		{
+			sound KICK_HIT
+			ifn bottarget -1 set target bottarget
+			else set target player[].i
+			ife target player[].i
+			{
+				palfrom 32 63
+				wackplayer
+				getp[].ang bossang
+				add bossang 1024
+				cos newx bossang
+				sin newy bossang
+				shiftvarl newx 8
+				shiftvarl newy 8
+				setplayer[THISACTOR].posxv newx
+				setplayer[THISACTOR].posyv newy
+				// push player backwards
+			}
+			else
+			{
+				seta[target].xvel -512
+				getav[target].stun temp
+				add temp 10
+				setav[target].stun temp
+				geta[target].z z
+				sub z 512
+				seta[target].z z
+				geta[target].zvel z
+				sub z 512
+				seta[target].zvel z
+			}
+			
+			seta[target].htextra 10
+			seta[target].htpicnum SHOTSPARK1
+			seta[target].htowner THISACTOR
+			seta[target].htang sprite[THISACTOR].ang
+		}
+	}
+	ifactioncount 3 ai AIRANGERSEEK
+
+ends
+
+state rangercrouchstate
+
+	ifaction ARANGERCROUCH1
+	{
+		ifactioncount 2
+		{
+			ifmove STOPPED
+			{
+				ife shootmytarget YES
+				ife targetalive YES
+				{
+					action ARANGERCROUCH2
+					ife seemytarget YES ifrnd 128 nullop else
+					move RANGERFIRED geth
+					sound RIFLEFIRE
+					ifg shrunken 10 ifl shrunken SHRUNKCOUNT setactorsoundpitch THISACTOR RIFLEFIRE SHRUNKPITCH
+					geta[].z bossy
+					sub bossy 1536
+					seta[].z bossy
+					ifn bottarget -1
+					state rangershootbot
+					else
+					shoot RANGERPROJ
+					
+					add bossy 1536
+					seta[].z bossy
+				}
+				else
+				{
+					ifrnd 192 resetactioncount
+					else
+					{
+						cactor LIZRANGER
+						ai AIRANGERSEEK
+					}
+				}
+			}
+			else { cactor LIZRANGER ai AIRANGERSEEK }
+		}
+		else 
+		ifmove RANGERFIRED
+		state rangercheckdodge
+	}
+	ifaction ARANGERCROUCH2
+	{
+		ifactioncount 1
+		{
+			ifactornotstayput
+			ifmove RANGERFIRED
+				state rangercheckdodge
+			ifai AIRANGERDODGE break
+			action ARANGERCROUCH1
+		}
+	}
+		
+ends
+
+state rangershootstate
+	ifaction ARANGERSHOOT1
+	{
+		ifactioncount 1
+		{
+			ifmove STOPPED
+			{
+				ife shootmytarget YES
+					ife targetalive YES
+				{
+					action ARANGERSHOOT2
+					move RANGERFIRED geth
+					sound RIFLEFIRE
+					ifg shrunken 10 ifl shrunken SHRUNKCOUNT setactorsoundpitch THISACTOR RIFLEFIRE SHRUNKPITCH
+					geta[].z bossy
+					sub bossy 4096
+					seta[].z bossy
+					ifn bottarget -1
+					state rangershootbot
+					else
+					shoot RANGERPROJ
+					
+					
+
+					add bossy 4096
+					seta[].z bossy
+				}
+				else ai AIRANGERWAIT
+			}
+			else
+			{
+				ife targetalive YES
+				{
+					ifl targetdist 2048
+					ifn sector[].lotag 1
+					{
+						set dodgetime 8
+						cactor LIZRANGERDUCKING
+						ai AIRANGERDODGE
+					}
+					else
+					ife shootmytarget YES // can see target
+					{
+						ifactornotstayput ifg targetdist 8192
+						ai AIRANGERSEEK
+						else
+						ai AIRANGERWAIT
+					}
+					else ai AIRANGERSEEK
+				}
+				else
+				ai AIRANGERSEEK
+			}
+		}
+		else
+		ifmove RANGERFIRED
+			state rangercheckdodge
+		
+		
+	}
+	ifaction ARANGERSHOOT2
+	ifactioncount 1
+		action ARANGERSHOOT1
+	
+ends
+
+state rangerhurtstate
+	ifg stun 0 nullop else
+	ifcount 10 ai AIRANGERSEEK
+ends
+
+state lizrangercode
+
+	fall
+	ifai 0
+	{
+		ifactor LIZRANGERDUCKING ai AIRANGERCROUCH
+		else
+		ai AIRANGERWAIT
+		cstat 257
+		sizeat 30 28
+		set init_xrepeat sprite[].xrepeat
+		set init_yrepeat sprite[].yrepeat
+		clipdist 48
+		sound RANGERRECOG
+		ifspritepal 19 orvar initflags 32
+	}
+	
+	
+	
+	ifai AIRANGERGROW { state rangergrowstate break }
+	ifai AIRANGERFROZEN { state rangerfrozenstate break }
+	ifai AIRANGERDYING { state rangerdyingstate break }
+	
+	state monsterai 
+	
+	ifai AIRANGERWAIT state rangerwaitstate else
+	ifai AIRANGERSHRUNK state rangershrunkstate else
+	ifai AIRANGERSEEK state rangerseekstate else
+	ifai AIRANGERSHOOT state rangershootstate else
+	ifai AIRANGERKICK state rangerkickstate else
+	ifai AIRANGERCROUCH state rangercrouchstate else
+	ifai AIRANGERDODGE state rangerdodgestate else
+	ifai AIRANGERHURT state rangerhurtstate
+
+	ife monstatus -1 break
+	ifhitweapon
+	{
+		ifwasweapon SHRINKSPARK
+		{	
+		  cactor LIZRANGER
+		  sound ACTOR_SHRINKING
+		  ai AIRANGERSHRUNK
+		  set shrunken 1
+		  break
+		}
+		else
+			ifwasweapon GROWSPARK
+			  sound SPARKLESOUND
+		state random_wall_jibs
+		ifwasweapon HEADJIB1
+		{
+			addkills 1
+			state enemy_death
+			cactor LIZRANGER
+			ai AIRANGERDYING
+			action ARANGERDECAP
+			strength 0
+			cstat 0
+			guts JIBS6 4
+			// guts LIZMANHEAD1 1
+			rand zdist 1024
+			sub zdist 3500
+			ezshoot zdist RANGERHEADPROJ
+			rand angvar 512
+			sub angvar 256
+			add angvar sprite[].htang
+			seta[RETURN].ang angvar
+			seta[RETURN].pal sprite[].pal
+			sound SQUISHED
+			break
+		}
+		ifdead
+		{
+			ifwasweapon FREEZEBLAST
+			{
+			  sound NEWFREEZE
+			  spritepal 1
+			  cactor LIZRANGER
+			  ai AIRANGERFROZEN
+			  strength 0
+			  state freezeme
+			  break
+			}
+			ifwasweapon GROWSPARK
+			{
+			  cstat 0
+			  sound ACTOR_GROWING
+			  cactor LIZRANGER
+			  ai AIRANGERGROW
+			  break
+			}
+			addkills 1
+			state enemy_death
+			cactor LIZRANGER
+			ai AIRANGERDYING
+			ifrnd 128 cstat 256 else cstat 260
+			ifawayfromwall ifrnd 128
+			action ARANGERDIE2
+			
+			ifrnd 128 sound RANGERDEATH1 else sound RANGERDEATH2
+			
+			ifg shrunken 10 ifl shrunken SHRUNKCOUNT
+			{
+				setactorsoundpitch THISACTOR RANGERDEATH1 SHRUNKPITCH
+				setactorsoundpitch THISACTOR RANGERDEATH2 SHRUNKPITCH
+			}
+			guts JIBS6 4
+			
+			ifwasweapon RPG
+			{
+				cactor LIZRANGER
+				sound SQUISHED
+				spawn BLOODPOOL
+				ifrnd SPAWNAMMOODDS spawn RAILGUNSPRITE
+				state ranger_body_jibs
+				state lite_jibs
+				killit
+			}
+			ifwasweapon RADIUSEXPLOSION
+			{
+				cactor LIZRANGER
+				sound SQUISHED
+				spawn BLOODPOOL
+				ifrnd SPAWNAMMOODDS spawn RAILGUNSPRITE
+				state ranger_body_jibs
+				state lite_jibs
+				killit
+			}
+			break
+		}
+		ifrnd 2
+			spawn BLOODPOOL
+		ifai AIRANGERHURT nullop else
+		ifai AIRANGERSHRUNK nullop else
+		{
+			ifg stun 0 { cactor LIZRANGER ai AIRANGERHURT break }
+			
+			ifrnd 128 sound RANGERPAIN1 else sound RANGERPAIN2
+			
+			ifrnd 32 
+			ifn sprite[].htpicnum BURNING
+	        ifn sprite[].htpicnum RADWOUND
+			{ 
+				cactor LIZRANGER
+				ai AIRANGERHURT 
+				break 
+			}
+		}
+	}
+	else 
+	{
+		state checksquished
+		ifai AIRANGERSHRUNK nullop else
+		ifg stun 0 { cactor LIZRANGER ai AIRANGERHURT }
+	}
+
+ends
+
+useractor enemy LIZRANGER RANGERSTRENGTH state lizrangercode enda
+
+useractor enemystayput LIZRANGERSTAYPUT RANGERSTRENGTH cactor LIZRANGER enda
+
+
+action ARANGERGUARD 18  1  5  1  10
+useractor enemy LIZRANGERGUARD RANGERSTRENGTH ARANGERGUARD
+
+	cstator 257
+	sizeat 30 28
+	fall
+	set monstatus -2
+	ifpdistl 20480 ifcansee ifg ptargeted 0 seta[].htextra 0
+	ifg sprite[].htextra -1
+	{
+		cactor LIZRANGER
+		ife sprite[].htextra 0
+		sound RANGERRECOG
+		else
+		sound RANGERPAIN1
+		state wakeupguards
+	}
+
+enda
+
+
+useractor enemy LIZRANGERDUCKING RANGERSTRENGTH state lizrangercode enda
+
+
+useractor enemy LIZRANGERSIT RANGERSTRENGTH
+  ifcount 30
+  {
+    operate
+    cactor LIZRANGER
+	ai AIRANGERSEEK
+	sound RANGERRECOG
+  }
+  else
+    ifcount 2
+      nullop
+  else
+    {
+	cstat 257
+	sizeat 30 28
+	set init_xrepeat sprite[].xrepeat
+	set init_yrepeat sprite[].yrepeat
+	}
+	
+	ifg sprite[].htextra 0 count 40
+enda

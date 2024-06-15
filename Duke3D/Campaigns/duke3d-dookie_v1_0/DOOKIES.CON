@@ -1,0 +1,1112 @@
+
+define MINIONSTRENGTH         50
+define MINIONFREAK            -10   // Damage to player when Minion blows up
+define SBSTRENGTH 100
+define HULKWHACKAMOUNT        -22
+define SHITBALL_WEAPON_STRENGTH          8
+
+useractor notenemy SHITBALL SHITBALL_WEAPON_STRENGTH enda
+
+defineprojectile SHITBALL PROJ_WORKSLIKE 2306 // 6402
+defineprojectile SHITBALL PROJ_HITRADIUS 0
+defineprojectile SHITBALL PROJ_EXTRA SHITBALL_WEAPON_STRENGTH
+
+
+define MN_FREAK     DRON_ATTACK1 // 415
+define MN_PN        PIG_PAIN // 416
+define MN_REC       417
+define MN_AMB       418
+
+define CROWUSH      426
+
+define SB_ATK1      480
+define SB_ATK2      481
+define SB_CORN      482
+define SB_HRT1      483
+define SB_HRT2      484
+define SB_HRT3      485
+define SB_LAF1      486
+define SB_LAF2      487
+define SB_LORD      488
+define SB_MIN1      489
+define SB_MIN2      490
+define SB_MIN3      491
+define SB_SCK1      492
+define SB_SPT1      493
+define SB_SPT2      494
+define SB_DIE       SUMSCRM // 495
+define SB_IAM       496
+define SB_POO       497
+
+// TURD MINION
+/*
+definesound MN_FREAK     s/mn_freak.voc 0     0    0    0    0
+definesound MN_PN        s/mn_pn.voc    0     0    0    0    0
+definesound MN_REC       s/mn_rec.voc   0     0    0    0    0
+definesound MN_AMB       s/mn_amb.voc   0     0    0    0    0
+*/
+
+definesound CROWUSH      s/crowush.voc  0     0    0    0    0
+
+/*
+definesound SB_ATK1      s/sb_atk1.voc  0     0    0    0    0
+definesound SB_ATK2      s/sb_atk2.voc  0     0    0    0    0
+definesound SB_CORN      s/sb_corn.voc  0     0    0    0    0
+definesound SB_HRT1      s/sb_hrt1.voc  0     0    0    0    0
+definesound SB_HRT2      s/sb_hrt2.voc  0     0    0    0    0
+definesound SB_HRT3      s/sb_hrt3.voc  0     0    0    0    0
+definesound SB_LAF1      s/sb_laf1.voc  0     0    0    0    0
+definesound SB_LAF2      s/sb_laf2.voc  0     0    0    0    0
+definesound SB_LORD      s/sb_lord.voc  0     0    0    0    0
+definesound SB_MIN1      s/sb_min1.voc  0     0    0    0    0
+definesound SB_MIN2      s/sb_min2.voc  0     0    0    0    0
+definesound SB_MIN3      s/sb_min3.voc  0     0    0    0    0
+*/
+definesound SB_SCK1      s/sb_sck1.voc  0     0    0    0    0
+definesound SB_SPT1      s/sb_spt1.voc  0     0    0    0    0
+definesound SB_SPT2      s/sb_spt2.voc  0     0    0    0    0
+/*
+definesound SB_DIE       s/sb_die.voc   0     0    0    0    0
+definesound SB_IAM       s/sb_iam.voc   0     0    0    0    0
+definesound SB_POO       s/sb_poo.voc   0     0    0    0    0
+*/
+
+state minion_shitshower
+  spritepal DookiePal
+  guts JIBS6 3
+  getlastpal
+
+/*
+  guts MINJIBA 1
+  guts MINJIBB 1
+  guts MINJIBC 1
+*/
+ends
+
+state standard_minionjibs
+    
+      spritepal DookiePal
+    state standard_jibs_nosound
+    getlastpal
+
+/*
+  guts JIBS2 1
+  guts JIBS3 2
+  guts MINJIBA 1
+  guts MINJIBB 1
+  guts MINJIBC 1
+  ifrnd 6
+  {
+    guts JIBS1 1
+    spawn BLOODPOOL
+  }         // spine
+*/
+ends
+
+// TURD MINION
+
+action AMINRUN      0   8  5  1 11
+action AMINTHROW   40  11  5  1 18
+action AMINFREAK   95   5  5  1 8
+action AMINFREAK2  95   5  5  1 8
+action AMINJUMP   120   4  5  1 26
+action AMINFALL   140   4  5
+
+action AMINGROW      100   1  5 1 1
+action AMINFROZEN      100   1  5 1 1
+
+move MINRUNVEL    125 -16
+move MINJUMPVEL   264      // This value seems to control how far
+                           // the Minion jumps
+move MINJUMPVEL2  396
+move MINSTOP
+
+ai AIMINDODGE     AMINRUN     MINRUNVEL  dodgebullet
+ai AIMINJUMP      AMINJUMP    MINJUMPVEL jumptoplayer
+ai AIMINRUN       AMINRUN     MINRUNVEL  geth
+ai AIMINTHROW     AMINTHROW   MINSTOP    faceplayer
+ai AIMINFREAK     AMINFREAK   MINSTOP    faceplayerslow
+ai AIMINFREAK2    AMINFREAK   MINSTOP    spin
+ai AIMINAMBUSH    AMINJUMP    MINJUMPVEL2 jumptoplayer
+ai AIMINSHRUNK    AMINRUN     SHRUNKVELS fleeenemy
+ai AIMINGROW      AMINGROW    MINSTOP    faceplayerslow
+
+state minfreakstate
+
+  ifactioncount 3 nullop else
+  ifactioncount 2
+      soundonce MN_FREAK
+
+  // if we've done our dance 10 times
+  // and we're close to the player
+  // Self-destruct and cause damage
+  ifactioncount 20
+  {
+    ifpdistl 854
+    {
+      sound SUMOJUSTFART
+      state standard_minionjibs
+      addphealth MINIONFREAK
+      killit
+    }
+    // else run
+    else
+      ai AIMINRUN
+  }
+ends
+
+state minfreakstate2
+
+  ifactioncount 3 nullop else
+  ifactioncount 2
+      soundonce MN_FREAK
+
+  // if we've done our dance 10 times
+  // and we're close to the player
+  // Self-destruct and cause damage
+  ifactioncount 20
+  {
+    ifpdistl 4096
+    {
+      ifrnd 32
+      {
+        shoot SHITBALL
+        shoot SHITBALL
+        state minion_shitshower
+        // soundonce LN_CRAP
+      }
+      ifactioncount 26
+      {
+        sound SUMOJUSTFART
+        ifpdistl 854
+        {
+          addphealth MINIONFREAK
+        }
+        // soundonce LN_CRAP
+        state standard_minionjibs
+        state standard_minionjibs
+        killit
+      }
+    }
+    else
+      ai AIMINFREAK
+  }
+
+ends
+
+state minjumpstate
+  // If we're on frame AMINFALL, define above
+  // (last frame of AMINJUMP) and distance to floor < 16
+  // Start Running
+  ifaction AMINFALL
+  {
+    iffloordistl 16
+      ai AIMINRUN
+  }
+  // Else continue Jump anim until count > NN
+  // Then force frame to AMINFALL
+  // The ifcount NN controls the timing
+  // on when the Minion goes into his ready to land
+  // frame.  To tweak the timing on this
+  // adjust the ifcount NN value.
+  else
+    ifcount 32
+      action AMINFALL
+ends
+
+state minrunstate
+    // If we've gone through 12 cycles of the
+    // Run animation, either Run again (low prob)
+    // OR
+    //  Throw shit (highest prob)
+    //  Jump       (middle  prob)
+    //  Freak      (low     prob)
+    ifactioncount 12
+    {
+      // Keep on running
+      ifrnd 4
+      {
+        resetactioncount
+        resetcount
+      }
+      else
+      {
+        // If we can see the player
+        ifcansee
+        {
+          // either throw, jump, or freak
+          ifrnd 32
+            ai AIMINTHROW
+          else ifrnd 16
+            ai AIMINJUMP
+          else ifrnd 8
+            ai AIMINFREAK
+          else ifrnd 4
+            ai AIMINFREAK2
+        }
+        // Go find player
+        else
+          move MINRUNVEL seekplayer
+
+      }
+    }
+ends
+
+state minthrowstate
+    ifcount 18 {
+      shoot SHITBALL
+      ai AIMINRUN
+    }
+ends
+
+
+state checkminhit
+  //
+  spawn BLOOD
+  ifdead
+  {
+
+    ifwasweapon FREEZEBLAST
+    {
+      sound LOUDHISS
+      spritepal FrozenPal
+      move 0
+      action AMINFROZEN
+      strength 0
+      break
+    }
+    ifwasweapon GROWSPARK
+    {
+      cstat 0
+      sound ACTOR_GROWING
+      ai AIMINGROW
+      break
+    }
+    ifwasweapon RADIUSEXPLOSION
+    {
+      sound SQUISHED
+      spritepal DookiePal
+      state standard_jibs
+      addkills 1
+      killit
+    }
+    ifwasweapon RPG
+    {
+      sound SQUISHED
+      spritepal DookiePal
+      state standard_jibs
+      addkills 1
+      killit
+    }
+
+    // Sound Dying sounds, spray jibs
+    // Then delete Minion from game
+    addkills 1
+    sound SUMOJUSTFART
+    state standard_minionjibs
+
+    // If Minion is close to player
+    // Inflict damage
+    ifpdistl 854
+      addphealth MINIONFREAK
+
+    killit
+    // sound HULK_DYING
+  }
+  else
+  {
+    sound MN_PN
+    state random_wall_jibs
+
+    // If there are projectiles near
+    // Dodge or Throw (same prob)
+    // else if none of above selected
+    // No change (current ai will continue)
+    ifbulletnear
+    {
+       ifrnd 32
+         ai AIMINDODGE
+       else ifrnd 32
+         ai AIMINTHROW
+    }
+    // else No projectiles near so
+    // either
+    // Throw (high prob)
+    // Jump  (mid  prob)
+    // Freak (low  prob)
+    // No change (current ai will continue)
+    else ifrnd 32
+       ai AIMINTHROW
+    else ifrnd 16
+       ai AIMINJUMP
+    else ifrnd 8
+       ai AIMINFREAK
+  }
+ends
+
+state minshrunkstate
+  ifcount SHRUNKDONECOUNT { getlastpal
+    ai AIMINRUN }
+  else
+    ifcount SHRUNKCOUNT
+      sizeto 24 20
+  else
+    state genericshrunkcode
+ends
+
+useractor enemy MINION MINIONSTRENGTH AMINRUN
+  state FuckingFall
+  state checksquished
+  ifai 0
+  {
+    cstator 257
+    ifspritepal 7
+    {
+      ai AIMINAMBUSH
+    }
+    else
+    {
+      ai AIMINRUN
+    }
+  }
+  else
+    ifaction AMINFROZEN
+  {
+    ifcount THAWTIME
+    {
+      ai AIMINRUN
+      spritepal 0
+    }
+    else
+      ifcount FROZENDRIPTIME
+    {
+      ifactioncount 26
+      {
+        spawn WATERDRIP
+        resetactioncount
+      }
+    }
+
+    ifhitweapon
+    {
+      ifwasweapon FREEZEBLAST
+      {
+        strength 0
+        break
+      }
+      addkills 1
+
+      ifrnd 84
+        spawn BLOODPOOL
+      state FrozeDeBree
+      sound SUMOJUSTFART
+      killit
+    }
+    ifp pfacing
+      ifpdistl FROZENQUICKKICKDIST
+        pkick
+    break
+  }
+  else
+  {
+    state FuckingFall
+    ifai AIMINRUN
+    {
+      state minrunstate
+    }
+    else ifai AIMINTHROW
+    {
+      state minthrowstate
+    }
+    else ifai AIMINFREAK
+    {
+      state minfreakstate
+    }
+    else ifai AIMINFREAK2
+    {
+      state minfreakstate2
+    }
+    else ifai AIMINJUMP
+    {
+       state minjumpstate
+    }
+    else ifai AIMINDODGE
+    {
+       ifactioncount 4
+         ai AIMINRUN
+    }
+    else ifai AIMINAMBUSH
+    {
+      state minjumpstate
+    }
+    else
+      ifai AIMINSHRUNK
+        state minshrunkstate
+    else
+      ifai AIMINGROW
+        state genericgrowcode
+  }
+
+  ifhitweapon
+    {
+
+    ifwasweapon SHRINKSPARK
+    {
+      sound ACTOR_SHRINKING
+      ai AIMINSHRUNK
+      break
+    }
+
+  ifai AIMINSHRUNK
+  {
+    addkills 1
+    sound SQUISHED
+    state standard_jibs
+    killit
+  }
+
+    state checkminhit
+    }
+
+/*
+  ifrnd 1
+  {
+    ifrnd 32
+      soundonce MN_AMB
+    else ifrnd 128
+      soundonce MN_REC
+  }
+*/
+
+enda
+
+// The Turd Boss
+// By Arthur Attila Donavan
+
+// Tiles starting positions for Turd Boss
+// SBSWIPE 4770
+// SBPAIN  4810
+// SBDIE   4820
+// SBMOVE  5015  actor - Tile to be used in MAKEMAP
+// SBSPIT  5050
+// SBDIP   5085
+
+
+// Local defines
+define SBSPITSPD 16
+define SBDIPSPD 16
+define SBSNDRND 64
+
+// Define actions
+action ASBSWIPEA  -245  6  5  1  16
+action ASBSWIPEB  -215  1  5  1   1
+action ASBSWIPEC  -215  2  5  1  16
+action ASBPAIN    -205  7  1  1  20
+action ASBDIE     -195  6  1  1  22
+action ASBMOVE       0  7  5  1  16
+// action ASBSPIT      35  7  5  1  SBSPITSPD
+action ASBSPITA     35  5  5  1  SBSPITSPD
+action ASBSPITB     60  1  5  1  SBSPITSPD
+action ASBSPITC     55  1  5  1  SBSPITSPD
+action ASBSPITD     65  1  5  1  SBSPITSPD
+action ASBSPITE     55  1  5  1  SBSPITSPD
+action ASBSPITF     50  1  5  1  SBSPITSPD
+// action ASBDIP       70  6  5  1  SBDIPSPD
+action ASBDIPA      70  1  5  1  SBDIPSPD
+action ASBDIPB      80  1  5  1  SBDIPSPD
+action ASBDIPC      75  2  5  1  SBDIPSPD
+action ASBDIPD      90  1  5  1  SBDIPSPD
+action ASBDIPE      85  2  5  1  SBDIPSPD
+action ASBDIPF      80  1  5  1  SBDIPSPD
+action ASBDIPG      95  1  5  1  SBDIPSPD
+action ASBDIPH      80  1  5  1  SBDIPSPD
+
+action ASBGROW  -245  1  5  1  1
+action ASBFROZEN  -245  1  5  1  1
+
+// Define movements
+move SBWALKVEL 100
+move SBDIEVEL -40
+move SBSTOP
+
+// Define AI states
+ai AISBAI   ASBMOVE SBWALKVEL faceplayer
+ai AISBDIE  ASBDIE  SBDIEVEL  faceplayer
+
+ai AISBSHRUNK ASBMOVE SHRUNKVELS fleeenemy
+ai AISBGROW ASBGROW  SBSTOP faceplayerslow
+
+// States (subroutines) ******************************
+state sbsndhurt
+    soundonce SUMPAIN
+/*
+  ifrnd 85
+    soundonce SB_HRT1
+  else ifrnd 128
+    soundonce SB_HRT2
+  else
+    soundonce SB_HRT3
+*/
+ends
+
+/*
+state sbsndmin
+  ifrnd 85
+    soundonce SB_MIN1
+  else ifrnd 128
+    soundonce SB_MIN2
+  else
+    soundonce SB_MIN3
+ends
+*/
+
+state sbsndamb
+    ifrnd 128 soundonce SUMAMB else soundonce SUMO058
+/*
+  ifrnd 25
+    state sbsndmin
+  else ifrnd 28
+    soundonce SB_LAF1
+  else ifrnd 31
+    soundonce SB_LAF2
+  else ifrnd 43
+    soundonce SB_CORN
+  else ifrnd 51
+    soundonce SB_ATK1
+  else ifrnd 64
+    soundonce SB_ATK2
+  else ifrnd 85
+    soundonce SB_POO
+  else ifrnd 128
+    soundonce SB_IAM
+  else
+    soundonce SB_LORD
+*/
+ends
+
+state sbsize
+  getactor[THISACTOR].extra Temp
+  ifvarl Temp 500
+  {
+    sizeto 24 24
+    sizeto 24 24
+  }
+  else ifvarl Temp 625
+  {
+    sizeto 27 27
+    sizeto 27 27
+  }
+  else ifvarl Temp 750
+  {
+    sizeto 30 30
+    sizeto 30 30
+  }
+  else ifvarl Temp 875
+  {
+    sizeto 33 33
+    sizeto 33 33
+  }
+  else ifvarl Temp 1000
+  {
+    sizeto 36 36
+    sizeto 36 36
+  }
+  else ifvarl Temp 1125
+  {
+    sizeto 39 39
+    sizeto 39 39
+  }
+  else ifvarl Temp 1250
+  {
+    sizeto 42 42
+    sizeto 42 42
+  }
+  else ifvarl Temp 1375
+  {
+    sizeto 45 45
+    sizeto 45 45
+  }
+  else ifvarl Temp 1501
+  {
+    sizeto 48 48
+    sizeto 48 48
+  }
+ends
+
+state sbai
+  ifaction ASBMOVE                 // Seek for a little while
+  {
+    ifactioncount 7
+      ifcansee
+        ifcanshoottarget
+        {
+          ifpdistl 2000
+          {
+            ifrnd 128
+            {
+              action ASBSWIPEA
+            }
+            else
+            {
+              action ASBMOVE
+/*
+              ifrnd SBSNDRND
+                state sbsndamb
+*/
+            }
+          }
+          else ifrnd 85
+          {
+            action ASBSPITA
+            ifrnd 128
+              soundonce SB_SCK1
+          }
+          else ifrnd 85
+          {
+            action ASBDIPA
+          }
+          else
+          {
+            action ASBSWIPEA
+          }
+        }
+  }
+  else ifaction ASBSWIPEA          // Swipe attack
+  {
+    ifactioncount 6
+      action ASBSWIPEB
+  }
+  else ifaction ASBSWIPEB
+  {
+    ifpdistl 1800
+    {
+      palfrom 16 16
+      addphealth HULKWHACKAMOUNT
+      soundonce CROWUSH
+      globalsound DUKE_GRUNT // soundonce LNRD_GRUNT
+      wackplayer
+    }
+    else
+    {
+      shoot SHITBALL
+    }
+    action ASBSWIPEC
+  }
+  else ifaction ASBSWIPEC
+  {
+    ifactioncount 2
+    {
+      shoot SHITBALL
+      action ASBMOVE
+      ifrnd SBSNDRND
+        state sbsndamb
+    }
+  }
+/*
+  else ifaction ASBSPIT            // Spit attack
+  {
+    ifactioncount 7
+    {
+      action ASBMOVE
+      ifrnd SBSNDRND
+        state sbsndamb
+    }
+  }
+*/
+  else ifaction ASBSPITA           // Spit attack
+  {
+    ifactioncount 5
+    {
+      action ASBSPITB
+      shoot SHITBALL
+      ifrnd 128
+        soundonce SB_SPT1
+      else
+        soundonce SB_SPT2
+    }
+    else ifactioncount 2 nullop else
+    ifactioncount 1
+    {
+        soundonce SUMOSTRAIN
+    }
+  }
+  else ifaction ASBSPITB           // Spit attack
+  {
+    ifactioncount 1
+    {
+      shoot SHITBALL
+      action ASBSPITC
+    }
+  }
+  else ifaction ASBSPITC           // Spit attack
+  {
+    ifactioncount 1
+    {
+      action ASBSPITD
+      shoot SHITBALL
+    }
+  }
+  else ifaction ASBSPITD           // Spit attack
+  {
+    ifactioncount 1
+    {
+      action ASBSPITE
+      shoot SHITBALL
+    }
+  }
+  else ifaction ASBSPITE           // Spit attack
+  {
+    ifactioncount 1
+    {
+      action ASBSPITF
+      shoot SHITBALL
+    }
+  }
+  else ifaction ASBSPITF           // Spit attack
+  {
+    ifactioncount 1
+    {
+      shoot SHITBALL
+      action ASBMOVE
+      ifrnd SBSNDRND
+        state sbsndamb
+    }
+  }
+/*
+  else ifaction ASBDIP             // Dip and spit attack
+  {
+    ifactioncount 6
+      action ASBDIP
+  }
+*/
+  else ifaction ASBDIPA            // Dip and spit attack
+  {
+    ifactioncount 1
+      action ASBDIPB
+  }
+  else ifaction ASBDIPB            // Dip and spit attack
+  {
+    ifactioncount 1
+    {
+      action ASBDIPC
+      ifrnd 128
+        soundonce SB_SCK1
+    }
+  }
+  else ifaction ASBDIPC            // Dip and spit attack
+  {
+    ifactioncount 2
+    {
+      soundonce SUMOSTRAIN
+      action ASBDIPD
+    }
+  }
+  else ifaction ASBDIPD            // Dip and spit attack
+  {
+    ifactioncount 1
+      action ASBDIPE
+  }
+  else ifaction ASBDIPE            // Dip and spit attack
+  {
+    ifactioncount 2
+    {
+      action ASBDIPF
+      ifrnd 128
+        soundonce SB_SPT1
+      else
+        soundonce SB_SPT2
+    }
+  }
+  else ifaction ASBDIPF            // Dip and spit attack
+  {
+    ifactioncount 1
+      action ASBDIPG
+  }
+  else ifaction ASBDIPG            // Dip and spit attack
+  {
+    ifactioncount 1
+    {
+      shoot SHITBALL
+      shoot SHITBALL
+      shoot SHITBALL
+      shoot SHITBALL
+      action ASBDIPH
+    }
+  }
+  else ifaction ASBDIPH            // Dip and spit attack
+  {
+    ifactioncount 1
+    {
+      action ASBMOVE
+      ifrnd SBSNDRND
+        state sbsndamb
+    }
+  }
+  else ifaction ASBPAIN            // Experience pain
+  {
+    ifactioncount 7
+    {
+      action ASBMOVE
+      ifrnd SBSNDRND
+        state sbsndamb
+    }
+  }
+ends
+
+state sbhealth
+  getactor[THISACTOR].extra Temp
+  ifvarl Temp 1500
+  {
+    ifcount 425
+    {
+      addstrength 125
+      resetcount
+    }
+  }
+  else ifvarg Temp 1500
+  {
+    strength 1500
+  }
+ends
+
+state sbshrunkstate
+  ifcount SHRUNKDONECOUNT { getlastpal
+    ai AISBAI }
+  else
+    ifcount SHRUNKCOUNT
+      sizeto 28 28
+  else
+    state genericshrunkcode
+ends
+
+// Actors ********************************************
+
+// Main code for Turd Boss.
+useractor enemy SBMOVE SBSTRENGTH ASBMOVE
+  state FuckingFall
+
+  ifai 0
+  {
+    cstat 257
+//    sizeto 48 48
+//    sizeto 48 48
+    soundonce SUMALRT
+    ai AISBAI
+  }
+  else
+    ifaction ASBFROZEN
+  {
+    ifcount THAWTIME
+    {
+      ai AISBAI
+      spritepal 0
+    }
+    else
+      ifcount FROZENDRIPTIME
+    {
+      ifactioncount 26
+      {
+        spawn WATERDRIP
+        resetactioncount
+      }
+    }
+
+    ifhitweapon
+    {
+      ifwasweapon FREEZEBLAST
+      {
+        strength 0
+        break
+      }
+      addkills 1
+
+      ifrnd 84
+        spawn BLOODPOOL
+      state FrozeDeBree
+      sound SUMOJUSTFART
+      killit
+    }
+    ifp pfacing
+      ifpdistl FROZENQUICKKICKDIST
+        pkick
+    break
+  }
+
+  ifai AISBAI
+  {
+    // state sbsize
+    state sbai
+    // state sbhealth
+  }
+  else ifai AISBDIE             // Die sucker
+  {
+    sizeto 4 1 // 4 4
+    ifactioncount 6
+    {
+      // endofgame 2
+      sound SQUISHED
+      addkills 1
+      killit
+    }
+  }
+    else
+      ifai AISBSHRUNK
+        state sbshrunkstate
+    else
+      ifai AISBGROW
+        state genericgrowcode
+
+  ifhitweapon
+  {
+
+    ifwasweapon SHRINKSPARK
+    {
+      sound ACTOR_SHRINKING
+      ai AISBSHRUNK
+      break
+    }
+
+  ifai AISBSHRUNK
+  {
+    addkills 1
+    sound SQUISHED
+    state standard_jibs
+    killit
+  }
+
+    state random_wall_jibs
+    spawn BLOOD
+
+    ifdead
+    {
+
+    ifwasweapon FREEZEBLAST
+    {
+      sound LOUDHISS
+      spritepal FrozenPal
+      move 0
+      action ASBFROZEN
+      strength 0
+      break
+    }
+    ifwasweapon GROWSPARK
+    {
+      cstat 0
+      sound ACTOR_GROWING
+      ai AISBGROW
+      break
+    }
+    ifwasweapon RADIUSEXPLOSION
+    {
+      sound SQUISHED
+      spritepal DookiePal
+      state standard_jibs
+      addkills 1
+      killit
+    }
+    ifwasweapon RPG
+    {
+      sound SQUISHED
+      spritepal DookiePal
+      state standard_jibs
+      addkills 1
+      killit
+    }
+
+
+      ifai AISBDIE
+        nullop
+      else
+      {
+        ai AISBDIE
+        resetcount
+        cstat 0
+        spritepal 7
+        spawn BLOODPOOL
+        getlastpal
+        soundonce SB_DIE
+      }
+    }
+    else
+    {
+      ifrnd 32
+      {
+        action ASBPAIN
+        state sbsndhurt
+      }
+      spritepal DookiePal
+      guts JIBS6 3
+      getlastpal
+/*
+      ifrnd 16
+        state standard_minionjibs
+*/
+    }
+
+  }
+
+enda
+
+state BigDookies
+ifactor SBMOVE sizeat 28 28
+ifactor MINION sizeat 24 20
+ends
+
+onevent EVENT_SPAWN state BigDookies endevent
+onevent EVENT_LOADACTOR state BigDookies endevent
+
+move DOOKIEMOVE
+action ADRDOOKIE 0 5 1 1 4
+ai AIDRDOOKIE ADRDOOKIE DOOKIEMOVE faceplayersmart
+ai AIDRDOOKIEDEAD ANALACTION DOOKIEMOVE faceplayersmart
+
+useractor enemy DRDOOKIE 1000
+ifai 0 {
+cstat 256
+ai AIDRDOOKIE
+starttrack 9
+setvar Set 0
+globalsound BIGPILE
+}
+
+ifai AIDRDOOKIE
+{
+addvar Set 1
+ifvare Set 3
+{
+ifrnd 192 shoot SHITBALL else shoot RPG
+setvar Set 0
+}
+ifhitweapon 
+{
+setvar Temp2 0
+randvar Temp2 8
+addvar Temp2 FART1
+soundvar Temp2
+}
+
+ifdead {
+cstat 0
+ai AIDRDOOKIEDEAD
+operateactivators 666 THISACTOR
+starttrack 16
+quake 120
+globalsound SUMOJUSTFART
+globalsound EARTHQUAKE
+setvar Set 0
+}
+}
+ifsquished {
+ifvare Set 0 {
+addkills 1
+sound DOOKIEDIE
+}
+addvar Set 1
+ifvare Set 300 {
+getplayer[THISACTOR].cursectnum Temp
+setsector[Temp].lotag 65535
+killit
+}
+}
+enda
+

@@ -1,0 +1,895 @@
+// THE ANCIENTS AND RELATED STUFF
+
+eventloadactor BOSS1STATUE sizeat 128 128 enda
+eventloadactor BOSS2STATUE sizeat 160 128 enda
+eventloadactor BOSS3STATUE sizeat 96 90 enda
+
+state ancientstatue
+
+	seta[].ang lastang
+	ifmove 0
+	{
+		move STOPPED
+		clipdist 160
+		cstator 257
+		ifactor BOSS1STATUE sizeat 128 128
+		ifactor BOSS2STATUE sizeat 160 128
+		ifactor BOSS3STATUE sizeat 96 90
+	}
+	
+	ifhitweapon
+	{
+		strength 10000
+		ifwasweapon BIGBOIPROJ
+		{
+			ifspritepal 29 getlastpal else spritepal 29
+		}
+	}
+	else ifspritepal 29 getlastpal
+
+ends
+
+action ANEWBOSS1STAND		0  1  5  1  10
+action ANEWBOSS1WALK        5  4  5  1  14
+action ANEWBOSS1FROZEN      0  1  5  1  10
+action ANEWBOSS1RUN         5  4  5  1  8
+action ANEWBOSS1SHOOT         20 2  5  1  4
+action ANEWBOSS1LOB         30 2  5  1  35
+action ANEWBOSS1DYING        40 5  1  1  35
+action NEWBOSS1FLINTCH       40 1  1  1  1
+action ANEWBOSS1DEAD         45
+
+move PALNEWBOSS1SHRUNKRUNVELS 32
+
+move NEWBOSS1WALKVELS 224
+move NEWBOSS1RUNVELS 312
+
+ai AINEWBOSS1SEEKENEMY ANEWBOSS1WALK NEWBOSS1WALKVELS geth // seekplayer
+ai AINEWBOSS1RUNENEMY ANEWBOSS1RUN NEWBOSS1RUNVELS geth // faceplayer
+ai AINEWBOSS1SHOOTENEMY ANEWBOSS1SHOOT STOPPED geth // faceplayer
+ai AINEWBOSS1LOBBED ANEWBOSS1LOB STOPPED geth // faceplayer
+ai AINEWBOSS1DYING ANEWBOSS1DYING STOPPED geth
+// ai AINEWBOSS1PALSHRINK ANEWBOSS1WALK PALNEWBOSS1SHRUNKRUNVELS furthestdir
+
+useractor notenemy BOSS1STATUE 10000 ASTATUEFRAME
+	ife initsprite 0 break
+	state ancientstatue
+	ifn initsprite 1996 break
+	findnearsprite BOSS2STATUE 16384 spriteid
+		ifn spriteid -1 seta[spriteid].cstat 2
+	findnearsprite BOSS3STATUE 16384 spriteid
+		ifn spriteid -1 seta[spriteid].cstat 2
+	cactor NEWBOSS1
+	ai AINEWBOSS1RUNENEMY
+	starttrackslot 6 16
+	spritepal 0
+	globalsound BOS1_RECOG
+	getp[].max_actors_killed temp
+	sub temp 1
+	setp[].max_actors_killed temp
+	set monstatus 1
+	strength 10000
+	set inithp 10000
+enda
+
+useractor notenemy BOSS2STATUE 16000 ASTATUEFRAME
+	ife initsprite 0 break
+	state ancientstatue
+	ifn initsprite 1996 break
+	findnearsprite BOSS1STATUE 16384 spriteid
+		ifn spriteid -1 seta[spriteid].cstat 2
+	findnearsprite BOSS3STATUE 16384 spriteid
+		ifn spriteid -1 seta[spriteid].cstat 2
+	cactor BOSS2
+	ai AIBOSS2SHOOTENEMY
+	starttrackslot 6 16
+	spritepal 19
+	strength 16000
+	set inithp 16000
+	globalsound BOS2_RECOG
+	getp[].max_actors_killed temp
+	add temp 1
+	setp[].max_actors_killed temp
+	set monstatus 1
+enda
+
+useractor notenemy BOSS3STATUE 12000 ASTATUEFRAME
+	ife initsprite 0 break
+	state ancientstatue
+	ifn initsprite 1996 break
+	findnearsprite BOSS2STATUE 16384 spriteid
+		ifn spriteid -1 seta[spriteid].cstat 2
+	findnearsprite BOSS3STATUE 16384 spriteid
+		ifn spriteid -1 seta[spriteid].cstat 2
+	cactor BOSS3
+	ai AIBOSS3RUNENEMY
+	starttrackslot 6 16
+	spritepal 0
+	globalsound BOS3_RECOG
+	getp[].max_actors_killed temp
+	add temp 1
+	setp[].max_actors_killed temp
+	set monstatus 1
+	strength 12000
+	set inithp 12000
+enda
+
+state newboss1palshrunkstate
+  ifcount SHRUNKDONECOUNT
+    ai AINEWBOSS1SEEKENEMY
+  else
+    ifcount SHRUNKCOUNT
+      sizeto 40 40
+  else
+    state genericshrunkcode
+ends
+
+state checknewboss1seekstate
+  ai AINEWBOSS1SEEKENEMY
+  ifspritepal 0 nullop
+    else   // a fake way of doing a ifspritepal NOT.
+      move PALBOSS1RUNVELS seekplayer
+ends
+
+state newboss1runenemystate
+
+  state strafechecklong
+  ifl targetdist 4096
+  {
+    ifrnd 8
+    ife targetalive YES
+      ai AINEWBOSS1SHOOTENEMY
+    break
+  }
+  else
+    ife seemytarget YES
+  {
+    ifactioncount 4
+    {
+      ife shootmytarget YES
+      {
+        resetactioncount
+		
+        sound BOS1_WALK
+      }
+      else
+        ai AINEWBOSS1SEEKENEMY
+    }
+  }
+  else
+    ai AINEWBOSS1SEEKENEMY
+ends
+
+state newboss1seekenemystate
+
+  state strafechecklong
+  ifrnd 1
+    soundonce BOS1_ROAM
+  
+
+  ifactioncount 4
+  {
+    resetactioncount
+    sound BOS1_WALK
+  }
+
+  ifl targetdist 3072
+    ife targetalive YES
+  {
+    ai AINEWBOSS1SHOOTENEMY
+    break
+  }
+
+  ife seemytarget YES
+    ifcount 40
+  {
+    ifrnd 32
+    {
+      ife targetalive YES
+        ife shootmytarget YES
+          ai AINEWBOSS1SHOOTENEMY
+    }
+    else
+      ifg targetdist 3072
+        ifrnd 192
+          ife shootmytarget YES
+    {
+      ifrnd 64
+        ai AINEWBOSS1RUNENEMY
+      else
+        ai AINEWBOSS1LOBBED
+    }
+  }
+
+ends
+
+state newboss1dyingstate
+  ifaction ANEWBOSS1DEAD
+  {
+    ifspritepal 0
+      break
+    // ifrespawn ife gametype 0
+      // ifcount RESPAWNACTORTIME
+    // {
+	  // addkills -1 set monstatus 1
+      // spawn TRANSPORTERSTAR
+      // cstat 257
+      // strength PIGCOPSTRENGTH
+      // state checknewboss1seekstate
+    // }
+    // else
+    // {
+      strength 0
+      ifhitweapon
+        ifwasweapon RADIUSEXPLOSION
+      {
+        sound SQUISHED
+        state standard_jibs
+        killit
+      }
+      break
+    // }
+  }
+  ifactioncount 5
+  {
+    iffloordistl 8
+      sound THUD
+    action ANEWBOSS1DEAD
+    cstat 0
+    // ifspritepal 0
+    // endofgame 52
+  }
+ends
+
+state newboss1lobbedstate
+  ife seemytarget YES
+  {
+    ifactioncount 2
+    {
+		set x2 sprite[].x
+		set angvar sprite[].ang
+		add angvar 480 add x2 640
+
+		geta[].x savx geta[].y savy
+		rotatepoint sprite[].x sprite[].y x2 sprite[].y angvar x y
+		seta[].x x seta[].y y
+		
+		set xvel 832
+	    state rpg_targetprep
+	    sub zdist 1560
+        zshoot zdist ARCBALLPROJ
+		
+		seta[].x savx
+		seta[].y savy
+
+        resetactioncount
+        sound BOS1_ATTACK2  
+    }
+    else
+      ifcount 64
+        ifrnd 16
+          state checknewboss1seekstate
+  }
+  else
+    state checknewboss1seekstate
+ends
+
+state newboss1shootenemy
+
+  ife targetalive NO count 80
+  ifcount 72
+    state checknewboss1seekstate
+  else
+    ifaction ANEWBOSS1SHOOT
+      ifactioncount 2
+  {
+    
+	sound BOS1_ATTACK1
+	
+	setprojectile[SCUBAPROJ].velmult 2
+	setprojectile[SCUBAPROJ].workslike 36866
+	
+	geta[].xrepeat startx
+	geta[].yrepeat starty
+	sizeat 64 64
+
+	set x2 sprite[].x
+	set angvar sprite[].ang
+	add angvar 384 add x2 768
+
+	geta[].x savx geta[].y savy
+	rotatepoint sprite[].x sprite[].y x2 sprite[].y angvar x y
+	seta[].x x seta[].y y
+	
+	set xvel 844
+	state rpg_targetprep
+	zshoot zdist SCUBAPROJ
+	zshoot zdist SCUBAPROJ
+	
+	seta[].x savx
+	seta[].y savy
+	
+	ifl targetdist 4096 
+	{
+		state hitscan_targetprep
+		zshoot zdist CHAINGUN
+	}
+	
+	seta[].xrepeat startx
+	seta[].yrepeat starty
+	
+	
+		
+    resetactioncount
+	
+	setprojectile[SCUBAPROJ].velmult 1
+	setprojectile[SCUBAPROJ].workslike 32770
+  }
+ends
+
+state checknewboss1hitstate
+  ifrnd 2
+    spawn BLOODPOOL2
+  ifdead
+  {
+    ifspritepal 0
+	{
+      globalsound DUKE_TALKTOBOSSFALL
+	  ife rainpal SCRAPFALL set raining 0
+	  starttrackslot 6 29
+	  add ancients 1
+	}
+    else
+    {
+      ifrnd 64
+        globalsound DUKE_TALKTOBOSSFALL
+      ifwasweapon FREEZEBLAST
+      {
+        sound NEWFREEZE
+        spritepal 1
+        move 0
+        action ANEWBOSS1FROZEN
+        strength 0
+		state freezeme
+        break
+      }
+    }
+    
+    sound BOS1_DYING
+
+    addkills 1 state enemy_death
+    ai AINEWBOSS1DYING
+  }
+  else
+  {
+    ifvarg stun 0 action NEWBOSS1FLINTCH else
+    ifrnd 32
+    {
+      action NEWBOSS1FLINTCH
+      move 0
+    }
+	else
+	ifrnd 16
+	ife seemytarget YES
+	{
+		ifg targetdist 4096 ifrnd 128
+		ai AINEWBOSS1LOBBED else
+		ai AINEWBOSS1SHOOTENEMY
+	}
+
+    ifspritepal 0 nullop
+    else
+      ifwasweapon SHRINKSPARK
+    {
+      sound ACTOR_SHRINKING
+      // ai AINEWBOSS1PALSHRINK
+	  set shrunken 1
+      break
+    }
+
+    soundonce BOS1_PAIN
+
+    debris SCRAP1 1
+    guts JIBS6 1
+  }
+ends
+
+state newboss1code
+
+  ifspritepal 29 ife initsprite 1996 spritepal 0
+  ifg shrunken 10 ifl shrunken SHRUNKCOUNT
+  ife player[].actorsqu THISACTOR
+  ife player[].knee_incs 14
+  { state standard_jibs state standard_jibs }
+  
+  ifaction ANEWBOSS1FROZEN
+  {
+    ifcount THAWTIME
+    {
+      ai AINEWBOSS1SEEKENEMY
+      spritepal 21
+    }
+    else
+      ifcount FROZENDRIPTIME
+    {
+      ifactioncount 26
+      {
+        spawn WATERDRIP
+        resetactioncount
+      }
+    }
+
+    ifhitweapon
+    {
+      ifwasweapon FREEZEBLAST
+      {
+	    resetcount resetactioncount
+        strength 0
+        break
+      }
+      addkills 1 state enemy_death
+      state standard_jibs
+	  state standard_jibs
+	  lotsofglass 10
+      ifrnd 84
+        spawn BLOODPOOL
+      sound GLASS_BREAKING
+      killit
+    }
+    ifp pfacing
+      ifpdistl FROZENQUICKKICKDIST
+        state pkick_check
+    break
+  }
+  ife initsprite 1996 ife spawnprotect 0 ife monstatus 1 ifpdistg 16384 ifrnd 1 set spawnprotect -45
+  
+  ifai 0
+  {
+    ifspritepal 0
+	{
+      ai AINEWBOSS1RUNENEMY
+	  sizeat 128 128
+	  clipdist 160
+	}
+    else
+    {
+      strength 3000
+	  sizeat 40 40
+      ai AINEWBOSS1SHOOTENEMY
+	  clipdist 96
+    }
+  }
+  state monsterai 
+  
+  ifaction NEWBOSS1FLINTCH
+  {
+    ifvarg stun 0 resetactioncount
+    ifactioncount 3
+	{
+		ife targetalive YES
+		ai AINEWBOSS1SHOOTENEMY
+		else
+		ai AINEWBOSS1SEEKENEMY
+	}
+  }
+  else
+    ifai AINEWBOSS1SEEKENEMY
+      state newboss1seekenemystate
+  else
+    ifai AINEWBOSS1RUNENEMY
+      state newboss1runenemystate
+  else
+    ifai AINEWBOSS1SHOOTENEMY
+      state newboss1shootenemy
+  else
+    ifai AINEWBOSS1LOBBED
+      state newboss1lobbedstate
+  // else
+    // ifai AINEWBOSS1PALSHRINK
+      // state newboss1palshrunkstate
+
+  ifai AINEWBOSS1DYING
+    state newboss1dyingstate
+  else
+  {
+	ife monstatus -1 break
+    ifhitweapon
+      state checknewboss1hitstate
+    else
+      ife targetalive YES
+        ifspritepal 0
+          ifpdistl 1280
+			ife pdown NO
+				ife spawnprotect 0
+    {
+      addphealth -1000
+      palfrom 63 63
+    }
+	ifspritepal 0
+	state squish_bot
+  }
+ends
+
+useractor enemy NEWBOSS1 10000 fall state newboss1code enda
+
+move DEAKNEELDIE
+
+eventloadactor DEAKNEEL geta[].extra initsprite sizeat 28 26 enda
+useractor notenemy DEAKNEEL 0 ATERMINATOROFF
+	ifmove 0
+	{
+		sizeat 28 26
+		cstator 257
+		move STOPPED geth
+	}
+	fall
+	ife monstatus 2 ifmove STOPPED move DEAKNEELDIE geth
+	
+	ifmove DEAKNEELDIE
+	{
+		ifspritepal 33 getlastpal else spritepal 33
+		cstator 2
+		ifcount 30 cstator 512
+		ifcount 60 { spawn TRANSPORTERSTAR killit }
+	}
+enda
+
+eventloadactor 13034 geta[].lotag SPRITELOTAG seta[].lotag 0 ife SPRITELOTAG 689 cstat 32768 enda
+
+state ancientspark
+	ife SPRITELOTAG 0 break
+	ife SPRITELOTAG 689 ife mtype 0 set mtype 1 // ghost mother
+	ife mtype 0 break
+	
+	geta[].cstat temp
+	ifvarand temp 4 { ifvarand temp 8 xorvar temp 4 else orvar temp 8 } else
+	ifvarand temp 8 { ifvarand temp 4 { xorvar temp 8 xorvar temp 4 } else orvar temp 4 } else
+	orvar temp 4
+	seta[].cstat temp
+	
+	ife sprite[].sectnum player[].cursectnum
+	{
+		ife mtype 1
+		{
+			ifp pducking
+			ifp ponground
+			{
+				set mtype 2
+				quake 40
+				
+				resetcount
+				setp[].on_crane THISACTOR
+				getp[].posz lastang
+				sub lastang 1024
+				getp[].posx startx
+				getp[].posy starty
+				ife SPRITELOTAG 689 { set mtype 5 break } // ghost mother
+				findnearsprite DIALOGBUB 6144 spriteid
+				ifn spriteid -1
+					setav[spriteid].monstatus 2
+				findnearsprite EMPRESS 6144 spriteid
+				ifn spriteid -1
+					setav[spriteid].mtype 1
+			}
+		}
+	}
+	
+	ife mtype 2
+	{
+		add countvar 1
+		ife countvar 40 
+		{
+			quake 50 
+			ife initsprite 3
+			{
+			set subtitle_time 10
+			set subtitle_start 640
+			set subtitle_numlines 2
+			}
+			else
+			ife initsprite 2
+			{
+			set subtitle_time 10
+			set subtitle_start 607
+			set subtitle_numlines 2
+			}
+			else
+			{
+			set subtitle_time 10
+			set subtitle_start 567
+			set subtitle_numlines 2
+			}
+		}
+		ife countvar 90 
+		{
+			quake 50
+			set rainpal SCRAPFALL
+			set raining 6
+			set rainradius 20480
+			set raincstat 0
+		}
+		ife countvar 140 quake 60
+		sizeto 20 20
+		cstator 512
+		setp[].horiz 100
+		getincangle angvar player[].ang sprite[].ang
+		getp[].ang temp
+		shiftr angvar 4
+		add temp angvar
+		setp[].ang temp
+
+		setp[].posz lastang
+		setp[].posx startx
+		setp[].posy starty
+		setp[].weapon_pos -9
+		setp[].posxv 0
+		setp[].posyv 0
+		set stepcount 0
+		ifg countvar 40 ifl countvar 200
+			set subtitle_time 10
+		ifge countvar 200
+		{
+			setp[].on_crane -1
+			set subtitle_time 0
+			set subtitle_start 0
+			set mtype 3
+			state applystartguns
+			// add healthbuff 25
+			// set temp weap_owned[210]
+			// add temp 1
+			// setarray weap_owned[210] temp
+			// setp[].max_player_health healthbuff
+			addphealth 1000
+			espawn ATOMICHEALTH
+			setsprite RETURN player[].posx player[].posy player[].posz
+		}
+		
+	}
+	
+	ifg countvar 80
+	ifg mtype 1 ifl mtype 4
+	{
+		ife initsprite 3
+		findnearsprite BOSS2STATUE 32768 bottarget
+		else
+		ife initsprite 2
+		findnearsprite BOSS3STATUE 32768 bottarget
+		else
+		findnearsprite BOSS1STATUE 32768 bottarget
+		
+		ifn bottarget -1
+		{
+			cactor 13051
+			spritepal 23
+			set spriteid bottarget
+			state facesprite
+			
+			setprojectile[BIGBOIPROJ].isound -1
+			
+			sizeat 64 64
+			
+			set xvel 844
+			state rpg_targetprep
+			zshoot zdist BIGBOIPROJ
+			shiftl zdist 3
+			
+			soundonce LASERLOOP
+			
+			setprojectile[BIGBOIPROJ].isound MEGAIMPACT1
+		}
+	}
+	
+	ife mtype 3
+	{
+		findnearactor DEAKNEEL 6144 spriteid
+		ifn spriteid -1 setav[spriteid].monstatus 2
+		
+		add countvar 1
+		ifge countvar 440
+		{
+			set mtype 4
+			cstat 32768
+			set raining 3
+			set rainradius 32768
+			headspritestat spriteid 1
+			whilevarn spriteid -1
+			{
+				ife actorvar[spriteid].initsprite 5
+				{
+					ife sprite[spriteid].picnum BOSS1STATUE
+						setav[spriteid].initsprite 1996
+					ife sprite[spriteid].picnum BOSS2STATUE
+						setav[spriteid].initsprite 1996
+					ife sprite[spriteid].picnum BOSS3STATUE
+						setav[spriteid].initsprite 1996
+				}
+				nextspritestat spriteid spriteid
+			}
+		}
+	}
+	
+	ife mtype 5 // ghost mother
+	{
+		set subtitle_time 100
+		set subtitle_start SPRITELOTAG
+		set subtitle_numlines 7
+		set mtype 6
+		sound MONITOR_ACTIVE
+		cstat 2
+	}
+	
+	ife mtype 6
+	{
+		setp[].horiz 100
+		getincangle angvar player[].ang sprite[].ang
+		getp[].ang temp
+		shiftr angvar 4
+		add temp angvar
+		setp[].ang temp
+		setp[].weapon_pos -9
+		setp[].jumping_counter 0
+		setp[].posx startx
+		setp[].posy starty
+		setp[].posxv 0
+		setp[].posyv 0
+		set stepcount 0
+		ifl subtitle_time 10
+		{
+			ifhitspace { setp[].on_crane -1 killit }
+			else set subtitle_time 8
+		}
+	}
+
+ends
+
+useractor notenemy 13034 0 state ancientspark enda
+useractor notenemy 13051 0 state ancientspark enda
+
+
+
+eventloadactor EMPRESS geta[].extra initsprite geta[].lotag SPRITELOTAG seta[].lotag 0 geta[].ang angvel sizeat 30 26 enda
+
+eventloadactor EMPRESSKNEEL geta[].extra initsprite enda
+
+action AEMPRESSSTAND  0  1  8  1  10
+action AEMPRESSKNEEL 40  1  8  1  10
+move EMPSTOPPED
+
+useractor notenemy EMPRESSKNEEL 0 AEMPRESSSTAND
+
+	ifmove 0
+	{
+		sizeat 30 26
+		cstat 257
+		move STOPPED geth
+		
+		ife initsprite 1 // ghost
+			cstat 2
+	}
+	
+	ife initsprite 1
+	{
+		ifpdistg 4096
+		{
+			ife mtype 0
+			ifcount 10
+			{
+				resetcount
+				geta[].z savz, sub savz 10240, seta[].z savz
+				spawn GLAREANIM
+				add savz 10240, seta[].z savz
+			}
+		}
+		else
+			ife mtype 0 set mtype 1
+			
+		ifg mtype 0
+		{
+			add mtype 1
+			seta[].alpha mtype
+			ifg mtype 254 killit
+			
+			ifcount 24
+			ifl mtype 96
+			{
+				resetcount
+				geta[].z savz, sub savz 10240, seta[].z savz
+				spawn GLAREANIM
+				add savz 10240, seta[].z savz
+			}
+		}
+	}
+
+enda
+
+useractor notenemy EMPRESS 0 AEMPRESSSTAND
+	ifmove 0
+	{
+		sizeat 30 26
+		cstator 257
+		move STOPPED faceplayerslow
+		set FEMKILLCOUNT ancients
+	}
+	fall
+	ife initsprite 1 
+	{
+		ife mtype 0
+		{
+			ifpdistl 4096
+				move STOPPED faceplayerslow
+			else
+			{
+				move STOPPED geth
+				getincangle angvar sprite[].ang angvel
+				geta[].ang temp
+				shiftr angvar 4
+				add temp angvar
+				seta[].ang temp
+			}
+		}
+		ife mtype 1
+		{
+			seta[].ang angvel
+			action AEMPRESSKNEEL
+			ifcount 8
+			{
+				resetcount
+				geta[].z savz, sub savz 10240, seta[].z savz
+				spawn GLAREANIM
+				add savz 10240, seta[].z savz
+			}
+			add countvar 1
+			ifge countvar 400
+			{
+				ifl ancients 6
+				action AEMPRESSSTAND
+				set mtype 2
+			}
+		}
+		ife mtype 2
+		{
+			ifg ancients FEMKILLCOUNT // ancient has been defeated
+			{
+				add healthbuff 25
+				set temp weap_owned[210]
+				add temp 1
+				setarray weap_owned[210] temp
+				setp[].max_player_health healthbuff
+				ife ancients 1 // first ancient
+				{
+					espawn DIALOGBUB
+					setav[RETURN].SPRITELOTAG 569
+					setav[RETURN].starty 5
+					setav[RETURN].initflags -1
+					seta[RETURN].xrepeat 20
+					seta[RETURN].yrepeat 20
+					set mtype 3
+				}
+				ife ancients 4 // second ancient
+				{
+					espawn DIALOGBUB
+					setav[RETURN].SPRITELOTAG 609
+					setav[RETURN].starty 5
+					setav[RETURN].initflags -1
+					seta[RETURN].xrepeat 20
+					seta[RETURN].yrepeat 20
+					set mtype 3
+				}
+				ife ancients 7 // third ancient
+				{
+					espawn DIALOGBUB
+					setav[RETURN].SPRITELOTAG 642
+					setav[RETURN].starty 8
+					setav[RETURN].initflags -1
+					seta[RETURN].xrepeat 20
+					seta[RETURN].yrepeat 20
+					set mtype 3
+				}
+			}
+		}
+		
+		break
+	}
+enda
+
+

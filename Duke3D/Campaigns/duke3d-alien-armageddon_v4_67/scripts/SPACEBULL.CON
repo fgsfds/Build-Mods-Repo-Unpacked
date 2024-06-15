@@ -1,0 +1,1202 @@
+// SPACEBULL 12080
+
+action ABULLSTAND  0  1  5  1  10
+action ABULLWALK   0  4  5  1  16
+action ABULLRUN    0  4  5  1  10
+action ABULLDUCKING  0  1  5  1  20
+action ABULLDYING  45  6  1  1  16
+action ABULLDECAP  52  5  1  1  16
+action ABULLDEAD   51  1  1  1  1
+action ABULLDECAPDEAD 57  1  1  1  1
+action ABULLHURT   6725  1  5  1  20
+action ABULLSHOOTSLOW1  20  1  1  1  40
+action ABULLSHOOTSLOW2  25  1  1  1  30
+action ABULLSHOOTMED1  20  1  1  1  20
+action ABULLSHOOTMED2  25  1  1  1  15
+action ABULLSHOOTFAST1  20  1  1  1  10
+action ABULLSHOOTFAST2  25  1  1  1  8
+action ABULLSHOOTAUTO1  20  1  1  1  5
+action ABULLSHOOTAUTO2  25  1  1  1  4
+action ABULLDIVING		30  1  1  1  25
+action ABULLJUMP		30  1  1  1  30
+action ABULLDUCKSLOW1  0  1  1  1  40
+action ABULLDUCKSLOW2  5  1  1  1  30
+action ABULLDUCKMED1  0  1  1  1  20
+action ABULLDUCKMED2  5  1  1  1  15
+action ABULLDUCKFAST1  0  1  1  1  10
+action ABULLDUCKFAST2  5  1  1  1  8
+action ABULLDUCKAUTO1  0  1  1  1  5
+action ABULLDUCKAUTO2  5  1  1  1  4
+action ABULLMELEE		105  2  1  1  16
+action ABULLSHOULDER    110	 1  1  1  20
+
+move BULLSHRUNKVEL 32
+move BULLWALKVEL  120
+move BULLRUNVEL	  200
+move BULLMELEEVEL 128
+move BULLJUMPVEL 200 -80
+move BULLCHARGEVEL 360
+
+ai AIBULLJUMP ABULLJUMP BULLJUMPVEL geth getv
+ai AIBULLDIVING ABULLDIVING STOPPEDFORPLAYER geth
+ai AIBULLHURT ABULLHURT STOPPED geth
+ai AIBULLSHRUNK ABULLRUN BULLSHRUNKVEL fleeenemy
+ai AIBULLWAIT ABULLSTAND STOPPED geth
+ai AIBULLDUCKING ABULLDUCKING STOPPED geth
+ai AIBULLSEEK ABULLWALK BULLWALKVEL geth
+ai AIBULLSHOOT ABULLSHOOTMED1 STOPPED geth
+ai AIBULLDUCKSHOOT ABULLDUCKMED1 STOPPEDFORPLAYER geth
+ai AIBULLFROZEN ABULLSTAND STOPPED geth
+ai AIBULLGROW ABULLSTAND STOPPED geth 
+ai AIBULLDYING ABULLDYING STOPPED geth
+ai AIBULLMELEE ABULLMELEE BULLMELEEVEL geth
+ai AIBULLCHARGE ABULLDIVING STOPPED geth
+
+state bullchargestate
+
+	ife bottarget -1 ife team 1
+	{
+		ai AIBULLSEEK
+		break
+	}
+	
+	set crumbwait 2 
+	set dodgetime 2
+	state turntotarget
+	
+	ifaction ABULLDIVING
+	{
+		ifcount 12 
+		{
+			action ABULLRUN
+			move BULLCHARGEVEL geth
+		}
+		break
+	}
+	
+	state makespeedblur
+	
+	ifg targetdist 1024
+	state strafechecklong
+	
+	ifn bottarget -1
+	{
+		geta[].z z
+		sub z sprite[bottarget].z
+		ifg z 16384
+		ife sector[].floorslope 0
+		{
+			ai AIBULLSEEK
+			break
+		}
+	}
+
+	ifl targetdist 1280
+	{
+		state shoulderhitplayer
+		ai AIBULLWAIT
+		action ABULLSHOULDER
+		set dodgetime 15
+	}
+	ifnotmoving
+	{
+		state shoulderhitobject
+		ai AIBULLWAIT
+		action ABULLSHOULDER
+		set dodgetime 15
+	}
+	
+	ifcount 90
+		ai AIBULLWAIT
+	
+
+ends
+
+state bulljumpcheck
+
+	ifceilingdistl 96 break
+	geta[].z z
+	sub z 4096
+	
+	cos mycos sprite[].ang
+	sin mysin sprite[].ang
+	hitscan sprite[].x sprite[].y z sprite[].sectnum mycos mysin 0 hitsector hitwall hitsprite hitx hity hitz 16777281
+	ifn hitsprite -1 ifvarand sprite[hitsprite].cstat 16 set hitsprite -1
+	
+	ife hitsprite -1
+	{
+		set startx sprite[].x
+		sub startx hitx
+		mul startx startx
+		set y2 sprite[].y
+		sub y2 hity
+		mul y2 y2
+		add startx y2
+		sqrt startx startx
+		ifl startx 512
+		{
+			sub z 8192
+			hitscan sprite[].x sprite[].y z sprite[].sectnum mycos mysin 0 hitsector hitwall hitsprite hitx hity hitz 16777281
+			
+			set startx sprite[].x
+			sub startx hitx
+			mul startx startx
+			set y2 sprite[].y
+			sub y2 hity
+			mul y2 y2
+			add startx y2
+			sqrt startx startx
+			
+			ifg startx 1560 { cactor SPACEBULL ai AIBULLJUMP geta[].ang angvel set dodgetime 8 }
+		}
+	}
+
+ends
+
+state bulljumpstate
+
+	seta[].ang angvel
+	ifmove BULLJUMPVEL
+	{
+		ifcount 8 move BULLRUNVEL geth
+	}
+	ifmove BULLRUNVEL
+	{
+		iffloordistl 8
+			ai AIBULLSEEK
+		
+	}
+
+ends
+
+state bulldropstuff
+
+	ifn gametype 0 break
+	ifspritepal 51
+	state drop_shotgun
+	else ifspritepal 13
+	state drop_shotgun
+	else
+	ifspritepal 40
+	{
+		ifrnd SPAWNAMMOODDS
+		spawn DEVISTATORAMMO
+	}
+	else
+	ifspritepal 21
+	{
+		ifrnd SPAWNAMMOODDS
+		spawn HBOMBAMMO
+	}
+	else 
+	{
+		ifrnd SPAWNAMMOODDS
+		spawn PLASMASPRITE
+	}
+	
+	
+
+ends
+
+state bullmeleestate
+
+	ifactioncount 1
+	ifmove BULLMELEEVEL
+	{
+		move STOPPED geth
+		
+		ifn bottarget -1
+		{
+			ifn bottarget player[].i
+			{
+				ife seemytarget YES
+				ifl targetdist 1596
+				{
+				  seta[bottarget].htextra 30
+				  seta[bottarget].htpicnum SHOTSPARK1
+				  seta[bottarget].htowner THISACTOR
+				  seta[bottarget].htang sprite[].ang
+				  sound PIGBSMACK
+				  
+				  seta[bottarget].xvel -844
+					getav[bottarget].stun temp
+					add temp 20
+					setav[bottarget].stun temp
+					geta[bottarget].z z
+					sub z 2048
+					seta[bottarget].z z
+					geta[bottarget].zvel z
+					sub z 1560
+					seta[bottarget].zvel z
+				}
+				else sound PIGBSWING
+			}
+			else
+			{
+				ifpdistl 1596
+				ife seeplayer YES
+				{
+				  getp[].i spriteid
+				  seta[spriteid].htpicnum SHOTSPARK1
+				  seta[spriteid].htowner THISACTOR
+				  seta[spriteid].htextra 30
+				  seta[spriteid].htang sprite[].ang
+				  
+				  state checksaberblock
+				  ifn sprite[spriteid].htextra -1
+				  {
+					  palfrom 30 16
+					  ife pchar 1 sound B_GRUNT else
+						sound DUKE_GRUNT
+					  sound PIGBSMACK
+					  
+					wackplayer
+					getp[].ang angvar
+					add angvar 1024
+					cos PIGBVAR2 angvar
+					sin PIGBVAR3 angvar
+					shiftvarl PIGBVAR2 9
+					shiftvarl PIGBVAR3 9
+					setplayer[].posxv PIGBVAR2
+					setplayer[].posyv PIGBVAR3
+					// push player backwards  
+				  }
+				}
+				else sound PIGBSWING
+			}
+		}
+		else sound PIGBSWING
+			
+	}
+	ifactioncount 2 ai AIBULLWAIT
+
+ends
+
+state bullfrozenstate
+
+    ifcount THAWTIME
+    {
+      ai AIBULLSEEK
+      getlastpal
+    }
+    else
+      ifcount FROZENDRIPTIME
+    {
+      ifactioncount 26
+      {
+        spawn WATERDRIP
+        resetactioncount
+      }
+    }
+    ifhitweapon
+    {
+      ifwasweapon FREEZEBLAST
+      {
+	    resetcount resetactioncount
+        strength 0
+        break
+      }
+      addkills 1 
+	  state enemy_death
+	  state bulldropstuff
+      ifrnd 84
+        spawn BLOODPOOL
+	  lotsofglass 30
+	  state lite_jibs
+	  set B YES
+	  state bull_body_jibs
+      sound GLASS_BREAKING
+      killit
+    }
+    ifp pfacing
+      ifpdistl FROZENQUICKKICKDIST
+        state pkick_check
+  
+ends
+
+state bullgrowstate state genericgrowcode ends
+
+state bullshrunkstate
+
+  ifcount SHRUNKDONECOUNT
+    ai AIBULLSEEK
+  else
+    ifcount SHRUNKCOUNT
+      sizeto 28 28
+  else
+    state genericshrunkcode
+
+ends
+
+state bulldyingstate
+
+	strength 0
+	state deadsquished
+	ifaction ABULLDECAP
+	{
+		ifhitweapon state random_wall_jibs
+		ifactioncount 5
+		{
+			geta[].cstat temp
+			xorvar temp 256
+			seta[].cstat temp
+			action ABULLDECAPDEAD
+			iffloordistl 8 sound THUD
+			ifrnd 128 spawn BLOODPOOL
+			break
+		}
+	}
+	ifaction ABULLDECAPDEAD
+	{
+		ifhitweapon
+		{
+			ifwasweapon RPG
+			{
+				sound SQUISHED
+				spawn BLOODPOOL
+				set B NO
+				state bull_body_jibs
+				state lite_jibs
+				killit
+			}
+			ifwasweapon RADIUSEXPLOSION
+			{
+				sound SQUISHED
+				spawn BLOODPOOL
+				set B NO
+				state bull_body_jibs
+				state lite_jibs
+				killit
+			}
+		}
+		// ifcount RESPAWNACTORTIME
+		// ifrespawn ife gametype 0
+		// {
+		  // addkills -1 set monstatus 1
+		  // spawn TRANSPORTERSTAR
+		  // cstat 257
+		  // strength SPACEBULLSTRENGTH
+		  // ai AIBULLSEEK
+		// }
+	}
+	
+	ifaction ABULLDYING
+	{
+		ifhitweapon state random_wall_jibs
+		ifactioncount 6
+		{
+			geta[].cstat temp
+			xorvar temp 256
+			seta[].cstat temp
+			action ABULLDEAD
+			iffloordistl 8 sound THUD
+			ifrnd 128 spawn BLOODPOOL
+			break
+		}
+	}
+	ifaction ABULLDEAD
+	{
+		state deadsquished
+		ifhitweapon
+		{
+			ifwasweapon RPG
+			{
+				sound SQUISHED
+				spawn BLOODPOOL
+				set B YES
+				state bull_body_jibs
+				state lite_jibs
+				killit
+			}
+			ifwasweapon RADIUSEXPLOSION
+			{
+				sound SQUISHED
+				spawn BLOODPOOL
+				spawn BLOODPOOL
+				set B YES
+				state bull_body_jibs
+				state lite_jibs
+				killit
+			}
+		}
+		// ifcount RESPAWNACTORTIME
+		// ifrespawn ife gametype 0
+		// {
+		  // addkills -1
+		  // spawn TRANSPORTERSTAR
+		  // cstat 257
+		  // strength SPACEBULLSTRENGTH
+		  // ai AIBULLSEEK
+		// }
+	}
+	
+ends
+
+state bullfireflack
+
+	sound FLAKSHOT
+	set countvar 0
+	geta[].z savz
+	
+	set xvel 844
+	state rpg_targetprep
+	zshoot zdist FLAKPROJ
+	set xvel 844			
+	state rpg_targetprep
+	zshoot zdist FLAKPROJ
+	set xvel 844
+	state rpg_targetprep
+	zshoot zdist FLAKPROJ 
+	set xvel 844
+	state rpg_targetprep
+	zshoot zdist FLAKPROJ
+	set xvel 844
+	state rpg_targetprep
+	zshoot zdist FLAKPROJ
+			
+ends
+
+state bullfireswirl
+	sound SHOCKBALLFIRE
+	set xvel 844
+	setprojectile[SWIRLPROJ].pal 21
+	state rpg_targetprep
+	ezshoot zdist SWIRLPROJ
+	setprojectile[SWIRLPROJ].pal 0
+ends
+
+state bullfiremorter
+
+	sound RPG_SHOOT
+	eshoot MORTER2
+	getactor[RETURN].zvel PIGBVAR
+	subvar PIGBVAR 1280
+	setactor[RETURN].zvel PIGBVAR
+
+ends
+
+state bullfiresticky
+
+	sound GRENADE_SHOOT
+	set xvel 768
+	state rpg_targetprep
+	ezshoot zdist STICKYPROJ
+	ezshoot zdist STICKYPROJ
+	ezshoot zdist STICKYPROJ
+	ezshoot zdist STICKYPROJ
+ends
+
+state bullfirelaser
+	
+	ifactor SPACEBULL { geta[].z savz sub savz 1024 seta[].z savz }
+	sound LASERSHOOT
+	set xvel 844
+	state rpg_targetprep
+	ezshoot zdist NEWPLASMA
+	ifactor SPACEBULL { geta[].z savz add savz 1024 seta[].z savz }
+	
+ends
+
+state bullfiregreenlaser
+	
+	ifactor SPACEBULL { geta[].z savz sub savz 1024 seta[].z savz }
+	sound TERMLASER
+	shoot GREENLASER
+	ifactor SPACEBULL { geta[].z savz add savz 1024 seta[].z savz }
+	
+ends
+
+state bullfireshotgun
+
+	sound PIG_ATTACK
+	state hitscan_targetprep
+	zshoot zdist SHOTSPARK1
+	state hitscan_targetprep
+	zshoot zdist SHOTSPARK1
+	state hitscan_targetprep
+	zshoot zdist SHOTSPARK1
+	state hitscan_targetprep
+	zshoot zdist SHOTSPARK1
+	state hitscan_targetprep
+	zshoot zdist SHOTSPARK1
+
+ends
+
+state bullfireplasma
+
+	ifactor SPACEBULL { geta[].z savz sub savz 1024 seta[].z savz }
+	sound TERMLASER			
+	eshoot PLASMAPROJ
+	seta[RETURN].ang sprite[].ang
+	ifactor SPACEBULL { geta[].z savz add savz 1024 seta[].z savz }
+ends
+
+state bullshootstate
+
+	ifactioncount 1
+	{
+		ifaction ABULLSHOOTSLOW1
+		{
+			ifn bottarget -1
+			ifl mtype 4
+			{
+				action ABULLSHOOTSLOW2
+				ifspritepal 40 state bullfiresticky else
+				ifspritepal 51 state bullfireshotgun else
+				ifspritepal 21 state bullfiremorter else
+				ifspritepal 19 state bullfireswirl else
+				state bullfireflack
+				add mtype 1
+				rand temp 3
+				add mtype temp
+			}
+			else
+			ai AIBULLWAIT
+		} else
+		ifaction ABULLSHOOTSLOW2
+			action ABULLSHOOTSLOW1
+			
+		ifaction ABULLSHOOTMED1
+		{
+			ifn bottarget -1
+			ifl mtype 8
+			{
+				action ABULLSHOOTMED2
+				state bullfirelaser
+				add mtype 1
+				rand temp 3
+				add mtype temp
+			}
+			else
+			ai AIBULLWAIT
+		} else
+		ifaction ABULLSHOOTMED2
+			action ABULLSHOOTMED1
+			
+		ifaction ABULLSHOOTFAST1
+		{
+			ifn bottarget -1
+			ifl mtype 10
+			{
+				action ABULLSHOOTFAST2
+				state bullfiregreenlaser
+				add mtype 1
+				rand temp 3
+				add mtype temp
+			}
+			else
+			ai AIBULLWAIT
+		} else
+		ifaction ABULLSHOOTFAST2
+			action ABULLSHOOTFAST1
+			
+		ifaction ABULLSHOOTAUTO1
+		{
+			ifn bottarget -1
+			ifl mtype 12
+			{
+				action ABULLSHOOTAUTO2
+				state bullfireplasma
+				add mtype 1
+				rand temp 3
+				add mtype temp
+			}
+			else
+			ai AIBULLWAIT
+		} else
+		ifaction ABULLSHOOTAUTO2
+			action ABULLSHOOTAUTO1
+	}
+ends
+
+state bullduckshootstate
+
+	ifactioncount 1
+	{
+		ifaction ABULLDUCKSLOW1
+		{
+			ifn bottarget -1
+			ifl mtype 4
+			{
+				action ABULLDUCKSLOW2
+				ifspritepal 51 state bullfireshotgun else
+				ifspritepal 21 state bullfiremorter else
+				ifspritepal 40 state bullfiresticky else
+				ifspritepal 19 state bullfireswirl else
+				state bullfireflack
+				add mtype 1
+				rand temp 3
+				add mtype temp
+			}
+			else
+			{
+				cactor SPACEBULL
+				ai AIBULLWAIT
+			}
+		} else
+		ifaction ABULLDUCKSLOW2
+			action ABULLDUCKSLOW1
+			
+		ifaction ABULLDUCKMED1
+		{
+			ifn bottarget -1
+			ifl mtype 8
+			{
+				action ABULLDUCKMED2
+				state bullfirelaser
+				add mtype 1
+				rand temp 3
+				add mtype temp
+			}
+			else
+			{
+				cactor SPACEBULL
+				ai AIBULLWAIT
+			}
+		} else
+		ifaction ABULLDUCKMED2
+			action ABULLDUCKMED1
+			
+		ifaction ABULLDUCKFAST1
+		{
+			ifn bottarget -1
+			ifl mtype 10
+			{
+				action ABULLDUCKFAST2
+				state bullfiregreenlaser
+				add mtype 1
+				rand temp 3
+				add mtype temp
+			}
+			else
+			{
+				cactor SPACEBULL
+				ai AIBULLWAIT
+			}
+		} else
+		ifaction ABULLDUCKFAST2
+			action ABULLDUCKFAST1
+			
+		ifaction ABULLDUCKAUTO1
+		{
+			ifn bottarget -1
+			ifl mtype 12
+			{
+				action ABULLDUCKAUTO2
+				state bullfireplasma
+				add mtype 1
+				rand temp 3
+				add mtype temp
+			}
+			else
+			{
+				cactor SPACEBULL
+				ai AIBULLWAIT
+			}
+		} else
+		ifaction ABULLDUCKAUTO2
+			action ABULLDUCKAUTO1
+		
+	}
+
+
+ends
+
+state bulltaunt
+
+	ifactorsound THISACTOR BULLROAM1 break
+	ifactorsound THISACTOR BULLROAM2 break
+	ifactorsound THISACTOR BULLROAM3 break
+	
+	rand temp 2
+	ife temp 0 sound BULLROAM1 else
+	ife temp 1 sound BULLROAM2 else
+	sound BULLROAM3
+
+ends
+
+state bullrecog
+
+	ifactorsound THISACTOR BULLRECOG1 break
+	ifactorsound THISACTOR BULLRECOG2 break
+	ifactorsound THISACTOR BULLRECOG3 break
+	ifactorsound THISACTOR BULLRECOG4 break
+	
+	rand temp 3
+	ife temp 0 sound BULLRECOG1 else
+	ife temp 1 sound BULLRECOG2 else
+	ife temp 2 sound BULLRECOG3 else
+	ife temp 3 sound BULLRECOG4
+
+ends
+
+state bullstartsearch
+	
+	set B 0
+	set xydist 2048
+	whilevarn B 32
+	{
+		add B 1
+		geta[].z z
+		sub z 4096
+		rand angvar 2047
+		cos mycos angvar
+		sin mysin angvar
+		hitscan sprite[].x sprite[].y z sprite[].sectnum mycos mysin 0 hitsector hitwall hitsprite hitx hity hitz clipmask
+		
+		set startx sprite[].x
+		sub startx hitx
+		mul startx startx
+		set y2 sprite[].y
+		sub y2 hity
+		mul y2 y2
+		add startx y2
+		sqrt startx startx
+		
+		ifg startx xydist set B 32
+		// set crumbwait 6
+	}
+	seta[].ang angvar
+
+ends
+
+state bullstartshoot
+
+	ifn bottarget -1 set target bottarget else		
+		state friendlyfirecheck
+			ife target -1 break
+
+	set mtype 0
+	
+	state lowlineofsight
+	ifrnd 96 ife B YES
+	ifn sector[].lotag 1
+	{
+		ai AIBULLDIVING
+		break
+	}
+	
+	cactor SPACEBULL
+	ai AIBULLSHOOT
+	ifspritepal 13 action ABULLSHOOTSLOW1
+	ifspritepal 51 action ABULLSHOOTSLOW1
+	ifspritepal 19 action ABULLSHOOTSLOW1
+	ifspritepal 21 action ABULLSHOOTSLOW1
+	ifspritepal 40 action ABULLSHOOTSLOW1
+	ifspritepal 16 action ABULLSHOOTAUTO1
+	ifspritepal 14 action ABULLSHOOTFAST1
+	
+	
+ends
+
+state bulldivingstate
+
+	ifactioncount 1
+	{
+		cactor SPACEBULLDUCKING
+		ai AIBULLDUCKSHOOT
+		ifspritepal 13 action ABULLDUCKSLOW1
+		ifspritepal 51 action ABULLDUCKSLOW1
+		ifspritepal 19 action ABULLDUCKSLOW1
+		ifspritepal 21 action ABULLDUCKSLOW1
+		ifspritepal 40 action ABULLDUCKSLOW1
+		ifspritepal 16 action ABULLDUCKAUTO1
+		ifspritepal 14 action ABULLDUCKFAST1
+	}
+
+ends
+
+state bullseekstate
+
+state bulljumpcheck
+	ifai AIBULLJUMP break
+	
+ifnotmoving 
+{
+	set B NO
+	geta[].htmovflag temp
+	ifn temp 0
+	{
+		// hit something
+		add temp 16384
+		ifl temp 16384 ifg temp -1 
+		{
+			ife actorvar[temp].team team
+			{
+				set B YES
+				ifn navpoint -1
+				{
+					geta[].ang angvar
+					add angvar 512
+					state moveatangvar
+				}
+			}
+		}
+	}
+			
+	ifl navpoint 0 ifrnd 16 operate
+	ife B NO
+	ifrnd 32 { cactor SPACEBULL ai AIBULLJUMP geta[].ang angvel break }
+	ifrnd 32 ai AIBULLWAIT
+}
+
+ifn myspawner -1
+{
+	set myspawner -1
+	ifrnd 32
+	ifn sector[].lotag 1
+	{
+		ai AIBULLDIVING
+		set mtype 0
+		break
+	}
+}
+
+ifrnd 1 state bulltaunt
+
+ ife seemytarget YES
+	ife shootmytarget YES
+	ife targetalive YES
+	ifl targetdist MAXRANGE
+{
+	set temp NO
+	ifge SKILL 4 { ifcount 30 set temp YES } else
+	ifcount 60 set temp YES
+	
+	ifrnd 8
+		ife temp YES
+			state bullstartshoot
+	else
+		ifl targetdist 1560
+		{
+			ifrnd 128 
+			{
+				ai AIBULLMELEE
+				ife bottarget myshelly setav[myshelly].myspawner THISACTOR
+			}
+			else
+			state bullstartshoot
+		}
+}
+
+
+ends
+		
+
+state bullwaitstate
+
+ifaction ABULLSHOULDER
+{
+	ife dodgetime 0 action ABULLSTAND
+	break
+}
+ifcount 8
+{
+	ife seemytarget YES 
+	ife shootmytarget YES 
+	ife targetalive YES
+	ifl targetdist MAXRANGE
+	{
+		ifrnd 64 state bullrecog
+		ifactornotstayput
+		{
+			ifrnd 32 state bullstartshoot else
+			{
+				
+				set temp MAXRANGE
+				div temp 2
+				ifl targetdist temp
+				{
+					ifrnd 96 
+					{
+						state bullstartshoot
+						break
+					}
+					else ifl targetdist 1560
+					{
+						ai AIBULLMELEE
+						ife bottarget myshelly setav[myshelly].myspawner THISACTOR
+					}
+				}
+				
+				ai AIBULLSEEK
+				ifrnd 128 { action ABULLRUN move BULLRUNVEL geth }
+			}
+		}
+		else state bullstartshoot
+	}
+	else 
+	{
+		ai AIBULLSEEK
+		ife bottarget -1 state bullstartsearch
+	}
+}
+
+ends
+
+state spacebullcode
+
+	fall
+	
+	ifai AIBULLGROW { state bullgrowstate break }
+	ifai AIBULLFROZEN { state bullfrozenstate break }
+	ifai AIBULLDYING { state bulldyingstate break }
+	
+	state monsterai
+	
+	ifai AIBULLHURT
+	{
+		ifg stun 0 nullop else
+		ifactioncount 2 
+		{
+			ifrnd 96
+			ife seemytarget YES 
+			ife shootmytarget YES 
+			ifl targetdist MAXRANGE
+				state bullstartshoot
+			else
+				ai AIBULLWAIT
+		}
+	}
+	else
+	ifai AIBULLWAIT state bullwaitstate else
+	ifai AIBULLSEEK state bullseekstate else
+	ifai AIBULLJUMP state bulljumpstate else
+	ifai AIBULLCHARGE state bullchargestate else
+	ifai AIBULLMELEE state bullmeleestate else
+	ifai AIBULLDIVING state bulldivingstate else
+	ifai AIBULLSHOOT state bullshootstate else
+	ifai AIBULLDUCKSHOOT state bullduckshootstate else
+	ifai AIBULLSHRUNK state bullshrunkstate
+	
+	ifhitweapon
+	{
+		ifwasweapon SHRINKSPARK
+		{
+		  cactor SPACEBULL
+		  sound ACTOR_SHRINKING
+		  ai AIBULLSHRUNK
+		  set shrunken 1
+		  break
+		}
+		else
+			ifwasweapon GROWSPARK
+			  sound SPARKLESOUND
+		state random_wall_jibs
+		ifwasweapon HEADJIB1
+		{
+			addkills 1
+			state enemy_death
+			cactor SPACEBULL
+			ai AIBULLDYING
+			action ABULLDECAP
+			strength 0
+			cstat 0
+			guts JIBS6 41
+			rand zdist 1024
+			sub zdist 3500
+			ezshoot zdist BULLHEADPROJ
+			rand angvar 512
+			sub angvar 256
+			add angvar sprite[].htang
+			seta[RETURN].ang angvar
+			seta[RETURN].pal sprite[].pal
+			sound SQUISHED
+			state bulldropstuff
+			break
+		}
+		ifdead
+		{
+			ifwasweapon FREEZEBLAST
+			{
+			  sound NEWFREEZE
+			  spritepal 1
+			  cactor SPACEBULL
+			  ai AIBULLFROZEN
+			  strength 0
+			  state freezeme
+			  break
+			}
+			ifwasweapon GROWSPARK
+			{
+			  cstat 0
+			  sound ACTOR_GROWING
+			  cactor SPACEBULL
+			  ai AIBULLGROW
+			  break
+			}
+			addkills 1
+			state enemy_death
+			state bulldropstuff
+			cactor SPACEBULL
+			ai AIBULLDYING
+			ifrnd 128 cstat 256 else cstat 260
+			
+			guts JIBS6 4
+			
+			ifwasweapon RPG
+			{
+				cactor SPACEBULL
+				sound SQUISHED
+				spawn BLOODPOOL
+				set B YES
+				state bull_body_jibs
+				state lite_jibs
+				killit
+			}
+			ifwasweapon RADIUSEXPLOSION
+			{
+				cactor SPACEBULL
+				sound SQUISHED
+				spawn BLOODPOOL
+				set B YES
+				state bull_body_jibs
+				state lite_jibs
+				killit
+			}
+			rand temp 3
+			ife temp 0 sound BULLDIE1 else
+			ife temp 1 sound BULLDIE2 else
+			ife temp 2 sound BULLDIE3 else
+			sound BULLDIE4
+			break
+		}
+		ifrnd 2
+			spawn BLOODPOOL
+		ifai AIBULLHURT nullop else
+		ifai AIBULLSHRUNK nullop else
+		{
+			ifg stun 0 { cactor SPACEBULL ai AIBULLHURT break }
+			ifactorsound THISACTOR BULLPAIN1 nullop else
+			ifactorsound THISACTOR BULLPAIN2 nullop else
+			ifactorsound THISACTOR BULLPAIN3 nullop else
+			ifactorsound THISACTOR BULLPAIN4 nullop else
+			{
+				rand temp 3
+				ife temp 0 sound BULLPAIN1 else
+				ife temp 1 sound BULLPAIN2 else
+				ife temp 2 sound BULLPAIN3 else
+				sound BULLPAIN4
+			}
+			
+			ifrnd 16 
+			ifn sprite[].htpicnum BURNING
+			ifn sprite[].htpicnum RADWOUND
+			{ 
+				cactor SPACEBULL
+				ai AIBULLHURT 
+				break 
+			}
+			ifspritepal 19
+			ifrnd 128
+			ife seemytarget YES
+			ifl targetdist 16384
+			{
+				// height check
+				ifn bottarget -1
+				{
+					geta[].z z
+					geta[bottarget].z z2
+					sub z z2
+					abs z
+					ifl z 20480 { cactor SPACEBULL ai AIBULLCHARGE state bulltaunt }
+				}
+			}
+		}
+	}
+	else
+	{
+		state checksquished
+		ifai AIBULLSHRUNK nullop else
+		ifg stun 0 { cactor SPACEBULL ai AIBULLHURT }
+	}
+
+ends
+
+action ABULLSTANDB -5  1  5  1  10
+useractor notenemy SPACEBULLGUARD SPACEBULLSTRENGTH
+
+	ifmove 0
+	{
+		set monstatus -2
+		move STOPPED geth
+		action ABULLSTANDB
+		sizeat 26 26
+		clipdist 72
+		cstator 256
+	}
+	fall
+	ifpdistl 20480 ifcansee ifg ptargeted 0 seta[].htextra 0
+	ife gametype -1
+	{
+		ifhitweapon
+		{
+			rand temp 3
+			ife temp 0 soundonce BULLPAIN1 else
+			ife temp 1 soundonce BULLPAIN2 else
+			ife temp 2 soundonce BULLPAIN3 else
+			soundonce BULLPAIN4
+			
+			ifdead
+			{
+				espawn SPACEBULL
+				seta[RETURN].pal sprite[].pal
+				state wakeupguards
+				killit
+			}
+		}
+	}
+	else
+	ifg sprite[].htextra -1
+	{
+		espawn SPACEBULL
+		seta[RETURN].pal sprite[].pal
+		state wakeupguards
+		killit
+	}
+
+enda
+
+useractor enemy SPACEBULL SPACEBULLSTRENGTH
+
+	ifai 0
+	{
+		ifl sprite[].xrepeat 4 spawn GLARESTAR
+		ai AIBULLWAIT
+		cstator 257
+		clipdist 72
+		ifspritepal 14 addstrength 50
+		ifspritepal 21 addstrength 50
+		ifspritepal 19 addstrength 100
+		sizeat 26 26
+	}
+
+	state spacebullcode
+
+enda
+
+useractor enemy SPACEBULLDUCKING SPACEBULLSTRENGTH
+
+	ifai 0
+	{
+		ai AIBULLDUCKING
+		sizeat 26 26
+		cstator 257
+		clipdist 72
+		ifspritepal 14 addstrength 50
+		ifspritepal 21 addstrength 50
+	}
+	state spacebullcode
+enda
+
+useractor enemystayput SPACEBULLSTAYPUT SPACEBULLSTRENGTH
+
+	ai AIBULLWAIT
+	sizeat 26 26
+	cstator 257
+	clipdist 72
+	cactor SPACEBULL
+	ifspritepal 14 addstrength 50
+	ifspritepal 21 addstrength 50
+
+enda

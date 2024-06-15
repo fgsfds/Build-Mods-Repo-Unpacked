@@ -1,0 +1,1029 @@
+// CYBER ENFORCER BOSS
+// sprites by sebabdukeboss20, code by Dan Gaskill
+// version .96 February 9, 2018
+
+// define LIZBOSS 5185
+// define LIZBOSSSTAYPUT 5186
+define LIZMINE 5246
+spriteshadow LIZMINE
+// define MINEEXP 5250
+// spritenoshade MINEEXP
+// spritenopal MINEEXP
+
+// spriteflags LIZBOSS 5251072
+// HURTSPAWNBLOOD + NODAMAGEPUSH + SMOOTHMOVE
+
+gamevar LIZBVAR 0 0
+gamevar LIZBVAR2 0 0
+gamevar LIZBVAR3 0 0
+
+action ALIZBOSSWALKING     	0   4  5  1  22
+action ALIZBOSSRUNNING     	0   4  5  1  14
+action ALIZBOSSSTARTSHOOT	20  1  5  1  20
+action ALIZBOSSSHOOT1		25	1  5  1  5
+action ALIZBOSSSHOOT2		30  1  5  1  5
+action ALIZBOSSFLY      	80  1  5  1  10
+action ALIZBOSSFALL      	35  1  5  1  10
+action ALIZBOSSSTAND     	40  1  5  1  10
+action ALIZBOSSSQUAT     	45  1  5  1  60
+action ALIZSQUATDONE		50  1  5  1  30
+action ALIZBOSSFROZEN     	50  1  5  1  10
+action ALIZBOSSFLINTCH 		55  1  1  1  10
+action ALIZBOSSGROW 		55  1  1  1  10
+action ALIZBOSSDYING     	55  6  1  1  24
+action ALIZBOSSLYINGDEAD   	60  1  1  1  10
+
+move LIZBOSSSHRUNKVELS 32
+move PALLIZBOSSWALKVEL 96
+move LIZBOSSWALKVEL 180
+move LIZBOSSRUNVEL 280
+move LIZBOSSWALKNAV 180
+move LIZBOSSRUNNAV 280
+// move LIZBOSSJUMPVEL 416 -208
+// move LIZBOSSFALLVEL 416
+
+move LIZBOSSJUMPVEL 640 -208
+move LIZBOSSFALLVEL 512
+
+ai AILIZBOSSWAIT			ALIZBOSSSTAND STOPPEDFORPLAYER geth
+ai AILIZBOSSSEEK			ALIZBOSSWALKING LIZBOSSWALKVEL seekplayer
+ai AILIZBOSSCHARGE			ALIZBOSSRUNNING LIZBOSSRUNVEL faceplayersmart
+ai AILIZBOSSSHOOT			ALIZBOSSSTARTSHOOT STOPPEDFORPLAYER faceplayer
+ai AILIZBOSSDYING			ALIZBOSSDYING STOPPEDFORPLAYER geth
+ai AILIZBOSSHIT				ALIZBOSSFLINTCH STOPPEDFORPLAYER faceplayer
+ai AILIZBOSSFROZEN			ALIZBOSSFROZEN STOPPEDFORPLAYER geth
+ai AILIZBOSSSHRUNK			ALIZBOSSRUNNING LIZBOSSSHRUNKVELS fleeenemy
+ai AILIZBOSSGROW			ALIZBOSSGROW STOPPEDFORPLAYER geth
+ai AILIZBOSSJUMP			ALIZBOSSFLY LIZBOSSJUMPVEL geth getv
+ai AILIZLAYMINE				ALIZBOSSSTAND STOPPEDFORPLAYER geth
+
+state lizbosshitstate
+	ifcount 9 ai AILIZBOSSWAIT
+ends
+
+state lizbosschargestate
+
+	ifrnd 2
+	{
+		ifg shrunken 10 ifl shrunken SHRUNKCOUNT
+				setp[].sound_pitch SHRUNKPITCH
+		ifrnd 128
+		sound CYBOSS_ROAM1
+		else
+		sound CYBOSS_ROAM2
+		ifg shrunken 10 ifl shrunken SHRUNKCOUNT
+				setp[].sound_pitch 0
+	}
+	ifcount 30
+	{
+		ife seemytarget YES 
+			ife targetalive YES
+				ifl targetdist MAXRANGE
+		{ 
+			ai AILIZBOSSSHOOT 
+			ifg shrunken 10 ifl shrunken SHRUNKCOUNT
+				setp[].sound_pitch SHRUNKPITCH
+			sound CYBOSS_ATTK 
+			ifg shrunken 10 ifl shrunken SHRUNKCOUNT
+				setp[].sound_pitch 0
+		}
+		ifcount 60 
+		{
+			ai AILIZBOSSSEEK
+			ifg gametype 0 move LIZBOSSWALKNAV geth
+		}
+	}
+
+ends
+
+state lizbossshootstate
+
+	ifaction ALIZBOSSSTARTSHOOT
+	{
+		ifactioncount 2
+		{
+			action ALIZBOSSSHOOT1
+			espawn SOUNDPLATE
+			setav[RETURN].SPRITELOTAG HEAVY_RIFLE
+			setav[RETURN].mtype 1
+			ifn bottarget -1
+			{
+				state hitscan_targetprep
+				zshoot zdist SHOTSPARK1
+				ifspritepal 0 zshoot zdist SHOTSPARK1
+				ifspritepal 60 zshoot zdist SHOTSPARK1
+			}
+			else
+			{
+				shoot SHOTSPARK1
+				ifspritepal 0 shoot SHOTSPARK1
+				ifspritepal 60 shoot SHOTSPARK1
+			}
+			move STOPPEDFORPLAYER faceplayerslow
+		}
+	}
+	ifaction ALIZBOSSSHOOT1
+	{
+		ifactioncount 1
+		{
+			ifg shrunken 10 ifl shrunken SHRUNKCOUNT
+				setp[].sound_pitch SHRUNKPITCH
+			action ALIZBOSSSHOOT2
+			ifg targetdist 4096 ifrnd 64
+			{
+				geta[].x bossx
+				geta[].y bossy
+				geta[].z savz
+				
+				geta[].ang bossang
+				sub bossang 512
+				set LIZBVAR bossx
+				ifspritepal 0 add LIZBVAR 1024
+				else
+				ifspritepal 60 add LIZBVAR 1024
+				else
+				add LIZBVAR 512
+				rotatepoint sprite[].x sprite[].y LIZBVAR sprite[].y bossang newx newy
+				seta[].x newx
+				seta[].y newy
+				set z savz
+				set z2 sprite[].yrepeat
+				mul z2 160
+				sub z z2
+				seta[].z z
+				ifvarand initflags 32
+				{
+					set xvel 768
+					state rpg_targetprep
+					ezshoot zdist COMETPROJ
+					seta[RETURN].pal 8
+					sound COMET_FIRE
+				}
+				else
+				{
+					sound RPG_SHOOT
+					eshoot RPG
+					ifn bottarget -1 setav[RETURN].bottarget bottarget
+					
+					ifspritepal 0
+					{
+						seta[RETURN].xrepeat 40
+						seta[RETURN].yrepeat 40
+						ifg gametype 0 seta[RETURN].extra 100
+						seta[RETURN].extra 70
+					}
+					else
+					ifspritepal 60
+					{
+						seta[RETURN].xrepeat 40
+						seta[RETURN].yrepeat 40
+						ifg gametype 0 seta[RETURN].extra 100
+						seta[RETURN].extra 70
+					}
+					else seta[RETURN].extra 70
+				}
+				
+				seta[].x bossx
+				seta[].y bossy
+				seta[].z savz
+				break
+			}
+			
+			ifn bottarget -1
+			{
+				ifvarand initflags 32 
+				{
+					geta[].z savz sub savz 1560 seta[].z savz
+					sound TERMLASER 
+					
+					geta[].x bossx
+					geta[].y bossy
+					
+					geta[].ang bossang
+					sub bossang 480
+					set LIZBVAR bossx
+					
+					add LIZBVAR 448
+					rotatepoint sprite[].x sprite[].y LIZBVAR sprite[].y bossang newx newy
+					seta[].x newx
+					seta[].y newy
+
+					shoot GREENLASER 
+					add savz 1560 seta[].z savz
+					seta[].x bossx seta[].y bossy
+				} 
+				else
+				{
+					sound M4FIRE2
+					state hitscan_targetprep
+					zshoot zdist SHOTSPARK1
+					ifspritepal 0
+					{
+						zshoot zdist SHOTSPARK1
+					}
+					ifspritepal 60
+					{
+						zshoot zdist SHOTSPARK1
+					}
+				}
+			}
+			else
+			{
+				sound M4FIRE2
+				shoot SHOTSPARK1
+				ifspritepal 0 
+				{
+					shoot SHOTSPARK1
+				}
+				ifspritepal 60
+				{
+					shoot SHOTSPARK1
+				}
+			}
+			ifg shrunken 10 ifl shrunken SHRUNKCOUNT
+				setp[].sound_pitch 0
+		}
+	}
+	ifaction ALIZBOSSSHOOT2
+	{
+		ifactioncount 1
+		{
+			ife targetalive NO count 100
+			ifcount 90
+			{
+				ai AILIZBOSSSEEK
+				ifg gametype 0 move LIZBOSSWALKNAV geth
+				break
+			}
+			action ALIZBOSSSHOOT1
+			ife shrunken 0
+			{
+				espawn SOUNDPLATE
+				setav[RETURN].SPRITELOTAG HEAVY_RIFLE
+				setav[RETURN].mtype 1
+				ifn bottarget -1
+				{
+					state hitscan_targetprep
+					zshoot zdist SHOTSPARK1
+					ifspritepal 0 zshoot zdist SHOTSPARK1
+					ifspritepal 60 zshoot zdist SHOTSPARK1
+				}
+				else
+				{
+					shoot SHOTSPARK1
+					ifspritepal 0 shoot SHOTSPARK1
+					ifspritepal 60 shoot SHOTSPARK1
+				}
+			}
+		}
+	}
+
+ends
+
+state lizbossjumpstate
+	
+	set dodgetime 6
+	ifaction ALIZBOSSFLY
+	{
+		ifrnd 10 
+		{
+			ifg shrunken 10 ifl shrunken SHRUNKCOUNT
+				setp[].sound_pitch SHRUNKPITCH
+			sound RPG_SHOOT shoot MORTER 
+			ifg shrunken 10 ifl shrunken SHRUNKCOUNT
+				setp[].sound_pitch 0
+		}
+		// espawn EXPLOSION2
+		// set LIZBVAR 514
+		// ifrnd 128 orvar LIZBVAR 4
+		// seta[RETURN].cstat LIZBVAR
+		// ifspritepal 0 nullop else
+		// {
+			// seta[RETURN].xrepeat 28
+			// seta[RETURN].yrepeat 28
+		// }
+		set LIZBVAR startx
+		set LIZBVAR2 starty
+		sub LIZBVAR sprite[].x
+		sub LIZBVAR2 sprite[].y
+		getangle LIZBVAR3 LIZBVAR LIZBVAR2
+		seta[].ang LIZBVAR3
+		
+		set LIZBVAR2 sprite[].x
+		sub LIZBVAR2 startx
+		mul LIZBVAR2 LIZBVAR2
+		
+		set LIZBVAR3 sprite[].y
+		sub LIZBVAR3 starty
+		mul LIZBVAR3 LIZBVAR3
+		add LIZBVAR2 LIZBVAR3
+		sqrt LIZBVAR2 LIZBVAR2
+		set LIZBVAR countvar
+		div LIZBVAR 2
+		
+		ifoutside nullop else ifceilingdistl 64
+		ifcount 10
+		{
+			action ALIZBOSSFALL
+			globalsound CYBOSS_SWOOP
+			move LIZBOSSFALLVEL geth
+			break
+		}
+		
+		ifl LIZBVAR2 LIZBVAR // more than halfway to destination
+		{
+			action ALIZBOSSFALL
+			globalsound CYBOSS_SWOOP
+			move LIZBOSSFALLVEL geth
+			set mtype 0
+		}
+		else
+		ifcount 60 
+		{
+			action ALIZBOSSFALL
+			globalsound CYBOSS_SWOOP
+			move LIZBOSSFALLVEL geth
+		}
+		else
+		ife mtype 1 ifcount 3
+		{
+			action ALIZBOSSFALL
+			globalsound CYBOSS_SWOOP
+			move LIZBOSSFALLVEL geth
+			set mtype 0
+		}
+	}
+	
+	ifaction ALIZBOSSFALL
+	{
+		iffloordistl 8
+		{
+			ifg shrunken 10 ifl shrunken SHRUNKCOUNT
+				nullop else
+			globalsound CYBOSS_LAND
+			quake 20
+			set temp NO
+			ifspritepal 0 set temp YES
+			ifspritepal 60 set temp YES
+			
+			ife temp YES
+			{
+				debris SCRAP1 4
+				debris SCRAP2 4
+				debris SCRAP3 4
+				debris SCRAP4 4
+				debris SCRAP5 4
+				hitradius 5120 35 50 70 500
+				// seta[].htextra -1
+				ifpdistl 5120 seta[player[].i].htowner THISACTOR
+				ifl targetdist 7168
+				{
+					ifn bottarget -1
+					{
+						geta[bottarget].z z
+						sub z 2048
+						seta[bottarget].z z
+						seta[bottarget].zvel -1560
+					}
+				}
+				ifpdistl 7168
+				{
+					setp[].poszv -2048
+					getp[].posz LIZBVAR
+					sub LIZBVAR 1024
+					setp[].posz LIZBVAR
+				}
+			}
+			else 
+			{
+				hitradius 4096 30 40 50 100
+				// seta[].htextra -1
+				ifpdistl 4096 seta[player[].i].htowner THISACTOR
+			}
+			
+			set LIZBVAR 0
+			whilevarn LIZBVAR 48
+			{
+				add LIZBVAR 1
+				espawn SMALLSMOKE
+				rand LIZBVAR2 12288
+				sub LIZBVAR2 6144
+				add LIZBVAR2 sprite[].x
+				seta[RETURN].x LIZBVAR2
+				rand LIZBVAR2 12288
+				sub LIZBVAR2 6144
+				add LIZBVAR2 sprite[].y
+				seta[RETURN].y LIZBVAR2
+			}
+			sound CYBOSS_LAYMINE
+			ai AILIZLAYMINE
+		}
+	}
+
+ends
+
+state lizbossjumpnow
+
+	ifn bottarget -1
+	{
+		geta[bottarget].x startx
+		geta[bottarget].y starty
+		ldist countvar THISACTOR bottarget
+	}
+	else
+	{
+		getp[].posx startx
+		getp[].posy starty
+		ldist countvar THISACTOR player[].i
+	}
+	ai AILIZBOSSJUMP
+	globalsound CYBOSS_LAUNCH
+
+ends
+
+state lizbossjumpcheck
+	
+	ifn shrunken 0 break
+	
+	ifn sprite[].pal 0
+	ifn sprite[].pal 60
+	ife targetalive YES
+	ife seemytarget YES
+		ifl targetdist 3072
+	{
+		set mtype 1
+		state lizbossjumpnow
+	}
+		
+	ifrnd 16
+	ife seemytarget YES
+		ifg targetdist 6144
+			ifl targetdist 32768
+				iffloordistl 8
+		state lizbossjumpnow
+	
+
+ends
+
+state lizbossseekstate
+
+	ifrnd 2
+	{
+		ifg shrunken 10 ifl shrunken SHRUNKCOUNT
+				setp[].sound_pitch SHRUNKPITCH
+		ifrnd 128
+		sound CYBOSS_ROAM1
+		else
+		sound CYBOSS_ROAM2
+		ifg shrunken 10 ifl shrunken SHRUNKCOUNT
+				setp[].sound_pitch 0
+	}
+	ifcount 10
+	ife seemytarget YES ifl targetdist 6144
+		ife targetalive YES
+	{
+		ifrnd 8 
+		{ 
+			ai AILIZBOSSSHOOT 
+			ifg shrunken 10 ifl shrunken SHRUNKCOUNT
+				setp[].sound_pitch SHRUNKPITCH
+			sound CYBOSS_ATTK 
+			ifg shrunken 10 ifl shrunken SHRUNKCOUNT
+				setp[].sound_pitch 0
+		}
+		else ifrnd 12 
+		{
+			ai AILIZBOSSCHARGE
+			ifg gametype 0 move LIZBOSSRUNNAV geth
+		}
+	}
+	
+	ifl gametype 1
+	{
+		ifrnd 4 ifg targetdist 6144 ai AILIZBOSSWAIT
+	}
+	else
+	{
+		ifrnd 32 ifg targetdist 6144 state lizbossjumpcheck
+	}
+	
+	ifcount 10
+	ifai AILIZBOSSSEEK ifrnd 1 
+	{
+		ai AILIZBOSSCHARGE
+		ifg gametype 0 move LIZBOSSRUNNAV geth
+	}
+	
+
+ends
+
+state lizbosswaitstate
+
+	state lizbossjumpcheck
+
+	ifcount 30 
+	{
+		ai AILIZBOSSSEEK
+		ifg gametype 0 move LIZBOSSWALKNAV geth
+	}
+
+ends
+
+state lizlayminestate
+
+ifaction ALIZBOSSSTAND
+{
+	ifactioncount 5
+		action ALIZBOSSSQUAT
+}
+ifaction ALIZBOSSSQUAT
+{
+	ifactioncount 2
+	{
+		action ALIZSQUATDONE
+		espawn LIZMINE
+		setav[RETURN].team team
+		seta[RETURN].xrepeat sprite[].xrepeat
+		seta[RETURN].yrepeat sprite[].yrepeat
+		seta[RETURN].pal sprite[].pal
+	}
+}
+ifaction ALIZSQUATDONE
+{
+	ifactioncount 2
+		ai AILIZBOSSCHARGE
+}
+
+ends
+
+state lizbossgrowstate
+
+	state genericgrowcode
+	sizeto 255 192
+
+ends
+
+state lizbossshrunkstate
+
+  ifcount SHRUNKDONECOUNT
+    ai AILIZBOSSWAIT
+  else
+    ifcount SHRUNKCOUNT
+	{
+	  ifspritepal 0 { sizeto 64 56 sizeto 64 56 }
+	  else
+	  ifspritepal 60 { sizeto 64 56 sizeto 64 56 }
+	  else
+      sizeto 32 28
+	}
+  else
+    state genericshrunkcode
+
+ends
+
+state lizbossfrozenstate
+
+    ifcount THAWTIME
+    {
+      ai AILIZBOSSWAIT
+      getlastpal
+    }
+    else
+      ifcount FROZENDRIPTIME
+    {
+      ifactioncount 26
+      {
+        spawn WATERDRIP
+        resetactioncount
+      }
+    }
+    ifhitweapon
+    {
+      ifwasweapon FREEZEBLAST
+      {
+        strength 0
+        break
+      }
+      addkills 1 
+	  state enemy_death
+
+      ifrnd 84
+        spawn BLOODPOOL
+	  lotsofglass 30
+      state standard_jibs
+      sound GLASS_BREAKING
+      killit
+    }
+    ifp pfacing
+      ifpdistl FROZENQUICKKICKDIST
+        state pkick_check
+  
+ends
+
+useractor enemy LIZBOSS LIZBOSSSTRENGTH
+
+fall
+ifai 0
+{
+	ifl sprite[].xrepeat 4 spawn GLARESTAR
+	sound CYBOSS_RECOG
+	ai AILIZBOSSWAIT
+	cstat 257
+	ifspritepal 0 clipdist 164 else 
+	ifspritepal 60 clipdist 164 else
+	clipdist 96
+	
+	ifspritepal 0 
+		sizeat 64 56 
+	else
+	ifspritepal 60 
+		sizeat 64 56 
+	else 
+	{ 
+		sizeat 32 28
+		strength LIZBOSSPALSTRENGTH
+		ifspritepal 20
+		{
+			addstrength 300
+			orvar initflags 32
+		}
+	}
+	set init_xrepeat sprite[].xrepeat
+	set init_yrepeat sprite[].yrepeat
+}
+
+ifai AILIZBOSSDYING
+{
+	strength 0
+	
+	ifaction ALIZBOSSDYING
+	{
+		ifhitweapon state random_wall_jibs
+		ifactioncount 5
+		{
+			ifg shrunken 10 ifl shrunken SHRUNKCOUNT
+				setp[].sound_pitch SHRUNKPITCH
+			globalsound THUD
+			ifg shrunken 10 ifl shrunken SHRUNKCOUNT
+				setp[].sound_pitch 0
+			cstat 0
+			action ALIZBOSSLYINGDEAD
+			ifspritepal 60
+			{
+				ife attmode YES ifl attmid 3 setp[].timebeforeexit 150 else
+				{
+					endofgame 60
+					ife attmode YES set attmid 4
+				}
+			}
+			break
+		}
+	}
+	ifaction ALIZBOSSLYINGDEAD
+	{
+		ifhitweapon
+		{
+			ifwasweapon RPG
+			{
+				sound SQUISHED
+				spawn BLOODPOOL
+				state standard_jibs
+				state standard_jibs
+				debris SCRAP1 4
+				debris SCRAP2 4
+				debris SCRAP3 4
+				debris SCRAP4 4
+				debris SCRAP5 4
+				debris SCRAP6 4
+				state tech_debris
+				killit
+			}
+			ifwasweapon RADIUSEXPLOSION
+			{
+				sound SQUISHED
+				spawn BLOODPOOL
+				state standard_jibs
+				state standard_jibs
+				debris SCRAP1 4
+				debris SCRAP2 4
+				debris SCRAP3 4
+				debris SCRAP4 4
+				debris SCRAP5 4
+				debris SCRAP6 4
+				state tech_debris
+				killit
+			}
+		}
+		// ifcount RESPAWNACTORTIME
+		// ifrespawn
+		// {
+		  // addkills -1 set monstatus 1
+		  // spawn TRANSPORTERSTAR
+		  // cstat 257
+		  // strength PIGCOPSTRENGTH
+		  // ai AILIZBOSSWAIT
+		  // sound CYBOSS_RECOG
+		// }
+	}
+	
+	break
+}
+
+state monsterai 
+
+ifai AILIZBOSSGROW { state lizbossgrowstate break }
+ifai AILIZBOSSFROZEN { state lizbossfrozenstate break }
+
+ifai AILIZBOSSSHRUNK state lizbossshrunkstate else
+ifai AILIZBOSSHIT state lizbosshitstate else
+ifai AILIZBOSSWAIT state lizbosswaitstate else
+ifai AILIZBOSSJUMP state lizbossjumpstate else
+ifai AILIZLAYMINE state lizlayminestate else
+ifai AILIZBOSSCHARGE state lizbosschargestate else
+ifai AILIZBOSSSHOOT state lizbossshootstate else
+ifai AILIZBOSSSEEK state lizbossseekstate
+
+ifai AILIZBOSSSHRUNK nullop
+else
+{
+	set temp NO
+	ifspritepal 0 set temp YES
+	ifspritepal 60 set temp YES
+	
+	ife temp YES
+	{
+		ife targetalive YES
+			ifpdistl 1280
+			  ife pdown NO
+		{
+		  addphealth -1000
+		  palfrom 63 63
+		}
+		state squish_bot
+	}
+}
+ife monstatus -1 break
+ifhitweapon
+{
+    ifwasweapon SHRINKSPARK
+	ifn sprite[].pal 60
+	{
+		sound ACTOR_SHRINKING
+		ai AILIZBOSSSHRUNK
+		set shrunken 1
+		break
+	}
+	else
+        ifwasweapon GROWSPARK
+          sound SPARKLESOUND
+	state random_wall_jibs
+	ifdead
+	{
+		ifwasweapon FREEZEBLAST
+		{
+		  sound NEWFREEZE
+		  spritepal 1
+		  ai AILIZBOSSFROZEN
+		  strength 0
+		  state freezeme
+		  break
+		}
+		ifwasweapon GROWSPARK
+		{
+		  cstat 0
+		  sound ACTOR_GROWING
+		  ai AILIZBOSSGROW
+		  break
+		}
+		addkills 1
+		state enemy_death
+		ifg shrunken 10 ifl shrunken SHRUNKCOUNT
+				setp[].sound_pitch SHRUNKPITCH
+		sound CYBOSS_DEATH
+		ifg shrunken 10 ifl shrunken SHRUNKCOUNT
+				setp[].sound_pitch 0
+		ai AILIZBOSSDYING
+		guts JIBS6 8
+		ifspritepal 0 break
+		ifspritepal 60 break
+		ifwasweapon RPG
+		{
+			sound SQUISHED
+			spawn BLOODPOOL
+			state standard_jibs
+			state standard_jibs
+			debris SCRAP1 4
+			debris SCRAP2 4
+			debris SCRAP3 4
+			debris SCRAP4 4
+			debris SCRAP5 4
+			debris SCRAP6 4
+			state tech_debris
+			killit
+        }
+		ifwasweapon RADIUSEXPLOSION
+		{
+			sound SQUISHED
+			spawn BLOODPOOL
+			state standard_jibs
+			state standard_jibs
+			debris SCRAP1 4
+			debris SCRAP2 4
+			debris SCRAP3 4
+			debris SCRAP4 4
+			debris SCRAP5 4
+			debris SCRAP6 4
+			state tech_debris
+			killit
+        }
+		break
+	}
+	ifg shrunken 10 ifl shrunken SHRUNKCOUNT
+				setp[].sound_pitch SHRUNKPITCH
+	sound CYBOSS_PAIN
+	ifg shrunken 10 ifl shrunken SHRUNKCOUNT
+				setp[].sound_pitch 0
+	ifrnd 2
+		spawn BLOODPOOL
+	ifai AILIZBOSSHIT nullop else
+	ifai AILIZLAYMINE nullop else
+	ifai AILIZBOSSJUMP nullop else
+	ifai AILIZBOSSSHRUNK nullop else
+	{
+		ifrnd 16 
+		ifn sprite[].htpicnum BURNING
+	    ifn sprite[].htpicnum RADWOUND
+		 ai AILIZBOSSHIT 	
+	}
+}
+
+enda
+
+action MINEEXPFRAMES 0 12 1 1 5 
+useractor notenemy MINEEXP 0 MINEEXPFRAMES
+
+	ifcount 1 nullop else
+	{
+		cstator 2
+		seta[].blend 1
+		
+		ifspawnedby WESBOMB { sizeat 10 10 spritepal 1 } else
+		ifl sprite[].xrepeat 16 
+		{
+			sizeat 32 32
+			spawn EXPLOSION2BOT
+		}
+
+		ifrnd 128 cstator 4
+		
+		
+		ifspawnedby WESGRENADE
+		{
+			set countvar 0
+			geta[].ang angvel
+			
+			whilevarn countvar 16
+			{
+				rand zdist 2048
+				sub zdist 2560
+				ezshoot zdist RADPROJ
+				setav[RETURN].team 1
+				add countvar 1
+				add angvel 128
+				seta[].ang angvel
+			}
+			
+		}
+	}
+	state spawnsmokeonscrap
+	ifactioncount 12 killit
+
+
+enda
+
+state mineexplode
+
+	espawn MINEEXP
+	seta[RETURN].xrepeat sprite[].xrepeat
+	seta[RETURN].yrepeat sprite[].yrepeat
+	ifl sprite[].xrepeat 20
+	{
+		ifg shrunken 10 ifl shrunken SHRUNKCOUNT
+				setp[].sound_pitch SHRUNKPITCH
+		sound PIPEBOMB_EXPLODE
+		hitradius 1280 2 4 6 8
+		ifpdistl 1280 seta[player[].i].htowner THISACTOR
+		ifg shrunken 10 ifl shrunken SHRUNKCOUNT
+				setp[].sound_pitch 0
+		killit
+		break
+	}
+	sound PIPEBOMB_EXPLODE
+	ifspritepal 0
+	{
+	hitradius 4096 35 50 65 80
+	ifpdistl 4096 seta[player[].i].htowner THISACTOR
+	}
+	else
+	ifspritepal 60
+	{
+	hitradius 4096 35 50 65 80
+	ifpdistl 4096 seta[player[].i].htowner THISACTOR
+	}
+	else
+	{
+	hitradius 3072 25 30 35 40
+	ifpdistl 3072 seta[player[].i].htowner THISACTOR
+	}
+	killit
+
+ends
+
+move IFRAMES
+move READY
+move DETONATE
+useractor notenemy LIZMINE 0
+
+	state targetsearch
+	ife bottarget player[].i set bottarget -1
+	ifn bottarget -1
+	{
+		geta[].z z
+		subvar z 8192
+		seta[].z z
+		geta[bottarget].z tempb
+		ifle tempb z set targethigher YES else set targethigher NO
+		subvar tempb 8192
+		seta[bottarget].z tempb
+		canseespr THISACTOR bottarget seemytarget
+		add z 8192
+		seta[].z z
+		add tempb 8192
+		seta[bottarget].z tempb
+		ife seemytarget YES set shootmytarget YES // temp stand in for hitscan verification
+		dist targetdist THISACTOR bottarget
+		ifn actorvar[bottarget].monstatus 2 set targetalive YES
+		else set targetalive NO
+	}
+	else // assume player is target
+	{
+		ifp phigher set targethigher YES else set targethigher NO
+		ife team 1 // player ally
+		{
+			set seemytarget NO
+			set shootmytarget NO
+			set targetdist 99999
+			set targetalive NO
+		}
+		else
+		{
+			ifcansee set seemytarget YES else set seemytarget NO
+			ifcanshoottarget set shootmytarget YES else set shootmytarget NO
+			findplayer targetdist
+			ifp palive set targetalive YES else set targetalive NO
+		}
+	}
+	fall
+	ifmove 0
+		move IFRAMES
+		
+	ifmove IFRAMES 
+	{
+		iffloordistl 8
+		ifcount 30 move READY
+		break
+	}
+	
+	cstator 256
+	ifhitweapon
+		state mineexplode
+	
+	ifn bottarget -1
+	ifl targetdist 1280
+	ife targetalive YES
+		state mineexplode
+		
+	ifpdistl 1280
+	ife targetalive YES
+		state mineexplode
+	
+	ifmove READY
+	set target -1
+	ifn bottarget -1 set target bottarget
+	else getp[].i target
+	
+	ifmove READY
+	ifn target -1
+	ife targetalive YES
+	ifl targetdist 2048
+	ife seemytarget YES 
+	{
+		move DETONATE
+		sound LASERTRIP_ARMING
+	}
+	ifmove DETONATE
+		ifcount 8
+		state mineexplode
+enda
+
+
