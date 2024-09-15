@@ -1,0 +1,1224 @@
+// CHEERBOT
+
+// still to do: sounds, pal variants
+
+action CHEERBOTIDLE  0  1  5  1  10
+action CHEERBOTWALK  5  4  5  1  12
+action CHEERBOTRUN   5  4  5  1  8
+action CHEERBOTKICK1  45 3  5  1  14
+action CHEERBOTKICK2 55 1  5  1  18
+action CHEERBOTKICK3 55 3  5  -1 16
+action CHEERBOTFROZEN 5  1  5  1  10
+action CHEERBOTSHT1  25 2  5  1  30
+action CHEERBOTSHT2  35 1  5  1  70
+action CHEERBOTSHT3  40 1  5  1  70
+action CHEERBOTJMP1  130 2  5  1  20 // jumping
+action CHEERBOTJMP2  140 1  5  1  20 // falling
+action CHEERBOTLAND  145 1  5  1  16
+
+action SPLITJUMP1 60  3  5  1  14
+action SPLITJUMP2 70  3  5  1  16
+action POMBOMBTHROW 80  4  5  1  18
+action POMBOMBTHROWN 95  1  5  1  60
+action CARTWHEEL 100  6  5  1  14
+action RIGHTWHEEL  125  6  5  -1 14
+action SPINSETUP 100  3  5  1  14
+action CHEERSPIN 115  1  5  1  10
+action SPINOFF 115  4  5  -1  16
+action CHEERBOTHIT   125 1  5  1  18
+action CHEERBOTDIE   150 6  1  1  18
+action CHEERBOTDEAD  156 1  1  1  10
+
+move CHEERBOTWALKVEL 116
+move CHEERBOTRUNVEL 208
+move CHEERBOTJUMPVEL 256
+move CHEERBOTSPLITVEL 0 -64
+move CHEERHANGTIME 0 -16
+
+ai AICHEERBOTSTAND CHEERBOTIDLE STOPPED geth
+ai AICHEERBOTJUMP CHEERBOTJMP1 CHEERBOTJUMPVEL jumptoplayer
+ai AICHEERBOTSEEK CHEERBOTWALK CHEERBOTWALKVEL seekplayer
+ai AICHEERBOTSHRUNK CHEERBOTWALK CYBERSHRUNKVELS fleeenemy
+ai AICHEERBOTFROZEN CHEERBOTFROZEN STOPPED geth
+ai AICHEERBOTGROW CHEERBOTFROZEN STOPPED geth
+ai AICHEERBOTDYING CHEERBOTDIE STOPPED geth
+ai AICHEERBOTHIT CHEERBOTHIT STOPPED geth
+ai AICHEERBOTKICK CHEERBOTKICK1 CHEERBOTWALKVEL geth
+ai AICHEERBOTSHOOT CHEERBOTSHT1 STOPPED faceplayer
+ai AICHEERBOTSPLIT SPLITJUMP1 CHEERBOTSPLITVEL geth getv
+ai AICHEERBOTPOMBOMB POMBOMBTHROW STOPPED geth
+ai AICHEERBOTCART CARTWHEEL STOPPED geth
+ai AICHEERSPIN SPINSETUP STOPPED geth
+
+defstate stopcheersounds
+
+	ifactorsound THISACTOR CHEER_INTRO1 stopactorsound THISACTOR CHEER_INTRO1
+	ifactorsound THISACTOR CHEER_INTRO2 stopactorsound THISACTOR CHEER_INTRO2
+	ifactorsound THISACTOR CHEER_INTRO3 stopactorsound THISACTOR CHEER_INTRO3
+	ifactorsound THISACTOR CHEER_SEARCH1 stopactorsound THISACTOR CHEER_SEARCH1
+	ifactorsound THISACTOR CHEER_SEARCH2 stopactorsound THISACTOR CHEER_SEARCH2
+	ifactorsound THISACTOR CHEER_SEARCH3 stopactorsound THISACTOR CHEER_SEARCH3
+	ifactorsound THISACTOR CHEER_KICKEDPLAYER stopactorsound THISACTOR CHEER_KICKEDPLAYER
+	ifactorsound THISACTOR CHEER_PLAYERMISSED stopactorsound THISACTOR CHEER_PLAYERMISSED
+	ifactorsound THISACTOR CHEER_PLAYERMISSED2 stopactorsound THISACTOR CHEER_PLAYERMISSED2
+	ifactorsound THISACTOR CHEER_PLAYERMISSED3 stopactorsound THISACTOR CHEER_PLAYERMISSED3
+	ifactorsound THISACTOR CHEER_THROWPOMS stopactorsound THISACTOR CHEER_THROWPOMS
+	ifactorsound THISACTOR CHEER_BOOBLAUNCH stopactorsound THISACTOR CHEER_BOOBLAUNCH
+	ifactorsound THISACTOR CHEER_PHASE2C stopactorsound THISACTOR CHEER_PHASE2C
+	ifactorsound THISACTOR CHEER_TAUNT1 stopactorsound THISACTOR CHEER_TAUNT1
+	ifactorsound THISACTOR CHEER_TAUNT2 stopactorsound THISACTOR CHEER_TAUNT2
+	ifactorsound THISACTOR CHEER_TAUNT3 stopactorsound THISACTOR CHEER_TAUNT3
+	ifactorsound THISACTOR CHEER_PLAYERDODGED stopactorsound THISACTOR CHEER_PLAYERDODGED
+	ifactorsound THISACTOR CHEER_LONGLAUGH stopactorsound THISACTOR CHEER_LONGLAUGH
+	ifactorsound THISACTOR CHEER_LONGLAUGH2 stopactorsound THISACTOR CHEER_LONGLAUGH2
+	ifactorsound THISACTOR CHEER_DYING1 stopactorsound THISACTOR CHEER_DYING1
+	ifactorsound THISACTOR CHEER_DYING2 stopactorsound THISACTOR CHEER_DYING2
+	ifactorsound THISACTOR CHEER_DYING3 stopactorsound THISACTOR CHEER_DYING3
+	ifactorsound THISACTOR CHEER_DYING4 stopactorsound THISACTOR CHEER_DYING4
+	
+
+ends
+
+defstate cheerspinstate
+
+	set dodgetime 3
+	set crumbwait 3
+	ifaction SPINSETUP
+	ifactioncount 3 
+	{
+		action CHEERSPIN
+		set float 16
+		set starty 4
+		sound DASHSOUND
+		setactorsoundpitch THISACTOR DASHSOUND 512
+	}
+	
+	ifaction SPINOFF
+	{
+		ifactioncount 4
+			ai AICHEERBOTSTAND
+	}
+	
+	ifaction CHEERSPIN
+	{
+		ifspritepal 43
+		ifn bottarget -1
+		{
+			geta[bottarget].x x2
+			geta[bottarget].y y2
+			sub x2 sprite[].x
+			sub y2 sprite[].y
+			getangle angvar x2 y2
+		
+			cos xvel angvar
+			sin tempb angvar
+			div xvel 192
+			div tempb 192
+			movesprite THISACTOR xvel tempb 0 CLIPMASK0 RETURN
+		}
+		set angvar countvarc
+		add angvar float
+		seta[].ang angvar
+		getincangle temp sprite[].ang countvarc
+		abs temp
+		ifge temp 48
+		{
+			ifg sprite[].htextra 0
+			{
+				set temp sprite[].htextra
+				div temp 2
+				seta[].htextra temp
+			}
+		}
+		ifge temp 96
+		{
+			
+			ifactorsound THISACTOR DASHSOUND nullop else
+			{
+				sound DASHSOUND
+				set tempb temp
+				mul tempb 7
+				setactorsoundpitch THISACTOR DASHSOUND tempb
+			}
+			// vortex
+			ifcansee
+			ifpdistl 6144
+			{
+				set spriteid player[].i
+				geta[spriteid].x x
+				geta[spriteid].y y
+				sub x sprite[].x
+				sub y sprite[].y
+				getangle angvar x y
+				add angvar 1024
+				cos xvel angvar
+				sin yvel angvar
+				
+				mul xvel 48
+				mul yvel 48
+				
+				add xvel player[].posxv
+				add yvel player[].posyv
+				setplayer[].posxv xvel
+				setplayer[].posyv yvel
+			}
+			headspritestat spriteid 1
+			whilevarn spriteid -1
+			{
+				ife actorvar[spriteid].monstatus 1
+				ifn actorvar[spriteid].team team
+				ifg sprite[spriteid].extra 0
+				{
+					dist xydist THISACTOR spriteid
+					ifle xydist 6144
+					{
+						geta[].x x2
+						geta[].y y2
+						sub x2 sprite[spriteid].x
+						sub y2 sprite[spriteid].y
+						getangle angvar x2 y2
+						cos xvel angvar
+						sin yvel angvar
+						div xvel 48 div yvel 48
+						movesprite spriteid xvel yvel 0 CLIPMASK0 RETURN
+					}
+				}
+				nextspritestat spriteid spriteid
+			}
+			
+			
+			set mtype 0
+			// set angvel sprite[].ang
+			rand angvel 2047
+			set temp player[].player_par
+			modvar temp 8
+			mul temp 16
+			add angvel temp
+			set z2 sprite[].z
+			sub z2 2048
+			set botclip 2048
+			whilevarn mtype 4
+			{
+				espawn BIGSMOKE
+				seta[RETURN].htpicnum BLACKHAWK
+				set x2 sprite[].x
+				add x2 botclip
+				rotatepoint sprite[].x sprite[].y x2 sprite[].y angvel x y
+				setsprite RETURN x y z2
+				set angvar angvel
+				add angvar 1024
+				seta[RETURN].ang angvar
+				seta[RETURN].htbposx x
+				seta[RETURN].htbposy y
+				add angvel 512
+				add mtype 1
+				sub botclip 192
+			}
+			
+			geta[].ang savx
+			sub savx 640
+			seta[].ang savx
+			shoot KICKPROJ
+			add savx 128
+			seta[].ang savx
+			shoot KICKPROJ
+			add savx 128
+			seta[].ang savx
+			shoot KICKPROJ
+			add savx 384
+			seta[].ang savx
+			
+			ifn bottarget -1
+			ifg sprite[bottarget].htextra 0
+			ife sprite[bottarget].htowner THISACTOR
+			{
+				ifactorsound THISACTOR KICKIMPACT
+				{
+					sub ikicked player[].player_par
+					ifl ikicked -2
+					sound KICKIMPACT
+				}
+				else sound KICKIMPACT
+				set ikicked player[].player_par
+				
+			}
+		}
+		
+		add float starty
+		
+		ifge float 272 ifg starty 0 set starty -3
+		ifle float -272 ifl starty 0 set starty 3
+		
+		ifle starty 0 ifle float 3 action SPINOFF
+	}
+ends
+
+defstate cheerdodgesounds
+
+	ifn countvarb 0 break
+	ifg sprite[].htextra 0 break
+	rand temp 4
+	switch temp
+	case 0 sound CHEER_PLAYERMISSED set countvarb 15 break
+	case 1 sound CHEER_PLAYERMISSED2 set countvarb 25 break
+	case 2 sound CHEER_PLAYERMISSED3 set countvarb 15 break
+	case 3 sound CHEER_SHORTLAUGH1 set countvarb 30 break
+	case 4 sound CHEER_SHORTLAUGH2 set countvarb 30 break
+	endswitch
+
+ends
+
+defstate cheerbotpickattack
+
+ife targetalive YES
+ifl targetdist 20480
+// ifg targetdist 1560
+{
+	ifl targetdist 4864
+	ifrnd 108
+	{
+		ai AICHEERSPIN
+		state stopcheersounds
+		sound CHEER_TAUNT3
+		set countvarb 40
+	}
+	else
+	ifl targetdist 12288
+	ifrnd 116
+	{
+		ai AICHEERBOTPOMBOMB
+		state stopcheersounds
+		ifrnd 128 sound CHEER_THROWPOMS else
+		sound CHEER_BOOBLAUNCH2 
+		set countvarb 20 
+		
+		break
+	}
+	else
+	{
+		ai AICHEERBOTSHOOT
+		state stopcheersounds 
+		ifrnd 128
+		{
+			sound CHEER_BOOBLAUNCH set countvarb 40 
+		}
+		else
+		{
+			sound CHEER_PHASE2C set countvarb 20
+		}
+		
+		break
+	}
+}
+
+ends
+
+defstate cheerbotcheckdodge
+	
+	ifg countvar 0 break // don't dodge again too soon
+	iffloordistl 4 nullop else break
+	
+	ife myspawner -1
+	ifrnd 128
+	{
+		ife bottarget player[].i
+		{
+			ifp pfacing
+			ifn player[].kickback_pic 0
+			ifle player[].kickback_pic 8
+			{
+				switch player[].curr_weapon
+				case 1
+				case 3
+					ifpdistl 10240
+					set myspawner player[].i
+				break
+				
+				case 2
+					ifpdistl 10240
+					ifn WEAPON2_SHOOTS ARROWPROJ set myspawner player[].i
+				break
+				
+				case 7
+					ifn WEAPON7_SHOOTS RPG set myspawner player[].i
+				break
+				
+				case 9
+					ife WEAPON9_SHOOTS FIREBEAM set myspawner player[].i
+					ife WEAPON9_SHOOTS ICEBEAM set myspawner player[].i
+				break
+				
+				case 11
+					ifpdistl 10240
+					ife WEAPON11_SHOOTS GROWSPARK set myspawner player[].i
+					ife WEAPON11_SHOOTS WESBULLET set myspawner player[].i
+				break
+				endswitch
+			}
+		}
+	}
+	
+	ife myspawner -1 break
+	set countvar 55
+	
+	getav[myspawner].starty zdist // where projectile is aiming
+	sub zdist sprite[].z
+	abs zdist
+	ife myspawner player[].i set zdist 99999
+	ifl zdist 10240
+	ifrnd 192
+	{
+		ai AICHEERBOTSPLIT
+		cstat 1
+		state cheerdodgesounds
+		break
+	}
+	else
+	{
+		state incoming_eval
+		set dodgetime 8
+		set crumbwait 30
+		// seta[].ang angvel
+		
+		ai AICHEERBOTCART
+		ifl x xydist action RIGHTWHEEL
+		cstat 1
+		state cheerdodgesounds
+		break
+	}
+	set myspawner -1
+		
+	
+ends
+
+state cheerbotidlestate
+
+	ifactioncount 1
+	state cheerbotcheckdodge
+	
+	
+	ifai AICHEERBOTSTAND ifg sprite[].htextra -1 ifrnd 128 state cheerbotpickattack
+	
+	ifai AICHEERBOTSTAND
+	ifactioncount 4 
+	{
+		ai AICHEERBOTSEEK 
+		ifrnd 80 state cheerbotpickattack
+	}
+
+ends
+
+state cheerbotsplitstate
+
+	ifaction SPLITJUMP1
+	{
+		ifvarand monstflags 2 seta[].zvel -3072
+		ifactioncount 2 cstat 257
+		ifactioncount 3
+		{
+			action SPLITJUMP2
+			move CHEERHANGTIME geth getv
+		}
+	}
+	
+	ifaction SPLITJUMP2
+	{
+		ifmove CHEERHANGTIME ifactioncount 1 move STOPPEDFORPLAYER geth
+		
+		ifactioncount 3 
+		{
+			ai AICHEERBOTSEEK
+			ifrnd 160
+			state cheerbotpickattack
+		}
+	}
+
+ends
+
+state cheerbotpombombstate
+
+	ifactioncount 2 nullop else state cheerbotcheckdodge
+	
+	ifaction POMBOMBTHROW
+	{
+		ifactioncount 3 
+		{
+			action POMBOMBTHROWN
+			espawn POMBOMB
+			geta[].z z, sub z 20480
+			seta[RETURN].z z
+			setav[RETURN].myspawner THISACTOR
+			setav[RETURN].team team
+			espawn POMBOMB
+			geta[].z z, sub z 20480
+			seta[RETURN].z z
+			setav[RETURN].myspawner THISACTOR
+			setav[RETURN].team team
+			ifn bottarget -1 setav[RETURN].bottarget bottarget
+		}
+	}
+	else
+	ifaction POMBOMBTHROWN
+	{
+		ifactioncount 1 ai AICHEERBOTSEEK
+	}
+
+ends
+
+state cheerbotcartwheel
+
+	set angvar angvel
+	ifaction RIGHTWHEEL sub angvar 512 else add angvar 512
+	seta[].ang angvar
+
+	set dodgetime 3
+	cos xvel angvel
+	sin tempb angvel
+	shiftr xvel 7
+	shiftr tempb 7
+	movesprite THISACTOR xvel tempb 0 CLIPMASK0 RETURN
+	
+	ifactioncount 3 cstat 257
+	
+	set temp NO
+	ifvarand monstflags 2 { ifactioncount 10 set temp YES }
+	else ifactioncount 6 set temp YES
+	
+	ife temp YES
+	{
+		set temp inithp
+		div temp 2
+		ifle sprite[].extra temp
+		ifrnd 128
+		ifn bottarget -1
+		{
+			ai AICHEERBOTSHOOT
+			action CHEERBOTSHT2
+		}
+		else
+		ai AICHEERBOTSTAND
+	}
+ends
+
+state cheerbotshootstate
+
+	ifaction CHEERBOTSHT1
+	{
+		
+		ifactioncount 2
+		{
+			state turntotarget
+			action CHEERBOTSHT2
+		}
+	}
+	ifaction CHEERBOTSHT2
+	{
+		state turntotarget
+		ifactioncount 1
+		{
+			ifspritepal 43 
+			ifcount 30 ifrnd 128 
+			set safecount YES else 
+			set safecount NO
+			
+			action CHEERBOTSHT3
+			sound RPG_SHOOT
+			set xvel 708
+			state rpg_targetprep
+			ezshoot zdist BOOBROCKET // RIGHT BOOB
+			geta[].ang angvar, add angvar 16
+			ifg targetdist 10240 sub angvar 8
+			seta[RETURN].ang angvar
+			ife safecount YES
+			{
+				seta[RETURN].picnum DRONE
+				setav[RETURN].mtype 1
+				changespritestat RETURN 1
+			}
+			
+			geta[].x bossx
+			geta[].y bossy
+			geta[].ang bossang
+			sub bossang 448
+			set PIGBVAR bossx
+			set tempb sprite[].xrepeat
+			shiftl tempb 2
+			add PIGBVAR tempb
+			rotatepoint sprite[].x sprite[].y PIGBVAR sprite[].y bossang newx newy
+			seta[].x newx
+			seta[].y newy
+			
+			set xvel 708
+			state rpg_targetprep
+			ezshoot zdist BOOBROCKET // LEFT BOOB
+			geta[].ang angvar, sub angvar 16
+			ifg targetdist 10240 add angvar 8
+			seta[RETURN].ang angvar
+			ife safecount YES
+			{
+				seta[RETURN].picnum DRONE
+				setav[RETURN].mtype 1
+				changespritestat RETURN 1
+			}
+			
+			seta[].x bossx
+			seta[].y bossy
+			
+		}
+		// shoot boob rockets
+	}
+	ifaction CHEERBOTSHT3
+	{
+		ifactioncount 1
+		{
+			ifn bottarget -1 ifrnd 128 action CHEERBOTSHT2 else
+			ai AICHEERBOTSEEK
+		}
+	}
+
+ends
+
+
+state cheerbotgrowstate 
+
+  ifl burning 0 set burning 0
+  ifcount 32
+  {
+	debris SCRAP1 4
+	debris SCRAP2 4
+	debris SCRAP6 4
+	ifn team 1 ifn team 3
+	addkills 1 
+	state enemy_death
+	ifrnd SPAWNAMMOODDS
+	{
+		ife gametype 0
+		spawn RPGAMMO
+	}
+    sound ROBOT_EXPLODE
+    
+    hitradius 2048 30 35 40 45
+	headspritestat spriteid 1
+	whilevarn spriteid -1
+	{
+		ife actorvar[spriteid].team 3
+		{
+			dist xydist THISACTOR spriteid
+			ifle xydist 2048 seta[spriteid].htextra -1
+		}
+		ife sprite[spriteid].picnum SCHOOLGIRL seta[spriteid].htextra -1
+		nextspritestat spriteid spriteid
+	}
+	set temp NO
+	ife pchar 0 ifvarand dukeupgrades[GROW_WEAPON] 2 set temp YES else
+	ife pchar 1 ifvarand shellyupgrades[GROW_WEAPON] 2 set temp YES
+	ife temp YES ifn team 1 ifn team 3 state makeally else
+	{
+		state spawnbabe
+		state tech_debris
+		state stopcheersounds
+		killit
+	}
+  }
+  else
+  {
+    ifcount 3 nullop else ifcount 2 
+	{
+		espawn GROUNDSHOCK 
+		seta[RETURN].pal 49
+	}
+    ifspritepal 91 getlastpal else
+	spritepal 91
+	
+    sizeto 72 64
+  }
+
+ends
+
+state squishcheer
+
+	setp[].sound_pitch SHRUNKPITCH
+	spawn EXPLOSION2
+	debris SCRAP1 3
+	debris SCRAP2 3
+	sound PIPEBOMB_EXPLODE
+	addkills 1
+	ifrnd SPAWNAMMOODDS
+	{
+		ife gametype 0
+		spawn RPGAMMO
+	}
+	state enemy_death
+	setp[].sound_pitch 0
+	killit
+ends
+
+state cheerbotshrunkstate
+
+  ifcount SHRUNKDONECOUNT
+    ai AICHEERBOTSEEK
+  else
+    ifcount SHRUNKCOUNT
+	  sizeto 30 28
+  else
+    state genericshrunkcode
+
+ends
+
+state cheerbotfrozenstate
+
+    ifcount THAWTIME
+    {
+      ai AICHEERBOTSEEK
+      getlastpal
+    }
+    else
+      ifcount FROZENDRIPTIME
+    {
+      ifactioncount 26
+      {
+        spawn WATERDRIP
+        resetactioncount
+      }
+    }
+    ifhitweapon
+    {
+      ifwasweapon FREEZEBLAST
+      {
+	    resetcount resetactioncount
+        strength 0
+        break
+      }
+      addkills 1 
+	  state enemy_death
+	  ifrnd SPAWNAMMOODDS
+	{
+		ife gametype 0
+		spawn RPGAMMO
+	}
+	  lotsofglass 30
+	  state tech_debris
+      sound GLASS_BREAKING
+	  state stopcheersounds
+      killit
+    }
+    ifp pfacing
+      ifpdistl FROZENQUICKKICKDIST
+        state pkick_check
+  
+ends
+
+state cheerbotdyingstate
+
+	strength 0
+	
+	ifaction CHEERBOTDIE
+	{
+		ifactioncount 6
+		{
+			cstat 0
+			action CHEERBOTDEAD
+			iffloordistl 8 sound THUD
+			break
+		}
+	}
+
+	ifaction CHEERBOTDEAD
+	{
+		ifhitweapon
+		{
+			ifwasweapon RPG
+			{
+				sound ROBOT_EXPLODE
+				spawn MINEEXP
+				debris SCRAP1 4
+				debris SCRAP2 4
+				debris SCRAP6 4
+				state tech_debris
+				state stopcheersounds
+				killit
+			}
+			ifwasweapon RADIUSEXPLOSION
+			{
+				sound ROBOT_EXPLODE
+				spawn MINEEXP
+				debris SCRAP1 4
+				debris SCRAP2 4
+				debris SCRAP6 4
+				state tech_debris
+				state stopcheersounds
+				killit
+			}
+		}
+
+	}
+	
+ends
+
+state cheerbotroamsounds
+
+	ife bottarget -1
+	{
+		rand temp 4
+		switch temp
+		case 0 sound CHEER_TAUNT1 set countvarb 100 break
+		case 1 sound CHEER_TAUNT2 set countvarb 100 break
+		case 2 sound CHEER_LONGLAUGH set countvarb 60 break
+		case 3 sound CHEER_LONGLAUGH2 set countvarb 40 break
+		case 4 sound CHEER_PHASE2 set countvarb 60 break
+		endswitch
+	}
+	else
+	{
+		rand temp 2
+		ife temp 0 { set countvarb 70 sound CHEER_SEARCH1 } else
+		ife temp 1 { set countvarb 20 sound CHEER_SEARCH2 } else
+		{ set countvarb 100 sound CHEER_SEARCH3 }
+	}
+
+ends
+
+state cheerbotseekstate
+
+	ifn bottarget -1 ifcount 40 ifmove CHEERBOTWALKVEL 
+	{
+		move CHEERBOTRUNVEL seekplayer
+		action CHEERBOTRUN
+	}
+	
+	
+	state cheerbotcheckdodge
+	ifai AICHEERBOTSEEK nullop else break
+	
+	ifceilingdistl 96 nullop else
+	ifcount 15
+	{
+		ifrnd 32
+		iffloordistl 4
+		{
+			ifnotmoving 
+			{ 
+				// sound CHEERBOT_JUMP 
+				ai AICHEERBOTJUMP 
+				break 
+			}
+			ife seemytarget YES ifp phigher
+			ifl targetdist 6144 
+			{ 
+				// sound CHEERBOT_JUMP 
+				ai AICHEERBOTJUMP 
+				break 
+			}
+		}
+	}
+	
+	ifcount 10
+	ifnotmoving
+	ife dodgetime 0
+	ife bottarget -1
+	{
+		move CHEERBOTWALKVEL randomangle
+		set dodgetime 8
+		set crumbwait 8
+	}
+	
+	ife seemytarget YES
+	{
+		ifn bottarget -1 set target bottarget else 
+		ife targetalive YES getp[].i target
+		else set target -1
+	}
+	else set target -1
+	
+	ifn target -1
+	{
+		ifactioncount 4
+		ifcount 30
+		ifrnd 8
+		{
+			state cheerbotpickattack
+			ifai AICHEERBOTSEEK nullop else break
+		}
+		else
+		ifcount 90
+		{
+			state cheerbotpickattack
+			ifai AICHEERBOTSEEK nullop else break
+		}
+	}
+	
+
+	ifrnd 1 ifrnd 128 ife countvarb 0 state cheerbotroamsounds
+	
+	ife targetalive YES
+	ife seemytarget YES
+	{
+		ifl targetdist 1792 
+		{ 
+			ai AICHEERBOTKICK
+			break 
+		}
+	}
+	
+ends
+
+state cheerbotjumpstate
+
+  ifaction CHEERBOTJMP1
+  {
+	seta[].zvel -1024
+	ifactioncount 2
+	{
+		action CHEERBOTJMP2
+		move CHEERBOTJUMPVEL geth
+	}
+  } else
+  ifaction CHEERBOTJMP2
+  {
+	iffloordistl 4
+	{
+		sound LANDMETAL
+		action CHEERBOTLAND
+		move STOPPED geth
+	}
+  } else
+  ifaction CHEERBOTLAND
+  {
+	ifactioncount 1 ai AICHEERBOTSEEK
+  }
+  
+ends
+
+state cheerbotkickstate
+
+	ifmove STOPPEDFORPLAYER nullop else ifl targetdist 1024 move STOPPEDFORPLAYER geth
+	ifaction CHEERBOTKICK1
+	{
+		ifactioncount 1
+		{
+			move STOPPEDFORPLAYER geth
+			action CHEERBOTKICK2
+			ife shrunken 0
+			ife seemytarget YES ifl targetdist 1560
+			ife targetalive YES
+			{
+				sound KICK_HIT
+				ifn bottarget -1 set target bottarget
+				else set target player[].i
+				ife target player[].i
+				{
+					palfrom 32 63
+					wackplayer
+					getp[].ang bossang
+					add bossang 1024
+					cos newx bossang
+					sin newy bossang
+					shiftvarl newx 8
+					shiftvarl newy 8
+					setplayer[THISACTOR].posxv newx
+					setplayer[THISACTOR].posyv newy
+					// push player backwards
+					ifrnd 96
+					ife countvarb 0 { sound CHEER_KICKEDPLAYER set countvarb 90 }
+				}
+				else
+				{
+					seta[target].xvel -512
+					getav[target].stun temp
+					add temp 10
+					setav[target].stun temp
+					geta[target].z z
+					sub z 512
+					seta[target].z z
+					geta[target].zvel z
+					sub z 512
+					seta[target].zvel z
+				}
+				set temp sprite[].yrepeat
+				seta[target].htextra temp
+				seta[target].htpicnum SHOTSPARK1
+				seta[target].htowner THISACTOR
+				seta[target].htang sprite[THISACTOR].ang
+			}
+			else ife countvarb 0 { set countvarb 30 sound CHEER_PLAYERDODGED }
+		}
+	}
+	else
+	ifaction CHEERBOTKICK2
+	{
+		ifactioncount 3	
+		{
+			ai AICHEERBOTSEEK
+			ifn bottarget -1 ifrnd 64 state cheerbotpickattack
+			break
+		}
+	}
+
+	ifn bottarget -1 
+	{
+		set spriteid bottarget
+		state facesprite
+	}
+	
+
+ends
+
+// pal 43 deadlier version
+
+state cheerbotcode
+	ifai 0
+	{
+		ifspritepal 0 spritepal 21
+		ifspritepal 43 addstrength 350
+		ai AICHEERBOTSEEK
+		sizeat 30 28 clipdist 72
+		cstat 257
+		// geta[].htflags temp, orvar temp 8192, seta[].htflags temp
+		rand temp 2
+		ife temp 0 sound CHEER_INTRO1 else
+		ife temp 1 sound CHEER_INTRO2 else
+		ife temp 2 sound CHEER_INTRO3
+		set countvarb 120
+	}
+	fall
+		
+	ifg shrunken 10 ifl shrunken SHRUNKCOUNT
+    ife player[].actorsqu THISACTOR
+    ife player[].knee_incs 14
+    { state squishcheer break }
+  
+    
+	state monsterai
+	
+	set temp inithp
+	div temp 3
+	ifle sprite[].extra temp set stun 0
+	
+	ifg countvar 0 sub countvar 1
+	ifg countvarb 0 sub countvarb 1
+	ifai AICHEERBOTDYING { state cheerbotdyingstate break }
+	
+	ifai AICHEERBOTFROZEN { state cheerbotfrozenstate break }
+	ifai AICHEERBOTGROW { state cheerbotgrowstate break }
+	ifai AICHEERBOTSHRUNK state cheerbotshrunkstate else
+	ifai AICHEERBOTSEEK state cheerbotseekstate else
+	ifai AICHEERBOTKICK state cheerbotkickstate else
+	ifai AICHEERBOTJUMP state cheerbotjumpstate else
+	ifai AICHEERBOTSHOOT state cheerbotshootstate else
+	ifai AICHEERBOTPOMBOMB state cheerbotpombombstate else
+	ifai AICHEERBOTSPLIT state cheerbotsplitstate else
+	ifai AICHEERBOTCART state cheerbotcartwheel else
+	ifai AICHEERBOTSTAND state cheerbotidlestate else
+	ifai AICHEERSPIN state cheerspinstate
+	
+	set myspawner -1
+	
+	ifai AICHEERBOTSHRUNK nullop else
+	ifai AICHEERBOTHIT nullop else
+	ifg stun 0
+	ifvarand sprite[].cstat 256
+		ai AICHEERBOTHIT
+	
+	ifai AICHEERBOTHIT
+	{
+		ife stun 0
+		ifactioncount 2 
+		{
+			ai AICHEERBOTSEEK
+			ifrnd 96 state cheerbotpickattack
+		}
+	}
+
+	geta[].htextra tempc
+	ifhitweapon
+	{
+		ifwasweapon SHRINKSPARK
+		{	
+		  sound ACTOR_SHRINKING
+		  ai AICHEERBOTSHRUNK
+		  set shrunken 1
+		  break
+		}
+		else
+			ifwasweapon GROWSPARK
+			  sound SPARKLESOUND
+		
+		
+		ifdead
+		{
+			ifwasweapon FREEZEBLAST
+			{
+			  sound NEWFREEZE
+			  spritepal 1
+			  ai AICHEERBOTFROZEN
+			  strength 0
+			  state freezeme
+			  break
+			}
+			ifwasweapon GROWSPARK
+			{
+			  cstat 0
+			  sound ACTOR_GROWING
+			  ai AICHEERBOTGROW
+			  break
+			}
+			addkills 1
+			state enemy_death
+			ifrnd SPAWNAMMOODDS
+			{
+				ife gametype 0
+				spawn RPGAMMO
+			}
+			ai AICHEERBOTDYING
+			ifg shrunken 10 ifl shrunken SHRUNKCOUNT
+				setp[].sound_pitch SHRUNKPITCH
+			
+			state stopcheersounds
+			rand temp 5
+			switch temp
+			case 0 sound CHEER_DYING1 break
+			case 1 sound CHEER_DYING2 break
+			case 2 sound CHEER_DYING3 break
+			case 3 sound CHEER_DYING4 break
+			case 4 sound CHEER_STARTDYING break
+			case 5 sound CHEER_STARTDYING2 break
+			endswitch
+			
+			
+			ifg shrunken 10 ifl shrunken SHRUNKCOUNT
+				setp[].sound_pitch 0
+			
+			break
+		}
+		else
+		ife countvarb 0
+		{
+			rand temp 4
+			switch temp
+			case 0 sound CHEER_PAIN1 break
+			case 1 sound CHEER_PAIN3 break
+			case 2 sound CHEER_PAIN4 break
+			case 3 sound CHEER_PAIN6 break
+			case 4 sound CHEER_PAIN7 break
+			endswitch
+			set countvarb 15
+		}
+		
+		ifai AICHEERBOTHIT nullop else
+		ifai AICHEERBOTSHRUNK nullop else
+		ifai AICHEERBOTSHOOT nullop else
+		ifai AICHEERBOTSPLIT nullop else
+		ifai AICHEERBOTPOMBOMB nullop else
+		ifai AICHEERBOTCART nullop else
+		ifai AICHEERSPIN nullop else
+		{
+			ifg stun 0 { ai AICHEERBOTHIT break }
+			
+			ifn sprite[].htpicnum BURNING
+			ifn sprite[].htpicnum RADWOUND
+			{ 
+				set tempd inithp
+				shiftr tempd 2
+				ifg tempc tempd ifrnd 64 ai AICHEERBOTHIT
+				else ifrnd 16 ai AICHEERBOTHIT
+				ifai AICHEERBOTHIT break 
+			}
+			ife countvar 0 ifn bottarget -1 ifbulletnear
+			{
+				ifrnd 128
+				{
+					ai AICHEERBOTSPLIT
+					cstat 1
+					break
+				}
+				else
+				{
+					ifrnd 32 
+					{
+						ai AICHEERBOTSPLIT
+						cstat 1
+						break
+					}
+					ife myspawner -1 set myspawner bottarget
+					state incoming_eval
+					set dodgetime 8
+					set crumbwait 30
+					// seta[].ang angvel
+					
+					ai AICHEERBOTCART
+					ifl x xydist action RIGHTWHEEL
+					cstat 1
+					break
+				}
+			}
+		}
+	}
+	else ifsquished	
+	{ geta[].htextra temp add temp 10 seta[].htextra temp seta[].htpicnum RPG }
+	
+	geta[].ang countvarc // previous angle
+ends
+
+eventloadactor CHEERBOT
+	ifspritepal 0 spritepal 21
+	cstator 257
+enda
+	
+eventloadactor CHEERBOTSTAYPUT
+	ifspritepal 0 spritepal 21
+	cstator 257
+enda
+
+useractor enemy CHEERBOT CHEERBOTSTRENGTH CHEERBOTIDLE state cheerbotcode enda
+useractor enemystayput CHEERBOTSTAYPUT CHEERBOTSTRENGTH cactor CHEERBOT enda
+
+move POMDRIFT 128
+
+useractor notenemy POMBOMB 50
+
+ifmove 0
+{
+	move POMDRIFT randomangle
+	ifn bottarget -1
+	{
+		move POMDRIFT geth
+		set spriteid bottarget
+		state facesprite
+	}
+	cstat 384
+	sizeat 30 30
+	set countvar -2176
+}
+
+ifcount 3
+{
+	resetcount
+	ife sprite[].cstat 384 cstat 388 else
+	ife sprite[].cstat 388 cstat 392 else
+	ife sprite[].cstat 392 cstat 396 else
+	cstat 384
+}
+
+ife mtype 0 ifhitweapon ifdead set mtype 1
+
+add countvar 140
+movesprite THISACTOR 0 0 countvar CLIPMASK0 RETURN
+
+ife mtype 0
+{
+	getzrange sprite[].x sprite[].y sprite[].z sprite[].sectnum temp temp z spriteid 192 CLIPMASK0
+	
+	sub z sprite[].z
+	ifl z 4096 set mtype 1
+
+}
+else
+{
+	espawn POMEXP
+	setav[RETURN].myspawner myspawner
+	setav[RETURN].team team
+	sound SMALLEXP2
+	killit
+}
+
+enda

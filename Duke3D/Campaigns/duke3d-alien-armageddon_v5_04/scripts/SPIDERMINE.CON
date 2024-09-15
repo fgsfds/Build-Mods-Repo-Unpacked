@@ -1,0 +1,396 @@
+// spider-mine
+
+define SPIDERMINESTRENGTH 60
+
+action AMINESIT 0  1  3  1  10
+action AMINESIT2 -1807 1  3  1  10
+action AMINEWALK 0  4  5  1  8
+action AMINERUN  0  4  5  1  6
+move MINEWALKVEL 160
+move MINERUNVEL 256
+move MINEJUMP 192
+move MINEWAIT
+
+state mine_explode
+	sound PIPEBOMB_EXPLODE
+	espawn MINEEXP
+	seta[RETURN].xrepeat 40
+	seta[RETURN].yrepeat 40
+	debris SCRAP1 5
+	debris SCRAP2 5
+	hitradius 3072 30 70 100 120
+	ifn bottarget -1
+	{
+		dist xydist THISACTOR bottarget
+		set xydist2 3072
+		sub xydist2 xydist
+		ifg xydist2 0
+		{
+			div xydist2 14 // 12
+			ifl xydist2 1 set xydist2 1
+			geta[bottarget].htextra temp
+			add temp 1
+			add temp xydist2
+			seta[bottarget].htextra temp
+			seta[bottarget].htpicnum RPG
+			seta[bottarget].htowner player[].i
+		}
+	}
+	killit
+ends
+
+move ABOUTOBLOW
+
+useractor notenemy SPIDERMINE SPIDERMINESTRENGTH AMINESIT
+
+fall
+
+ifmove ABOUTOBLOW
+{
+	ifcount 15 state mine_explode
+	ifspritepal 121 getlastpal else spritepal 121
+	break
+}
+
+ifl player[].ammo_amount TRIPBOMB_WEAPON MAXTRIPBOMBAMMO
+ifpdistl 1280
+ifp palive
+ifp pfacing
+ifcansee
+{
+	ifl player[].fta 60 quote 224
+	ifhitspace
+	{
+		addweapon TRIPBOMB_WEAPON 1
+		ife player[].ftq 224 setp[].fta 0
+		globalsound DUKE_GET
+		palfrom 16 0 32
+		killit
+	}
+}
+else ife player[].ftq 224 setp[].fta 0
+
+ifmove 0
+{
+	move STOPPED
+	set teamspawned 99999
+	sizeat 16 16
+	cstator 256
+	// set monstatus 1
+	set team 1
+	set spawnprotect 0
+	ifvarand dukeupgrades[TRIPBOMB_WEAPON] 2 set mtype YES
+	ifvarand shellyupgrades[TRIPBOMB_WEAPON] 2 set mtype YES
+	ifvarand wesupgrades[TRIPBOMB_WEAPON] 2 set mtype YES
+}
+ifactioncount 3
+{
+	ifaction AMINESIT action AMINESIT2
+	else action AMINESIT
+	resetactioncount
+}
+
+iffloordistl 4
+{
+	state targetsearch
+	
+	ife bottarget -1
+	{
+		findnearspritez CRACK1 2560 10240 target
+		ifn target -1 ife sprite[target].hitag 0 set target -1
+		ife target -1
+		findnearspritez CRACK2 2560 10240 target
+		ifn target -1 ife sprite[target].hitag 0 set target -1
+		ife target -1
+		findnearspritez CRACK3 2560 10240 target
+		ifn target -1 ife sprite[target].hitag 0 set target -1
+		ife target -1
+		findnearspritez CRACK4 2560 10240 target
+		ifn target -1 ife sprite[target].hitag 0 set target -1
+		
+		ifn target -1 { move ABOUTOBLOW sound LASERTRIP_ARMING break }
+	}
+	
+	ifn bottarget -1
+	{
+		set monstatus 1
+		cactor SPIDERWALK
+		strength SPIDERMINESTRENGTH
+		action AMINEWALK
+		ife mtype YES
+		{
+			move MINERUNVEL randomangle 
+			action AMINERUN
+		}
+		else
+		move MINEWALKVEL randomangle
+		sound SPIDUPSND
+	}
+	// ifn monstatus 2 ife mysignpost -1 state spawnmysignpost
+}
+
+ifhitweapon
+{
+	ifdead
+	state mine_explode
+}
+
+enda
+
+useractor notenemy SPIDERWALK SPIDERMINESTRENGTH
+
+fall
+ifmove 0
+{
+	move STOPPED
+	set teamspawned 99999
+	action ANULLACTION
+	sizeat 16 16
+	cstator 256
+	set team 1
+	set monstatus 1
+	set spawnprotect 0
+	ifvarand dukeupgrades[TRIPBOMB_WEAPON] 2 set mtype YES
+	
+}
+state targetsearch
+
+// ifn monstatus 2 ife mysignpost -1 state spawnmysignpost
+
+ifn bottarget -1
+{
+	// ife mysignpost -1 state spawnmysignpost
+	
+	ifaction AMINEWALK
+	ifactioncount 2 { resetactioncount ifrnd 128 sound SPIDWALK1 else sound SPIDWALK2 }
+	resetcount
+	set spriteid bottarget
+	state facesprite
+	ifmove STOPPED 
+	{ 
+		move MINEWALKVEL geth action AMINEWALK 
+		ife mtype YES
+		{
+			move MINERUNVEL geth 
+			action AMINERUN
+		}
+	}
+	
+	geta[].htmovflag temp
+	ifn temp 0
+	{
+		add temp 16384
+		ifl temp 16384 ifg temp -1 
+		{
+			ife temp bottarget state mine_explode
+		}
+	}
+	
+	dist xydist THISACTOR bottarget
+	ifl xydist 384
+	state mine_explode
+	else ifnotmoving
+	ifl xydist 768
+		state mine_explode
+	else ifg sprite[bottarget].z sprite[].z
+	ifl xydist 768
+		state mine_explode
+	else ifmove MINEJUMP
+	{
+		add countvar 1
+		ifl xydist 768
+			state mine_explode
+		ifge countvar 10 { move MINEWALKVEL geth set countvar 0 }
+	}
+	else
+	ifl sprite[bottarget].z sprite[].z
+	iffloordistl 4
+	ifl xydist 3072
+	ife mtype YES
+	{
+		geta[].ang angvar
+		move MINEJUMP jumptoplayer
+		seta[].ang angvar
+		geta[].zvel z sub z 1024 seta[].zvel z
+		sound SPIDJUMP
+	}
+	else
+	{
+		ldist xydist2 THISACTOR bottarget
+		ifl xydist2 384
+		{
+			move MINEWAIT
+			action ANULLACTION
+		}
+		else ifmove MINEWAIT
+		{
+			move MINEWALKVEL geth
+			action AMINEWALK
+			ife mtype YES
+			{
+				move MINERUNVEL geth 
+				action AMINERUN
+			}
+		}
+	}
+}
+else 
+{
+	set temp NO
+	ifmove MINEWALKVEL set temp YES
+	ifmove MINERUNVEL set temp YES
+	ifmove MINEWAIT set temp YES
+	ifmove MINEJUMP set temp YES
+	ife temp YES
+	{
+		move STOPPED
+		action ANULLACTION
+		set countvar 0
+	}
+}
+ifcount 20 ifmove STOPPED
+{
+	cactor SPIDERMINE
+	action AMINESIT
+	set monstatus 0
+}
+
+ifhitweapon
+{
+	ifdead
+	state mine_explode
+}
+
+enda
+
+useractor notenemy NEWTRIPBOMB 0
+
+ife countvar 0 
+{
+	soundonce LASERTRIP_ONWALL
+	ifn tripbomb_leftover 0 set countvar tripbomb_leftover
+	set tripbomb_leftover 0
+	geta[].ang angvel
+}
+
+ife mtype 0 ifg countvar 9 nullop else
+add countvar 1
+
+
+	ifg countvar 9
+	{
+		ifp pfacing
+		ifp palive
+		ifpdistl 1024 
+		{
+			ifhitspace
+			{
+				sound SWITCH_ON
+				stopsound DUKE_GRUNT
+				stopsound B_GRUNT2
+				stopsound WESGRUNT
+				stopsound M_HARDLAND1
+				cactor TRIPBOMBSPRITE
+				changespritestat THISACTOR 1
+				ifge countvar 10 set tripbomb_leftover countvar
+				set countvar 0
+				set countvarc 0
+				cstat 0
+				sizeat 32 32
+				set mtype 0
+				break
+			}
+			else ifl player[].fta 30 quote 125
+		}
+		else ifg player[].fta 0 ife player[].ftq 125 setp[].fta 0
+	}
+
+	ife mtype 0
+	{
+		geta[].z z
+		sub z 2048
+		
+		cos mycos sprite[].ang
+		sin mysin sprite[].ang
+		hitscan sprite[].x sprite[].y z sprite[].sectnum mycos mysin 0 hitsector hitwall hitsprite hitx hity hitz 16777281
+		ifn hitsprite -1 ifvarand sprite[hitsprite].cstat 16 set hitsprite -1
+		
+		ifn hitsprite -1
+		{
+			ife hitsprite player[].i set mtype 1 else
+			ife actorvar[hitsprite].monstatus 1 set mtype 1
+			
+			ife mtype 1 
+			{
+				sound LASERTRIP_ARMING
+				set countvarc 0
+			}
+			
+		}
+		break
+	}
+	
+
+
+ifge countvar 10
+{
+	geta[].z z
+	sub z 2048
+	
+	cos mycos sprite[].ang
+	sin mysin sprite[].ang
+	hitscan sprite[].x sprite[].y z sprite[].sectnum mycos mysin 0 hitsector hitwall hitsprite hitx hity hitz 16777281
+	ifn hitsprite -1 ifvarand sprite[hitsprite].cstat 16 set hitsprite -1
+	
+	
+	ifn hitsprite -1
+	{
+		ife hitsprite player[].i set countvarb 0 else
+		ife actorvar[hitsprite].monstatus 1 
+		{
+			set countvarb 0
+			ife actorvar[hitsprite].team 0 set bottarget hitsprite
+		}
+		else
+		add countvarb 1
+	}
+	else add countvarb 1
+	
+	ifge countvarb 30 { set mtype 0 set countvarc 0 set bottarget -1 stopsound LASERLOOP break }
+	add countvarc 1
+	
+	ifge countvarc 10
+	{
+		setprojectile[BIGBOIPROJ].isound -1
+		setprojectile[BIGBOIPROJ].extra 8
+		setprojectile[BIGBOIPROJ].pal 2
+		set temp player[].player_par
+		modvar temp 5
+		ife temp 0
+		setprojectile[BIGBOIPROJ].spawns EXPLOSION4
+		else setprojectile[BIGBOIPROJ].spawns -1
+		ifn bottarget -1 { set spriteid bottarget state facesprite }
+		shoot BIGBOIPROJ
+		seta[].ang angvel
+		setprojectile[BIGBOIPROJ].isound MEGAIMPACT1
+		setprojectile[BIGBOIPROJ].extra 4
+		setprojectile[BIGBOIPROJ].pal 23
+		setprojectile[BIGBOIPROJ].spawns GREEN_EXP
+		soundonce LASERLOOP
+	}
+	
+	ifge countvar 300
+	{
+		spawn EXPLOSION2
+		sound PIPEBOMB_EXPLODE
+		hitradius TRIPBOMBBLASTRADIUS 25 50 75 100
+		debris SCRAP1 6
+		debris SCRAP2 6
+		stopactorsound THISACTOR LASERLOOP
+		killit
+	}
+}
+
+
+enda
+

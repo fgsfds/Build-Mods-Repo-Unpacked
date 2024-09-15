@@ -1,0 +1,241 @@
+// SECTORLIGHT
+
+// SIMULATES AN OMNIDIRECTIONAL LIGHT COMING FROM A POINT WHICH APPLIES LIGHT VIA
+// SECTOR SHADING ON THE SURFACES IT CAN HITSCAN
+
+gamevar liteon 0 0
+gamevar firstwall 0 0
+gamevar numwalls 0 0
+gamevar wallpoint 0 0
+gamevar currwall 0 0
+
+define LIGHTSTRENGTH 8192
+// subtract shade == LIGHTSTRENGTH / DISTANCE TO SURFACE
+
+eventloadactor SECTORLIGHT 
+	cstat 32768
+	geta[].lotag SPRITELOTAG
+	seta[].lotag 0
+	geta[].hitag initsprite
+	seta[].hitag 0
+	ife initsprite 0 set initsprite LIGHTSTRENGTH else
+	shiftl initsprite 6
+	set mtype 3 // unactivated
+	sizeat 4 4
+enda
+
+eventloadactor SECTORPANNING
+	cstat 32768
+	geta[].lotag SPRITELOTAG
+	ifge SPRITELOTAG 256
+	{
+		sub SPRITELOTAG 256
+		mul SPRITELOTAG -1
+	}
+	seta[].lotag 0
+	// x panning speed positive or negative
+	geta[].hitag initsprite
+	ifge initsprite 256
+	{
+		sub initsprite 256
+		mul initsprite -1
+	}
+	seta[].hitag 0
+	// y panning speed positive or negative
+	geta[].extra mtype
+	ife mtype -1 set mtype 0
+	seta[].extra -1
+	// 1 is no floor pan, 2 is no ceiling pan
+	
+	// default settings
+	ife SPRITELOTAG 0 ife initsprite 0
+	{
+		set initsprite 96
+	}
+enda
+
+defstate find_center
+
+// also calculates area of sector
+// A is area
+// bossx and bossy are coords of current wallpoint
+// x is smaller x coord value, x2 is larger, also for y and y2
+// newx and newy are the total values of current sector, then become averages
+setvar newx 0
+setvar newy 0
+setvar z 0
+
+whilevarvarn currwall numwalls
+{
+	getwall[wallpoint].x bossx
+	ifvare currwall 0 { setvarvar x bossx setvarvar x2 bossx }
+	ifvarvarl bossx x setvarvar x bossx
+	ifvarvarg bossx x2 setvarvar x2 bossx
+	addvarvar newx bossx
+	getwall[wallpoint].y bossy
+	ifvare currwall 0 { setvarvar y bossy setvarvar y bossy }
+	ifvarvarl bossy y setvarvar y bossy
+	ifvarvarg bossy y setvarvar y bossy
+	addvarvar newy bossy
+	getwall[wallpoint].point2 wallpoint // next wall
+	addvar currwall 1
+}
+subvarvar x2 x
+subvarvar y y
+mulvarvar x2 y
+setvarvar A x2
+ifvarl A 0 mulvar A -1
+divvarvar newx numwalls
+divvarvar newy numwalls
+getsector[I].floorz tempF
+getsector[I].ceilingz z2
+addvarvar tempF z2
+divvar tempF 2
+setvarvar z tempF  // newx, newy, z contain final coords
+getsector[I].wallptr firstwall
+setvar currwall 0
+setvarvar wallpoint firstwall
+
+ends
+
+useractor notenemy SECTORLIGHT 0
+
+ife mtype 0 break
+set TMP_B mtype
+abs TMP_B
+ife TMP_B 1
+{
+	setvar I 0
+	whilevarvarn I NUMSECTORS
+	{
+		getsector[I].wallptr tempb
+		ifvare tempb -1 { al -1 exit }
+		getsector[I].wallptr firstwall // get the firstwall of the sector
+		getsector[I].wallnum numwalls // get the number of walls in the sector
+		setvar currwall 0
+		setvarvar wallpoint firstwall
+		state find_center
+		// newx, newy and z are center of I
+		
+		set temp YES
+		// ifn sector[].ceilingbunch sector[I].ceilingbunch set temp NO
+		// ifn sector[].floorbunch sector[I].floorbunch set temp NO
+		
+		set x newx
+		set y newy
+		sub x sprite[].x
+		sub y sprite[].y
+		mul x x
+		mul y y
+		add x y
+		sqrt x x
+		
+		sub z sprite[].z
+		abs z
+		shiftr z 4
+		ifg z x set x z
+		
+		// is the point closer than initsprite = light strength?
+		
+		// ifl x 1024 set temp YES
+		// else
+		// cansee sprite[].x sprite[].y sprite[].z sprite[].sectnum newx newy z I temp
+		
+		ife x 0 set x 1
+		ife temp YES
+		ifle x initsprite
+		{
+			set TMP_A initsprite
+			div TMP_A x, mul TMP_A 2
+			setvarvar wallpoint firstwall
+			whilevarvarn currwall numwalls
+			{
+				getwall[wallpoint].shade temp
+				ife mtype 1 sub temp TMP_A else add temp TMP_A, clamp temp -126 126
+				setwall[wallpoint].shade temp
+				ifn sprite[].pal 0 setwall[wallpoint].pal sprite[].pal
+				getwall[wallpoint].point2 wallpoint
+				addvar currwall 1
+			}
+			getsector[I].floorshade temp
+			ife mtype 1 sub temp TMP_A else add temp TMP_A, clamp temp -126 126
+			setsector[I].floorshade temp
+			ifn sprite[].pal 0 setsector[I].floorpal sprite[].pal
+			getsector[I].ceilingshade temp
+			ife mtype 1 sub temp TMP_A else add temp TMP_A, clamp temp -126 126
+			setsector[I].ceilingshade temp
+			ifn sprite[].pal 0 setsector[I].ceilingpal sprite[].pal
+		}
+		add I 1
+	}
+	ifg mtype 0 set mtype 0 
+	else ifl mtype 0 set mtype 2
+}
+
+enda
+
+useractor notenemy SECTORPANNING 0
+
+ifvarand mtype 1 nullop else
+{
+	getsector[].floorxpanning x
+	sub x SPRITELOTAG
+	setsector[].floorxpanning x
+}
+
+ifvarand mtype 2 nullop else
+{
+	getsector[].ceilingxpanning x
+	add x SPRITELOTAG
+	setsector[].ceilingxpanning x
+}
+
+
+ifvarand mtype 1 nullop else
+{
+	getsector[].floorypanning y
+	sub y initsprite
+	setsector[].floorypanning y
+}
+
+ifvarand mtype 2 nullop else
+{
+	getsector[].ceilingypanning y
+	add y initsprite
+	setsector[].ceilingypanning y
+}
+
+enda
+
+eventloadactor WALLPANNING
+	cstat 32768
+	geta[].lotag SPRITELOTAG
+	// up to 255 xpanning speed; add 256 for negative
+	ifge SPRITELOTAG 256
+	{
+		sub SPRITELOTAG 256
+		mul SPRITELOTAG -1
+	}
+	seta[].lotag 0
+	geta[].hitag initsprite
+	ifge initsprite 256
+	{
+		sub initsprite 256
+		mul initsprite -1
+	}
+	seta[].hitag 0
+	geta[].extra mtype // wall number
+	ife mtype -1 set mtype 0
+enda
+
+useractor notenemy WALLPANNING 0
+	getwall[mtype].xpanning x
+	add x SPRITELOTAG
+	setwall[mtype].xpanning x
+	getwall[mtype].ypanning y
+	add y initsprite
+	setwall[mtype].ypanning y
+enda
+
+// for WALLPANNING EXTRA is wall number, lotag and hitag are panning speed
+// add 256 if it's a negative value (e.g. -32 xpanning would be 256+32=288

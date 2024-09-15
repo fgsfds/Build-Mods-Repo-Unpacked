@@ -1,0 +1,963 @@
+// ARMORED LIZTROOP
+
+action ARMLIZSTAND  0  1  5  1  10
+action ARMLIZWALK  5  4  5  1  14
+action ARMLIZRUN  5  4  5  1  7
+action ARMLIZFROZEN 10  1  5  1  20
+action ARMLIZBUTTON  25  1  5  1  20
+// action ARMLIZJET  35  1  5  1  20
+action ARMLIZJETAIM  35  1  5  1  6
+action ARMLIZJETSHOOT  30  1  5  1  6
+action ARMLIZAIM 45  1  5  1  6
+action ARMLIZSHOOT  40  1  5  1  6
+action ARMLIZDUCK  0  1  5  1  20 // from ducking actor
+action ARMLIZDUCKAIM  0  1  5  1  6
+action ARMLIZDUCKSHOOT  -5  1  5  1  6
+action ARMLIZPOINT  60  1  5  1  20
+action ARMLIZBARPLACED 60  1  5  1  60
+action ARMLIZRELOAD 65  1  5  1  30
+action ARMLIZHURT  70  1  5  1  30
+action ARMLIZDYING 155  5  1  1  18
+action ARMLIZDEAD  159  1  1  1  10
+action ARMLIZDECAP 291  6  1  1  18
+action ARMLIZDECAPDEAD 295  1  1  1  10
+
+// add htflags 4194304 after they lose armor
+// also mdflags 16 to offset their tile shown by 75
+// size is 24 22
+// pal 3 healing/resurrecter
+// pal 21 casts barricades
+// pal 49 is a suicide bomber
+// pal 15 shotgun
+// pal 17 acid
+// pal 43 stealth? (black)
+
+ai AIARMLIZWAIT ARMLIZSTAND STOPPED geth
+ai AIARMLIZSEEK ARMLIZWALK NEWTWALKVELS seekplayer
+ai AIARMLIZSHOOT ARMLIZAIM STOPPED faceplayer
+ai AIARMLIZDUCK ARMLIZDUCK STOPPED geth
+ai AIARMLIZDUCKSHOOT ARMLIZDUCKAIM STOPPED faceplayer
+ai AIARMLIZRELOAD ARMLIZRELOAD STOPPED faceplayerslow
+ai AIARMLIZGROW ARMLIZHURT STOPPED geth
+ai AIARMLIZSHRUNK ARMLIZWALK SHRUNKVELS fleeenemy
+ai AIARMLIZFROZEN ARMLIZFROZEN STOPPED geth
+ai AIARMLIZHURT ARMLIZHURT STOPPED geth
+ai AIARMLIZDYING ARMLIZDYING STOPPED geth
+ai AIARMLIZJET ARMLIZJET NEWTJETUPVELS seekplayer
+ai AIBARRICADE ARMLIZPOINT STOPPED faceplayer
+ai AIARMLIZBLOW ARMLIZBUTTON STOPPED geth
+
+defstate armlizdropstuff
+	ifrnd SPAWNAMMOODDS
+		spawn PLASMASPRITE
+	else
+	ifrnd SPAWNAMMOODDS
+		spawn SHIELD
+ends
+
+defstate armlizblowstate
+	add countvarb 1
+	set temp countvarb
+	modvar temp 4
+	ife temp 0 
+	{
+		sound LASERTRIP_ARMING
+		ifspritepal 216 getlastpal else spritepal 216
+		seta[].shade -127
+	}
+	ifhitweapon { ifdead set countvarb 30 }
+	ifge countvarb 30
+	{
+		ifspritepal 216 getlastpal
+		addkills 1
+		state enemy_death
+		state armlizdropstuff
+		ifrnd 128
+        spawn BLOODPOOL
+	    state lite_jibs
+	    state armliz_body_jibs
+		espawn EXPLOSION2
+		setav[RETURN].mtype WESBOT
+		seta[RETURN].htpicnum TERMINATORCRAWLING
+		setav[RETURN].myspawner THISACTOR
+		killit
+	}
+ends
+
+defstate armlizblowcheck
+
+	ifvarg targetdist 5120
+	ife seemytarget YES
+	ifrnd 8
+	ifactornotstayput
+	{
+		ai AIARMLIZJET
+		move NEWTJETPACKILLVELS seekplayer getv
+		break
+	}
+	
+	ife targetalive YES
+	ifl targetdist 1560
+	{
+		screensound WRISTBUTTON screensound WRISTBUTTON 
+		screensound WRISTBUTTON screensound WRISTBUTTON 
+		ai AIARMLIZBLOW
+	}
+ends
+
+defstate barricadestate
+
+	ifaction ARMLIZPOINT
+	ifactioncount 1
+	{
+		sound ORBIN
+		espawn BARRICADE
+		ifn bottarget -1
+		ifg targetdist 1560
+		{
+			set spriteid bottarget
+			state facesprite
+		}
+		else
+		ifcansee ifpdistl 16384
+		{
+			set spriteid player[].i
+			state facesprite
+		}
+		setav[RETURN].myspawner THISACTOR
+		seta[RETURN].pal 21
+		setvarvar x2 sprite[].x
+		addvar x2 1280
+		rotatepoint sprite[].x sprite[].y x2 sprite[].y sprite[].ang savx savy
+		set tempb sprite[].sectnum
+		updatesectorz savx savy sprite[].z tempb
+		ifvarn tempb -1
+			getflorzofslope tempb savx savy savz // temp is the return var
+		else set savz sprite[].z
+		setsprite RETURN savx savy savz
+		
+		action ARMLIZBARPLACED
+	}
+	ifaction ARMLIZBARPLACED
+		ifactioncount 1
+			ai AIARMLIZWAIT
+
+ends
+
+defstate checkbarricade
+
+	ifg targetdist 16384 break
+	ifl targetdist 4096 break
+	ifcansee ife targetalive YES
+	iffloordistl 8
+	{
+		findnearactor BARRICADE 10240 spriteid
+		ife spriteid -1
+		{
+			cactor ARMLIZTROOP
+			ai AIBARRICADE
+		}
+	}
+ends
+
+//shieldnova.ogg
+// ROCKETLOOP
+
+defstate startreload
+	set countvar -40
+	ifspritepal 15 
+	{
+		sound SKARCLIPOUT
+		espawn SHELL
+		setav[RETURN].mtype CLIPFALL2
+		set botclip 8 // failsafe
+	}
+	else
+	{
+		sound STEAMRELEASE
+		geta[].z savz sub savz 8192
+		espawn BIGSMOKE
+		seta[RETURN].cstat 2
+		setvarvar x2 sprite[].x
+		addvar x2 384
+		rotatepoint sprite[].x sprite[].y x2 sprite[].y sprite[].ang x y
+		setsprite RETURN x y savz
+	}
+ends
+
+defstate armlizreload
+	ife countvar -20 
+	{
+		ifspritepal 15 sound SKARCLIPIN
+		else
+		sound ARMRELOAD
+	}
+	ifge countvar -1
+		ai AIARMLIZWAIT
+ends
+
+defstate armlizfire
+	sub botclip 1
+	espawn SOUNDPLATE
+	setav[RETURN].mtype 1
+	
+	ifspritepal 15
+	{
+		setav[RETURN].SPRITELOTAG HEAVY_RIFLE
+		state hitscan_targetprep
+		zshoot zdist CHAINGUN zshoot zdist CHAINGUN
+	}
+	else
+	{
+		setav[RETURN].SPRITELOTAG DEASHOTLEFT // MINILASER
+		shoot KINETICPROJ
+	}
+ends
+
+defstate armlizshootstate
+
+	ifaction ARMLIZAIM
+	{
+		ifactioncount 1
+		{
+			ifle botclip 0 
+			{
+				ai AIARMLIZRELOAD 
+				state startreload
+			}
+			else
+			{
+				ifn bottarget -1 
+				{  
+					set target bottarget		
+					state friendlyfirecheck
+					ife target -1 { ai AIARMLIZSEEK break }
+				}
+				state armlizfire
+				action ARMLIZSHOOT
+			}
+		}
+	}
+	else
+	ifaction ARMLIZSHOOT
+	{
+		ifactioncount 1 action ARMLIZAIM
+	}
+
+ends
+
+defstate armlizduckshootstate
+
+	ifaction ARMLIZDUCKAIM
+	{
+		ifactioncount 1
+		{
+			ifle botclip 0 
+			{ 
+				cactor ARMLIZTROOP 
+				ai AIARMLIZRELOAD 
+				state startreload
+			}
+			else
+			{
+				ifn bottarget -1 
+				{
+					set target bottarget		
+					state friendlyfirecheck
+					ife target -1 { ai AIARMLIZDUCK break }
+				}
+				state armlizfire
+				action ARMLIZDUCKSHOOT
+			}
+		}
+	}
+	else
+	ifaction ARMLIZDUCKSHOOT
+	{
+		ifactioncount 1 action ARMLIZDUCKAIM
+	}
+
+ends
+
+defstate armlizduckstate
+
+	ifactioncount 1
+	ife targetalive YES
+	ife seemytarget YES
+	ife shootmytarget YES
+	ifl targetdist 20480
+		ai AIARMLIZDUCKSHOOT
+	else
+	ifactioncount 4 ifactornotstayput
+	{
+		cactor ARMLIZTROOP
+		ai AIARMLIZSEEK
+	}
+	else
+	ifactioncount 12
+	{
+		cactor ARMLIZTROOP
+		ai AIARMLIZSEEK
+	}
+
+ends
+
+defstate armlizfightcheck
+
+	ife targetalive YES
+	ife seemytarget YES
+	ife shootmytarget YES
+	{
+		ifai AIARMLIZJET { action ARMLIZJETAIM break }
+		ifinwater
+		{
+			cactor ARMLIZTROOP
+			ai AIARMLIZJET
+			action ARMLIZJETAIM
+			break
+		}
+		
+		ife targethigher YES
+		ifn bottarget -1
+		ifactornotstayput
+		{
+			set z sprite[].z
+			sub z sprite[bottarget].z
+			ifg z 16384
+			{
+				cactor ARMLIZTROOP
+				ai AIARMLIZJET
+				action ARMLIZJETAIM
+				break
+			}
+		}
+		state lowlineofsight
+		ifrnd 96 ife B YES
+		ifn sector[].lotag 1
+		{
+			cactor ARMLIZTROOPDUCK
+			ai AIARMLIZDUCKSHOOT
+			break
+		}
+		cactor ARMLIZTROOP
+		ai AIARMLIZSHOOT
+		
+	}
+ends
+
+defstate armlizjetstate
+
+	soundonce ROCKETLOOP
+	
+	set temp player[].player_par
+	modvar temp 4
+	ife temp 0
+	{
+		espawn EXPLOSION5
+		geta[].z savz, sub savz 6144
+		setvarvar x2 sprite[].x
+		set angvar sprite[].ang, add angvar 1024
+		addvar x2 256
+		rotatepoint sprite[].x sprite[].y x2 sprite[].y angvar x y
+		setsprite RETURN x y savz
+		seta[RETURN].htbposx x
+		seta[RETURN].htbposy y
+		seta[RETURN].htbposz savz
+	}
+	
+	ife countvar -20
+	{
+		ifspritepal 15 sound SKARCLIPIN
+		else
+		sound ARMRELOAD
+	}
+	
+	ifaction ARMLIZJET
+	ife countvar 0
+	ifactioncount 6
+	ifrnd 16
+	state armlizfightcheck
+	
+	ifaction ARMLIZJETAIM
+	{
+		ifactioncount 1
+		{
+			ifle botclip 0 
+			{ 
+				action ARMLIZJET 
+				state startreload
+			} 
+			else
+			{
+				state armlizfire
+				action ARMLIZJETSHOOT
+			}
+		}
+	}
+	else
+	ifaction ARMLIZJETSHOOT
+	{
+		ifactioncount 1 action ARMLIZJETAIM
+	}
+	
+	ife targetalive YES
+	ife targethigher YES
+	nullop else
+	ifcount 60
+	{
+		ifmove NEWTJETDOWN nullop else
+		move NEWTJETDOWN seekplayer getv
+	}
+	ifmove NEWTJETDOWN
+	{
+		iffloordistl 8
+		{
+			stopactorsound THISACTOR ROCKETLOOP
+			ifonwater
+			{
+				ifaction ARMLIZJET ai AIARMLIZWAIT else
+				ai AIARMLIZSHOOT
+			}
+			else
+			{
+				cactor ARMLIZTROOPDUCK
+				ifaction ARMLIZJET ai AIARMLIZDUCK
+				else ai AIARMLIZDUCKSHOOT
+				sound LBM_MACEHIT
+			}
+		}
+		else
+		ifcount 30
+		ife targethigher YES
+			move NEWTJETPACKVELS seekplayer getv
+	}
+ends
+
+defstate armlizjetcheck
+	ifceilingdistl 128 break
+	geta[].z z
+	sub z 4096
+	
+	cos mycos sprite[].ang
+	sin mysin sprite[].ang
+	hitscan sprite[].x sprite[].y z sprite[].sectnum mycos mysin 0 hitsector hitwall hitsprite hitx hity hitz 16777281
+	ifn hitsprite -1 ifvarand sprite[hitsprite].cstat 16 set hitsprite -1
+	
+	ifactornotstayput
+	ife hitsprite -1
+	{
+		set startx sprite[].x
+		sub startx hitx
+		mul startx startx
+		set y2 sprite[].y
+		sub y2 hity
+		mul y2 y2
+		add startx y2
+		sqrt startx startx
+		ifl startx 384
+		{
+			sub z 8192
+			hitscan sprite[].x sprite[].y z sprite[].sectnum mycos mysin 0 hitsector hitwall hitsprite hitx hity hitz 16777281
+			
+			set startx sprite[].x
+			sub startx hitx
+			mul startx startx
+			set y2 sprite[].y
+			sub y2 hity
+			mul y2 y2
+			add startx y2
+			sqrt startx startx
+			
+			ifg startx 1560 ai AIARMLIZJET
+		}
+	}
+ends
+
+
+defstate armlizfrozenstate
+
+    ifcount THAWTIME
+    {
+      ai AIARMLIZSEEK
+      getlastpal
+    }
+    else
+      ifcount FROZENDRIPTIME
+    {
+      ifactioncount 26
+      {
+        spawn WATERDRIP
+        resetactioncount
+      }
+    }
+    ifhitweapon
+    {
+      ifwasweapon FREEZEBLAST
+      {
+	    resetcount resetactioncount
+        strength 0
+        break
+      }
+      addkills 1 
+	  state enemy_death
+	  state armlizdropstuff
+      ifrnd 84
+        spawn BLOODPOOL
+	  lotsofglass 30
+	  state lite_jibs
+	  set B YES
+	  state armliz_body_jibs
+      sound GLASS_BREAKING
+      killit
+    }
+    ifp pfacing
+      ifpdistl FROZENQUICKKICKDIST
+        state pkick_check
+  
+ends
+
+defstate armlizroamsounds
+
+ifrnd 1
+{
+	ifactorsound THISACTOR ARMLIZROAM1 nullop else
+	ifactorsound THISACTOR ARMLIZROAM2 nullop else
+	ifactorsound THISACTOR ARMLIZROAM3 nullop else
+	{
+		rand temp 2
+		ife temp 0 sound ARMLIZROAM1 else
+		ife temp 1 sound ARMLIZROAM2 else
+		sound ARMLIZROAM3
+	}
+}
+ends
+
+defstate armlizseekstate
+    ifspritepal 49
+	{
+		ifaction ARMLIZRUN nullop else
+		{
+			action ARMLIZRUN
+			move NEWTRUNVELS seekplayer
+		}
+	}
+	ifactioncount 4
+	{
+		ifspritepal 49
+		ife mtype 2
+		{
+			state armlizblowcheck
+			ifai AIARMLIZBLOW break
+		}
+		ifspritepal 21
+		{
+			state checkbarricade
+			ifai AIBARRICADE break
+		}
+		ifl targetdist 3072 ifn sprite[].pal 49 state armlizfightcheck
+		else ifl targetdist 6144 { ifrnd 5 state armlizfightcheck }
+		else ifl targetdist 9216 { ifrnd 4 state armlizfightcheck }
+		else ifl targetdist 12288 { ifrnd 3 state armlizfightcheck }
+		else ifl targetdist 15360 { ifrnd 2 state armlizfightcheck }
+		else ifrnd 1 state armlizfightcheck
+		ifai AIARMLIZSEEK
+		{
+			state armlizjetcheck
+			ifai AIARMLIZSEEK
+			{
+				ifnotmoving 
+				{
+					ife bottarget -1
+					ifp phigher ai AIARMLIZJET else
+					ifn bottarget -1
+					state armlizfightcheck
+					
+					ifai AIARMLIZSEEK
+					ai AIARMLIZWAIT
+				}
+			}
+		}
+	}
+ends
+
+defstate armlizwaitstate
+	ifactioncount 2
+	{
+		ifspritepal 49
+		ife mtype 2
+		{
+			state armlizblowcheck
+			ifai AIARMLIZBLOW break
+		}
+		ifspritepal 21
+		{
+			state checkbarricade
+			ifai AIBARRICADE break
+		}
+		ifpdistl 3072 ifspritepal 49 nullop else
+		ifrnd 96 state armlizfightcheck
+		
+		ifai AIARMLIZWAIT
+		{
+			ai AIARMLIZSEEK
+			ife bottarget -1
+			ifrnd 128 state setfarang
+		}
+	}
+ends
+
+defstate armlizstoproam
+	ifactorsound THISACTOR ARMLIZROAM1 stopactorsound THISACTOR ARMLIZROAM1
+	ifactorsound THISACTOR ARMLIZROAM2 stopactorsound THISACTOR ARMLIZROAM2
+	ifactorsound THISACTOR ARMLIZROAM3 stopactorsound THISACTOR ARMLIZROAM3
+ends
+
+defstate armlizshrunkstate
+
+  ifcount SHRUNKDONECOUNT
+    ai AIARMLIZSEEK
+  else
+    ifcount SHRUNKCOUNT
+      sizeto 24 22
+  else
+    state genericshrunkcode
+
+ends
+
+defstate armlizdyingstate
+
+	strength 0
+	state deadsquished
+	ifaction ARMLIZDECAP
+	{
+		ifhitweapon state random_wall_jibs
+		ifactioncount 5
+		{
+			geta[].cstat temp
+			xorvar temp 256
+			seta[].cstat temp
+			action ARMLIZDECAPDEAD
+			iffloordistl 8 sound THUD
+			ifrnd 128 spawn BLOODPOOL
+			break
+		}
+	}
+	ifaction ARMLIZDECAPDEAD
+	{
+		ifhitweapon
+		{
+			ifwasweapon RPG
+			{
+				sound SQUISHED
+				spawn BLOODPOOL
+				set B NO
+				state armliz_body_jibs
+				state lite_jibs
+				killit
+			}
+			ifwasweapon RADIUSEXPLOSION
+			{
+				sound SQUISHED
+				spawn BLOODPOOL
+				set B NO
+				state armliz_body_jibs
+				state lite_jibs
+				killit
+			}
+		}
+	}
+	
+	ifaction ARMLIZDYING
+	{
+		ifhitweapon state random_wall_jibs
+		ifactioncount 5
+		{
+			geta[].cstat temp
+			xorvar temp 256
+			seta[].cstat temp
+			action ARMLIZDEAD
+			iffloordistl 8 sound THUD
+			ifrnd 128 spawn BLOODPOOL
+			break
+		}
+	}
+	ifaction ARMLIZDEAD
+	{
+		state deadsquished
+		ifhitweapon
+		{
+			ifwasweapon RPG
+			{
+				sound SQUISHED
+				spawn BLOODPOOL
+				set B YES
+				state armliz_body_jibs
+				state lite_jibs
+				killit
+			}
+			ifwasweapon RADIUSEXPLOSION
+			{
+				sound SQUISHED
+				spawn BLOODPOOL
+				spawn BLOODPOOL
+				set B YES
+				state armliz_body_jibs
+				state lite_jibs
+				killit
+			}
+		}
+	}
+	
+ends
+
+defstate armlizcode
+
+ifai 0
+{
+	ifactor ARMLIZTROOPDUCK ai AIARMLIZDUCK else
+	ai AIARMLIZWAIT
+	sizeat 24 22
+	cstator 257
+	set botclip 8
+	ifspawnedby RESPAWN
+	ifspritepal 0
+	{
+		ifrnd 128 spritepal 12 else
+		spritepal 22
+	}
+}
+
+ifl countvar 0 
+{ 
+	add countvar 1 ifvarand monstflags 2 ifl countvar 0 
+	add countvar 1 
+	ife countvar 0 set botclip 8
+}
+
+state monsterai
+ifspritepal 49 orvar monstflags 2097152 // adding after random flags have been added
+fall
+
+ifai AIARMLIZGROW { state genericgrowcode break }
+ifai AIARMLIZFROZEN { state armlizfrozenstate break }
+ifai AIARMLIZDYING { state armlizdyingstate break }
+ifai AIARMLIZSHRUNK state armlizshrunkstate
+
+state armlizroamsounds
+ifai AIARMLIZWAIT state armlizwaitstate else
+ifai AIARMLIZSEEK state armlizseekstate else
+ifai AIARMLIZJET state armlizjetstate else
+ifai AIARMLIZSHOOT state armlizshootstate else
+ifai AIARMLIZRELOAD state armlizreload else
+ifai AIARMLIZDUCK state armlizduckstate else
+ifai AIARMLIZDUCKSHOOT state armlizduckshootstate else
+ifai AIBARRICADE state barricadestate else
+ifai AIARMLIZBLOW { state armlizblowstate break } else
+ifai AIARMLIZHURT
+{
+	ifg stun 0 resetactioncount
+	ifactioncount 1 
+	{
+		ife targetalive YES
+		ifl targetdist 20480 
+		{
+			ifrnd 128
+			ai AIARMLIZSHOOT
+			else
+			{ cactor ARMLIZTROOPDUCK ai AIARMLIZDUCKSHOOT }
+		}
+		else ai AIARMLIZWAIT
+	}
+}
+
+ifl mtype 2 ifg burning 1 set burning 1
+ifhitweapon
+{
+	ifwasweapon SHRINKSPARK
+	ifge mtype 2 // armor damaged
+	{
+	  cactor ARMLIZTROOP
+	  sound ACTOR_SHRINKING
+	  ai AIARMLIZSHRUNK
+	  set shrunken 1
+	  break
+	}
+	else
+		ifwasweapon GROWSPARK
+		  sound SPARKLESOUND
+	
+	ifl mtype 2
+	{
+		set temp inithp
+		div temp 2
+		ifle sprite[].extra temp
+		{
+			state armlizstoproam
+			set mtype 2
+			seta[].mdflags 16
+			spritepal 12 state pottery_debris getlastpal
+			
+			ifspritepal 21 spritepal 2 else
+			ifspritepal 10 spritepal 2 else
+			ifspritepal 11 spritepal 8 else
+			ifspritepal 22 spritepal 8 else
+			ifspritepal 16 spritepal 1 else
+			ifspritepal 23 spritepal 7 else
+			spritepal 3
+			state pottery_debris
+			getlastpal
+			rand zdist 644
+			sub zdist 768
+			ezshoot zdist MECHDEBRIS3
+			rand zdist 2048
+			seta[RETURN].ang zdist
+			seta[RETURN].xrepeat 8
+			seta[RETURN].yrepeat 8
+			sound BREAK_MET2
+		}
+	}
+	else state random_wall_jibs
+	ifwasweapon HEADJIB1
+	{
+		state armlizstoproam
+		addkills 1
+		state enemy_death
+		cactor ARMLIZTROOP
+		ai AIARMLIZDYING
+		action ARMLIZDECAP
+		strength 0
+		cstat 0
+		guts JIBS6 8
+		rand zdist 1024
+		sub zdist 3500
+		ezshoot zdist NEWTROOPHEADPROJ
+		rand angvar 512
+		sub angvar 256
+		add angvar sprite[].htang
+		seta[RETURN].ang angvar
+		seta[RETURN].pal sprite[].pal
+		sound SQUISHED
+		state armlizdropstuff
+		break
+	}
+	ifdead
+	{
+		state armlizstoproam
+		ifwasweapon FREEZEBLAST
+		{
+		  sound NEWFREEZE
+		  spritepal 1
+		  cactor ARMLIZTROOP
+		  ai AIARMLIZFROZEN
+		  strength 0
+		  state freezeme
+		  break
+		}
+		ifwasweapon GROWSPARK
+		{
+		  cstat 0
+		  sound ACTOR_GROWING
+		  cactor ARMLIZTROOP
+		  ai AIARMLIZGROW
+		  break
+		}
+		addkills 1
+		state enemy_death
+		state armlizdropstuff
+		cactor ARMLIZTROOP
+		ai AIARMLIZDYING
+		ifrnd 128 cstat 256 else cstat 260
+		
+		guts JIBS6 4
+		
+		ifwasweapon RPG
+		{
+			cactor ARMLIZTROOP
+			sound SQUISHED
+			spawn BLOODPOOL
+			set B YES
+			state armliz_body_jibs
+			state lite_jibs
+			killit
+		}
+		ifwasweapon RADIUSEXPLOSION
+		{
+			cactor ARMLIZTROOP
+			sound SQUISHED
+			spawn BLOODPOOL
+			set B YES
+			state armliz_body_jibs
+			state lite_jibs
+			killit
+		}
+		ifrnd 128 sound ARMLIZDIE1 else
+		sound ARMLIZDIE2
+		break
+	}
+	ifrnd 2
+	ifge mtype 2 // armor damaged
+		spawn BLOODPOOL
+	ifai AIARMLIZHURT nullop else
+	ifai AIARMLIZSHRUNK nullop else
+	{
+		ifai AIARMLIZRELOAD nullop else
+		ifg stun 0 { cactor ARMLIZTROOP ai AIARMLIZHURT break }
+		ifactorsound THISACTOR ARMLIZPAIN1 nullop else
+		ifactorsound THISACTOR ARMLIZPAIN2 nullop else
+		{
+			ife mtype 0 ifrnd 192 nullop else
+			{
+				ifrnd 128 sound ARMLIZPAIN1 else
+				sound ARMLIZPAIN2
+			}
+		}
+		
+		ifai AIARMLIZJET nullop else
+		ifai AIARMLIZRELOAD nullop else
+		ifrnd 32 
+		ifn sprite[].htpicnum BURNING
+		ifn sprite[].htpicnum RADWOUND
+		ifge mtype 2 // armor damaged
+		{
+			cactor ARMLIZTROOP
+			ai AIARMLIZHURT 
+			break 
+		}
+	}
+}
+else
+{
+	state checksquished
+	ifai AIARMLIZSHRUNK nullop else
+	ifg stun 0 { cactor ARMLIZTROOP ai AIARMLIZHURT }
+}
+
+ends
+
+useractor enemystayput ARMLIZSTAYPUT MECHBRAINSTRENGTH cactor ARMLIZTROOP enda
+
+
+useractor enemy ARMLIZTROOP MECHBRAINSTRENGTH ARMLIZSTAND
+state armlizcode
+enda
+
+useractor enemy ARMLIZTROOPDUCK MECHBRAINSTRENGTH ARMLIZSTAND
+state armlizcode
+enda
+
+useractor enemy ARMLIZJETPACK MECHBRAINSTRENGTH ARMLIZSTAND
+
+	cactor ARMLIZTROOP
+	seta[].htpicnum sprite[].picnum
+	ai AIARMLIZJET
+	sizeat 24 22
+	cstator 257
+	set botclip 8
+	ifspawnedby RESPAWN
+	ifspritepal 0
+	{
+		ifrnd 128 spritepal 12 else
+		spritepal 22
+	}
+	
+enda

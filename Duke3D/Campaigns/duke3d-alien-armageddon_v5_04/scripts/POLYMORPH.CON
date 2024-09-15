@@ -1,0 +1,713 @@
+// POLYMORPH
+
+action APOLYSTAND 0  1  5  1  10
+action APOLYFROZEN  0  1  5  1  10
+action APOLYWALK 0  4  5  1  10
+action APOLYRUN  0  4  5  1  6
+action APOLYREARUP  20  2  5  1  20
+action APOLYBACKDOWN  25  2  5  -1  20
+action APOLYSTUN	25  1  5  1  20
+action APOLYSCREAM	30	2  5  1  16
+action APOLYBITE1	30  1  5  1  20
+action APOLYBITE2   35  1  5  1  20
+action APOLYDIE	    40  5  1  1  20
+action APOLYDEAD	44  1  1  1  10
+action APOLTRANSBACK  0  5  1  -1  20
+action APOLYTRANSPOLE  45  5  1  1  20
+action APOLYTRANSPAD  51  5  1  1  20
+action APOLYTRANSPOD  56  5  1  1  20
+
+move POLYWALKVEL 132
+move POLYRUNVEL 208
+
+ai AIPOLYWAIT  APOLYSTAND STOPPEDFORPLAYER geth
+ai AIPOLYROAM  APOLYWALK POLYWALKVEL randomangle geth
+ai AIPOLYSEEK  APOLYWALK POLYWALKVEL seekplayer geth
+ai AIPOLYRUSH  APOLYRUN POLYRUNVEL faceplayer
+ai AIPOLYALERT APOLYREARUP STOPPEDFORPLAYER geth
+ai AIPOLYBITE APOLYBITE1 STOPPEDFORPLAYER faceplayer
+ai AIPOLYDYING APOLYDIE STOPPEDFORPLAYER geth
+ai AIPOLYTRANSFORM APOLYTRANSPOLE STOPPEDFORPLAYER geth
+ai AIPOLYGROW APOLYSTAND STOPPEDFORPLAYER geth
+
+defstate polyscream
+	ife sprite[spriteid].picnum POLYMORPH
+	ifn spriteid THISACTOR
+	ife actorvar[spriteid].initflags NO
+	{
+		setav[spriteid].initsprite 40
+		quote 1422
+	}
+		
+	switch sprite[spriteid].picnum
+	    case POLYMORPH
+		case POLYPOLE 
+		case POLYMORPHPAD
+		case POLYMORPHPOD
+		case POLYGORE1 case POLYGORE2 case POLYGORE3
+		case POLYGORE4 case POLYGORE5
+			changespritestat spriteid 1
+			seta[spriteid].htextra 0
+			seta[spriteid].htowner player[].i
+			seta[spriteid].htpicnum SHOTSPARK1
+		break
+	endswitch
+ends
+
+defstate polyroamsounds
+
+ifrnd 1
+{
+	rand temp 3
+	ife temp 0 soundonce CREEP1 else
+	ife temp 1 soundonce CREEP2 else
+	ife temp 2 soundonce CREEP3 else
+	ife temp 3 soundonce CREEP5
+}
+
+ends
+
+
+useractor enemy POLYMORPH NEWBEASTSTRENGTH
+
+ifai AIPOLYDYING
+{
+	ifaction APOLYDIE
+	ifactioncount 5
+		action APOLYDEAD
+	else
+	ifaction APOLYDEAD
+	{
+		ifhitweapon
+		{
+			spritepal 6
+			guts JIBS6 4
+			sound SQUISHED
+			set monstatus 2
+			debris SCRAP3 12
+			state lite_jibs
+			killit
+		}
+		strength 0
+	}
+	break
+}
+ifai AIPOLYGROW
+{
+	state genericgrowcode
+	break
+}
+sleeptime -1
+ifai 0
+{
+	ifspritepal 116 { orvar monstflags 1048576 addstrength 50 }
+	else set navmode 3
+	ifl sprite[].xrepeat 5 sizeat 32 28
+	cstator 257
+	ai AIPOLYROAM
+	geta[].x startx
+	geta[].y starty
+	ife initflags NO
+	{
+		espawn DETECTICON
+		seta[RETURN].cstat 32768
+		setav[RETURN].myspawner THISACTOR
+		set myspawner RETURN
+	}
+	
+}
+state monsterai
+
+ifvarand sprite[].cstat 8 nullop else fall
+
+ifl initsprite 40
+{
+	ifn bottarget -1
+	{
+		set bottarget -1
+		add initsprite 1
+	}
+	else
+	{
+		ifge cloak 0 ifcansee ifpdistl 10240 add initsprite 1 else
+		ifvarand player[].player_par 1 ifg initsprite 1 sub initsprite 1
+	}
+}
+
+
+  ifaction APOLYFROZEN
+  {
+    ifcount THAWTIME
+    {
+      ai AIPOLYWAIT
+      getlastpal
+	  strength 1
+    }
+    else
+      ifcount FROZENDRIPTIME
+        ifrnd 8
+          spawn WATERDRIP
+
+    ifhitweapon
+    {
+      ifwasweapon FREEZEBLAST
+      {
+	    resetcount resetactioncount
+        strength 0
+        break
+      }
+      addkills 1 state enemy_death
+	  lotsofglass 15
+      state lite_jibs
+      ifrnd 84 { espawn BLOODPOOL2 seta[RETURN].pal 6  }
+      sound GLASS_BREAKING
+      killit
+    }
+    ifp pfacing
+      ifpdistl FROZENQUICKKICKDIST
+        state pkick_check
+    break
+  }
+  else
+  ifaction APOLYSTUN
+  {
+	ife stun 0 ifactioncount 1
+		ai AIPOLYRUSH
+  }
+else
+ifai AIPOLYWAIT
+{
+	ifge initsprite 40
+	ife initflags NO
+	{
+		ai AIPOLYALERT
+		set initflags YES
+		sound CREEP4 sound CREEP4 sound CREEP4 sound CREEP4
+		break
+	}
+	ifcount 30 
+	ifrnd 4
+	{
+		ifvarand sprite[].cstat 8 nullop else
+		ifrnd 64
+		{
+			soundonce SLIME_RUMBLE
+			ai AIPOLYTRANSFORM
+			ifrnd 84 action APOLYTRANSPAD else
+			ifrnd 128 action APOLYTRANSPOD
+			set countvarc 1
+			set initsprite 0
+			break
+		}
+		ai AIPOLYROAM
+		geta[].x botclip
+		geta[].y mtype
+		
+		ifrnd 84
+			state setfarang
+		else
+		ifrnd 128
+		{
+			set x2 startx
+			set y2 starty
+			sub x2 sprite[].x
+			sub y2 sprite[].y
+			getangle angvar x2 y2
+			seta[].ang angvar
+		}
+	}
+	ife initflags YES
+	ifn bottarget -1
+	ifrnd 8
+		ai AIPOLYRUSH
+}
+else
+ifai AIPOLYROAM
+{
+	ifge initsprite 40
+	ife initflags NO
+	{
+		ai AIPOLYALERT
+		set initflags YES
+		sound CREEP4 sound CREEP4 sound CREEP4 sound CREEP4
+		break
+	}
+	ifcount 3
+	{
+		ifrnd 1 ai AIPOLYWAIT else
+		ifnotmoving ai AIPOLYWAIT else
+		ife sprite[].x botclip ife sprite[].y mtype ai AIPOLYWAIT else
+		{
+			geta[].x botclip
+			geta[].y mtype
+			state polyroamsounds
+		}
+	}
+	ife initflags YES
+	ifn bottarget -1
+	ifrnd 8
+		ai AIPOLYRUSH
+}
+else
+ifai AIPOLYTRANSFORM
+{
+	set initsprite 0
+	ifcount 2 
+	{
+		state staticblur
+		resetcount 
+	}
+	ifactioncount 5
+	{
+		ifaction APOLYTRANSPOLE cactor POLYPOLE
+		ifaction APOLYTRANSPAD cactor POLYMORPHPAD
+		ifaction APOLYTRANSPOD cactor POLYMORPHPOD
+		
+		action 0
+		ai 0
+		seta[].htextra -1
+		break
+	}
+}
+else ifai AIPOLYALERT
+{
+	state turntotarget 
+	ifaction APOLYREARUP
+	{
+		ifactioncount 2
+		{
+			ifn sprite[].pal 116
+			{
+				headspritestat spriteid 1
+				whilevarn spriteid -1
+				{
+					state polyscream
+					nextspritestat spriteid spriteid
+				}
+				headspritestat spriteid 2
+				whilevarn spriteid -1
+				{
+					state polyscream
+					nextspritestat spriteid spriteid
+				}
+			}
+			action APOLYSCREAM
+			seta[].htactorstayput -1
+		}
+	}
+	else
+	ifaction APOLYSCREAM
+	{
+		ifactioncount 4
+		{
+			action APOLYBACKDOWN
+			
+		}
+	}
+	else
+	ifaction APOLYBACKDOWN
+	{
+		ifactioncount 2
+		{
+			set initsprite 0
+			ai AIPOLYSEEK
+			ifn myspawner -1 setav[myspawner].monstatus 2
+		}
+	}
+}
+else
+ifai AIPOLYBITE
+{
+	state turntotarget
+	ifaction APOLYBITE1
+	{
+		ifactioncount 1
+		{
+			set temp YES
+			ifg countvarb 0 ife bottarget -1 set temp NO
+			
+			ife temp YES
+			ifl countvarb 6
+			{
+				set xydist2 targetdist
+				ifg sprite[].pal 9 sub xydist2 6144
+				
+				ifg xydist2 10240 { set countvarb 0 ai AIPOLYRUSH break } else
+				ifg xydist2 1560
+				ifrnd 64
+				{
+					ai AIPOLYRUSH
+					set countvarb 0
+					break
+				}
+				add countvarb 1
+				action APOLYBITE2
+				ifg sprite[].pal 9 setprojectile[TIDALPROJ].pal sprite[].pal
+				eshoot TIDALPROJ
+				setprojectile[TIDALPROJ].pal 6
+				
+				sound CREEPSHOOT
+			}
+			else
+			{
+				ai AIPOLYSEEK
+				set countvarb 0
+			}
+		}
+	}
+	else
+	ifaction APOLYBITE2
+	{
+		ifactioncount 1
+		{
+			action APOLYBITE1
+		}
+	}
+}
+else
+ifai AIPOLYSEEK
+{
+	ifcount 32 
+	{
+		ifrnd 4
+		{
+			set temp NO
+			ife bottarget -1 set temp YES else
+			ifg targetdist 16384 set temp YES
+			ife temp YES
+			{
+				soundonce SLIME_RUMBLE
+				ai AIPOLYTRANSFORM
+				ifrnd 84 action APOLYTRANSPAD else
+				ifrnd 128 action APOLYTRANSPOD
+				set countvarc 1
+				set initsprite 0
+				break
+			}
+		}
+		ifn bottarget -1
+		ife shrunken 0
+		{
+			ifl targetdist 4096 ai AIPOLYBITE else
+			ifrnd 128 ai AIPOLYRUSH else
+			ai AIPOLYBITE
+		}
+		else
+		ifnotmoving
+		{
+			operate
+			ifrnd 64
+			state setfarang
+		}
+		else
+		state polyroamsounds
+	}
+		
+}
+else
+ifai AIPOLYRUSH
+{
+	ifcount 10
+	{
+		ifn shrunken 0 ai AIPOLYSEEK else
+		ife bottarget -1 ai AIPOLYSEEK else
+		{
+			ifl targetdist 1408 ai AIPOLYBITE
+			else
+			ifl targetdist 8192 ifrnd 6 ai AIPOLYBITE
+			else
+			ifrnd 1 ai AIPOLYBITE
+			else
+			ifnotmoving ai AIPOLYSEEK
+			else
+			ifcount 240 ai AIPOLYSEEK
+			else
+			ifrnd 8
+			{
+				ifrnd 128 move POLYRUNVEL faceplayer else
+				ifrnd 128 move POLYRUNVEL seekplayer else
+				move POLYRUNVEL faceplayersmart
+			}
+		}
+	}
+}
+
+
+ifhitweapon
+{
+	ifwasweapon SHRINKSPARK
+    {
+      sound ACTOR_SHRINKING
+	  set shrunken 1
+      break
+    }
+	spritepal 6
+	state random_wall_jibs
+	guts JIBS6 1
+	ifrnd 16 { espawn BLOODPOOL2 seta[RETURN].pal 6 }
+	getlastpal
+	
+	ifdead
+	{
+		ifwasweapon FREEZEBLAST
+		{
+		  sound NEWFREEZE
+		  spritepal 1
+		  move 0
+		  cstat 257
+		  action APOLYFROZEN
+		  strength 0
+		  state freezeme
+		  break
+		}
+		cstat 0
+		state enemy_death
+		addkills 1
+		sound CREEPDIE
+		cactor POLYMORPH
+		ai AIPOLYDYING
+		state rf
+		set temp NO
+		ifspritepal 116 set temp YES
+		ifwasweapon RPG set temp YES
+		ifwasweapon RADIUSEXPLOSION set temp YES
+		ife temp YES
+		{
+			spritepal 6
+			guts JIBS6 4
+			sound SQUISHED
+			set monstatus 2
+			debris SCRAP3 12
+			state lite_jibs
+			killit
+		}
+		ifwasweapon GROWSPARK
+        {
+          cstat 0
+          sound ACTOR_GROWING
+          ai AIPOLYGROW
+          break
+        }
+	}
+	else
+	ifg initsprite 30
+	ife initflags NO
+	{
+		add initsprite 5
+		ai AIPOLYALERT
+		set initflags YES
+		sound CREEP4 sound CREEP4 sound CREEP4 sound CREEP4
+		break
+	}
+	else
+	{
+		soundonce CREEPAIN
+		ifaction APOLYSTUN nullop else
+		ifai AIPOLYBITE nullop else
+		ife shrunken 0
+		{
+			ifg stun 0 action APOLYSTUN else
+			ai AIPOLYBITE
+		}
+	}
+}
+enda
+
+
+action POLYGORETRANS  0  6  1  1  20
+
+defstate polygorestate
+
+	ifaction 0
+	{
+		action ANULLACTION
+		cstator 257
+		ifspawnedby APLAYER sizeat 26 24
+	}
+	else
+	ifaction ANULLACTION
+	{
+		ifpdistl 10240
+		ifcansee
+		ifcount 90
+		ifrnd 1
+		{
+			action POLYGORETRANS
+			soundonce SLIME_RUMBLE
+			state monsterai
+		}
+		else
+		ifg sprite[].htextra -1
+		{
+			action POLYGORETRANS
+			soundonce SLIME_RUMBLE
+			state monsterai
+		}
+	}
+	else
+	{
+		ifcount 2 
+		{
+			state staticblur
+			resetcount 
+		}
+		ifactioncount 6
+		{
+			cactor POLYMORPH
+			seta[].htpicnum sprite[].picnum
+			action 0
+			ifrnd 128
+			{
+				espawn BLOODPOOL2 seta[RETURN].pal 6
+			}
+		}
+	}
+
+	ifhitweapon
+	{
+		spritepal 6
+		guts JIBS6 1
+		ifdead
+		{
+			sound SQUISHED
+			set monstatus 2
+			debris SCRAP3 12
+			addkills 1
+			state enemy_death
+			state lite_jibs
+			killit
+		}
+		else 
+		{
+			sound PISTOL_BODYHIT
+			ifaction POLYGORETRANS nullop else
+			{
+				action POLYGORETRANS
+				soundonce SLIME_RUMBLE
+				cstator 257
+				state monsterai
+			}
+		}
+		getlastpal
+	}
+
+ends
+
+useractor enemy POLYGORE1 NEWBEASTSTRENGTH state polygorestate enda
+useractor enemy POLYGORE2 NEWBEASTSTRENGTH state polygorestate enda
+useractor enemy POLYGORE3 NEWBEASTSTRENGTH state polygorestate enda
+useractor enemy POLYGORE4 NEWBEASTSTRENGTH state polygorestate enda
+useractor enemy POLYGORE5 NEWBEASTSTRENGTH state polygorestate enda
+
+defstate polybackstate
+
+	ifaction 0
+	{
+		action ANULLACTION
+		cstator 257
+		ifspawnedby APLAYER sizeat 32 28
+	}
+	else
+	ifaction ANULLACTION
+	{
+		set tempb NO
+		ifn myspawner -1
+		{
+			ifcount 60 nullop else count 60
+			ifrnd 6 set tempb YES
+		}
+		else ifrnd 1 set tempb YES
+		
+		ifpdistl 10240
+		ifcansee
+		ifcount 90
+		ife tempb YES
+		{
+			action APOLTRANSBACK
+			soundonce SLIME_RUMBLE
+			state monsterai
+		}
+		else
+		ifg sprite[].htextra -1
+		{
+			action APOLTRANSBACK
+			soundonce SLIME_RUMBLE
+			state monsterai
+		}
+	}
+	else
+	ifaction APOLTRANSBACK
+	{
+		ifcount 2 
+		{
+			state staticblur
+			resetcount 
+		}
+		ifactioncount 5
+		{
+			cactor POLYMORPH
+			seta[].htpicnum sprite[].picnum
+			action 0
+			ifrnd 128
+			{
+				espawn BLOODPOOL2 seta[RETURN].pal 6
+			}
+		}
+	}
+
+	ifhitweapon
+	{
+		spritepal 6
+		guts JIBS6 1
+		ifdead
+		{
+			sound SQUISHED
+			set monstatus 2
+			debris SCRAP3 12
+			state lite_jibs
+			addkills 1
+			state enemy_death
+			killit
+		}
+		else sound PISTOL_BODYHIT
+		getlastpal
+	}
+
+ends
+
+useractor enemy POLYPOLE NEWBEASTSTRENGTH state polybackstate enda
+useractor enemy POLYMORPHPAD NEWBEASTSTRENGTH state polybackstate enda
+useractor enemy POLYMORPHPOD NEWBEASTSTRENGTH state polybackstate enda
+
+useractor notenemy DETECTICON 0
+
+	ife myspawner -1 break
+	ife monstatus 2 killit
+	ifaction 0
+	{
+		sizeat 96 80
+		action ANULLACTION
+		cstat 0
+		seta[].alpha 255
+		spritepal 2
+	}
+	set z sprite[myspawner].z
+	ifvarand sprite[myspawner].cstat 8 add z 6144 else
+	sub z 10752
+	setsprite THISACTOR sprite[myspawner].x sprite[myspawner].y z
+	
+	ife sprite[myspawner].statnum 1024 killit
+	ife actorvar[myspawner].monstatus 2 killit
+	
+	getav[myspawner].initsprite initsprite
+	ife initsprite 0 set temp 255 else
+	{
+		set temp 320
+		shiftl initsprite 3
+		sub temp initsprite
+		
+	}
+	clamp temp 0 255
+	seta[].alpha temp
+
+enda

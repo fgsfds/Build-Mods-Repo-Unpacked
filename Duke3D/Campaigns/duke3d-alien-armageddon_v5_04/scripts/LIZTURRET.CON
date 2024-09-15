@@ -1,0 +1,607 @@
+// liztroop turret
+
+action LIZTURRETFRAMES  0  1  7  1  10
+action LIZTURRFIREFRAME	7  1  7  1  6
+move TURRETSIT
+
+useractor enemy LIZTURRET LIZTURRETSTRENGTH LIZTURRETFRAMES
+
+	ifcount 1 seta[].ang lastang
+	ifmove 0
+	{
+		move TURRETSIT
+		sizeat 26 24
+		cstator 257
+		clipdist 64
+		set botclip 3
+	}
+	fall
+	set dodgetime 3 // prevents instant turning
+	state monsterai
+	ifn bottarget -1
+	{
+		geta[bottarget].x x2
+		geta[bottarget].y y2
+		sub x2 sprite[].x
+		sub y2 sprite[].y
+		getangle tempb x2 y2
+		
+		getincangle temp sprite[].ang tempb
+		
+		ifn sprite[].ang tempb
+		{
+			ifg temp -32 ifl temp 32
+			{
+				seta[].ang tempb
+				ifcount 10
+				ifactorsound THISACTOR TURRET_TURN stopactorsound THISACTOR TURRET_TURN
+			}
+			else
+			{
+				geta[].ang angvar
+				ifl temp 0 sub angvar 32
+				else add angvar 32
+				seta[].ang angvar
+				ifactorsound THISACTOR TURRET_TURN nullop else sound TURRET_TURN
+				resetcount
+			}
+			
+		}
+		else
+		ifcount 10
+		ifactorsound THISACTOR TURRET_TURN stopactorsound THISACTOR TURRET_TURN
+		
+		
+		ifg botclip 0
+		ifcount 6 
+		{
+			sub botclip 1
+			ife botclip 0 set botclip -30
+			geta[].z savz
+			sub savz 1024
+			seta[].z savz
+			sound TERMLASER
+			shoot GREENLASER 
+			action LIZTURRFIREFRAME
+			add savz 1024
+			seta[].z savz
+			resetcount 
+		}
+	}
+	set lastang sprite[].ang
+	ifl botclip 0 { add botclip 1 ife botclip 0 set botclip 3 }
+	
+	ifaction LIZTURRFIREFRAME ifactioncount 1 action LIZTURRETFRAMES
+	
+	ifhitweapon
+	{
+		ifdead
+		{
+			// set burning 0
+			espawn EMPTYTURRET
+			setav[RETURN].teamspawned teamspawned
+			seta[RETURN].pal sprite[].pal
+			// move TURRETSIT geth
+			// set team 3
+			// set bottarget -1
+			// cstat 256
+			// strength 125
+			// action LIZTURRETFRAMES
+			espawn NEWTROOP
+			seta[RETURN].pal sprite[].pal
+			seta[RETURN].extra 1
+			seta[RETURN].htpicnum sprite[].htpicnum
+			seta[RETURN].htextra 100
+			geta[RETURN].x x
+			ifrnd 128 add x 128 else sub x 128
+			seta[RETURN].x x
+			geta[RETURN].y y
+			ifrnd 128 add y 128 else sub y 128
+			seta[RETURN].y y
+			state enemy_death
+			killit
+		}
+		else
+		{
+			ifrnd 64 debris SCRAP1 2
+			ifrnd 64 sound PRED_PAIN
+		}
+	}
+	
+enda
+
+action TURRETBROKE 7
+useractor notenemy EMPTYTURRET EMPTYTURRETSTRENGTH LIZTURRETFRAMES
+
+ifmove 0
+{
+	ifg teamspawned -1
+	{
+		sound VENT_BUST
+		debris SCRAP1 3
+		debris SCRAP2 3
+		debris SCRAP6 3
+		state tech_debris
+		killit
+	}
+	action LIZTURRETFRAMES
+	move TURRETSIT
+	sizeat 26 24
+	cstat 256
+	clipdist 64
+	set botclip 3
+	set team 3
+	set monstatus 1
+	ifspawnedby LIZTURRET strength 125
+}
+
+ifstrength 100
+ifrnd 16
+ifaction LIZTURRETFRAMES
+{
+	espawn BIGSMOKE 
+	geta[RETURN].z z
+	sub z 4096
+	seta[RETURN].z z
+	seta[RETURN].htpicnum BURNING
+}
+
+fall
+
+//ifn team 3
+// ifn monstatus 2 ife mysignpost -1 state spawnmysignpost
+
+ifhitweapon
+{
+	ifdead
+	{
+		ifaction LIZTURRETFRAMES
+		{
+			ife onturret THISACTOR set onturret -1
+			set monstatus 2
+			set team 3
+			action TURRETBROKE
+			spawn EXPLOSION2
+			sound ROBOT_EXPLODE
+			debris SCRAP1 4
+			debris SCRAP2 4
+			debris SCRAP6 4
+			strength 100
+		}
+		else
+		{
+			sound VENT_BUST
+			debris SCRAP1 3
+			debris SCRAP2 3
+			debris SCRAP6 3
+			state tech_debris
+			killit
+		}
+	}
+}
+
+
+ife onturret THISACTOR
+{
+	set team 1
+	seta[].ang player[].ang
+	setp[].knuckle_incs 0
+	setinput[].fvel 0
+	setinput[].svel 0
+	setp[].posxv 0
+	setp[].posyv 0
+	setp[].poszv 0
+	setp[].posx sprite[].x
+	setp[].posy sprite[].y
+	seta[player[].i].z sprite[].z
+	setp[].jumping_counter 0
+	setp[].jetpack_on NO
+	setp[].weapon_pos -9
+	
+	getp[].ohoriz temp
+	getp[].horiz tempb
+	sub tempb temp
+	ifn tempb 0 ifn tempb 1 ifn tempb -1
+	{
+		shiftvarr tempb 1
+		add temp tempb
+		setp[].horiz temp
+	}
+	
+	getp[].oang temp
+	getp[].ang tempb
+	getincangle tempb temp tempb
+	ifn tempb 0 ifn tempb 1 ifn tempb -1
+	{
+		shiftvarr tempb 1
+		add temp tempb
+		setp[].ang temp
+		ifactorsound THISACTOR TURRET_TURN nullop else sound TURRET_TURN
+		set countvar 0
+	}
+	add countvar 1
+	
+	abs tempb
+	ifl tempb 2 ifg countvar 8
+	ifactorsound THISACTOR TURRET_TURN stopactorsound THISACTOR TURRET_TURN
+	
+	ifg countvarb 0
+	{
+		ife countvarb 12 setav[player[].i].countvarc YES
+		ife countvarb 8 setav[player[].i].countvarc YES
+		ife countvarb 4 setav[player[].i].countvarc YES
+		sub countvarb 1
+	}
+	else ifvarand bits 4 set countvarb 15
+	
+	ifn zombieonplayer -1 set onturret -1
+	ifp pdead set onturret -1
+	ifp pshrunk set onturret -1
+	ifn player[].movement_lock 0 set onturret -1
+	ifn player[].transporter_hold 0 set onturret -1
+	ifn player[].on_crane -1 set onturret -1
+	
+	ifcount 20 ifhitspace
+	{
+		set onturret -1
+		resetcount
+	}
+}
+else ifcount 20
+ifaction LIZTURRETFRAMES
+{
+	set team 3
+	ifp pfacing
+	ifp palive
+	ifpdistl 1560
+	ife zombieonplayer -1
+	ife cutcam -1
+	ife pipehold 0
+	ife slidekick 0
+	ife player[].kickback_pic 0
+	// ife sprite[].sectnum player[].cursectnum
+	ifcansee
+	{
+		ifl player[].fta 50
+		{
+			setp[].ftq 220
+			setp[].fta 60
+		}
+		ifhitspace
+		{
+			set onturret THISACTOR
+			setp[].fta 0
+			resetcount
+		}
+	}
+	else ife player[].ftq 220 ifpdistl 2048 setp[].fta 0
+}
+
+enda
+
+// EDFTURRET 
+
+action EDFTURRETFRAMES  0  1  7  1  10
+action EDFTURFIREFRAME	7  1  7  1  4
+action EDFTURRETBROKE	7  1  1  1  10
+
+useractor notenemy EDFTURRET LIZTURRETSTRENGTH EDFTURRETFRAMES
+
+	ifcount 1 seta[].ang lastang
+	ifmove 0
+	{
+		move TURRETSIT
+		sizeat 24 22
+		cstator 257
+		clipdist 64
+		set botclip 80
+		set team 1
+	}
+	set dodgetime 3 // prevents instant turning
+	fall
+	state monsterai
+	ifn bottarget -1
+	{
+		geta[bottarget].x x2
+		geta[bottarget].y y2
+		sub x2 sprite[].x
+		sub y2 sprite[].y
+		getangle tempb x2 y2
+		
+		getincangle temp sprite[].ang tempb
+		
+		ifn sprite[].ang tempb
+		{
+			ifg temp -128 ifl temp 128 soundonce MINISPIN
+			
+			ifg temp -32 ifl temp 32
+			{
+				seta[].ang tempb
+				ifcount 10
+				ifactorsound THISACTOR TURRET_TURN stopactorsound THISACTOR TURRET_TURN
+			}
+			else
+			{
+				geta[].ang angvar
+				ifl temp 0 sub angvar 32
+				else add angvar 32
+				seta[].ang angvar
+				ifactorsound THISACTOR TURRET_TURN nullop else sound TURRET_TURN
+				resetcount
+			}
+			
+		}
+		else
+		ifcount 10
+		ifactorsound THISACTOR TURRET_TURN stopactorsound THISACTOR TURRET_TURN
+		
+		
+		ifg botclip 0
+		ifcount 2 
+		{
+			sub botclip 1
+			ife botclip 0 
+			{ 
+				set botclip -90 soundonce STEAM_HISSING 
+				geta[].z savz
+				sub savz 6144
+				seta[].z savz
+				spawn BIGSMOKE 
+				add savz 6144
+				seta[].z savz
+			}
+			sound MINIFIRE
+			state hitscan_targetprep
+			zshoot zdist SHOTSPARK1 
+			spawn SHELL
+			action EDFTURFIREFRAME
+			resetcount 
+		}
+	}
+	else
+	ifp palive
+	ifp pfacing
+	ifpdistl 1280
+	ifcansee
+	{
+		ifhitspace
+		{
+			sound EDFG_FYEAH
+			espawn EMPTYEDFTURRET
+			seta[RETURN].pal sprite[].pal
+			espawn EDFTROOP
+			seta[RETURN].pal sprite[].pal
+			geta[RETURN].x x
+			ifrnd 128 add x 128 else sub x 128
+			seta[RETURN].x x
+			geta[RETURN].y y
+			ifrnd 128 add y 128 else sub y 128
+			seta[RETURN].y y
+			killit
+		}
+	}
+	ifaction EDFTURFIREFRAME ifcount 1 action EDFTURRETFRAMES
+	set lastang sprite[].ang
+	ifl botclip 0 
+	{ 
+		add botclip 1 ife botclip 0 set botclip 80 
+		
+	}
+	
+	ifhitweapon
+	{
+		ifdead
+		{
+			stopactorsound THISACTOR MINISPIN
+			espawn EMPTYEDFTURRET
+			setav[RETURN].teamspawned teamspawned
+			seta[RETURN].pal sprite[].pal
+			espawn EDFTROOP
+			seta[RETURN].pal sprite[].pal
+			seta[RETURN].extra 1
+			seta[RETURN].htpicnum sprite[].htpicnum
+			seta[RETURN].htextra 100
+			geta[RETURN].x x
+			ifrnd 128 add x 128 else sub x 128
+			seta[RETURN].x x
+			geta[RETURN].y y
+			ifrnd 128 add y 128 else sub y 128
+			seta[RETURN].y y
+			state enemy_death
+			killit
+		}
+		else
+		{
+			ifrnd 64 debris SCRAP1 2
+			ifrnd 64 sound EDFG_PAIN1
+		}
+	}
+	
+enda
+
+useractor notenemy EMPTYEDFTURRET EMPTYTURRETSTRENGTH EDFTURRETFRAMES
+
+ifmove 0
+{
+	action EDFTURRETFRAMES
+	ifg teamspawned -1
+	{
+		sound VENT_BUST
+		debris SCRAP1 3
+		debris SCRAP2 3
+		debris SCRAP6 3
+		state tech_debris
+		killit
+	}
+	move TURRETSIT
+	sizeat 24 22
+	cstat 256
+	clipdist 64
+	set botclip 3
+	set monstatus 1
+	set team 3
+	ifspawnedby EDFTURRET strength 125
+}
+
+ifstrength 100
+ifrnd 16
+ifaction EDFTURRETFRAMES
+{
+	espawn BIGSMOKE 
+	geta[RETURN].z z
+	sub z 4096
+	seta[RETURN].z z
+	seta[RETURN].htpicnum BURNING
+}
+
+fall
+
+// ifn team 3
+// ifn monstatus 2 ife mysignpost -1 state spawnmysignpost
+
+ifhitweapon
+{
+	ifdead
+	{
+		ifaction EDFTURRETFRAMES
+		{
+			ife onturret THISACTOR set onturret -1
+			set monstatus 2
+			set team 3
+			action EDFTURRETBROKE
+			spawn EXPLOSION2
+			sound ROBOT_EXPLODE
+			debris SCRAP1 4
+			debris SCRAP2 4
+			debris SCRAP6 4
+			strength 100
+		}
+		else
+		{
+			sound VENT_BUST
+			debris SCRAP1 3
+			debris SCRAP2 3
+			debris SCRAP6 3
+			state tech_debris
+			killit
+		}
+	}
+}
+
+
+ife onturret THISACTOR
+{
+	set team 1
+	seta[].ang player[].ang
+	setp[].knuckle_incs 0
+	setinput[].fvel 0
+	setinput[].svel 0
+	setp[].posxv 0
+	setp[].posyv 0
+	setp[].poszv 0
+	setp[].posx sprite[].x
+	setp[].posy sprite[].y
+	seta[player[].i].z sprite[].z
+	setp[].jumping_counter 0
+	setp[].jetpack_on NO
+	setp[].weapon_pos -9
+	
+	getp[].ohoriz temp
+	getp[].horiz tempb
+	sub tempb temp
+	ifn tempb 0 ifn tempb 1 ifn tempb -1
+	{
+		shiftvarr tempb 1
+		add temp tempb
+		setp[].horiz temp
+	}
+	
+	getp[].oang temp
+	getp[].ang tempb
+	getincangle tempb temp tempb
+	ifn tempb 0 ifn tempb 1 ifn tempb -1
+	{
+		shiftvarr tempb 1
+		add temp tempb
+		setp[].ang temp
+		ifactorsound THISACTOR TURRET_TURN nullop else sound TURRET_TURN
+		set countvar 0
+	}
+	add countvar 1
+	
+	abs tempb
+	ifl tempb 2 ifg countvar 8
+	ifactorsound THISACTOR TURRET_TURN stopactorsound THISACTOR TURRET_TURN
+	
+	ifand bits 4
+	{
+		ifle countvarb 20 { add countvarb 1 ifactorsound THISACTOR MINISPIN nullop else sound MINISPIN }
+		ifge countvarb 20
+		{
+			ifand player[].player_par 1 setav[player[].i].countvarc YES
+		}
+	}
+	else ifg countvarb 0 sub countvarb 1
+	
+	ife countvarb 0 set turretpic 18551
+	else
+	ifl countvarb 20 
+	{
+		add turretpic 1
+		ifg turretpic 18554 set turretpic 18552
+	}
+	else
+	{
+		ifl turretpic 18555 set turretpic 18555 else
+		{
+			add turretpic 1
+			ifg turretpic 18557 set turretpic 18555
+		}
+	}
+	
+	ifn zombieonplayer -1 set onturret -1
+	ifp pdead set onturret -1
+	ifp pshrunk set onturret -1
+	ifn player[].movement_lock 0 set onturret -1
+	ifn player[].transporter_hold 0 set onturret -1
+	ifn player[].on_crane -1 set onturret -1
+	
+	ifcount 20 ifhitspace
+	{
+		set onturret -1
+		resetcount
+	}
+}
+else ifcount 20
+ifaction EDFTURRETFRAMES
+{
+	ifactorsound THISACTOR MINISPIN stopactorsound THISACTOR MINISPIN
+	set team 3
+	ifp pfacing
+	ifp palive
+	ifpdistl 1560
+	ife zombieonplayer -1
+	ife cutcam -1
+	ife pipehold 0
+	ife slidekick 0
+	ife player[].kickback_pic 0
+	// ife sprite[].sectnum player[].cursectnum
+	ifcansee
+	{
+		ifl player[].fta 50
+		{
+			setp[].ftq 220
+			setp[].fta 60
+		}
+		ifhitspace
+		{
+			set onturret THISACTOR
+			setp[].fta 0
+			set countvarb 0
+			resetcount
+		}
+	}
+	else ife player[].ftq 220 ifpdistl 2048 setp[].fta 0
+}
+
+enda

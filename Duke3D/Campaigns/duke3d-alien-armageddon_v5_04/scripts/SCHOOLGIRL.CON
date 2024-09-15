@@ -1,0 +1,624 @@
+// JAPANESE SCHOOLGIRL
+
+action AGIRLSTAND  0  1  5  1  10
+action AGIRLFROZEN 0  1  5  1  10
+action AGIRLWALK   5  4  5  1  13
+action AGIRLGROW   5  1  5  1  10
+action AGIRLRUN    25 4  5  1  8
+action AGIRLBOWF   45 4  5  1  16
+action AGIRLBOWB   60 4  5  -1 16
+action AGIRLSTAB   65 3  5  1  14
+action AGIRLDIE1   85 3  1  1  20
+action AGIRLDEAD1  87 1  1  1  10
+action AGIRLDIE2   88 7  1  1  18
+action AGIRLDEAD2  94 1  1  1  10
+action AGIRLJUMP   95 1  5  1  20
+action AGIRLKICK   100 1  8  1  20
+
+move GIRLSHRUNKVEL 32
+move GIRLRUNVEL 256
+move GIRLJUMPVEL 256 -84
+move GIRLKICKVEL 300 -48
+move GIRLFALLVEL 192
+move GIRLATTACKVEL 64
+
+ai AIGIRLWAIT AGIRLSTAND STOPPED geth
+ai AIGIRLBOW AGIRLBOWF STOPPED geth
+ai AIGIRLSHRUNK AGIRLRUN GIRLSHRUNKVEL furthestdir
+ai AIGIRLDYING AGIRLDIE2 STOPPED geth
+ai AIGIRLWALK AGIRLWALK GIRLATTACKVEL randomangle
+ai AIGIRLRUN AGIRLRUN GIRLRUNVEL geth
+ai AIGIRLSTAB AGIRLSTAB GIRLATTACKVEL geth
+ai AIGIRLJUMP AGIRLJUMP GIRLJUMPVEL geth getv
+
+state bowstate
+
+	ifaction AGIRLBOWF
+	{
+		ifactioncount 4
+		{
+			ifn bottarget -1 ai AIGIRLRUN
+			else
+			action AGIRLBOWB
+		}
+	}
+	ifaction AGIRLBOWB
+	{
+		ifactioncount 4
+			ai AIGIRLWAIT
+	}
+
+ends
+
+state pickdirection
+
+	set B 0
+	set xydist 2048
+	whilevarn B 32
+	{
+		add B 1
+		geta[].z z
+		sub z 4096
+		rand angvar 2047
+		cos mycos angvar
+		sin mysin angvar
+		hitscan sprite[].x sprite[].y z sprite[].sectnum mycos mysin 0 hitsector hitwall hitsprite hitx hity hitz clipmask
+		
+		set startx sprite[].x
+		sub startx hitx
+		mul startx startx
+		set y2 sprite[].y
+		sub y2 hity
+		mul y2 y2
+		add startx y2
+		sqrt startx startx
+		
+		ifg startx xydist set B 32
+	}
+	seta[].ang angvar
+
+ends
+
+state girljumpstate
+
+	ifn bottarget -1
+	ldist xydist THISACTOR bottarget
+	else set xydist 99999
+	
+	ifaction AGIRLJUMP
+	{
+		ife targetalive YES
+		ife shootmytarget YES
+		ifl targetdist 3072
+		ifl xydist 1800
+		ife mtype 0
+		{
+			action AGIRLKICK
+			sound SG_HAI
+		}
+	}
+	else ifaction AGIRLKICK
+	{
+		ife mtype 0
+		{
+			ifn bottarget -1
+			ife targetalive YES
+			ife shootmytarget YES
+			ifl targetdist 1760
+			{
+				ifl xydist 844
+				{
+					geta[bottarget].htextra temp
+					rand tempb 6
+					add tempb 20
+					add temp tempb
+					seta[bottarget].htextra temp
+					seta[bottarget].htpicnum KICKPROJ
+					seta[bottarget].htowner THISACTOR
+					seta[bottarget].htang sprite[].ang
+					sound KICKIMPACT
+					getav[bottarget].stun temp
+					add temp 20
+					setav[bottarget].stun temp
+					set mtype 1
+					set dodgetime 10
+				}
+			}
+		}
+		ifl xydist 600 { action AGIRLJUMP set mtype 1 }
+	}
+	
+	ifmove GIRLJUMPVEL
+	{
+		ifcount 9 move GIRLFALLVEL geth 
+	}
+	ifmove GIRLKICKVEL
+	{
+		ifcount 14 move GIRLFALLVEL geth 
+	}
+	ifmove GIRLFALLVEL
+	{
+		iffloordistl 8
+		{
+			sound SG_LAND
+			set mtype 0
+			set dodgetime 0
+			ife targetalive YES
+			ife seemytarget YES
+			ife shootmytarget YES
+			ifl targetdist 1280
+				ai AIGIRLSTAB
+			else
+				ai AIGIRLRUN
+		}
+	}
+
+ends
+
+state girlshrunkstate
+
+  ifcount SHRUNKDONECOUNT
+    ai AIGIRLWAIT
+  else
+    ifcount SHRUNKCOUNT
+      sizeto 26 24
+  else
+    state genericshrunkcode
+
+ends
+
+state girldyingstate
+
+ifaction AGIRLDIE2
+{
+	ifhitweapon state random_wall_jibs
+	ifactioncount 6 { action AGIRLDEAD2 cstat 0 strength 0 }
+}
+else
+ifaction AGIRLDEAD2
+{
+	ifhitweapon
+	{
+		sound SQUISHED
+		state standard_jibs
+		killit
+	}
+}
+
+ends
+
+state girlconvo
+	ifactorsound THISACTOR SG_CONVO1 break
+	ifactorsound THISACTOR SG_CONVO2 break
+	ifactorsound THISACTOR SG_CONVO3 break
+	ifactorsound THISACTOR SG_CONVO4 break
+	
+	ifrnd 84 sound SG_CONVO1 else
+	ifrnd 128 sound SG_CONVO3 else
+	sound SG_CONVO4
+		
+ends
+
+state girlwaitstate
+		
+	ifp pfacing
+	ifcansee
+	ifpdistl 1560
+	ifhitspace
+	iffloordistl 4
+	{
+		resetcount
+		getangletotarget FEMVAR
+		seta[].ang FEMVAR	
+		ifg player[].actors_killed FEMKILLCOUNT 
+		{ sound SG_CONVO2 set FEMKILLCOUNT player[].actors_killed }
+		else state girlconvo
+		
+		ifg countvar 1800
+		{
+			ai AIGIRLBOW
+			set countvar 0
+			break
+		}
+	}
+	
+	ifcount 60
+	ifrnd 4 
+	{
+		ifg gametype 0 ifg navpoint -1 { ai AIGIRLRUN break }
+		ai AIGIRLWALK
+		state pickdirection
+	}
+
+ends
+
+state girlwalkstate
+
+	ifp pfacing
+	ifcansee
+	ifpdistl 1560
+	ifhitspace
+	iffloordistl 4
+	{	
+		ai AIGIRLWAIT
+		getangletotarget FEMVAR
+		seta[].ang FEMVAR	
+		
+		ifg player[].actors_killed FEMKILLCOUNT 
+		{ sound SG_CONVO2 set FEMKILLCOUNT player[].actors_killed }
+		else state girlconvo
+		
+		ifg countvar 1800
+		{
+			ai AIGIRLBOW
+			set countvar 0
+		}
+		break
+	}
+
+	ifcount 60
+		ifrnd 6
+	ai AIGIRLWAIT
+	
+	ifnotmoving { ai AIGIRLWAIT count 40 }
+
+ends
+
+state girlruncheck
+
+	ifai AIGIRLRUN break
+	ifn bottarget -1
+	ife targetalive YES
+	ife seemytarget YES
+	{
+		ai AIGIRLRUN
+		ifrnd 128 sound SG_AGGRO1 else
+		sound SG_AGGRO2
+	}
+	
+	ifg gametype 0
+	ifg navpoint -1 ai AIGIRLRUN
+
+ends
+
+state girljumpcheck
+
+	ifceilingdistl 96 break
+	geta[].z z
+	sub z 4096
+	
+	cos mycos sprite[].ang
+	sin mysin sprite[].ang
+	hitscan sprite[].x sprite[].y z sprite[].sectnum mycos mysin 0 hitsector hitwall hitsprite hitx hity hitz 16777281
+	ifn hitsprite -1 ifvarand sprite[hitsprite].cstat 16 set hitsprite -1
+	
+	ife hitsprite -1
+	{
+		set startx sprite[].x
+		sub startx hitx
+		mul startx startx
+		set y2 sprite[].y
+		sub y2 hity
+		mul y2 y2
+		add startx y2
+		sqrt startx startx
+		ifl startx 512
+		{
+			sub z 8192
+			hitscan sprite[].x sprite[].y z sprite[].sectnum mycos mysin 0 hitsector hitwall hitsprite hitx hity hitz 16777281
+			
+			set startx sprite[].x
+			sub startx hitx
+			mul startx startx
+			set y2 sprite[].y
+			sub y2 hity
+			mul y2 y2
+			add startx y2
+			sqrt startx startx
+			
+			ifg startx 1560 ai AIGIRLJUMP
+		}
+	}
+
+
+ends
+
+state girlrunstate
+
+	ife targetalive YES
+	ife seemytarget YES
+	ife shootmytarget YES
+	{
+		ifl targetdist 1280
+		{
+			ifrnd 84 sound SG_ATTACK1 else
+			ifrnd 128 sound SG_ATTACK2 else
+			sound SG_ATTACK3
+			ai AIGIRLSTAB
+			break
+		}
+		
+		ifl targetdist 3584
+		ifg targetdist 2048
+		{
+			geta[bottarget].z z
+			sub z sprite[].z
+			abs z
+			ifl z 16384
+			{
+				ai AIGIRLJUMP
+				move GIRLKICKVEL geth getv
+				break
+			}
+		}
+		ifn bottarget -1
+		{
+			ldist xydist THISACTOR bottarget
+			ifl xydist 1024
+			ife dodgetime 0 set dodgetime 10
+		}
+	}
+	
+	ifcount 90
+	ife bottarget -1
+	{
+		// set monstatus 3
+		ai AIGIRLWALK
+	}
+	
+	state girljumpcheck
+	ifai AIGIRLJUMP break
+	
+	ifnotmoving
+	{
+		state pickdirection
+		set dodgetime 10
+	}
+
+ends
+
+state girlstabstate
+
+	ifn bottarget -1
+	{
+	
+		ldist xydist THISACTOR bottarget
+		ifmove GIRLATTACKVEL { ifl xydist 640 move STOPPED geth } else
+		ifmove STOPPED ifg xydist 768 move GIRLATTACKVEL geth
+		
+		ifg xydist 1280 { ai AIGIRLRUN break }
+	
+	
+		ife targetalive YES
+		ifl targetdist 1560
+		{
+			ifactioncount 2
+			{
+				resetactioncount
+				state hitscan_targetprep
+				zshoot zdist KNIFEPROJ
+			}
+		}
+	}
+	else
+	{
+		// set monstatus 3
+		ai AIGIRLWALK
+	}
+
+ends
+
+useractor enemy SCHOOLGIRL 80
+
+ifai 0
+{
+	ai AIGIRLWAIT
+	clipdist 42
+	getp[].max_actors_killed temp
+	sub temp 1
+	setp[].max_actors_killed temp
+	cstat 257
+	set countvar 1800
+	sizeat 26 24
+	set team 1
+	getp[].actors_killed FEMKILLCOUNT
+}
+fall
+
+ifaction AGIRLFROZEN
+{
+    ifcount THAWTIME
+    {
+	  ai AIGIRLWAIT
+	  getlastpal
+    }
+    else
+	  ifcount FROZENDRIPTIME
+	{
+	  ifactioncount 26
+	  {
+		spawn WATERDRIP
+		resetactioncount
+	  }
+	}
+	ifhitweapon
+	{
+	  ifwasweapon FREEZEBLAST
+	  {
+		strength 0
+		break
+	  }
+	  state enemy_death
+	  ifrnd 84
+		spawn BLOODPOOL
+	  lotsofglass 30
+	  state lite_jibs
+	  sound GLASS_BREAKING
+	   ifrnd 128
+		sound DUKE_HIT_STRIPPER1
+	  else
+		sound DUKE_HIT_STRIPPER2
+
+	  killit
+	}
+	break
+}
+
+state monsterai
+state checksquished
+add countvar 1
+
+ifaction AGIRLGROW
+{
+	state genericgrowcode
+	break
+}
+
+ifai AIGIRLDYING { state girldyingstate break }
+
+ifhitweapon
+{
+    ifdead
+    {
+	  set mtype 0
+      ifwasweapon GROWSPARK
+      {
+	    state enemy_death
+        cstat 0
+        move STOPPED geth
+        sound ACTOR_GROWING
+        action AGIRLGROW
+        break
+      }
+      else ifwasweapon FREEZEBLAST
+      {
+        ifai AIGIRLSHRUNK
+          break
+
+        action AGIRLFROZEN
+	    move STOPPED
+		spritepal 1
+		strength 0
+
+        sound NEWFREEZE
+		state freezeme
+        break
+      }
+	  state enemy_death
+      ifrnd 128
+        sound DUKE_HIT_STRIPPER1
+      else
+        sound DUKE_HIT_STRIPPER2
+	  spawn BLOODPOOL
+	  state random_wall_jibs
+	  ifwasweapon RPG
+	  { 
+	     sound SQUISHED
+         state standard_jibs
+		 killit
+	  }
+      ifwasweapon RADIUSEXPLOSION
+	  { 
+	     sound SQUISHED
+         state standard_jibs
+		 killit
+	  }
+	  ai AIGIRLDYING
+	  set burning 0
+	  
+	  stopactorsound THISACTOR SG_PAIN1
+	  stopactorsound THISACTOR SG_PAIN2
+	  stopactorsound THISACTOR SG_PAIN3
+	  
+	  rand temp 3
+	  ife temp 0 sound SG_DEATH1 else
+	  ife temp 1 sound SG_DEATH2 else
+	  ife temp 2 sound SG_DEATH3 else
+	  sound SG_DEATH4
+    }
+    else
+    {
+	  ife monstatus 3
+	  {
+		set monstatus 1 // aggro!
+		ifrnd 128 sound SG_AGGRO1 else
+		sound SG_AGGRO2
+	  }
+      ifwasweapon SHRINKSPARK
+      {
+	    set mtype 0
+        sound ACTOR_SHRINKING
+		// set shrunken 1
+        ai AIGIRLSHRUNK
+        break
+      }
+      else
+	  {
+        ifwasweapon GROWSPARK
+          sound SPARKLESOUND
+		state girlpainsounds
+	  }
+	  state random_wall_jibs
+    }
+}
+else ifai AIGIRLBOW nullop else
+ife monstatus 3
+ifbulletnear
+{
+	set monstatus 1 // aggro!
+	ifrnd 128 sound SG_AGGRO1 else
+	sound SG_AGGRO2
+}
+
+ife monstatus 1
+{
+	ifn bottarget -1 set myspawner bottarget
+	else
+	{
+		ifai AIGIRLSTAB nullop else
+		ifn myspawner -1
+		ife actorvar[myspawner].monstatus 2
+		iffloordistl 4
+		{
+			// set monstatus 3
+			ifn sprite[myspawner].htowner player[].i
+			{
+				set spriteid myspawner
+				state facesprite
+				ai AIGIRLBOW
+			}
+			set myspawner -1
+			break
+		}
+	}
+	ifai AIGIRLWAIT state girlruncheck else
+	ifai AIGIRLWALK state girlruncheck
+}
+
+// ifai AIGIRLJUMP nullop else
+// ifhitspace ai AIGIRLJUMP
+
+ifai AIGIRLSHRUNK state girlshrunkstate else
+ifai AIGIRLWAIT state girlwaitstate else
+ifai AIGIRLWALK state girlwalkstate else
+ifai AIGIRLRUN state girlrunstate else
+ifai AIGIRLSTAB state girlstabstate else
+ifai AIGIRLBOW state bowstate else
+ifai AIGIRLJUMP state girljumpstate
+
+// ifhitspace ifcount 10
+// {
+	// resetcount
+	// ifaction AGIRLSTAND action AGIRLWALK else
+	// ifaction AGIRLWALK action AGIRLRUN else
+	// ifaction AGIRLRUN action AGIRLBOWF else
+	// ifaction AGIRLBOWF action AGIRLSTAB else
+	// ifaction AGIRLBOWB action AGIRLSTAB else
+	// ifaction AGIRLSTAB action AGIRLDIE1 else
+	// ifaction AGIRLDIE1 action AGIRLDEAD1 else
+	// ifaction AGIRLDEAD1 action AGIRLDIE2 else
+	// ifaction AGIRLDIE2 action AGIRLDEAD2 else
+	// ifaction AGIRLDEAD2 action AGIRLSTAND
+// }
+
+enda

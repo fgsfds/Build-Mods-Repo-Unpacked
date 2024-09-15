@@ -1,0 +1,1492 @@
+// SITH
+
+state generate_location
+
+	ifn bottarget -1
+	{
+		geta[bottarget].x x2
+		geta[bottarget].y y2
+		geta[bottarget].z z2
+	}
+	else
+	{
+		getp[].posx x2
+		getp[].posy y2
+		geta[].z z2
+	}
+
+	set xydist x2
+	rand temp 1024 // the random component of the distance from player
+	add temp 1560
+	add xydist temp
+	getp[].ang angvar
+	add angvar 256
+	rand temp 1280 // the random component of the angle from player
+	add angvar temp
+
+	rotatepoint x2 y2 xydist y2 angvar x y
+	// tempb and y2 are the new x and y coords
+
+	set tempd 0
+	set mysector sprite[].sectnum
+	updatesectorz x y z2 mysector
+	ifn mysector -1
+	{
+		// it's in a sector, so now we check for visibility
+		espawn SMALLSMOKE
+		seta[RETURN].x x
+		seta[RETURN].y y
+		set tempc z2
+		sub tempc 4096
+		seta[RETURN].z tempc
+		ifn bottarget -1 set spriteid bottarget else
+		getp[].i spriteid
+		canseespr spriteid RETURN tempd // tempd is 1 if location is valid
+		seta[RETURN].cstat 32768
+	}
+
+ends
+
+move ROCKFLY 512
+spriteflags BIGASSROCK 8192
+spriteshadow BIGASSROCK
+useractor notenemy BIGASSROCK 50
+
+ifmove 0
+{
+	ifl sprite[].xrepeat 4 spawn GLARESTAR
+	sizeat 32 32
+	cstat 257
+	// initsprite is relative angle
+	// myspawner is the owner
+	// shotpitch of owner is the wave number
+	// hitag of owner is the count (counts from negative up to 0)
+	move ROCKFLY geth
+	set team 3
+}
+
+ife myspawner -1 killit
+ifg sprite[myspawner].statnum 1 killit
+ifn sprite[myspawner].picnum SITH killit
+
+seta[].z sprite[myspawner].z
+getav[myspawner].starty x2
+add x2 sprite[myspawner].x
+geta[myspawner].ang angvar
+add angvar initsprite
+rotatepoint sprite[myspawner].x sprite[myspawner].y x2 sprite[myspawner].y angvar x y
+
+subvarvar x sprite[].x
+subvarvar y sprite[].y
+getangle angvar x y
+seta[].ang angvar
+
+getav[myspawner].shotpitch temp
+ifvarand temp 1
+add initsprite 20
+else
+sub initsprite 20
+
+ife actorvar[myspawner].monstatus 2
+{
+	seta[].htextra 100
+	seta[].htpicnum RPG
+}
+
+ifhitweapon
+{
+	ifdead
+	{
+		sound BREAKROCK
+		spawn BIGSMOKE
+		set savx 0
+		whilevarn savx 5
+		{		
+			// randvar temp 1024
+			// subvar temp 1560
+			// ezshoot temp ROCKPROJ
+			// randvar tempb 2047
+			// setactor[RETURN].ang tempb
+			// randvar tempb 192 add tempb 64
+			// setthisprojectile[RETURN].vel tempb
+			// setactor[RETURN].xvel tempb
+			spawn MOLTENROCK
+			addvar savx 1
+		}
+		killit
+	}
+	sound ROCKHIT
+}
+
+geta[].htmovflag spriteid
+ifn spriteid 0
+{
+	add spriteid 16384
+	ifg spriteid -1 ifl temp 16384
+	ifn sprite[spriteid].picnum BIGASSROCK
+	ifn sprite[spriteid].picnum SITH
+	ifn sprite[spriteid].statnum 0
+	{
+		geta[spriteid].htextra temp
+		add temp 18
+		rand tempb 6
+		add temp tempb
+		seta[spriteid].htextra temp
+		seta[spriteid].htpicnum RPG
+		seta[spriteid].htang sprite[].ang
+		seta[spriteid].htowner myspawner
+		seta[].htextra 100
+		seta[].htowner spriteid
+		seta[].htpicnum RPG
+	}
+} else
+ifpdistl 1024
+ifcanshoottarget
+{
+	getp[].i spriteid
+	geta[spriteid].htextra temp
+	add temp 18
+	rand tempb 6
+	add temp tempb
+	seta[spriteid].htextra temp
+	seta[spriteid].htpicnum RPG
+	seta[spriteid].htang sprite[].ang
+	seta[spriteid].htowner myspawner
+	seta[].htextra 100
+	seta[].htowner spriteid
+	seta[].htpicnum RPG
+}
+enda
+
+action ASITHWALK 0 4 5 1 14
+action ASITHSTAND 50 1 5 1 10
+action ASITHCHOKE 237 1 5 1 10
+action ASYTHCHOKE -782 1 5 1 10
+action ASITHSWING1 20 3 5 1 11
+action ASITHSWING2 35 3 5 1 11
+action ASITHSWING3 60 3 5 1 11
+action ASITHSWING4 75 3 5 1 11
+
+action ASITHSWING1FAST 20 3 5 1 7
+action ASITHSWING2FAST 35 3 5 1 7
+action ASITHSWING3FAST 60 3 5 1 7
+action ASITHSWING4FAST 75 3 5 1 7
+
+action ASITHFLINCH 60 1 5 1 10
+action ASITHJUMP 20 3 5 1 40
+action ASITHLAND 30 1 5 1 30
+action ASITHBLOCK 55 1 5 1 20
+action ASITHDIE 90 5 1 1 45
+action ASITHDEAD 95 1 1 1 1
+
+move SITHSEEKVEL 192
+move SITHCHARGEVEL 256
+move SITHJUMPVEL 320
+move SITHATTACKVEL 96
+move SITHBACKVEL -96
+move SITHBLOCKVEL
+
+move SITHATTACKVEL2 272
+move SITHSTOPPED
+move SITHWAIT
+move SITHSUMMON 0 -24
+
+ai AISITHCHOKE ASITHCHOKE SITHSTOPPED geth
+ai AISITHSEEK ASITHWALK SITHSEEKVEL seekplayer
+ai AISITHWAIT ASITHSTAND SITHSTOPPED geth
+ai AISITHATTK ASITHSWING1 SITHATTACKVEL geth
+ai AISITHFLINCH ASITHFLINCH SITHSTOPPED geth
+ai AISITHDIE ASITHDIE SITHSTOPPED geth
+ai AISITHBLOCK ASITHBLOCK SITHBLOCKVEL geth
+ai AISITHJUMP ASITHJUMP SITHJUMPVEL jumptoplayer
+ai AISITHSUMMON ASITHBLOCK SITHSUMMON geth getv
+ai AISITHPUSH ASITHCHOKE SITHSTOPPED geth
+ai AISITHGROW ASITHFLINCH SITHSTOPPED geth
+
+state sabswingsound
+	rand temp 4
+	ife temp 0 sound SABSWING1 else
+	ife temp 1 sound SABSWING2 else
+	ife temp 2 sound SABSWING3 else
+	ife temp 3 sound SABSWING4 else
+	sound SABSWING5
+ends
+
+state sithtaunt1
+	
+	ifl countvarb 150 break
+	rand temp 3
+	ife temp 0 { ifactor SYTH sound SYTHTAUNT1 else sound SITHTAUNT1 }
+	ife temp 1 { ifactor SYTH sound SYTHTAUNT2 else sound SITHTAUNT5 }
+	ife temp 2 { ifactor SYTH sound SYTHTAUNT3 else sound SITHTAUNT6 }
+	ife temp 3 { ifactor SYTH sound SYTHTAUNT4 else sound SITHTAUNT7 }
+	set countvarb 0
+
+ends
+
+state sithtaunt2
+	
+	ifl countvarb 150 break
+	ifrnd 128 { ifactor SYTH sound SYTHBRTH1 else sound SITHTAUNT3 }
+	else { ifactor SYTH sound SYTHBRTH2 else sound SITHTAUNT4 }
+	set countvarb 0
+ends
+
+state startsithpush
+
+	ai AISITHPUSH
+	ifactor SYTH action ASYTHCHOKE
+	set spriteid bottarget
+	state facesprite
+	cos xvel sprite[].ang
+	sin yvel sprite[].ang
+	ife bottarget player[].i
+	{
+		ifpdistg 4096 { ai AISITHWAIT count 6 break }
+		shiftvarl xvel 10
+		shiftvarl yvel 10
+		setplayer[THISACTOR].posxv xvel
+		setplayer[THISACTOR].posyv yvel
+		// push player backwards
+	}
+	else
+	{
+		shiftr xvel 1 shiftr yvel 1
+		movesprite bottarget xvel yvel 0 CLIPMASK0 RETURN
+		setav[bottarget].stun 10
+		seta[bottarget].htextra 10
+		seta[bottarget].htpicnum KNEE
+		seta[bottarget].htowner THISACTOR
+	}
+	sound PUSHSOUND
+ends
+
+state sithattksetup
+
+	state sabswingsound
+	// ifrnd 128 cstator 4
+	set countvarc 0 // strike counter
+	ifrnd 128
+	{
+		ifrnd 84 action ASITHSWING2
+		else ifrnd 128 action ASITHSWING3
+		else action ASITHSWING4
+	}
+	
+ends
+
+
+state sithsearchproj
+
+	ifai AISITHFLINCH break
+	ifai AISITHCHOKE break
+	ifai AISITHJUMP break
+	ifai AISITHATTK break
+	ifai AISITHSUMMON break
+	
+	ifl targetdist 2048 break
+
+	findnearspritez SHOCKBALL 3072 24576 spriteid
+	ife spriteid -1
+	findnearspritez GRENADEPROJ 3072 24576 spriteid
+	ife spriteid -1 
+	findnearspritez RPG 3072 24576 spriteid
+	ife spriteid -1
+	findnearspritez HEAVYHBOMB 3072 24576 spriteid
+	ifn spriteid -1 
+	{
+		ifg sprite[spriteid].zvel 0
+		{
+			geta[spriteid].sectnum mysector
+			gets[mysector].floorz z2
+			geta[spriteid].z z
+			sub z2 z
+			ifl z2 4096
+			{
+				ai AISITHJUMP
+				geta[].zvel z
+				sub z 2048
+				seta[].zvel z
+			}
+		}
+	}
+
+ends
+
+
+
+defstate shootsaberstate
+	getprojectile[SABERPROJ].range savx
+	setprojectile[SABERPROJ].range 1536
+	state hitscan_targetprep
+	zshoot zdist SABERPROJ
+	setprojectile[SABERPROJ].range savx
+	getplayer[THISACTOR].i spriteid
+	ifg sprite[spriteid].htextra 1 ife sprite[spriteid].htowner THISACTOR
+	ifn blockang 6666 seta[spriteid].htextra -1
+	else ife blockang 6666
+	{
+		ifg saberpos 0 ifl saberpos 85 nullop else
+		ifangdiffl 512 nullop else	
+		ife sprite[spriteid].htowner THISACTOR
+		ife player[].curr_weapon KNEE_WEAPON
+		ifn gotsaber 0 ife player[].weapon_pos 0
+		{
+			seta[spriteid].htextra -1
+			getp[].ang angvar
+			getincangle blockang angvar sprite[].ang
+			ifl blockang 0 set blockang -9 else set blockang 9
+			flash
+		}
+	}
+ends
+
+state sithjumpstate
+
+state turntotarget
+
+ifaction ASITHJUMP 
+{ 
+	ifactioncount 2 
+	{
+		action ASITHLAND 
+		state sabswingsound
+	}
+	
+	ife targethigher YES nullop else
+	ifactioncount 1
+	ifmove SITHJUMPVEL
+		move SITHCHARGEVEL geth
+}
+
+ifaction ASITHLAND state shootsaberstate
+
+ifcount 4 nullop else 
+ifl targetdist 3072 nullop else
+	{ geta[].zvel z2 sub z2 384 ife targethigher YES sub z2 256 seta[].zvel z2 }
+	
+ifn bottarget -1
+{
+	ldist xydist THISACTOR bottarget
+	ifl xydist 2560
+	{
+		geta[].z z
+		geta[bottarget].z z2
+		sub z2 z
+		ifg z2 8192
+		{
+			add z 1024
+			seta[].z z
+		}
+	}
+}
+
+iffloordistl 16 nullop else
+ifg targetdist 3000 { geta[].xvel xvel add xvel 160 seta[].xvel xvel }
+
+ifcount 10
+iffloordistl 4 ai AISITHSEEK
+else
+ifcount 30
+iffloordistl 32 ai AISITHSEEK
+
+ifl targetdist 1280 ife seemytarget YES
+ife targetalive YES
+{
+	ai AISITHATTK
+	state sithattksetup
+}
+
+ends
+
+state sithdyingstate
+
+ifaction ASITHDIE 
+{
+	ifcount 6 { spawn BIGSMOKE resetcount }
+	// ifactioncount 3	
+		// sizeto 38 18
+	
+	ifactioncount 5
+	{
+		action ASITHDEAD
+		sound THUD
+		ifrnd 128
+		{
+			ifrnd 128 spawn SABERSPRITE else
+			ife gametype 0
+			spawn ATOMICHEALTH
+		}
+		geta[].z savz
+		sub savz 4096
+		seta[].z savz
+		geta[].x savx
+		geta[].y savy
+		set countvar 6
+		whilevarn countvar 0
+		{
+			espawn BIGSMOKE
+			seta[RETURN].z savz
+			seta[RETURN].pal 1
+			set x savx
+			rand x2 844
+			sub x2 422
+			add x x2
+			seta[RETURN].x x
+			set y savy
+			rand y2 844
+			sub y2 422
+			add y y2
+			seta[RETURN].y y
+			sub countvar 1
+		}
+		add savz 4096
+		seta[].z savz
+		// ifn startx 0
+		// {
+			// endofgame 90
+			// state endgamestuff
+		// }
+		
+	}
+}
+
+ends
+
+state sithflinchstate
+
+	ifcount 10 
+	ife stun 0
+	{
+		ife blockang 6666
+		ifg saberpos 0 ifpdistl 1560 ifp pfacing
+		{ ai AISITHBLOCK set mtype 1 }
+		else
+		ifl targetdist 2048
+		ife seemytarget YES
+		ife targetalive YES
+		{
+			ai AISITHATTK
+			state sithattksetup
+		}
+		else
+		{
+			ifn bottarget -1
+			{
+				ai AISITHWAIT
+				count 6
+			}
+			else ai AISITHSEEK
+		}
+	}
+	else ifcount 3 ifrnd 24 // 8
+	ifn bottarget -1
+		state startsithpush
+		
+	
+
+ends
+
+state sithpushstate
+
+	ifcount 20 ai AISITHWAIT
+
+ends
+
+state sithwaitstate
+
+	ifn bottarget -1
+	ife sprite[bottarget].picnum SPIDERWALK
+	{
+		state startsithpush
+		break
+	}
+	
+	state turntotarget
+	ifrnd 1 state sithtaunt1
+	ifmove SITHSTOPPED
+	ife seeplayer YES ifpdistl 6144 move SITHWAIT geth
+	
+	ifmove SITHWAIT ifg targetdist 8192 move SITHSTOPPED
+
+	ifcount 8
+	{
+		ifg saberpos 0 ifpdistl 1560 ifp pfacing
+		ife blockang 6666
+		{ ai AISITHBLOCK set mtype 1 }
+		else
+		ifrnd 32
+		ifl targetdist 2048
+		ife seemytarget YES
+		ife targetalive YES
+		{
+			ai AISITHATTK
+			state sithattksetup
+		}
+	}
+	else ifcount 6
+	{
+		ife scannedsprite THISACTOR
+		ifl targetdist 5120
+		iffloordistl 16
+		ifrnd 16
+		ifn bottarget -1
+		{
+			ai AISITHJUMP 
+			break	
+		}
+		else
+		ifbulletnear
+		ifg targetdist 2047
+		{
+			ifn bottarget -1 ifl targetdist 6144 iffloordistl 16 ifrnd 64 { ai AISITHJUMP break }
+			ai AISITHSEEK
+		}
+		
+	}
+	ifcount 30
+	{
+		ifrnd 84
+		ifactor SITH
+		ifn bottarget -1 
+		ifg sprite[].extra 150
+		ifn bottarget player[].i
+		ai AISITHCHOKE
+		else
+		ai AISITHSEEK
+	}
+		
+ends
+
+state sithblockstate
+
+add countvar 1
+ifn bottarget -1
+ifg countvar 40
+ifrnd 32
+{
+	set temp NO
+	ife bottarget player[].i ife player[].kickback_pic 0 ifg sprite[].extra 150 set temp YES else
+	set temp YES
+	ife temp YES
+	{
+		set countvar 0
+		ifn bottarget player[].i
+		{
+			ifactor SITH sound SITHLAUGH
+			ifactor SYTH sound SYTHLAUGH
+			ai AISITHCHOKE
+			ifactor SYTH action ASYTHCHOKE
+		}
+		break
+	}
+}
+
+ife sprite[].htpicnum GROWSPARK seta[].htpicnum SHOTSPARK1
+ifn bottarget -1
+{
+	set spriteid bottarget
+	state facesprite
+}
+
+ifrnd 1 state sithtaunt2
+
+set mtype 1
+ifcount 10
+{
+	ifl targetdist 2048 ife seemytarget YES
+	ife targetalive YES
+	{
+		ai AISITHATTK
+		state sithattksetup
+		
+		ifl targetdist 1560 ifrnd 96 move SITHBACKVEL geth
+	}
+	else
+	{
+		ife scannedsprite THISACTOR ifn player[].kickback_pic 0 resetcount else
+		{
+			ifn bottarget -1
+			ifrnd 84
+			ifactor SITH
+			{
+				ife bottarget player[].i ifl sprite[].extra 150 ai AISITHWAIT else
+				ai AISITHCHOKE
+			}
+			else
+			ai AISITHWAIT
+			set mtype 0
+		}
+	}
+}
+// ifg saberpos 0 
+ifg sprite[].htextra 0
+ife sprite[].htpicnum SHOTSPARK1
+{
+	geta[].htowner spriteid
+	
+	ife bottarget spriteid
+	{
+		flash
+		seta[].htextra -1
+		set damflash 0
+		ifactorsound THISACTOR SABHIT3 nullop else sound SABHIT3
+		ai AISITHBLOCK
+		count 3
+	}
+	
+	ifn actorvar[spriteid].team team
+	{
+		dist xydist THISACTOR spriteid
+		ifl xydist 3072 set bottarget spriteid
+	}
+}
+
+// ife sprite[].htpicnum SHOTSPARK1 seta[].htextra -1
+ife sprite[].htpicnum KNEE seta[].htextra -1
+
+ifcount 6 
+ifg targetdist 2048
+ife seemytarget YES
+ifn bottarget -1
+ifrnd 4 ai AISITHJUMP
+
+ifg sprite[].htextra 1
+{
+	geta[].htextra temp
+	shiftr temp 1
+	seta[].htextra temp
+}
+
+ifai AISITHBLOCK nullop else set countvar 0
+
+ends
+
+
+state spawnrock
+
+	switch shotpitch
+	case 0
+		set savx 3
+		set savy 682
+	break
+	case 1
+		set savx 5
+		set savy 410
+	break
+	case 2
+		set savx 7
+		set savy 292
+	break
+	case 3
+		set savx 9
+		set savy 227
+	break
+	case 4
+		set savx 11
+		set savy 186
+	break
+	case 5
+		set savx 13
+		set savy 157
+	break
+	default
+		set savx 13
+		set savy 157
+	break
+	endswitch
+	whilevarn savx 0
+	{
+		espawn BIGASSROCK
+		setav[RETURN].initsprite initsprite
+		setav[RETURN].myspawner THISACTOR
+		add initsprite savy
+		sub savx 1
+	}
+	add shotpitch 1 // shotpitch is used to store boss stage
+	set initsprite 0 // count the angle offset on each rock
+	set FEMFALLDMG -1800 // counter to next rock spawning
+	
+ends
+
+state sithsummonstate
+
+ifn bottarget -1
+{
+	set spriteid bottarget
+	state facesprite
+}
+set mtype 1
+quake 30
+
+ife sprite[].htpicnum SHOTSPARK1
+ifg sprite[].htextra 0
+{
+	flash
+	seta[].htextra -1
+	ifactorsound THISACTOR SABHIT3 nullop else sound SABHIT3
+}
+
+ifcount 60
+{ 
+	ifactor SYTH globalsound SYTHLAUGH else
+	globalsound SITHLAUGH 
+	ife shotpitch 5
+	{
+		set shotpitch 6
+		ifactor SYTH globalsound SYTHLAUGH else
+		globalsound SITHLAUGH
+	}
+	else
+	state spawnrock 
+	ai AISITHBLOCK 
+}
+
+ends
+
+state sithseekstate
+
+	ifn bottarget -1
+	ife sprite[bottarget].picnum SPIDERWALK
+	{
+		state startsithpush
+		break
+	}
+
+	ifg saberpos 0 ifpdistl 1560 ifp pfacing
+	ife blockang 6666
+	{ ai AISITHBLOCK set mtype 1 }
+	else
+	ifrnd 32
+	ifl targetdist 1920
+	ife seemytarget YES
+	ife targetalive YES
+	{
+		ai AISITHATTK
+		state sithattksetup
+	}
+	else ifcount 8
+	{
+		ifg targetdist 2048 ifl targetdist 6144 ifrnd 2 
+		{ 
+			ifrnd 160
+			ai AISITHJUMP
+			else
+			ifactor SITH
+			ifn bottarget player[].i
+			ai AISITHCHOKE
+			break
+		}
+		else
+		ifbulletnear
+		ifg targetdist 2047
+		ifrnd 32
+		{
+			ifrnd 64 ifl targetdist 6144 { ai AISITHJUMP break }
+			ifrnd 128
+			{ ai AISITHBLOCK set mtype 1 }
+		}
+	}
+	ifcount 60
+	ifrnd 16
+	ifn bottarget -1
+	{
+		ifrnd 64
+		ifactor SITH
+		{
+			ifl sprite[].extra 150 ife bottarget player[].i ai AISITHWAIT else
+			ai AISITHCHOKE
+		}
+		else
+		ai AISITHWAIT
+	}
+		
+	ifmove SITHSEEKVEL
+	ifcount 10
+	ife seemytarget YES ife shootmytarget YES
+	{
+		move SITHCHARGEVEL seekplayer
+		ifn bottarget player[].i move SITHCHARGEVEL geth
+	}
+	
+	ifmove SITHCHARGEVEL
+	ifnotmoving
+	ifcount 8
+	{
+	    operate
+		ifrnd 128 ai AISITHJUMP else
+		move SITHSEEKVEL seekplayer
+		ifn bottarget player[].i move SITHCHARGEVEL geth
+		
+		ifn bottarget -1 ifl targetdist 1280
+		{
+			ai AISITHATTK
+			state sithattksetup
+		}
+	}
+	else
+	ife targethigher YES
+	ifrnd 32
+	ifn bottarget -1
+	{
+		ifceilingdistl 128 nullop
+		else iffloordistl 16
+		ai AISITHJUMP
+	}
+	
+ends
+
+state sithevalstrike
+	add countvarc 1
+	ifpdistl 1560 ifg saberpos 0
+		ife blockang 6666
+	{ ai AISITHBLOCK set mtype 1 break }
+	
+	ifn player[].kickback_pic 0 ifg player[].curr_weapon 0
+	{
+		rand temp 100
+		ifl temp 50
+		{
+			ai AISITHBLOCK 
+			set mtype 1 
+			break 
+		}
+	}
+		
+	ifg countvarc 2 
+	{ 
+		ifrnd 128 ai AISITHWAIT else ifg countvarc 5 ai AISITHWAIT
+		else ifg targetdist 2560 ai AISITHWAIT
+		ifai AISITHWAIT 
+		{ 
+			set mtype 0 
+			ifrnd 64
+			{ ai AISITHBLOCK set mtype 1 }
+		}
+	}
+ends
+
+state sithattkstate
+
+state turntotarget
+
+ifl targetdist 1024 move SITHSTOPPED geth else
+ifmove SITHSTOPPED
+{
+	ifg shotpitch 5 move SITHATTACKVEL2 geth else
+	move SITHATTACKVEL geth
+}
+
+ifge SKILL 4
+{
+	ifaction ASITHSWING1 action ASITHSWING1FAST
+	ifaction ASITHSWING2 action ASITHSWING2FAST
+	ifaction ASITHSWING3 action ASITHSWING3FAST
+	ifaction ASITHSWING4 action ASITHSWING4FAST
+	
+	ifaction ASITHSWING1FAST
+	{
+		ifactioncount 1 
+		{
+			ifactioncount 2 set mtype 0 else
+			ifg saberpos 0 ife sprite[].htpicnum SHOTSPARK1
+			{
+				flash
+				seta[].htextra -1
+				ifactorsound THISACTOR SABHIT3 nullop else sound SABHIT3
+				set mtype 1
+			}
+			ife mtype 0
+			state shootsaberstate
+		}
+		ifactioncount 3 
+		{
+			state sithevalstrike
+			ifai AISITHATTK nullop else break
+			ifrnd 160 action ASITHSWING2FAST else action ASITHSWING4FAST
+			state sabswingsound 
+		}
+	}
+
+	ifaction ASITHSWING2FAST
+	{
+		ifactioncount 1 
+		{
+			ifactioncount 2 set mtype 0 else
+			ifg saberpos 0 ife sprite[].htpicnum SHOTSPARK1
+			{
+				flash
+				seta[].htextra -1
+				ifactorsound THISACTOR SABHIT3 nullop else sound SABHIT3
+				set mtype 1
+			}
+			ife mtype 0
+			state shootsaberstate
+		}
+		ifactioncount 3 
+		{ 
+			state sithevalstrike
+			ifai AISITHATTK nullop else break
+			ifrnd 160 action ASITHSWING1FAST else action ASITHSWING3FAST
+			state sabswingsound 
+		}
+	}
+
+	ifaction ASITHSWING3FAST
+	{
+		ifactioncount 1 
+		{
+			ifactioncount 2 set mtype 0 else
+			ifg saberpos 0 ife sprite[].htpicnum SHOTSPARK1
+			{
+				flash
+				seta[].htextra -1
+				ifactorsound THISACTOR SABHIT3 nullop else sound SABHIT3
+				set mtype 1
+			}
+			ife mtype 0
+			state shootsaberstate
+		}
+		ifactioncount 3 
+		{ 
+			state sithevalstrike
+			ifai AISITHATTK nullop else break
+			ifrnd 160 action ASITHSWING2FAST else action ASITHSWING4FAST
+			state sabswingsound 
+		}
+		
+	}
+
+	ifaction ASITHSWING4FAST
+	{
+		ifactioncount 1 
+		{
+			ifactioncount 2 set mtype 0 else
+			ifg saberpos 0 ife sprite[].htpicnum SHOTSPARK1
+			{
+				flash
+				seta[].htextra -1
+				ifactorsound THISACTOR SABHIT3 nullop else sound SABHIT3
+				set mtype 1
+			}
+			ife mtype 0
+			state shootsaberstate
+		}
+		ifactioncount 3 
+		{
+			state sithevalstrike
+			ifai AISITHATTK nullop else break
+			ifrnd 84 action ASITHSWING1FAST else ifrnd 118 action ASITHSWING2FAST else action ASITHSWING3FAST
+			state sabswingsound 
+		}
+	}
+	break
+}
+
+
+
+ifaction ASITHSWING1
+{
+	ifactioncount 1 
+	{
+		ifactioncount 2 set mtype 0 else
+		ifg saberpos 0 ife sprite[].htpicnum SHOTSPARK1
+		{
+			flash
+			seta[].htextra -1
+			ifactorsound THISACTOR SABHIT3 nullop else sound SABHIT3
+			set mtype 1
+		}
+		ife mtype 0
+		state shootsaberstate
+	}
+	ifactioncount 3 
+	{
+		state sithevalstrike
+		ifai AISITHATTK nullop else break
+		ifrnd 160 action ASITHSWING2 else action ASITHSWING4
+		state sabswingsound 
+	}
+}
+
+ifaction ASITHSWING2
+{
+	ifactioncount 1 
+	{
+		ifactioncount 2 set mtype 0 else
+		ifg saberpos 0 ife sprite[].htpicnum SHOTSPARK1
+		{
+			flash
+			seta[].htextra -1
+			ifactorsound THISACTOR SABHIT3 nullop else sound SABHIT3
+			set mtype 1
+		}
+		ife mtype 0
+		state shootsaberstate
+	}
+	ifactioncount 3 
+	{ 
+		state sithevalstrike
+		ifai AISITHATTK nullop else break
+		ifrnd 160 action ASITHSWING1 else action ASITHSWING3
+		state sabswingsound 
+	}
+}
+
+ifaction ASITHSWING3
+{
+	ifactioncount 1 
+	{
+		ifactioncount 2 set mtype 0 else
+		ifg saberpos 0 ife sprite[].htpicnum SHOTSPARK1
+		{
+			flash
+			seta[].htextra -1
+			ifactorsound THISACTOR SABHIT3 nullop else sound SABHIT3
+			set mtype 1
+		}
+		ife mtype 0
+		state shootsaberstate
+	}
+	ifactioncount 3 
+	{ 
+		state sithevalstrike
+		ifai AISITHATTK nullop else break
+		ifrnd 160 action ASITHSWING2 else action ASITHSWING4
+		state sabswingsound 
+	}
+	
+}
+
+ifaction ASITHSWING4
+{
+	ifactioncount 1 
+	{
+		ifactioncount 2 set mtype 0 else
+		ifg saberpos 0 ife sprite[].htpicnum SHOTSPARK1
+		{
+			flash
+			seta[].htextra -1
+			ifactorsound THISACTOR SABHIT3 nullop else sound SABHIT3
+			set mtype 1
+		}
+		ife mtype 0
+		state shootsaberstate
+	}
+	ifactioncount 3 
+	{
+		state sithevalstrike
+		ifai AISITHATTK nullop else break
+		ifrnd 84 action ASITHSWING1 else ifrnd 118 action ASITHSWING2 else action ASITHSWING3
+		state sabswingsound 
+	}
+}
+ 
+ends
+
+state sithchokestate
+
+	ife bottarget -1 { stopsound FORCECHOKE ai AISITHWAIT break }
+	ife actorvar[bottarget].monstatus 2 { stopsound FORCECHOKE ai AISITHWAIT break }
+	ifcount 150 { stopsound FORCECHOKE ai AISITHWAIT break }
+	
+	set spriteid bottarget
+	state facesprite
+	soundonce FORCECHOKE 
+	
+	geta[].x x2
+	geta[].y y2
+	sub x2 sprite[bottarget].x
+	sub y2 sprite[bottarget].y
+	getangle angvar x2 y2
+	
+	ife bottarget player[].i setp[].ang angvar
+	
+	ldist xydist2 THISACTOR bottarget
+	ifl xydist2 844 add angvar 1024
+	
+	
+	cos xvel angvar
+	sin yvel angvar
+		  
+	shiftvarr xvel 7
+	shiftvarr yvel 7
+	
+	
+	seta[bottarget].xvel 0
+	seta[bottarget].zvel -256
+	geta[bottarget].z z sub z 64 seta[bottarget].z z
+	geta[bottarget].z z2
+	add z2 6144
+	
+	ifg z2 sprite[].z
+		set z2 -1024
+	else
+	ifl z2 sprite[].z
+		set z2 768
+	else set z2 0
+		
+	
+	setav[bottarget].stun 10
+	ife sprite[bottarget].htextra -1
+	ifg countvar 2
+	{
+		seta[bottarget].htextra 1
+		seta[bottarget].htowner THISACTOR
+		seta[bottarget].htpicnum FORCECHOKE
+		seta[bottarget].htang sprite[].ang
+		set countvar 0
+	}
+			 
+	movesprite bottarget xvel yvel z2 CLIPMASK0 RETURN
+	
+	ife bottarget player[].i
+	{
+		geta[bottarget].x x
+		setp[].posx x
+		geta[bottarget].y y
+		setp[].posy y
+		geta[bottarget].z z
+		sub z 8192
+		setp[].posz z
+		setp[].posxv 0
+		setp[].posyv 0
+		setp[].poszv -256
+		palfrom 30 60
+	}
+	
+	ifl targetdist 1280 ife seemytarget YES
+	ife targetalive YES
+	ifcount 30
+	{
+		ai AISITHATTK
+		state sithattksetup
+		stopsound FORCECHOKE 
+	}
+	add countvar 1
+	
+
+ends
+
+state sithcode
+ifmove 0
+{
+	ifspritepal 3 set team 1
+	ai AISITHWAIT
+	set countvarb 150
+	state sithtaunt1
+	ifspritepal 22
+	{
+		set spawnprotect 0
+		set botclip 3000 // force energy
+		sizeat 30 27 // 44 42
+		strength 1200
+		set starty 1560 // initial rock distance
+		// ai AISITHSUMMON
+		set startx 22 // saves pal in var
+	}
+	else
+	ifspritepal 10
+	{
+		set spawnprotect 0
+		set botclip 3000 // force energy
+		sizeat 30 27 // 44 42
+		strength 1200
+		set starty 1560 // initial rock distance
+		ai AISITHSUMMON
+		set startx 10 // saves pal in var
+	}
+	else
+	{
+		set botclip 1000 // force energy
+		sizeat 28 25 // 38 36
+	}
+	cstator 257
+}
+fall
+
+ifai AISITHGROW { state genericgrowcode break }
+
+ifactor SYTH
+ifn sprite[].pal 0
+ifcount 10
+{
+	ifai AISITHATTK nullop else
+	ifai AISITHJUMP nullop else
+	ifai AISITHDIE nullop else
+	ifai AISITHCHOKE nullop else
+	ifai AISITHSUMMON nullop else
+	ifai AISITHFLINCH nullop else
+	{
+		findnearactorz SITH 4096 16384 target
+		ifn target -1
+		{
+			ai AISITHJUMP
+			geta[].zvel z
+			sub z 2048
+			seta[].zvel z
+		}
+	}
+}
+
+ife gametype SURVIVAL state dmtauntcode
+
+ifai AISITHDIE { set mtype 0 state sithdyingstate break }
+
+ifn startx 0
+{
+	ifstrength 1000 { ifl shotpitch 5 set shotpitch 5 }
+	else ifstrength 1500 { ifl shotpitch 4 set shotpitch 4 }
+	else ifstrength 2000 { ifl shotpitch 3 set shotpitch 3 }
+	else ifstrength 2500 { ifl shotpitch 2 set shotpitch 2 }
+	ifg shotpitch 5
+	{
+		ifmove SITHATTACKVEL move SITHATTACKVEL2 geth
+		else
+		ifmove SITHATTACKVEL2 nullop else
+		ifmove SITHWAIT nullop else
+		ifmove SITHSTOPPED nullop else
+		ifg sprite[].xvel 0
+		{
+			geta[].xvel xvel
+			add xvel 128
+			ifg xvel 512 set xvel 512
+			seta[].xvel xvel
+		}
+	}
+	// modification of rock distance
+	ifg shotpitch 0
+	{
+		ifl starty 16384 add starty 96 else set starty 1560
+	}
+	
+	ifai AISITHSUMMON nullop else
+	ifl shotpitch 6
+	ife startx 10
+	{
+		add FEMFALLDMG 1
+		ifg FEMFALLDMG -1
+		{		
+			ifai AISITHATTK nullop else
+			ifai AISITHFLINCH nullop else
+			ai AISITHSUMMON
+		}
+	}
+	
+}
+
+ifp palive
+{
+ifactorsound THISACTOR SABERIDLE nullop else sound SABERIDLE
+}
+
+add countvarb 1 // taunt counter
+
+set temp NO
+
+ifrnd 128
+ifg sprite[].htextra 0
+ifn sprite[].htpicnum RPG
+ifn sprite[].htpicnum RADWOUND
+ifn sprite[].htpicnum BURNING
+ifn sprite[].htpicnum STUCKARROW
+ifn sprite[].htpicnum RADIUSEXPLOSION
+set temp YES
+else
+ifstrength 150
+ifg sprite[].htextra 0
+ifn sprite[].htpicnum RADWOUND
+ifn sprite[].htpicnum BURNING
+ife sprite[].htowner bottarget
+ifg targetdist 1280
+set temp YES
+
+ife temp YES
+{
+	set temp NO
+	ifai AISITHWAIT set temp YES
+	ifai AISITHSEEK set temp YES
+	// ifai AISITHJUMP ifcount 10 ifg targetdist 1560 set temp YES
+	ife temp YES
+	{
+		ai AISITHBLOCK
+		set mtype 1
+		seta[].htextra -1
+		set damflash 0
+		geta[].z savz
+		sub savz 8192
+		spawn SPARKFALL spawn SPARKFALL spawn SPARKFALL
+		spawn SPARKFALL spawn SPARKFALL spawn SPARKFALL
+		add savz 8192
+		seta[].z savz
+	} 
+}
+
+ifai AISITHFLINCH state sithflinchstate else
+ifai AISITHPUSH state sithpushstate else
+ifai AISITHWAIT state sithwaitstate else
+ifai AISITHCHOKE state sithchokestate else
+ifai AISITHSEEK state sithseekstate else
+ifai AISITHATTK state sithattkstate else
+ifai AISITHBLOCK state sithblockstate else
+ifai AISITHJUMP state sithjumpstate else
+ifai AISITHSUMMON state sithsummonstate
+
+state sithsearchproj
+
+ifg sprite[].htextra 0
+{
+	// geta[].htowner spriteid
+	// ife sprite[spriteid].picnum SITH seta[].htextra -1
+	geta[].htextra temp
+	ifg temp 0
+	{
+		ife sprite[].htpicnum SHOTSPARK1
+		ifl targetdist 2048
+		ifn saberpos 0
+		{
+			set tempb temp
+			div temp 2
+			add tempb temp
+			seta[].htextra tempb
+		}
+	}
+	geta[].htowner spriteid
+	ifn actorvar[spriteid].team team
+	{
+		dist xydist THISACTOR spriteid
+		ifl xydist 3072 set bottarget spriteid
+	}
+}
+
+ifsquished { seta[].htextra 15 seta[].htpicnum RPG }
+
+state monsterai
+
+ifhitweapon
+{
+	ifai AISITHBLOCK nullop else set mtype 0
+	ifdead
+	{
+		ifactorsound THISACTOR FORCECHOKE stopactorsound THISACTOR FORCECHOKE
+		ifrnd 128 espawn BURNING else espawn BURNING2
+		seta[RETURN].pal 1
+		addkills 1
+		cstat 0
+		state enemy_death
+		ife wave 8 
+		ife gametype SURVIVAL
+		{
+			sub monleft 1
+			ife monleft 0 { add wave 1 state wavesettings }
+			set bluescore 10000
+			set redscore 0
+		}
+		
+		ifactor SYTH sound SYTHDIE else
+		sound SITHDIESND
+		// EFFECTS
+		stopactorsound THISACTOR SABERIDLE
+		ai AISITHDIE
+		
+		ifwasweapon GROWSPARK
+		{
+		  cstat 0
+		  sound ACTOR_GROWING
+		  ai AISITHGROW
+		  break
+		}
+		
+		ifwasweapon SABERPROJ
+		{
+			ifactor SITH espawn SITHSABERDEATH else
+			espawn SYTHSABERDEATH
+			seta[RETURN].xrepeat sprite[].xrepeat
+			seta[RETURN].yrepeat sprite[].yrepeat
+			seta[RETURN].pal sprite[].pal
+			ifrnd 128
+			{
+				ifrnd 128 spawn SABERSPRITE else
+				ife gametype 0
+				spawn ATOMICHEALTH
+			}
+			killit
+		}
+		
+		
+		break
+	}
+	ifwasweapon GROWSPARK sound SPARKLESOUND
+	ifai AISITHBLOCK nullop else
+	ifai AISITHFLINCH nullop else
+	ifwasweapon SHOTSPARK1
+	iffloordistl 8
+	{
+		ifai AISITHATTK ifrnd 16
+		{
+			ai AISITHBLOCK
+			state sithblockstate
+			geta[].z savz
+			sub savz 8192
+			spawn SPARKFALL spawn SPARKFALL spawn SPARKFALL
+			spawn SPARKFALL spawn SPARKFALL spawn SPARKFALL
+			add savz 8192
+			seta[].z savz
+			break
+		}
+		else ifrnd 96
+		{
+			ifactorsound THISACTOR FORCECHOKE stopactorsound THISACTOR FORCECHOKE
+			ai AISITHBLOCK
+			state sithblockstate
+			geta[].z savz
+			sub savz 8192
+			spawn SPARKFALL spawn SPARKFALL spawn SPARKFALL
+			spawn SPARKFALL spawn SPARKFALL spawn SPARKFALL
+			add savz 8192
+			seta[].z savz
+			break
+		}
+	}
+	ifactor SYTH
+	{
+		ifrnd 84 soundonce SYTHPAIN1
+		else ifrnd 128 soundonce SYTHPAIN2
+		else soundonce SYTHPAIN3
+	}
+	else
+	soundonce SITHPAIN
+	ifai AISITHSUMMON nullop
+	else
+	ifai AISITHFLINCH nullop
+	else
+	ifai AISITHBLOCK nullop
+	else
+	ifai AISITHJUMP nullop
+	else
+	{
+		set temp NO
+		
+		ifrnd 64 
+		ifn sprite[].htpicnum BURNING
+	    ifn sprite[].htpicnum RADWOUND
+		set temp YES
+		
+		ifg stun 0 set temp YES
+		ife temp YES
+		{
+			ifactorsound THISACTOR FORCECHOKE stopactorsound THISACTOR FORCECHOKE
+			ai AISITHFLINCH
+			set mtype 0
+		}
+	}
+	ifai AISITHWAIT ifg targetdist 2560 ai AISITHSEEK
+	ifai AISITHCHOKE ifstrength 150 { ai AISITHBLOCK state sithblockstate }
+}
+
+
+ends
+
+useractor enemy SITH 500 state sithcode enda
+useractor enemy SYTH 500 state sithcode enda
+

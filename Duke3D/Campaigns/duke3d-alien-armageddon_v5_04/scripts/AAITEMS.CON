@@ -1,0 +1,4572 @@
+
+move NUKEGUNSLIDE 160
+move NUKEGUNSTOP
+
+move LASERGUNSLIDE 160
+move LASERGUNSTOP
+
+state getcode
+
+
+ifinwater setp[].sound_pitch 1024
+
+  ifactor SHRINKERSPRITE globalsound SHRINKPICK else
+  ifactor GROWSPRITEICON globalsound SHRINKPICK else
+  ifactor AMMO { ifinwater globalsound AMMOPICK2 else globalsound AMMOPICK } else
+  ifactor BATTERYAMMO 
+  { 
+    ifvarand gotshock 2 globalsound FREEZEPICK else
+	ifinwater globalsound AMMOPICK2 else globalsound CHAINAMMO 
+  } 
+   else
+  ifactor SHOTGUNAMMO globalsound SHELLPICK else
+  ifactor DBAMMO globalsound SHELLPICK else
+  ifactor FREEZEAMMO ife pchar 0 globalsound FREEZEPICK else
+  ifactor GROWAMMO
+  {
+	ife pchar 2 globalsound AMMOPICK else
+	ifaction ANULLACTION
+	globalsound SHRINKPICK 
+	else globalsound FREEZEPICK
+  }
+  else
+  ifactor ATOMICHEALTH
+    globalsound GETATOMICHEALTH
+  else
+    globalsound DUKE_GET
+	
+ifinwater  setp[].sound_pitch 0
+
+  palfrom 16 0 32
+  
+  ifn attmode 0
+  {
+	set temp prating
+	div temp 10
+	sub totalxp temp
+	ifl totalxp 0 set totalxp 0
+  }
+  
+  ifrespawn
+  {
+    move RESPAWN_ACTOR_FLAG
+    spawn RESPAWNMARKERRED
+    cstat 32768
+  }
+  else
+    killit
+ends
+
+defstate getweaponcode
+
+  state randgetweapsnds
+
+  palfrom 32 0 32
+  ifgotweaponce 1
+    break
+  ifn attmode 0
+  {
+	set temp prating
+	div temp 10
+	sub totalxp temp
+	ifl totalxp 0 set totalxp 0
+  }
+  ifrespawn
+  {
+    move RESPAWN_ACTOR_FLAG
+    spawn RESPAWNMARKERRED
+    cstat 32768
+  }
+  else
+    killit
+ends
+
+
+state respawnit
+  ifcount RESPAWNITEMTIME
+  {
+    spawn TRANSPORTERSTAR
+    move 0
+    cstat 0
+    sound TELEPORTER
+  }
+ends
+
+state quikget
+ifinwater setp[].sound_pitch 1024
+  ifactor SHRINKERSPRITE globalsound SHRINKPICK else
+  ifactor GROWSPRITEICON globalsound SHRINKPICK else
+  ifactor AMMO { ifinwater globalsound AMMOPICK2 else globalsound AMMOPICK } else
+  ifactor BATTERYAMMO 
+  { 
+    ifvarand gotshock 2 globalsound FREEZEPICK else
+	ifinwater globalsound AMMOPICK2 else globalsound CHAINAMMO 
+  }
+  else
+  ifactor SHOTGUNAMMO globalsound SHELLPICK else
+   ifactor DBAMMO globalsound SHELLPICK else
+  ifactor FREEZEAMMO ife pchar 0 globalsound FREEZEPICK else
+  ifactor GROWAMMO
+  {
+	ifaction ANULLACTION
+	globalsound SHRINKPICK 
+	else globalsound FREEZEPICK
+  }
+  else
+  ifactor ATOMICHEALTH
+    globalsound GETATOMICHEALTH
+  else
+    globalsound DUKE_GET
+ifinwater setp[].sound_pitch 0
+  palfrom 16 0 32
+  
+  ifn attmode 0
+  {
+	set temp prating
+	div temp 10
+	sub totalxp temp
+	ifl totalxp 0 set totalxp 0
+  }
+  
+  killit
+ends
+
+state quikweaponget
+  state randgetweapsnds
+  palfrom 32 0 32
+  ifgotweaponce 1
+    break
+	
+ ifn attmode 0
+ {
+	set temp prating
+	div temp 10
+	sub totalxp temp
+	ifl totalxp 0 set totalxp 0
+ }
+  
+  killit
+ends
+
+eventloadactor STEROIDS sizeat 16 16 enda
+
+action ASYRINGE 18776
+
+actor STEROIDS 0 ASYRINGE
+
+  sizeat 16 16
+  fall
+  ifmove RESPAWN_ACTOR_FLAG
+    state respawnit
+  else
+    ifp pshrunk
+      nullop
+    else
+      ifp palive
+        ifcount 6
+          ifpdistl RETRIEVEDISTANCE
+            // ifpinventory GET_STEROIDS STEROID_AMOUNT
+			ife player[].steroids_amount 0
+              ifcanseetarget
+      {
+        addinventory GET_STEROIDS STEROID_AMOUNT
+        userquote 37
+        ifspawnedby STEROIDS
+          state getcode
+        else
+          state quikget
+      }
+enda
+
+action JUMPBOOTS_FRAME 7941
+
+actor BOOTS
+  ifvarand inven_upgrades 8 action JUMPBOOTS_FRAME else
+  action ANULLACTION
+  fall
+  ifmove RESPAWN_ACTOR_FLAG
+    state respawnit
+  else
+    ifp pshrunk
+      nullop
+    else
+      ifp palive
+        ifcount 6
+          ifpdistl RETRIEVEDISTANCE
+            // ifpinventory GET_BOOTS BOOT_AMOUNT
+			ifl player[].boot_amount 160
+              ifcanseetarget
+      {
+        addinventory GET_BOOTS BOOT_AMOUNT
+		ifvarand inven_upgrades 8 userquote 2750 else
+        userquote 6
+        ifspawnedby BOOTS
+          state getcode
+        else
+          state quikget
+      }
+enda
+
+action AIMBOT_FRAME 7942
+actor HEATSENSOR
+  fall
+  ifvarand inven_upgrades 2 action AIMBOT_FRAME else
+  action ANULLACTION
+  ifmove RESPAWN_ACTOR_FLAG
+    state respawnit
+  else
+    ifp pshrunk
+      nullop
+  else
+    ifp palive
+      ifcount 6
+        ifpdistl RETRIEVEDISTANCE
+          // ifpinventory GET_HEATS HEAT_AMOUNT
+		  ifl player[].heat_amount 900
+            ifcanseetarget
+      {
+        addinventory GET_HEATS HEAT_AMOUNT
+		ifvarand inven_upgrades 2 userquote 704 else
+        userquote 101
+        ifspawnedby HEATSENSOR
+          state getcode
+        else
+          state quikget
+      }
+enda
+
+actor SHIELD
+  fall
+  
+  ife pchar 3 ifl player[].shield_amount player[].max_shield_amount nullop else
+  ifn es_type 0 
+  {
+    ifg gametype 0 killit  
+	cactor SHIELDBATTERY 
+	spritepal 0
+	ifspawnedby SHIELD nullop else set mtype 1 
+	break 
+  }
+  ifmove 0
+  {
+	ifspawnedby SHIELD move STOPPED else
+	move LASERGUNSLIDE 160 randomangle
+  }
+  ifmove STOPPED nullop else
+  ifcount 10 move STOPPED geth
+  
+  ifmove RESPAWN_ACTOR_FLAG
+    state respawnit
+  else
+    ifp pshrunk nullop
+    else
+      ifp palive
+        ifcount 6
+          ifpdistl RETRIEVEDISTANCE
+            ifpinventory GET_SHIELD SHIELD_AMOUNT
+			 ifl player[].shield_amount SHIELD_AMOUNT
+              ifcanseetarget
+      {
+	    
+		switch sprite[].htpicnum
+        case PIGCOP case PIGCOPDIVE
+		case NEWPIG case NEWPIGDIVE
+          ifrnd 128
+            addinventory GET_SHIELD PIG_SHIELD_AMOUNT1
+          else
+            addinventory GET_SHIELD PIG_SHIELD_AMOUNT2
+          userquote 104
+
+        break
+		default
+		  userquote 38
+          addinventory GET_SHIELD SHIELD_AMOUNT
+		break
+		endswitch
+        
+		screensound ENDSEQVOL2SND5
+        palfrom 24 0 32
+        killit
+      }
+enda
+
+
+actor AIRTANK
+  fall
+  ifmove RESPAWN_ACTOR_FLAG
+    state respawnit
+  else
+    ifp pshrunk nullop
+    else
+      ifp palive
+        ifcount 6
+          ifpdistl RETRIEVEDISTANCE
+            // ifpinventory GET_SCUBA SCUBA_AMOUNT
+			ifl player[].scuba_amount 5000
+              ifcanseetarget
+      {
+        addinventory GET_SCUBA SCUBA_AMOUNT
+        userquote 39
+        ifspawnedby AIRTANK
+          state getcode
+        else
+          state quikget
+      }
+enda
+
+action HOLODUKE_FRAMES 0 4 1 1 8
+action NAMAFRAME 18547
+action DEAFRAME 20885
+action LILYFRAME 3688
+
+actor HOLODUKE 0 HOLODUKE_FRAMES
+  fall
+  ife initsprite YES { sizeat 8 8 spritepal 7 }
+  ife pchar 4 { sizeat 24 24 action DEAFRAME } else
+  ife pchar 3 { sizeat 24 24 action LILYFRAME } else
+  ife pchar 2 { sizeat 24 24 action NAMAFRAME } else
+  { action HOLODUKE_FRAMES sizeat 16 16 }
+  
+  ifg player[].holoduke_amount 1800 ifn pchar 3 break
+  
+  ifmove RESPAWN_ACTOR_FLAG
+    state respawnit
+  else
+    ifp pshrunk nullop
+    else
+      ifp palive
+        ifcount 6
+          ifpdistl RETRIEVEDISTANCE
+            // ifpinventory GET_HOLODUKE HOLODUKE_AMOUNT
+              ifcanseetarget
+      {
+	    ife initsprite YES 
+		{
+			// addinventory GET_HOLODUKE 360 
+			getp[].holoduke_amount temp
+			add temp 360
+			setp[].holoduke_amount temp
+		}
+		else
+        addinventory GET_HOLODUKE HOLODUKE_AMOUNT
+		ifn mynaamah -1 seta[mynaamah].extra player[].holoduke_amount
+		ife pchar 4 userquote 1435 else
+		ife pchar 3 userquote 1548 else
+		ife pchar 2 userquote 1201 else
+        userquote 51
+        ifspawnedby HOLODUKE
+          state getcode
+        else
+          state quikget
+      }
+enda
+
+actor JETPACK
+  fall
+  ifmove RESPAWN_ACTOR_FLAG
+    state respawnit
+  else
+    ifp pshrunk nullop
+    else
+      ifp palive
+        ifpdistl RETRIEVEDISTANCE
+          ifcount 6
+		    ifl player[].jetpack_amount 1200
+            // ifpinventory GET_JETPACK JETPACK_AMOUNT
+              ifcanseetarget
+      {
+        addinventory GET_JETPACK JETPACK_AMOUNT
+        userquote 41
+        ifspawnedby JETPACK
+          state getcode
+        else
+          state quikget
+      }
+enda
+
+eventloadactor COVERSPRITE sizeat 10 8 enda
+useractor notenemy COVERSPRITE 0
+  fall
+  sizeat 10 8
+  ifmove RESPAWN_ACTOR_FLAG
+    state respawnit
+  else
+    ifp pshrunk nullop
+    else
+      ifp palive
+        ifpdistl RETRIEVEDISTANCE
+          ifcount 6
+            ifl cover_amount 1800
+              ifcanseetarget
+      {
+        set cover_amount 1800
+        userquote 1148
+        ifspawnedby COVERSPRITE
+          state getcode
+        else
+          state quikget
+      }
+enda
+
+actor ACCESSCARD
+
+ife float 32768 break
+
+ifvarand sprite[].cstat 16 nullop else
+{
+	geta[].ang angvar
+	add angvar 48
+	seta[].ang angvar
+}
+	
+  ifn sprite[].pal 0 
+  ifn sprite[].pal 21
+  ifn sprite[].pal 23
+  seta[].pal initsprite // failsafe
+  
+  set temp NO
+  ifpdistl 384 set temp YES
+  ifcanseetarget set temp YES
+ 
+  fall
+  ifmove RESPAWN_ACTOR_FLAG
+    state respawnit
+  else
+    ifp pshrunk nullop
+    else
+      ifp palive
+        ifpdistl RETRIEVEDISTANCE
+          ifcount 6
+            // ifcanseetarget
+			ife temp YES
+      {
+		 
+        ifpinventory GET_ACCESS 0
+          break
+        addinventory GET_ACCESS 1
+        quote 43
+        state getcode
+      }
+enda
+
+action SHELLYAMMO 7632
+action WESAMMO 19643
+action MANAMMO 20606
+action DEAAMMO 21945
+
+spriteshadow AMMO
+
+actor AMMO
+  fall
+  
+  ife pchar 4 action DEAAMMO else
+  ife pchar 3 action MANAMMO else
+  ife pchar 2 action WESAMMO else
+  ife pchar 1 action SHELLYAMMO else
+  action ANULLACTION
+  ifmove RESPAWN_ACTOR_FLAG
+    state respawnit
+  else
+    ifp pshrunk nullop
+    else
+      ifp palive
+        ifcount 6
+          ifpdistl RETRIEVEDISTANCE
+            ifcanseetarget
+      {
+		set temp NO
+	    ife player[].curr_weapon KNEE_WEAPON 
+		{
+			ife gotsaw YES ifg sawammo 0 set temp YES 
+			ifg gotsaber 0 set temp YES
+		}
+		ife pchar 3 set countvar 10 else
+		ife pchar 2 set countvar 8 else
+		set countvar PISTOLAMMOAMOUNT
+		set countvarb 33
+		ifspawnedby TEAMSPAWNER { mul countvar 2 mul countvarb 2 }
+		
+		ife pchar 3 ife player[].gotweapon PISTOL_WEAPON NO
+		{	
+			setp[].gotweapon PISTOL_WEAPON YES
+			ife player[].curr_weapon KNEE_WEAPON
+			{
+				set subtitle_time 0
+				setp[].crack_time 0
+				setp[].knuckle_incs 1
+				setp[].curr_weapon PISTOL_WEAPON
+			}
+		}
+		ifg LASERMODE NO
+		{
+			ifge pistolammo player[].max_ammo_amount PISTOL_WEAPON break
+			ife pchar 0 ifvarand dukeupgrades[PISTOL_WEAPON] 8 add pistolammo countvarb else
+			ife pchar 1 ifvarand shellyupgrades[PISTOL_WEAPON] 8 add pistolammo countvarb else
+			add pistolammo countvar
+			ifvarand charsel 8 
+			{ 
+				add wristammo 10 ifg wristammo player[].max_ammo_amount PISTOL_WEAPON set wristammo player[].max_ammo_amount PISTOL_WEAPON 
+			}
+			ifg pistolammo player[].max_ammo_amount PISTOL_WEAPON set pistolammo player[].max_ammo_amount PISTOL_WEAPON
+		}
+		else
+		{
+			ifvarand charsel 8
+			{
+				ifge player[].ammo_amount PISTOL_WEAPON player[].max_ammo_amount PISTOL_WEAPON
+				ifge wristammo player[].max_ammo_amount PISTOL_WEAPON break
+			}
+			else
+			ifge player[].ammo_amount PISTOL_WEAPON player[].max_ammo_amount PISTOL_WEAPON break
+			
+			getp[].ammo_amount PISTOL_WEAPON B
+			ife pchar 0 ifvarand dukeupgrades[PISTOL_WEAPON] 8 add B countvarb else
+			ife pchar 1 ifvarand shellyupgrades[PISTOL_WEAPON] 8 add B countvarb else
+			add B countvar // PISTOLAMMOAMOUNT
+			ifge B player[].max_ammo_amount PISTOL_WEAPON set B player[].max_ammo_amount PISTOL_WEAPON
+			setp[].ammo_amount PISTOL_WEAPON B
+			
+			ifvarand charsel 8 { add wristammo 10 ifg wristammo player[].max_ammo_amount PISTOL_WEAPON set wristammo player[].max_ammo_amount PISTOL_WEAPON }
+		}
+		
+		
+		ife temp YES { setp[].weapon_pos 0 setp[].curr_weapon KNEE_WEAPON setp[].last_weapon -1 }
+		ife pchar 3 userquote 1376 else
+        userquote 65
+        ifspawnedby AMMO
+          state getcode
+        else
+          state quikget
+      }
+enda
+
+action FREEZEAMMO_FRAMES 0 3 1 1 1
+action FLAMEAMMOFRAME 7639
+action BLADESTACKFRAME 19927
+action CARBONAMMOFRAME 20924
+action GOOAMMOFRAME 22240
+
+actor FREEZEAMMO 0 FREEZEAMMO_FRAMES
+  fall
+  
+  ife pchar 4 { action GOOAMMOFRAME sizeat 24 24 } else
+  ife pchar 3 { action CARBONAMMOFRAME sizeat 24 24 } else
+  ife pchar 2 { action BLADESTACKFRAME sizeat 16 16 } else
+  {
+	sizeat 32 32
+	
+	ife pchar 1 action FLAMEAMMOFRAME else
+	action FREEZEAMMO_FRAMES
+  }
+  ifmove RESPAWN_ACTOR_FLAG
+    state respawnit
+  else
+    ifp pshrunk nullop
+    else
+      ifp palive
+        ifcount 6
+          ifpdistl RETRIEVEDISTANCE
+            ifcanseetarget
+    {
+	    set temp NO
+	    ife player[].curr_weapon KNEE_WEAPON 
+		{
+			ife gotsaw YES ifg sawammo 0 set temp YES 
+			ifg gotsaber 0 set temp YES
+		}
+		
+		ifvarand gotplasma 2
+		{
+			ifge plasmammo MAXFREEZEAMMO break
+			
+			add plasmammo FREEZEAMMOAMOUNT
+			ifvarand dukeupgrades[FREEZE_WEAPON] 2 add plasmammo FREEZEAMMOAMOUNT
+			// ife weap_owned[53] YES add plasmammo FREEZEAMMOAMOUNT
+			ifg plasmammo MAXFREEZEAMMO set plasmammo MAXFREEZEAMMO
+			
+		}
+		else
+		{
+			addammo FREEZE_WEAPON FREEZEAMMOAMOUNT
+			ife weap_owned[53] YES addammo FREEZE_WEAPON FREEZEAMMOAMOUNT
+		}
+		
+		ife temp YES { setp[].weapon_pos 0 setp[].curr_weapon KNEE_WEAPON setp[].last_weapon -1 }
+		ife pchar 4 userquote 1270 else
+		ife pchar 3 userquote 1378 else
+		ife pchar 2 userquote 1197 else
+		ife pchar 1 userquote 160 else
+        userquote 66
+        ifspawnedby FREEZEAMMO
+          state getcode
+        else
+          state quikget
+    }
+enda
+
+action MANSHOTFRAME 20627
+action DEASHOTFRAME 20628
+
+actor SHOTGUNAMMO
+  fall
+  
+  ife pchar 4 action DEASHOTFRAME else
+  ife pchar 3 action MANSHOTFRAME else
+  action ANULLACTION
+  
+  // ife pchar 1 ifg gametype 0 ifvarand shellyupgrades[SHOTGUN_WEAPON] 4 ifvarand gotbow 2 cactor QUIVERSPRITE
+  
+  ifmove RESPAWN_ACTOR_FLAG
+    state respawnit
+  else
+    ifp pshrunk nullop
+    else
+      ifp palive
+        ifcount 6
+          ifpdistl RETRIEVEDISTANCE
+            ifcanseetarget
+      {
+	    set temp NO
+	    ife player[].curr_weapon KNEE_WEAPON 
+		{
+			ife gotsaw YES ifg sawammo 0 set temp YES 
+			ifg gotsaber 0 set temp YES
+		}
+		ifvarand startguns 2 ifg gametype 0
+		{
+			add arrows 16
+			ifge arrows player[].max_ammo_amount SHOTGUN_WEAPON set arrows player[].max_ammo_amount SHOTGUN_WEAPON
+			add dbammo 12
+			ifge dbammo player[].max_ammo_amount SHOTGUN_WEAPON set dbammo player[].max_ammo_amount SHOTGUN_WEAPON
+			ifge player[].ammo_amount SHOTGUN_WEAPON player[].max_ammo_amount SHOTGUN_WEAPON
+			state quikget
+		}
+        addammo SHOTGUN_WEAPON SHOTGUNAMMOAMOUNT
+		ife temp YES { setp[].weapon_pos 0 setp[].curr_weapon KNEE_WEAPON setp[].last_weapon -1 }
+        userquote 69
+		ifvarand charsel 4
+		{
+			add stakes 3, ifge stakes 99 set stakes 99
+		}
+        ifspawnedby SHOTGUNAMMO
+          state getcode
+        else
+          state quikget
+      }
+enda
+
+actor AMMOLOTS
+  fall
+  ifmove RESPAWN_ACTOR_FLAG
+    state respawnit
+  else
+    ifp pshrunk nullop
+    else
+      ifp palive
+        ifcount 6
+          ifpdistl RETRIEVEDISTANCE
+            ifcanseetarget
+      {
+        addammo PISTOL_WEAPON 48
+        userquote 65
+        ifspawnedby AMMOLOTS
+          state getcode
+        else
+          state quikget
+      }
+enda
+
+action ABMFGAMMOFRAME 9933
+
+actor CRYSTALAMMO
+  fall
+  ife pchar 2 
+  {
+    cactor BLOODAMMO
+	sizeat 22 22
+	break
+  }
+  ife pchar 4
+  {
+	cactor BLOODAMMO
+	sizeat 22 22
+	spritepal 12
+	break
+  }
+  // ife pchar 0
+  
+  ifvarand dukeupgrades[SHRINKER_WEAPON] 1 { action ABMFGAMMOFRAME spritepal 1 }
+  // else
+  // ife pchar 1
+  // ifvarand shellyupgrades[SHRINKER_WEAPON] 1 { action ABMFGAMMOFRAME spritepal 1 }
+  // else
+  
+  else
+  {
+	  action ANULLACTION
+	  spritepal 0
+  }
+  
+  
+  ifmove RESPAWN_ACTOR_FLAG
+    state respawnit
+  else
+    ifp pshrunk nullop
+    else
+      ifp palive
+        ifpdistl RETRIEVEDISTANCE
+          ifcount 6
+            ifcanseetarget
+      {
+	    set temp NO
+	    ife player[].curr_weapon KNEE_WEAPON 
+		{
+			ife gotsaw YES ifg sawammo 0 set temp YES 
+			ifg gotsaber 0 set temp YES
+		}
+		ifaction ABMFGAMMOFRAME ife gametype 0 addammo SHRINKER_WEAPON 10 else
+		ife pchar 2 addammo SHRINKER_WEAPON 20 else
+        addammo SHRINKER_WEAPON CRYSTALAMMOAMOUNT
+		ifl player[].ammo_amount GROW_WEAPON MAXGROWAMMO addammo GROW_WEAPON 10
+		ife temp YES { setp[].weapon_pos 0 setp[].curr_weapon KNEE_WEAPON setp[].last_weapon -1 }
+		ife pchar 2 userquote 1205 else
+		ife pchar 4 userquote 1426 else
+        userquote 78
+        ifspawnedby CRYSTALAMMO
+          state getcode
+        else
+          state quikget
+      }
+enda
+
+action CHRONAMMOFRAME 2311
+
+actor BLOODAMMO
+  fall
+  
+  ifn pchar 2 ifn pchar 4 { spritepal 0 action 0 cactor CRYSTALAMMO sizeat 32 32 break }
+  ife pchar 4 action CHRONAMMOFRAME else action ANULLACTION
+  
+  ifmove RESPAWN_ACTOR_FLAG
+    state respawnit
+  else
+    ifp pshrunk nullop
+    else
+      ifp palive
+        ifpdistl RETRIEVEDISTANCE
+          ifcount 6
+            ifcanseetarget
+      {
+	    set temp NO
+	    ife player[].curr_weapon KNEE_WEAPON 
+		{
+			ife gotsaw YES ifg sawammo 0 set temp YES 
+			ifg gotsaber 0 set temp YES
+		}
+		
+		addammo SHRINKER_WEAPON 20
+		ife temp YES { setp[].weapon_pos 0 setp[].curr_weapon KNEE_WEAPON setp[].last_weapon -1 }
+		userquote 1205
+        ifspawnedby CRYSTALAMMO
+          state getcode
+        else
+          state quikget
+      }
+enda
+
+action AWESGROWFRAME 19895
+action ADEAGROWFRAME 1
+actor GROWAMMO
+  fall
+
+  ife pchar 2 { sizeat 24 24 action AWESGROWFRAME } else
+  ife pchar 4 { sizeat 32 32 spritepal 2 action ADEAGROWFRAME } else
+  { sizeat 32 32 action ANULLACTION }
+  
+  ifmove RESPAWN_ACTOR_FLAG
+    state respawnit
+  else
+    ifp pshrunk nullop
+    else
+      ifp palive
+        ifpdistl RETRIEVEDISTANCE
+          ifcount 6
+            ifcanseetarget
+      {
+	    set temp NO
+	    ife player[].curr_weapon KNEE_WEAPON 
+		{
+			ife gotsaw YES ifg sawammo 0 set temp YES 
+			ifg gotsaber 0 set temp YES
+		}
+		ife pchar 2 addammo GROW_WEAPON 30 else
+        addammo GROW_WEAPON GROWCRYSTALAMMOAMOUNT
+		ife temp YES { setp[].weapon_pos 0 setp[].curr_weapon KNEE_WEAPON setp[].last_weapon -1 }
+		ife pchar 2 userquote 1206
+		else
+        userquote 123
+        ifspawnedby GROWAMMO
+          state getcode
+        else
+          state quikget
+      }
+enda
+
+action M4FRAME 8644
+action SHOCKFRAME 15440
+action MANDBATTFRAME 20650
+action DEABATTFRAME 21892
+
+spriteshadow BATTERYAMMO
+actor BATTERYAMMO
+
+  fall
+  ife player[].curr_weapon CHAINGUN_WEAPON
+  ifvarand gotshock 2 { action SHOCKFRAME sizeat 32 32 } else
+  ife pchar 4 { action DEABATTFRAME sizeat 20 20 } else
+  ife pchar 3 { action MANDBATTFRAME sizeat 32 32 } else
+  ife pchar 1 { action M4FRAME sizeat 18 18 } else { action ANULLACTION sizeat 32 32 }
+  ifmove RESPAWN_ACTOR_FLAG
+    state respawnit
+  else
+    ifp pshrunk nullop
+    else
+      ifp palive
+        ifpdistl RETRIEVEDISTANCE
+          ifcount 6
+            ifcanseetarget
+      {
+	    set temp NO
+	    ife player[].curr_weapon KNEE_WEAPON 
+		{
+			ife gotsaw YES ifg sawammo 0 set temp YES 
+			ifg gotsaber 0 set temp YES
+		}
+        addammo CHAINGUN_WEAPON CHAINGUNAMMOAMOUNT
+		ife temp YES { setp[].weapon_pos 0 setp[].curr_weapon KNEE_WEAPON setp[].last_weapon -1 }
+          userquote 63
+        ifspawnedby BATTERYAMMO
+          state getcode
+        else
+          state quikget
+      }
+enda
+
+actor DEVISTATORAMMO
+  fall
+  ifmove RESPAWN_ACTOR_FLAG
+    state respawnit
+  else
+    ifp pshrunk nullop
+    else
+      ifp palive
+        ifpdistl RETRIEVEDISTANCE
+          ifcount 6
+            ifcanseetarget
+      {
+			ifvarand gotrailgun 2 set tempb railgunammo  else
+			set tempb player[].ammo_amount DEVISTATOR_WEAPON
+				
+			ifge tempb MAXDEVISTATORAMMO break
+			add tempb DEVISTATORAMMOAMOUNT
+			ifg tempb MAXDEVISTATORAMMO set tempb MAXDEVISTATORAMMO
+			
+			ifvarand gotrailgun 2 set railgunammo tempb else
+			setp[].ammo_amount DEVISTATOR_WEAPON tempb
+			ife pchar 3 userquote 1398 else
+			userquote 14
+			ifspawnedby DEVISTATORAMMO
+			  state getcode
+			else
+			  state quikget
+			  
+			  killit
+      }
+enda
+
+action BARRETAMFRAME 2788
+action DISINAMFRAME 15858
+
+useractor notenemy RAILGUNAMMO 0
+
+  fall
+  ife pchar 3 { action DISINAMFRAME sizeat 16 16 } else
+  ife WEAPON7_SHOOTS BARRETPROJ { action BARRETAMFRAME spritepal 0 sizeat 32 32 }
+  else
+  {
+	  sizeat 32 32
+	  // spritepal 24
+	  action ANULLACTION
+  }
+  ifmove RESPAWN_ACTOR_FLAG
+    state respawnit
+  else
+    ifp pshrunk nullop
+    else
+      ifp palive
+        ifpdistl RETRIEVEDISTANCE
+          ifcount 6
+            ifcanseetarget
+      {
+		
+			ifvarand gotrailgun 2 set tempb player[].ammo_amount DEVISTATOR_WEAPON 
+			else
+			set tempb railgunammo
+			
+			ifge tempb MAXRAILAMOUNT break
+			
+			set B NO
+			ife pchar 0 ifvarand dukeupgrades[DEVISTATOR_WEAPON] 4 set B YES
+			ife pchar 1 ifvarand shellyupgrades[DEVISTATOR_WEAPON] 4 set B YES
+			ife pchar 3 set B YES
+		
+			ife B YES add tempb 7 else
+			add tempb 10
+			ifg tempb MAXRAILAMOUNT set tempb MAXRAILAMOUNT
+			
+			ifvarand gotrailgun 2 setp[].ammo_amount DEVISTATOR_WEAPON tempb else
+			set railgunammo tempb
+	  
+			ife WEAPON7_SHOOTS BARRETPROJ userquote 391 else 
+			ife pchar 3 userquote 1377 else
+			userquote 128
+			ifspawnedby RAILGUNAMMO
+			  state getcode
+			else
+			  state quikget
+			  
+			  killit
+      }
+enda
+
+useractor notenemy QUIVERSPRITE 0
+
+  ifvarand gotbow 1 nullop else { cactor BOWSPRITE break }
+  fall
+  sizeat 32 32
+  
+  // ife pchar 0 cactor SHOTGUNAMMO
+  
+  spritepal 14
+  ifmove RESPAWN_ACTOR_FLAG
+    state respawnit
+  else
+    ifp pshrunk nullop
+    else
+      ifp palive
+        ifpdistl RETRIEVEDISTANCE
+          ifcount 6
+            ifcanseetarget
+      {
+		// ife pchar 0 { quote 192 break }
+		
+		
+			set temp NO
+			ife player[].curr_weapon KNEE_WEAPON 
+			{
+				ife gotsaw YES ifg sawammo 0 set temp YES 
+				ifg gotsaber 0 set temp YES
+			}
+			// addammo SHOTGUN_WEAPON SHOTGUNAMMOAMOUNT
+			ifge arrows MAXSHOTGUNAMMO break
+			add arrows 16 // SHOTGUNAMMOAMOUNT
+			ifge arrows MAXSHOTGUNAMMO set arrows MAXSHOTGUNAMMO
+			
+			ife temp YES { setp[].weapon_pos 0 setp[].curr_weapon KNEE_WEAPON setp[].last_weapon -1 }
+			userquote 362
+			state getcode
+			killit
+		
+			
+      }
+enda
+
+move SAWAMMOSLIDE 160
+
+useractor notenemy SAWAMMO 0
+	
+  ifspawnedby ZOMBIE ifmove 0 move SAWAMMOSLIDE randomangle
+  ifmove SAWAMMOSLIDE ifcount 10 move STOPPED
+  fall
+  sizeat 40 40
+
+  ifmove RESPAWN_ACTOR_FLAG
+    state respawnit
+  else
+    ifp pshrunk nullop
+    else
+      ifp palive
+        ifpdistl RETRIEVEDISTANCE
+          ifcount 6
+            ifcanseetarget
+      {
+		ife sawammo MAXSAWAMMO break
+		ifn pchar 2
+		ife gotsaw YES ife sawammo 0 state sawon
+		add sawammo 100
+		ifge sawammo MAXSAWAMMO set sawammo MAXSAWAMMO
+
+		userquote 167
+		ifspawnedby RAILGUNAMMO
+		  state getcode
+		else
+		  state quikget
+		  
+		  killit
+      }
+enda
+
+action ADEARPGAMMO 21944
+
+actor RPGAMMO
+  fall
+  
+  ife pchar 4 { sizeat 24 24 action ADEARPGAMMO } else { sizeat 32 32 action ANULLACTION }
+  
+  ifmove RESPAWN_ACTOR_FLAG
+    state respawnit
+  else
+    ifp pshrunk nullop
+    else ifp palive
+      ifpdistl RETRIEVEDISTANCE
+        ifcount 6
+          ifcanseetarget
+      {
+	    set temp NO
+	    ife player[].curr_weapon KNEE_WEAPON 
+		{
+			ife gotsaw YES ifg sawammo 0 set temp YES 
+			ifg gotsaber 0 set temp YES
+		}
+		
+		ife nukeselect YES
+		{
+			ifge weap4ammo MAXRPGAMMO break
+			
+			add weap4ammo RPGAMMOBOX
+			ifg weap4ammo MAXRPGAMMO set weap4ammo MAXRPGAMMO
+			
+		}
+		else
+		{
+			add weap4ammo RPGAMMOBOX
+			ifg weap4ammo MAXRPGAMMO set weap4ammo MAXRPGAMMO
+			addammo RPG_WEAPON RPGAMMOBOX
+			
+		}
+		ife temp YES { setp[].weapon_pos 0 setp[].curr_weapon KNEE_WEAPON setp[].last_weapon -1 }
+        userquote 64
+        ifspawnedby RPGAMMO
+          state getcode
+        else
+          state quikget
+      }
+enda
+
+action B_HBOMBFRAME 7729
+action W_HBOMBFRAME 19918
+action M_HBOMBFRAME 20669
+action D_HBOMBFRAME 22203
+actor HBOMBAMMO
+
+ife pchar 0
+{
+	action ANULLACTION
+	sizeat 32 32
+}
+else
+{
+	sizeat 28 26
+	ife pchar 4 action D_HBOMBFRAME else
+	ife pchar 3 { sizeat 36 36 action M_HBOMBFRAME } else
+	ife pchar 2 action W_HBOMBFRAME else
+	ife pchar 1 action B_HBOMBFRAME
+}
+
+  fall
+  ifmove RESPAWN_ACTOR_FLAG state respawnit
+  else
+    ifp pshrunk nullop
+    else
+      ifp palive
+        ifpdistl RETRIEVEDISTANCE
+          ifcount 6
+            ifcanseetarget
+      {
+        ifgotweaponce 0
+          break
+		set temp NO
+	    ife player[].curr_weapon KNEE_WEAPON 
+		{
+ 			ifg gotsaber 0 set temp YES
+		}
+		
+        addweapon HANDBOMB_WEAPON HANDBOMBBOX
+		ife temp YES { setp[].weapon_pos 0 setp[].curr_weapon KNEE_WEAPON setp[].last_weapon -1 }
+		ife pchar 4 userquote 1571 else
+		ife pchar 3 userquote 1375 else
+		ife pchar 2 userquote 1208 else
+		ife pchar 1 userquote 162
+		else
+        userquote 55
+//        addammo HANDBOMB_WEAPON HANDBOMBBOX
+
+        ifspawnedby HBOMBAMMO
+          state getweaponcode
+        else
+          state quikweaponget
+      }
+enda
+
+action B_RPGFRAME 7691
+action UPGRADE_RPGFRAME 9942
+action W_RPGFRAME 19673
+action M_RPGFRAME 21182
+action D_RPGFRAME 21964
+
+actor RPGSPRITE
+
+ife pchar 3 { action M_RPGFRAME sizeat 16 16 } else
+ife pchar 4 { action D_RPGFRAME sizeat 24 24 } else
+{
+	sizeat 32 32
+	ife pchar 2 action W_RPGFRAME else
+	ife pchar 1
+	{
+		ifvarand shellyupgrades[RPG_WEAPON] 1 action UPGRADE_RPGFRAME else
+		action B_RPGFRAME
+	}
+	else ife pchar 0
+		ifvarand dukeupgrades[RPG_WEAPON] 1 action UPGRADE_RPGFRAME
+	else action ANULLACTION
+}
+
+  fall
+  ifmove RESPAWN_ACTOR_FLAG
+    state respawnit
+  else
+    ifp pshrunk nullop
+    else
+      ifp palive
+        ifpdistl RETRIEVEDISTANCE
+          ifcount 6
+            ifcanseetarget
+      {
+        ifgotweaponce 0
+          break
+		  
+		set temp NO
+	    ife player[].curr_weapon KNEE_WEAPON 
+		{
+			ife gotsaw YES ifg sawammo 0 set temp YES 
+			ifg gotsaber 0 set temp YES
+		}
+
+		ife nukeselect YES
+		{
+			ifge weap4ammo MAXRPGAMMO break
+			
+			add weap4ammo RPGAMMOBOX
+			ifg weap4ammo MAXRPGAMMO set weap4ammo MAXRPGAMMO
+			setp[].gotweapon RPG_WEAPON YES
+		}
+		else
+		{
+			add weap4ammo RPGAMMOBOX
+			ifg weap4ammo MAXRPGAMMO set weap4ammo MAXRPGAMMO
+			addweapon RPG_WEAPON RPGAMMOBOX
+		}
+		ife temp YES { setp[].weapon_pos 0 setp[].curr_weapon 0 setp[].last_weapon -1 }
+        userquote 56
+        ifspawnedby RPGSPRITE
+          state getweaponcode
+        else
+          state quikweaponget
+      }
+enda
+
+spriteshadow ATOMICSHOTTY
+useractor notenemy ATOMICSHOTTY 0
+
+	ifmove 0
+	{
+		move STOPPED
+		sizeat 32 32
+	}
+	
+	 fall
+  
+    ifp pshrunk nullop
+    else
+      ifp palive
+        ifpdistl RETRIEVEDISTANCE
+          ifcount 6
+            ifcanseetarget
+      {
+        
+		  ife pchar 1 { quote 194 break }
+	       
+		  set B dukeupgrades[SHOTGUN_WEAPON]
+		  ifvarand B 4
+		  {
+			addweapon SHOTGUN_WEAPON SHOTGUNAMMOAMOUNT
+			userquote 309 
+            state getweaponcode
+		  }
+		  else
+		  {
+			
+			  orvar B 4
+			  setarray dukeupgrades[SHOTGUN_WEAPON] B
+			  globalsound WEAPON_UPGRADE
+			  userquote 309
+			  ifge player[].ammo_amount SHOTGUN_WEAPON player[].max_ammo_amount SHOTGUN_WEAPON
+			  ife player[].gotweapon SHOTGUN_WEAPON YES
+			  killit
+			  
+			  addweapon SHOTGUN_WEAPON SHOTGUNAMMOAMOUNT
+			  state dukeweapons
+			  state getweaponcode
+		  }
+        
+      }
+
+enda
+
+action BSHOTGUNFRAME 7679
+action NUKSHOTGUNFRAME 8881
+action WESSHOTGUNFRAME 19661
+action MANDOSHOTGUNFRAME 20627
+action DEASHOTGUNFRAME 21917
+
+actor SHOTGUNSPRITE
+
+ife droptile 2000 ife attmode YES { ifrnd 192 state startgun_replace killit }
+
+ife pchar 3 { action MANDOSHOTGUNFRAME sizeat 20 20 } else
+ife pchar 4 { action DEASHOTGUNFRAME sizeat 24 24 } else 
+{
+	sizeat 32 32
+	ife pchar 2 action WESSHOTGUNFRAME else
+	ife pchar 1 
+	{
+		action BSHOTGUNFRAME 
+		// ifvarand shellyupgrades[SHOTGUN_WEAPON] 4 ifvarand gotbow 2 { action 0 cactor BOWSPRITE }
+	}
+	else 
+	ife pchar 0 ifvarand dukeupgrades[SHOTGUN_WEAPON] 4 action NUKSHOTGUNFRAME 
+	else action ANULLACTION
+}
+
+ifaction ANULLACTION
+{
+	ife initsprite 0
+	{
+		set initsprite 1
+		seta[].mdflags 16
+	}
+}
+else
+{
+	set initsprite 0
+	seta[].mdflags 0
+}
+
+ifmove 0
+{
+	ifspawnedby APLAYER
+		move NUKEGUNSLIDE geth else
+	ifspawnedby GLOCKSPRITE
+		move NUKEGUNSLIDE geth else
+	move NUKEGUNSTOP
+}
+
+
+ifmove NUKEGUNSLIDE
+{
+	ifcount 10 
+	move NUKEGUNSTOP
+}
+
+  fall
+  ifmove RESPAWN_ACTOR_FLAG
+    state respawnit
+  else
+    ifp pshrunk nullop
+    else
+      ifp palive
+        ifpdistl RETRIEVEDISTANCE
+          ifcount 6
+            ifcanseetarget
+      {
+
+		
+		set temp NO
+		ife player[].curr_weapon KNEE_WEAPON 
+		{
+			ife gotsaw YES ifg sawammo 0 set temp YES 
+			ifg gotsaber 0 set temp YES
+		}
+		
+        switch sprite[].htpicnum
+        
+		case PIGCOP case PIGCOPDIVE
+		case NEWPIG case NEWPIGDIVE
+        	
+		  ife monstatus 2 ifge player[].ammo_amount SHOTGUN_WEAPON player[].max_ammo_amount SHOTGUN_WEAPON killit
+		  else
+		  {
+          addweapon SHOTGUN_WEAPON 0
+          ifrnd 64
+            addammo SHOTGUN_WEAPON 4
+          else ifrnd 64
+            addammo SHOTGUN_WEAPON 3
+          else ifrnd 64
+            addammo SHOTGUN_WEAPON 2
+          else
+            addammo SHOTGUN_WEAPON 1
+		  }
+        break
+		
+        default
+			ife monstatus 2 ifge player[].ammo_amount SHOTGUN_WEAPON player[].max_ammo_amount SHOTGUN_WEAPON killit
+			
+			ife pchar 2
+			{
+				ifge stakes 99 ifge player[].ammo_amount SHOTGUN_WEAPON player[].max_ammo_amount SHOTGUN_WEAPON break
+				add stakes 5, ifge stakes 99 set stakes 99
+				getp[].ammo_amount SHOTGUN_WEAPON tempb, add tempb SHOTGUNAMMOAMOUNT
+				ifg tempb player[].max_ammo_amount SHOTGUN_WEAPON set tempb player[].max_ammo_amount SHOTGUN_WEAPON
+				setp[].ammo_amount SHOTGUN_WEAPON tempb
+				setp[].gotweapon SHOTGUN_WEAPON YES
+			}
+			else
+			addweapon SHOTGUN_WEAPON SHOTGUNAMMOAMOUNT
+			  
+			  ife pchar 0 ifvarand dukeupgrades[SHOTGUN_WEAPON] 4 userquote 309 else
+			  userquote 57
+        break
+		endswitch
+		
+		ife temp YES { setp[].weapon_pos 0 setp[].curr_weapon 0 setp[].last_weapon -1 }
+        ifspawnedby SHOTGUNSPRITE
+          state getweaponcode
+        else
+          state quikweaponget
+      }
+enda
+
+action MANDODBFRAME 2005
+action DEADBFRAME 3582
+
+eventloadactor DBSPRITE sizeat 32 32 cstat 0 enda
+spriteshadow DBSPRITE
+useractor notenemy DBSPRITE 0
+
+ fall
+ ife pchar 4 { action DEADBFRAME sizeat 20 20 } else
+ ife pchar 3 { action MANDODBFRAME sizeat 24 24 } else
+ { action ANULLACTION sizeat 32 32 }
+ 
+  ifmove RESPAWN_ACTOR_FLAG
+    state respawnit
+  else
+    ifp pshrunk nullop
+    else
+      ifp palive
+        ifpdistl RETRIEVEDISTANCE
+          ifcount 6
+            ifcanseetarget
+	{
+		ifvarand gotDB 1 nullop else
+		{
+			orvar gotDB 1
+			set B dukeupgrades[SHOTGUN_WEAPON]
+			orvar B 16
+			setarray dukeupgrades[SHOTGUN_WEAPON] B
+			setarray weap_owned[12] YES
+			ifn pchar 1 ifn pchar 2
+			{
+				setp[].weapon_pos -1
+				orvar gotDB 4
+			}
+			ife pchar 4 userquote 3450 else
+			ife pchar 3 userquote 1385 else
+			userquote 799
+			state randgetweapsnds
+			palfrom 32 0 32
+			setp[].gotweapon SHOTGUN_WEAPON YES
+			ifge dbammo player[].max_ammo_amount SHOTGUN_WEAPON killit
+			else add dbammo 16
+			ifge dbammo player[].max_ammo_amount SHOTGUN_WEAPON set dbammo player[].max_ammo_amount SHOTGUN_WEAPON
+			killit
+		}
+		setp[].gotweapon SHOTGUN_WEAPON YES
+		ifge dbammo player[].max_ammo_amount SHOTGUN_WEAPON break
+		ifspawnedby ARMPIG add dbammo 8 else
+		add dbammo SHOTGUNAMMOAMOUNT
+		ifge dbammo player[].max_ammo_amount SHOTGUN_WEAPON set dbammo player[].max_ammo_amount SHOTGUN_WEAPON
+		ife pchar 4 userquote 3450 else
+		ife pchar 3 userquote 1385 else
+		userquote 799
+		state getweaponcode
+	}
+
+enda
+
+eventloadactor DBAMMO sizeat 32 32 cstat 0 enda
+
+action ADEADBAMMO 1975
+
+spriteshadow DBAMMO
+useractor notenemy DBAMMO 0
+
+ ifvarand gotDB 1 nullop else { cactor DBSPRITE break }
+ fall
+ ife pchar 4 { action ADEADBAMMO sizeat 24 24 } else { action ANULLACTION sizeat 32 32 }
+ 
+  ifmove RESPAWN_ACTOR_FLAG
+    state respawnit
+  else
+    ifp pshrunk nullop
+    else
+      ifp palive
+        ifpdistl RETRIEVEDISTANCE
+          ifcount 6
+            ifcanseetarget
+	{
+		ifge dbammo player[].max_ammo_amount SHOTGUN_WEAPON break
+		add dbammo SHOTGUNAMMOAMOUNT
+		ifge dbammo player[].max_ammo_amount SHOTGUN_WEAPON set dbammo player[].max_ammo_amount SHOTGUN_WEAPON
+		userquote 1652
+        ifspawnedby DBAMMO
+          state getcode
+        else
+          state quikget
+	}
+
+enda
+
+spriteshadow NUKESPRITE
+useractor notenemy NUKESPRITE 0
+
+ifmove 0
+{
+	ifspawnedby APLAYER
+		move NUKEGUNSLIDE geth
+	else move NUKEGUNSTOP
+}
+
+
+ifmove NUKEGUNSLIDE
+{
+	ifcount 10 
+	move NUKEGUNSTOP
+	
+	ifn initsprite 0 ifpdistl RETRIEVEDISTANCE resetcount
+}
+
+  fall
+  sizeat 48 42
+  cstat 0
+  ifmove RESPAWN_ACTOR_FLAG
+    state respawnit
+  else
+    ifp pshrunk nullop
+    else
+      ifp palive
+        ifcount 6
+          ifpdistl RETRIEVEDISTANCE
+            ifcanseetarget
+      {
+		ifg nukeamount 0 break // failsafe for bug investigation
+		
+		getp[].curr_weapon tempc
+		setp[].gotweapon RPG_WEAPON YES
+	    ife player[].ammo_amount RPG_WEAPON 0 setp[].ammo_amount RPG_WEAPON 1
+		
+	    ifl nukeamount 1
+		{
+			getuserdef[].weaponswitch temp
+			ifvarand temp 1
+			{
+				set nukeselect -1 // switch to nuke
+				set nukeamount 1
+				setp[].weapon_pos -1
+				setp[].curr_weapon tempc
+			}
+			else 
+			{
+				ife player[].curr_weapon RPG_WEAPON
+				{
+					set nukeselect -1 // switch to nuke
+					set nukeamount 1
+					setp[].weapon_pos -1
+					setp[].curr_weapon tempc
+				}
+				else
+					set nukeamount 1
+					
+			}
+		}
+		else
+		{
+			add nukeamount 1
+			ife nukeselect YES ife player[].curr_weapon RPG_WEAPON 
+			{
+				getp[].ammo_amount RPG_WEAPON temp 
+				add temp 1
+				setp[].ammo_amount RPG_WEAPON temp
+			}
+		}
+		
+		ife pchar 0
+		{
+			ifrnd 128 globalsound PREPDIE else
+			globalsound GLOWINDARK
+		}
+		else
+		{
+			ife pchar 4 globalsound DEA_PICKWEAP1 else
+			ife pchar 3 globalsound M_BIGGAME else
+			ife pchar 2 globalsound WESARMYOFME else
+			ifrnd 128 { globalsound B_ONLYWAY globalsound B_ONLYWAY globalsound B_ONLYWAY globalsound B_ONLYWAY } else
+			globalsound B_YEAHBABY
+		}
+		
+		
+        userquote 195
+        ifspawnedby NUKESPRITE
+          state getcode
+        else
+          state quikget
+      }
+enda
+
+actor SIXPAK
+  fall
+  ifn thiscam -1 break
+  set B sprite[player[].i].extra
+  ifvarand inven_upgrades 1 
+  ifge B player[].max_player_health
+	ifl player[].firstaid_amount player[].max_player_health set B -1
+	
+  ifmove RESPAWN_ACTOR_FLAG
+    state respawnit
+  else
+    ifp pshrunk nullop
+    else
+      ifp palive
+        ifpdistl RETRIEVEDISTANCE
+          ifcount 6
+           ifl B player[].max_player_health
+              ifcanseetarget
+      {
+		ife B -1 // first aid only
+		{
+			getp[].firstaid_amount temp
+			ifvarand inven_upgrades 16 add temp 45 else
+			add temp 30
+			ifg temp player[].max_player_health set temp player[].max_player_health
+			setp[].firstaid_amount temp
+			sub o2damage 10 ifl o2damage 0 set o2damage 0
+			userquote 711
+			palfrom 16 10 15 55
+			sound STOREHEALTH
+			killit
+		}
+		
+		// cactor to COLA if healing <21 damage
+		getp[].i spriteid
+		geta[spriteid].extra temp
+		sub temp MAXPLAYERHEALTH
+		ifg temp -21
+		{
+			quote 62
+			globalsound DUKE_GET
+			palfrom 16 0 32
+			cactor COLA
+			ifvarand inven_upgrades 16 addphealth 45 else
+			addphealth 30
+			
+			ifn myshelly -1
+			ifn actorvar[myshelly].monstatus 2
+			ifl sprite[myshelly].extra SHELLYSTRENGTH
+			{
+				set temp 10
+				add temp sprite[myshelly].extra
+				ifg temp SHELLYSTRENGTH set temp SHELLYSTRENGTH
+				seta[myshelly].extra temp
+			}
+			
+			sub o2damage 30 ifl o2damage 0 set o2damage 0
+			break
+		}
+		ifvarand inven_upgrades 16 addphealth 45 else
+        addphealth 30
+		
+		ifn myshelly -1
+		ifn actorvar[myshelly].monstatus 2
+		ifl sprite[myshelly].extra SHELLYSTRENGTH
+		{
+			set temp 15
+			add temp sprite[myshelly].extra
+			ifg temp SHELLYSTRENGTH set temp SHELLYSTRENGTH
+			seta[myshelly].extra temp
+		}
+		sub o2damage 30 ifl o2damage 0 set o2damage 0
+        quote 62
+        ifspawnedby SIXPAK
+          state getcode
+        else
+          state quikget
+      }
+enda
+
+actor COLA
+  fall
+  ifn thiscam -1 break
+  set B sprite[player[].i].extra
+  
+  ifvarand inven_upgrades 1 
+  ifge B player[].max_player_health
+	ifl player[].firstaid_amount player[].max_player_health set B -1
+  
+  ifmove RESPAWN_ACTOR_FLAG
+    state respawnit
+  else
+    ifp pshrunk nullop
+    else
+      ifp palive
+        ifpdistl RETRIEVEDISTANCE
+          ifcount 6
+            ifl B player[].max_player_health
+              ifcanseetarget
+      {
+		ife B -1 // first aid only
+		{
+			getp[].firstaid_amount temp
+			ifvarand inven_upgrades 16 add temp 15 else
+			add temp 10
+			ifg temp player[].max_player_health set temp player[].max_player_health
+			setp[].firstaid_amount temp
+			sub o2damage 10 ifl o2damage 0 set o2damage 0
+			userquote 711
+			palfrom 16 10 15 55
+			sound STOREHEALTH
+			killit
+		}
+		ifvarand inven_upgrades 16 addphealth 15 else
+        addphealth 10
+		
+		ifn myshelly -1
+		ifn actorvar[myshelly].monstatus 2
+		ifl sprite[myshelly].extra SHELLYSTRENGTH
+		{
+			set temp 5
+			add temp sprite[myshelly].extra
+			ifg temp SHELLYSTRENGTH set temp SHELLYSTRENGTH
+			seta[myshelly].extra temp
+		}
+		
+		sub o2damage 10 ifl o2damage 0 set o2damage 0
+        quote 61
+        ifspawnedby COLA
+          state getcode
+        else
+          state quikget
+      }
+enda
+
+actor ATOMICHEALTH
+  fall
+  set temp player[].max_player_health
+  mul temp 2
+  
+  ifmove RESPAWN_ACTOR_FLAG
+    state respawnit
+  else
+    ifp pshrunk nullop
+    else
+      ifp palive
+        ifpdistl RETRIEVEDISTANCE
+          ifcount 6
+		    ifl sprite[player[].i].extra temp
+            // ifphealthl MAXPLAYERATOMICHEALTH
+              ifcanseetarget
+      {
+		ifvarand inven_upgrades 16 addphealth 75 else
+        addphealth 50
+		ifn myshelly -1
+		ifn actorvar[myshelly].monstatus 2
+		ifl sprite[myshelly].extra MAXPLAYERATOMICHEALTH
+		{
+			set tempb 25
+			add tempb sprite[myshelly].extra
+			ifg tempb MAXPLAYERATOMICHEALTH set tempb MAXPLAYERATOMICHEALTH
+			seta[myshelly].extra tempb
+		}
+		sub o2damage 50 ifl o2damage 0 set o2damage 0
+        quote 19
+        ifspawnedby ATOMICHEALTH
+          state getcode
+        else
+          state quikget
+      }
+enda
+
+useractor notenemy RESCUEREFILL 0
+
+	sizeat 30 30
+	fall
+	ifn thiscam -1 break
+	ifp pshrunk nullop
+    else
+      ifp palive
+        ifpdistl RETRIEVEDISTANCE
+          ifcount 6
+              ifcanseetarget
+      {
+		quote 1116
+		add babejuice 3
+		state getcode
+	  }
+
+enda
+
+
+action FIRSTUP_FRAME 7950
+
+actor FIRSTAID
+  fall
+  ifvarand inven_upgrades 1 spritepal 89
+  ife initsprite 0 { set mtype player[].max_player_health set initsprite YES } // full kit
+  set temp mtype
+  sub temp 4
+  div temp 3
+  ifg temp 32 set temp 32
+  seta[].xrepeat temp
+  seta[].yrepeat temp
+  ifl temp 8 killit
+  
+  ifmove RESPAWN_ACTOR_FLAG state respawnit
+  else
+    ifp pshrunk nullop
+    else
+      ifp palive
+        ifpdistl RETRIEVEDISTANCE
+          ifcount 6
+		    ifl player[].firstaid_amount player[].max_player_health
+            // ifpinventory GET_FIRSTAID FIRSTAID_AMOUNT
+              ifcanseetarget
+      {
+	    quote 3
+		ife player[].firstaid_amount 0
+		{
+			// addinventory GET_FIRSTAID FIRSTAID_AMOUNT
+			setp[].firstaid_amount mtype
+			setp[].inven_icon 1
+		}
+		else
+		{
+			set tempb player[].max_player_health
+			sub tempb player[].firstaid_amount
+			// tempb is now the amount of first aid player can accept
+			getp[].firstaid_amount temp
+			ifge tempb mtype
+			{
+				add temp mtype
+				set mtype 0
+				setp[].firstaid_amount temp
+			}
+			else
+			{
+				sub mtype tempb
+				add temp tempb
+				setp[].firstaid_amount temp
+				globalsound DUKE_GET
+				palfrom 16 0 32
+				break
+			}
+		}
+        
+
+        ifspawnedby FIRSTAID
+          state getcode
+        else
+          state quikget
+      }
+enda
+
+action SHELLYPISTOLFRAME 7657
+action WESPISTOLFRAME 19660
+action DEAPISTOLFRAME 21965
+
+actor FIRSTGUNSPRITE
+
+ifmove 0
+{
+	ife player[].gotweapon PISTOL_WEAPON NO
+	move NUKEGUNSTOP
+	else
+	ifspawnedby APLAYER
+		move NUKEGUNSLIDE geth else
+	ifspawnedby GLOCKSPRITE
+		move NUKEGUNSLIDE geth else
+	move NUKEGUNSTOP
+}
+
+ife pchar 0 set B dukeupgrades[PISTOL_WEAPON] else
+ife pchar 1 set B shellyupgrades[PISTOL_WEAPON] else
+ife pchar 2 set B wesupgrades[PISTOL_WEAPON]
+		
+ifl pchar 2
+ifvarand B 8 { action ANULLACTION cactor GLOCKSPRITE break }
+
+
+ifmove NUKEGUNSLIDE
+{
+	ifcount 10 
+	move NUKEGUNSTOP
+	
+	ifn initsprite 0 ifpdistl RETRIEVEDISTANCE resetcount
+}
+else ifmove NUKEGUNSTOP nullop else
+move NUKEGUNSTOP
+
+  ife pchar 4 { sizeat 20 20 action DEAPISTOLFRAME } else
+  {
+	  sizeat 32 32
+	  ife pchar 2 action WESPISTOLFRAME else
+	  ife pchar 1 action SHELLYPISTOLFRAME else
+	  action ANULLACTION
+  }
+  fall
+  ifmove RESPAWN_ACTOR_FLAG
+    state respawnit
+  else
+    ifp pshrunk nullop
+    else
+      ifp palive
+        ifpdistl RETRIEVEDISTANCE
+          ifcount 6
+            ifcanseetarget
+			  ifmove NUKEGUNSTOP
+      {
+        ifgotweaponce 0
+          break
+		
+		// ifvarand B 8 // has glock in loadout
+		// {
+			// ife player[].gotweapon PISTOL_WEAPON YES
+			// {
+				// quote 313
+				// ifhitspace
+				// {
+					// setp[].fta 0
+					// // set initsprite 1
+				// }
+				// else break
+			// }
+			// else { cactor GLOCKSPRITE break }
+		// }
+		
+		// ifvarand B 8
+		// {
+			// espawn GLOCKSPRITE
+			// setsprite RETURN player[].posx player[].posy player[].posz
+			// seta[RETURN].ang player[].ang
+			// setav[RETURN].initsprite 1
+			
+			// xorvar B 8
+			// ife pchar 0 setarray dukeupgrades[PISTOL_WEAPON] B
+			// ife pchar 1 setarray shellyupgrades[PISTOL_WEAPON] B
+			// set PISTOLCLIP 12
+			// set THISCLIP 12
+		// }
+		
+		ifg LASERMODE NO
+		{
+			ifvarand B 4 nullop else
+			ife pchar 2 
+			{
+				setarray weap_owned[203] YES // Wes dual pistol
+				set temp wesupgrades[PISTOL_WEAPON]
+				orvar temp 4
+				setarray wesupgrades[PISTOL_WEAPON] temp
+			}
+			
+			setp[].gotweapon PISTOL_WEAPON YES
+			ifge pistolammo MAXPISTOLAMMO break
+			ife initsprite 0 add pistolammo 48
+			ifg pistolammo MAXPISTOLAMMO set pistolammo MAXPISTOLAMMO
+			
+			
+		}
+		else
+		{
+			// setp[].gotweapon PISTOL_WEAPON YES
+			ife pchar 0 state dukeweapons
+			ife pchar 1 state shellyweapons
+			
+			// ife pchar 2
+			ifvarand charsel 4
+			{
+				ife player[].gotweapon PISTOL_WEAPON YES 
+				
+				setarray weap_owned[203] YES // Wes dual pistol
+				set temp wesupgrades[PISTOL_WEAPON]
+				orvar temp 4
+				setarray wesupgrades[PISTOL_WEAPON] temp
+				
+				ife pchar 2 state wesweapons
+			}
+			
+			
+			// ifge player[].ammo_amount PISTOL_WEAPON player[].max_ammo_amount PISTOL_WEAPON break
+			
+			// getp[].ammo_amount PISTOL_WEAPON temp
+			addweapon PISTOL_WEAPON 48
+			// ife initsprite 0
+			
+			// add temp 48
+			// ifg temp player[].max_ammo_amount PISTOL_WEAPON set temp player[].max_ammo_amount PISTOL_WEAPON
+			// setp[].ammo_amount PISTOL_WEAPON temp
+			
+			
+		}
+		
+
+        ifspawnedby FIRSTGUNSPRITE
+          state getweaponcode
+        else
+          state quikweaponget
+		  
+      }
+enda
+
+state pickupglock
+
+	ifvarand B 8 nullop else
+	ife player[].gotweapon PISTOL_WEAPON YES
+	{
+		espawn FIRSTGUNSPRITE
+		setsprite RETURN player[].posx player[].posy player[].posz
+		seta[RETURN].ang player[].ang
+		setav[RETURN].initsprite 1
+	}
+	orvar B 8
+	ife pchar 0 setarray dukeupgrades[PISTOL_WEAPON] B
+	ife pchar 1 setarray shellyupgrades[PISTOL_WEAPON] B
+	
+	set B 33
+	ife pchar 0 ifvarand dukeupgrades[PISTOL_WEAPON] 4 set B 40 else
+	ife pchar 1 ifvarand shellyupgrades[PISTOL_WEAPON] 4 set B 40 else
+	set B 33
+	
+	
+	set PISTOLCLIP B
+	set THISCLIP B
+	
+	ifg LASERMODE NO
+	{
+		setp[].gotweapon PISTOL_WEAPON YES
+		ife initsprite 0 add pistolammo 66
+		ifg pistolammo player[].max_ammo_amount PISTOL_WEAPON set pistolammo player[].max_ammo_amount PISTOL_WEAPON
+		killit
+		break
+	}
+	else ifge player[].ammo_amount PISTOL_WEAPON player[].max_ammo_amount PISTOL_WEAPON break
+	
+	
+	ife initsprite 0
+	setp[].gotweapon PISTOL_WEAPON YES
+	getp[].ammo_amount PISTOL_WEAPON temp
+	ife initsprite 0 add temp 66
+	ifg temp player[].max_ammo_amount PISTOL_WEAPON set temp player[].max_ammo_amount PISTOL_WEAPON
+	setp[].ammo_amount PISTOL_WEAPON temp
+	
+	
+	ife pchar 0 state dukeweapons
+	ife pchar 1 state shellyweapons
+
+	ifspawnedby GLOCKSPRITE
+	  state getweaponcode
+	else
+	  state quikweaponget
+	  
+	
+	killit
+      
+
+ends
+
+spriteshadow GLOCKSPRITE
+useractor notenemy GLOCKSPRITE 0
+
+ifmove 0
+{
+	ife player[].gotweapon PISTOL_WEAPON NO
+	move NUKEGUNSTOP
+	else
+	ifspawnedby APLAYER
+		move NUKEGUNSLIDE geth
+	else ifspawnedby FIRSTGUNSPRITE
+		move NUKEGUNSLIDE geth
+	else move NUKEGUNSTOP
+}
+
+ife pchar 0 set B dukeupgrades[PISTOL_WEAPON] else
+ife pchar 1 set B shellyupgrades[PISTOL_WEAPON] else
+ife pchar 2 { cactor FIRSTGUNSPRITE break }
+ifvarand B 8 nullop else { cactor FIRSTGUNSPRITE break }
+
+
+ifmove NUKEGUNSLIDE
+{
+	ifcount 10 
+	move NUKEGUNSTOP
+	
+	ifn initsprite 0 ifpdistl RETRIEVEDISTANCE resetcount
+}
+else ifmove NUKEGUNSTOP nullop
+else move NUKEGUNSTOP geth
+  
+  sizeat 32 32
+  fall
+  ifmove RESPAWN_ACTOR_FLAG
+    state respawnit
+  else
+    ifp pshrunk nullop
+    else
+      ifp palive
+        ifpdistl RETRIEVEDISTANCE
+          ifcount 6
+            ifcanseetarget
+			  ifmove NUKEGUNSTOP
+      {
+	    
+		
+		ife pchar 0 set B dukeupgrades[PISTOL_WEAPON] else
+		ife pchar 1 set B shellyupgrades[PISTOL_WEAPON]
+		
+		ife player[].gotweapon PISTOL_WEAPON 0
+        {	state pickupglock break }
+		
+		ifvarand B 8 { state pickupglock break } // already using glock
+		
+		// at this point you have a pistol and it's not the glock18...
+		quote 313
+		ifhitspace
+		{
+			setp[].fta 0
+			state pickupglock
+		}
+	  }
+	  else ifpdistl 4096 ife player[].ftq 313 setp[].fta 0
+		
+enda
+
+state pickupbow
+
+	set B shellyupgrades[SHOTGUN_WEAPON]
+	orvar B 4
+	orvar B 32 // give spy arrows for free
+	setarray shellyupgrades[SHOTGUN_WEAPON] B
+	
+	set B wesupgrades[SHOTGUN_WEAPON]
+	orvar B 4
+	orvar B 32 // give spy arrows for free
+	setarray wesupgrades[SHOTGUN_WEAPON] B
+	
+	setp[].gotweapon SHOTGUN_WEAPON YES
+	
+	// getp[].ammo_amount SHOTGUN_WEAPON temp
+	// ifvarand gotbow 1 ifge temp player[].max_ammo_amount SHOTGUN_WEAPON break
+	// ife initsprite 0 add temp 18
+	// ifg temp player[].max_ammo_amount SHOTGUN_WEAPON set temp player[].max_ammo_amount SHOTGUN_WEAPON
+	// setp[].ammo_amount SHOTGUN_WEAPON temp
+	
+	ifvarand gotbow 1 ifge arrows MAXSHOTGUNAMMO break
+	add arrows 16
+	ifge arrows MAXSHOTGUNAMMO set arrows MAXSHOTGUNAMMO
+	
+	ifvarand gotbow 1 nullop else
+	{
+		orvar gotbow 1
+		setp[].weapon_pos -1
+		orvar gotbow 4
+	}
+
+	ifspawnedby BOWSPRITE
+	  state getweaponcode
+	else
+	  state quikweaponget
+	  
+	
+	killit
+      
+
+ends
+
+spriteshadow BOWSPRITE
+useractor notenemy BOWSPRITE 0
+
+ifmove 0
+{
+	ifn initsprite 0 move NUKEGUNSLIDE geth
+	else
+	ifspawnedby APLAYER
+		move NUKEGUNSLIDE geth
+	else ifspawnedby FIRSTGUNSPRITE
+		move NUKEGUNSLIDE geth
+	else move NUKEGUNSTOP
+}
+
+
+ifmove NUKEGUNSLIDE
+{
+	ifcount 10 
+	move NUKEGUNSTOP
+	
+	ifn initsprite 0 ifpdistl RETRIEVEDISTANCE resetcount
+}
+  // ife pchar 0 cactor SHOTGUNSPRITE
+  
+  sizeat 32 32
+  fall
+  ifmove RESPAWN_ACTOR_FLAG
+    state respawnit
+  else
+    ifp pshrunk nullop
+    else
+      ifp palive
+        ifpdistl RETRIEVEDISTANCE
+          ifcount 6
+            ifcanseetarget
+			  // ifmove NUKEGUNSTOP
+      {
+	    
+		
+		ifn pchar 1 ifn pchar 2 { quote 192 break }
+		state pickupbow
+		// ife player[].gotweapon SHOTGUN_WEAPON 0
+        // {	state pickupbow break }
+		
+		// ifvarand shellyupgrades[SHOTGUN_WEAPON] 4 { state pickupbow break } // already using bow
+		// quote 313
+		// ifhitspace
+		// {
+			// setp[].fta 0
+			// state pickupbow
+		// }
+	  }
+	  else ifpdistl 4096 ife player[].ftq 313 setp[].fta 0
+		
+enda
+
+useractor notenemy LASERPISTOL 0
+  sizeat 32 32
+   fall
+   ifn thiscam -1 break
+   
+ifmove 0
+{
+	ifspawnedby NEWTROOP
+		move LASERGUNSLIDE randomangle
+	else
+	ifspawnedby LIZTROOP
+		move LASERGUNSLIDE randomangle
+	else
+	ifn initsprite 0
+		move LASERGUNSLIDE geth
+	else move LASERGUNSTOP
+}
+
+
+ifmove LASERGUNSLIDE
+{
+	ifcount 10 
+	move LASERGUNSTOP
+	
+	ifn initsprite 0 ifpdistl RETRIEVEDISTANCE resetcount
+}
+
+  ifmove RESPAWN_ACTOR_FLAG
+    state respawnit
+  else
+    ifp pshrunk nullop
+    else
+      ifp palive
+        ifpdistl RETRIEVEDISTANCE
+          ifcount 6
+            ifcanseetarget
+              ifl LASERAMMO 100
+      {
+	    setp[].gotweapon PISTOL_WEAPON YES
+        ife LASERAMMO 0
+        {
+	        userquote 131
+	        getuserdef[].weaponswitch temp
+	        ifvarand temp 1
+			ife player[].kickback_pic 0
+	        {
+		        setp[].weapon_pos -1
+				set LASERMODE -1
+				getp[].curr_weapon temp
+				setp[].last_weapon temp
+				setp[].curr_weapon PISTOL_WEAPON
+				set WEAPON1_SELECTSOUND SWITCHTOLASER 
+				// setp[].wantweaponfire PISTOL_WEAPON 
+	        }
+	    }
+		ifn initsprite 0 add LASERAMMO initsprite
+		else
+		{
+			ifspawnedby LASERPISTOL set temp 20
+			else ifspawnedby APLAYER set temp 20
+			else
+			{
+				add LASERAMMO 8
+				randvar temp 8
+			}
+			
+			add LASERAMMO temp
+		}
+		ifg LASERAMMO 100 set LASERAMMO 100
+		ife LASERMODE YES setp[].ammo_amount PISTOL_WEAPON LASERAMMO
+		
+        ifspawnedby LASERPISTOL
+          state getweaponcode
+        else
+          state quikweaponget
+      }
+    
+enda
+
+useractor notenemy COMMGUN 0
+  sizeat 32 32
+   fall
+   ifn thiscam -1 break
+   
+ifmove 0
+{
+	ifspawnedby NEWCOMM
+		move LASERGUNSLIDE randomangle
+	else
+	ifn initsprite 0
+		move LASERGUNSLIDE geth
+	else move LASERGUNSTOP
+}
+
+ifmove LASERGUNSLIDE
+{
+	ifcount 10 
+	move LASERGUNSTOP
+	
+	ifn initsprite 0 ifpdistl RETRIEVEDISTANCE resetcount
+}
+
+  ifmove RESPAWN_ACTOR_FLAG
+    state respawnit
+  else
+    ifp pshrunk nullop
+    else
+      ifp palive
+        ifpdistl RETRIEVEDISTANCE
+          ifcount 6
+            ifcanseetarget
+              ifl COMMAMMO 50
+      {
+	    setp[].gotweapon PISTOL_WEAPON YES
+        ife COMMAMMO 0
+        {
+	        userquote 1086
+	        getuserdef[].weaponswitch temp
+	        ifvarand temp 1
+			ife player[].kickback_pic 0
+	        {
+		        setp[].weapon_pos -1
+				set LASERMODE -2
+				getp[].curr_weapon temp
+				setp[].last_weapon temp
+				setp[].curr_weapon PISTOL_WEAPON
+				set WEAPON1_SELECTSOUND SELECT7 
+				// setp[].wantweaponfire PISTOL_WEAPON
+	        }
+	    }
+		ifn initsprite 0 add COMMAMMO initsprite
+		else
+		{
+			add COMMAMMO 8
+			randvar temp 3
+			
+			add COMMAMMO temp
+		}
+		ifg COMMAMMO 50 set COMMAMMO 50
+		ife LASERMODE 3 setp[].ammo_amount PISTOL_WEAPON COMMAMMO
+		
+        ifspawnedby COMMGUN
+          state getweaponcode
+        else
+          state quikweaponget
+      }
+    
+enda
+
+move PIGBOSSGUNSLIDE 192
+move PIGBOSSGUNSTOP
+
+useractor notenemy PIGBOSSGUN 0
+
+fall
+ifspritepal 0 sizeat 66 60 else ifspritepal 41 sizeat 66 60 else sizeat 33 30
+ifmove 0 move PIGBOSSGUNSLIDE randomangle
+ifcount 10 
+{
+	ifmove PIGBOSSGUNSTOP nullop else move PIGBOSSGUNSTOP
+}
+
+ifmove PIGBOSSGUNSTOP
+ifp palive     
+    ifpdistl RETRIEVEDISTANCE
+        ifcanseetarget
+{
+	state randgetweapsnds
+    palfrom 24 0 32
+	spawn FIRSTGUNSPRITE
+	spawn SHOTGUNSPRITE
+	spawn CHAINGUNSPRITE
+	killit
+}
+
+enda
+
+action DUKESAWFRAME 7605
+eventloadactor SAWSPRITE sizeat 40 40 enda
+useractor notenemy SAWSPRITE 0
+
+ifn thiscam -1 break
+
+ife pchar 0 action DUKESAWFRAME else action ANULLACTION
+
+sizeat 40 40
+fall
+
+ifmove 0
+{
+	ifn initsprite 0
+		move NUKEGUNSLIDE geth
+	else move NUKEGUNSTOP
+}
+
+
+ifmove NUKEGUNSLIDE
+{
+	ifcount 10 
+	move NUKEGUNSTOP
+	
+	ifn initsprite 0 ifpdistl RETRIEVEDISTANCE resetcount
+}
+
+
+  ifmove RESPAWN_ACTOR_FLAG
+    state respawnit
+  else
+    ifp pshrunk nullop
+    else
+      ifp palive
+        ifpdistl RETRIEVEDISTANCE
+          ifcount 6
+            ifcanseetarget
+      {
+	    ife pchar 2
+		{
+			cactor FREEZESPRITE		
+			break
+		}
+		ife pchar 4
+		{
+			cactor GROWSPRITEICON
+			break
+		}
+	    ifg gotsaber 0
+		{
+			espawn SABERSPRITE
+			setsprite RETURN player[].posx player[].posy player[].posz
+			seta[RETURN].ang player[].ang
+			setav[RETURN].initsprite gotsaber
+			set gotsaber 0
+		}
+	    ife gotsaw YES ife sawammo MAXSAWAMMO break
+	    ifn initsprite 0 add sawammo initsprite
+		else
+		add sawammo 200
+		ifg sawammo MAXSAWAMMO set sawammo MAXSAWAMMO
+	    state sawon
+ 		state randgetweapsnds
+  		palfrom 32 0 32
+  		userquote 166
+		ifn gotsaw YES
+		{
+			set gotsaw YES
+			setplayer[THISACTOR].weapon_pos -9
+			setplayer[THISACTOR].curr_weapon KNEE_WEAPON
+		}
+		killit
+      }
+enda
+
+action AWESSWORD 8740
+
+eventloadactor SABERSPRITE sizeat 18 18 enda
+useractor notenemy SABERSPRITE 0
+
+    fall
+	ife pchar 2 action AWESSWORD else action ANULLACTION
+
+    ifmove 0
+	{
+		ifn initsprite 0
+			move NUKEGUNSLIDE geth
+		else move NUKEGUNSTOP
+	}
+
+	ifmove NUKEGUNSLIDE
+	{
+		ifcount 10 
+		move NUKEGUNSTOP
+		
+		ifn initsprite 0 ifpdistl RETRIEVEDISTANCE resetcount
+	}
+	ife pchar 4 break
+
+  sizeat 18 18
+  ifmove RESPAWN_ACTOR_FLAG
+    state respawnit
+  else
+    ifp pshrunk nullop
+    else
+      ifp palive
+        ifpdistl RETRIEVEDISTANCE
+          ifcount 6
+            ifcanseetarget
+		ifl gotsaber MAXSABERAMOUNT
+      {
+		ife gotsaw YES
+		{
+			state sawoff
+			ifg sawammo 0
+			ifn pchar 2
+			{
+				espawn SAWSPRITE
+				setsprite RETURN player[].posx player[].posy player[].posz
+				seta[RETURN].ang player[].ang
+				setav[RETURN].initsprite sawammo
+				set sawammo 0
+				set gotsaw NO
+			}
+		}
+		ife gotsaber 0 set temp 0 else set temp 1
+		ifn initsprite 0 add gotsaber initsprite else
+        add gotsaber SABERAMOUNT
+		ifg gotsaber MAXSABERAMOUNT set gotsaber MAXSABERAMOUNT
+		ife temp 0
+		{
+			set saberpick YES
+			ifn pchar 2
+			{
+				globalsound WAR_AMBIENCE5
+				soundonce SABERON
+			}
+			else
+			{
+				globalsound WESSWEET
+			}
+			ife player[].curr_weapon KNEE_WEAPON				
+				setp[].weapon_pos -9
+			else
+				setp[].weapon_pos -1
+		}
+		else state randgetweapsnds
+        userquote 1155
+		ife pchar 2  palfrom 16 0 32 else
+        palfrom 32 0 48
+		
+		killit
+      }
+enda
+
+eventloadactor SHIELDBATTERY sizeat 24 24 enda
+eventloadactor STEALTHCHARGER sizeat 32 32 enda
+
+spritenoshade SHIELDBATTERY
+useractor notenemy SHIELDBATTERY 0
+
+  ifspritepal 0 nullop else break
+
+  fall
+  seta[].shade -50
+  
+  ife pchar 3
+  ifn es_type 0
+  ifge es_hp es_hpmax[es_type]
+  ifl player[].shield_amount player[].max_shield_amount
+  {
+	cactor SHIELD
+	ife mtype 1 seta[].htpicnum PIGCOP
+	break
+  }
+  
+  ifmove 0
+  {
+	ifspawnedby SHIELDBATTERY move STOPPED else
+	move LASERGUNSLIDE 160 randomangle
+  }
+  
+  ifmove STOPPED nullop else
+  ifcount 10 move STOPPED geth
+  
+  
+  ife mtype 0
+  sizeat 24 24
+  else sizeat 18 18
+  
+    ifp pshrunk nullop
+    else
+      ifp palive
+        ifcount 6
+          ifpdistl RETRIEVEDISTANCE
+              ifcanseetarget
+			ifn es_type 0
+			ifl es_battery es_batterymax
+      {
+        userquote 159
+        sound GOTRADAR
+		
+		set temp es_batterymax
+		ifn mtype 0 { div temp 2 ifg temp 300 set temp 300 }
+		else // full item
+		{
+			ifg temp 600 set temp 600
+		}
+		
+		ifl es_hp es_hpmax[es_type]
+		{
+			set tempb es_hpmax[es_type]
+			sub tempb es_hp // tempb is amount to heal
+			ifge tempb temp { add es_hp temp palfrom 24 63 63 63 killit break }
+			sub temp tempb
+			add es_hp tempb
+		}
+		
+		add es_battery temp
+		
+		
+		
+		ifg es_battery es_batterymax set es_battery es_batterymax
+		
+		palfrom 24 63 63 63
+		killit
+      }
+enda
+
+spritenoshade STEALTHCHARGER
+spriteshadow STEALTHCHARGER
+useractor notenemy STEALTHCHARGER 0
+
+  fall
+  seta[].shade -20
+  
+  sizeat 32 32
+
+  
+    ifp pshrunk nullop
+    else
+      ifp palive
+        ifcount 6
+          ifpdistl RETRIEVEDISTANCE
+              ifcanseetarget
+				ife pchar 4
+				ifge cloak 0 ifl cloak cloakmax		
+      {
+        userquote 1416
+        sound GOTRADAR
+		set cloak cloakmax
+		
+		
+		palfrom 32 63 63 63
+		killit
+		
+      }
+enda
+
+useractor notenemy LASERLINE2 0
+
+ife myspawner -1 break
+ifg actorvar[myspawner].mtype 2 killit
+
+enda
+
+action TRIPFRAME 9879
+actor TRIPBOMBSPRITE
+
+ifn mtype 0 // PLACED ON GROUND
+{
+	ife mtype 1 // NOT ARMED YET
+	{
+		add countvar 1
+		ifg countvar 15
+		ifpdistg 1024
+		{
+			set mtype 2 // armed
+			// spawn the laser line going up
+			geta[].z initsprite
+			set countvar 0
+			whilevarn countvar 1
+			{
+				espawn LASERLINE2 // 3163
+				seta[RETURN].mdflags 16
+				seta[RETURN].xrepeat 16
+				seta[RETURN].yrepeat 16 // 255
+				seta[RETURN].z initsprite
+				// seta[RETURN].pal 2
+				setav[RETURN].myspawner THISACTOR
+				changespritestat RETURN 1
+				sub initsprite 5056
+				ifl initsprite sector[].ceilingz set countvar 1
+			}
+		}
+	}
+	ife mtype 2 // armed
+	{
+		headspritestat spriteid 1
+		whilevarn spriteid -1
+		{
+			ife actorvar[spriteid].monstatus 1
+			{
+				set xydist2 384
+				ife sprite[spriteid].picnum PIGSUV set xydist2 640
+				ldist xydist THISACTOR spriteid
+				ifl xydist xydist2
+				{
+					set mtype 3
+					set countvar 0
+					ife sprite[spriteid].picnum PIGSUV set countvar 4
+					sound LASERTRIP_ARMING
+				}
+			}
+			nextspritestat spriteid spriteid
+		}
+		ife mtype 2
+		{
+			getp[].i spriteid
+			ldist xydist THISACTOR spriteid
+			ifl xydist 256
+			{
+				set mtype 3
+				set countvar 0
+				sound LASERTRIP_ARMING
+			}
+			ife  mtype 2
+			{
+				findnearspritez EXPLOSION2 RPGBLASTRADIUS 8192 spriteid
+				ifn spriteid -1
+				{
+					set tempb YES
+					dist xydist THISACTOR spriteid
+					ifl sprite[spriteid].xrepeat 20 ifg xydist 844 set tempb NO
+					ife tempb YES
+					{
+						set mtype 3
+						set countvar 0
+						sound LASERTRIP_ARMING
+					}
+				}
+			}
+		}
+		ife mtype 2
+		{
+			ifp pfacing
+			ifp palive
+			ifpdistl 1024
+			ifcansee
+			{
+				ifhitspace
+				{
+					set  mtype 4 // give laser line a moment to disappear
+					set countvar 0
+					sound SWITCH_ON
+				}
+				else ifl player[].fta 30 quote 125
+				break
+			}
+		}
+	}
+	ife mtype 3 // about to blow
+	{
+		add countvar 1
+		ifg countvar 8
+		{
+			
+			spawn EXPLOSION2
+			stopactorsound THISACTOR LASERTRIP_ARMING
+			sound LASERTRIP_EXPLODE
+			hitradius TRIPBOMBBLASTRADIUS 40 75 100 120
+			debris SCRAP1 6
+			set temp NO
+			ife pchar 0 ifvarand dukeupgrades[TRIPBOMB_WEAPON] 4 set temp YES
+			ife pchar 1 ifvarand shellyupgrades[TRIPBOMB_WEAPON] 4 set temp YES
+			ife temp YES
+			{
+				headspritestat spriteid 1
+				whilevarn spriteid -1
+				{
+					ife actorvar[spriteid].monstatus 1
+					{
+						dist xydist THISACTOR spriteid
+						ifle xydist TRIPBOMBBLASTRADIUS
+						{
+							getav[spriteid].burning burning
+							add burning 150
+							setav[spriteid].burning burning
+							seta[spriteid].htowner player[].i
+						}
+					}
+					nextspritestat spriteid spriteid
+				}
+			}
+			killit
+		}
+	}
+	ife mtype 4
+	{
+		add countvar 1
+		ifg countvar 3
+		{
+			seta[].mdflags 0
+			set mtype 0
+			cstat 0
+		}
+	}
+	break
+}
+  ife pchar 0 ifvarand dukeupgrades[TRIPBOMB_WEAPON] 1 { cactor SPIDERMINESPRITE sizeat 32 32 break }
+  ife pchar 1 ifvarand shellyupgrades[TRIPBOMB_WEAPON] 1 { cactor SPIDERMINESPRITE sizeat 32 32 break }
+  ife pchar 2 ifvarand wesupgrades[TRIPBOMB_WEAPON] 1 { cactor SPIDERMINESPRITE sizeat 32 32 break }
+
+  fall
+  iffloordistl 8 nullop else resetcount
+  ifmove RESPAWN_ACTOR_FLAG
+    state respawnit
+  else
+    ifp pshrunk nullop
+    else
+      ifp palive
+        ifpdistl RETRIEVEDISTANCE
+          ifcount 6
+            ifcanseetarget
+      {
+        ifgotweaponce 0
+          break
+
+        addweapon TRIPBOMB_WEAPON 1
+        userquote 58
+        ifspawnedby TRIPBOMBSPRITE
+          state getweaponcode
+        else
+          state quikweaponget
+      }
+enda
+
+eventloadactor SPIDERMINESPRITE sizeat 32 32 cstat 0 enda
+
+useractor notenemy SPIDERMINESPRITE 0
+
+ifmove 0
+{
+	move STOPPED
+	sizeat 32 32
+}
+fall
+  ifmove RESPAWN_ACTOR_FLAG
+    state respawnit
+  else
+    ifp pshrunk nullop
+    else
+      ifp palive
+        ifpdistl RETRIEVEDISTANCE
+          ifcount 6
+            ifcanseetarget
+      {
+        ifgotweaponce 0
+          break
+
+        addweapon TRIPBOMB_WEAPON 1
+        userquote 223
+        ifspawnedby TRIPBOMBSPRITE
+          state getweaponcode
+        else
+          state quikweaponget
+      }
+
+enda
+// define CHAINGUNSPRITE 22
+action BCHAINGUNFRAME 7687
+action DCHAINUPFRAME 8936
+action BCHAINUPGRAME 8935
+action MCHAINGUNFRAME 20668
+action WESCHAINGUNFRAME 19651
+action DEACHAINFRAME 21910
+action EXECUTEFRAME 15458
+
+actor CHAINGUNSPRITE
+
+  ifvarand gotshock 2 { action EXECUTEFRAME sizeat 32 32 }
+  else
+  {
+	ife pchar 4 { action DEACHAINFRAME sizeat 24 24 } else
+	ife pchar 3 { action MCHAINGUNFRAME sizeat 16 16 }
+	else
+	{
+	  sizeat 32 32
+	  ife pchar 2 action WESCHAINGUNFRAME
+	  else
+	  ife pchar 1 
+	  {
+		ifvarand shellyupgrades[CHAINGUN_WEAPON] 1 action BCHAINUPGRAME
+		else
+		action BCHAINGUNFRAME
+	  }
+	  else 
+	  {
+		ifvarand dukeupgrades[CHAINGUN_WEAPON] 1 action DCHAINUPFRAME
+		else
+		action ANULLACTION
+	  }
+	}
+  }
+  fall
+  ifmove RESPAWN_ACTOR_FLAG
+    state respawnit
+  else
+    ifp pshrunk nullop
+    else
+      ifp palive
+        ifpdistl RETRIEVEDISTANCE
+          ifcount 6
+            ifcanseetarget
+      {
+        ifgotweaponce 0
+          break
+		  
+		ife pchar 2 
+		{
+			ife player[].gotweapon CHAINGUN_WEAPON YES 
+			// ife weap_owned[221] NO
+			{
+				setarray weap_owned[221] YES // Wes dual uzi
+				set TMP_A wesupgrades[CHAINGUN_WEAPON]
+				orvar TMP_A 1
+				setarray wesupgrades[CHAINGUN_WEAPON] TMP_A
+				state wesweapons
+				// ifge player[].ammo_amount CHAINGUN_WEAPON player[].max_ammo_amount CHAINGUN_WEAPON
+				// {
+					// userquote 54
+					// state getweaponcode
+				// }
+			}
+			
+		}
+		else ifvarand charsel 4
+		ife player[].gotweapon CHAINGUN_WEAPON YES 
+		{
+			setarray weap_owned[221] YES // Wes dual uzi
+			set TMP_A wesupgrades[CHAINGUN_WEAPON]
+			orvar TMP_A 1
+			setarray wesupgrades[CHAINGUN_WEAPON] TMP_A
+		}
+		
+		set temp NO
+	    ife player[].curr_weapon KNEE_WEAPON 
+		{
+			ife gotsaw YES ifg sawammo 0 set temp YES 
+			ifg gotsaber 0 set temp YES
+		}
+
+        addweapon CHAINGUN_WEAPON 50
+		
+		ife temp YES { setp[].weapon_pos 0 setp[].curr_weapon 0 setp[].last_weapon -1 }
+		
+		ife pchar 2 userquote 1236 else
+        userquote 54
+        ifspawnedby CHAINGUNSPRITE
+          state getweaponcode
+        else
+          state quikweaponget
+      }
+enda
+
+spriteshadow CHAINGUNUPGRADE
+useractor notenemy CHAINGUNUPGRADE 0
+
+	ifmove 0
+	{
+		move STOPPED
+		sizeat 32 32
+	}
+	fall
+	ife weap_owned[21] YES { cactor BIGSTACK spritepal 49 break }
+	ifvarand charsel 1 nullop else { cactor BIGSTACK spritepal 49 break }
+	ifp pshrunk nullop
+    else
+      ifp palive
+        ifpdistl RETRIEVEDISTANCE
+          ifcount 6
+            ifcanseetarget
+      {
+	    ifvarand dukeupgrades[CHAINGUN_WEAPON] 1 break
+	    ifn pchar 0 { quote 194 break }
+	    set temp dukeupgrades[CHAINGUN_WEAPON]
+	    orvar temp 1
+	    setarray dukeupgrades[CHAINGUN_WEAPON] temp
+		setarray weap_owned[21] YES
+		smaxammo CHAINGUN_WEAPON 400
+		setarray weap_owned[123] YES
+		setarray weap_owned[23] YES
+		ife pchar 0 state dukeweapons
+        quote 193
+        state randgetweapsnds
+		globalsound WEAPON_UPGRADE
+		palfrom 32 0 32
+		killit
+      }
+
+enda
+
+spriteshadow M4UPGRADE
+useractor notenemy M4UPGRADE 0
+
+	ifmove 0
+	{
+		move STOPPED
+		sizeat 40 36
+	}
+	fall
+	ifvarand charsel 2 nullop else { cactor BIGSTACK spritepal 49 break }
+	ife weap_owned[121] YES { cactor BIGSTACK spritepal 49 break }
+	ifp pshrunk nullop
+    else
+      ifp palive
+        ifpdistl RETRIEVEDISTANCE
+          ifcount 6
+            ifcanseetarget
+      {
+	    ifvarand shellyupgrades[CHAINGUN_WEAPON] 1 break
+	    ifn pchar 1 { quote 192 break }
+	    set temp shellyupgrades[CHAINGUN_WEAPON]
+	    orvar temp 1
+	    setarray shellyupgrades[CHAINGUN_WEAPON] temp
+		setarray weap_owned[121] YES
+		smaxammo CHAINGUN_WEAPON 400
+		setarray weap_owned[123] YES
+		setarray weap_owned[23] YES
+		ife pchar 1 state shellyweapons
+        quote 191
+        state randgetweapsnds
+		globalsound WEAPON_UPGRADE
+		palfrom 32 0 32
+		killit
+      }
+
+enda
+
+spriteshadow SHOTGUNUPGRADE
+useractor notenemy SHOTGUNUPGRADE 0
+
+	ifmove 0
+	{
+		move STOPPED
+		sizeat 40 40
+	}
+	fall
+	ife weap_owned[11] YES { cactor BIGSTACK spritepal 49 break }
+	ifp pshrunk nullop
+    else
+      ifp palive
+        ifpdistl RETRIEVEDISTANCE
+          ifcount 6
+            ifcanseetarget
+      {
+		ife pchar 2 ifvarand wesupgrades[SHOTGUN_WEAPON] 1 break
+	    ife pchar 1 ifvarand shellyupgrades[SHOTGUN_WEAPON] 1 break
+		ife pchar 0 ifvarand dukeupgrades[SHOTGUN_WEAPON] 1 break
+	    set temp shellyupgrades[SHOTGUN_WEAPON]
+	    orvar temp 1
+		setarray shellyupgrades[SHOTGUN_WEAPON] temp
+		setarray weap_owned[11] YES
+		set temp dukeupgrades[SHOTGUN_WEAPON]
+	    orvar temp 1
+	    setarray dukeupgrades[SHOTGUN_WEAPON] temp
+		
+		set temp wesupgrades[SHOTGUN_WEAPON]
+	    orvar temp 1
+	    setarray wesupgrades[SHOTGUN_WEAPON] temp
+		
+        quote 190
+        state randgetweapsnds
+		globalsound WEAPON_UPGRADE
+		palfrom 32 0 32
+		killit
+      }
+
+enda
+
+useractor notenemy TRIPBOMBUPGRADE 0
+
+	ifmove 0
+	{
+		move STOPPED
+		sizeat 32 32
+	}
+	fall
+	
+	ife weap_owned[81] YES { cactor BIGSTACK spritepal 49 break }
+
+	ifp pshrunk nullop
+    else
+      ifp palive
+        ifpdistl RETRIEVEDISTANCE
+          ifcount 6
+            ifcanseetarget
+      {
+	    // ife pchar 1 ifvarand shellyupgrades[TRIPBOMB_WEAPON] 1 break
+		// ife pchar 0 ifvarand dukeupgrades[TRIPBOMB_WEAPON] 1 break
+		// ife pchar 2 ifvarand wesupgrades[TRIPBOMB_WEAPON] 1 break
+	    // set temp shellyupgrades[TRIPBOMB_WEAPON]
+	    // orvar temp 1
+		// setarray shellyupgrades[TRIPBOMB_WEAPON] temp
+		set temp dukeupgrades[TRIPBOMB_WEAPON]
+	    orvar temp 1
+	    setarray dukeupgrades[TRIPBOMB_WEAPON] temp
+		// set temp wesupgrades[TRIPBOMB_WEAPON]
+	    // orvar temp 1
+	    // setarray wesupgrades[TRIPBOMB_WEAPON] temp
+		setarray weap_owned[81] YES
+		setarray weap_owned[181] YES
+		setarray weap_owned[281] YES
+		setarray weap_owned[381] YES
+		ife pchar 0 state dukeweapons else
+		ife pchar 1 state shellyweapons else
+		ife pchar 2 state wesweapons else
+		ife pchar 3 state mandoweapons
+        quote 222
+        state randgetweapsnds
+		globalsound WEAPON_UPGRADE
+		palfrom 32 0 32
+		ife player[].ammo_amount TRIPBOMB_WEAPON MAXTRIPBOMBAMMO killit
+		addweapon TRIPBOMB_WEAPON 1
+		killit
+      }
+
+enda
+
+spriteshadow DEUPGRADE
+useractor notenemy DEUPGRADE 0
+
+	ifmove 0
+	{
+		move STOPPED
+		sizeat 32 32
+	}
+	fall
+	ifvarand charsel 2 nullop else { cactor BIGSTACK spritepal 49 break }
+	ife weap_owned[102] YES { cactor BIGSTACK spritepal 49 break }
+	ifp pshrunk nullop
+    else
+      ifp palive
+        ifpdistl RETRIEVEDISTANCE
+          ifcount 6
+            ifcanseetarget
+      {
+	    ife pchar 1 ifvarand shellyupgrades[PISTOL_WEAPON] 1 break
+		ifn pchar 1 { quote 192 break }
+	    set temp shellyupgrades[PISTOL_WEAPON]
+	    orvar temp 1
+		setarray shellyupgrades[PISTOL_WEAPON] temp
+		setarray weap_owned[102] YES
+        quote 213
+        state randgetweapsnds
+		globalsound WEAPON_UPGRADE
+		palfrom 32 0 32
+		killit
+      }
+
+enda
+
+useractor notenemy DUALDUKE 0
+
+	ifmove 0
+	{
+		move STOPPED
+		sizeat 32 32
+	}
+	fall
+	ifvarand charsel 1 nullop else { cactor BIGSTACK spritepal 49 break }
+	ife weap_owned[3] YES { cactor BIGSTACK spritepal 49 break }
+	ifp pshrunk nullop
+    else
+      ifp palive
+        ifpdistl RETRIEVEDISTANCE
+          ifcount 6
+            ifcanseetarget
+      {
+	    ife pchar 0 ifvarand dukeupgrades[PISTOL_WEAPON] 4 break
+		ifn pchar 0 { quote 194 break }
+	    set temp dukeupgrades[PISTOL_WEAPON]
+	    orvar temp 4
+		setarray dukeupgrades[PISTOL_WEAPON] temp
+		setarray weap_owned[3] YES
+		state dukeweapons
+        quote 312
+        state randgetweapsnds
+		globalsound WEAPON_UPGRADE
+		palfrom 32 0 32
+		killit
+      }
+
+enda
+
+useractor notenemy DUALSHELLY 0
+
+	ifmove 0
+	{
+		move STOPPED
+		sizeat 32 32
+	}
+	fall
+	ifvarand charsel 2 nullop else { cactor BIGSTACK spritepal 49 break }
+	ife weap_owned[103] YES { cactor BIGSTACK spritepal 49 break }
+	ifp pshrunk nullop
+    else
+      ifp palive
+        ifpdistl RETRIEVEDISTANCE
+          ifcount 6
+            ifcanseetarget
+      {
+	    ife pchar 1 ifvarand shellyupgrades[PISTOL_WEAPON] 4 break
+		ifn pchar 1 { quote 192 break }
+	    set temp shellyupgrades[PISTOL_WEAPON]
+	    orvar temp 4
+		setarray shellyupgrades[PISTOL_WEAPON] temp
+		setarray weap_owned[103] YES
+		state shellyweapons
+        quote 312
+        state randgetweapsnds
+		globalsound WEAPON_UPGRADE
+		palfrom 32 0 32
+		killit
+      }
+
+enda
+
+spriteshadow PISTOLUPGRADE
+useractor notenemy PISTOLUPGRADE 0
+
+	ifmove 0
+	{
+		move STOPPED
+		sizeat 32 32
+	}
+	ifvarand charsel 1 nullop else { cactor BIGSTACK spritepal 49 break }
+	ife weap_owned[2] YES { cactor BIGSTACK spritepal 49 break }
+	fall
+	ifp pshrunk nullop
+    else
+      ifp palive
+        ifpdistl RETRIEVEDISTANCE
+          ifcount 6
+            ifcanseetarget
+      {
+		ife pchar 0 ifvarand dukeupgrades[PISTOL_WEAPON] 1 break
+		ifn pchar 0 { quote 194 break }
+		set temp dukeupgrades[PISTOL_WEAPON]
+	    orvar temp 1
+	    setarray dukeupgrades[PISTOL_WEAPON] temp
+		setarray weap_owned[2] YES
+        quote 212
+        state randgetweapsnds
+		globalsound WEAPON_UPGRADE
+		palfrom 32 0 32
+		killit
+      }
+
+enda
+
+spriteshadow FREEZEUPGRADE
+useractor notenemy FREEZEUPGRADE 0
+
+	ifmove 0
+	{
+		move STOPPED
+		sizeat 32 32
+	}
+	fall
+	ife weap_owned[91] YES { cactor BIGSTACK spritepal 49 break }
+	ifvarand charsel 1 nullop else { cactor BIGSTACK spritepal 49 break }
+	ifp pshrunk nullop
+    else
+      ifp palive
+        ifpdistl RETRIEVEDISTANCE
+          ifcount 6
+            ifcanseetarget
+      {
+		ife pchar 0 ifvarand dukeupgrades[FREEZE_WEAPON] 1 break
+		ifn pchar 0 { quote 194 break }
+		set temp dukeupgrades[FREEZE_WEAPON]
+	    orvar temp 1
+	    setarray dukeupgrades[FREEZE_WEAPON] temp
+		
+		setarray weap_owned[91] YES
+		
+        quote 214
+        state randgetweapsnds
+		globalsound WEAPON_UPGRADE
+		palfrom 32 0 32
+		ife pchar 0 state dukeweapons
+		killit
+      }
+
+enda
+
+spriteshadow INCINUPGRADE
+useractor notenemy INCINUPGRADE 0
+
+	ifmove 0
+	{
+		move STOPPED
+		sizeat 32 32
+	}
+	fall
+	ife weap_owned[191] YES { cactor BIGSTACK spritepal 49 break }
+	ifvarand charsel 2 nullop else { cactor BIGSTACK spritepal 49 break }
+	ifp pshrunk nullop
+    else
+      ifp palive
+        ifpdistl RETRIEVEDISTANCE
+          ifcount 6
+            ifcanseetarget
+      {
+		ife pchar 1 ifvarand shellyupgrades[FREEZE_WEAPON] 1 break
+		ifn pchar 1 { quote 192 break }
+		set temp shellyupgrades[FREEZE_WEAPON]
+	    orvar temp 1
+	    setarray shellyupgrades[FREEZE_WEAPON] temp
+		setarray weap_owned[191] YES
+        quote 215
+        state randgetweapsnds
+		globalsound WEAPON_UPGRADE
+		palfrom 32 0 32
+		ife pchar 1 state shellyweapons
+		killit
+      }
+
+enda
+
+useractor notenemy VENDORUPGRADE 0
+
+	sizeat 16 16
+	fall
+	
+	ifp pshrunk nullop
+    else
+      ifp palive
+        ifpdistl RETRIEVEDISTANCE
+          ifcount 6
+            ifcanseetarget
+				ife vendor_screen 0
+					ife vendorupgrade NO
+	{
+		quote 742
+		globalsound AIMBOT_ON
+		palfrom 32 0 32
+		set vendorupgrade YES
+		savegamevar vendorupgrade
+		set subtitle_start 743
+		set subtitle_numlines 5
+		set subtitle_time 10
+		lockplayer 10
+		cstat 32768
+	}
+	
+	ife vendorupgrade YES
+	ife subtitle_start 743
+	ifg subtitle_time 0
+	{
+		ifn vendor_screen 0
+		{
+			lockplayer 10
+			set subtitle_time 10
+			killit
+		}
+		else
+		{
+			set subtitle_time 10
+			lockplayer 10
+		}
+	}
+	
+
+enda
+
+useractor notenemy VRREWARD 0
+
+	cstat 32768
+	sizeat 16 16
+	
+	ifmove 0
+	{
+		move STOPPED
+		globalsound WEAPON_UPGRADE
+		palfrom 32 0 32
+		// set vendorupgrade YES
+		// savegamevar vendorupgrade
+		
+		set subtitle_start 1165
+		set subtitle_numlines 1
+		
+		switch initsprite
+		case 1 // from clear the coast level 27
+			ifvarand vrfield 1 
+			{
+				set subtitle_start 1368
+				set subtitle_numlines 2
+			}
+			else
+			{
+				ifvarand perks 1 { add credits 14000 add lastcredits 14000 }
+				add vrdone 1
+				orvar vrfield 1
+				orvar perks 1 // sideguns
+				setarray weap_owned[517] YES
+				// savegamevar perks
+				set subtitle_start 749
+				set subtitle_numlines 3
+			}
+		break
+		case 2 // from AMC pleaser level 28
+			ifvarand vrfield 2 
+			{
+				set subtitle_start 1368
+				set subtitle_numlines 2
+			} 
+			else
+			{
+				ifvarand perks 32 { add credits 5000 add lastcredits 5000 } 
+				add vrdone 1
+				orvar vrfield 2
+				orvar perks 32 // coin magnet
+				setarray weap_owned[511] YES
+				// savegamevar perks
+				set subtitle_start 752
+				set subtitle_numlines 3
+			}
+		break
+		case 3 // from city under siege level 33
+			ifvarand vrfield 4 
+			{
+				set subtitle_start 1368
+				set subtitle_numlines 2
+			} 
+			else
+			{
+				ifvarand inven_upgrades 16 { add credits 8000 add lastcredits 8000 } 
+				add vrdone 1
+				orvar vrfield 4
+				orvar inven_upgrades 16 // EMT training
+				setarray weap_owned[500] YES
+				// savegamevar perks
+				set subtitle_start 755
+				set subtitle_numlines 3
+			}
+		break
+		case 4 // from polariso
+			ifvarand vrfield 8 
+			{
+				set subtitle_start 1368
+				set subtitle_numlines 2
+			} 
+			else
+			{
+				ifvarand perks 8 { add credits 8000 add lastcredits 8000 } 
+				add vrdone 1
+				orvar vrfield 8
+				orvar perks 8 // no self-damage level 34
+				setarray weap_owned[516] YES
+				// savegamevar perks
+				set subtitle_start 758
+				set subtitle_numlines 3
+			}
+		break
+		case 5 // from pigs and men
+			// low health regen
+			// orvar perks 16 level 35
+			ifvarand vrfield 16 
+			{
+				set subtitle_start 1368
+				set subtitle_numlines 2
+			} 
+			else
+			{
+				add vrdone 1
+				set temp weap_owned[512]
+				add temp 4
+				setarray weap_owned[512] temp
+				ife regenmax 0 { add vrdone 1 set regenmax 40 } else
+				add regenmax 40
+				// setarray weap_owned[512] YES
+				orvar vrfield 16
+				set subtitle_start 761
+				set subtitle_numlines 3
+			}
+		break
+		endswitch
+		
+		set subtitle_time 60
+		lockplayer 60
+	}
+	
+	ifg subtitle_time 0
+	ifl subtitle_time 10
+	{
+		ifhitspace
+		{
+			lockplayer 2
+			set subtitle_time 2
+			ifn vrtrip 0
+			{
+				set vrscreen_time 32
+				set vrscreen VR1
+			}
+			killit
+		}
+		else
+		{
+			set subtitle_time 5
+			lockplayer 2
+		}
+	}
+	
+
+enda
+
+action BMFGFRAME 12985
+action WESSHRINKFRAME 19874
+action DEASHRINKFRAME 22220
+
+actor SHRINKERSPRITE
+
+  ife pchar 4 { action DEASHRINKFRAME spritepal 12 } else
+  ife pchar 2 { action WESSHRINKFRAME spritepal 21 } else
+  ife initsprite 1 { action ANULLACTION spritepal 0 } else
+  ife pchar 0
+  ifvarand dukeupgrades[SHRINKER_WEAPON] 1 { action BMFGFRAME spritepal 0 }
+  else
+  ife pchar 1
+  ifvarand shellyupgrades[SHRINKER_WEAPON] 1 { spritepal 0 action BMFGFRAME }
+  else
+  { action ANULLACTION spritepal 0 }
+  
+  ifaction BMFGFRAME sizeat 20 20 else 
+  ifaction DEASHRINKFRAME sizeat 20 20 
+  else sizeat 32 32
+  
+  fall
+  ifmove RESPAWN_ACTOR_FLAG
+    state respawnit
+  else
+    ifp pshrunk nullop
+    else
+      ifp palive
+        ifpdistl RETRIEVEDISTANCE
+          ifcount 6
+            ifcanseetarget
+      {
+        ifgotweaponce 0
+          break
+		
+		set temp NO
+		ife player[].curr_weapon KNEE_WEAPON 
+		{
+			ife gotsaw YES ifg sawammo 0 set temp YES 
+			ifg gotsaber 0 set temp YES
+		}
+		
+		ife gametype 0 ife player[].gotweapon GROW_WEAPON NO setp[].gotweapon GROW_WEAPON YES
+		
+		ife player[].gotweapon SHRINKER_WEAPON YES
+		ifge player[].ammo_amount SHRINKER_WEAPON player[].max_ammo_amount SHRINKER_WEAPON break
+ 
+		// ife initsprite 1
+		setp[].gotweapon GROW_WEAPON YES
+		// else
+		ife pchar 2 addweapon SHRINKER_WEAPON 20 else
+        addweapon SHRINKER_WEAPON CRYSTALAMMOAMOUNT
+		// ifn pchar 2
+		// ifl player[].ammo_amount GROW_WEAPON player[].max_ammo_amount GROW_WEAPON addammo GROW_WEAPON 20
+		ife temp YES { setp[].weapon_pos 0 setp[].curr_weapon 0 setp[].last_weapon -1 }
+		ifaction DEASHRINKFRAME userquote 1425 else
+		ifaction WESSHRINKFRAME userquote 1204 else
+		ifaction BMFGFRAME userquote 258 else
+        userquote 60
+        ifspawnedby SHRINKERSPRITE
+          state getweaponcode
+        else
+          state quikweaponget
+      }
+enda
+
+useractor notenemy BMFGSPRITE 0
+
+  sizeat 32 32
+  fall
+  ifmove RESPAWN_ACTOR_FLAG
+    state respawnit
+  else
+    ifp pshrunk nullop
+    else
+      ifp palive
+        ifpdistl RETRIEVEDISTANCE
+          ifcount 6
+            ifcanseetarget
+      {
+        set temp NO
+		ife player[].curr_weapon KNEE_WEAPON 
+		{
+			ife gotsaw YES ifg sawammo 0 set temp YES 
+			ifg gotsaber 0 set temp YES
+		}
+ 
+       
+		// ife pchar 0
+		// {
+			set B dukeupgrades[SHRINKER_WEAPON]
+			orvar B 1
+			setarray dukeupgrades[SHRINKER_WEAPON] B
+			setarray weap_owned[51] YES
+		// }
+		// ife pchar 1
+		// {
+			set B shellyupgrades[SHRINKER_WEAPON]
+			orvar B 1
+			setarray shellyupgrades[SHRINKER_WEAPON] B
+			setarray weap_owned[151] YES
+			setarray weap_owned[351] YES
+		// }
+		 ifge player[].ammo_amount SHRINKER_WEAPON MAXSHRINKERAMMO break
+		 addweapon SHRINKER_WEAPON CRYSTALAMMOAMOUNT
+		
+		
+		ife temp YES { setp[].weapon_pos 0 setp[].curr_weapon 0 setp[].last_weapon -1 }
+        userquote 258
+        ifspawnedby BMFGSPRITE
+          state getweaponcode
+        else
+          state quikweaponget
+		  
+		killit
+      }
+enda
+
+
+action WESGROWFRAME 19867
+action DEAGROWFRAME 22230
+
+useractor notenemy GROWSPRITEICON 0
+  sizeat 28 28
+  cstat 0
+  
+  ife pchar 4 { action DEAGROWFRAME sizeat 20 20 }
+  else
+  {
+  ife pchar 2 
+	action WESGROWFRAME
+	else
+  action ANULLACTION
+   sizeat 28 28
+  }
+  
+  fall
+  ifmove RESPAWN_ACTOR_FLAG
+    state respawnit
+  else
+    ifp pshrunk nullop
+    else
+      ifp palive
+        ifpdistl RETRIEVEDISTANCE
+          ifcount 6
+            ifcanseetarget
+      {
+       
+		set temp NO
+		ife player[].curr_weapon KNEE_WEAPON 
+		{
+			ife gotsaw YES ifg sawammo 0 set temp YES 
+			ifg gotsaber 0 set temp YES
+		}
+		
+		addweapon GROW_WEAPON 40
+		
+		ife temp YES { setp[].weapon_pos 0 setp[].curr_weapon 0 setp[].last_weapon -1 }
+		ife pchar 4 userquote 3500 else
+		ife pchar 2 userquote 1207 else
+        userquote 60
+        ifspawnedby GROWSPRITEICON
+          state getweaponcode
+        else
+          state quikweaponget
+      }
+enda
+
+spriteshadow SHOCKRIFLESPRITE
+useractor notenemy SHOCKRIFLESPRITE 0
+  sizeat 28 28
+  fall
+  ifmove RESPAWN_ACTOR_FLAG
+    state respawnit
+  else
+    ifp pshrunk nullop
+    else
+      ifp palive
+        ifpdistl RETRIEVEDISTANCE
+          ifcount 6
+            ifcanseetarget
+      {
+		
+		set temp NO
+		ife player[].curr_weapon KNEE_WEAPON 
+		{
+			ife gotsaw YES ifg sawammo 0 set temp YES 
+			ifg gotsaber 0 set temp YES
+		}
+ 
+		set B YES
+		ife pchar 0 ifvarand dukeupgrades[CHAINGUN_WEAPON] 8 ifvarand gotshock 2 nullop else set B NO
+		ife pchar 1 ifvarand shellyupgrades[CHAINGUN_WEAPON] 8 ifvarand gotshock 2 nullop else set B NO
+		
+		ife B NO
+		{
+			setp[].gotweapon CHAINGUN_WEAPON YES
+			set B dukeupgrades[CHAINGUN_WEAPON]
+			orvar B 8
+			setarray dukeupgrades[CHAINGUN_WEAPON] B
+			
+			set B shellyupgrades[CHAINGUN_WEAPON]
+			orvar B 8
+			setarray shellyupgrades[CHAINGUN_WEAPON] B
+			
+			set B wesupgrades[CHAINGUN_WEAPON]
+			orvar B 8
+			setarray wesupgrades[CHAINGUN_WEAPON] B
+			
+			setarray weap_owned[24] YES
+			setarray weap_owned[124] YES
+			setarray weap_owned[224] YES
+			
+			getp[].ammo_amount CHAINGUN_WEAPON temp
+			add temp 50 
+			ifg temp player[].max_ammo_amount CHAINGUN_WEAPON set temp player[].max_ammo_amount CHAINGUN_WEAPON
+			setp[].ammo_amount CHAINGUN_WEAPON temp
+			orvar gotshock 1
+			setp[].weapon_pos -1
+			orvar gotshock 4
+			
+			userquote 389
+            state getweaponcode
+			killit
+		}
+		addweapon CHAINGUN_WEAPON 50
+		
+		
+		
+		ife temp YES { setp[].weapon_pos 0 setp[].curr_weapon 0 setp[].last_weapon -1 }
+        userquote 389
+        ifspawnedby SHOCKRIFLESPRITE
+          state getweaponcode
+        else
+          state quikweaponget
+      }
+enda
+
+action BFREEZEFRAME 7767
+action WESFREEZEFRAME 19907
+action MANDOFREEZEFRAME 20936
+action DEAFREEZEFRAME 22252
+
+actor FREEZESPRITE
+
+  ife pchar 4 { sizeat 24 24 action DEAFREEZEFRAME } else
+  ife pchar 3 { sizeat 18 18 action MANDOFREEZEFRAME } else
+  ife pchar 2 { sizeat 24 24 action WESFREEZEFRAME } else
+  ife pchar 1 { action BFREEZEFRAME sizeat 32 32 } else
+  { action ANULLACTION sizeat 32 32 }
+  fall
+  ifmove RESPAWN_ACTOR_FLAG
+    state respawnit
+  else
+    ifp pshrunk nullop
+    else
+      ifp palive
+        ifpdistl RETRIEVEDISTANCE
+          ifcount 6
+            ifcanseetarget
+      {
+        ifgotweaponce 0
+          break
+
+		set temp NO
+		ife player[].curr_weapon KNEE_WEAPON 
+		{
+			ife gotsaw YES ifg sawammo 0 set temp YES 
+			ifg gotsaber 0 set temp YES
+		}
+
+		ifvarand gotplasma 2
+		{
+			ifge plasmammo MAXFREEZEAMMO break
+			setp[].gotweapon FREEZE_WEAPON YES
+			add plasmammo FREEZEAMMOAMOUNT
+			ifvarand dukeupgrades[FREEZE_WEAPON] 2 add plasmammo FREEZEAMMOAMOUNT
+			// ife weap_owned[53] YES add plasmammo FREEZEAMMOAMOUNT
+			ifg plasmammo MAXFREEZEAMMO set plasmammo MAXFREEZEAMMO
+			
+		}
+		else
+        addweapon FREEZE_WEAPON FREEZEAMMOAMOUNT
+		
+		ife temp YES { setp[].weapon_pos 0 setp[].curr_weapon 0 setp[].last_weapon -1 }
+		ife pchar 4 userquote 3490 else
+		ife pchar 3 userquote 1392 else
+		ife pchar 2 userquote 1198 else
+		ife pchar 1 userquote 161 else
+        userquote 59
+        ifspawnedby FREEZESPRITE
+          state getweaponcode
+        else
+          state quikweaponget
+      }
+enda
+
+action BDEVFRAME 7761
+action MDEVFRAME 21207
+actor DEVISTATORSPRITE
+
+  ife pchar 3 { action MDEVFRAME sizeat 16 16 } else
+  {
+    sizeat 32 32
+	ife pchar 1 action BDEVFRAME else action ANULLACTION
+  }
+  fall
+  ifmove RESPAWN_ACTOR_FLAG state respawnit
+  else
+    ifp pshrunk nullop
+    else
+      ifp palive
+        ifpdistl RETRIEVEDISTANCE
+          ifcount 6
+            ifcanseetarget
+      {
+        ifgotweaponce 0
+          break
+		  
+		set temp NO
+	    ife player[].curr_weapon KNEE_WEAPON 
+		{
+			ife gotsaw YES ifg sawammo 0 set temp YES 
+			ifg gotsaber 0 set temp YES
+		}
+
+		
+			ifvarand gotrailgun 2 set tempb railgunammo  else
+			set tempb player[].ammo_amount DEVISTATOR_WEAPON
+			
+			ife player[].gotweapon DEVISTATOR_WEAPON YES
+			
+			ifge tempb MAXDEVISTATORAMMO break
+		
+			setp[].gotweapon DEVISTATOR_WEAPON YES
+			
+			add tempb DEVISTATORAMMOAMOUNT
+			
+			ifg tempb MAXDEVISTATORAMMO set tempb MAXDEVISTATORAMMO
+			
+			ifvarand gotrailgun 2 set railgunammo tempb else
+			setp[].ammo_amount DEVISTATOR_WEAPON tempb
+			userquote 87
+			
+			ife temp YES { setp[].weapon_pos 0 setp[].curr_weapon 0 setp[].last_weapon -1 }
+			
+			ifspawnedby DEVISTATORSPRITE
+			state getweaponcode
+			else
+			state quikweaponget
+		    killit
+      }
+enda
+
+state pickup_railgun
+
+	ifvarand gotrailgun 2 set tempb player[].ammo_amount DEVISTATOR_WEAPON else
+	set tempb railgunammo
+	
+	ifvarand gotrailgun 1
+	ifge tempb MAXRAILAMOUNT break
+	
+	set B NO
+	ife pchar 0 ifvarand dukeupgrades[DEVISTATOR_WEAPON] 4 set B YES
+	ife pchar 1 ifvarand shellyupgrades[DEVISTATOR_WEAPON] 4 set B YES
+	ife pchar 2 ifvarand wesupgrades[DEVISTATOR_WEAPON] 4 set B YES
+	ifge pchar 3 set B YES
+	ife B YES
+	{
+		ifge pchar 3 userquote 1373 else
+		userquote 2490
+	}
+	else userquote 127
+	
+	  
+	  ifspawnedby LIZRANGER
+	  {
+	    ife B YES add tempb 3 else
+	    add tempb 5 
+		rand tempc 5 add tempb tempc 
+	    ifn attmode NO 
+			ifl tempb 20 
+			{
+				ife B YES add tempb 3 else
+				add tempb 5
+			}
+		
+	  }
+	  else 
+	  {
+	    ife B YES add tempb 7 else
+		add tempb 10
+	  }
+	  ifg tempb MAXRAILAMOUNT set tempb MAXRAILAMOUNT
+	  
+	  ifvarand gotrailgun 2 setp[].ammo_amount DEVISTATOR_WEAPON tempb else
+	  set railgunammo tempb
+	  
+	  
+	  ifvarand gotrailgun 1 nullop else
+	  {
+	    set switchnew YES
+		orvar gotrailgun 1
+		setp[].gotweapon DEVISTATOR_WEAPON YES
+		getuserdef[].weaponswitch temp
+		ifvarand temp 1
+		ife player[].weapon_pos 0
+		{
+			orvar gotrailgun 4
+			setp[].weapon_pos -1
+			
+			// addweapon DEVISTATOR_WEAPON 0
+		}
+	  }
+
+	ifspawnedby RAILGUNSPRITE
+	  state getweaponcode
+	else
+	  state quikweaponget
+	  
+	killit
+ends
+
+action DISINSPRITEFRAME 15859
+action BARRETFRAME 2857
+move RAILGUNSLIDE 160
+move RAILGUNSTOP
+
+eventloadactor RAILGUNSPRITE sizeat 32 32 cstat 0 enda
+useractor notenemy RAILGUNSPRITE 0
+
+	ifmove 0
+	{
+		ifspawnedby LIZRANGER
+			move RAILGUNSLIDE randomangle
+		else move RAILGUNSTOP
+	}
+
+	ife pchar 0 ifvarand dukeupgrades[DEVISTATOR_WEAPON] 4 action BARRETFRAME else
+	ife pchar 1 ifvarand shellyupgrades[DEVISTATOR_WEAPON] 4 action BARRETFRAME else
+	ife pchar 2 ifvarand wesupgrades[DEVISTATOR_WEAPON] 4 action BARRETFRAME else
+	ife pchar 3 action DISINSPRITEFRAME else
+	action ANULLACTION
+
+	ifmove RAILGUNSTOP nullop else
+	ifcount 10 move RAILGUNSTOP geth
+
+	  fall
+	  ifaction BARRETFRAME sizeat 24 24 else 
+	  ifaction DISINSPRITEFRAME sizeat 20 20 else
+	  sizeat 32 32
+	  cstat 0
+ 
+      ifp palive
+	   ifmove RAILGUNSTOP
+        ifpdistl RETRIEVEDISTANCE
+          ifcount 6
+            ifcanseetarget
+      {
+	    state pickup_railgun
+		
+      }
+enda
+
+state pickup_plasma_ammo
+
+	ifvarand gotplasma 2 set tempb player[].ammo_amount FREEZE_WEAPON else
+	set tempb plasmammo
+	
+	ifvarand gotplasma 1
+	ifge tempb MAXPLASMAMOUNT break
+	
+	  // ifvarand wesupgrades[FREEZE_WEAPON] 2 add tempb 20 else
+	  ifvarand dukeupgrades[FREEZE_WEAPON] 2 add tempb 20 // else
+	  // ifvarand shellyupgrades[FREEZE_WEAPON] 2 add tempb 20
+	  
+	  add tempb 20
+	  ifg tempb MAXPLASMAMOUNT set tempb MAXPLASMAMOUNT
+	  
+	  ifvarand gotplasma 2 setp[].ammo_amount FREEZE_WEAPON tempb else
+	  set plasmammo tempb
+	  
+	userquote 221
+	ifspawnedby PLASMAAMMO
+          state getcode
+        else
+          state quikget
+	killit
+
+ends
+
+state pickup_plasma
+
+	ifvarand gotplasma 2 set tempb player[].ammo_amount FREEZE_WEAPON else
+	set tempb plasmammo
+	
+	ifvarand gotplasma 1
+	ifge tempb MAXPLASMAMOUNT break
+	
+	  // ifvarand wesupgrades[FREEZE_WEAPON] 2 add tempb 30 else
+	  ifvarand dukeupgrades[FREEZE_WEAPON] 2 add tempb 30 // else
+	  // ifvarand shellyupgrades[FREEZE_WEAPON] 2 add tempb 30
+	  add tempb 30
+	  ifg tempb MAXPLASMAMOUNT set tempb MAXPLASMAMOUNT
+	  
+	  ifvarand gotplasma 2 setp[].ammo_amount FREEZE_WEAPON tempb else
+	  set plasmammo tempb
+	   
+	  userquote 216
+	  ifvarand gotplasma 1 nullop else
+	  {
+		orvar gotplasma 1
+		setp[].gotweapon FREEZE_WEAPON YES
+		getuserdef[].weaponswitch temp
+		ifvarand temp 1
+		ifg player[].weapon_pos -1
+		{
+			orvar gotplasma 4
+			setp[].weapon_pos -1
+			// addweapon FREEZE_WEAPON 0
+		}
+	  }
+
+	ifspawnedby PLASMASPRITE
+	  state getweaponcode
+	else
+	  state quikweaponget
+	  
+	killit
+ends
+
+useractor notenemy PLASMASPRITE 0
+
+ifmove 0
+{
+	ifspawnedby TERMINATOR
+		move RAILGUNSLIDE randomangle
+	else ifspawnedby TERMINATORCRAWLING
+		move RAILGUNSLIDE randomangle
+	else move RAILGUNSTOP
+}
+
+ifcount 10 
+{
+	ifmove RAILGUNSTOP nullop else
+	move RAILGUNSTOP geth
+}
+
+  fall
+  sizeat 32 32
+  ifmove RESPAWN_ACTOR_FLAG
+    state respawnit
+  else
+    ifp pshrunk nullop
+    else
+      ifp palive
+	   ifmove RAILGUNSTOP
+        ifpdistl RETRIEVEDISTANCE
+          ifcount 6
+            ifcanseetarget
+      {
+	    state pickup_plasma
+		
+      }
+enda
+
+useractor notenemy PLASMAAMMO 0
+
+  fall
+  sizeat 16 16
+  ifmove RESPAWN_ACTOR_FLAG
+    state respawnit
+  else
+    ifp pshrunk nullop
+    else
+      ifp palive
+        ifpdistl RETRIEVEDISTANCE
+          ifcount 6
+            ifcanseetarget
+      {
+	    state pickup_plasma_ammo
+		
+      }
+
+enda
+
+
+
+useractor notenemy STAKESPRITE 0
+
+  fall
+  sizeat 10 10
+  
+    ifp pshrunk nullop
+    else
+      ifp palive
+        ifpdistl RETRIEVEDISTANCE
+          ifcount 6
+            ifcanseetarget
+			 ifl stakes MAXSTAKES
+      {
+	    add stakes 1
+		globalsound DUKE_GET
+		palfrom 16 0 32
+		killit 
+      }
+
+enda
+
+eventloadactor RADARSPRITE sizeat 32 32 spritepal 46 enda
+
+useractor notenemy RADARSPRITE
+
+ifaction 0 { action ANULLACTION sizeat 32 32 spritepal 46 }
+fall
+ ifp pshrunk nullop
+    else
+      ifp palive
+        ifpdistl RETRIEVEDISTANCE
+          ifcount 6
+            ifcanseetarget
+	{
+		set radaron YES
+		orvar perks 2
+		palfrom 40 50 50 63
+		globalsound GOTRADAR
+		quote 783
+		killit
+	}
+
+enda
+
+eventloadactor RADAWAY sizeat 16 16 cstat 0 enda
+useractor notenemy RADAWAY 
+
+ifaction 0 { action ANULLACTION sizeat 16 16 }
+
+fall
+ ifp pshrunk nullop
+    else
+      ifp palive
+        ifpdistl RETRIEVEDISTANCE
+          ifcount 6
+            ifcanseetarget
+	{
+		palfrom 32 0 50 0
+		globalsound DUKE_GET
+		quote 1495
+		killit
+	}
+
+enda
+
+defstate collectrewardcode
+	// make sound
+	// flash color
+	// spawn reward
+	espawn GLARESTAR
+	headspritestat spriteid 3
+	whilevarn spriteid -1
+	{
+		ife sprite[spriteid].lotag 61
+			set myspawner spriteid
+		nextspritestat spriteid spriteid
+		ifn myspawner -1 set spriteid -1
+	}
+	rand savx 512
+	add savx sprite[myspawner].x
+	rand savy 512
+	add savy sprite[myspawner].y
+	set savz sprite[myspawner].z
+	sub savz 1024
+	setsprite RETURN savx savy savz
+	
+	espawn BIGSTACK
+	seta[RETURN].pal 99
+	setsprite RETURN savx savy savz
+	
+	add collectreward 1
+	globalsound SPARKLESOUND
+	// savegamevar collectreward
+	
+ends
+
+
+defstate collectible_vis
+
+	ifl sprite[].picnum MINIQUEEN
+	{
+		set temp 1
+		set picnum sprite[].picnum
+		sub picnum MINIDUKE
+		whilevarn picnum 0
+		{
+			mul temp 2
+			sub picnum 1
+		}
+		ifvarvarand collectibles1 temp
+		{
+			ife mtype 0 { killit break }
+			ife sprite[].cstat 32768 cstat 0
+			ifvarvarand collectgiven1 temp nullop else
+			{
+				orvarvar collectgiven1 temp
+				state collectrewardcode
+			}
+			
+		}
+		set initflags collectibles1
+	}
+	else
+	{
+		set temp 1
+		set picnum sprite[].picnum
+		sub picnum MINIQUEEN
+		whilevarn picnum 0
+		{
+			mul temp 2
+			sub picnum 1
+		}
+		ifvarvarand collectibles2 temp 
+		{
+			ife mtype 0 { killit break }
+			ife sprite[].cstat 32768 cstat 0
+			ifvarvarand collectgiven2 temp nullop else
+			{
+				orvarvar collectgiven2 temp
+				state collectrewardcode
+			}
+		}
+		set initflags collectibles2
+	}
+
+ends
+
+defstate collectibles
+
+	ifaction 0
+	{	
+		seta[].htflags 4
+		seta[].shade -30
+		sizeat 24 24
+		getp[].posz z
+		sub z sprite[].z
+		abs z, ifg z 40960 break
+		ifpdistg 12288 break
+		action ANULLACTION
+		// ifn mtype 0
+		state collectible_vis
+	}
+	// fall
+	
+	ifn mtype 0
+	{
+		ife sprite[].cstat 32768
+		{
+			ifl sprite[].picnum MINIQUEEN ifn initsprite collectibles1 state collectible_vis else
+			ifge sprite[].picnum MINIQUEEN ifn initsprite collectibles2 state collectible_vis
+		}
+		break
+	}
+	
+	ifspritepal 33 { getlastpal resetcount }
+	ifcount 60 spritepal 33
+	
+	ifp palive
+	ifpdistl RETRIEVEDISTANCE
+	ifcanseetarget
+	{
+		ifl sprite[].picnum MINIQUEEN
+		{
+			set temp 1
+			set picnum sprite[].picnum
+			sub picnum MINIDUKE
+			whilevarn picnum 0
+			{
+				mul temp 2
+				sub picnum 1
+			}
+			set tempb collectibles1
+			orvarvar collectibles1 temp
+			ifn tempb collectibles1 add collectotal 1
+			
+		}
+		else
+		{
+			set temp 1
+			set picnum sprite[].picnum
+			sub picnum MINIQUEEN
+			whilevarn picnum 0
+			{
+				mul temp 2
+				sub picnum 1
+			}
+			set tempb collectibles2
+			orvarvar collectibles2 temp
+			ifn tempb collectibles2 add collectotal 1
+		}
+		
+		ife pchar 4 
+			globalsound DEA_USEFUL
+		  else
+		  {
+			  rand temp 3
+			  ife temp 0 globalsound DUKE_GETWEAPON1 else
+			  ife temp 1 globalsound DUKE_GETWEAPON3 else
+			  ife temp 2 globalsound DUKE_GETWEAPON5 else
+			  ife temp 3 globalsound VACA_GETWEAP1
+			  
+		  }
+		quote 1547
+		palfrom 20 0 32
+		globalsound DUKE_GET
+		add collectfound 1
+		killit
+	}
+
+ends
+
+useractor notenemy MINIDUKE 0 state collectibles enda
+
+useractor notenemy MINISHELLY 0 state collectibles enda
+useractor notenemy MINIDEA 0 state collectibles enda
+useractor notenemy MINIMANDO 0 state collectibles enda
+useractor notenemy MINIWES 0 state collectibles enda
+useractor notenemy MINILIZTROOP 0 state collectibles enda
+useractor notenemy MINIPIG 0 state collectibles enda
+useractor notenemy MINIOCTA 0 state collectibles enda
+useractor notenemy MINICOMM 0 state collectibles enda
+useractor notenemy MINIBEAST 0 state collectibles enda
+useractor notenemy MINILIZMAN 0 state collectibles enda
+useractor notenemy MINIEDF1 0 state collectibles enda
+useractor notenemy MINIEDF2 0 state collectibles enda
+useractor notenemy MINIEDF3 0 state collectibles enda
+useractor notenemy MINIARMPIG 0 state collectibles enda
+useractor notenemy MINIANT 0 state collectibles enda
+useractor notenemy MINIBULL 0 state collectibles enda
+useractor notenemy MINIMECH 0 state collectibles enda
+useractor notenemy MINIRANGER 0 state collectibles enda
+useractor notenemy MINIMEGA 0 state collectibles enda
+useractor notenemy MINISCUBA 0 state collectibles enda
+useractor notenemy MINIELITE 0 state collectibles enda
+useractor notenemy MINITERM 0 state collectibles enda
+useractor notenemy MINIPOLY 0 state collectibles enda
+useractor notenemy MINIBRACCUS 0 state collectibles enda
+useractor notenemy MINIZOMBIE 0 state collectibles enda
+useractor notenemy MINICYCLOID 0 state collectibles enda
+useractor notenemy MINIBATLORD 0 state collectibles enda
+useractor notenemy MINIOVERLORD 0 state collectibles enda
+useractor notenemy MINIQUEEN 0 state collectibles enda
+useractor notenemy MINILIZBOSS 0 state collectibles enda
+useractor notenemy MINIPIGBOSS 0 state collectibles enda
+useractor notenemy MINICANHEAD 0 state collectibles enda
+useractor notenemy MINIPROTON 0 state collectibles enda
+useractor notenemy MINICYBER 0 state collectibles enda
+useractor notenemy MINIBIGBOI 0 state collectibles enda
+useractor notenemy MINILITMAN 0 state collectibles enda
+useractor notenemy MINIDEVOUR 0 state collectibles enda
+useractor notenemy MINICYCJR 0 state collectibles enda
+useractor notenemy MINILIZDOG 0 state collectibles enda
+useractor notenemy MINISYTH 0 state collectibles enda
+useractor notenemy MINISITH 0 state collectibles enda
+useractor notenemy MINICHEER 0 state collectibles enda
+useractor notenemy MINISHARK 0 state collectibles enda
+useractor notenemy MINIFEMFIGHT state collectibles enda
+useractor notenemy MINIMALFIGHT state collectibles enda
+useractor notenemy MINIGRAVES state collectibles enda
+useractor notenemy MINIAXON state collectibles enda
+useractor notenemy MININATTY state collectibles enda
+useractor notenemy MINIARMLIZ state collectibles enda
+
+// use ADEAGROWFRAME for open
+useractor notenemy ITEMCHEST 0
+
+fall
+ifaction 0
+{
+	action ANULLACTION
+	sizeat 32 32
+	cstator 257
+}
+ife initsprite 0 break
+
+ifaction ANULLACTION
+ifp pfacing
+ifpdistl 1280
+ifp palive
+ifhitspace
+ifcansee
+ife award_screen 0
+{
+	action ADEAGROWFRAME
+	ifn SPRITELOTAG 0 state activatechannel
+	globalsound CHEST_OPEN
+	ifn initsprite 0 { espawnvar initsprite set droptile 0 }
+}
+
+enda
+
+// use ADEAGROWFRAME for open
+useractor notenemy EDFCHEST 0
+
+fall
+ifaction 0
+{
+	action ANULLACTION
+	sizeat 32 32
+	cstator 257
+	switch initsprite
+	case 1
+		ifvarand startguns_perma 1 action ADEAGROWFRAME
+		break
+	case 2
+		ifvarand startguns_perma 2 action ADEAGROWFRAME
+		break
+	case 3
+		ifvarand startguns_perma 4 action ADEAGROWFRAME
+		break
+	case 4
+		ifvarand startguns_perma 32768 action ADEAGROWFRAME
+		break
+	case 5
+		ifvarand startguns_perma 8 action ADEAGROWFRAME
+		break
+	case 6
+		ifvarand startguns_perma 16 action ADEAGROWFRAME
+		break
+	case 7
+		ifvarand startguns_perma 32 action ADEAGROWFRAME
+		break
+	case 8
+		ifvarand startguns_perma 64 action ADEAGROWFRAME
+		break
+	case 9
+		ifvarand startguns_perma 128 action ADEAGROWFRAME
+		break
+	case 10
+		ifvarand startguns_perma 256 action ADEAGROWFRAME
+		break
+	case 11
+		ifvarand startguns_perma 512 action ADEAGROWFRAME
+		break
+	case 12
+		ifvarand startguns_perma 16384 action ADEAGROWFRAME
+		break
+	endswitch
+}
+ife initsprite 0 break
+
+ifaction ANULLACTION
+ifp pfacing
+ifpdistl 1280
+ifp palive
+ifhitspace
+ifcansee
+ife award_screen 0
+{
+	ife checkpoints NO
+	state autosave
+	ifn SPRITELOTAG 0 state activatechannel
+	action ADEAGROWFRAME
+	
+	globalsound CHEST_OPEN
+	switch initsprite
+		case 1 // pistol start
+			orvar startguns_perma 1
+			ife pchar 0 set award_screen 9913 else
+			ife pchar 1 set award_screen 9915 else
+			ife pchar 2 set award_screen 19262 else
+			ife pchar 3 set award_screen 19256 else
+			ife pchar 4 set award_screen 22296
+			set award_string 1450
+		break
+		case 2 // shotgun start
+			ife pchar 0 set award_screen 9935 else
+			ife pchar 2 set award_screen 19265 else
+			ife pchar 3 set award_screen 19254 else
+			ife pchar 4 set award_screen 22298
+			orvar startguns_perma 2
+			set award_string 1451
+		break
+		case 3 // chaingun start
+			ife pchar 0 set award_screen 9922 else
+			ife pchar 1 set award_screen 9917 else
+			ife pchar 2 set award_screen 19266 else
+			ife pchar 3 set award_screen 19252 else
+			ife pchar 4 set award_screen 22294
+			orvar startguns_perma 4
+			set award_string 1452
+		break
+		case 4 // bow or db shotgun start
+			ife pchar 0 set award_screen 16593 else
+			ifge pchar 1 ifle pchar 2 set award_screen 9921 else
+			ife pchar 3 set award_screen 20988 else
+			ife pchar 4 set award_screen 22290
+			orvar startguns_perma 32768
+			set award_string 1453
+		break
+		case 5 // RPG shotgun start
+			ife pchar 0 set award_screen 9919 else
+			ife pchar 1 set award_screen 9951 else
+			ife pchar 2 set award_screen 19263 else
+			ife pchar 3 set award_screen 19368 else
+			ife pchar 4 set award_screen 22297
+			orvar startguns_perma 8
+			set award_string 1454
+		break
+		case 6 // PIPEBOMB start
+			ife pchar 0 set award_screen 9954 else
+			ife pchar 1 set award_screen 9938 else
+			ife pchar 2 set award_screen 19261 else
+			ife pchar 3 set award_screen 20990 else
+			ife pchar 4 set award_screen 22292
+			orvar startguns_perma 16
+			set award_string 1455
+		break
+		case 7 // SHRINKER OR BMFG
+			ifle pchar 1 set award_screen 9911 else
+			ife pchar 2 set award_screen 19264 else
+			ife pchar 3 set award_screen 9911 else
+			ife pchar 4 set award_screen 22291
+			orvar startguns_perma 32
+			set award_string 1456
+		break
+		case 8 // DEVASTATOR
+			ife pchar 0 set award_screen 9923 else
+			ife pchar 1 set award_screen 9927 else
+			ife pchar 2 set award_screen 19268 else
+			ifge pchar 3 set award_screen 20986
+			orvar startguns_perma 64
+			set award_string 1457
+		break
+		case 9 // SPIDERBOMBS start
+			set award_screen 9960
+			orvar startguns_perma 128
+			set award_string 1458
+		break
+		case 10 // FREEZER start
+			ife pchar 0 set award_screen 9931 else
+			ife pchar 1 set award_screen 9929 else
+			ife pchar 2 set award_screen 19260 else
+			ife pchar 3 set award_screen 20980 else
+			ife pchar 4 set award_screen 22293
+			orvar startguns_perma 256
+			set award_string 1459
+		break
+		case 11 // BABIFIER start
+			ifle pchar 1 set award_screen 9920 else
+			ife pchar 2 set award_screen 19264 else
+			ife pchar 3 set award_screen 9920 else
+			ife pchar 4 set award_screen 22295
+			orvar startguns_perma 512
+			set award_string 1460
+		break
+		case 12 // RAILGUN or BARRET start
+			ifle pchar 2 set award_screen 9937 else
+			ifge pchar 3 set award_screen 19985
+			orvar startguns_perma 16384
+			set award_string 1461
+		break
+	endswitch
+}
+
+enda
+
+defstate mcguffincode
+	ife initsprite 2 break
+	
+	ifaction 0
+	{
+		action ANULLACTION
+		sizeat 24 24
+		ife initsprite 3 cstat 0
+	}
+	fall
+	
+	ife initsprite 1
+	{
+		cstat 32768
+		ifactor BOMBPART1 ifvarand mcguffins 1 cstat 0
+		ifactor BOMBPART2 ifvarand mcguffins 2 cstat 0
+		ifactor BOMBPART3 ifvarand mcguffins 4 cstat 0
+		ifactor BOMBPART4 ifvarand mcguffins 8 cstat 0
+		ifactor BOMBPART5 ifvarand mcguffins 16 cstat 0
+		break
+	}
+	
+	
+	ifcount 30
+	{
+		ife initsprite 3
+		{
+			ifpdistg 1024 break
+		}
+		ifactor BOMBPART1 { set award_string 1490 orvar mcguffins 1 } else
+		ifactor BOMBPART2 { set award_string 1491 orvar mcguffins 2 } else
+		ifactor BOMBPART3 { set award_string 1492 orvar mcguffins 4 } else
+		ifactor BOMBPART4 { set award_string 1493 orvar mcguffins 8 } else
+		ifactor BOMBPART5 { set award_string 1494 orvar mcguffins 16 }
+		set award_screen sprite[].picnum
+		killit
+	}
+ends
+
+useractor notenemy BOMBPART1 0 state mcguffincode enda
+useractor notenemy BOMBPART2 0 state mcguffincode enda
+useractor notenemy BOMBPART3 0 state mcguffincode enda
+useractor notenemy BOMBPART4 0 state mcguffincode enda
+useractor notenemy BOMBPART5 0 state mcguffincode enda
+

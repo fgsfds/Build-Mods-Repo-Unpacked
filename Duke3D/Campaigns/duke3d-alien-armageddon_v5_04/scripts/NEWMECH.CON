@@ -1,0 +1,570 @@
+// NEWMECH
+
+action ANEWMECHSTAND	0	1	5	1	10
+action AMECHSTAYSTAND	-1	1	5	1	10
+action ANEWMECHFIRE1	5	1	5	1	10 // AIM SET 1
+action ANEWMECHFIRE2	10	2	5	1	10 // top fire flash
+action ANEWMECHFIRE3	20	1	5	1	30 // aim set 2
+action ANEWMECHFIRE4	25	1	5	1	10 // fire set 2
+action ANEWMECHWALK	 	30  4	5	1	30
+action ANEWMECHDEAD1    50  1	1	1   10 // arms missing
+action ANEWMECHDEAD2	51  1	1	1	10 // arms and torso missing
+
+move NEWMECHWAIT
+move NEWMECHWALKVEL 128
+move NEWMECHFASTVEL 192
+
+// pals 0 or 3 freeze/plasma, 12 hitscan
+// 40 rainbow boss
+// 11 acidic
+// 21 fire and regular rockets
+eventloadactor NEWMECH cstator 257 sizeat 42 36 ifspritepal 40 sizeat 64 54 enda
+
+defstate mechchangepos
+
+	geta[].x savx
+	geta[].y savy
+	
+	set x sprite[].x
+	set temp sprite[].xrepeat
+	ife TMP_B YES mul temp 16 else
+	ife countvar 1 // rockets
+	mul temp 22 else
+	mul temp 18
+	add x temp
+	geta[].ang angvar 
+	ife TMP_B YES add angvar 448 else
+	sub angvar 448
+	
+	rotatepoint sprite[].x sprite[].y x sprite[].y angvar x2 y2
+	seta[].x x2
+	seta[].y y2
+
+ends
+
+defstate mechfirebolts
+	espawn SOUNDPLATE
+	setav[RETURN].SPRITELOTAG NEWMECHFIRE
+	setav[RETURN].mtype 1
+	ifspritepal 40
+	{
+		ife countvarc 1 setprojectile[GENERICBOLT].pal 11 else
+		ife countvarc 2 setprojectile[GENERICBOLT].pal 21 else
+		setprojectile[GENERICBOLT].pal 1
+	}
+	else
+	ifspritepal 11 setprojectile[GENERICBOLT].pal 11 else
+	ifspritepal 21 setprojectile[GENERICBOLT].pal 21 else
+	setprojectile[GENERICBOLT].pal 1
+	// pal 0, 3, etc
+	set TMP_B NO
+	
+	geta[].z savz
+	set z savz
+	set z2 sprite[].yrepeat
+	mul z2 56
+	add z z2
+	seta[].z z
+	
+	state mechchangepos
+	set xvel 844
+	state rpg_targetprep
+	zshoot zdist GENERICBOLT
+	
+	seta[].x savx
+	seta[].y savy
+	
+	set TMP_B YES
+	
+	state mechchangepos
+	set xvel 844
+	state rpg_targetprep
+	zshoot zdist GENERICBOLT
+	setprojectile[GENERICBOLT].pal 0
+	seta[].x savx
+	seta[].y savy
+	seta[].z savz
+ends
+
+defstate newmechfire1
+
+	sub botclip 1
+	
+	ifspritepal 40 
+	{
+		ife countvarc 0
+		{
+			espawn SOUNDPLATE
+			setav[RETURN].SPRITELOTAG HEAVY_RIFLE
+			setav[RETURN].mtype 1
+			state hitscan_targetprep
+			zshoot zdist SHOTGUN
+			zshoot zdist SHOTGUN
+			zshoot zdist SHOTGUN
+			zshoot zdist SHOTGUN
+			zshoot zdist SHOTGUN
+			zshoot zdist SHOTGUN
+		}
+		else
+		{
+			state mechfirebolts
+			state mechfirebolts
+		}
+	}
+	else
+	ifspritepal 12 
+	{
+		espawn SOUNDPLATE
+		setav[RETURN].SPRITELOTAG HEAVY_RIFLE
+		setav[RETURN].mtype 1
+		state hitscan_targetprep
+		zshoot zdist SHOTGUN
+		zshoot zdist SHOTGUN
+		zshoot zdist SHOTGUN
+		zshoot zdist SHOTGUN
+	} 
+	else
+		state mechfirebolts
+		
+	
+
+ends
+
+defstate newmechfire2
+
+	sound MECHFIREROX
+	geta[].z savz
+	set z sprite[].yrepeat
+	mul z 192
+	set z2 savz
+	sub z2 z
+	seta[].z z2
+	sub botclip 3
+	set TMP_B NO
+	state mechchangepos
+	eshoot RPG
+	ifspritepal 40 seta[RETURN].extra 40 else seta[RETURN].extra 25
+	setav[RETURN].bottarget bottarget
+	setav[RETURN].mtype TARGETLOCK
+	setav[RETURN].myspawner THISACTOR
+	seta[].x savx
+	seta[].y savy	
+	set TMP_B YES
+	state mechchangepos
+	eshoot RPG
+	ifspritepal 40 seta[RETURN].extra 40 else seta[RETURN].extra 25
+	setav[RETURN].bottarget bottarget
+	setav[RETURN].mtype TARGETLOCK
+	setav[RETURN].myspawner THISACTOR
+	seta[].x savx
+	seta[].y savy	
+	seta[].z savz
+ends
+
+defstate mechattkeval
+
+	set temp NO
+	ife bottarget -1 set temp YES
+	else ifg targetdist 10240 ifrnd 96 set temp YES
+	ife temp YES
+	{
+		action ANEWMECHWALK 
+		ifspritepal 40 move NEWMECHFASTVEL geth
+		else move NEWMECHWALKVEL geth 
+		
+		ife bottarget -1
+		{
+			set B 0
+			set xydist 6144
+			whilevarn B 32
+			{
+				add B 1
+				geta[].z z
+				sub z 8192
+				rand angvar 2047
+				cos mycos angvar
+				sin mysin angvar
+				hitscan sprite[].x sprite[].y z sprite[].sectnum mycos mysin 0 hitsector hitwall hitsprite hitx hity hitz clipmask
+				
+				set startx sprite[].x
+				sub startx hitx
+				mul startx startx
+				set y2 sprite[].y
+				sub y2 hity
+				mul y2 y2
+				add startx y2
+				sqrt startx startx
+				
+				ifg startx xydist set B 32
+			}
+			seta[].ang angvar
+		}
+		break
+	}
+
+	ifn bottarget -1
+	{
+		ife countvar 0 set countvar 1 else set countvar 0
+		add countvarc 1 ifg countvarc 3 set countvarc 0
+		
+		ife countvar 0
+		action ANEWMECHFIRE1
+		else
+		{ sound MECHARM action ANEWMECHFIRE3 }
+		
+		
+	}
+
+ends
+
+useractor notenemy BLUERING 0
+
+ifaction 0
+{
+	action ANULLACTION
+	cstat 32 cstator 128
+	seta[].blend 1
+	sizeat 96 96
+	randvar angvar 2047
+	seta[].ang angvar
+	ifspawnedby NEWMECH spritepal 23
+}
+
+ife mtype 1
+{
+	sizeto 128 128
+	sizeto 128 128
+	sizeto 128 128
+}
+else
+{
+	sizeto 0 0
+	sizeto 0 0
+	sizeto 0 0
+}
+ifcount 60 killit
+
+enda
+
+useractor enemy NEWMECH BOSS1STRENGTH ANEWMECHSTAND
+
+fall
+ifmove 0
+{
+	move NEWMECHWAIT geth
+	action ANEWMECHSTAND
+	cstator 257
+	ifspritepal 40 { sizeat 64 54 addstrength 4000 clipdist 164 } else
+	{ sizeat 42 36 clipdist 128 }
+	set botclip 9
+	set countvar 1
+	geta[].htflags temp
+	orvar temp 1048576
+	seta[].htflags temp
+}
+
+state monsterai
+
+ifaction ANEWMECHDEAD1
+{
+	ifhitweapon
+	{
+		debris SCRAP1 1
+		debris SCRAP2 1
+		ifdead
+		{
+			spawn EXPLOSION2
+			debris SCRAP1 8
+			debris SCRAP2 8
+			debris SCRAP6 8
+			geta[].xrepeat savedvalue
+			set x savedvalue
+			div x 2
+			seta[].xrepeat x
+			state tech_debris
+			seta[].xrepeat savedvalue
+			sound MECHBOOM sound MECHBOOM sound MECHBOOM
+			strength 300
+			rand zdist 1024
+			sub zdist 3500
+			ezshoot zdist NEWMECHPART1
+			rand angvar 2047
+			seta[RETURN].ang angvar
+			seta[RETURN].pal sprite[].pal
+			
+			seta[RETURN].xrepeat sprite[].xrepeat
+			seta[RETURN].yrepeat sprite[].xrepeat
+			action ANEWMECHDEAD2
+			cstat 0
+		}
+		
+	}
+	break
+}
+
+ifaction ANEWMECHDEAD2 break
+
+	ifn bottarget -1 ife dodgetime 0
+	{
+
+		geta[bottarget].x x2
+		geta[bottarget].y y2
+		sub x2 sprite[].x
+		sub y2 sprite[].y
+		getangle tempb x2 y2
+		
+		getincangle temp sprite[].ang tempb
+		
+		ifn sprite[].ang tempb
+		{
+			ifg temp -36 ifl temp 36
+				seta[].ang tempb	
+			else
+			{
+				geta[].ang angvar
+				ifl temp 0 sub angvar 36
+				else add angvar 36
+				seta[].ang angvar
+				
+			}
+		}
+	}
+
+ifg countvarb 0
+{
+	seta[].mdflags 16
+	add countvarb 1
+	ifvarand countvarb 1
+	ifl countvarb 30
+	{
+		
+		espawn BLUERING
+		geta[].z savz
+		set z2 savz
+		sub z2 1024
+		seta[RETURN].z z2
+		seta[RETURN].pal sprite[].pal
+	}
+	
+	
+	ife countvarb 60
+		hitradius 4096 20 40 60 80
+		
+	ifge countvarb 60
+	{
+		espawn SOUNDPLATE
+		setav[RETURN].SPRITELOTAG TERMLASER
+		setav[RETURN].mtype 1
+		setav[RETURN].initsprite 512
+		// geta[].x savx
+		// geta[].y savy
+		geta[].z savz
+		set starty savz
+		// sub starty 6144
+		// seta[].z starty
+		ifspritepal 40
+		{
+			setprojectile[POMPROJ].xrepeat 192
+			setprojectile[POMPROJ].yrepeat 192
+			setprojectile[POMPROJ].extra 16
+			setprojectile[POMPROJ].range 48 
+			setprojectile[POMPROJ].spawns LASERHIT
+			setprojectile[POMPROJ].hitradius 1280
+		}
+		else
+		{
+			setprojectile[POMPROJ].xrepeat 160
+			setprojectile[POMPROJ].yrepeat 160
+			setprojectile[POMPROJ].extra 12
+			setprojectile[POMPROJ].range 36
+			setprojectile[POMPROJ].spawns LASERHIT
+			setprojectile[POMPROJ].hitradius 1024
+		}
+		setprojectile[POMPROJ].pal 118
+		
+		set safecount 0
+		rand angvel 2047
+		whilevarn safecount 12
+		{
+		
+			rand zdist 16384
+			sub zdist 8192
+			ezshoot zdist POMPROJ
+			seta[RETURN].ang angvel
+			// seta[RETURN].pal 33
+			sub starty 644
+			seta[].z starty
+			add safecount 1
+			add angvel 170
+		}
+		seta[].z savz
+		setprojectile[POMPROJ].xrepeat 18
+		setprojectile[POMPROJ].yrepeat 18
+		setprojectile[POMPROJ].pal 0
+		setprojectile[POMPROJ].yrepeat 48
+		setprojectile[POMPROJ].range 10
+		setprojectile[POMPROJ].extra 8
+		setprojectile[POMPROJ].hitradius 0
+		setprojectile[POMPROJ].spawns -1
+	}
+	ifge countvarb 100 
+		set countvarb 0 
+
+}
+
+set temp inithp
+div temp 3
+ifl sprite[].extra temp
+ifrnd 8
+{
+	espawn BIGSMOKE seta[RETURN].htpicnum RECONWRECK
+	set z sprite[].z
+	sub z 10240
+	rand z2 10240
+	sub z z2
+	seta[RETURN].z z
+	
+}
+
+ifaction ANEWMECHSTAND
+{
+	ife countvarb 0
+	ifn bottarget -1
+	ifl targetdist 8192
+	ifrnd 32
+	{
+		sound MECHARGE
+		sound MECHARGE
+		espawn BLUERING
+		seta[RETURN].pal sprite[].pal
+		set countvarb 1
+	}
+	else
+	ife countvarb 0
+	{
+		ifactioncount 4
+		ife countvar 1
+			state mechattkeval
+		else
+		ifactioncount 12
+			state mechattkeval
+		else
+		ifg sprite[].htextra 0
+			state mechattkeval
+	}
+}
+else
+ifaction ANEWMECHWALK
+{
+	soundonce MECHWALK
+	ifactioncount 2 
+	{
+		set TMP_A LBM_STEP1
+		rand temp 3
+		add TMP_A temp
+		soundvar TMP_A
+		resetactioncount 
+		
+		hitradius 2560 80 80 80 80
+		// change this
+	}
+	
+	ifrnd 1 ifcount 90 { action ANEWMECHSTAND move NEWMECHWAIT geth } else
+	ifnotmoving { action ANEWMECHSTAND move NEWMECHWAIT geth } else
+	ifn bottarget -1 ifrnd 3 ifcount 90 { action ANEWMECHSTAND move NEWMECHWAIT geth }
+	
+	
+}
+else
+ifaction ANEWMECHFIRE1
+{
+	ifactioncount 1
+	{
+		action ANEWMECHFIRE2
+		state newmechfire1
+	}
+}
+else
+ifaction ANEWMECHFIRE2
+{
+	ifactioncount 2
+	{
+		ifle botclip 0 { set botclip 9 action ANEWMECHSTAND } else
+		ife bottarget -1 { set botclip 9 action ANEWMECHSTAND } else
+		{
+			resetactioncount
+			state newmechfire1
+		}
+	}
+}
+else
+ifaction ANEWMECHFIRE3
+{
+	ifactioncount 1
+	{
+		action ANEWMECHFIRE4
+		state newmechfire2
+	}
+}
+else
+ifaction ANEWMECHFIRE4
+{
+	ifactioncount 1
+	{
+		ifle botclip 0 { set botclip 9 action ANEWMECHSTAND } else
+		ife bottarget -1 { set botclip 9 action ANEWMECHSTAND } else
+			action ANEWMECHFIRE3
+	}
+}
+
+ifhitweapon 
+{ 
+	ifaction ANEWMECHWALK { action ANEWMECHSTAND move NEWMECHWAIT geth }
+	ifdead
+	{
+		spawn EXPLOSION2
+		debris SCRAP1 8
+		debris SCRAP2 8
+		debris SCRAP6 8
+		geta[].xrepeat savedvalue
+		set x savedvalue
+		div x 2
+		seta[].xrepeat x
+		state tech_debris
+		state tech_debris
+		seta[].xrepeat savedvalue
+		state enemy_death
+		sound MECHBOOM sound MECHBOOM sound MECHBOOM
+		addkills 1
+		action ANEWMECHDEAD1
+		set countvarb 0
+		strength 300
+		rand zdist 1024
+		sub zdist 3500
+		ezshoot zdist NEWMECHPART2
+		rand angvar 2047
+		seta[RETURN].ang angvar
+		seta[RETURN].pal sprite[].pal
+		ifspritepal 40 set x2 36 else set x2 26
+		seta[RETURN].xrepeat x2
+		seta[RETURN].yrepeat x2
+		
+		rand zdist 1024
+		sub zdist 3500
+		ezshoot zdist NEWMECHPART3
+		rand angvar 2047
+		seta[RETURN].ang angvar
+		seta[RETURN].pal sprite[].pal
+		ifspritepal 40 set x2 36 else set x2 26
+		seta[RETURN].xrepeat x2
+		seta[RETURN].yrepeat x2
+	}
+}
+
+enda
+
+useractor enemystayput NEWMECHSTAYPUT BOSS1STRENGTH AMECHSTAYSTAND
+
+cactor NEWMECH
+
+enda

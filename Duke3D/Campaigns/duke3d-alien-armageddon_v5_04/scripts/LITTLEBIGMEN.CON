@@ -1,0 +1,1146 @@
+// LITTLEBIGMEN
+
+// phase 1 combined, until 1000 damage
+// phase 1B separate until largeman takes 1000, smallman takes 750
+// recombine: they try to reach each other, if they can't use AOE teleport
+// phase 2 combined, until 1500 more damage
+// phase 2B separate until largeman takes 1000, smallman takes 750
+// recombine
+// phase 3 combined, until 1500 more damage
+// phase 3B largeman dies after 1500 more damage, smallman after 1000 more damage
+// initsprite is the phase #
+// smallman has team 3 when flashing, will seek out largeman
+
+action ALARGESTAND		0  1  5  1  10
+action ALARGEWALK		5  4  5  1  14
+action ALARGESTRIKE		25 2  5  1  20
+action ALARGERETRACT	35 2  5  1  24
+action ACOMBINEDSHOOT1	45 1  5  1  30
+action ACOMBINEDSHOOT2	50 1  5  1  15
+action ALARGEAOE1		45 1  5  1  50
+action ALARGEAOE2		50 1  5  1  50
+action ALARGEJUMP1		55 1  5  1  20
+action ALARGEJUMP2		60 1  5  1  20
+action ALARGEJUMP3		65 1  5  1  30
+action ALARGEJUMP4		70 1  5  1  30
+action ALARGEDIE		75 4  1  1  24
+action ALARGEDEAD		79 1  1  1  10
+action ACOMBINEDMOUNT	243  1  5  1  30
+	
+action ASMALLWALK		0  4  5  1  12
+action ASMALLRUNBACK	15  4  5  -1  12
+action ASMALLSHOOT1		20 1  5  1  30
+action ASMALLSHOOT2		25 1  5  1  20
+action ASMALLSHOOT3		30 1  5  1  20
+action ASMALLJUMP		113  1  5  1  20
+
+move BIGSTOPPED
+move LARGEWALKVEL 280
+move LARGEJUMPVEL 480
+move LARGEFALLVEL 304
+move SMALLWALKVEL 192
+move SMALLRUNBACK -160
+move SMALLJUMPVEL 256
+
+ai AILARGEWAIT ALARGESTAND BIGSTOPPED faceplayerslow
+ai AILARGEWALK ALARGEWALK LARGEWALKVEL seekplayer
+ai AILARGESTRIKE ALARGESTRIKE BIGSTOPPED geth
+ai AILARGESHOOT ACOMBINEDSHOOT1 BIGSTOPPED geth
+ai AILARGEAOE ALARGEAOE1 BIGSTOPPED geth
+ai AILARGEJUMP ALARGEJUMP1 BIGSTOPPED geth
+ai AISMALLWALK ASMALLWALK SMALLWALKVEL geth
+ai AILARGEJOINING ACOMBINEDMOUNT BIGSTOPPED geth
+ai AISEPARATING ACOMBINEDMOUNT BIGSTOPPED geth
+ai AILARGEDYING ALARGEDIE BIGSTOPPED geth
+ai AILARGESUMMON ALARGEAOE1 BIGSTOPPED geth
+ai AISMALLSHOOT ASMALLSHOOT1 STOPPED geth
+ai AISMALLJUMP ASMALLJUMP SMALLJUMPVEL jumptoplayer
+
+state largedyingstate
+	
+	ifaction ALARGEDIE
+	ifactioncount 4
+		action ALARGEDEAD
+		
+	ifaction ALARGEDEAD
+	{
+	  state deadsquished
+	  strength 0
+      ifhitweapon
+	  {
+          ifwasweapon RADIUSEXPLOSION
+		  {
+			sound SQUISHED
+			state standard_jibs
+			killit
+		  }
+		  ifwasweapon RPG
+		  {
+			sound SQUISHED
+			state standard_jibs
+			killit
+		  }
+	  }
+	}
+
+ends
+
+state meleedamage
+
+	spawn SPARKFALL spawn SPARKFALL spawn SPARKFALL spawn SPARKFALL
+	spawn SPARKFALL spawn SPARKFALL spawn SPARKFALL spawn SPARKFALL
+	
+	ifactor NURGLE
+	{
+		ifpdistl 6144 quake 20
+		hitradius 2048 15 20 30 40
+		// seta[].htextra -1
+		ifpdistl 2048 seta[player[].i].htowner THISACTOR
+		ifg targetdist 2048 break
+	}
+	else
+	{
+		ifpdistl 6144 quake 20
+		hitradius 3072 20 30 40 50
+		// seta[].htextra -1
+		ifpdistl 3072 seta[player[].i].htowner THISACTOR
+		ifg targetdist 3072 break
+	}
+	
+	
+	ife bottarget -1 break
+	
+	sound LBM_MACEHIT
+	set B 100
+	set temp targetdist
+	ifactor NURGLE div temp 40 else
+	shiftr temp 5
+	sub B temp
+	
+	set spriteid bottarget
+	geta[spriteid].x x2
+	geta[spriteid].y y2
+	sub x2 sprite[].x
+	sub y2 sprite[].y
+	getangle angvar x2 y2
+	cos xvel angvar
+	sin yvel angvar
+	ife bottarget player[].i
+	{
+		shiftvarl xvel 10
+		shiftvarl yvel 10
+		add xvel player[].posxv
+		add yvel player[].posyv
+		setplayer[].posxv xvel
+		setplayer[].posyv yvel
+		// push player backwards
+		seta[player[].i].htextra B
+		seta[player[].i].htpicnum KNEE
+		seta[player[].i].htowner THISACTOR
+		seta[player[].i].htang angvar
+		palfrom 20 63
+		shiftr B 1
+		add B 13
+		setp[].pals_time B
+	}
+	else
+	{
+		movesprite bottarget xvel yvel 0 CLIPMASK0 RETURN
+		setav[bottarget].stun 20
+		seta[bottarget].htextra B
+		seta[bottarget].htpicnum KNEE
+		seta[bottarget].htowner THISACTOR
+		seta[bottarget].htang angvar
+	}
+
+ends
+
+state largestrikestate
+
+	ifn bottarget -1 state turntotarget
+	ifaction ALARGESTRIKE 
+	{
+		ifcount 2 nullop else ifcount 1 sound LBM_HAMMERSWING
+		ifactioncount 1
+		{
+			iffloordistl 8
+			{
+				soundonce LBM_HAMMERSLAM
+				ife countvarc 0
+				{
+					state meleedamage
+					set countvarc 1
+				}
+			}
+		}
+		ifactioncount 2
+		{
+			action ALARGERETRACT
+			set countvarc 0
+		}
+	}
+	ifaction ALARGERETRACT
+	ifactioncount 2 ai AILARGEWALK
+
+ends
+
+state largeattkeval
+
+	ifn ikicked 0 break
+	
+	ife targetalive YES
+	{
+		ifl targetdist 1280
+			ai AILARGESTRIKE
+		else
+		ife seemytarget YES
+		{
+			ifactor LARGEMAN
+			{
+				ifl targetdist 2048
+				ifrnd 64
+					ai AILARGESTRIKE
+				else
+				ifl targetdist 10240
+				ifrnd 80 
+					ai AILARGEAOE
+				else
+				ifl targetdist 8192
+				{
+					ai AILARGEJUMP
+					sound LBM_ROAM1
+				}
+			}
+			else // actor == COMBINEDMEN
+			{
+				ifai AILARGEJOINING nullop else
+				{
+					ifl targetdist 2048
+					ifrnd 64
+						ai AILARGESTRIKE
+					else
+					ifl targetdist MAXRANGE
+					{
+						ai AILARGESHOOT
+						set countvarb 0
+					}
+				}
+			}
+		}
+	}
+ends
+
+state largeaoestate
+
+	
+	ifaction ALARGEAOE1
+	{
+		ifactioncount 1
+		{
+			action ALARGEAOE2
+			// do stuff
+			sound LBM_CHARGE
+			geta[].z savz, sub savz 20480, seta[].z savz
+			spawn GLAREANIM
+			add savz 20480, seta[].z savz
+			resetcount
+		}
+	}
+	ifaction ALARGEAOE2
+	{
+		ifcount 6
+		{
+			resetcount
+			geta[].z savz, sub savz 20480, seta[].z savz
+			spawn GLAREANIM
+			add savz 20480, seta[].z savz
+		}
+		
+		ife seeplayer YES
+		ifpdistl 10240
+		ifn team actorvar[player[].i].team
+		ife pdown NO
+		{
+			set spriteid player[].i
+			geta[spriteid].x x2
+			geta[spriteid].y y2
+			sub x2 sprite[].x
+			sub y2 sprite[].y
+			getangle angvar x2 y2
+			add angvar 1024
+			cos xvel angvar
+			sin yvel angvar
+			
+			// shiftvarl xvel 6
+			// shiftvarl yvel 6
+			mul xvel 48
+			mul yvel 48
+			add xvel player[].posxv
+			add yvel player[].posyv
+			setplayer[].posxv xvel
+			setplayer[].posyv yvel
+		}
+		
+		headspritestat spriteid 1
+		whilevarn spriteid -1
+		{
+			dist xydist THISACTOR spriteid
+			ifl xydist 10240
+			{
+				geta[].z savz
+				sub savz 10240
+				seta[].z savz
+				canseespr THISACTOR spriteid temp
+				add savz 10240
+				seta[].z savz
+				ife temp YES
+				{
+					ifn actorvar[spriteid].team team
+					ifn actorvar[spriteid].monstatus 2
+					ifn actorvar[spriteid].monstatus 10
+					{
+						
+						geta[spriteid].x x2
+						geta[spriteid].y y2
+						sub x2 sprite[].x
+						sub y2 sprite[].y
+						getangle angvar x2 y2
+						add angvar 1024
+						cos xvel angvar
+						sin yvel angvar
+						
+						// shiftr xvel 5
+						// shiftr yvel 5
+						div xvel 40
+						div yvel 40
+						movesprite spriteid xvel yvel 0 CLIPMASK0 RETURN
+					}
+				}
+			}
+			nextspritestat spriteid spriteid
+		}
+
+		ifactioncount 4
+		{
+			ife targetalive YES
+			{
+				ifl targetdist 1560 ai AILARGESTRIKE else
+				state largeattkeval
+			}
+			ifai AILARGEAOE ai AILARGEWALK
+		}
+	}
+ends
+
+state largejumpstate
+	ifaction ALARGEJUMP1
+	{
+		ifactioncount 1
+		{
+			action ALARGEJUMP2
+			geta[].z z
+			sub z 1024
+			seta[].z z
+			move LARGEJUMPVEL jumptoplayer
+			geta[].zvel z
+			sub z 1280
+			seta[].zvel z
+		}
+	}
+	ifaction ALARGEJUMP2
+	{
+		state strafechecklong
+		ifn bottarget -1
+		{
+			ldist xydist THISACTOR bottarget
+			ifg xydist 2048 { geta[].xvel xvel add xvel 96 seta[].xvel xvel }
+			else ifmove LARGEJUMPVEL ifl xydist 1024 ifcount 6 move LARGEFALLVEL geth
+
+			ifl xydist 2560
+			{
+				geta[].z z
+				geta[bottarget].z z2
+				sub z2 z
+				ifg z2 8192
+				{
+					add z 1024
+					seta[].z z
+				}
+			}
+			
+		}
+		ifmove LARGEJUMPVEL
+		ifactioncount 2
+			move LARGEFALLVEL geth
+			
+		ifmove LARGEFALLVEL
+		{
+			iffloordistl 8 // 4
+			{
+				action ALARGEJUMP3
+				soundonce LBM_JUMPSLAM
+				state meleedamage
+				spawn GLAREANIM
+				spawn GLAREANIM
+				spawn GLAREANIM
+			}
+		}
+	}
+	ifaction ALARGEJUMP3
+	{
+		state strafechecklong
+		iffloordistl 2 move STOPPED geth
+		ifactioncount 2 action ALARGEJUMP4
+	}
+	ifaction ALARGEJUMP4
+	{
+		iffloordistl 2 move STOPPED geth
+		ifactioncount 1 ai AILARGEWAIT
+	}
+ends
+
+state largeshootstate
+
+	ife bottarget player[].i state turntotarget
+	ifaction ACOMBINEDSHOOT1
+	{
+		ifactioncount 1
+		{
+			ife countvarb 0
+			{
+				// shoot stuff
+				set xvel 844
+				geta[].z savz, sub savz 10000
+				seta[].z savz
+				state rpg_targetprep
+				
+				set x2 sprite[].x, set angvar sprite[].ang
+				sub angvar 480, add x2 412
+				geta[].x savx, geta[].y savy
+				rotatepoint sprite[].x sprite[].y x2 sprite[].y angvar x y
+				seta[].x x, seta[].y y
+				
+				zshoot zdist BIGBOIPROJ
+				
+				
+				seta[].x savx, seta[].y savy
+				add savz 10000, seta[].z savz
+				soundonce PHASERFIRE
+				action ACOMBINEDSHOOT2
+				add countvarb 1
+			}
+			else
+			{
+				// ife targetalive YES
+				// ife seemytarget YES
+				// ifl targetdist MAXRANGE
+				// ifl countvarb 7
+				// ifrnd 192
+				// {
+					// // shoot stuff
+					// // sound
+					// action ACOMBINEDSHOOT2
+					// add countvarb 1
+				// }
+				// else
+				// {
+					ai AILARGEWAIT
+					set countvarb 0
+				// }
+			}
+		}
+	}
+	ifaction ACOMBINEDSHOOT2
+	{
+		set xvel 844
+		geta[].z savz, sub savz 10000
+		seta[].z savz
+		
+		ife bottarget -1 set bottarget player[].i
+		
+		state rpg_targetprep
+		
+		set x2 sprite[].x, set angvar sprite[].ang
+		sub angvar 480, add x2 412
+		geta[].x savx, geta[].y savy
+		rotatepoint sprite[].x sprite[].y x2 sprite[].y angvar x y
+		seta[].x x, seta[].y y
+		
+		zshoot zdist BIGBOIPROJ
+		
+		
+		seta[].x savx, seta[].y savy
+		add savz 10000, seta[].z savz
+		
+		ifactioncount 8
+		action ACOMBINEDSHOOT1
+	}
+		
+ends
+
+state largewaitstate
+
+ifcount 15
+{
+	ifn bottarget -1 set mtype 1 else
+	ife seeplayer YES set mtype 1 else
+	ife mtype 0 ife gametype 0 break
+	
+	ife targetalive YES ifl targetdist 2560
+	state largeattkeval
+	else
+	ifrnd 96
+	state largeattkeval
+	
+	ifai AILARGEWAIT ai AILARGEWALK
+}
+
+ends
+
+state largeroamsounds
+	ifsound LBM_LAUGH break
+	ifsound LBM_ROAM3 break
+	ifrnd 1
+	{
+		ifrnd 128 sound LBM_LAUGH else
+		sound LBM_ROAM3
+	}
+
+ends
+
+state largewalkstate
+
+	state largeroamsounds
+	ifactioncount 2
+	{
+		resetactioncount
+		rand temp 3
+		ife temp 0 sound LBM_STEP1 else
+		ife temp 1 sound LBM_STEP2 else
+		ife temp 2 sound LBM_STEP3 else
+		sound LBM_STEP4
+	}
+	
+	set temp NO
+	ifge SKILL 4 { ifcount 30 set temp YES }
+	else ifcount 60 set temp YES
+
+	ife targetalive YES
+	ifl targetdist 1280
+		state largeattkeval
+	else
+	ife temp YES
+		state largeattkeval
+
+ends
+
+defstate litbigcheckhit
+
+	ifwasweapon GROWSPARK
+	  sound SPARKLESOUND
+	state random_wall_jibs
+	ifrnd 2
+		spawn BLOODPOOL
+	// soundonce LITTLEBIGPAIN
+	ifn ikicked 0 strength 1
+	else
+	{
+		ifdead
+		{
+			set countvarc 0
+			ifactor COMBINEDMEN
+			{
+				sound LBM_ROAM2
+				ai AISEPARATING
+				ife initsprite 0
+				{
+					globalsound LBM_ROAM3
+					set cutcamtime player[].player_par
+					set emp_overlay 120
+					set emp_overlay_tile 15269
+					set subtitle_start 803
+					set subtitle_numlines 1
+					set subtitle_time 120
+				}
+				stopsound PHASERFIRE
+				break
+			}
+			else
+			ifactor LARGEMAN
+			{
+				getp[].player_par ikicked
+				geta[].htflags temp orvar temp 4 seta[].htflags temp
+				getp[].player_par curr_tick
+				add curr_tick 1
+				headspritestat spriteid 980
+				whilevarn spriteid -1
+				{
+					setav[spriteid].redflagval 0
+					setav[spriteid].rediteration 99999
+					setav[spriteid].redtimer curr_tick
+					nextspritestat spriteid spriteid
+				}
+				add initsprite 1
+				ifg initsprite 5
+				{
+					ife myspawner -1 // bigboi is already dead
+					{
+						ifspritepal 47 ife gametype SURVIVAL
+						ife teamspawned -1
+						ifn LEVEL 37
+						{
+							setp[].timebeforeexit 180
+							set bluescore 10000
+							set redscore 0
+							set survivor_winner YES 
+						}
+					}
+					else 
+					{
+						setav[myspawner].myspawner -1 // let bigboi know you are dead
+						ife LEVEL 21
+						{
+							set cutcamtime player[].player_par
+							set emp_overlay 120
+							set emp_overlay_tile 15272
+							set subtitle_start 805
+							set subtitle_numlines 1
+							set subtitle_time 120
+						}
+					}
+					sound LBM_DIE
+					ai AILARGEDYING
+					cstat 0
+					state enemy_death
+					addkills 1
+					guts JIBS6 8
+					break
+				}
+				break
+			}
+			else
+			ifactor SMALLMAN
+			{
+				add initsprite 1
+				ifg initsprite 5
+				{
+					ife myspawner -1 // littleman is already dead
+					{
+						ifspritepal 47 ife gametype SURVIVAL
+						ife teamspawned -1
+						ifn LEVEL 37
+						{
+							setp[].timebeforeexit 180
+							set bluescore 10000
+							set redscore 0
+							set survivor_winner YES 
+						}
+					}
+					else 
+					{
+						setav[myspawner].myspawner -1 // let littleman know you are dead
+						ife LEVEL 21
+						{
+							set cutcamtime player[].player_par
+							set emp_overlay 180
+							set emp_overlay_tile 15271
+							set subtitle_start 806
+							set subtitle_numlines 2
+							set subtitle_time 180
+						}
+					}
+					sound SQUISHED
+					state bigboi_body_jibs
+					state lite_jibs
+					ife team 0 sub killcount 1
+					state enemy_death
+					addkills 1
+					guts JIBS6 8
+					killit
+					break
+				}
+				set team 3
+				getp[].player_par ikicked
+				getp[].player_par curr_tick
+				add curr_tick 1
+				headspritestat spriteid 980
+				whilevarn spriteid -1
+				{
+					setav[spriteid].redflagval 0
+					setav[spriteid].rediteration 99999
+					setav[spriteid].redtimer curr_tick
+					nextspritestat spriteid spriteid
+				}
+				geta[].htflags temp orvar temp 4 seta[].htflags temp
+				
+				break
+			}
+		}
+		else // not dead
+		{
+			ifai AILARGEWALK ifrnd 32
+			state largeattkeval
+		}
+	}
+	
+	
+ends
+
+useractor enemy COMBINEDMEN 1500
+
+ifmove 0
+{
+	ifn teamspawned -1 { set initsprite 4 ai AILARGEWAIT } else
+	ifspritepal 21 { strength 1000 set initsprite 4 ai AILARGEWAIT } else
+	ai AILARGESTRIKE
+	sizeat 50 48
+	cstator 257
+	clipdist 108
+	ifg gametype 0
+	set navmode 2
+}
+fall
+state monsterai
+
+ifai AILARGEJOINING
+{
+	ifcount 30 ai AILARGEWAIT
+}
+else
+ifai AISEPARATING
+{
+	ifhitweapon { }
+	ifcount 30
+	{
+		add initsprite 1
+		cactor LARGEMAN
+		ai AILARGEWAIT
+		strength 1500
+		ifge initsprite 5 ife teamspawned -1 { ifn sprite[].pal 21 { addstrength 1000 spritepal 47 } }
+		geta[].z savz
+		sub savz 20480
+		seta[].z savz
+		espawn SMALLMAN
+		sub maxkills 1
+		add savz 20480
+		seta[].z savz
+		seta[RETURN].pal sprite[].pal
+		setav[RETURN].initsprite initsprite
+		setav[RETURN].myspawner THISACTOR
+		setav[RETURN].spawnprotect 0
+		set myspawner RETURN
+	}
+	
+	break
+}
+ifhitweapon { state litbigcheckhit ifactor LARGEMAN break }
+ifai AILARGEWAIT state largewaitstate else
+ifai AILARGEWALK state largewalkstate else
+ifai AILARGESTRIKE state largestrikestate else
+ifai AILARGESHOOT state largeshootstate
+
+// ifhitspace ifcount 10
+// {
+	// resetcount
+	// ifaction ALARGESTAND action ALARGEWALK else
+	// ifaction ALARGEWALK action ALARGESTRIKE else
+	// ifaction ALARGESTRIKE action ALARGERETRACT else
+	// ifaction ALARGERETRACT action ACOMBINEDSHOOT1 else
+	// ifaction ACOMBINEDSHOOT1 action ACOMBINEDSHOOT2 else
+	// ifaction ACOMBINEDSHOOT2 action ALARGESTAND
+// }
+
+enda
+
+useractor enemy LARGEMAN 2000
+
+ifmove 0
+{
+	ai AILARGEWAIT
+	sizeat 50 48
+	cstator 257
+	clipdist 108
+	ife initsprite 0 // solo
+	{
+		strength 3500
+		set initsprite 5
+	}
+}
+fall
+ifai AILARGEDYING { state largedyingstate break }
+
+state monsterai
+ifn ikicked 0
+{
+	state shadepulse
+	add shade 10
+	seta[].shade shade
+	ifhitweapon { }
+	strength 1
+	ife ikicked 99999 // joining back up
+	{
+		cactor COMBINEDMEN
+		set ikicked 0
+		set myspawner -1
+		set countvar 0
+		geta[].htflags temp xorvar temp 4 seta[].htflags temp
+		ai AILARGEJOINING
+		sound LBM_ROAM2
+		strength 1500
+		break
+	}
+	ifn actorvar[myspawner].ikicked 0 add countvar 1
+	
+	ife countvar 5
+	{
+		set cutcamtime player[].player_par
+		set emp_overlay 120
+		set emp_overlay_tile 15271
+		set subtitle_start 804
+		set subtitle_numlines 1
+		set subtitle_time 120
+	}
+	
+	ifai AILARGESUMMON nullop else
+	ifg countvar 210 
+	{
+		ai AILARGESUMMON
+		sound LBM_CHARGE
+	}
+	
+	ifai AILARGESUMMON
+	{
+		ifaction ALARGEAOE1
+		{
+			ifactioncount 2
+			{
+				espawn TRANSPORTERSTAR
+				setsprite RETURN sprite[myspawner].x sprite[myspawner].y sprite[myspawner].z
+				action ALARGEAOE2
+				// sound
+				set TMP_A -1
+				headspritestat spriteid 980
+				whilevarn spriteid -1
+				{
+					dist xydist THISACTOR spriteid
+					ifg xydist 1560 ifl xydist 6144
+					{
+						canseespr THISACTOR spriteid temp
+						ife temp YES set TMP_A spriteid
+					}
+					nextspritestat spriteid spriteid
+					ifn TMP_A -1 set spriteid -1
+				}
+				ifn TMP_A -1
+					setsprite myspawner sprite[TMP_A].x sprite[TMP_A].y sprite[TMP_A].z
+				else
+					setsprite myspawner sprite[].x sprite[].y sprite[].z
+				espawn TRANSPORTERSTAR
+				setsprite RETURN sprite[myspawner].x sprite[myspawner].y sprite[myspawner].z
+					
+			}
+		}
+		ifaction ALARGEAOE2
+		{
+			ifcount 6
+			{
+				resetcount
+				geta[].z savz, sub savz 20480, seta[].z savz
+				spawn GLAREANIM
+				add savz 20480, seta[].z savz
+			}
+			
+			ifg countvar 300
+				setsprite myspawner sprite[].x sprite[].y sprite[].z
+		}
+	}
+}
+else
+ifhitweapon state litbigcheckhit
+ifai AILARGEWAIT state largewaitstate else
+ifai AILARGEWALK state largewalkstate else
+ifai AILARGESTRIKE state largestrikestate else
+ifai AILARGEJUMP state largejumpstate else
+ifai AILARGEAOE state largeaoestate
+
+// ifhitspace ifcount 10
+// {
+	// resetcount
+	// ifaction ALARGESTAND action ALARGEWALK else
+	// ifaction ALARGEWALK action ALARGESTRIKE else
+	// ifaction ALARGESTRIKE action ALARGERETRACT else
+	// ifaction ALARGERETRACT action ALARGEAOE1 else
+	// ifaction ALARGEAOE1 action ALARGEAOE2 else
+	// ifaction ALARGEAOE2 action ALARGEJUMP1 else
+	// ifaction ALARGEJUMP1 action ALARGEJUMP2 else
+	// ifaction ALARGEJUMP2 action ALARGEJUMP3 else
+	// ifaction ALARGEJUMP3 action ALARGEJUMP4 else
+	// ifaction ALARGEJUMP4 action ALARGEDIE else
+	// ifaction ALARGEDIE action ALARGEDEAD else
+	// ifaction ALARGEDEAD action ALARGESTAND
+// }
+
+enda
+
+state smalljumpstate
+
+	seta[].ang angvel
+	ifactioncount 2
+	{
+		ifmove SMALLJUMPVEL
+			move SMALLWALKVEL geth
+		else
+		ifmove SMALLWALKVEL
+		iffloordistl 8 ai AISMALLWALK
+	}
+	
+ends
+
+state smalljumpcheck
+
+	ifceilingdistl 84 break
+	geta[].z z
+	sub z 4096
+	
+	cos mycos sprite[].ang
+	sin mysin sprite[].ang
+	hitscan sprite[].x sprite[].y z sprite[].sectnum mycos mysin 0 hitsector hitwall hitsprite hitx hity hitz 16777281
+	ifn hitsprite -1 ifvarand sprite[hitsprite].cstat 16 set hitsprite -1
+	
+	ife hitsprite -1
+	{
+		set startx sprite[].x
+		sub startx hitx
+		mul startx startx
+		set y2 sprite[].y
+		sub y2 hity
+		mul y2 y2
+		add startx y2
+		sqrt startx startx
+		ifl startx 512
+		{
+			sub z 8192
+			hitscan sprite[].x sprite[].y z sprite[].sectnum mycos mysin 0 hitsector hitwall hitsprite hitx hity hitz 16777281
+			
+			set startx sprite[].x
+			sub startx hitx
+			mul startx startx
+			set y2 sprite[].y
+			sub y2 hity
+			mul y2 y2
+			add startx y2
+			sqrt startx startx
+			
+			ifg startx 1560 { ai AISMALLJUMP geta[].ang angvel }
+		}
+	}
+
+ends
+
+state smallwalkstate
+
+	add countvar 1
+	ifge SKILL 4 ifvarand player[].player_par 1 add countvar 1
+	
+	ifn bottarget -1
+	ifrnd 10
+	ifg countvar 40
+	ifl targetdist MAXRANGE
+	{
+		ai AISMALLSHOOT
+		set countvar 0
+		break
+	}
+	
+	
+	ifn bottarget -1
+	ifl targetdist 4096
+	ife ikicked 0
+	ifmove SMALLWALKVEL
+	ifcount 10
+	{
+		action ASMALLRUNBACK
+		move SMALLRUNBACK geth
+	}
+	
+	ifmove SMALLWALKVEL
+	{
+		state smalljumpcheck
+		ifai AISMALLJUMP break
+	}
+	
+	ifmove SMALLRUNBACK
+	ifcount 10
+	{
+		ifnotmoving
+		{
+			action ASMALLWALK
+			move SMALLWALKVEL geth
+		}
+		else
+		ifn ikicked 0
+		{
+			action ASMALLWALK
+			move SMALLWALKVEL geth
+		}
+		else
+		ife bottarget -1
+		{
+			action ASMALLWALK
+			move SMALLWALKVEL geth
+		}
+		else ifg targetdist 6144
+		{
+			action ASMALLWALK
+			move SMALLWALKVEL geth
+		}
+	}
+
+ends
+
+state smallshootstate
+	
+	ifaction ASMALLSHOOT1
+	{
+		ifn bottarget -1 state turntotarget
+		ifactioncount 1
+		{
+			ifn bottarget -1 action ASMALLSHOOT2
+			else ai AISMALLWALK
+		}
+	}
+	ifaction ASMALLSHOOT2
+		ifactioncount 1 
+	{
+		ife countvarb 0
+		{
+			action ASMALLSHOOT3
+			sound PHASERFIRE
+		}
+		else
+		{
+			set countvarb 0
+			ai AISMALLWALK
+		}
+	}
+	ifaction ASMALLSHOOT3
+	{
+		ife bottarget -1 set bottarget player[].i
+		ife bottarget player[].i state turntotarget
+		set xvel 844
+		
+		state rpg_targetprep
+
+		ezshoot zdist BIGBOIPROJ
+
+		add countvarb 1
+		ifge countvarb 40 action ASMALLSHOOT2
+	}
+
+ends
+
+useractor enemy SMALLMAN 1250
+
+ifmove 0
+{
+	sizeat 48 46
+	cstator 257
+	clipdist 64
+	ai AISMALLWALK
+	ife initsprite 5 addstrength 500
+	ife myspawner -1 { strength 2000, set initsprite 5 } // solo
+	ifspritepal 21 strength 900
+	else ifspawnedby LARGEMAN
+	{
+		ai AISMALLJUMP
+		move SMALLWALKVEL geth
+	}
+}
+fall
+state monsterai
+ifn ikicked 0
+{
+	state shadepulse
+	add shade 10
+	seta[].shade shade
+	ifhitweapon { }
+	strength 1
+	ifn actorvar[myspawner].ikicked 0 // largeman also down
+	{
+		
+		ldist xydist THISACTOR myspawner
+		ifl xydist 6144
+		{
+			geta[].z savz
+			sub savz 8192
+			seta[].z savz
+			canseespr THISACTOR myspawner temp
+			add savz 8192
+			seta[].z savz
+			ife temp YES
+			{
+				set spriteid myspawner
+				state facesprite
+				set bottarget myspawner
+			}
+			ifl xydist 844
+			{
+				setav[myspawner].ikicked 99999
+				setav[myspawner].myspawner -1
+				set monstatus 2
+				killit
+			}
+		}
+		
+	}
+}
+else
+ifhitweapon state litbigcheckhit
+
+ifai AISMALLWALK state smallwalkstate else
+ifai AISMALLJUMP state smalljumpstate else
+ifai AISMALLSHOOT state smallshootstate
+
+enda
+
+eventloadactor LITBIGSTATUE geta[].ang lastang enda
+
+action LITBIGSTATFRAME  0  1  5  1  10
+
+useractor enemy LITBIGSTATUE 0 LITBIGSTATFRAME
+
+seta[].ang lastang
+ife initsprite NO
+ifpdistl 3584 ifpdistg 1024
+ifcansee
+ifp pfacing
+ifp palive
+ifp ponground
+{
+	set initsprite 1
+	quake 90
+}
+
+ifn initsprite 0
+{
+	add initsprite 1
+	geta[].z savz
+	set z2 savz
+	rand temp 8192
+	sub z2 temp
+	seta[].z z2
+	debris SCRAP3 1
+	debris SCRAP5 1
+	seta[].z savz
+	soundonce CRUMBLE
+}
+
+ife initsprite 90
+{
+	espawn COMBINEDMEN
+	setav[RETURN].spawnprotect 0
+	starttrackslot 7 10
+	killit
+}
+
+enda

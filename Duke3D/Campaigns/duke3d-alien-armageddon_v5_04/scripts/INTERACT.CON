@@ -1,0 +1,4358 @@
+// A collection of minor environmental actors
+
+// Simple interactive objects with next tile
+
+
+define DEADGUYXBOX 6039
+define DEADGUYSWITCH 6040
+define DEADGUY 6041
+define SLIMEMOUTHMOUND 7856
+
+define COOLER 11043
+define SWITCHCONTROLLER 11076
+define XBOXCONTROLLER 11077
+define DSLR 11501
+define WHEYPROTEIN 11573
+define MOBILITYSCOOTER 11766 
+define KICKASSGUM 13114
+define HERB 13113
+define NOSNOWFLAKESIGN 13295
+define VIGILANTETORTURE1 17898
+define FOOTBALLDEAD1 17907
+define FOOTBALLDEAD2 17908
+define BOOTYDANCER 19044
+spriteshadow BOOTYDANCER
+define FAIRCHILD 19170
+spriteshadow FAIRCHILD
+define GHOSTSPOOGE 19182
+define EMBRYO 19183
+define CHESTBURSTER 19184
+define DEADMETROID 19186
+define DEADOSCAR 19187
+define LUGGAGE1 19188
+define LUGGAGE2 15989
+define JUMPINGTEETH 19189
+define BBQGRILLROUND 16153
+define BBQGRILLSQUARE 16154
+define POISONNPC 18363
+spriteshadow  POISONNPC
+define FLASHER5 20941
+spriteshadow  FLASHER5
+define FLASHER6 20943
+spriteshadow  FLASHER6
+define BABEART1 18365
+define BABEART2 18374
+define DUFFBEER 6018
+define PRESENT1 11591
+define PRESENT2 11592
+define CROWPLATE 17353
+define DUKEWOMANHEAD 15883
+define STEVEHEAD 6016
+define PATIENT1 18383
+spriteshadow PATIENT1
+define PATIENT2 18385
+spriteshadow PATIENT2
+define PEANUTBUTTER 16364
+
+defstate horiz_eval
+
+ifvarand sprite[].cstat 32
+{
+	set temp NO
+	findplayer TMP_A
+	geta[].z z
+	sub z player[].posz
+	
+	ifl player[].posz sprite[].z mul z -8 else mul z 8
+	div z TMP_A
+		
+	add z 100
+	
+	ifl player[].posz sprite[].z { ifle player[].horiz z set temp YES }
+	else
+	ifge player[].horiz z set temp YES
+}
+else set temp YES
+
+ends
+
+defstate glass_sound
+
+ifrnd 128
+          sound GLASS_BREAKING
+        else
+          sound GLASS_HEAVYBREAK
+ends
+
+move MAKINGNOISE
+state makenoise
+
+	ifmove 0 move STOPPED
+	
+	state horiz_eval
+	ifmove STOPPED
+	ifp pfacing
+	ifcansee
+	ifpdistl 1280
+	ife temp YES
+	{
+		set handicon 3
+		ifhitspace
+		{
+			ifactor DIRTYTOILET
+			{
+				soundonce FART
+				move MAKINGNOISE
+			}
+
+			ifactor MRHANKEY
+			{
+				soundonce FART
+				move MAKINGNOISE
+			}
+
+			ifactor PETE
+			{
+				soundonce FART
+				move MAKINGNOISE
+			}
+
+			ifactor FLESHLIGHT
+			{
+				soundonce DRON_ATTACK2
+				move MAKINGNOISE
+			}
+
+			ifactor BEATSPILL
+			{
+				soundonce SECRETFOUND
+				move MAKINGNOISE
+			}
+
+			ifactor ELMO
+			{
+				soundonce HAPPYMOUSESND3
+				move MAKINGNOISE
+			}
+
+
+			ifactor HOTELBELL
+			{
+				soundonce SUNSTORM_AMBIENCE1
+				move MAKINGNOISE
+			}
+
+			ifactor NOFARTINGSIGN
+			{
+				soundonce FART
+				move MAKINGNOISE
+			}
+
+			ifactor NOSNOWFLAKESIGN
+			{
+				soundonce JIBBED_ACTOR12
+				move MAKINGNOISE
+			}
+
+			ifactor DOGPAINTING
+			{
+				soundonce FART
+				move MAKINGNOISE
+			}
+
+			ifactor ARTHORSE
+			{
+				soundonce FART
+				move MAKINGNOISE
+			}
+
+			ifactor ARTSTEAK
+			{
+				soundonce TOASTY_SND
+				move MAKINGNOISE
+			}
+		}
+	}
+	
+	ifmove MAKINGNOISE
+	{
+		ifcount 40 move STOPPED
+	}
+ends
+
+eventloadactor GLASS 
+	cstator 256
+	geta[].hitag mtype
+	seta[].hitag 0
+enda
+
+action GLASSBREAKING 2 5 1 1 4
+useractor notenemy GLASS 8
+
+	ifaction GLASSBREAKING
+	{
+		geta[].x startx
+		geta[].y starty
+		
+		set x startx
+		rand x2 8
+		mul x2 sprite[].xrepeat
+		ifrnd 128 add x x2 else sub x x2
+		
+		set y starty
+		rand y2 8
+		mul y2 sprite[].xrepeat
+		ifrnd 128 add y y2 else sub y y2
+		
+		seta[].x x
+		seta[].y y
+		
+		lotsofglass 4
+		seta[].x startx
+		seta[].y starty
+		ifactioncount 5 killit
+	}
+	ifn mtype 0
+	{
+		ifhitweapon
+		{
+			ifdead
+			{
+				state glass_sound
+				action GLASSBREAKING
+			}
+		}
+	}
+
+enda
+
+spriteshadow BOWLINGPIN
+// spriteshadow BOWLINGBALL
+eventloadactor 4426 cactor BOWLINGPIN cstator 257 enda
+eventloadactor BOWLINGPIN cstator 257 enda
+
+action APINDOWN 1
+useractor notenemy BOWLINGPIN 0
+
+	fall
+	
+	ifaction 0
+	{
+		clipdist 8
+		findnearactorz BOWLINGBALL 384 3072 spriteid
+		ifn spriteid -1
+		ifn actorvar[spriteid].dodgetime 0
+		{
+			geta[].x x2
+			geta[].y y2
+			sub x2 sprite[spriteid].x
+			sub y2 sprite[spriteid].y
+			getangle angvar x2 y2
+			
+			
+			seta[].mdflags 16
+			action APINDOWN
+			seta[].ang angvar
+			cstat 0
+			move STAKEVELS geth
+			sound BOWLING_PIN
+			getav[spriteid].countvar countvar
+			add countvar 1
+			setav[spriteid].countvar countvar
+			set myvictim spriteid
+		}
+		else
+		ifhitweapon
+		{
+			seta[].mdflags 16
+			action APINDOWN
+			geta[].htang angvar
+			
+			sub angvar 96
+			rand temp 192
+			add angvar temp
+			seta[].ang angvar
+			cstat 0
+			move STAKEVELS geth
+			sound BOWLING_PIN
+		}
+	}
+	strength 0
+	ifmove STAKEVELS 
+	{
+		ifn sprite[].htmovflag 0 
+		{
+			geta[].htmovflag spriteid
+			addvar spriteid 16384
+			ifvarl spriteid 16384 ifvarg spriteid -1 
+			{
+				ife sprite[spriteid].picnum BOWLINGPIN
+				{
+					seta[spriteid].htextra 2
+					
+					seta[spriteid].htpicnum KNEE
+					seta[spriteid].htowner THISACTOR
+					
+					geta[spriteid].x x2
+					geta[spriteid].y y2
+					sub x2 sprite[].x
+					sub y2 sprite[].y
+					getangle angvar x2 y2
+					seta[spriteid].htang angvar
+					ifn myvictim -1
+					{
+						getav[myvictim].countvar countvar
+						add countvar 1
+						setav[myvictim].countvar countvar
+					}
+				}
+			}
+		}
+		ifcount 6 move STOPPED geth
+	}
+
+enda
+
+eventloadactor BOWLINGBALL sizeat 40 40 enda
+
+useractor notenemy BOWLINGBALL 0
+
+	
+	ifmove 0
+	{
+		move STOPPED
+		clipdist 32
+		cstator 257
+		seta[].mdzoff -1560
+		sizeat 40 40
+	}
+	
+	ife dodgetime 0
+	state checkheldobject
+	
+	
+	// when rolled
+	// seta[].ang player[].ang
+	// seta[].htextra 10
+	// seta[].htpicnum KNEE
+	// seta[].htowner player[].i
+	// seta[].htang player[].ang
+		
+	ifg sprite[].htextra 0
+	{
+		geta[].htextra temp
+		
+		mul temp 160
+		ife sprite[].htpicnum KNEE mul temp 2
+		
+		div temp tiledata[sprite[].picnum].xsize
+		ifg temp dodgetime
+		{
+			set angvel sprite[].htang
+			set dodgetime temp
+			seta[].ang angvel
+		}
+	}
+	ifhitweapon strength 0
+	
+	ife heldobject THISACTOR { set dodgetime 0 break }
+	fall
+	
+	ifg sprite[].zvel 0 add FEMFALLDMG 1 else
+	ifg FEMFALLDMG 0
+	{
+		set FEMFALLDMG 0
+		ifg dodgetime 0 sound BOWLING_ROLL
+	}
+
+	ifvarg dodgetime 0
+	{
+		seta[].ang angvel
+		
+		geta[].pitch temp
+		set tempb dodgetime
+		shiftl tempb 1
+		add temp tempb
+		seta[].pitch temp
+		
+		
+		cos xvel angvel
+		sin yvel angvel
+		setvarvar temp dodgetime
+		ifvarg temp 1024 setvar temp 1024
+		mulvarvar xvel temp
+		mulvarvar yvel temp
+		shiftvarr xvel 13
+		shiftvarr yvel 13
+		movesprite THISACTOR xvel yvel 0 CLIPMASK0 RETURN 
+		// shiftvarr dodgetime 1
+		sub dodgetime 1
+		ifn RETURN 0 
+		{
+			setvarvar temp RETURN
+			andvar temp 49152
+			ifvare temp 32768
+			{
+				// hit a wall
+				setvarvar hitwall RETURN
+				andvar hitwall 16383
+				ife wall[hitwall].pal 4 { stopactorsound THISACTOR BOWLING_ROLL killit }
+				getwall[hitwall].point2 B
+				getwall[hitwall].x x2
+				getwall[hitwall].y y2
+				getwall[B].x x
+				getwall[B].y y
+				subvarvar x2 x
+				subvarvar y2 y
+				getangle angvar x2 y2
+				
+				getactor[THISACTOR].ang tempb
+				getincangle tempc angvar tempb
+				subvarvar angvar tempc
+				ifvarg angvar 2047 subvar angvar 2048
+				ifvarl angvar 0 addvar angvar 2048
+				setactor[THISACTOR].ang angvar
+				set angvel angvar
+				div dodgetime 2
+			}
+/*	
+			// cause damage to hit sprite
+			addvar RETURN 16384
+			ifvarl RETURN 16384 ifvarg RETURN -1 
+			{
+				seta[RETURN].htextra 3
+				seta[RETURN].htpicnum KNEE
+				seta[RETURN].htowner THISACTOR
+				seta[RETURN].htang angvel
+			}
+			else
+			set dodgetime 0
+*/
+		}
+		ifvarl dodgetime 2 setvar dodgetime 0
+		ifvarl dodgetime 10 stopactorsound THISACTOR BOWLING_ROLL
+		ifg countvar 4
+		{
+			set countvar 0
+			soundonce BOWLING_STRIKE
+			stopsound BOWLING_PIN
+		}
+	}
+
+enda
+
+useractor notenemy HOTELBELL 0 state makenoise enda
+useractor notenemy NOFARTINGSIGN 0 state makenoise enda
+// useractor notenemy NOSNOWFLAKESIGN 0 state makenoise enda
+useractor notenemy DOGPAINTING 0 state makenoise enda
+useractor notenemy ARTHORSE 0 state makenoise enda
+useractor notenemy ARTSTEAK 0 state makenoise enda
+
+
+action AFLASH1 1 1 1 1 60
+action AFLASH2 8970 1 1 1 60
+action AFLASH3 3017 1 1 1 60
+//action AFLASH4 1 1 1 1 180
+
+state usechangeframe
+
+state horiz_eval
+ifaction 0
+ifp pfacing
+ifcansee
+ifpdistl 1280
+ife temp YES
+{
+	set handicon 3
+	
+	ifhitspace
+	action AFLASH1
+}
+
+ends
+
+state flashercode
+ifaction 0
+{
+	// cstator 257
+	action ANULLACTION
+	move STOPPED geth
+	ifl sprite[].xrepeat 8 sizeat 30 30
+}
+
+ifaction ANULLACTION
+{
+	state horiz_eval
+	ifp pfacing
+	ifcansee
+	ifpdistl 1280
+	ife temp YES
+	{
+		set handicon 3
+		ifhitspace
+		ifcount 30
+		{
+			action AFLASH1
+			ifactor JACKBOX1 sound DRAGONROAM
+			ifactor JACKBOX2 sound DRAGONROAM
+			ifactor JACKBOX3 sound DRAGONROAM
+			ifactor FURBY sound HOLOTAUNT5
+			ifactor TALKINGBASS sound D_FISHFOOD
+			ifactor BLENDER sound JIGSAW
+			ifactor TOILETJACK sound DRAGONROAM
+			ifactor TOILETMONSTER sound FART
+			ifactor FOUNTAINPEE sound DUKE_URINATE
+			ifactor DILDO sound JIGSAW
+			ifactor LAWGIVER sound SHORT_CIRCUIT
+			ifactor HOVERBOARD sound SHORT_CIRCUIT
+			ifactor FIDGETSPINNER action AFLASH2
+			ifactor SLIMEMOUTH { action AFLASH3 sound SLIM_HATCH}
+			ifactor TOYROBOT sound SHORT_CIRCUIT
+			ifactor MEESEEKS sound MEESEEK_SND
+			ifactor GLORYHOLE1 sound B_WOOHOO
+			ifactor GLORYHOLE2 sound B_WOOHOO
+			ifactor TABLET5 sound FART
+			ifactor TABLET31 sound SLIM_RECOG 
+			ifactor TOILETHOUSE2 sound RATTY 
+			ifactor TOILETHOUSE3 sound FART
+			ifactor TOILETOVERLORD sound BOS2_PAIN
+			ifactor TOASTER2 sound TOASTY_SND
+			ifactor FLASHER3 sound PIG_ROAM 
+			ifactor SLIMEGIRLPUKE1 sound SQUISHED1 
+			ifactor SLIMEGIRLPUKE2 sound SQUISHED1 
+			ifactor SLIMEGIRLPUKE3 sound SQUISHED1
+			ifactor SLIMEGIRLPUKE4 sound SQUISHED1
+			ifactor SLIMEGIRLPUKE5 sound INTRO4_1
+			ifactor PATIENT1 sound KILLME
+			ifactor PATIENT2 sound KILLME
+			ifactor POISONNPC sound BATHCOMM2
+			ifactor VIGILANTETORTURE1 sound DUKE_KILLED1
+		}
+	}
+}
+else ifactioncount 2 action ANULLACTION
+ends
+
+
+
+useractor notenemy JACKBOX1 0 state flashercode enda
+useractor notenemy JACKBOX2 0 state flashercode enda
+useractor notenemy JACKBOX3 0 state flashercode enda
+
+useractor notenemy FURBY 0 state flashercode 
+fall
+ifhitweapon { debris SCRAP3 6 debris SCRAP1 3 killit }
+enda
+
+useractor notenemy PBJ 0 state flashercode enda
+useractor notenemy MARIOMASK 0 state flashercode enda
+
+useractor notenemy FOUNTAINPEE 0 state flashercode enda
+useractor notenemy DILDO 0 state flashercode enda
+useractor notenemy RINGGIRL 0 state flashercode enda
+useractor notenemy LAWGIVER 0 state flashercode enda
+useractor notenemy TALKINGBASS 0 state flashercode enda
+eventloadactor SLIMEEYE geta[].x startx geta[].y starty enda
+useractor notenemy SLIMEEYE 0 
+
+ifaction 0
+{
+	// cstator 257
+	action ANULLACTION
+	move STOPPED geth
+}
+
+seta[].x startx
+seta[].y starty
+ifaction ANULLACTION
+{
+	state horiz_eval
+	ifp pfacing
+	ifcansee
+	ifpdistl 1280
+	ife temp YES
+	{
+		set handicon 3
+		ifhitspace
+		ifcount 30
+		{
+			action AFLASH1
+		}
+	}
+}
+else ifactioncount 2 action ANULLACTION
+
+enda
+
+useractor notenemy FIDGETSPINNER 0 state flashercode enda
+useractor notenemy HOVERBOARD 0 state flashercode enda
+useractor notenemy SLIMEMOUTH 0 state flashercode enda
+useractor notenemy TOYROBOT 0 state flashercode enda
+useractor notenemy GLORYHOLE1 0 state flashercode enda
+useractor notenemy GLORYHOLE2 0 state flashercode enda
+useractor notenemy MEESEEKS 0 state flashercode enda
+useractor notenemy MAGICCARD1 0 state usechangeframe enda
+useractor notenemy MAGICCARD2 0 state usechangeframe enda
+useractor notenemy MAGICCARD3 0 state usechangeframe enda
+useractor notenemy MAGICCARD4 0 state usechangeframe enda
+useractor notenemy MAGICCARD5 0 state usechangeframe enda
+useractor notenemy MAGICCARD6 0 state usechangeframe enda
+useractor notenemy MAGICCARD7 0 state usechangeframe enda
+useractor notenemy MAGICCARD8 0 state usechangeframe enda
+useractor notenemy MAGICCARD9 0 state usechangeframe enda
+useractor notenemy MAGICCARD10 0 state usechangeframe enda
+useractor notenemy MAGICCARD11 0 state usechangeframe enda
+useractor notenemy MAGICCARD12 0 state usechangeframe enda
+useractor notenemy MAGICCARD13 0 state usechangeframe enda
+useractor notenemy MAGICCARD14 0 state usechangeframe enda
+
+useractor notenemy POKAMOMCARD1 0 state usechangeframe enda
+useractor notenemy POKAMOMCARD2 0 state usechangeframe enda
+useractor notenemy POKAMOMCARD3 0 state usechangeframe enda
+useractor notenemy POKAMOMCARD4 0 state usechangeframe enda
+useractor notenemy POKAMOMCARD5 0 state usechangeframe enda
+useractor notenemy POKAMOMCARD6 0 state usechangeframe enda
+useractor notenemy POKAMOMCARD7 0 state usechangeframe enda
+useractor notenemy POKAMOMCARD8 0 state usechangeframe enda
+useractor notenemy POKAMOMCARD9 0 state usechangeframe enda
+
+useractor notenemy BABEART1 0 state usechangeframe enda
+useractor notenemy BABEART2 0 state usechangeframe enda
+
+
+useractor notenemy ANGRYBIRD 0
+
+ifmove 0
+{	
+	move STOPPED
+	cstator 256
+	sizeat 32 32
+}
+ifhitweapon
+{
+	spritepal 2
+	debris SCRAP2 2
+	debris SCRAP3 2
+	debris SCRAP5 2
+	getlastpal
+	debris SCRAP2 2
+	debris SCRAP3 2
+	debris SCRAP5 2
+	killit
+}
+
+enda
+
+
+action AMANTISMSG  1  12  1  1  180
+useractor notenemy MANTISMESSAGE 0 ANULLACTION
+
+ifaction ANULLACTION
+{
+	state horiz_eval
+	ifp pfacing
+	ifpdistl 1560
+	ifp palive
+	ifcansee
+	ife temp YES
+	{
+		set handicon 3
+		ifhitspace
+		{
+			sound COINSLOT
+			action AMANTISMSG
+		}
+	}
+}
+else
+ifactioncount 12 action ANULLACTION
+
+enda
+
+action HYDROBROKE 1
+useractor notenemy DPHYDROPLANT WEAK
+cstator 256
+ifspawnedby APLAYER sizeat 32 32
+
+ifhitweapon
+{
+	ifdead 
+	{
+		sound GLASS_HEAVYBREAK
+	    strength 0
+		// lotsofglass 10
+		seta[].alpha 84
+		state pottery_debris
+		state pottery_debris
+		seta[].alpha 0
+		spawn WATERSPLASH2
+		ifaction HYDROBROKE { killit break }
+		spritepal 1
+		spawn BLOODPOOL
+		
+		getlastpal
+		spritepal 8
+		guts JIBS6 4
+		debris SCRAP3 8
+		getlastpal
+		action HYDROBROKE
+	}
+}
+
+enda
+
+state lootcratecode
+
+ifmove 0
+{
+	move STOPPED
+	cstator 256
+}
+ifhitweapon
+{
+	ifdead
+	{
+		money 8
+		ifspritepal 0 spritepal 1
+		debris SCRAP3 4
+		killit
+	}
+}
+
+ends
+
+useractor notenemy LOOTCRATE1 10 state lootcratecode enda
+useractor notenemy LOOTCRATE2 10 state lootcratecode enda
+
+
+useractor notenemy SAMUS 60
+
+fall
+cstator 256
+ifhitweapon
+{
+	ifdead
+	{
+		move STOPPED
+		sound SAMUSDIES
+		seta[].htflags 4
+		seta[].shade -50
+	}
+}
+
+ifmove STOPPED
+{
+	
+	ifcount 90 killit
+	ifcount 50 // fade to white
+	{
+		geta[].shade temp
+		add temp 2
+		seta[].shade temp
+		ifcount 62 cstator 2
+		ifcount 74 cstator 512
+	}
+	else
+	{
+		ifcount 49
+		{
+			spritepal 33
+			debris SCRAP1 5
+			debris SCRAP2 5
+		}
+		else
+		{
+			add countvar 1
+			ife countvar 3 { set countvar 0 spritepal 6 }
+			else ifspritepal 6 getlastpal
+		}
+	}
+}
+
+enda
+
+move WILYUPVEL 0 -512
+useractor notenemy DRWILY TOUGH
+
+ifmove 0
+{
+	move STOPPED
+	ifl sprite[].xrepeat 8 sizeat 28 28
+	cstator 256
+}
+ifmove WILYUPVEL
+{
+	spawn FRAMEEFFECT1
+	ifcount 30 killit
+	ifceilingdistl 8 { cstat 32768 break }
+	sizeto 10 64
+	sizeto 10 64
+	ifvarand player[].player_par 1 
+	{ 
+		cstat 18 spawn TRANSPORTERSTAR
+	} 
+	else cstat 22
+}
+else
+fall
+ifhitweapon
+{
+	sound MEGAPORT
+	move WILYUPVEL geth getv faceplayer
+}
+
+
+enda
+
+move BALLOONDRIFT 28 -40
+action ITANGRY 2
+useractor enemy ITCLOWN 100 ANULLACTION
+
+ifmove 0
+{
+	move STOPPED
+	// getp[].max_actors_killed temp
+	// sub temp 1
+	// setp[].max_actors_killed temp
+	cstat 257
+}
+ifaction ITANGRY
+ifcount 120
+action ANULLACTION
+
+ifaction ANULLACTION
+ifp pfacing
+ifp palive
+ifpdistl 1560
+{
+	state horiz_eval
+	set handicon 3
+	ifhitspace
+	ife temp YES
+	{
+		resetcount
+		action ITANGRY
+		rand temp 3
+		ife temp 0 { sound HAPPYMOUSESND1 setactorsoundpitch THISACTOR HAPPYMOUSESND1 -1400 } else
+		ife temp 1 { sound HAPPYMOUSESND2 setactorsoundpitch THISACTOR HAPPYMOUSESND2 -1400 } else
+		ife temp 2 { sound HAPPYMOUSESND3 setactorsoundpitch THISACTOR HAPPYMOUSESND3 -1400 } else
+		ife temp 3 { sound HAPPYMOUSESND4 setactorsoundpitch THISACTOR HAPPYMOUSESND4 -1400 }
+	}
+}
+
+ifhitweapon
+{
+	ifdead
+	{
+		state standard_jibs
+		sound SQUISHED
+		cactor BALLOONS
+		move BALLOONDRIFT randomangle getv
+		cstat 256
+		strength 5
+	}
+}
+fall
+
+enda
+
+
+useractor notenemy BALLOONS 0
+
+ifcount 20 nullop else { ifhitweapon { } strength 5 break }
+
+ifrnd 4 move BALLOONDRIFT randomangle getv
+ifhitweapon
+{
+	sound BALLOONPOP
+	geta[].z z
+	sub z 16384
+	seta[].z z
+	spritepal 1
+	debris SCRAP3 6
+	spritepal 2
+	debris SCRAP3 6
+	spritepal 32
+	debris SCRAP3 6
+	spritepal 33
+	debris SCRAP3 6
+	killit
+}
+
+enda
+
+action TOWELANIM 1 4 1 1 16
+useractor notenemy LARATOWEL 0 ANULLACTION
+
+	fall
+	state horiz_eval
+	ifaction ANULLACTION
+	ifp pfacing
+	ifpdistl 1560
+	ifcansee
+	ife temp YES
+	{
+		set handicon 3
+		ifhitspace
+		action TOWELANIM
+	}
+	
+	ifaction TOWELANIM
+	ifactioncount 4 action ANULLACTION
+
+enda
+
+useractor notenemy FLASHER1 TOUGH state flashercode state femcode enda
+useractor notenemy FLASHER2 TOUGH state flashercode state femcode enda
+useractor notenemy FLASHER3 TOUGH state flashercode state femcode enda
+useractor notenemy FLASHER4 TOUGH state flashercode state femcode enda
+useractor notenemy FLASHER5 TOUGH state flashercode state femcode enda
+useractor notenemy FLASHER6 TOUGH state flashercode state femcode enda
+
+
+
+useractor notenemy TIEDGIRL TOUGH FEMANIMATE
+state femcode
+enda
+useractor notenemy ELFGIRL TOUGH FEMANIMATE
+state femcode
+enda
+useractor notenemy PPGIRL1 TOUGH FEMANIMATE
+state femcode
+enda
+useractor notenemy PPGIRL2 TOUGH FEMANIMATE
+state femcode
+enda
+useractor notenemy PPGIRL3 TOUGH FEMANIMATE
+state femcode
+enda
+useractor notenemy PPGIRL4 TOUGH FEMANIMATE
+state femcode
+enda
+useractor notenemy PPGIRL5 TOUGH FEMANIMATE
+state femcode
+enda
+useractor notenemy PPGIRL6 TOUGH FEMANIMATE
+state femcode
+enda
+useractor notenemy BOOTYGIRL TOUGH FEMANIMATE
+state femcode
+enda
+useractor notenemy BOOTHBABE TOUGH FEMANIMATE
+state femcode
+enda
+useractor notenemy SAILORGIRL TOUGH FEMANIMATE
+state femcode
+enda
+useractor notenemy SITTINGGIRL TOUGH FEMANIMATE
+state femcode
+enda
+useractor notenemy DANCINGBIKINIGIRL TOUGH FEMANIMATE
+state femcode
+enda
+
+useractor notenemy BOOTYDANCER TOUGH FEMANIMATE
+state femcode
+enda
+
+useractor notenemy FAIRCHILD TOUGH FEMANIMATE
+state femcode
+enda
+
+useractor notenemy MERMAID TOUGH FEMANIMATE
+state femcode
+enda
+
+useractor notenemy FELICIA TOUGH FEMANIMATE
+state femcode
+enda
+
+useractor notenemy LARRY TOUGH FEMANIMATE
+state femcode
+enda
+
+useractor notenemy TEXTINGNPC1 TOUGH FEMANIMATE
+state femcode
+enda
+
+useractor notenemy TEXTINGNPC2 TOUGH FEMANIMATE
+state femcode
+enda
+
+useractor notenemy TEXTINGNPC3 TOUGH FEMANIMATE
+state femcode
+enda
+
+useractor notenemy ROSHI TOUGH FEMANIMATE
+state femcode
+enda
+
+useractor notenemy GARFIELD TOUGH FEMANIMATE
+state femcode
+enda
+
+useractor notenemy OSCAR ROBOTMOUSESTRENGTH
+
+ifmove 0
+{
+	move STOPPED
+	cstator 257
+}
+fall
+ifhitweapon
+{
+	ifdead
+	{
+		sound VENT_BUST
+		sound SQUISHED
+		debris SCRAP1 8
+		debris SCRAP2 8
+		debris SCRAP4 8
+		debris SCRAP5 8
+		debris SCRAP6 8
+		spritepal 6
+		debris SCRAP3 12
+		getlastpal
+		state lite_jibs
+		spawn BIGSMOKE
+		spawn DEADOSCAR
+		killit
+	}
+}
+
+enda
+
+action AMARIODEAD
+move MARIOSHRUNK
+
+state mariocode
+ifmove 0
+{
+	move STOPPED
+	geta[].xrepeat startx
+	geta[].yrepeat starty
+	set countvar startx
+	shiftr countvar 1
+	set countvarb starty
+	shiftr countvarb 1
+	set FEMFALLDMG 256
+	cstator 256
+}
+
+
+ifaction AMARIODEAD
+{
+	ifcount 40
+	{
+		geta[].z z
+		add z FEMFALLDMG
+		add FEMFALLDMG 128
+		seta[].z z
+	} 
+	else
+	ifcount 39 cstator 8
+	else
+	ifcount 16 nullop 
+	else
+	{
+		geta[].z z
+		sub z 1280
+		seta[].z z
+	}
+	ifcount 80 killit
+	break
+}
+fall
+
+ifmove MARIOSHRUNK
+{
+	ifcount 30 
+	{
+		seta[].xrepeat countvar
+		seta[].yrepeat countvarb
+		strength 0
+	}
+	else
+	{
+		add countvarc 1
+		ifg countvarc 3
+		{
+			set countvarc 0
+			ife sprite[].xrepeat startx
+			{
+				seta[].xrepeat countvar
+				seta[].yrepeat countvarb
+			}
+			else
+			{
+				seta[].xrepeat startx
+				seta[].yrepeat starty
+			}
+		}
+		break
+	}
+}
+
+ifhitweapon
+{
+	ifmove STOPPED
+	{
+		move MARIOSHRUNK
+		sound MARIODAMAGE
+		strength 0
+		break
+	}
+	ifmove MARIOSHRUNK
+	{
+		sound MARIODIES
+		action AMARIODEAD
+		resetcount
+	}
+}
+
+ends
+
+
+useractor notenemy MARIO 1 state mariocode enda
+useractor notenemy LUIGI 1 state mariocode enda
+useractor notenemy PEACH 1 state mariocode enda
+useractor notenemy WARIO 1 state mariocode enda
+
+action BLIMPWAITTORESPAWN
+
+state blimphitstate
+  cstat 0
+  spawn FIRSTGUNSPRITE
+  spawn EXPLOSION2
+
+  debris SCRAP1 40      // Weapons and ammo!
+  debris SCRAP2 32
+  debris SCRAP3 32
+  debris SCRAP4 32
+  debris SCRAP5 32
+
+  sound PIPEBOMB_EXPLODE
+  ifrespawn
+  {
+    action BLIMPWAITTORESPAWN
+    count 0
+    cstat 32768
+  }
+  else
+    killit
+ends
+
+actor BLIMP 1
+
+  ifaction BLIMPWAITTORESPAWN
+  {
+    ifcount BLIMPRESPAWNTIME
+    {
+      action 0
+      cstat 0
+    }
+    break
+  }
+
+  ifhitweapon
+  {
+    ifwasweapon RADIUSEXPLOSION
+      state blimphitstate
+    ifwasweapon RPG
+      state blimphitstate
+    strength 1
+  }
+enda
+
+
+
+state rats
+  ifrnd 128
+    spawn RAT
+  ifrnd 128
+    spawn RAT
+  ifrnd 128
+    spawn RAT
+  ifrnd 128
+    spawn RAT
+  ifrnd 128
+    spawn RAT
+  ifrnd 128
+    spawn RAT
+  ifrnd 128
+    spawn RAT
+  ifrnd 128
+    spawn RAT
+ends
+
+move MOUSEVELS 32
+
+action RUBCANDENT 1 1 1 1 1
+
+actor RUBBERCAN WEAK
+  ifaction RUBCANDENT
+  {
+    ifactioncount 16
+    {
+      strength 0
+      action ANULLACTION
+      break
+    }
+  }
+  else
+    ifhitweapon
+  {
+    ifwasweapon RADIUSEXPLOSION
+    {
+      state rats
+      ifrnd 48
+        spawn BURNING
+      debris SCRAP3 12
+      killit
+    }
+    else
+      action RUBCANDENT
+  }
+enda
+
+move SHUTTLEVELS 16
+actor SPACESHUTTLE TOUGH
+//  ifmove 0          //  Init once
+//    move SHUTTLEVELS getv geth
+enda
+
+
+actor SATELLITE TOUGH
+  //  ifmove 0 move SHUTTLEVELS getv geth
+  //  ifcount 120 move SHUTTLEVELS getv geth randomangle
+enda
+
+state jibfood
+  sound SQUISHED
+  guts JIBS6 3
+  killit
+ends
+
+defstate breakobject
+  ifaction 0
+  {
+	ifspawnedby APLAYER sizeat 32 32
+    action ANULLACTION
+    cstator 256
+	
+	set temp tiledata[sprite[].picnum].xsize
+	ifg tiledata[sprite[].picnum].ysize temp set temp tiledata[sprite[].picnum].xsize
+	mul temp sprite[].xrepeat
+	ifg temp 1560 cstator 1 else
+	{
+		geta[].cstat tempb
+		ifvarand tempb 1 xorvar tempb 1
+		seta[].cstat tempb
+	}
+    ifactor ROBOTMOUSE
+      clipdist 64
+  }
+  else
+    ifactor ROBOTMOUSE
+  {
+      ifdead
+      {
+        ifcount 32
+        {
+          globalsound MOUSEANNOY
+          killit
+        }
+        break
+      }
+      ifcount 64 ifrnd 6
+      {
+        ifrnd 128
+          move MOUSEVELS randomangle geth
+        else
+        {
+          ifrnd 64
+            soundonce HAPPYMOUSESND1
+          else
+            ifrnd 64
+              soundonce HAPPYMOUSESND2
+          else
+            ifrnd 64
+              soundonce HAPPYMOUSESND3
+          else
+            soundonce HAPPYMOUSESND4
+        }
+        resetcount
+      }
+  }
+
+  ifhitweapon
+  {
+    ifdead
+    {
+	  ifn droptile 0
+	  {
+		ifg droptile 10 espawnvar droptile
+		set droptile 0
+	  }
+	  
+	  ifactor CLOCKDIGITAL
+      {
+	    state glass_sound
+        cactor CLOCKDIGITALBROKEN
+        break
+      }
+	  
+	  ifactor CLOCK
+      {
+	    state glass_sound
+        cactor BROKENCLOCK
+        break
+      }
+	  
+	  ifactor GUMBALLMACHINE
+      {
+        cactor GUMBALLMACHINEBROKE
+        strength 1
+        debris SCRAP4 2
+		state glass_sound
+        lotsofglass 10
+        break
+      }
+      
+	  ifactor SLIMEBUBBLE
+      {
+        cactor SLIMEBUBBLEPOP
+        guts JIBS2 1
+        guts JIBS3 2
+        guts JIBS4 1
+        guts JIBS5 1
+        sound SQUISHED
+        break
+      }
+	  
+	   ifactor ROBOTMOUSE
+      {
+        debris SCRAP2 10
+        spritepal 1
+        debris SCRAP3 4
+		getlastpal
+		state tech_debris
+        resetcount
+        cstat 32768
+		sound VENT_BUST
+        break
+      }
+	  
+	  switch sprite[].picnum
+	  
+	  case WETFLOOR
+		sound PROPBREAK1 sound PROPBREAK1 sound PROPBREAK1 sound PROPBREAK1 sound PROPBREAK1
+		spritepal 4
+		debris SCRAP6 2
+		spritepal 85
+		debris SCRAP6 6
+	  break
+	  
+	  case BROOM case MOP case HATRACK
+		sound PROPBREAK1 sound PROPBREAK1 sound PROPBREAK1 sound PROPBREAK1 sound PROPBREAK1
+		debris SCRAP3 2
+		debris SCRAP4 3
+		spawn BIGSMOKE
+	  break
+	  
+	  case FOODOBJECT6 case FOODOBJECT11 case FOODOBJECT12
+	  case FOODOBJECT13 case FOODOBJECT14 case FOODOBJECT15
+	  case FOODOBJECT16 case FOODOBJECT17 case FOODNIGIRI
+	  case FOODSUSHIROLL case KFC case HOTDOG case ALIENFOOD1
+	  case CROWPLATE case DUKEWOMANHEAD case STEVEHEAD
+	  case ALIENFOOD2 case ELMOGLUE case SKINNEDCHICKEN
+	  case BLOWFISH case CRAB case PINKDONUT case SPAM
+	  case DEADFISH case SONIC case FEATHEREDCHICKEN
+	  case PIZZA
+	    state jibfood
+	  break
+	  case SNICKERS case STEAMBUN
+		spritepal 54
+		state jibfood
+	  break
+	  case BLUEMILK
+	   spritepal 1
+	   state jibfood
+	  break
+	  case SQUID
+	   spritepal 4
+	   state jibfood
+	  break
+	  case FOODOCTABRAIN
+	   spritepal 6
+	   state jibfood
+	  break
+	  case DONUTS
+        spritepal 7
+        guts JIBS6 2
+	  break
+	  case DONUTS2
+        debris SCRAP1 1
+        spritepal 7
+        guts JIBS6 2
+      break
+      
+	  case SOAPDISPENSER
+	   spritepal 8
+	   state jibfood
+	  break
+	  case DEADOSCAR
+		  spritepal 28
+		  state jibfood
+	  break
+	  case APPLE case INSTANTRAMEN case SPONGEBOBHOUSE case POPCORN
+	  case BUTTERS
+	    spritepal 32
+		state jibfood
+	  break
+	  case EMBRYO case CAKESLICE case TENTACLEA1 case TENTACLEA2 case TENTACLEA3
+	  case TENTACLEB1 case TENTACLEB2 case TENTACLEB3 case TENTACLEC1 case TENTACLEC2
+	  case CHESTBURSTER case PIRANAPLANT case BLOWUPDOLL case OCTOPUS case LOBSTER 
+	  case CLOWNFISH case KIYOMARA case BANANA case BANANABUNCH case BANANABOX
+	  case CATFOOD case HANDSANITIZER case ANALLUBE case BATHWATER
+	  case JACKOLANTERN case SLIMESKULL case TRUCKNUTS
+	    spritepal 33
+		state jibfood
+	  break
+	  case OGAY case FLESHLIGHT
+	      espawn BLOODPOOL2
+		  seta[RETURN].pal 33
+		  spritepal 33
+		  state jibfood
+	  break
+	  case SOYB
+	      espawn BLOODPOOL2
+		  seta[RETURN].pal 29
+		  spritepal 33
+		  state jibfood
+	  break
+	  case ALIENTHINGY case BLISTERS
+	      espawn BLOODPOOL2
+		  seta[RETURN].pal 8
+		  spritepal 33
+		  state jibfood
+	  break
+	  case DEADMETROID
+		  espawn BLOODPOOL2
+		  seta[RETURN].pal 8
+		  spritepal 7
+		  state jibfood
+	  break
+	  case SLIMEMOUTHMOUND
+		spritepal 8
+		guts JIBS2 1
+		guts JIBS3 1
+		guts JIBS6 3
+		guts JIBS5 1
+	  break
+	  case DEADRADSUIT case TURTLE
+		guts JIBS2 2
+		guts JIBS3 2
+		guts JIBS6 3
+	  break	
+	  case BLINKYFISH
+		guts JIBS2 3
+		guts JIBS3 1
+		guts JIBS6 1
+	  break
+	  case EEL case PIKACHU case YOSHIEGG case PONY
+	   guts JIBS2 1
+       guts JIBS3 2
+       guts JIBS6 3
+	  break
+	  case POKEBALL case SPONGEBOB case WILSON case GEORGERAMPAGE case TACOHELLBAG
+	  case ELMO case MRHANKEY case FISHCHOPPED case PEANUTBUTTER
+	    guts JIBS2 2
+        guts JIBS3 1
+        guts JIBS6 2
+	  break
+	  
+	  case FROZEN
+	    spritepal 1
+        guts JIBS2 1
+        guts JIBS3 2
+        guts JIBS6 3
+	  break
+	  case TOYSTORYALIEN
+	    spritepal 6
+        guts JIBS2 3
+        guts JIBS3 1
+        guts JIBS6 2
+	  break
+	  case DEADGUYSWITCH case DEADGUY case FOOTBALLDEAD1 case FOOTBALLDEAD2
+	    guts JIBS2 4
+		guts JIBS3 1
+        guts JIBS6 3
+		guts JIBS5 1
+		ifactor DEADGUYSWITCH spawn SWITCHCONTROLLER
+	  break
+	  case SLIMEGIRLPUKE1 case SLIMEGIRLPUKE2 case SLIMEGIRLPUKE3 
+	  case SLIMEGIRLPUKE4 case SLIMEGIRLPUKE5 case PATIENT1  case PATIENT2
+	    espawn BLOODPOOL2
+         seta[RETURN].pal 8
+		guts JIBS2 4
+        guts JIBS3 1
+        guts JIBS6 3
+		guts JIBS5 1
+		spawn EMBRYO
+	  break
+	  case VIGILANTETORTURE1 case POISONNPC
+	    guts JIBS1 2
+        guts JIBS3 1
+        guts JIBS6 3
+		guts JIBS5 1
+	  break
+	  case DEADSLIMEGIRL4 case DEADSLIMEGIRL5 case DEADSLIMEGIRL6 case DEADSLIMEGIRL7
+	    espawn BLOODPOOL2
+         seta[RETURN].pal 8
+    	spritepal 8
+		guts JIBS2 4
+        guts JIBS3 1
+        guts JIBS6 3
+		guts JIBS5 1
+		spawn CHESTBURSTER
+	  break
+	  case BALLOONSINGLE
+	    sound BALLOONPOP
+		spritepal 1
+		debris SCRAP3 1
+		spritepal 2
+		debris SCRAP3 1
+	  break
+	  case BALLOONBLUEBUNCH
+	    sound BALLOONPOP
+		spritepal 1
+		debris SCRAP3 4
+		spritepal 1
+		debris SCRAP3 4
+		spritepal 1
+		debris SCRAP3 4
+		spritepal 1
+		debris SCRAP3 4
+	  break
+	  case BALLOONCOLORFULBUNCH
+	    sound BALLOONPOP
+		debris SCRAP3 5
+		spritepal 2
+		debris SCRAP3 5
+		spritepal 32
+		debris SCRAP3 5
+		spritepal 33
+	  break
+	  case ROBOTDOG2
+	    soundonce DEAD_DOG
+        guts JIBS2 1
+        guts JIBS3 2
+        guts JIBS6 3
+	  break
+	  case DOLPHIN1 case DOLPHIN2 case SNAKEP
+	    guts JIBS2 1
+        guts JIBS3 2
+        guts JIBS4 3
+        guts JIBS5 2
+        state jibfood
+	  break
+	  case MAILBAG
+          mail 30
+          debris SCRAP3 5
+          debris SCRAP4 3
+      break
+	  case LUGGAGE1
+	  case LUGGAGE2
+		 mail 10
+		 sound BIGDOORSLAM
+		 debris SCRAP3 6
+		 
+	  break
+	  case TEDDYBEAR
+        debris SCRAP3 5
+        spritepal 1
+        debris SCRAP3 6
+      break
+	  case JOLLYMEAL
+        spawn ATOMICHEALTH
+        debris SCRAP3 1
+        debris SCRAP4 2
+	  break
+	  case GUMBALLMACHINEBROKE
+	    debris SCRAP3 3
+        debris SCRAP4 2
+		sound VENT_BUST
+        lotsofglass 10
+	  break
+	  case DUKEBURGER
+        debris SCRAP3 14
+        debris SCRAP1 13
+        debris SCRAP4 12
+        debris SCRAP2 12
+        debris SCRAP5 11
+      break
+	  case POLICELIGHTPOLE
+      
+        debris SCRAP3 4
+        debris SCRAP1 3
+        debris SCRAP4 2
+        debris SCRAP2 2
+        debris SCRAP5 1
+		state glass_sound
+      break
+	  case FLOORBASKET
+        spawn PUKE
+        debris SCRAP1 2
+        debris SCRAP3 3
+        debris SCRAP4 2
+		ifspritepal 0 spritepal 95
+		state pottery_debris
+		ifspritepal 95 getlastpal
+		state glass_sound
+      break
+	  case TOPSECRET
+	    paper 10
+	  break
+	  case ROBOTPIRATE case PIRATE1A case MAN case MAN2 case PIRATE2A
+      case PIRATE3A case PIRATE4A case PIRATE5A case PIRATE6A
+        debris SCRAP2 10
+        debris SCRAP1 5
+        debris SCRAP3 3
+        lotsofglass 10
+		sound VENT_BUST
+      break
+	  case GUNPOWDERBARREL case BUTANE
+        spawn EXPLOSION2
+        sound PIPEBOMB_EXPLODE
+		ifg plevel 1
+		{
+			set temp plevel
+			add temp 3
+			mul temp 8
+			
+			set tempb temp, mul tempb 3 div tempb 4
+			set tempc temp, mul tempc 2 div tempc 3
+			set tempd temp, div tempd 2
+			hitradiusvar 2048 tempd tempc tempb temp
+		}
+		else
+        hitradius 2048 WEAKEST WEAK MEDIUMSTRENGTH TOUGH
+        ifpdistl 2048
+          wackplayer
+        debris SCRAP1 10
+        debris SCRAP2 13
+        debris SCRAP3 4
+        debris SCRAP4 17
+        debris SCRAP5 6
+	  break
+	  case ENERGIZERBUNNY case JOKERCARD case DOOMDOLL case POTATO
+	  case MOTOROIL
+        spawn EXPLOSION2
+        sound PIPEBOMB_EXPLODE
+        hitradius 2048 WEAKEST WEAK MEDIUMSTRENGTH TOUGH
+        ifpdistl 2048
+          wackplayer
+        debris SCRAP1 10
+        debris SCRAP2 13
+        debris SCRAP3 4
+        debris SCRAP4 17
+        debris SCRAP5 6
+      break
+	  case BBQGRILLROUND case BBQGRILLSQUARE
+		ifrnd 128 sound BREAK_MET2 else sound BREAK_MET3
+		state pottery_debris
+		debris SCRAP3 4
+        debris SCRAP1 3
+        debris SCRAP4 2
+        debris SCRAP2 2
+        debris SCRAP5 1
+	  break
+	  case PLANTER
+		state pottery_debris
+		state pottery_debris
+		spritepal 28
+		debris SCRAP3 8
+		getlastpal
+		spritepal 8
+		debris SCRAP3 14
+		getlastpal
+		debris SCRAP5 4
+		state glass_sound
+		espawn PUKE
+		seta[RETURN].pal 28
+	  break
+	  
+	  case PLANTER2
+		ifspritepal 0 spritepal 1
+		ifspritepal 10 spritepal 2
+		ifspritepal 11 spritepal 8
+		ifspritepal 14 spritepal 8
+		ifspritepal 16 spritepal 1
+		ifspritepal 21 spritepal 2
+		ifspritepal 23 spritepal 7
+		state pottery_debris
+		state pottery_debris
+		ifg sprite[].pal 0 ifl sprite[].pal 9 getlastpal
+		spritepal 28
+		debris SCRAP3 8
+		getlastpal
+		spritepal 8
+		debris SCRAP3 14
+		getlastpal
+		debris SCRAP5 4
+		state glass_sound
+		espawn PUKE
+		seta[RETURN].pal 28
+	  break
+	  default 
+		state pottery_debris
+		state glass_sound
+        debris SCRAP4 3
+	  break
+	  endswitch
+
+      killit
+    }
+    else // if not killed
+      ifactor DOLPHIN1
+    {
+      guts JIBS6 1
+      soundonce DOLPHINSND
+      ifstrength TOUGH
+      {
+        cactor DOLPHIN2
+        sound SQUISHED
+      }
+    }
+    else
+      ifactor DOLPHIN2
+    {
+      guts JIBS6 1
+      soundonce DOLPHINSND
+    }
+    else
+      ifactor ROBOTDOG2
+    {
+      guts JIBS6 1
+      soundonce WHINING_DOG
+    }
+  }
+  else
+  {
+    switch sprite[].picnum
+	case CLOCKDIGITAL case TRUCKNUTS case ORNAMENT case APPLE 
+	case CLOCK case DS case BALLOONSINGLE case BALLOONBLUEBUNCH 
+	case BALLOONCOLORFULBUNCH case SLIMEBUBBLE case SLIMEEYE 
+	case DEADFISH case CLOWNFISH case TURTLE case CRAB case EEL 
+	case OCTOPUS case BLOWFISH case BLINKYFISH case FISHCHOPPED
+	case TOPSECRET case SKINNEDCHICKEN case FEATHEREDCHICKEN
+	case TENTACLEA1 case TENTACLEA2 case TENTACLEA3 case TENTACLEB1
+	case TENTACLEB2 case TENTACLEB3 case TENTACLEC1 case TENTACLEC2
+	case FOODOBJECT2 case FOODOBJECT6 case DOLPHIN1 case DOLPHIN2
+		// don't fall
+	break
+	default 
+	    fall 
+	break
+	endswitch
+  }
+
+
+ends
+
+move FOODFLY1 140 -72
+move FOODFLY2 208 -108
+
+state foodcode
+
+ifmove 0
+{
+	ifspawnedby FOODCART
+	{
+		sizeat 40 40
+		ifrnd 128 cstator 4
+		cstator 256
+		ifrnd 128 move FOODFLY1 randomangle getv
+		else move FOODFLY2 randomangle getv
+	}
+	else move STOPPED
+}
+
+ifmove STOPPED nullop else
+{
+	ifcount 15 iffloordistl 4 move STOPPED
+	add countvar 128
+	geta[].zvel z
+	add z countvar
+	seta[].zvel z
+}
+fall
+ifhitweapon state jibfood
+
+ends
+
+
+action ABURGERROTS 0 1 5
+useractor notenemy DUKEBURGER PIRATEGALSTRENGTH ABURGERROTS state breakobject enda
+
+useractor notenemy MOP WEAK state breakobject enda
+
+useractor notenemy BROOM WEAK state breakobject enda
+
+useractor notenemy WETFLOOR WEAK state breakobject enda
+
+useractor notenemy DESKLAMP WEAK state breakobject enda
+
+// useractor notenemy DUKECUTOUT WEAK state breakobject enda
+
+useractor notenemy HATRACK WEAK state breakobject enda
+
+useractor notenemy GUNPOWDERBARREL TOUGH state breakobject enda
+
+useractor notenemy COFFEEMACHINE WEAK state breakobject enda
+
+useractor notenemy TEDDYBEAR WEAK state breakobject enda
+
+useractor notenemy TOPSECRET WEAK state breakobject enda
+
+useractor notenemy ROBOTMOUSE ROBOTMOUSESTRENGTH state breakobject enda
+
+useractor notenemy MAN PIRATEGALSTRENGTH state breakobject enda
+
+useractor notenemy MAN2 PIRATEGALSTRENGTH state breakobject enda
+
+useractor notenemy WOMAN PIRATEGALSTRENGTH state breakobject enda
+
+useractor notenemy PIRATE1A PIRATEGALSTRENGTH state breakobject enda
+
+useractor notenemy PIRATE2A PIRATEGALSTRENGTH state breakobject enda
+
+useractor notenemy PIRATE3A PIRATEGALSTRENGTH state breakobject enda
+
+useractor notenemy PIRATE4A PIRATEGALSTRENGTH state breakobject enda
+
+useractor notenemy PIRATE5A PIRATEGALSTRENGTH state breakobject enda
+
+useractor notenemy PIRATE6A PIRATEGALSTRENGTH state breakobject enda
+
+useractor notenemy ROBOTPIRATE PIRATEGALSTRENGTH state breakobject enda
+
+useractor notenemy PIRATEHALF TOUGH state breakobject enda
+
+useractor notenemy CHESTOFGOLD WEAK state breakobject enda
+
+useractor notenemy ROBOTDOG PIRATEGALSTRENGTH state breakobject enda
+
+useractor notenemy ROBOTDOG2 TOUGH state breakobject enda
+
+useractor notenemy PLEASEWAIT state breakobject enda
+
+useractor notenemy FOODOBJECT1 WEAK state breakobject enda
+
+useractor notenemy FOODOBJECT2 WEAK state breakobject enda
+
+useractor notenemy FOODOBJECT3 WEAK state breakobject enda
+
+useractor notenemy FOODOBJECT4 WEAK state breakobject enda
+
+// useractor notenemy FOODOBJECT5 WEAK state breakobject enda
+
+useractor notenemy FOODOBJECT6 WEAK state breakobject enda
+
+useractor notenemy FOODOBJECT7 WEAK state breakobject enda
+
+useractor notenemy FOODOBJECT8 WEAK state breakobject enda
+
+useractor notenemy FOODOBJECT9 WEAK state breakobject enda
+
+useractor notenemy FOODOBJECT10 WEAK state breakobject enda
+
+useractor notenemy FOODOBJECT11 WEAK state foodcode enda
+
+useractor notenemy FOODOBJECT12 WEAK state foodcode enda
+
+useractor notenemy FOODOBJECT13 WEAK state foodcode enda
+
+useractor notenemy FOODOBJECT14 WEAK state breakobject enda
+
+useractor notenemy FOODOBJECT15 WEAK state breakobject enda
+
+useractor notenemy FOODOBJECT16 WEAK state breakobject enda
+
+useractor notenemy FOODOBJECT17 WEAK state breakobject enda
+
+useractor notenemy FOODOBJECT18 WEAK state foodcode enda
+
+useractor notenemy FOODOBJECT19 WEAK state foodcode enda
+
+useractor notenemy FOODOBJECT20 WEAK state breakobject enda
+
+useractor notenemy PIZZA WEAK state breakobject enda
+
+useractor notenemy CAKESLICE WEAK state breakobject enda
+
+useractor notenemy HOTDOG WEAK state breakobject enda
+
+useractor notenemy JOLLYMEAL WEAK set monstatus 100 sizeat 40 40 cstator 256 state breakobject enda
+
+useractor notenemy GUMBALLMACHINE WEAK state breakobject enda
+
+useractor notenemy GUMBALLMACHINEBROKE WEAK state breakobject enda
+
+useractor notenemy POLICELIGHTPOLE TOUGH state breakobject enda
+
+useractor notenemy CLOCK WEAK state breakobject enda
+
+useractor notenemy MAILBAG WEAK state breakobject enda
+
+useractor notenemy FEATHEREDCHICKEN WEAK state breakobject enda
+
+useractor notenemy SKINNEDCHICKEN WEAK state breakobject enda
+
+useractor notenemy HEADLAMP WEAK state breakobject enda
+
+useractor notenemy DOLPHIN1 DOLPHINSTRENGTH state breakobject enda
+
+useractor notenemy DOLPHIN2 DOLPHINSTRENGTH state breakobject enda
+
+useractor notenemy SNAKEP MEDIUMSTRENGTH state breakobject enda
+
+useractor notenemy DONUTS WEAK state breakobject enda
+
+useractor notenemy GAVALS WEAK state breakobject enda
+
+useractor notenemy GAVALS2 WEAK state breakobject enda
+
+useractor notenemy CUPS WEAK state breakobject enda
+
+useractor notenemy DONUTS2 WEAK state breakobject enda
+
+useractor notenemy FLOORBASKET WEAK state breakobject enda
+
+useractor notenemy METER WEAK state breakobject enda
+
+useractor notenemy DESKPHONE WEAK state breakobject enda
+
+useractor notenemy MACE WEAK state breakobject enda
+
+useractor notenemy SHOPPINGCART ROBOTMOUSESTRENGTH
+
+	ifmove 0
+	{
+		move STOPPED geth
+		cstator 257
+		geta[].htflags temp, orvar temp 8192, seta[].htflags temp
+	}
+	state chaircode
+
+enda
+
+useractor notenemy COFFEEMUG WEAK state breakobject enda
+
+useractor notenemy TOYSTORYALIEN WEAK state breakobject enda
+
+useractor notenemy HOTSAUCE WEAK state breakobject enda
+
+useractor notenemy GREENHOTSAUCE WEAK state breakobject enda
+
+useractor notenemy SOYSAUCE WEAK state breakobject enda
+
+useractor notenemy SUNBLOCK WEAK state breakobject enda
+
+useractor notenemy FOODNIGIRI WEAK state breakobject enda
+
+useractor notenemy FOODSUSHIROLL WEAK state breakobject enda
+
+useractor notenemy DUKEWOMANHEAD WEAK state breakobject enda
+
+useractor notenemy STEVEHEAD WEAK state breakobject enda
+
+useractor notenemy CROWPLATE WEAK state breakobject enda
+
+useractor notenemy SNICKERS WEAK state breakobject enda
+
+useractor notenemy MUGBLUE WEAK state breakobject enda
+
+useractor notenemy STEAMBUN WEAK state breakobject enda
+
+useractor notenemy APPLE WEAK state breakobject enda
+
+useractor notenemy INSTANTRAMEN WEAK state breakobject enda
+
+useractor notenemy FOODOCTABRAIN WEAK state breakobject enda
+
+useractor notenemy SQUID WEAK state breakobject enda
+
+useractor notenemy ALIENFOOD1 WEAK state breakobject enda
+
+useractor notenemy ALIENFOOD2 WEAK state breakobject enda
+
+useractor notenemy EXOTICVASE1 WEAK state breakobject enda
+
+useractor notenemy EXOTICVASE2 WEAK state breakobject enda
+
+useractor notenemy EXOTICVASE3 WEAK state breakobject enda
+
+useractor notenemy EXOTICVASE4 WEAK state breakobject enda
+
+useractor notenemy EXOTICVASE5 WEAK state breakobject enda
+
+useractor notenemy OGAY WEAK state breakobject enda
+
+useractor notenemy SOYB WEAK state breakobject enda
+
+useractor notenemy PICTUREFRAME WEAK state breakobject enda
+
+useractor notenemy ELMOGLUE WEAK state breakobject enda
+
+useractor notenemy ORNAMENT WEAK state breakobject enda
+
+useractor notenemy SOLARFLOWER WEAK state breakobject enda
+useractor notenemy HERB WEAK state breakobject enda
+
+useractor notenemy KFC WEAK state breakobject enda
+
+useractor notenemy LEGLAMP WEAK state flashercode state breakobject enda
+
+useractor notenemy BLENDER WEAK state flashercode state breakobject enda
+
+useractor notenemy ALIENTHINGY WEAK state breakobject enda
+
+useractor notenemy TENTACLEA1 TOUGH state breakobject enda
+useractor notenemy TENTACLEA2 TOUGH state breakobject enda
+useractor notenemy TENTACLEA3 TOUGH state breakobject enda
+useractor notenemy TENTACLEB1 TOUGH state breakobject enda
+useractor notenemy TENTACLEB2 TOUGH state breakobject enda
+useractor notenemy TENTACLEB3 TOUGH state breakobject enda
+useractor notenemy TENTACLEC1 TOUGH state breakobject enda
+useractor notenemy TENTACLEC2 TOUGH state breakobject enda
+
+useractor notenemy EMBRYO WEAK 
+ifl sprite[].xrepeat 8 sizeat 32 32
+state breakobject enda
+useractor notenemy CHESTBURSTER WEAK
+ifl sprite[].xrepeat 8 sizeat 32 32
+state breakobject enda
+
+useractor notenemy PIRANAPLANT WEAK state breakobject enda
+
+useractor notenemy BUTANE TOUGH state breakobject enda
+
+useractor notenemy ENERGIZERBUNNY TOUGH state breakobject enda
+
+useractor notenemy BLOWUPDOLL WEAK state breakobject enda
+
+useractor notenemy FLOWERPOT1 WEAK state breakobject enda
+
+useractor notenemy FLOWERPOT2 WEAK state breakobject enda
+
+useractor notenemy FLOWERPOT3 WEAK state breakobject enda
+
+useractor notenemy MANNEQUIN1 TOUGH state breakobject enda
+useractor notenemy MANNEQUIN2 TOUGH state breakobject enda
+useractor notenemy MANNEQUIN3 TOUGH state breakobject enda
+useractor notenemy MANNEQUIN4 TOUGH state breakobject enda
+useractor notenemy MANNEQUIN5 TOUGH state breakobject enda
+useractor notenemy MANNEQUIN6 TOUGH state breakobject enda
+useractor notenemy MANNEQUIN7 TOUGH state breakobject enda
+useractor notenemy MANNEQUIN8 TOUGH state breakobject enda
+useractor notenemy MANNEQUIN9 TOUGH state breakobject enda
+useractor notenemy MANNEQUIN10 TOUGH state breakobject enda
+useractor notenemy MANNEQUIN11 TOUGH state breakobject enda
+useractor notenemy MANNEQUIN12 TOUGH state breakobject enda
+useractor notenemy MANNEQUIN13 TOUGH state breakobject enda
+useractor notenemy MANNEQUIN14 TOUGH state breakobject enda
+useractor notenemy MANNEQUIN15 TOUGH state breakobject enda
+useractor notenemy DEADRADSUIT TOUGH state breakobject enda
+useractor notenemy ASIANSTATUE TOUGH state breakobject enda
+useractor notenemy DEADGUYSWITCH TOUGH state breakobject enda
+useractor notenemy DEADGUYXBOX TOUGH state breakobject enda
+useractor notenemy DEADGUY TOUGH state breakobject enda
+
+
+useractor notenemy OCTOPUS TOUGH state breakobject enda
+useractor notenemy BLOWFISH WEAK state breakobject enda
+useractor notenemy BLINKYFISH WEAK state breakobject enda
+useractor notenemy LOBSTER WEAK state breakobject enda
+useractor notenemy CLOWNFISH WEAK state breakobject enda
+useractor notenemy TURTLE REALLYTOUGH state breakobject enda
+useractor notenemy CRAB REALLYTOUGH state breakobject enda
+useractor notenemy EEL WEAK state breakobject enda
+useractor notenemy TOASTER WEAK state breakobject enda
+useractor notenemy PINKDONUT WEAK state breakobject enda
+useractor notenemy PIKACHU WEAK state breakobject enda
+useractor notenemy POPCORN WEAK state breakobject enda
+useractor notenemy SPAM WEAK state breakobject enda
+useractor notenemy JARMETROID WEAK state breakobject enda
+useractor notenemy JARHEART WEAK state breakobject enda
+useractor notenemy YOSHIEGG WEAK state breakobject enda
+useractor notenemy FROZEN WEAK state breakobject enda
+useractor notenemy LAMPDC WEAK state breakobject enda
+useractor notenemy CLOCKDIGITAL WEAK state breakobject enda
+useractor notenemy TOMAGOTCHI WEAK state breakobject enda
+useractor notenemy KIYOMARA WEAK state breakobject enda
+useractor notenemy TABLET WEAK state breakobject enda
+useractor notenemy BUTTERS WEAK state breakobject enda
+useractor notenemy DS WEAK state breakobject enda
+useractor notenemy IPHONE WEAK state breakobject enda
+useractor notenemy DEADFISH WEAK state breakobject enda
+useractor notenemy SMARTPHONE WEAK state breakobject enda
+useractor notenemy KETTLE WEAK state breakobject enda
+useractor notenemy POKEBALL WEAK 
+ifn sprite[].htpicnum sprite[].picnum sizeat 40 40 
+state breakobject enda
+useractor notenemy SONIC WEAK state breakobject enda
+useractor notenemy HELLOKITTY WEAK state breakobject enda
+useractor notenemy WINNIEPOOH WEAK state breakobject enda
+useractor notenemy BANANA WEAK
+ifn sprite[].htpicnum sprite[].picnum sizeat 24 24 
+state breakobject enda
+useractor notenemy BANANABUNCH MEDIUMSTRENGTH state breakobject enda
+useractor notenemy BANANABOX TOUGH state breakobject enda
+useractor notenemy CATFOOD WEAK state breakobject enda
+useractor notenemy WHEYPROTEIN WEAK state breakobject enda
+useractor notenemy LUGGAGE1 WEAK state breakobject enda
+useractor notenemy LUGGAGE2 WEAK state breakobject enda
+useractor notenemy DUKEBOBBLEHEAD TOUGH state breakobject enda
+useractor notenemy SHELLYBOBBLEHEAD TOUGH state breakobject enda
+useractor notenemy DANCERBOBBLEHEAD TOUGH state breakobject enda
+useractor notenemy STAPLER TOUGH state breakobject enda
+useractor notenemy SLIMEBUBBLE WEAK state breakobject enda
+useractor notenemy ANALLUBE WEAK state breakobject enda
+useractor notenemy SOAPDISPENSER WEAK state breakobject enda
+useractor notenemy MONUMENT WEAK state breakobject enda
+useractor notenemy GLADIATOR REALLYTOUGH state breakobject enda
+useractor notenemy TACOHELLBAG WEAK state breakobject enda
+useractor notenemy PEANUTBUTTER WEAK state breakobject enda
+useractor notenemy HANDSANITIZER WEAK state breakobject enda
+useractor notenemy WACKAMOLE1 WEAK state breakobject enda
+useractor notenemy WACKAMOLE2 WEAK state breakobject enda
+useractor notenemy WACKAMOLE3 WEAK state breakobject enda
+useractor notenemy WACKAMOLE4 WEAK state breakobject enda
+useractor notenemy PONY WEAK state breakobject enda
+useractor notenemy PIGSTATUE REALLYTOUGH state breakobject enda
+
+useractor notenemy DIRTYTOILET 0 state makenoise state breakobject enda
+useractor notenemy TOILETJACK 0 state flashercode state breakobject enda
+useractor notenemy TOILETOVERLORD 0 state flashercode state breakobject enda
+useractor notenemy TOILETMONSTER 0 state flashercode state breakobject enda
+
+useractor notenemy SLIMEGIRLPUKE1 TOUGH state flashercode state breakobject enda
+useractor notenemy SLIMEGIRLPUKE2 TOUGH state flashercode state breakobject enda
+useractor notenemy SLIMEGIRLPUKE3 TOUGH state flashercode state breakobject enda
+useractor notenemy SLIMEGIRLPUKE4 TOUGH state flashercode state breakobject enda
+useractor notenemy SLIMEGIRLPUKE5 TOUGH state flashercode state breakobject enda
+useractor notenemy PATIENT1 TOUGH state flashercode state breakobject enda
+useractor notenemy PATIENT2 TOUGH state flashercode state breakobject enda
+useractor notenemy VIGILANTETORTURE1 TOUGH state flashercode state breakobject enda
+useractor notenemy POISONNPC TOUGH state flashercode state breakobject enda
+
+
+
+useractor notenemy DEADSLIMEGIRL4 TOUGH state breakobject enda
+useractor notenemy DEADSLIMEGIRL5 TOUGH state breakobject enda
+useractor notenemy DEADSLIMEGIRL6 TOUGH state breakobject enda
+useractor notenemy DEADSLIMEGIRL7 TOUGH state breakobject enda
+
+useractor notenemy FOOTBALLDEAD1 TOUGH state breakobject enda
+useractor notenemy FOOTBALLDEAD2 TOUGH state breakobject enda
+
+useractor notenemy SLIMEMOUTHMOUND REALLYTOUGH state breakobject enda
+
+useractor notenemy ELMO 0 state makenoise state breakobject enda
+useractor notenemy MRHANKEY 0 state makenoise state breakobject enda
+useractor notenemy PETE 0 state makenoise state breakobject enda
+useractor notenemy FLESHLIGHT 0 state makenoise state breakobject enda
+useractor notenemy BEATSPILL 0 state makenoise state breakobject enda
+useractor notenemy BLISTERS WEAK state breakobject enda
+useractor notenemy FISHCHOPPED WEAK state breakobject enda
+useractor notenemy PIGFLOAT WEAK state breakobject enda
+eventloadactor MILKPLUSSTATUE ifn sprite[].extra -1 geta[].extra mtype enda
+useractor notenemy MILKPLUSSTATUE WEAK ifl mtype 1 state breakobject enda
+useractor notenemy BALLOONSINGLE WEAK state breakobject enda
+useractor notenemy BALLOONBLUEBUNCH WEAK state breakobject enda
+useractor notenemy BALLOONCOLORFULBUNCH WEAK state breakobject enda
+useractor notenemy HIGHHEELS WEAK state breakobject enda
+useractor notenemy BENDER REALLYTOUGH state breakobject enda
+useractor notenemy LUXO WEAK state breakobject enda
+useractor notenemy SPONGEBOB WEAK state breakobject enda
+useractor notenemy SPONGEBOBHOUSE WEAK state breakobject enda
+useractor notenemy GEORGERAMPAGE WEAK state breakobject enda
+useractor notenemy ELECTRICGLOBE1 WEAK state breakobject enda
+useractor notenemy ELECTRICGLOBE2 WEAK state breakobject enda
+useractor notenemy BBQGRILLROUND WEAK state breakobject enda
+useractor notenemy BBQGRILLSQUARE WEAK state breakobject enda
+
+useractor notenemy SLIMESKULL WEAK state breakobject enda
+useractor notenemy DEADMETROID WEAK 
+ifn sprite[].htpicnum sprite[].picnum sizeat 16 16 
+state breakobject enda
+useractor notenemy DEADOSCAR WEAK 
+ifn sprite[].htpicnum sprite[].picnum sizeat 16 16 
+state breakobject enda
+useractor notenemy TRUCKNUTS WEAK state breakobject enda
+useractor notenemy JOKERCARD WEAK state breakobject enda
+useractor notenemy DOOMDOLL WEAK state breakobject enda
+useractor notenemy POTATO WEAK state breakobject enda
+useractor notenemy MOTOROIL WEAK state breakobject enda
+useractor notenemy WILSON WEAK state breakobject enda
+useractor notenemy BATHWATER WEAK state breakobject enda
+useractor notenemy FROGTOY WEAK state breakobject enda
+useractor notenemy GAMEBOY WEAK state breakobject enda
+useractor notenemy KRILLINBROWN WEAK state breakobject enda
+useractor notenemy TROPHY1 WEAK state breakobject enda
+useractor notenemy TROPHY2 WEAK state breakobject enda
+useractor notenemy TROPHY3 WEAK state breakobject enda
+useractor notenemy SPRAYCAN WEAK state breakobject enda
+useractor notenemy EGUITAR WEAK state breakobject enda
+useractor notenemy COOLER WEAK state breakobject enda
+useractor notenemy RECYCLEBIN WEAK ifspritepal 3 seta[].htextra -1 state breakobject enda
+useractor notenemy KICKASSGUM WEAK state breakobject enda
+useractor notenemy DUFFBEER WEAK state breakobject enda
+useractor notenemy PRESENT1 WEAK state breakobject enda
+useractor notenemy PRESENT2 WEAK state breakobject enda
+useractor notenemy MOBILITYSCOOTER TOUGH state breakobject enda
+useractor notenemy PLANTER2 WEAK state breakobject enda
+useractor notenemy JUMPINGTEETH WEAK
+ifn sprite[].htpicnum sprite[].picnum sizeat 10 10 
+state breakobject enda
+useractor notenemy SWITCHCONTROLLER WEAK
+ifn sprite[].htpicnum sprite[].picnum sizeat 16 16 
+state breakobject enda
+useractor notenemy XBOXCONTROLLER WEAK
+ifn sprite[].htpicnum sprite[].picnum sizeat 14 14 
+state breakobject enda
+
+
+useractor notenemy TABLET1 0 state flashercode state breakobject enda
+useractor notenemy TABLET2 0 state flashercode state breakobject enda
+useractor notenemy TABLET3 0 state flashercode state breakobject enda
+useractor notenemy TABLET4 0 state flashercode state breakobject enda
+useractor notenemy TABLET5 0 state flashercode state breakobject enda
+useractor notenemy TABLET6 0 state flashercode state breakobject enda
+useractor notenemy TABLET7 0 state flashercode state breakobject enda
+useractor notenemy TABLET8 0 state flashercode state breakobject enda
+useractor notenemy TABLET9 0 state flashercode state breakobject enda
+useractor notenemy TABLET10 0 state flashercode state breakobject enda
+useractor notenemy TABLET11 0 state flashercode state breakobject enda
+useractor notenemy TABLET12 0 state flashercode state breakobject enda
+useractor notenemy TABLET13 0 state flashercode state breakobject enda
+useractor notenemy TABLET14 0 state flashercode state breakobject enda
+useractor notenemy TABLET15 0 state flashercode state breakobject enda
+useractor notenemy TABLET16 0 state flashercode state breakobject enda
+useractor notenemy TABLET17 0 state flashercode state breakobject enda
+useractor notenemy TABLET18 0 state flashercode state breakobject enda
+useractor notenemy TABLET19 0 state flashercode state breakobject enda
+useractor notenemy TABLET20 0 state flashercode state breakobject enda
+useractor notenemy TABLET21 0 state flashercode state breakobject enda
+useractor notenemy TABLET22 0 state flashercode state breakobject enda
+useractor notenemy TABLET23 0 state flashercode state breakobject enda
+useractor notenemy TABLET24 0 state flashercode state breakobject enda
+useractor notenemy TABLET25 0 state flashercode state breakobject enda
+useractor notenemy TABLET26 0 state flashercode state breakobject enda
+useractor notenemy TABLET27 0 state flashercode state breakobject enda
+useractor notenemy TABLET28 0 state flashercode state breakobject enda
+useractor notenemy TABLET29 0 state flashercode state breakobject enda
+useractor notenemy TABLET30 0 state flashercode state breakobject enda
+useractor notenemy TABLET31 0 state flashercode state breakobject enda
+useractor notenemy TABLET32 0 state flashercode state breakobject enda
+useractor notenemy TABLET33 0 state flashercode state breakobject enda
+useractor notenemy TABLET34 0 state flashercode state breakobject enda
+useractor notenemy TABLET35 0 state flashercode state breakobject enda
+useractor notenemy TABLET36 0 state flashercode state breakobject enda
+
+
+
+
+useractor notenemy TOASTER2 0 state flashercode state breakobject enda
+
+useractor notenemy TOILETHOUSE2 0 state flashercode state breakobject enda
+useractor notenemy TOILETHOUSE3 0 state flashercode state breakobject enda
+
+
+useractor notenemy PLANTER TOUGH state breakobject enda
+useractor notenemy HOURGLASS WEAK state breakobject enda
+useractor notenemy DSLR TOUGH state breakobject enda
+useractor notenemy NEWTONBALL TOUGH state breakobject enda
+useractor notenemy JACKOLANTERN TOUGH state breakobject enda
+
+
+state dryerasestate
+
+ifmove 0
+{
+	state horiz_eval
+	ifcount 30
+	ifp pfacing
+	ifcansee
+	ifpdistl 1280
+	ife temp YES
+	{
+		set handicon 3
+		ifhitspace
+		{
+			action ANULLACTION
+			move STOPPED geth
+			screensound DRYERASE
+		}
+	}
+}
+
+ifaction ANULLACTION
+ifmove STOPPED ifcount 30
+	action AFLASH1
+
+ends
+
+useractor notenemy DRYERASE1 0 state dryerasestate enda
+useractor notenemy DRYERASE2 0 state dryerasestate enda
+useractor notenemy DRYERASE3 0 state dryerasestate enda
+useractor notenemy DRYERASE4 0 state dryerasestate enda
+useractor notenemy DRYERASE5 0 state dryerasestate enda
+useractor notenemy DRYERASE6 0 state dryerasestate enda
+useractor notenemy DRYERASE6 0 state dryerasestate enda
+useractor notenemy DRYERASE7 0 state dryerasestate enda
+useractor notenemy DRYERASE8 0 state dryerasestate enda
+useractor notenemy DRYERASE9 0 state dryerasestate enda
+useractor notenemy DRYERASE10 0 state dryerasestate enda
+useractor notenemy DRYERASE11 0 state dryerasestate enda
+useractor notenemy DRYERASE12 0 state dryerasestate enda
+
+
+
+
+state liquidbottle
+
+	ifspawnedby APLAYER ifmove 0 { move STOPPED sizeat 32 32 cstator 256 }
+	ifhitweapon
+	{
+		ifactor SODA2LITER
+		{
+			guts JIBS6 4
+			spawn BLOODPOOL
+			sound RIDSLIME
+			espawn BIGSMOKE2
+			seta[RETURN].pal 2
+			lotsofglass 8
+			killit
+			break
+		}
+		sound GLASS_BREAKING
+		lotsofglass 6
+		ifspritepal 0 spritepal 1
+		ifl sprite[].pal 10 guts JIBS6 3
+		else ifspritepal 10 guts JIBS6 3 else
+		ifspritepal 21 guts JIBS6 3
+		killit
+	}
+	fall
+
+ends
+
+useractor notenemy BLUEMILK state liquidbottle enda
+
+useractor notenemy FIJI state liquidbottle enda
+
+useractor notenemy COFFEEPOT state liquidbottle enda
+
+useractor notenemy COFFEEPOT2 state liquidbottle enda
+
+useractor notenemy LAVALAMP state liquidbottle enda
+
+useractor notenemy VODKA state liquidbottle enda
+
+useractor notenemy PINTBEER state liquidbottle enda
+
+useractor notenemy STARBUCKSCOFFEE state liquidbottle enda
+
+useractor notenemy WATERBOTTLE state liquidbottle enda
+
+useractor notenemy SODA2LITER state liquidbottle enda
+
+useractor notenemy FALCONPUNCH state liquidbottle enda
+
+useractor notenemy CHEMSET1 state liquidbottle enda
+useractor notenemy CHEMSET2 state liquidbottle enda
+useractor notenemy CHEMSET3 state liquidbottle enda
+useractor notenemy CHEMSET4 state liquidbottle enda
+useractor notenemy CHEMSET5 state liquidbottle enda
+useractor notenemy CHEMSET6 state liquidbottle enda
+useractor notenemy CHEMSET7 state liquidbottle enda
+useractor notenemy CHEMSET8 state liquidbottle enda
+useractor notenemy CHEMSET9 state liquidbottle enda
+useractor notenemy CHEMSET10 state liquidbottle enda
+useractor notenemy CHEMSET11 state liquidbottle enda
+useractor notenemy CHEMSET12 state liquidbottle enda
+useractor notenemy CHEMSET13 state liquidbottle enda
+
+
+
+
+action EXPBARRELFRAME     0   2   1   1   15
+actor EXPLODINGBARREL 26
+  fall
+  ifaction EXPBARRELFRAME
+  {
+    ifactioncount 2
+    {
+	  ifg plevel 1
+	  {
+		set temp plevel
+		add temp 3
+		mul temp 8
+		
+		set tempb temp, mul tempb 3 div tempb 4
+		set tempc temp, mul tempc 2 div tempc 3
+		set tempd temp, div tempd 2
+		hitradiusvar 1280 tempd tempc tempb temp
+	  }
+	  else
+      hitradius 1024 WEAKEST WEAK MEDIUMSTRENGTH TOUGH
+      spawn EXPLOSION2
+      debris SCRAP2 2
+      sound PIPEBOMB_EXPLODE
+      killit
+    }
+    break
+  }
+  ifsquished
+  {
+    debris SCRAP1 5
+    killit
+    break
+  }
+  ifhitweapon
+    action EXPBARRELFRAME
+enda
+
+action BARREL_DENTING  2 2 1 1 6
+action BARREL_DENTED   1
+action BARREL_DENTED2  2
+
+move SPAWNED_BLOOD
+
+actor NUKEBARRELDENTED WEAK
+  cactor NUKEBARREL
+  action BARREL_DENTED
+enda
+
+actor NUKEBARRELLEAKED WEAK
+  cactor NUKEBARREL
+  action BARREL_DENTED2
+enda
+
+actor NUKEBARREL MEDIUMSTRENGTH
+  ifsquished
+  {
+    debris SCRAP1 32
+    spawn BLOODPOOL
+    state random_ooz
+    killit
+  }
+  fall
+  ifaction BARREL_DENTING
+  {
+    ifactioncount 2
+    {
+      debris SCRAP1 10
+      ifrnd 2 spawn BLOODPOOL
+      killit
+    }
+  }
+  else
+    ifhitweapon
+  {
+    ifdead
+    {
+      sound VENT_BUST
+
+      ifrnd 128
+        spawn BLOODPOOL
+      action BARREL_DENTING
+    }
+    else
+    {
+      ifaction 0
+        action BARREL_DENTED
+      else
+        ifaction BARREL_DENTED
+      {
+        action BARREL_DENTED2
+        spawn BLOODPOOL
+      }
+      else
+        ifaction BARREL_DENTED2
+          action BARREL_DENTING
+    }
+  }
+enda
+
+state burningbarrelcode
+  fall
+  ifcount 32
+  {
+    resetcount
+    ifp palive
+      ifpdistl 1480
+        ifp phigher
+    {
+      getp[].i spriteid
+	  getav[spriteid].burning temp
+	  add temp 1
+	  setav[spriteid].burning temp
+      palfrom 16 16
+      ifrnd 96
+        sound DUKE_LONGTERM_PAIN
+    }
+  }
+  ifhitweapon
+  {
+    sound VENT_BUST
+    debris SCRAP1 10
+    ifrnd 128
+      spawn BURNING
+    else
+      spawn BURNING2
+    killit
+  }
+ends
+
+actor FIREBARREL
+  state burningbarrelcode
+enda
+actor FIREVASE
+  state burningbarrelcode
+enda
+
+action WOODENHORSEFRAME  0   1   4
+action WOODENFALLFRAME  122  1   5
+
+actor HORSEONSIDE MEDIUMSTRENGTH
+  cactor WOODENHORSE
+  action WOODENFALLFRAME
+enda
+actor WOODENHORSE TOUGH WOODENHORSEFRAME
+  fall
+  ifhitweapon
+  {
+    ifdead
+    {
+	  sound WOODCLATTER
+      state wood_debris
+	  state wood_debris
+	  spritepal 4
+	  debris SCRAP3 2
+	  spritepal 122
+	  debris SCRAP3 2
+      killit
+    }
+    else
+	{
+	  sound RETURNFLAG
+	  spawn SMALLSMOKE
+      action WOODENFALLFRAME
+	}
+  }
+enda
+
+
+useractor notenemy HOTMEAT TOUGH
+  ifaction 0
+  {
+    action ANULLACTION
+    cstat 257
+  }
+  ifhitweapon
+  {
+    ifdead
+    {
+      sound SQUISHED
+      guts JIBS5 8
+      guts JIBS6 9
+      killit
+    }
+    else
+      guts JIBS6 1
+  }
+  ifrnd 1
+    spawn WATERDRIP
+
+enda
+
+action ASPEAKERBROKE 1
+useractor notenemy SPEAKER
+  ifaction 0
+  {
+    ifhitweapon
+    {
+      stopsound STORE_MUSIC
+      soundonce STORE_MUSIC_BROKE
+      action ASPEAKERBROKE
+    }
+    else
+    {
+      ifpdistl 10240
+          soundonce STORE_MUSIC
+      cstat 289
+    }
+  }
+enda
+
+useractor notenemy FOODCART TOUGH
+
+	ifhitweapon
+	{
+		ifdead
+		{
+			sound VENT_BUST
+			debris SCRAP2 6
+			debris SCRAP3 8
+			debris SCRAP4 4
+			debris SCRAP5 4
+			state pottery_debris
+			geta[].z z
+			sub z 6144
+			seta[].z z
+			spawn FOODOBJECT11 spawn FOODOBJECT11 spawn FOODOBJECT12 spawn FOODOBJECT12 
+			spawn FOODOBJECT13 spawn FOODOBJECT13 
+			spawn FOODOBJECT18 spawn FOODOBJECT18 spawn FOODOBJECT18 spawn FOODOBJECT18
+			spawn FOODOBJECT19 spawn FOODOBJECT19 spawn FOODOBJECT19 spawn FOODOBJECT19
+			ifg SPRITELOTAG 10 espawnvar SPRITELOTAG else
+			ifrnd 128
+				espawn JOLLYMEAL 
+			killit
+		}
+	}
+	fall
+
+enda
+
+eventloadactor PIGGYBANK cstator 256 sizeat 12 10 enda
+useractor notenemy PIGGYBANK 5
+	fall
+	cstator 256
+	sizeat 12 10
+	ifhitweapon ifdead
+	{
+		sound GLASS_BREAKING
+		spritepal 7
+		// lotsofglass 8
+		state pottery_debris
+		debris SCRAP3 6
+		set value 10
+		state spawnimpcoins
+		killit
+	}
+	
+enda
+
+eventloadactor PINATA cstator 256 sizeat 30 28 enda
+useractor notenemy PINATA 50
+
+	cstator 256
+	sizeat 30 28
+	ifhitweapon 
+	{
+		sound BODYHIT
+		ifrnd 128 sound BULLETDIRT1 else sound BULLETDIRT2
+		ifdead
+		{
+			spritepal 8
+			debris SCRAP3 8
+			spritepal 1	
+			debris SCRAP3 8
+			spritepal 2	
+			debris SCRAP3 8
+			set value 30
+			state spawnimpcoins
+			killit
+		}
+	}
+	
+enda
+
+action AGEISHAFLASH 1  1  1  1  10
+defstate geishacode
+
+	ifmove 0
+	{
+		move STOPPED
+		cstator 256
+		ifspawnedby APLAYER sizeat 26 24
+		action ANULLACTION
+	}
+	fall
+	ifaction ANULLACTION
+	{
+		state horiz_eval
+		ifcount 30
+		ifp pfacing
+		ifcansee
+		ifpdistl 1280
+		ife temp YES
+		{
+			set handicon 3
+			ifhitspace
+			{
+				resetcount
+				action AGEISHAFLASH 
+			}
+		}
+	}
+	else
+	ifcount 60 action ANULLACTION
+	// state playerpush
+	ifhitweapon
+	{
+		ifdead
+		{
+			sound GLASS_HEAVYBREAK
+			sound VENT_BUST
+			state pottery_debris
+			ifspritepal 0 spritepal 1
+			state pottery_debris
+			ifspritepal 1 getlastpal
+			state tech_debris
+			killit
+		}
+	}
+
+ends
+useractor notenemy GEISHA1 50 state geishacode enda
+useractor notenemy GEISHA2 50 state geishacode enda
+useractor notenemy GEISHA3 50 state geishacode enda
+useractor notenemy GEISHA4 50 state geishacode enda
+
+useractor notenemy EXPERIMENT0 0 state floatcode enda
+useractor notenemy EXPERIMENT1 0 state floatcode enda
+useractor notenemy EXPERIMENT2 0 state floatcode enda
+useractor notenemy EXPERIMENT3 0 state floatcode enda
+useractor notenemy EXPERIMENT4 0 state floatcode enda
+useractor notenemy EXPERIMENT5 0 state floatcode enda
+useractor notenemy EXPERIMENT6 0 state floatcode enda
+useractor notenemy EXPERIMENT7 0 state floatcode enda
+useractor notenemy EXPERIMENT8 0 state floatcode enda
+useractor notenemy EXPERIMENT9 0 state floatcode enda
+useractor notenemy EXPERIMENT10 0 state floatcode enda
+useractor notenemy EXPERIMENT11 0 state floatcode enda
+useractor notenemy EXPERIMENT12 0 state floatcode enda
+useractor notenemy EXPERIMENT13 0 state floatcode enda
+useractor notenemy EXPERIMENT14 0 state floatcode enda
+useractor notenemy EXPERIMENT15 0 state floatcode enda
+useractor notenemy EXPERIMENT16 0 state floatcode enda
+useractor notenemy EXPERIMENT17 0 state floatcode enda
+
+eventloadactor CHAIR4 sizeat 30 28 cstator 257 enda
+eventloadactor CHAIR5 sizeat 30 28 cstator 257 enda
+eventloadactor CHAIR6 sizeat 30 28 cstator 257 enda
+eventloadactor GAMERCHAIR sizeat 30 28 cstator 257 enda
+
+action ACHAIRFRAME		0  1  5  1  10
+
+useractor notenemy CHAIR1_AA 60 state chaircode enda
+useractor notenemy CHAIR2_AA 60 state chaircode enda
+useractor notenemy CHAIR4 80 ACHAIRFRAME state chaircode enda
+useractor notenemy CHAIR5 80 ACHAIRFRAME state chaircode enda
+useractor notenemy CHAIR6 80 ACHAIRFRAME state chaircode enda
+useractor notenemy GAMERCHAIR 80 ACHAIRFRAME state chaircode enda
+/*
+defstate replace_picnum_loop
+
+set B -1
+
+switch picnum
+
+	case FEMMAG1 // play magazine
+	rand temp 2
+	ife temp 1 set B 16259 else
+	ife temp 1 set B 16263
+	break
+	
+	case FEMMAG2 // swimsuit poster
+	rand temp 1
+	ife temp 1 set B 16254
+	break
+	
+	case 698 // sushi
+	rand temp 1
+	ife temp 1 set B 15037
+	break
+	
+	case 766 // tonight
+	rand temp 1
+	ife temp 1 set B 6905
+	break
+	
+	case 784 // theater
+	rand temp 1
+	ife temp 1 set B 9648
+	break
+	
+	case 826 // duke movie poster wide
+	rand temp 1
+	ife temp 1 set B 16260 
+	break
+	
+	case 963 // hothothot
+	rand temp 4
+	ife temp 1 set B 6903 else
+	ife temp 2 set B 6904 else
+	ife temp 3 set B 6906 else
+	ife temp 4 set B 11106
+	break
+	
+	case 964 // sister act
+	rand temp 3
+	ife temp 1 set B 11132 else
+	ife temp 2 set B 3737 else
+	ife temp 3 set B 13294
+	break
+	
+	case 965 // bimbos
+	rand temp 2
+	ife temp 1 set B 17363 else
+	ife temp 2 set B 11671
+	break
+	
+	case 966 // duke nukem ii
+	rand temp 10
+	ife temp 1 set B 6891 else
+	ife temp 2 set B 6892 else
+	ife temp 3 set B 6893 else
+	ife temp 4 set B 6894 else
+	ife temp 5 set B 6895 else
+	ife temp 6 set B 6896 else
+	ife temp 7 set B 6897 else
+	ife temp 8 set B 6898 else
+	ife temp 9 set B 6899 else
+	ife temp 10 set B 6900
+	break
+	
+	case 970 // byte night
+	rand temp 2
+	ife temp 1 set B 17361 else
+	ife temp 2 set B 17362
+	break
+	
+	case 1054 // calendar
+	// replace with HD version if sprite
+	ife tempI 0
+	{
+		rand temp 2
+		ife temp 0 set B 16255 else
+		ife temp 1 set B 16256 else
+		ife temp 2 set B 16264
+		geta[spriteid].xrepeat x, div x 2, seta[spriteid].xrepeat x
+		geta[spriteid].yrepeat y, div y 2, seta[spriteid].yrepeat y
+	}
+	break
+	
+	case 1074 // newsstand
+	rand temp 1
+	ife temp 1 set B 11146
+	break
+	
+	case 1076 // frame
+	rand temp 6
+	ife temp 1 set B 13249 else
+	ife temp 2 set B 13250 else
+	ife temp 3 set B 13251 else
+	ife temp 4 set B 13252 else
+	ife temp 5 set B 13253 else
+	ife temp 6 set B 13297
+	break
+	
+	case 1358 // alien jar
+	// rand temp 1
+	// ife temp 1 set B
+	break
+	
+	case 3391 // lunar apocalypse poster
+	rand temp 1
+	ife temp 1 set B 16257
+	break
+
+	case 4449 // roger moore magazine
+	rand temp 1
+	ife temp 1 set B 16258
+	break
+
+	case 4878 // dog portrait small
+	rand temp 4
+	ife temp 1 set B 15086 else
+	ife temp 2 set B 15087 else
+	ife temp 3 set B 15088 else
+	ife temp 4 set B 15089
+	break
+
+	case 4879 // dog portrait large
+	rand temp 1
+	ife temp 1 set B 16262
+	break
+
+	case 4469 // andrew j frame
+	rand temp 2
+	ife temp 1 set B 13071 else
+	ife temp 2 set B 13072
+	break
+
+	case 4466 // george w frame
+	rand temp 2
+	ife temp 1 set B 13058 else
+	ife temp 2 set B 13059 
+	break
+
+	case 4467 // abe lincoln frame
+	rand temp 1
+	ife temp 1 set B 13070 
+	break
+
+endswitch
+
+ifn B -1
+{
+	ife tempI 0 seta[spriteid].picnum B
+	ife tempI 1 
+	{
+		ifvarand wall[spriteid].cstat 32
+		setw[spriteid].overpicnum B
+		ifvarand wall[spriteid].cstat 16
+		setw[spriteid].overpicnum B
+		setw[spriteid].picnum B
+	}
+}
+
+addvar spriteid 1
+
+ends
+
+appendevent EVENT_PRELEVEL
+
+	ife gameover YES break
+	ifge VOLUME 4 break
+	
+	setvar spriteid 0
+	set tempI 0
+	whilevarvarn spriteid Numsprites
+	{
+		geta[spriteid].picnum picnum
+		state replace_picnum_loop
+	}
+
+endevent
+*/
+
+damageeventtile RECON
+damageeventtilerange 5879 5880
+damageeventtilerange 6829 6843
+damageeventtilerange 6876 6885
+damageeventtilerange 6887 6890
+damageeventtilerange 8497 8500
+damageeventtile 9657
+damageeventtilerange 9685 9699
+damageeventtilerange 9988 9989
+damageeventtile 9990
+damageeventtile 10074
+damageeventtile 10199
+damageeventtile 11061
+damageeventtile 11148
+damageeventtile 11193
+damageeventtile 11243
+damageeventtile 11511
+damageeventtile 11517
+damageeventtile 11519
+damageeventtile 11584
+damageeventtile 11585
+damageeventtile 11677
+damageeventtile 11697
+damageeventtile 11690
+damageeventtile 11717
+damageeventtile 13100
+damageeventtile 13101
+damageeventtile 14911
+damageeventtile 14918
+damageeventtile 14989
+damageeventtile 15094
+damageeventtile 15095
+damageeventtile 15096
+damageeventtile BRAWNDOVEND
+damageeventtile 15984
+damageeventtile 15986
+damageeventtile REACTORVEND
+damageeventtile 16242
+
+damageeventtile 11991
+damageeventtile 11996
+damageeventtile 12000
+damageeventtile 12047
+damageeventtile 12049
+damageeventtile 12050
+damageeventtile 12051
+damageeventtile 12401
+
+
+damageeventtile 10139
+damageeventtile 10140
+damageeventtile 13140
+damageeventtile 13141
+damageeventtile 13142
+damageeventtile 13143
+damageeventtile 13144
+
+damageeventtile 3413
+damageeventtile 4272
+damageeventtile 11454
+damageeventtile 16177
+damageeventtile 16338
+damageeventtile 16344
+
+damageeventtile 11070
+damageeventtile 11180
+damageeventtile 12547
+
+
+damageeventtile 5872
+damageeventtile 10090
+damageeventtile 14861
+damageeventtile 17840
+damageeventtile 15733
+damageeventtile 15735
+damageeventtile 16123
+damageeventtile 16124
+damageeventtile 13125
+damageeventtile 13135
+
+
+damageeventtile 15013
+damageeventtile 4290
+damageeventtile 4291
+damageeventtile 4292
+damageeventtile 4293
+damageeventtile 4924
+damageeventtile 7105
+damageeventtile 11658
+damageeventtile 12560
+damageeventtile 13275
+damageeventtile 13963
+damageeventtile 13967
+damageeventtile 14012
+
+//gunshelf
+damageeventtile 11576
+damageeventtile 11577
+damageeventtile 11578
+damageeventtile 11579
+
+damageeventtile 18974
+damageeventtile 18975
+damageeventtile 18976
+damageeventtile 18977
+
+
+damageeventtile 19174
+damageeventtile 19175
+damageeventtile 19176
+damageeventtile 19177
+
+
+
+damageeventtile 13123
+damageeventtile 13124
+
+
+damageeventtile 4500
+damageeventtile 8868
+damageeventtile 10211
+damageeventtile 12551
+damageeventtile 16083
+damageeventtile 16182
+
+//TV
+damageeventtile 13928
+damageeventtile 14004
+damageeventtile 13941
+damageeventtile 13946
+damageeventtile 11146
+damageeventtile 17355
+
+//carbonfreeze
+damageeventtile 16266
+damageeventtile 16267
+damageeventtile 18992
+damageeventtile 18993
+damageeventtile 17915
+damageeventtile 17917
+
+//TV news
+damageeventtile 18994
+damageeventtile 18995
+damageeventtile 18996
+damageeventtile 18997
+damageeventtile 19000
+damageeventtile 19005
+damageeventtile 19968
+damageeventtile 19973
+damageeventtile 20010
+damageeventtile 20019
+damageeventtile 20025
+damageeventtile 20029
+damageeventtile 20044
+damageeventtile 20051
+damageeventtile 20057
+damageeventtile 20106
+damageeventtile 20123
+
+
+
+//TV HD
+damageeventtile 19981
+damageeventtile 19994
+damageeventtile 20078
+damageeventtile 20134
+damageeventtile 20139
+damageeventtile 20151
+damageeventtile 20173
+damageeventtile 20174
+damageeventtile 20175
+
+//cabinet
+damageeventtile 967 // payphone
+damageeventtile 16169
+damageeventtile 14913
+damageeventtile 11222
+damageeventtile 11245
+damageeventtile 3641
+damageeventtile 3637
+damageeventtile 16249
+damageeventtile 19172
+
+damageeventtilerange 11791 11793
+damageeventtile 11795
+damageeventtile 11843
+
+damageeventtile COLAMACHINE
+damageeventtile VENDMACHINE
+
+onevent EVENT_DAMAGEWALL
+
+ife sprite[THISACTOR].picnum IMPCOINPROJ
+set RETURN -1
+else
+{
+
+switch wall[RETURN].picnum
+
+case 967
+
+	set value 10
+	set hitwall RETURN
+	state spawnimpcoins
+	sound VENT_BUST
+	setw[hitwall].picnum 1600
+	spawn PHONEDROP
+	
+break
+
+case COLAMACHINE
+case VENDMACHINE
+	
+	ife sprite[THISACTOR].picnum IMPCOINPROJ
+		set RETURN -1
+break
+
+case BLUEBALLVEND 
+	
+	
+		sound VENT_BUST sound GLASS_BREAKING lotsofglass 20 setw[RETURN].picnum BLUEBALLBROKE
+	
+break
+
+case SNACKVEND 
+	
+		sound VENT_BUST sound GLASS_BREAKING lotsofglass 20 setw[RETURN].picnum SNACKBROKE
+	
+break
+
+case ASIANVEND 
+	
+		sound VENT_BUST sound GLASS_BREAKING lotsofglass 20 setw[RETURN].picnum ASIANVENDBROKE
+	
+break
+
+case BRAWNDOVEND
+case REACTORVEND
+	sound VENT_BUST sound GLASS_BREAKING lotsofglass 20
+	set picnum wall[RETURN].picnum, add picnum 1
+	setw[RETURN].picnum picnum
+break
+
+case 11193
+	
+		sound VENT_BUST sound GLASS_BREAKING lotsofglass 20 setw[RETURN].picnum 16298
+	
+break
+
+case 11584
+
+		sound VENT_BUST sound GLASS_BREAKING lotsofglass 20 setw[RETURN].picnum 14922
+		
+break
+
+case 11585
+sound VENT_BUST sound GLASS_BREAKING lotsofglass 20 setw[RETURN].picnum 14921
+break
+
+case 14911 
+sound VENT_BUST sound GLASS_BREAKING lotsofglass 20 setw[RETURN].picnum 14912
+break
+
+case 14918
+sound VENT_BUST sound GLASS_BREAKING lotsofglass 20 setw[RETURN].picnum 14919
+break
+
+case 15986
+sound VENT_BUST sound GLASS_BREAKING lotsofglass 20 setw[RETURN].picnum 15987
+break
+
+case 16242
+sound VENT_BUST sound GLASS_BREAKING lotsofglass 20 setw[RETURN].picnum 16243
+break
+
+case 11991
+case 11996
+case 12000
+case 12047
+case 12049
+case 12050
+case 12051
+case 12401
+
+		sound DRON_ATTACK2 lotsofglass 5  setw[RETURN].picnum 16113
+	
+break
+
+
+case 10139
+case 10140
+case 13140
+case 13141
+case 13142
+case 13143
+case 13144
+
+		sound DRON_ATTACK2 lotsofglass 5  setw[RETURN].picnum 18951
+	
+break
+
+
+case 3413
+sound VENT_BUST sound GLASS_BREAKING lotsofglass 20 setw[RETURN].picnum 18944
+break
+
+case 4272
+sound VENT_BUST sound GLASS_BREAKING lotsofglass 20 setw[RETURN].picnum 18945
+break
+
+case 11454
+sound VENT_BUST sound GLASS_BREAKING lotsofglass 20 setw[RETURN].picnum 18946
+break
+
+case 16177
+sound VENT_BUST sound GLASS_BREAKING lotsofglass 20 setw[RETURN].picnum 18947
+break
+
+case 16338
+sound VENT_BUST sound GLASS_BREAKING lotsofglass 20 setw[RETURN].picnum 18948
+break
+
+case 16344
+sound VENT_BUST sound GLASS_BREAKING lotsofglass 20 setw[RETURN].picnum 18949
+break
+
+
+case 11180
+sound VENT_BUST sound GLASS_BREAKING lotsofglass 20 setw[RETURN].picnum 18952
+break
+
+case 11070
+case 12547
+sound VENT_BUST sound GLASS_BREAKING lotsofglass 20 setw[RETURN].picnum 18950
+break
+
+
+case 5872
+sound VENT_BUST sound SQUISHED setw[RETURN].picnum 18961
+break
+case 10090
+sound VENT_BUST sound GLASS_BREAKING lotsofglass 20 setw[RETURN].picnum 18960
+break
+case 14861
+sound VENT_BUST sound GLASS_BREAKING lotsofglass 20 setw[RETURN].picnum 18955
+break
+case 17840
+sound VENT_BUST sound GLASS_BREAKING lotsofglass 20 setw[RETURN].picnum 17841
+break
+case 15733
+case 15735
+sound VENT_BUST sound GLASS_BREAKING lotsofglass 20 setw[RETURN].picnum 18957
+break
+case 16123
+sound VENT_BUST sound GLASS_BREAKING lotsofglass 20 setw[RETURN].picnum 18958
+break
+case 16124
+sound VENT_BUST sound GLASS_BREAKING lotsofglass 20 setw[RETURN].picnum 18959
+break
+case 13125
+sound VENT_BUST sound GLASS_BREAKING lotsofglass 20 setw[RETURN].picnum 18953
+break
+case 13135
+sound VENT_BUST sound GLASS_BREAKING lotsofglass 20 setw[RETURN].picnum 18954
+break
+
+
+case 15013
+sound VENT_BUST sound GLASS_BREAKING lotsofglass 20 setw[RETURN].picnum 18956
+break
+case 4290
+sound VENT_BUST sound GLASS_BREAKING lotsofglass 20 setw[RETURN].picnum 18962
+break
+case 4291
+sound VENT_BUST sound GLASS_BREAKING lotsofglass 20 setw[RETURN].picnum 18963
+break
+case 4292
+sound VENT_BUST sound GLASS_BREAKING lotsofglass 20 setw[RETURN].picnum 18964
+break
+case 4293
+sound VENT_BUST sound GLASS_BREAKING lotsofglass 20 setw[RETURN].picnum 18965
+break
+case 4924
+sound VENT_BUST sound GLASS_BREAKING lotsofglass 20 setw[RETURN].picnum 18966
+break
+case 7105
+sound VENT_BUST sound GLASS_BREAKING lotsofglass 20 setw[RETURN].picnum 18967
+break
+case 11658
+sound VENT_BUST sound GLASS_BREAKING lotsofglass 20 setw[RETURN].picnum 18968
+break
+case 12560
+sound VENT_BUST sound GLASS_BREAKING lotsofglass 20 setw[RETURN].picnum 358
+break
+case 13275
+sound VENT_BUST sound GLASS_BREAKING lotsofglass 20 setw[RETURN].picnum 18970
+break
+case 13963
+sound VENT_BUST sound GLASS_BREAKING lotsofglass 20 setw[RETURN].picnum 18971
+break
+case 13967
+sound VENT_BUST sound GLASS_BREAKING lotsofglass 20 setw[RETURN].picnum 18972
+break
+case 14012
+sound VENT_BUST sound GLASS_BREAKING lotsofglass 20 setw[RETURN].picnum 18973
+break
+
+//gun cabinet
+case 11576
+sound VENT_BUST sound GLASS_BREAKING setw[RETURN].picnum 18974
+break
+case 11577
+sound VENT_BUST sound GLASS_BREAKING setw[RETURN].picnum 18975
+break
+case 11578
+sound VENT_BUST sound GLASS_BREAKING setw[RETURN].picnum 18976
+break
+case 11579
+sound VENT_BUST sound GLASS_BREAKING setw[RETURN].picnum 18977
+break
+
+
+case 18974
+sound VENT_BUST sound GLASS_BREAKING setw[RETURN].picnum 19178
+break
+case 18975
+sound VENT_BUST sound GLASS_BREAKING setw[RETURN].picnum 19179
+break
+case 18976
+sound VENT_BUST sound GLASS_BREAKING setw[RETURN].picnum 19180
+break
+case 18977
+sound VENT_BUST sound GLASS_BREAKING setw[RETURN].picnum 19181
+break
+
+case 13123
+sound VENT_BUST sound GLASS_BREAKING setw[RETURN].picnum 18980
+break
+case 13124
+sound VENT_BUST sound GLASS_BREAKING setw[RETURN].picnum 18978
+break
+
+case 4500
+sound VENT_BUST sound GLASS_BREAKING lotsofglass 20 setw[RETURN].picnum 18984
+break
+case 8868
+sound VENT_BUST sound GLASS_BREAKING lotsofglass 20 setw[RETURN].picnum 18982
+break
+case 10211
+sound VENT_BUST sound GLASS_BREAKING lotsofglass 20 setw[RETURN].picnum 18983
+break
+case 12551
+sound VENT_BUST sound GLASS_BREAKING lotsofglass 20 setw[RETURN].picnum 18985
+break
+case 16083
+sound VENT_BUST sound GLASS_BREAKING lotsofglass 20 setw[RETURN].picnum 18986
+break
+case 16182
+sound VENT_BUST sound GLASS_BREAKING lotsofglass 20 setw[RETURN].picnum 18987
+break
+
+case 13928
+case 14004
+sound VENT_BUST sound GLASS_BREAKING lotsofglass 20 setw[RETURN].picnum 18989
+break
+case 13941
+sound VENT_BUST sound GLASS_BREAKING lotsofglass 20 setw[RETURN].picnum 18990
+break
+case 13946
+sound VENT_BUST sound GLASS_BREAKING lotsofglass 20 setw[RETURN].picnum 18991
+break
+case 11146
+sound VENT_BUST sound GLASS_BREAKING lotsofglass 20 setw[RETURN].picnum 18988
+break
+case 16266
+sound VENT_BUST sound LADY_SCREAM setw[RETURN].picnum 18992
+break
+case 18992
+sound VENT_BUST sound LADY_SCREAM setw[RETURN].picnum 17915
+break
+case 17915
+sound VENT_BUST sound LADY_SCREAM setw[RETURN].picnum 17916
+break
+case 16267
+sound VENT_BUST sound LADY_SCREAM setw[RETURN].picnum 18993
+break
+case 18993
+sound VENT_BUST sound LADY_SCREAM setw[RETURN].picnum 17917
+break
+case 17917
+sound VENT_BUST sound LADY_SCREAM setw[RETURN].picnum 17918
+break
+case 17355
+sound VENT_BUST sound GLASS_BREAKING lotsofglass 20 setw[RETURN].picnum 18969
+break
+
+case 16169
+sound VENT_BUST sound GLASS_BREAKING lotsofglass 20 setw[RETURN].picnum 19015
+break
+case 14913
+sound VENT_BUST sound GLASS_BREAKING lotsofglass 20 setw[RETURN].picnum 19014
+break
+case 11222
+sound VENT_BUST sound GLASS_BREAKING lotsofglass 20 setw[RETURN].picnum 19012
+break
+case 11245
+sound VENT_BUST sound GLASS_BREAKING lotsofglass 20 setw[RETURN].picnum 19013
+break
+case 3641
+sound VENT_BUST sound GLASS_BREAKING lotsofglass 20 setw[RETURN].picnum 19011
+break
+case 3637
+sound VENT_BUST sound GLASS_BREAKING lotsofglass 20 setw[RETURN].picnum 19010
+break
+case 16249
+sound VENT_BUST sound GLASS_BREAKING lotsofglass 20 setw[RETURN].picnum 19172
+break
+case 19172
+sound VENT_BUST sound STORE_MUSIC_BROKE lotsofglass 20 setw[RETURN].picnum 19173
+break
+
+
+case 6829 setw[RETURN].picnum W_TECHWALL1 break
+case 6832 setw[RETURN].picnum W_TECHWALL2 break
+case 6835 setw[RETURN].picnum W_TECHWALL15 break
+case 6838 setw[RETURN].picnum W_TECHWALL4 break
+case 6841 setw[RETURN].picnum W_TECHWALL16 break
+
+case 9657 
+	sound GLASS_BREAKING lotsofglass 20
+	setw[RETURN].picnum SCREENBREAK1 
+	getw[RETURN].xrepeat x div x 2 setw[RETURN].xrepeat x 
+	getw[RETURN].yrepeat y div y 2 setw[RETURN].yrepeat y
+break
+
+case 9990 
+case 10199
+
+	sound GLASS_BREAKING lotsofglass 20
+	setw[RETURN].picnum SCREENBREAK1 
+	getw[RETURN].xrepeat x div x 2 setw[RETURN].xrepeat x 
+	getw[RETURN].yrepeat y div y 2 setw[RETURN].yrepeat y
+	
+break
+
+//TV break
+
+case 9988
+case 10074
+case 11061
+case 11243
+case 11148 
+case 11677
+case 11697
+case 11690
+case 11717
+case 14989
+case 15094
+case 15095
+case 15096
+case 18996
+case 18997
+case 19000
+case 19005
+case 18995
+case 19968
+case 19973
+case 20010
+case 20019
+case 20025
+case 20029
+case 20044
+case 20051
+case 20057
+case 20106
+case 20123
+
+
+	sound GLASS_BREAKING lotsofglass 15  setw[RETURN].picnum PHONYBREAK
+	
+break
+
+//TV HD Break
+
+case 11511 
+case 11517
+case 11519
+case 18994
+case 19981
+case 19994
+case 20078
+case 20134
+case 20139
+case 20151
+case 20173
+case 20174
+case 20175
+
+	sound GLASS_BREAKING lotsofglass 15 setw[RETURN].picnum PHONYBREAKHD
+	
+break
+
+case 13100
+case 13101
+
+	sound GLASS_BREAKING lotsofglass 15 setw[RETURN].picnum 13102
+	
+break
+
+endswitch
+}
+
+ifg RETURN -1
+{
+	ifge wall[RETURN].picnum 6876 ifle wall[RETURN].picnum 6890
+	{
+		sound GLASS_BREAKING lotsofglass 15 setw[RETURN].picnum PHONYBREAK
+	}
+	ifge wall[RETURN].picnum 8497 ifle wall[RETURN].picnum 8500
+	{
+		sound GLASS_BREAKING lotsofglass 15 setw[RETURN].picnum PHONYBREAK
+	}
+	ifge wall[RETURN].picnum 9685 ifle wall[RETURN].picnum 9699
+	{
+		sound GLASS_BREAKING lotsofglass 15 setw[RETURN].picnum PHONYBREAK
+	}
+}
+endevent
+
+// ********************************************************
+// **********START OF GOGGLE CODE**************************
+// ********************************************************
+
+state secretspritecode
+
+	ife player[].heat_on YES seta[].cstat mtype
+	else
+	cstat 32768
+
+ends
+
+useractor notenemy SECSPRITE1 state secretspritecode enda
+useractor notenemy SECSPRITE2 state secretspritecode enda
+useractor notenemy SECSPRITE3 state secretspritecode enda
+useractor notenemy SECSPRITE4 state secretspritecode enda
+useractor notenemy SECSPRITE5 state secretspritecode enda
+useractor notenemy SECSPRITE6 state secretspritecode enda
+useractor notenemy SECSPRITE7 state secretspritecode enda
+useractor notenemy SECSPRITE8 state secretspritecode enda
+useractor notenemy SECSPRITE9 state secretspritecode enda
+
+useractor notenemy FEMMAG1 0 set mtype 15826 seta[].mdflags 16 set burning 0 enda
+useractor notenemy GLASSESPOSTER 0 set mtype 15823 seta[].mdflags 16 set burning 0 enda
+useractor notenemy BIGPOSTER1 0 set mtype 11162 seta[].mdflags 16 set burning 0 enda
+useractor notenemy BIGPOSTER2 0 set mtype 11162 seta[].mdflags 16 set burning 0 enda
+useractor notenemy BIGPOSTER3 0 set mtype 11162 seta[].mdflags 16 set burning 0 enda
+useractor notenemy BIGPOSTER4 0 set mtype 11162 seta[].mdflags 16 set burning 0 enda
+useractor notenemy BIGPOSTER5 0 set mtype 11162 seta[].mdflags 16 set burning 0 enda
+useractor notenemy BIGPOSTER6 0 set mtype 11162 seta[].mdflags 16 set burning 0 enda
+useractor notenemy BIGPOSTER7 0 set mtype 20950 seta[].mdflags 16 set burning 0 enda
+useractor notenemy BIGPOSTER8 0 set mtype 11162 seta[].mdflags 16 set burning 0 enda
+useractor notenemy BIGPOSTER9 0 set mtype 15825 seta[].mdflags 16 set burning 0 enda
+useractor notenemy BIGPOSTER10 0 set mtype 15824 seta[].mdflags 16 set burning 0 enda
+useractor notenemy BIGPOSTER11 0 set mtype 11162 seta[].mdflags 16 set burning 0 enda
+useractor notenemy BIGPOSTER12 0 set mtype 11162 seta[].mdflags 16 set burning 0 enda
+useractor notenemy BIGPOSTER13 0 set mtype 15030 seta[].mdflags 16 set burning 0 enda
+useractor notenemy BIGPOSTER14 0 set mtype 11162 seta[].mdflags 16 set burning 0 enda
+useractor notenemy BIGPOSTER15 0 set mtype 11162 seta[].mdflags 16 set burning 0 enda
+useractor notenemy COMIC1 0 set mtype 11150 seta[].mdflags 16 set burning 0 enda
+useractor notenemy COMIC2 0 set mtype 11150 seta[].mdflags 16 set burning 0 enda
+useractor notenemy COMIC3 0 set mtype 11150 seta[].mdflags 16 set burning 0 enda
+useractor notenemy COMIC4 0 set mtype 11150 seta[].mdflags 16 set burning 0 enda
+useractor notenemy COMIC5 0 set mtype 11150 seta[].mdflags 16 set burning 0 enda
+useractor notenemy COMIC6 0 set mtype 11150 seta[].mdflags 16 set burning 0 enda
+useractor notenemy COMIC7 0 set mtype 11150 seta[].mdflags 16 set burning 0 enda
+useractor notenemy COMIC8 0 set mtype 11150 seta[].mdflags 16 set burning 0 enda
+useractor notenemy COMIC9 0 set mtype 11150 seta[].mdflags 16 set burning 0 enda
+useractor notenemy COMIC10 0 set mtype 11150 seta[].mdflags 16 set burning 0 enda
+useractor notenemy COMIC11 0 set mtype 11150 seta[].mdflags 16 set burning 0 enda
+useractor notenemy COMIC12 0 set mtype 11150 seta[].mdflags 16 set burning 0 enda
+useractor notenemy COMIC13 0 set mtype 11150 seta[].mdflags 16 set burning 0 enda
+useractor notenemy COMIC14 0 set mtype 15065 seta[].mdflags 16 set burning 0 enda
+
+useractor notenemy HOTPOSTER1 0 set mtype 11153 seta[].mdflags 16 set burning 0 enda
+useractor notenemy HOTPOSTER2 0 set mtype 11153 seta[].mdflags 16 set burning 0 enda
+useractor notenemy HOTPOSTER3 0 set mtype 15726 seta[].mdflags 16 set burning 0 enda
+useractor notenemy HOTPOSTER4 0 set mtype 15725 seta[].mdflags 16 set burning 0 enda
+useractor notenemy HOTPOSTER5 0 set mtype 15724 seta[].mdflags 16 set burning 0 enda
+useractor notenemy HOTPOSTER6 0 set mtype 15727 seta[].mdflags 16 set burning 0 enda
+useractor notenemy HOTPOSTER7 0 set mtype 15741 seta[].mdflags 16 set burning 0 enda
+useractor notenemy HOTPOSTER8 0 set mtype 11153 seta[].mdflags 16 set burning 0 enda
+useractor notenemy HOTPOSTER9 0 set mtype 15744 seta[].mdflags 16 set burning 0 enda
+useractor notenemy HOTPOSTER10 0 set mtype 11153 seta[].mdflags 16 set burning 0 enda
+useractor notenemy HOTPOSTER11 0 set mtype 11153 seta[].mdflags 16 set burning 0 enda
+useractor notenemy HOTPOSTER12 0 set mtype 11153 seta[].mdflags 16 set burning 0 enda
+useractor notenemy HOTPOSTER13 0 set mtype 15740 seta[].mdflags 16 set burning 0 enda
+useractor notenemy HOTPOSTER14 0 set mtype 11153 seta[].mdflags 16 set burning 0 enda
+useractor notenemy HOTPOSTER15 0 set mtype 11153 seta[].mdflags 16 set burning 0 enda
+
+useractor notenemy GAMEPOSTER1 0 set mtype 11152 seta[].mdflags 16 set burning 0 enda
+useractor notenemy GAMEPOSTER2 0 set mtype 11152 seta[].mdflags 16 set burning 0 enda
+useractor notenemy GAMEPOSTER3 0 set mtype 11152 seta[].mdflags 16 set burning 0 enda
+useractor notenemy GAMEPOSTER4 0 set mtype 11152 seta[].mdflags 16 set burning 0 enda
+useractor notenemy GAMEPOSTER5 0 set mtype 11152 seta[].mdflags 16 set burning 0 enda
+useractor notenemy GAMEPOSTER6 0 set mtype 11152 seta[].mdflags 16 set burning 0 enda
+useractor notenemy GAMEPOSTER7 0 set mtype 11152 seta[].mdflags 16 set burning 0 enda
+useractor notenemy GAMEPOSTER8 0 set mtype 11152 seta[].mdflags 16 set burning 0 enda
+useractor notenemy GAMEPOSTER9 0 set mtype 11152 seta[].mdflags 16 set burning 0 enda
+useractor notenemy GAMEPOSTER10 0 set mtype 11152 seta[].mdflags 16 set burning 0 enda
+useractor notenemy GAMEPOSTER11 0 set mtype 11152 seta[].mdflags 16 set burning 0 enda
+
+useractor notenemy DUKEPOSTER1 0 set mtype 15038 seta[].mdflags 16 set burning 0 enda
+useractor notenemy DUKEPOSTER2 0 set mtype 14953 seta[].mdflags 16 set burning 0 enda
+
+useractor notenemy MOVIEPOSTER1 0 set mtype 11155 seta[].mdflags 16 set burning 0 enda
+useractor notenemy MOVIEPOSTER2 0 set mtype 11155 seta[].mdflags 16 set burning 0 enda
+useractor notenemy MOVIEPOSTER3 0 set mtype 11155 seta[].mdflags 16 set burning 0 enda
+useractor notenemy MOVIEPOSTER4 0 set mtype 11155 seta[].mdflags 16 set burning 0 enda
+useractor notenemy MOVIEPOSTER5 0 set mtype 11155 seta[].mdflags 16 set burning 0 enda
+useractor notenemy MOVIEPOSTER6 0 set mtype 11155 seta[].mdflags 16 set burning 0 enda
+useractor notenemy MOVIEPOSTER7 0 set mtype 11155 seta[].mdflags 16 set burning 0 enda
+useractor notenemy MOVIEPOSTER8 0 set mtype 11155 seta[].mdflags 16 set burning 0 enda
+useractor notenemy MOVIEPOSTER9 0 set mtype 11155 seta[].mdflags 16 set burning 0 enda
+useractor notenemy MOVIEPOSTER10 0 set mtype 11155 seta[].mdflags 16 set burning 0 enda
+useractor notenemy MOVIEPOSTER11 0 set mtype 11155 seta[].mdflags 16 set burning 0 enda
+useractor notenemy MOVIEPOSTER12 0 set mtype 11155 seta[].mdflags 16 set burning 0 enda
+useractor notenemy MOVIEPOSTER13 0 set mtype 14941 seta[].mdflags 16 set burning 0 enda
+useractor notenemy MOVIEPOSTER14 0 set mtype 11155 seta[].mdflags 16 set burning 0 enda
+useractor notenemy MOVIEPOSTER15 0 set mtype 15073 seta[].mdflags 16 set burning 0 enda
+
+useractor notenemy BLURAY1 0 set mtype 14937 seta[].mdflags 16 set burning 0 enda
+useractor notenemy BLURAY2 0 set mtype 14937 seta[].mdflags 16 set burning 0 enda
+useractor notenemy BLURAY3 0 set mtype 14937 seta[].mdflags 16 set burning 0 enda
+useractor notenemy BLURAY4 0 set mtype 14937 seta[].mdflags 16 set burning 0 enda
+useractor notenemy BLURAY5 0 set mtype 14937 seta[].mdflags 16 set burning 0 enda
+useractor notenemy BLURAY6 0 set mtype 14937 seta[].mdflags 16 set burning 0 enda
+useractor notenemy BLURAY7 0 set mtype 14937 seta[].mdflags 16 set burning 0 enda
+useractor notenemy BLURAY8 0 set mtype 14937 seta[].mdflags 16 set burning 0 enda
+useractor notenemy BLURAY9 0 set mtype 14937 seta[].mdflags 16 set burning 0 enda
+useractor notenemy BLURAY10 0 set mtype 14937 seta[].mdflags 16 set burning 0 enda
+useractor notenemy BLURAY11 0 set mtype 14937 seta[].mdflags 16 set burning 0 enda
+useractor notenemy BLURAY12 0 set mtype 14937 seta[].mdflags 16 set burning 0 enda
+useractor notenemy BLURAY13 0 set mtype 11161 seta[].mdflags 16 set burning 0 enda
+useractor notenemy BLURAY14 0 set mtype 11161 seta[].mdflags 16 set burning 0 enda
+
+useractor notenemy MAGAZINE2 0 set mtype 11154 seta[].mdflags 16 set burning 0 enda
+useractor notenemy MAGAZINE3 0 set mtype 11154 seta[].mdflags 16 set burning 0 enda
+useractor notenemy FRAMEPRINT1 0 set mtype 17868 seta[].mdflags 16 set burning 0 enda
+useractor notenemy FRAMEPRINT2 0 set mtype 17868 seta[].mdflags 16 set burning 0 enda
+useractor notenemy FRAMEPRINT3 0 set mtype 17868 seta[].mdflags 16 set burning 0 enda
+useractor notenemy FRAMEPRINT4 0 set mtype 17868 seta[].mdflags 16 set burning 0 enda
+useractor notenemy FRAMEPRINT5 0 set mtype 17868 seta[].mdflags 16 set burning 0 enda
+useractor notenemy FRAMEPRINT6 0 set mtype 17868 seta[].mdflags 16 set burning 0 enda
+
+useractor notenemy NEWS1 0 set mtype 11156 seta[].mdflags 16 set burning 0 enda
+useractor notenemy NEWS2 0 set mtype 11156 seta[].mdflags 16 set burning 0 enda
+useractor notenemy CROFTPIC 0 set mtype 11151 seta[].mdflags 16 set burning 0 enda
+useractor notenemy GENERALZOD 0 set mtype 11164 seta[].mdflags 16 set burning 0 enda
+useractor notenemy SWSJW 0 set mtype 11164 seta[].mdflags 16 set burning 0 enda
+useractor notenemy CROFTPIC 0 set mtype 15076 seta[].mdflags 16 set burning 0 enda
+useractor notenemy SECSPRITE13 state secretspritecode enda
+useractor notenemy SECSPRITE14 state secretspritecode enda
+useractor notenemy SECSPRITE15 state secretspritecode enda
+
+useractor notenemy GHOSTA state secretspritecode enda
+useractor notenemy GHOSTB state secretspritecode enda
+useractor notenemy GHOSTC state secretspritecode enda
+useractor notenemy GHOSTD state secretspritecode enda
+useractor notenemy GHOSTE state secretspritecode enda
+useractor notenemy GHOSTF state secretspritecode enda
+useractor notenemy GHOSTG state secretspritecode enda
+useractor notenemy GHOSTH state secretspritecode enda
+useractor notenemy GHOSTI state secretspritecode enda
+useractor notenemy GHOSTJ state secretspritecode enda
+useractor notenemy GHOSTK state secretspritecode enda
+useractor notenemy GHOSTL state secretspritecode enda
+useractor notenemy GHOSTM state secretspritecode enda
+useractor notenemy GHOSTN state secretspritecode enda
+useractor notenemy GHOSTO state secretspritecode enda
+useractor notenemy GHOSTP state secretspritecode enda
+useractor notenemy GHOSTQ state secretspritecode enda
+useractor notenemy GHOSTR state secretspritecode enda
+useractor notenemy GHOSTS state secretspritecode enda
+useractor notenemy GHOSTT state secretspritecode enda
+useractor notenemy GHOSTU state secretspritecode enda
+useractor notenemy GHOSTV state secretspritecode enda
+useractor notenemy GHOSTW state secretspritecode enda
+useractor notenemy GHOSTX state secretspritecode enda
+useractor notenemy GHOSTY state secretspritecode enda
+useractor notenemy GHOSTZ state secretspritecode enda
+useractor notenemy GHOST0 state secretspritecode enda
+useractor notenemy GHOST1 state secretspritecode enda
+useractor notenemy GHOST2 state secretspritecode enda
+useractor notenemy GHOST3 state secretspritecode enda
+useractor notenemy GHOST4 state secretspritecode enda
+useractor notenemy GHOST5 state secretspritecode enda
+useractor notenemy GHOST6 state secretspritecode enda
+useractor notenemy GHOST7 state secretspritecode enda
+useractor notenemy GHOST8 state secretspritecode enda
+useractor notenemy GHOST9 state secretspritecode enda
+useractor notenemy GHOSTSPOOGE state secretspritecode enda
+
+useractor notenemy 937 0 set mtype 15698 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 970 0 set mtype 14950 seta[].mdflags 16 set burning 0 enda
+
+
+useractor notenemy 3737 0 set mtype 11155 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 3738 0 set mtype 11155 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 3739 0 set mtype 15841 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 3740 0 set mtype 11155 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 3810 0 set mtype 19195 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 3828 0 set mtype 16314 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 3833 0 set mtype 15036 seta[].mdflags 16 set burning 0 enda
+
+useractor notenemy 4484 0 set mtype 15702 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 4506 0 set mtype 15701 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 4507 0 set mtype 15701 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 4578 0 set mtype 15821 seta[].mdflags 16 set burning 0 enda
+
+useractor notenemy 6924 0 set mtype 15684 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 6032 0 set mtype 14952 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 7449 0 set mtype 15098 seta[].mdflags 16 set burning 0 enda
+
+useractor notenemy 9445 0 set mtype 15068 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 9450 0 set mtype 15078 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 9451 0 set mtype 15078 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 9677 0 set mtype 15079 seta[].mdflags 16 set burning 0 enda
+
+useractor notenemy 9990 0 set mtype 19017 seta[].mdflags 16 set burning 0 enda
+
+
+useractor notenemy 10084 0 set mtype 15102 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 10134 0 set mtype 17919 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 10131 0 set mtype 15054 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 10142 0 set mtype 11155 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 10144 0 set mtype 15739 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 10145 0 set mtype 14951 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 10214 0 set mtype 15066 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 10225 0 set mtype 14954 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 11092 0 set mtype 14938 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 11093 0 set mtype 11161 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 11094 0 set mtype 11161 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 11098 0 set mtype 14937 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 11099 0 set mtype 11161 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 11132 0 set mtype 19194 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 11190 0 set mtype 14939 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 11255 0 set mtype 14937 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 11372 0 set mtype 15700 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 11303 0 set mtype 15743 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 11376 0 set mtype 15699 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 11544 0 set mtype 19021 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 11581 0 set mtype 14945 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 11593 0 set mtype 14936 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 11594 0 set mtype 14936 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 11652 0 set mtype 11155 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 11642 0 set mtype 11155 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 11651 0 set mtype 11154 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 11067 0 set mtype 11155 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 11068 0 set mtype 11155 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 11130 0 set mtype 15031 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 11184 0 set mtype 11153 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 11185 0 set mtype 15742 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 11147 0 set mtype 15097 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 11490 0 set mtype 17845 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 11502 0 set mtype 15103 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 11564 0 set mtype 15035 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 11565 0 set mtype 11153 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 11574 0 set mtype 15069 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 11605 0 set mtype 11155 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 11643 0 set mtype 11155 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 11604 0 set mtype 11155 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 11670 0 set mtype 11155 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 11671 0 set mtype 19194 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 11731 0 set mtype 11153 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 11732 0 set mtype 11154 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 11742 0 set mtype 14945 seta[].mdflags 16 set burning 0 enda
+
+useractor notenemy 12020 0 set mtype 14944 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 12055 0 set mtype 15077 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 12420 0 set mtype 11689 seta[].mdflags 16 set burning 0 enda
+
+useractor notenemy 13058 0 set mtype 15084 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 13064 0 set mtype 15073 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 13063 0 set mtype 15073 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 13065 0 set mtype 11155 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 13056 0 set mtype 15032 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 13059 0 set mtype 15033 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 13067 0 set mtype 11155 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 13068 0 set mtype 11155 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 13066 0 set mtype 11155 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 13145 0 set mtype 15074 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 13179 0 set mtype 11161 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 13180 0 set mtype 11161 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 13176 0 set mtype 14938 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 13177 0 set mtype 14938 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 13178 0 set mtype 14938 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 13224 0 set mtype 15034 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 13223 0 set mtype 11155 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 13254 0 set mtype 11155 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 13248 0 set mtype 11155 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 13228 0 set mtype 11155 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 13237 0 set mtype 11155 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 13276 0 set mtype 19194 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 13277 0 set mtype 14945 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 13294 0 set mtype 17826 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 13300 0 set mtype 14943 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 13301 0 set mtype 14942 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 13302 0 set mtype 14942 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 13303 0 set mtype 14942 seta[].mdflags 16 set burning 0 enda
+
+
+
+useractor notenemy 14874 0 set mtype 11154 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 14916 0 set mtype 17919 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 14920 0 set mtype 14940 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 14926 0 set mtype 14946 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 14960 0 set mtype 11161 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 14961 0 set mtype 11161 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 14962 0 set mtype 11161 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 14963 0 set mtype 11161 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 14956 0 set mtype 12391 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 14978 0 set mtype 15067 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 14976 0 set mtype 15072 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 14979 0 set mtype 15827 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 14996 0 set mtype 11161 seta[].mdflags 16 set burning 0 enda
+
+
+useractor notenemy 15000 0 set mtype 15070 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 15003 0 set mtype 11161 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 15004 0 set mtype 11161 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 15058 0 set mtype 14941 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 15090 0 set mtype 15091 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 15092 0 set mtype 15093 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 15101 0 set mtype 15685 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 15728 0 set mtype 15729 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 15731 0 set mtype 15732 seta[].mdflags 16 set burning 0 enda
+
+useractor notenemy 15843 0 set mtype 15862 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 15828 0 set mtype 16194 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 15829 0 set mtype 16195 seta[].mdflags 16 set burning 0 enda
+
+
+useractor notenemy 15924 0 set mtype 15925 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 15926 0 set mtype 15927 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 15928 0 set mtype 15929 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 15930 0 set mtype 15931 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 15932 0 set mtype 15933 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 15934 0 set mtype 15935 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 15936 0 set mtype 15937 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 15938 0 set mtype 15939 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 15940 0 set mtype 15941 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 15942 0 set mtype 15943 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 15944 0 set mtype 15945 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 15946 0 set mtype 15947 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 15948 0 set mtype 15949 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 15950 0 set mtype 15951 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 15952 0 set mtype 15953 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 15954 0 set mtype 15955 seta[].mdflags 16 set burning 0 enda
+
+useractor notenemy 15963 0 set mtype 19020 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 15964 0 set mtype 19020 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 15965 0 set mtype 19020 seta[].mdflags 16 set burning 0 enda
+
+
+
+useractor notenemy 16161 0 set mtype 16162 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 16163 0 set mtype 16164 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 16166 0 set mtype 11155 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 16187 0 set mtype 16193 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 16189 0 set mtype 16194 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 16190 0 set mtype 16195 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 16191 0 set mtype 16192 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 16329 0 set mtype 11155 seta[].mdflags 16 set burning 0 enda
+
+useractor notenemy 17351 0 set mtype 11155 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 17360 0 set mtype 19018 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 17361 0 set mtype 14946 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 17362 0 set mtype 14946 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 17363 0 set mtype 11155 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 17364 0 set mtype 11155 seta[].mdflags 16 set burning 0 enda
+
+useractor notenemy 17832 0 set mtype 17861 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 17835 0 set mtype 16164 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 17836 0 set mtype 16164 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 17837 0 set mtype 17861 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 17838 0 set mtype 17861 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 17839 0 set mtype 17861 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 17860 0 set mtype 17861 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 17862 0 set mtype 17830 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 17864 0 set mtype 17865 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 17870 0 set mtype 17871 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 17883 0 set mtype 19020 seta[].mdflags 16 set burning 0 enda
+
+useractor notenemy 11605 0 set mtype 11155 seta[].mdflags 16 set burning 0 enda
+
+
+useractor notenemy 19006 0 set mtype 19019 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 19008 0 set mtype 19009 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 19016 0 set mtype 14950 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 19081 0 set mtype 14941 seta[].mdflags 16 set burning 0 enda
+
+
+useractor notenemy 17827 0 set mtype 19194 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 17828 0 set mtype 17826 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 17905 0 set mtype 17906 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 17909 0 set mtype 17904 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 17910 0 set mtype 17903 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 17911 0 set mtype 17902 seta[].mdflags 16 set burning 0 enda
+
+
+useractor notenemy 19089 0 set mtype 16194 seta[].mdflags 16 set burning 0 enda
+
+useractor notenemy 19167 0 set mtype 19169 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 19168 0 set mtype 19169 seta[].mdflags 16 set burning 0 enda
+
+useractor notenemy 19191 0 set mtype 19192 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 19193 0 set mtype 19021 seta[].mdflags 16 set burning 0 enda
+
+useractor notenemy 20947 0 set mtype 11155 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 20949 0 set mtype 14941 seta[].mdflags 16 set burning 0 enda
+useractor notenemy 20951 0 set mtype 14946 seta[].mdflags 16 set burning 0 enda
+
+
+
+
+action AGEORGEDAMAGE 3
+action AGEORGENV 1
+action AGEORGENVDAMAGE 2
+useractor notenemy GEORGE 0 
+
+ifmove 0
+{
+	move STOPPED
+	cstator 256
+	action ANULLACTION
+}
+
+ifhitweapon 
+{
+	ife mtype 0 set mtype 1
+	strength 0
+}
+
+ife mtype 0
+{
+	ife player[].heat_on YES action AGEORGENV
+	else action ANULLACTION
+}
+ife mtype 1
+{
+	ife player[].heat_on YES action AGEORGENVDAMAGE
+	else action AGEORGEDAMAGE
+}
+
+enda
+
+action ARANDYDAMAGE 1
+action ARANDYNV 3
+action ARANDYNVDAMAGE 2
+useractor notenemy RANDY 0
+
+ifmove 0
+{
+	move STOPPED
+	cstator 256
+	action ANULLACTION
+}
+
+ifhitweapon 
+{
+	ife mtype 0 set mtype 1
+	strength 0
+}
+
+ife mtype 0
+{
+	ife player[].heat_on YES action ARANDYNV
+	else action ANULLACTION
+}
+ife mtype 1
+{
+	ife player[].heat_on YES action ARANDYNVDAMAGE
+	else action ARANDYDAMAGE
+}
+
+enda
+
+appendevent EVENT_ANIMATESPRITES
+
+gettspr[].tsprowner spriteid
+
+switch sprite[spriteid].picnum
+
+case GLASSESPOSTER
+case BIGPOSTER1
+case BIGPOSTER2
+case BIGPOSTER3
+case BIGPOSTER4
+case BIGPOSTER5
+case BIGPOSTER6
+case BIGPOSTER7
+case BIGPOSTER8
+case BIGPOSTER9
+case BIGPOSTER10
+case BIGPOSTER11
+case BIGPOSTER12
+case BIGPOSTER13
+case BIGPOSTER14
+case BIGPOSTER15
+case COMIC1
+case COMIC2
+case COMIC3
+case COMIC4
+case COMIC5
+case COMIC6
+case COMIC7
+case COMIC8
+case COMIC9
+case COMIC10
+case COMIC11
+case COMIC12
+case COMIC13
+case COMIC14
+
+case HOTPOSTER1
+case HOTPOSTER2
+case HOTPOSTER3
+case HOTPOSTER4
+case HOTPOSTER5
+case HOTPOSTER6
+case HOTPOSTER7
+case HOTPOSTER8
+case HOTPOSTER9
+case HOTPOSTER10
+case HOTPOSTER11
+case HOTPOSTER12
+case HOTPOSTER13
+case HOTPOSTER14
+case HOTPOSTER15
+
+case GAMEPOSTER1
+case GAMEPOSTER2
+case GAMEPOSTER3
+case GAMEPOSTER4
+case GAMEPOSTER5
+case GAMEPOSTER6
+case GAMEPOSTER7
+case GAMEPOSTER8
+case GAMEPOSTER9
+case GAMEPOSTER10
+case GAMEPOSTER11
+
+case DUKEPOSTER1
+case DUKEPOSTER2
+
+case MOVIEPOSTER1
+case MOVIEPOSTER2
+case MOVIEPOSTER3
+case MOVIEPOSTER4
+case MOVIEPOSTER5
+case MOVIEPOSTER6
+case MOVIEPOSTER7
+case MOVIEPOSTER8
+case MOVIEPOSTER9
+case MOVIEPOSTER10
+case MOVIEPOSTER11
+case MOVIEPOSTER12
+case MOVIEPOSTER13
+case MOVIEPOSTER14
+case MOVIEPOSTER15
+
+case BLURAY1
+case BLURAY2
+case BLURAY3
+case BLURAY4
+case BLURAY5
+case BLURAY6
+case BLURAY7
+case BLURAY8
+case BLURAY9
+case BLURAY10
+case BLURAY11
+case BLURAY12
+case BLURAY13
+case BLURAY14
+
+case MAGAZINE2
+case MAGAZINE3
+case FRAMEPRINT1
+case FRAMEPRINT2
+case FRAMEPRINT3
+case FRAMEPRINT4
+case FRAMEPRINT5
+case FRAMEPRINT6
+case NEWS1
+case NEWS2
+case CROFTPIC
+case GENERALZOD
+
+case 937
+case 970
+
+case 3737 
+case 3738 
+case 3739 
+case 3740
+case 3810
+case 3828
+case 3833 
+case 4484
+case 4506
+case 4507
+case 4578
+
+case 6032
+case 6924
+case 7449
+
+case 9445 
+case 9450 
+case 9451 
+case 9677 
+case 9990
+ 
+case 10084
+case 10131
+case 10134
+case 10142
+case 10144
+case 10145
+case 10214
+case 10225
+
+case 11067 
+case 11068
+case 11092
+case 11093
+case 11094
+case 11098
+case 11099
+case 11130
+case 11132 
+case 11184
+case 11185
+case 11190
+case 11255
+case 11303
+case 11372
+case 11376
+case 11490
+case 11544 
+case 11564
+case 11565
+case 11574 
+case 11581
+case 11593
+case 11594
+case 11604 
+case 11605 
+case 11642 
+case 11643 
+case 11651
+case 11652 
+case 11670 
+case 11671 
+case 11731
+case 11732
+case 11742
+
+case 12020
+case 12055 
+case 12420
+
+
+case 13058
+case 13066
+case 13067 
+case 13063
+case 13064
+case 13065 
+case 13056
+case 13059
+case 13068 
+case 13178
+case 13176
+case 13177
+case 13179
+case 13180
+case 13228 
+case 13237 
+case 13254 
+case 13276 
+case 13248 
+case 13294
+case 13300
+case 13301
+case 13302
+case 13303
+case 13145 
+case 13223
+case 13224
+case 13277
+
+
+case 14874
+case 14916
+case 14926
+case 14956
+case 14978 
+case 14920
+case 14960
+case 14961
+case 14962
+case 14963
+case 14976
+case 14979  
+case 14996
+
+case 15000
+case 15003
+case 15004
+case 15058
+case 15090
+case 15092
+case 15101
+case 15728
+case 15731
+case 15843
+case 15924
+case 15926
+case 15928
+case 15930
+case 15932
+case 15934
+case 15936
+case 15938
+case 15940
+case 15942
+case 15944
+case 15946
+case 15948
+case 15950
+case 15952
+case 15954
+
+case 15963
+case 15964
+case 15965
+
+case 15828
+case 15829
+case 16161
+case 16163
+case 16166
+case 16187
+case 16189
+case 16190
+case 16191
+case 16329
+case 17351
+case 17360
+case 17361
+case 17362
+case 17363
+case 17364
+
+case 17832
+case 17835
+case 17836
+case 17837
+case 17838
+case 17839
+case 17860
+case 17862
+case 17864
+case 17870
+case 17883
+case 17827
+case 17828
+case 17905
+case 17909
+case 17910
+case 17911
+
+
+
+case 19006
+case 19008
+case 19016
+case 19081
+case 19089
+
+case 19167
+case 19168
+case 19191
+case 19193
+case 20947
+case 20949
+case 20951
+
+	set temp NO
+	
+	ife player[].heat_on YES set temp YES
+	ife aimbot_on YES set temp YES
+	
+	ife temp YES
+	settspr[].tsprpicnum actorvar[spriteid].mtype
+
+break
+endswitch
+
+endevent

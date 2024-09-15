@@ -1,0 +1,581 @@
+// NEW FAT NEWCOMMANDER
+// 12384 projectile?
+
+action ANEWCOMMBREETH  0  4  5  1  20
+action ANEWCOMMFROZEN  0  1  5
+action ANEWCOMMSPIN   40  4  5  1  8
+action ANEWCOMMGET   0  4  5  1  16
+action ANEWCOMMSHOOT1  20  2  5   1 18
+action ANEWCOMMSHOOT2  30  2  5   1 18
+action ANEWCOMMABOUTTOSHOOT 60 1 5 1 30
+action ANEWCOMMDYING  65  6  1  1  18
+action ANEWCOMMFLINTCH 1429 1 5 1 30 // 65
+action ANEWCOMMDEAD   70  1  1  1  1
+action NEWCOMMDECAP	  71  5  1  1  18
+action NEWCOMMDECAPDEAD	  75  1  1  1  1
+action ANEWCOMMDYING2 76  6  1  1  18
+action ANEWCOMMDEAD2  81  1  1  1  1
+
+move NEWCOMMGETUPVELS 128 -64
+move NEWCOMMGETVELS 128 64
+move NEWCOMMGETVELS2 160 8
+move NEWCOMMSLOW 64 24
+
+ai AINEWCOMMWAIT ANEWCOMMBREETH STOPPED faceplayerslow
+ai AINEWCOMMGET ANEWCOMMGET NEWCOMMGETVELS seekplayer
+ai AINEWCOMMSHOOT ANEWCOMMSHOOT1 STOPPED faceplayerslow
+ai AINEWCOMMABOUTTOSHOOT ANEWCOMMABOUTTOSHOOT STOPPED faceplayerslow
+ai AINEWCOMMSPIN ANEWCOMMSPIN NEWCOMMGETVELS faceplayer
+ai AINEWCOMMDYING ANEWCOMMDYING STOPPED geth
+// ai AINEWCOMMSHRUNK ANEWCOMMGET NEWCOMMSLOW furthestdir
+ai AINEWCOMMGROW ANEWCOMMGET STOPPED furthestdir
+ai AINEWCOMMFLINTCH ANEWCOMMFLINTCH STOPPED faceplayer
+
+state checknewcommhitstate
+
+  geta[].htextra tempH
+  ifhitweapon
+  {
+    ifn sprite[].htpicnum FREEZEBLAST
+	ifn sprite[].htpicnum SHRINKSPARK
+	ifg tempH 3
+    guts JIBS6 2
+	ifwasweapon HEADJIB1 // HEADSHOT!
+	{
+		sound SQUISHED
+		cstat 0
+		strength -1
+		
+		ai AINEWCOMMDYING
+		action NEWCOMMDECAP
+		// guts HEADJIB1 1
+		rand zdist 1024
+		  sub zdist 3500
+		  ezshoot zdist NEWCOMMHEADPROJ
+		  rand angvar 512
+		  sub angvar 256
+		  add angvar sprite[].htang
+		  seta[RETURN].ang angvar
+		  seta[RETURN].pal sprite[].pal
+		state random_wall_jibs
+		addkills 1 state enemy_death
+		ifrnd SPAWNAMMOODDS spawn COMMGUN
+		break
+	}
+    ifdead
+    {
+      ifwasweapon FREEZEBLAST
+      {
+        sound NEWFREEZE
+        spritepal 1
+        move 0
+        action ANEWCOMMFROZEN
+        strength 0
+		state freezeme
+        break
+      }
+      else
+        ifwasweapon GROWSPARK
+      {
+        sound ACTOR_GROWING
+        ai AINEWCOMMGROW
+        break
+      }
+
+      addkills 1 state enemy_death
+	  ifrnd SPAWNAMMOODDS spawn COMMGUN
+
+      ifwasweapon RADIUSEXPLOSION
+      {
+		state comm_body_jibs
+		state standard_jibs
+        killit
+      }
+      else
+        ifwasweapon RPG
+      {
+        state comm_body_jibs
+		state standard_jibs
+        killit
+      }
+      sound NEWCOMM_DIE
+	  ifg shrunken 10 ifl shrunken SHRUNKCOUNT
+		setactorsoundpitch THISACTOR NEWCOMM_DIE SHRUNKPITCH
+      ai AINEWCOMMDYING
+	  ifrnd 128 action ANEWCOMMDYING2
+    }
+    else
+    {
+	  ifrnd 128 soundonce NEWCOMM_PAIN1 else
+	  soundonce NEWCOMM_PAIN2
+
+	  ifg shrunken 10 ifl shrunken SHRUNKCOUNT
+		setactorsoundpitch THISACTOR NEWCOMM_PAIN1 SHRUNKPITCH
+	  ifg shrunken 10 ifl shrunken SHRUNKCOUNT
+		setactorsoundpitch THISACTOR NEWCOMM_PAIN2 SHRUNKPITCH
+      ifwasweapon SHRINKSPARK
+      {
+        sound ACTOR_SHRINKING
+        // ai AINEWCOMMSHRUNK
+		set shrunken 1
+      }
+      else
+        ifwasweapon GROWSPARK
+          sound SPARKLESOUND
+	  
+      ifai AINEWCOMMFLINTCH nullop else
+      ifai AINEWCOMMABOUTTOSHOOT nullop else
+      ifai AINEWCOMMSHOOT nullop else
+      ifvarg stun 0 ai AINEWCOMMFLINTCH
+      else
+	  ifg tempH 20
+      ifrnd 24 
+	  ifn sprite[].htpicnum BURNING
+	  ifn sprite[].htpicnum RADWOUND
+	  ai AINEWCOMMFLINTCH
+	  else
+        ifrnd 40
+		ife targetalive YES
+          ai AINEWCOMMABOUTTOSHOOT
+    }
+  }
+ends
+
+useractor enemystayput NEWCOMMSTAYPUT MECHBRAINSTRENGTH
+  cactor NEWCOMM
+  sizeat 30 28
+  clipdist 72
+  cstator 257
+  ai AINEWCOMMABOUTTOSHOOT
+enda
+
+useractor enemy NEWCOMM MECHBRAINSTRENGTH
+
+  state checksquished
+
+  ifaction ANEWCOMMFROZEN
+  {
+    fall
+
+    ifcount THAWTIME
+    {
+      getlastpal
+      ai AINEWCOMMWAIT
+    }
+    else
+      ifcount FROZENDRIPTIME
+    {
+      ifactioncount 26
+      {
+        spawn WATERDRIP
+        resetactioncount
+      }
+    }
+
+    ifhitweapon
+    {
+      ifwasweapon FREEZEBLAST
+      {
+	    resetcount resetactioncount
+        strength 0
+        break
+      }
+      addkills 1 state enemy_death
+	  ifrnd SPAWNAMMOODDS spawn COMMGUN
+	  lotsofglass 10
+      ifrnd 84
+        spawn BLOODPOOL
+      state standard_jibs
+      sound GLASS_BREAKING
+      killit
+    }
+    ifp pfacing
+      ifpdistl FROZENQUICKKICKDIST
+        state pkick_check
+    break
+  }
+  
+  
+  ifai 0
+  {
+	sound NEWCOMM_ALERT
+	geta[].htflags temp
+	orvar temp 2097152
+	seta[].htflags temp
+	ifl sprite[].xrepeat 4 spawn GLARESTAR
+    sizeat 30 28
+	cstator 257
+	clipdist 72
+	ifspritepal 24 { orvar initflags 32 addstrength 100 }
+	ife gametype 0 ai AINEWCOMMSHOOT else
+    ife targetalive YES
+    ai AINEWCOMMSHOOT
+	else
+	ai AINEWCOMMWAIT
+  }
+  state monsterai 
+  
+  
+  ifai AINEWCOMMWAIT
+  {
+    ifcount 20
+    {
+      ife seemytarget YES
+      {
+        ife shootmytarget YES
+        {
+          ifrnd 96
+            ai AINEWCOMMGET
+          else
+            ai AINEWCOMMABOUTTOSHOOT
+        }
+      }
+      else
+        ai AINEWCOMMGET
+    }
+  }
+  else
+    ifai AINEWCOMMABOUTTOSHOOT
+  {
+    ifactioncount 2
+    {
+      ife seemytarget YES
+        ai AINEWCOMMSHOOT
+      else
+      {
+        ai AINEWCOMMGET
+        break
+      }
+    }
+  }
+  else
+    ifai AINEWCOMMSHOOT
+  {
+    ifaction ANEWCOMMSHOOT1
+	{
+      ifactioncount 2
+      { 
+	    ifvarand initflags 32
+		{
+			ifcount 3
+			{
+				resetcount
+				sound CBFIRE
+				setprojectile[CBPROJ].offset 224
+				shoot CBPROJ
+				setprojectile[CBPROJ].offset -160
+				ifg botclip 2 ifrnd 192 action ANEWCOMMSHOOT2
+			}
+		}
+		else
+		{
+			set xvel 768
+			state rpg_targetprep
+			ezshoot zdist COMETPROJ
+			seta[RETURN].pal 8
+			sound COMET_FIRE
+			
+			action ANEWCOMMSHOOT2
+		}
+		add botclip 1
+      }
+	  else
+	  {
+		  ifg botclip 2
+		  ifrnd 96
+		  {
+			  ifg targetdist 2560 ifrnd 192 ai AINEWCOMMGET else
+			  ai AINEWCOMMWAIT 
+			  set botclip 0
+		  }
+		  else
+		  ife shootmytarget NO
+		  {
+			 ai AINEWCOMMWAIT
+			 set botclip 0
+		  }
+	  }
+	}
+	else
+	ifaction ANEWCOMMSHOOT2
+	{
+		ifactioncount 2
+		{
+			ife targetalive YES
+			ife shootmytarget YES
+			action ANEWCOMMSHOOT1
+			else
+			{
+				ai AINEWCOMMWAIT
+				set botclip 0
+			}
+			
+		}
+	} 
+  }
+  else
+    // ifai AINEWCOMMSHRUNK
+  // {
+    // ifcount SHRUNKDONECOUNT
+      // ai AINEWCOMMGET
+    // else
+      // ifcount SHRUNKCOUNT
+        // sizeto 48 40
+    // else
+      // state genericshrunkcode
+  // }
+  // else
+    ifai AINEWCOMMGROW
+      state genericgrowcode
+  else
+    ifai AINEWCOMMGET
+  {
+    ifnotmoving
+      ifrnd 4
+        operate
+    ifl targetdist 1408
+      ife targetalive YES
+    {
+      soundonce NEWCOMM_BLADE
+	  ifg shrunken 10 ifl shrunken SHRUNKCOUNT
+		setactorsoundpitch THISACTOR NEWCOMM_BLADE SHRUNKPITCH
+	  
+      ai AINEWCOMMSPIN
+      break
+    }
+	
+	ifge SKILL 4
+	ifn myspawner -1
+	{
+		set dodgetime 3
+		set countvarb 8
+	    set spriteid myspawner state facesprite state incoming_eval
+	}
+	set myspawner -1
+
+    ife seemytarget YES
+    {
+      ife targethigher YES
+        move NEWCOMMGETUPVELS getv geth faceplayer
+      else
+	  {
+	    ife float NO
+        move NEWCOMMGETVELS getv geth faceplayer
+		else
+		move NEWCOMMGETVELS2 getv geth faceplayer
+	  }
+    }
+    ifactioncount 8
+      ifrnd 2
+        ai AINEWCOMMABOUTTOSHOOT
+  }
+  else
+    ifai AINEWCOMMSPIN
+  {
+  
+    soundonce NEWCOMM_BLADE
+	ifg shrunken 10 ifl shrunken SHRUNKCOUNT
+		setactorsoundpitch THISACTOR NEWCOMM_BLADE SHRUNKPITCH
+    ifcount 8
+    {
+      ifl targetdist 1280
+      {
+	    ifmove STOPPED nullop else
+	    ifl targetdist 1024 move STOPPED faceplayer
+		
+	    ifg shrunken 10 ifl shrunken SHRUNKCOUNT set tempb -1
+	    else
+        set tempb CAPTSPINNINGPLAYER
+		mul tempb -1
+		
+		ifn bottarget -1
+		{
+			seta[bottarget].htextra tempb
+			seta[bottarget].htpicnum SHOTSPARK1
+			seta[bottarget].htowner THISACTOR
+			seta[bottarget].htang sprite[].ang
+		}
+		else
+		{
+			ife pchar 2 sound WESGRUNT else
+			ife pchar 1 sound B_GRUNT else
+			sound DUKE_GRUNT
+			palfrom 32 16 
+			seta[player[].i].htextra tempb
+			seta[player[].i].htpicnum SHOTSPARK1
+			seta[player[].i].htowner THISACTOR
+			seta[player[].i].htang sprite[].ang
+		}
+
+		resetcount
+      }
+      else
+        ifg targetdist 2300
+          ai AINEWCOMMWAIT
+    }
+    ifactioncount 52
+	{
+      ai AINEWCOMMWAIT
+	  set dodgetime 0
+	}
+    ifnotmoving
+      ifrnd 32
+        operate
+  }
+  else ifai AINEWCOMMFLINTCH { ifvarg stun 0 resetactioncount ifactioncount 2 ai AINEWCOMMGET }
+
+  ifai AINEWCOMMDYING
+  {
+    fall
+    strength 0
+
+    ifhitweapon
+      ifwasweapon RADIUSEXPLOSION
+    {
+      sound SQUISHED
+      spawn BLOODPOOL2
+      state standard_jibs
+	  ifaction NEWCOMMDECAPDEAD
+	  {
+		rand zdist 1024
+		sub zdist 3500
+		ezshoot zdist COMMARMPROJ
+		rand angvar 2047
+		seta[RETURN].ang angvar
+		seta[RETURN].pal sprite[].pal
+		
+		rand zdist 1024
+		sub zdist 3500
+		ezshoot zdist COMMARMPROJ
+		rand angvar 2047
+		seta[RETURN].ang angvar
+		seta[RETURN].pal sprite[].pal
+		seta[RETURN].cstat 132
+	  }
+	  else
+	  state comm_body_jibs
+      killit
+    }
+	ifaction NEWCOMMDECAP
+      ifactioncount 5
+    {
+      iffloordistl 8
+        sound THUD
+      cstat 0
+      action NEWCOMMDECAPDEAD
+    }
+    ifaction ANEWCOMMDYING
+      ifactioncount 5
+    {
+      iffloordistl 8
+        sound THUD
+      cstat 0
+      action ANEWCOMMDEAD
+    }
+	ifaction ANEWCOMMDYING2
+      ifactioncount 5
+    {
+      iffloordistl 8
+        sound THUD
+      cstat 0
+      action ANEWCOMMDEAD2
+    }
+	break
+  }
+  else
+  {
+	ifg countvarb 0
+	{
+		sub countvarb 1
+		cos xvel angvel
+		sin yvel angvel
+		shiftr xvel 7
+		shiftr yvel 7
+		movesprite THISACTOR xvel yvel 0 CLIPMASK0 RETURN
+	}
+    ifrnd 2
+	{
+      soundonce NEWCOMM_ROAM
+	  ifg shrunken 10 ifl shrunken SHRUNKCOUNT
+		setactorsoundpitch THISACTOR NEWCOMM_ROAM SHRUNKPITCH
+	}
+	
+	ifg gametype 0
+	{
+		ifg navpoint -1
+		ife monstatus 1
+		{
+			orvar monstflags YES
+		    ifmove STOPPED nullop else move STOPPED geth
+			ifn bottarget -1 { set spriteid bottarget state facesprite }
+			ifaction ANEWCOMMFLINTCH nullop else
+			ife stun 0
+			{
+				cos xvel angvel
+				sin yvel angvel
+				// shiftr xvel 7
+				// shiftr yvel 7
+				div xvel 96, div yvel 96
+				geta[navpoint].z zdist
+				ife sprite[navpoint].picnum BLUEFLAG sub zdist 4096 else
+				ife sprite[navpoint].picnum REDFLAG sub zdist 4096
+				sub zdist sprite[].z
+				
+				ldist xydist THISACTOR navpoint
+				ife xydist 0 set xydist 1
+				shiftl zdist 8
+				div zdist xydist
+				ifn shrunken 0 { shiftr xvel 2 shiftr yvel 2 }
+				ifvarand monstflags 16 { mul xvel 3 div xvel 2 mul yvel 3 div yvel 2 state makespeedblur }
+				movesprite THISACTOR xvel yvel zdist CLIPMASK0 RETURN
+				ifn RETURN 0
+				{
+					// bumping something
+					add RETURN 16384
+					ifl RETURN 16384 ifg RETURN -1 // bumping a sprite
+					{
+						set B NO
+						ife actorvar[RETURN].monstatus 1 
+							ife actorvar[RETURN].team team set B YES
+						ifvarand sprite[RETURN].cstat 16 set B YES
+						ife B YES
+						{
+							set x2 sprite[].x
+							add x2 256
+							rotatepoint sprite[].x sprite[].y x2 sprite[].y angvel x y
+							setsprite THISACTOR x y sprite[].z
+							seta[].htmovflag 0
+						}
+					}
+					else ifg navpoint -1 set navpoint -1
+				}
+			}
+		}
+		else ife monstatus 1
+		{
+			ifvarand monstflags YES xorvar monstflags YES
+			ifmove STOPPED
+			{
+				ifai AINEWCOMMGET move NEWCOMMGETVELS seekplayer
+			}
+		}
+	}
+	// getflorzofslope player[].cursectnum player[].posx player[].posy z
+	getzrange sprite[].x sprite[].y sprite[].z sprite[].sectnum temp temp z spriteid 192 CLIPMASK0
+
+	sub z sprite[].z
+	ifl z 6144 
+	{
+		movesprite THISACTOR 0 0 -512 CLIPMASK0 RETURN
+		set float YES
+	}
+	else iffloordistl 32
+	{
+		movesprite THISACTOR 0 0 -512 CLIPMASK0 RETURN
+		set float YES
+	}
+	else ifg z 8120 set float NO
+	
+    state checknewcommhitstate
+  }
+enda

@@ -1,0 +1,503 @@
+// CORRUPTED CIVILIAN
+
+action ACORRTRANSFORM  -5  6  1  1  16
+action ACORRSTAND	    0  1  5  1  10
+
+action ACORRRUN   5  4  5  1  10
+action ACORRHIT   25 2  5  1  18
+action ACORRBITE  30 1  5  1  10 // when biting player
+
+action ACORRFROZEN 0  1  5  1  10
+action ACORRDIE   40 5  1  1  16
+action ACORRSTUN	35 1  1  1  8
+action ACORRDEAD  44 1  1  1  10
+
+move CORRUPTRUN 180
+move CORRSHRUNKVEL 32
+
+ai AICORRTRANSFORM ACORRTRANSFORM STOPPED faceplayer
+ai AICORRWAIT ACORRSTAND STOPPED geth
+
+ai AICORRWANDER ACORRRUN CORRUPTRUN randomangle
+ai AICORRSEEK ACORRRUN CORRUPTRUN seekplayer
+ai AICORRCHARGE ACORRRUN CORRUPTRUN faceplayer
+ai AICORRSHRUNK ACORRRUN CORRSHRUNKVEL fleeenemy
+ai AICORRFROZEN ACORRFROZEN STOPPED geth
+ai AICORRGROW ACORRFROZEN STOPPED geth
+ai AICORRDYING ACORRDIE STOPPED geth
+ai AICORRATTK ACORRHIT STOPPED geth
+ai AICORRBITE ACORRBITE STOPPED faceplayer
+ai AICORRSTUN ACORRSTUN STOPPED geth
+
+state corruptstunstate
+
+	ifcount 12
+	ife stun 0 ai AICORRSEEK
+
+ends
+
+state corruptgrowstate state genericgrowcode ends
+
+state corruptshrunkstate
+
+  ifcount SHRUNKDONECOUNT
+    ai AICORRSEEK
+  else
+    ifcount SHRUNKCOUNT
+      sizeto 28 26
+  else
+    state genericshrunkcode
+
+ends
+
+state corruptfrozenstate
+
+    ifcount THAWTIME
+    {
+      ai AICORRSEEK
+      getlastpal
+    }
+    else
+      ifcount FROZENDRIPTIME
+    {
+      ifactioncount 26
+      {
+        spawn WATERDRIP
+        resetactioncount
+      }
+    }
+    ifhitweapon
+    {
+      ifwasweapon FREEZEBLAST
+      {
+	    resetcount resetactioncount
+        strength 0
+        break
+      }
+      addkills 1 
+	  state enemy_death
+
+      ifrnd 84
+        spawn BLOODPOOL
+	  lotsofglass 30
+	  state lite_jibs
+      sound GLASS_BREAKING
+      killit
+    }
+    ifp pfacing
+      ifpdistl FROZENQUICKKICKDIST
+        state pkick_check
+  
+ends
+
+state corruptdyingstate
+
+	strength 0
+	state deadsquished
+	ifaction ACORRDIE
+	{
+		ifrnd 128 guts JIBS6 1
+		ifhitweapon state random_wall_jibs
+		ifactioncount 5
+		{
+			cstat 0
+			action ACORRDEAD
+			iffloordistl 8 sound THUD
+			break
+		}
+	}
+	ifaction ACORRDEAD
+	{
+		ifhitweapon
+		{
+			ifwasweapon RPG
+			{
+				sound SQUISHED
+				state standard_jibs
+				killit
+			}
+			ifwasweapon RADIUSEXPLOSION
+			{
+				sound SQUISHED
+				state standard_jibs
+				killit
+			}
+		}
+		// ifcount RESPAWNACTORTIME
+		// ifrespawn ife gametype 0
+		// {
+		  // addkills -1 set monstatus 1
+		  // spawn TRANSPORTERSTAR
+		  // cstat 257
+		  // strength CORRUPTSTRENGTH
+		  // ai AICORRSEEK
+		// }
+	}
+	
+ends
+
+state corruptbitestate
+
+	ifp palive nullop else ife zombieonplayer THISACTOR { set zombieonplayer -1 set zombiecount -30 }
+	ifn zombieonplayer THISACTOR
+	{
+		ai AICORRSEEK
+		cstat 257
+		break
+	}
+	else
+	{
+		cstator 256
+		
+		getp[].posz z
+		add z 9216
+		
+		getp[].oang angvar
+		
+		set x2 player[].posx
+		add x2 512
+		rotatepoint player[].posx player[].posy x2 player[].posy angvar x y
+		
+		setsprite THISACTOR x y z
+		setp[].posxv 0
+		setp[].posyv 0
+		setp[].jumping_counter 0
+		setp[].ang player[].oang
+		setp[].horiz 100
+	}
+
+ends
+
+state corruptattkstate
+	
+	ifaction ACORRHIT
+	{
+		ifactioncount 2
+		{
+			state zombiescratch
+			resetactioncount
+			set target bottarget
+			ife target -1 set target player[].i
+			
+			ifn target player[].i
+			{
+				set spriteid target
+				state facesprite
+				
+				ifg targetdist 1560 ai AICORRSEEK
+					else ai AICORRATTK
+				ife targetalive NO ai AICORRSEEK
+				
+			}
+			else
+			{
+				set spriteid player[].i
+				state facesprite
+				
+				ifpdistg 1560 ai AICORRSEEK
+				else ife seeplayer YES ifp palive
+				{
+					ifpdistl 1280
+					ife slidekick 0
+					ife pdown NO
+					ife sprite[].sectnum player[].cursectnum
+					ife brutalcount 0
+					ifn team 1
+					{
+						ife zombieonplayer -1
+						ife zombiecount 0
+						{
+							ai AICORRBITE
+							globalsound Z_BITESTART
+							set zombieonplayer THISACTOR
+							set zombietile CORRUPTBITE
+							ifrnd 128 set zombieflip YES
+							geta[].x x2
+							geta[].y y2
+							sub x2 player[].posx
+							sub y2 player[].posy
+							getangle angvar x2 y2
+							setp[].ang angvar
+							setp[].oang angvar
+							setp[].weapon_pos -9
+							cstat 33024
+							break
+						}
+					}
+					else
+					ai AICORRATTK
+				}
+				else ai AICORRSEEK
+				
+			}
+		}
+	}
+
+ends
+
+state corruptroamsounds
+
+	ifrnd 1
+	ifrnd 128
+	{
+		ifactorsound THISACTOR CORRUPT_ROAM1 break
+		ifactorsound THISACTOR CORRUPT_ROAM2 break
+		rand temp 1
+		ife temp 0 sound CORRUPT_ROAM1 else
+		ife temp 1 sound CORRUPT_ROAM2
+	}
+	
+ends
+
+state corruptcheckmelee
+	ifn bottarget -1
+	{
+		ife seemytarget YES
+		ife targetalive YES
+		ifl targetdist 1408
+			ai AICORRATTK 
+	}
+	else
+	ife seeplayer YES ifpdistl 1408 
+	ifp palive
+	{
+		ife zombieonplayer -1
+		ife zombiecount 0
+		ifpdistl 1280
+		ifcount 15
+		ife slidekick 0
+		{
+			ai AICORRBITE
+			globalsound Z_BITESTART
+			set zombieonplayer THISACTOR
+			set zombietile CORRUPTBITE
+			ifrnd 128 set zombieflip YES
+			geta[].x x2
+			geta[].y y2
+			sub x2 player[].posx
+			sub y2 player[].posy
+			getangle angvar x2 y2
+			setp[].ang angvar
+			setp[].oang angvar
+			setp[].weapon_pos -9
+			cstat 33024
+		}
+		else
+		ai AICORRATTK
+	}
+		
+	
+ends
+
+state checkcorrupthit
+
+	set initsprite YES
+	ife zombieonplayer THISACTOR 
+	{
+		set zombieonplayer -1
+		set zombiecount -30
+		cstat 257
+		// ai AICORRSEEK
+		ai AICORRSTUN
+	}
+	ifai AICORRWANDER ai AICORRSEEK
+	
+	ifwasweapon SHRINKSPARK
+	{	
+	  sound ACTOR_SHRINKING
+	  ai AICORRSHRUNK
+	  set shrunken 1
+	  break
+	}
+	else
+		ifwasweapon GROWSPARK
+		  sound SPARKLESOUND
+	state random_wall_jibs
+	
+	ifg sprite[].extra 0
+	{
+		ifactorsound THISACTOR Z_PAIN1 nullop else
+		ifactorsound THISACTOR Z_PAIN2 nullop else
+		ifrnd 128 sound Z_PAIN1 else sound Z_PAIN2
+	}
+
+	ifdead
+	{
+		ifwasweapon FREEZEBLAST
+		{
+		  sound NEWFREEZE
+		  spritepal 1
+		  ai AICORRFROZEN
+		  strength 0
+		  state freezeme
+		  break
+		}
+		ifwasweapon GROWSPARK
+		{
+		  cstat 0
+		  sound ACTOR_GROWING
+		  ai AICORRGROW
+		  break
+		}
+		addkills 1
+		state enemy_death
+		ai AICORRDYING
+		ifrnd 128 cstator 4
+		ifg shrunken 10 ifl shrunken SHRUNKCOUNT
+			setp[].sound_pitch SHRUNKPITCH
+		
+		ifrnd 128 sound CORRUPT_DIE1 else sound CORRUPT_DIE2
+		ifg shrunken 10 ifl shrunken SHRUNKCOUNT
+			setp[].sound_pitch 0
+		
+		ifwasweapon RPG
+		{
+			sound SQUISHED
+			state standard_jibs
+			killit
+		}
+		ifwasweapon RADIUSEXPLOSION
+		{
+			sound SQUISHED
+			state standard_jibs
+			killit
+		}
+		break
+	}
+	ifai AICORRSTUN nullop else
+	ifg stun 0 ai AICORRSTUN
+
+ends
+
+state corruptchargestate
+
+	state corruptcheckmelee
+	ifai AICORRATTK break
+	ifai AICORRBITE break
+
+ifcount 90
+	ai AICORRSEEK
+	
+	ifn bottarget -1 set target bottarget else ife seeplayer YES getp[].i target
+		else set target -1
+	ifn target -1
+	{
+		set spriteid target
+		state facesprite
+	}
+	else ifnotmoving { operate ai AICORRSEEK }
+
+ends
+
+state corruptwalkstate
+
+	ifcount 10
+	state corruptcheckmelee
+	
+	ifai AICORRATTK break
+	ifai AICORRBITE break
+	
+	ifn bottarget -1 
+	{
+		set target bottarget 
+		set initsprite YES
+	}
+	else ife seeplayer YES 
+	{
+		getp[].i target
+		set initsprite YES
+	}
+	else set target -1
+
+	ifai AICORRWANDER
+	{
+		ifrnd 12
+		ifcount 20 ifn target -1
+			ai AICORRSEEK
+	}
+	else
+	ifai AICORRSEEK
+	{
+		ifrnd 12
+		ifcount 16 ife target -1
+			ai AICORRWANDER
+	}
+	
+	ifnotmoving
+	{
+		ife target -1
+		ifai AICORRSEEK
+		{
+			set crumbwait 150
+			ai AICORRWANDER
+		}
+		ifrnd 64 operate
+	}
+	
+	ifrnd 4
+	{
+		ifn target -1
+		{
+			ifl targetdist 8192
+			{
+				ai AICORRCHARGE
+				set spriteid target
+				state facesprite
+				ifrnd 128 sound CORRUPT_CHARGE1
+				else sound CORRUPT_CHARGE2
+				break
+			}	
+		}
+	}
+	state corruptroamsounds
+	
+
+ends
+
+useractor enemy CORRUPT CORRUPTSTRENGTH
+
+	fall
+	
+	ifai 0
+	{
+		sizeat 28 26
+		cstator 257
+		clipdist 40
+		ai AICORRWAIT
+		set team 0
+	}
+	state monsterai
+	ifai AICORRTRANSFORM
+	{
+		ifcount 21 nullop else ifcount 20
+		{
+			guts JIBS6 4
+			guts JIBS3 2
+		}
+		ifactioncount 5 { ai AICORRWAIT set team 0 }
+	}
+	ifai AICORRWAIT
+	{
+		ifcount 15 ai AICORRSEEK
+	}
+	
+	ifn bottarget -1 ife actorvar[bottarget].monstatus 2 set bottarget -1
+	ife initsprite NO set crumbwait 10
+	
+	ifai AICORRDYING { state corruptdyingstate break }
+	ifai AICORRFROZEN { state corruptfrozenstate break }
+	ifai AICORRSHRUNK { state corruptshrunkstate break }
+	ifai AICORRGROW { state corruptgrowstate break }
+
+	ifhitweapon 
+		state checkcorrupthit
+	else state checksquished
+	ifai AICORRSTUN state corruptstunstate else
+	ifai AICORRWANDER state corruptwalkstate else
+	ifai AICORRSEEK state corruptwalkstate else
+	ifai AICORRATTK state corruptattkstate else
+	ifai AICORRCHARGE state corruptchargestate else
+	ifai AICORRBITE state corruptbitestate
+
+enda
+

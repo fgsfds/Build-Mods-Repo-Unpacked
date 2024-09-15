@@ -1,0 +1,419 @@
+// SCUBA TROOPER
+// SPRITES BY SEBABDUKEBOSS20, CODE BY DAN GASKILL
+
+action ASCUBAGLIDE  0  1  5  1  20
+action ASCUBASWIM   5  4  5  1  12
+action ASCUBASHOOT1 5  1  5  1  12
+action ASCUBASHOOT2  25 1  5  1  10
+action ASCUBADYING  30 5  1  1  18
+action ASCUBAHIT	30 1  1  1  20
+action ASCUBADEAD   34 1  1  1  10
+action ASCUBADIELAND 35  1  1  1  18
+action ASCUBADEADLAND 36  1  1  1  10
+action ASCUBAFROZEN 30  1  1  1  10
+action ASCUBAGROW   30  1  1  1  10
+move SCUBAGLIDEVELS 160
+move SCUBAFLYVELS 256
+move SCUBASWIMVELS 128
+
+ai AISCUBASEEK ASCUBASWIM SCUBASWIMVELS seekplayer
+ai AISCUBASHOOT ASCUBASHOOT1 STOPPED faceplayer
+ai AISCUBAGROW ASCUBAGROW STOPPED geth
+ai AISCUBAFROZEN ASCUBAFROZEN STOPPED geth
+ai AISCUBADYING ASCUBADYING STOPPED geth
+ai AISCUBAWAIT ASCUBASWIM STOPPED faceplayerslow
+ai AISCUBAHIT ASCUBAHIT STOPPED faceplayer
+
+state scubazvel
+
+	add countvarc 1
+	
+	ifn bottarget -1 geta[bottarget].z zdist else
+	{
+		getp[].posz zdist
+		add zdist 8192
+	}
+	ifinwater nullop else 
+	{
+		sub zdist 8192
+		soundonce DUKE_JETPACK_IDLE
+		espawn BIGSMOKE
+	}
+	
+	sub zdist sprite[].z
+	shiftr zdist 1
+	ifl countvarc 20 set zdist 0
+	ifaction ASCUBAGLIDE set zdist 0
+	
+	ifl zdist -1560 set zdist -1560
+	ifg zdist 1560 set zdist 1560
+	
+	getceilzofslope sprite[].sectnum sprite[].x sprite[].y z
+	geta[].z temp
+	sub temp z
+
+	ifl temp 6144 ifl zdist 0 set zdist 512
+	
+	getflorzofslope sprite[].sectnum sprite[].x sprite[].y z2
+	ifonwater sub z2 8192
+	sub z2 sprite[].z
+	ifl z2 6144 ifg zdist 0 set zdist -512
+	
+	movesprite THISACTOR 0 0 zdist CLIPMASK0 RETURN
+	
+	ifg zdist 0 ife lastangvel -1 set countvarc 0
+	ifl zdist 0 ife lastangvel 1 set countvarc 0
+	ifg zdist 0 set lastangvel 1 else ifl zdist 0 set lastangvel -1
+
+ends
+
+state scubawaitstate
+
+	ifactioncount 16
+		ai AISCUBASEEK
+	else
+	ifactioncount 8
+		ifl targetdist 16384
+			ife seemytarget YES
+				ai AISCUBASHOOT
+			
+	state scubazvel
+
+ends
+
+state scubashootstate
+
+ifaction ASCUBASHOOT1
+{
+	ifactioncount 1
+	{
+		ifg botclip 2
+		{
+			set botclip 0
+			ai AISCUBASEEK
+			ifl targetdist 4096
+			{
+				geta[].ang angvar
+				ifrnd 128 add angvar 512 else subvar angvar 512
+				seta[].ang angvar
+				move SCUBASWIMVELS geth
+				set dodgetime 12
+			}
+			break
+		}
+		action ASCUBASHOOT2
+		geta[].z savz
+		ifvarand sprite[].cstat 128
+		add savz 4096
+		seta[].z savz
+		sound PRED_ATTACK
+		eshoot SCUBAPROJ
+		seta[RETURN].pal 7
+		
+		ifvarand sprite[].cstat 128
+		sub savz 4096
+		seta[].z savz
+		add botclip 1
+	}
+} else
+ifaction ASCUBASHOOT2
+{
+	ifactioncount 1 action ASCUBASHOOT1
+}
+
+ends
+
+state scubafrozenstate
+
+    ifcount THAWTIME
+    {
+      ai AISCUBASEEK
+      getlastpal
+    }
+    else
+      ifcount FROZENDRIPTIME
+    {
+      ifactioncount 26
+      {
+        spawn WATERDRIP
+        resetactioncount
+      }
+    }
+    ifhitweapon
+    {
+      ifwasweapon FREEZEBLAST
+      {
+	    resetcount resetactioncount
+        strength 0
+        break
+      }
+	  ifrnd SPAWNAMMOODDS spawn LASERPISTOL
+      addkills 1 
+	  state enemy_death
+
+	  lotsofglass 30
+	  state lite_jibs
+      sound GLASS_BREAKING
+      killit
+    }
+    ifp pfacing
+      ifpdistl FROZENQUICKKICKDIST
+        state pkick_check
+  
+ends
+
+state scubadyingstate
+
+	strength 0
+	
+	ifaction ASCUBADYING
+	{
+		ifinwater nullop else ifvarand player[].player_par 1 fall
+		
+		ifhitweapon state random_wall_jibs
+		ifinwater nullop else ifactioncount 4
+		{
+			cstat 0
+			action ASCUBADIELAND
+		}
+		ifactioncount 5
+		{
+			
+			cstat 128
+			action ASCUBADEAD
+			seta[].mdflags 16
+			cstator 256
+			iffloordistl 512 nullop else
+			spriteflags 4096
+			
+			ifrnd SPAWNAMMOODDS spawn LASERPISTOL
+			break
+		}
+	}
+	else
+	ifaction ASCUBADIELAND
+	{
+		fall
+		ifactioncount 1
+		iffloordistl 4
+		{
+			sound THUD
+			action ASCUBADEADLAND
+			ifrnd SPAWNAMMOODDS spawn LASERPISTOL
+		}
+	}
+	else
+	ifaction ASCUBADEADLAND
+	{
+		fall
+		ifhitweapon
+		{
+			ifwasweapon RPG
+			{
+				sound SQUISHED
+				state troop_body_jibs
+				state lite_jibs
+				killit
+			}
+			ifwasweapon RADIUSEXPLOSION
+			{
+				sound SQUISHED
+				spawn BLOODPOOL
+				state troop_body_jibs
+				state lite_jibs
+				killit
+			}
+		}
+	}
+	else
+	ifaction ASCUBADEAD
+	{
+		state deadsquished
+		ifhitweapon
+		{
+			ifwasweapon RPG
+			{
+				sound SQUISHED
+				state troop_body_jibs
+				state lite_jibs
+				killit
+			}
+			ifwasweapon RADIUSEXPLOSION
+			{
+				sound SQUISHED
+				spawn BLOODPOOL
+				state troop_body_jibs
+				state lite_jibs
+				killit
+			}
+		}
+	}
+	
+ends
+
+state scubaseekstate
+
+	state scubazvel
+	
+	ife seemytarget YES
+	{
+		ifaction ASCUBASWIM
+		ifawayfromwall
+		{
+			ifg targetdist 4096
+			{
+				ifg targetdist 8192 ifrnd 8
+				{
+					action ASCUBAGLIDE
+					ifinwater
+					move SCUBAGLIDEVELS geth
+					else
+					move SCUBAFLYVELS geth
+				}
+				else ifrnd 2
+				{
+					action ASCUBAGLIDE
+					ifinwater
+					move SCUBAGLIDEVELS geth
+					else
+					move SCUBAFLYVELS geth
+				}
+			}
+		}
+		
+		ifactioncount 8
+		ifl targetdist 16384
+		ife seemytarget YES
+		{
+			ifaction ASCUBAGLIDE ifl targetdist 5120 nullop else
+			{
+				ifrnd 3 ai AISCUBASHOOT
+				else ifl targetdist 5120 ifrnd 8 ai AISCUBASHOOT
+				else ifl targetdist 2560 ai AISCUBASHOOT
+			}
+		}
+	}
+	
+	ifaction ASCUBAGLIDE
+	{
+		ifnotmoving count 100
+		ifcount 90
+		{
+			action ASCUBASWIM
+			move SCUBASWIMVELS seekplayer
+		}
+		else
+		ifcount 30
+		ifl targetdist 6144
+		ifrnd 12
+		ai AISCUBAWAIT
+	}
+
+ends
+
+useractor enemy SCUBATROOP SCUBATROOPSTRENGTH
+
+	ifai 0
+	{
+		ai AISCUBASEEK
+		sizeat 24 22
+		cstator 257
+		ifinwater
+		cstator 128
+		else
+		{
+			geta[].htflags temp
+			orvar temp 16
+			orvar temp 2097152
+		}
+	}
+	
+	ifai AISCUBAFROZEN { state scubafrozenstate break }
+	ifai AISCUBAGROW { state genericgrowcode break }
+	ifai AISCUBADYING { state scubadyingstate break }
+	ifinwater ifrnd 28 spawn WATERBUBBLE
+
+	state monsterai
+
+	ifai AISCUBASEEK state scubaseekstate else
+	ifai AISCUBASHOOT state scubashootstate else
+	ifai AISCUBAHIT
+	{
+		ifn stun 0 resetactioncount
+		ifactioncount 1
+		{
+			set botclip 0
+			ifrnd 192 ifn bottarget -1 ai AISCUBASHOOT
+			else ai AISCUBASEEK
+		}
+	}
+	
+
+	ifhitweapon
+	{
+		ifwasweapon SHRINKSPARK
+		{	  
+		  sound ACTOR_SHRINKING
+		  set shrunken 1
+		  break
+		}
+		else
+			ifwasweapon GROWSPARK
+			  sound SPARKLESOUND
+		state random_wall_jibs
+		ifdead
+		{
+			ifwasweapon FREEZEBLAST
+			{
+			  sound NEWFREEZE
+			  spritepal 1
+			  
+			  ai AISCUBAFROZEN
+			  strength 0
+			  state freezeme
+			  break
+			}
+			ifwasweapon GROWSPARK
+			{
+			  ifinwater
+			  cstat 128
+			  else cstat 0
+			  sound ACTOR_GROWING
+			  ai AISCUBAGROW
+			  break
+			}
+			addkills 1
+			state enemy_death
+			ifrnd SPAWNAMMOODDS spawn LASERPISTOL
+			ai AISCUBADYING
+			ifg shrunken 10 ifl shrunken SHRUNKCOUNT
+				setp[].sound_pitch SHRUNKPITCH
+			sound PRED_DYING
+			ifg shrunken 10 ifl shrunken SHRUNKCOUNT
+				setp[].sound_pitch 0
+			guts JIBS6 4
+			
+			ifwasweapon RPG
+			{
+				sound SQUISHED
+				state standard_jibs
+				killit
+			}
+			ifwasweapon RADIUSEXPLOSION
+			{
+				sound SQUISHED
+				state standard_jibs
+				killit
+			}
+			break
+		}
+		else 
+		{
+			soundonce PRED_PAIN
+			ifg stun 0 ai AISCUBAHIT
+			else ifrnd 32 ai AISCUBAHIT
+		}
+	}
+	else state checksquished
+
+enda

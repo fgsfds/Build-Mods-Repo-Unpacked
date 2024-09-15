@@ -1,0 +1,619 @@
+// ROBOSHARK
+
+// add pal 24 shoot red splashproj
+// pal 0 blue splashproj
+// pal 41 green splashproj and giant
+
+action ROBOSHARKIDLE  0  1  5  1  10
+action ROBOSHARKWALK  5  4  5  1  8
+action ROBOSHARKRUN   25  4  5  1  8
+action ROBOSHARKBITE1  45 1  5  1  30
+action ROBOSHARKBITE2 50 1  5  1  40
+action ROBOSHARKFROZEN 55  1  5  1  10
+action ROBOSHARKSHT1  0 1  5  1  40
+action ROBOSHARKSHT2  45 1  5  1  20
+action ROBOSHARKSHT3  50 1  5  1  20
+
+action ROBOSHARKJMP1  25 1  5  1  20
+action ROBOSHARKJMP2  35 1  5  1  20
+action ROBOSHARKLAND  40 1  5  1  20
+
+action ROBOSHARKHIT   55 1  5  1  18
+action ROBOSHARKDIE   60 5  1  1  18
+action ROBOSHARKDEAD  64 1  1  1  10
+
+move ROBOSHARKWALKVEL 132
+move ROBOSHARKRUNVEL 280
+move ROBOSHARKJUMPVEL 256
+
+ai AIROBOSHARKJUMP ROBOSHARKJMP1 ROBOSHARKJUMPVEL jumptoplayer
+ai AIROBOSHARKSEEK ROBOSHARKWALK ROBOSHARKWALKVEL seekplayer
+ai AIROBOSHARKSHRUNK ROBOSHARKWALK CYBERSHRUNKVELS fleeenemy
+ai AIROBOSHARKFROZEN ROBOSHARKFROZEN STOPPED geth
+ai AIROBOSHARKGROW ROBOSHARKFROZEN STOPPED geth
+ai AIROBOSHARKDYING ROBOSHARKDIE STOPPED geth
+ai AIROBOSHARKHIT ROBOSHARKHIT STOPPED geth
+ai AIROBOSHARKATTK ROBOSHARKBITE1 ROBOSHARKWALKVEL geth
+ai AIROBOSHARKSHOOT ROBOSHARKSHT1 STOPPED faceplayer
+
+
+state robosharkshootstate
+
+	ifaction ROBOSHARKSHT1
+	{
+		ifactioncount 1
+		{
+			ifn bottarget -1
+			{
+				set spriteid bottarget
+				state facesprite
+			}
+			action ROBOSHARKSHT2
+			
+			// pal 41 green and giant
+			// pal 24 red
+			// other pal normal (water)
+			set xvel 512
+			state rpg_targetprep
+			
+			ezshoot zdist BUBBLEPROJ
+			ifspritepal 41 seta[RETURN].pal 11 else
+			ifspritepal 24 seta[RETURN].pal 2
+			
+			
+			ezshoot zdist BUBBLEPROJ
+			ifspritepal 41 seta[RETURN].pal 11 else
+			ifspritepal 24 seta[RETURN].pal 2
+			geta[RETURN].ang angvar, sub angvar 16, seta[RETURN].ang angvar
+			
+			ezshoot zdist BUBBLEPROJ
+			ifspritepal 41 seta[RETURN].pal 11 else
+			ifspritepal 24 seta[RETURN].pal 2
+			geta[RETURN].ang angvar, add angvar 16, seta[RETURN].ang angvar
+			
+			ifspritepal 41
+			{
+				ezshoot zdist BUBBLEPROJ
+				seta[RETURN].pal 11
+				geta[RETURN].ang angvar, sub angvar 32, seta[RETURN].ang angvar
+				ezshoot zdist BUBBLEPROJ
+				seta[RETURN].pal 11
+				geta[RETURN].ang angvar, add angvar 32, seta[RETURN].ang angvar
+			}	
+		}
+	}
+	ifaction ROBOSHARKSHT2
+	{
+		ifactioncount 1
+		action ROBOSHARKSHT3
+	}
+	ifaction ROBOSHARKSHT3
+	{
+		ifactioncount 1
+		ai AIROBOSHARKSEEK
+	}
+
+ends
+
+
+state robosharkgrowstate state genericgrowcode ends
+
+state robosharkshrunkstate
+
+  ifcount SHRUNKDONECOUNT
+    ai AIROBOSHARKSEEK
+  else
+    ifcount SHRUNKCOUNT
+	{
+	  ifspritepal 41 sizeto 56 52 else sizeto 26 24
+	}
+  else
+    state genericshrunkcode
+
+ends
+
+state robosharkfrozenstate
+
+    ifcount THAWTIME
+    {
+      ai AIROBOSHARKSEEK
+      getlastpal
+    }
+    else
+      ifcount FROZENDRIPTIME
+    {
+      ifactioncount 26
+      {
+        spawn WATERDRIP
+        resetactioncount
+      }
+    }
+    ifhitweapon
+    {
+      ifwasweapon FREEZEBLAST
+      {
+	    resetcount resetactioncount
+        strength 0
+        break
+      }
+      addkills 1 
+	  state enemy_death
+
+      ifrnd 84
+        spawn BLOODPOOL
+	  lotsofglass 30
+	  state lite_jibs
+      sound GLASS_BREAKING
+      killit
+    }
+    ifp pfacing
+      ifpdistl FROZENQUICKKICKDIST
+        state pkick_check
+  
+ends
+
+state robosharkdyingstate
+
+	strength 0
+	state deadsquished
+	
+	ifaction ROBOSHARKDIE
+	{
+		ifhitweapon state random_wall_jibs
+		ifactioncount 5
+		{
+			action ROBOSHARKDEAD
+			iffloordistl 8 sound THUD
+				
+			ifspritepal 14 spritepal 6 else
+			ifspritepal 24 spritepal 2 else
+			spritepal 1
+			espawn BLOODPOOL
+			setav[RETURN].mtype sprite[].pal
+			getlastpal
+			break
+		}
+	}
+
+	ifaction ROBOSHARKDEAD
+	{
+		ifhitweapon
+		{
+			ifwasweapon RPG
+			{
+				sound SQUISHED
+				spawn BLOODPOOL
+				state standard_jibs
+				ifspritepal 41 state standard_jibs
+				state tech_debris
+				killit
+			}
+			ifwasweapon RADIUSEXPLOSION
+			{
+				sound SQUISHED
+				spawn BLOODPOOL
+				state standard_jibs
+				ifspritepal 41 state standard_jibs
+				state tech_debris
+				killit
+			}
+		}
+
+	}
+	
+ends
+
+state robosharkroamsounds
+
+	rand temp 2
+	ife temp 0 sound ROBSHRK_ROAM1 else
+	ife temp 1 sound ROBSHRK_ROAM2 else
+	ife temp 2 sound ROBSHRK_ROAM3
+
+ends
+
+state robosharkseekstate
+
+	set temp NO
+	ifge SKILL 4 { ifcount 15 set temp YES }
+	else ifcount 30 set temp YES
+	
+	
+	ifn bottarget -1 ife temp YES ifmove ROBOSHARKWALKVEL 
+	{
+		ifn sprite[].htactorstayput -1
+		ifn sprite[bottarget].sectnum sprite[].sectnum nullop else
+		{
+			move ROBOSHARKRUNVEL seekplayer
+			ifn sprite[].pal 41
+			action ROBOSHARKRUN
+		}
+	}
+	
+	set temp NO
+	ifaction ROBOSHARKRUN ifactioncount 2 set temp YES else
+	ifactioncount 4 set temp YES
+	ife temp YES
+	{
+		resetactioncount
+		add countvar 1
+		ifge countvar 2 set countvar 0
+		ife countvar 0 sound ROBSHRK_STEP2 else
+		sound ROBSHRK_STEP1
+	}
+	
+	
+	ifn myspawner -1 // incoming projectile
+	{
+		ifn sprite[].htactorstayput -1 
+		{
+			ifawayfromwall nullop else
+			set myspawner -1
+		}
+		ifn myspawner -1
+		{
+			state incoming_eval
+			set dodgetime 8
+			set crumbwait 10
+			seta[].ang angvel
+			set myspawner -1
+		}
+	}
+	
+	ifceilingdistl 96 nullop else
+	ifcount 15
+	ifactornotstayput
+	{
+		ifrnd 32
+		{
+			ifnotmoving { sound ROBSHRK_JUMP ai AIROBOSHARKJUMP break }
+			ife seemytarget YES ifp phigher
+			ifl targetdist 6144 { sound ROBSHRK_JUMP ai AIROBOSHARKJUMP break }
+		}
+	}
+	
+	ifcount 10
+	ifnotmoving
+	ife dodgetime 0
+	ife bottarget -1
+	{
+		move ROBOSHARKWALKVEL randomangle
+		set dodgetime 8
+		set crumbwait 8
+	}
+	
+	ife seemytarget YES
+	{
+		ifn bottarget -1 set target bottarget else 
+		ife targetalive YES getp[].i target
+		else set target -1
+	}
+	else set target -1
+	
+	ifn target -1
+	{
+		ifl targetdist 16384
+		ifg targetdist 4096
+		ifrnd 3
+		{
+			ifrnd 128 sound ROBSHRK_BRETHATTK else sound ROBSHRK_BRETHATTK2
+			ai AIROBOSHARKSHOOT
+			break
+		}
+		ifn sprite[].htactorstayput -1
+		ifl targetdist 20480
+		ifrnd 4
+		{
+			ifrnd 128 sound ROBSHRK_BRETHATTK else sound ROBSHRK_BRETHATTK2
+			ai AIROBOSHARKSHOOT
+			break
+		}
+	}
+	
+
+	ifrnd 1 state robosharkroamsounds
+	
+	ife targetalive YES
+	ife seemytarget YES
+	{
+		ifl targetdist 1792 
+		{ 
+			ifrnd 128 sound ROBSHRK_BITE else sound ROBSHRK_BITE2
+			ai AIROBOSHARKATTK 
+			break 
+		}
+	}
+	
+ends
+
+state robosharkjumpstate
+
+  ifaction ROBOSHARKJMP1
+  {
+	ifactioncount 2
+	{
+		action ROBOSHARKJMP2
+		move ROBOSHARKJUMPVEL geth
+	}
+  } else
+  ifaction ROBOSHARKJMP2
+  {
+	iffloordistl 4
+	{
+		sound THUD
+		action ROBOSHARKLAND
+		move STOPPED geth
+	}
+  } else
+  ifaction ROBOSHARKLAND
+  {
+	ifactioncount 2 ai AIROBOSHARKSEEK
+  }
+  
+ends
+
+state robosharkbite
+
+	ife targetalive NO
+	{
+		sound BITEMISS
+		break
+	}
+	
+	ifn bottarget -1
+	ifn sprite[].sectnum sprite[bottarget].sectnum
+	ifrnd 128
+	{
+		sound BITEMISS
+		break
+	}
+	
+	ifn bottarget -1
+	ifn bottarget player[].i
+	{
+		ife seemytarget YES
+		ifl targetdist 1596
+		{
+		  ifspritepal 41 seta[bottarget].htextra 32 else
+		  seta[bottarget].htextra 16
+		  seta[bottarget].htpicnum SHOTSPARK1
+		  seta[bottarget].htowner THISACTOR
+		  seta[bottarget].htang sprite[].ang
+		  sound BEASTBITESND
+		}
+		else sound BITEMISS
+	}
+	else
+	{
+		ifpdistl 1596
+		ife seeplayer YES
+		{
+		  getp[].i spriteid
+		  seta[spriteid].htpicnum SHOTSPARK1
+		  seta[spriteid].htowner THISACTOR
+		  ifspritepal 41 seta[spriteid].htextra 32 else
+		  seta[spriteid].htextra 16
+		  seta[spriteid].htang sprite[].ang
+		  
+		  state checksaberblock
+		  ifn sprite[spriteid].htextra -1
+		  {
+			  palfrom 16 16
+			  ife pchar 1 sound B_GRUNT else
+				sound DUKE_GRUNT
+			  sound BEASTBITESND
+		  }
+		}
+		else sound BITEMISS
+	}
+
+ends
+
+state robosharkattkstate
+
+	ifaction ROBOSHARKBITE1
+	{
+		ifactioncount 1
+		{
+			action ROBOSHARKBITE2
+			state robosharkbite
+		}
+	}
+	else
+	ifaction ROBOSHARKBITE2
+	{
+		ifactioncount 1
+		{
+			action ROBOSHARKBITE1
+			
+			ife targetalive NO
+			{
+				ai AIROBOSHARKSEEK
+				break
+			}
+			resetcount
+			action ROBOSHARKBITE1
+			ifg targetdist 2048 ai AIROBOSHARKSEEK
+			ife bottarget -1 ifpdistg 2048 ai AIROBOSHARKSEEK
+		}
+	}
+
+	ifn bottarget -1 
+	{
+		ifmove ROBOSHARKWALKVEL { ifl targetdist 1280 move STOPPED geth }
+		else ifmove STOPPED { ifg targetdist 1560 move ROBOSHARKWALKVEL geth }
+		set spriteid bottarget
+		state facesprite
+		
+		ife actorvar[bottarget].monstatus 2 ai AIROBOSHARKSEEK
+		
+		ife bottarget player[].i
+		ifpdistl 1500
+		ife seeplayer YES
+		{
+			setp[].posxv 0 setp[].posyv 0 setp[].poszv 0 setp[].jumping_counter 0
+		}
+		
+		ifl targetdist 1500
+		seta[bottarget].xvel 0
+	}
+	else
+	{
+		ifmove ROBOSHARKWALKVEL { ifpdistl 1280 move STOPPED geth }
+		else ifmove STOPPED { ifpdistg 1560 move ROBOSHARKWALKVEL geth }
+		set spriteid player[].i
+		state facesprite
+	}
+
+ends
+
+eventloadactor ROBOSHARK ifspritepal 41 sizeat 56 52 else sizeat 26 24 cstator 257 
+ifg sprite[].lotag 4 
+{
+	ifg sprite[].lotag 9
+		geta[].lotag SPRITELOTAG
+	seta[].lotag 0
+}
+else ife attmode YES seta[].lotag 0
+ife sprite[].extra 1
+{
+	set initsprite sprite[].picnum
+	geta[].hitag team seta[].hitag 0 cactor TEAMSPAWNER cstat 32768
+}
+ifn sprite[].xvel 0 geta[].xvel droptile
+ifg sprite[].owner 0 
+{
+	geta[].owner monstflags ifvarand monstflags 1 xorvar monstflags 1
+	seta[].owner -1
+}
+enda
+
+state robosharkcode
+	ifai 0
+	{
+		ai AIROBOSHARKSEEK
+		ifspritepal 41 { strength 1000 sizeat 56 52 clipdist 80 orvar initflags 32 } else { sizeat 26 24 clipdist 50 }
+		cstat 257
+		geta[].htflags temp, orvar temp 8192, seta[].htflags temp
+		ife team 0 ifcansee ifpdistl 16384 ifrnd 128 ai AIROBOSHARKATTK
+	}
+	fall
+	state monsterai
+
+	ifai AIROBOSHARKDYING { state robosharkdyingstate break }
+	
+	ifai AIROBOSHARKFROZEN { state robosharkfrozenstate break }
+	ifai AIROBOSHARKGROW { state robosharkgrowstate break }
+	ifai AIROBOSHARKSHRUNK state robosharkshrunkstate else
+	ifai AIROBOSHARKSEEK state robosharkseekstate else
+	ifai AIROBOSHARKATTK state robosharkattkstate else
+	ifai AIROBOSHARKJUMP state robosharkjumpstate else
+	ifai AIROBOSHARKSHOOT state robosharkshootstate
+	
+	set myspawner -1
+	
+	ifai AIROBOSHARKSHRUNK nullop else
+	ifg stun 0 
+		ai AIROBOSHARKHIT
+	
+	
+	ifai AIROBOSHARKHIT
+	{
+		ifactioncount 2 ai AIROBOSHARKSEEK
+	}
+
+	ifhitweapon
+	{
+		ifwasweapon SHRINKSPARK
+		{	
+		  sound ACTOR_SHRINKING
+		  ai AIROBOSHARKSHRUNK
+		  set shrunken 1
+		  break
+		}
+		else
+			ifwasweapon GROWSPARK
+			  sound SPARKLESOUND
+		state random_wall_jibs
+		
+		ifrnd 128 
+		soundonce ROBSHRK_PAIN1
+		else
+		soundonce ROBSHRK_PAIN2
+
+		ifdead
+		{
+			ifwasweapon FREEZEBLAST
+			{
+			  sound NEWFREEZE
+			  spritepal 1
+			  ai AIROBOSHARKFROZEN
+			  strength 0
+			  state freezeme
+			  break
+			}
+			ifwasweapon GROWSPARK
+			{
+			  cstat 0
+			  sound ACTOR_GROWING
+			  ai AIROBOSHARKGROW
+			  break
+			}
+			addkills 1
+			state enemy_death
+			ai AIROBOSHARKDYING
+			ifrnd 128 cstat 0 else cstat 4
+			sound ROBSHRK_DEATH
+			
+			debris SCRAP1 2
+			debris SCRAP2 2
+			debris SCRAP5 2
+			spritepal 0
+			guts JIBS6 8
+			
+			ifwasweapon RPG
+			{
+				sound SQUISHED
+				spawn BLOODPOOL
+				state tech_debris
+				ifspritepal 41 state standard_jibs
+				ifinwater { spawn SHARK guts JIBS6 8 }
+				else state standard_jibs
+				killit
+			}
+			ifwasweapon RADIUSEXPLOSION
+			{
+				sound SQUISHED
+				spawn BLOODPOOL
+				state tech_debris
+				ifspritepal 41 state standard_jibs
+				ifinwater { spawn SHARK guts JIBS6 8 }
+				else state standard_jibs
+				killit
+			}
+			getlastpal
+			break
+		}
+		ifrnd 2
+			spawn BLOODPOOL
+		
+		ifai AIROBOSHARKHIT nullop else
+		ifai AIROBOSHARKSHRUNK nullop else
+		{
+			ifg stun 0 { ai AIROBOSHARKHIT break }
+			
+			ifrnd 24 
+			ifn sprite[].htpicnum BURNING
+			ifn sprite[].htpicnum RADWOUND
+			{ 
+				ai AIROBOSHARKHIT 
+				break 
+			}
+		}
+	}
+	else state checksquished
+ends
+
+useractor enemy ROBOSHARK ROBOSHARKSTRENGTH state robosharkcode enda
+
+useractor enemystayput ROBOSHARKSTAYPUT ROBOSHARKSTRENGTH cactor ROBOSHARK state robosharkcode enda

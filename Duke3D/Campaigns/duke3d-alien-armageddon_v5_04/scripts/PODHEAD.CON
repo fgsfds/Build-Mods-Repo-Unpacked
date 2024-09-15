@@ -1,0 +1,904 @@
+// PODHEAD BOSS
+
+move PODWAIT 8
+move PODMOVE1 160
+move PODMOVEUP 0 -128
+move PODMOVEDOWN 0 128
+move PODSTUN
+
+defstate podxytether
+
+	// xrepeat 42 standard, 80 large
+	set xydist2 sprite[].xrepeat
+	ife sprite[myspawner].z sprite[].z
+	mul xydist2 12 // 10
+	else
+	mul xydist2 10 // 8
+	
+	// ife sprite[myspawner].z sprite[].z
+	// set xydist2 448
+	// else
+	// set xydist2 352
+	
+	set temp mtype
+	ifg temp 5 set temp 5
+	shiftl temp 5
+	sub xydist2 temp
+	
+	set TMP_B xydist2, add TMP_B 32
+
+	ifg xydist TMP_B
+	{
+		set spriteid myspawner
+		state facesprite
+		add angvar 1024
+			
+		geta[myspawner].x x
+		add x xydist2
+		
+		rotatepoint sprite[myspawner].x sprite[myspawner].y x sprite[myspawner].y angvar x2 y2
+		setsprite THISACTOR x2 y2 sprite[].z
+	}
+	else
+	ifmove PODMOVE1 // moving horizontally
+	{
+		ifl xydist xydist2
+		{
+			set spriteid myspawner
+			state facesprite
+			add angvar 1024
+			
+			geta[myspawner].x x
+			add x xydist2
+			
+			rotatepoint sprite[myspawner].x sprite[myspawner].y x sprite[myspawner].y angvar x2 y2
+			setsprite THISACTOR x2 y2 sprite[].z
+		}
+	}
+	else
+	ifn dashtime 0
+	{
+		ifl xydist xydist2
+		{
+			set spriteid myspawner
+			state facesprite
+			add angvar 1024
+			
+			geta[myspawner].x x
+			add x xydist2
+			
+			rotatepoint sprite[myspawner].x sprite[myspawner].y x sprite[myspawner].y angvar x2 y2
+			setsprite THISACTOR x2 y2 sprite[].z
+		}
+	}
+	else
+	ife actorvar[mysignpost].initsprite 0
+	{
+		ifl xydist xydist2
+		{
+			set spriteid myspawner
+			state facesprite
+			add angvar 1024
+			
+			geta[myspawner].x x
+			add x xydist2
+			
+			rotatepoint sprite[myspawner].x sprite[myspawner].y x sprite[myspawner].y angvar x2 y2
+			setsprite THISACTOR x2 y2 sprite[].z
+		}
+	}
+
+ends
+
+defstate podztether
+
+	// yrepeat 36 standard, 80 large
+	
+	set D sprite[].yrepeat
+	mul D 142
+	set E D
+	ife sprite[myspawner].x sprite[].x ife sprite[myspawner].y sprite[].y add D 1024
+
+	// ife sprite[myspawner].x sprite[].x ife sprite[myspawner].y sprite[].y set D 6144 else set D 5120
+	
+	geta[].sectnum mysector
+	ifn mysector -1
+	{
+		getceilzofslope mysector sprite[].x sprite[].y z
+		add z E
+		ifl sprite[].z z seta[].z z
+	}
+
+	geta[].z zdist
+	sub zdist sprite[myspawner].z
+	
+	abs zdist
+	ifg zdist D
+	{
+		ifl sprite[myspawner].z sprite[].z
+		{
+			geta[myspawner].z z2
+			add z2 D
+			seta[].z z2
+		}
+		else
+		ifg sprite[myspawner].z sprite[].z
+		{
+			geta[myspawner].z z2
+			sub z2 D
+			seta[].z z2
+		}
+		ife myspawner mysignpost changespritesect THISACTOR sprite[mysignpost].sectnum
+	}
+	else
+	ifl zdist E // 5120
+	{
+		ifn dashtime 0 set xydist2 192 else set xydist2 128
+		ifl xydist xydist2
+		{
+			ifl sprite[myspawner].z sprite[].z
+			{
+				geta[myspawner].z z2
+				add z2 E // 5120
+				seta[].z z2
+			}
+			else
+			ifg sprite[myspawner].z sprite[].z
+			{
+				geta[myspawner].z z2
+				sub z2 E // 5120
+				seta[].z z2
+			}
+			ife myspawner mysignpost changespritesect THISACTOR sprite[mysignpost].sectnum
+		}
+	}
+	
+ends
+
+defstate poduptest
+	// getzrange <x> <y> <z> <sector> <ceilingz> <ceilinghit> <floorz> <floorhit> <walldist> <clipmask>
+	getzrange sprite[].x sprite[].y sprite[].z sprite[].sectnum botclip temp temp spriteid 256 CLIPMASK0 
+	set z2 sprite[].z
+	sub z2 botclip
+	getceilzofslope sprite[].sectnum sprite[].x sprite[].y tempb
+	geta[].z tempc
+	sub tempc tempb
+	ifle tempc 11264 set z2 10240
+ends
+
+defstate podmovecode
+	// xrepeat 42 standard, 80 large
+	sleeptime 100
+	ldist xydist THISACTOR myspawner
+	geta[].z zdist
+	sub zdist sprite[myspawner].z
+	
+	// move failsafe code
+	ifmove PODWAIT nullop else
+	ifmove PODMOVE1 nullop else
+	ifmove PODMOVEUP nullop else
+	ifmove PODMOVEDOWN nullop else
+	{
+		move PODWAIT geth
+		al THISACTOR
+	}
+	
+	abs xvel
+	ifn actorvar[mysignpost].dashtime 0 move PODWAIT geth
+	else
+	ifg xvel 32
+	{
+		// get in vertical position BEFORE moving horizontally
+		ifle zdist 512 ifge zdist -512
+		seta[].z sprite[myspawner].z
+		
+		
+		ifn sprite[myspawner].z sprite[].z
+		{
+			ifmove PODMOVE1 move PODWAIT geth
+			ifl sprite[myspawner].z sprite[].z set z2 -1280
+			else set z2 1280
+			
+			
+			geta[].z z
+			movesprite THISACTOR 0 0 z2 0 RETURN
+			geta[].z z
+			
+		}
+		else 
+		{
+			ifmove PODMOVE1 nullop else move PODMOVE1 geth 
+			// ifactor PODBODY ifl mtype 7 state makespeedblur
+		}
+	}
+	else
+	ifn sprite[myspawner].zvel 0
+	{
+		// get in horizontal position BEFORE moving vertically
+		ife sprite[].x sprite[myspawner].x ife sprite[].y sprite[myspawner].y
+		{
+			// in position, start vertical movement if not started yet
+			ifl sprite[myspawner].z sprite[].z
+			{
+				ifmove PODMOVEUP nullop else move PODMOVEUP getv
+				// ifactor PODBODY ifl mtype 7 state makespeedblur
+			}
+			else ifg sprite[myspawner].z sprite[].z
+			{
+				ifmove PODMOVEDOWN nullop else move PODMOVEDOWN getv
+				// ifactor PODBODY ifl mtype 7 state makespeedblur
+			} 
+		}
+		else // not in position yet
+		{
+			// ifmove PODMOVEUP move PODWAIT geth else
+			// ifmove PODMOVEDOWN move PODWAIT geth
+			ifmove PODWAIT nullop else move PODWAIT geth
+			
+			ifl xydist 64 { setsprite THISACTOR sprite[myspawner].x sprite[myspawner].y sprite[].z }
+			else
+			{
+				geta[myspawner].x x2
+				geta[myspawner].y y2
+				sub x2 sprite[].x
+				sub y2 sprite[].y
+				getangle angvar x2 y2
+				
+				cos xvel angvar
+				sin yvel angvar
+				shiftr xvel 8
+				shiftr yvel 8
+				movesprite THISACTOR xvel yvel 0 0 RETURN
+			}
+		}
+	}
+	
+	ife actorvar[mysignpost].initsprite 2
+	{
+		state poduptest
+		set D sprite[].yrepeat
+		mul D 644 // 512
+		ifg z2 D // 16384
+			movesprite THISACTOR 0 0 -1280 0 RETURN
+	}
+	
+	state podxytether
+	state podztether
+	geta[].sectnum mysector
+	ifn mysector -1
+	{
+		getflorzofslope mysector sprite[].x sprite[].y z
+		ifg sprite[].z z seta[].z z
+	}
+	
+ends
+
+useractor notenemy PODHEAD 300
+
+ifmove 0
+{
+	move PODMOVE1 geth
+	ifspritepal 3 { sizeat 80 80 strength 600 clipdist 80 } else
+	{
+		sizeat 42 36
+		clipdist 48
+	}
+	geta[].htflags temp, orvar temp 2097152 seta[].htflags temp
+	cstator 257
+	geta[].x startx
+	geta[].y starty
+	espawn PODBODY
+	ifspritepal 3 setav[RETURN].inithp 600
+	else setav[RETURN].inithp 80
+	setav[RETURN].myspawner THISACTOR
+	setav[RETURN].mysignpost THISACTOR
+	setav[RETURN].mtype 1
+	seta[RETURN].pal sprite[].pal
+	set angvel sprite[].ang
+	seta[].mdflags 16
+	set countvarb -30
+	
+	// getp[].max_actors_killed temp
+	// add temp 1
+	// setp[].max_actors_killed temp
+}
+	sleeptime 100
+	ife ikicked 0
+	ife VOLUME 4 ife LEVEL 10
+	ifcansee
+	{
+		screensound DEA_WORM
+		set ikicked 1
+		set subtitle_start 956
+		set subtitle_numlines 2
+		set subtitle_time 210
+	}
+
+	set angvar sprite[].ang
+	ife initsprite 1 add angvar 1024
+	getincangle angle2 angvar angvel
+	shiftr angle2 3
+	sub angvel angle2
+	
+state monsterai
+ifg burning 30 set burning 30 else ifl burning -2 set burning -2
+
+ife sprite[].htextra 0 seta[].htextra -1 else
+ifn sprite[].htowner player[].i seta[].htextra -1
+
+ifhitweapon 
+{
+	set damflash player[].player_par
+	ifmove STOPPEDFORPLAYER
+	{
+		ifdead
+		{
+			stopsound MEGARECOG
+			sound MEGAROAM2
+			setactorsoundpitch THISACTOR MEGAROAM2 512
+			spritepal 6
+			state lite_jibs
+			getlastpal
+			state lite_jibs
+			sound SQUISHED
+			set countvarb 0
+			ife SPRITELOTAG 18
+			ife LEVEL 10 ife VOLUME 4
+			{
+				setuserdef[].display_bonus_screen NO
+				setp[].timebeforeexit 150
+			}
+			state enemy_death
+			whilevarn countvarb 6
+			{
+			  rand zdist 1024
+			  sub zdist 3500
+			  ezshoot zdist EGGJIBPROJ
+			  rand angvar 2047
+			  seta[RETURN].ang angvar
+			  add countvarb 1
+			}
+			addkills 1
+			stopsound SLUDGELOOP
+			
+			killit
+		}
+		else soundonce MEGARECOG
+	}
+	else
+	ifmove PODSTUN 
+	{
+		seta[].htextra -1 
+		seta[].extra inithp
+	}
+	else
+	ifl countvar 0 seta[].htextra -1 else
+	{
+		move PODSTUN
+		set dashtime 150
+		quote 1441
+		sound BODYHIT2 sound BODYHIT2
+	}
+}
+ife countvar -99
+{
+	fall
+	ifmove STOPPEDFORPLAYER nullop else 
+	{
+		stopsound SLUDGELOOP
+		move STOPPEDFORPLAYER faceplayerslow
+		seta[].mdflags 0
+	}
+	break
+}
+add countvar 1
+soundonce SLUDGELOOP
+
+ifmove PODSTUN
+{
+	fall
+	ifg sprite[].zvel 0 add FEMFALLDMG 1
+	else iffloordistl 4 ifg FEMFALLDMG 4 { sound THUD set FEMFALLDMG 0 }
+	sub dashtime 1
+	ifle dashtime 0
+	{
+		set dashtime 0
+		move PODMOVE1 geth
+		set initsprite 0
+		seta[].extra inithp
+	}
+	else
+	break
+}
+
+	ife initsprite 0 
+	{
+		movesprite THISACTOR 0 0 2048 CLIPMASK0 RETURN
+		geta[].sectnum mysector
+		ifn mysector -1
+		{
+			getflorzofslope mysector sprite[].x sprite[].y z
+			sub z sprite[].z
+			ifl z 1024 
+			{
+				fall
+				ife sector[].floorslope 0
+				{
+					set temp player[].player_par
+					modvar temp 6
+					ife temp 0
+					spawn WALLSLIME
+				}
+			}
+		}
+
+		ifnotmoving 
+		{
+			geta[].htmovflag temp
+			andvar temp 49152
+			ifvare temp 32768
+			{
+				sub countvarc player[].player_par
+				ifceilingdistl 64 nullop else
+				ifl countvarc -120
+				{
+					move PODMOVEUP geth getv
+					set initsprite 1
+					
+					set hitwall sprite[].htmovflag
+					andvar hitwall 16383
+					getwall[hitwall].point2 B
+					getwall[hitwall].x x2
+					getwall[hitwall].y y2
+					getwall[B].x x
+					getwall[B].y y
+					subvarvar x2 x
+					subvarvar y2 y
+					getangle shotpitch x2 y2
+					add shotpitch 512
+					
+				}
+				else
+				state setfarang
+				
+			}
+			else 
+			{
+				seta[].ang lastang
+				
+				set spriteid sprite[].htmovflag
+				addvar spriteid 16384
+				ifvarl spriteid 16384 ifvarg spriteid -1 // hit a sprite
+				{
+					ifn sprite[spriteid].picnum APLAYER
+					{
+						set x2 sprite[].x
+						add x2 128
+						rotatepoint sprite[].x sprite[].y x2 sprite[].y lastang y y2
+						
+						setsprite THISACTOR y y2 sprite[].z
+					}
+					// ELSE PUSH PLAYER BACK
+				}
+				else // wtf
+				{
+					state setfarang
+					cos xvel sprite[].ang
+					sin yvel sprite[].ang
+					shiftr xvel 9
+					shiftr yvel 9
+					movesprite THISACTOR xvel yvel 0 0 RETURN
+				}
+				
+			}
+		}
+		else
+		{
+			set temp player[].player_par
+			sub temp countvarb
+			ifl temp 3 // recently was going up
+			{
+				state poduptest
+				set D sprite[].yrepeat
+				mul D 644 // 512
+				ifg z2 D // 16384
+				{
+					move PODMOVEUP geth getv
+					set initsprite 1
+				}
+			}
+		}
+	}
+	else
+	ife initsprite 1 // going up a wall
+	{
+		state poduptest
+
+		ifl z2 11264
+		{
+			geta[].ang angvar
+			move PODMOVE1 geth
+			state setfarang
+			set initsprite 2
+		}
+		else ife sprite[].z float
+		{
+			// abort
+			move PODMOVE1 geth
+			state setfarang
+			set initsprite 0
+		}
+		else
+		{
+			set temp player[].player_par
+			modvar temp 6
+			ife temp 0
+			{
+				espawn WALLSLIME
+				setav[RETURN].initsprite 1
+				seta[RETURN].ang shotpitch
+			}
+		}
+		getp[].player_par countvarb
+	}
+	else
+	ife initsprite 2 // going along a ceiling
+	{
+		ifnotmoving
+		{
+			sub countvarb player[].player_par
+			ifl countvarb -120
+			{
+				move PODMOVEDOWN geth getv
+				set initsprite 3
+			}
+			else
+			{
+				move PODMOVE1 geth
+				state setfarang
+				set initsprite 0
+			}
+		}
+		else
+		{
+			state poduptest
+			set D sprite[].yrepeat
+			mul D 644 // 512
+			
+			
+			set temp player[].player_par
+			ifl z2 D // 16384
+			{
+				ife sector[].ceilingslope 0
+				ifawayfromwall
+				{
+					modvar temp 6
+					ife temp 0
+					espawn WALLSLIME
+					seta[RETURN].z botclip
+				}
+			}
+			else
+			{
+				sub temp countvarb
+				ifl temp 60 // recently was going up 3
+				// ifg z2 16384
+				{
+					move PODMOVEUP geth getv
+					set initsprite 1
+				}
+				else movesprite THISACTOR 0 0 -1280 0 RETURN
+			}
+		}
+	}
+	else
+	ife initsprite 3 // going down a wall
+	{
+		// getzrange <x> <y> <z> <sector> <ceilingz> <ceilinghit> <floorz> <floorhit> <walldist> <clipmask>
+		getzrange sprite[].x sprite[].y sprite[].z sprite[].sectnum temp temp z spriteid 256 CLIPMASK0 
+		sub z sprite[].z
+		
+		ifl z 1024
+		{
+			move PODMOVE1 geth
+			state setfarang
+			set initsprite 0
+		}
+		else ife sprite[].z float
+		{
+			// abort
+			move PODMOVE1 geth
+			state setfarang
+			set initsprite 0
+		}
+		getp[].player_par countvarc
+	}
+	
+	geta[].x startx
+	geta[].y starty
+
+	getceilzofslope sprite[].sectnum sprite[].x sprite[].y tempb
+	geta[].z tempc
+	sub tempc tempb
+	ifle tempc 6144 { add tempb 8192 seta[].z tempb }
+
+	geta[].z float
+	
+	ifmove PODMOVE1
+	ifg FEMKILLCOUNT 0
+	{
+		set xvel 160
+		set temp FEMKILLCOUNT
+		mul temp sprite[].yrepeat // 96
+		mul temp 3
+		add xvel temp
+		seta[].xvel temp
+	}
+
+enda
+
+useractor notenemy PODBODY 80
+
+	ife myspawner -1 killit
+	seta[].extra inithp
+	set burning 0
+	
+	ifmove 0
+	{
+		geta[].htflags temp, orvar temp 2097152 orvar temp 8192 seta[].htflags temp
+		action ANULLACTION
+		move PODMOVE1 geth
+		cstat 0
+		clipdist 4
+		set monstatus 1
+		geta[myspawner].xrepeat startx, sub startx 2 ifl startx 32 set startx 32 seta[].xrepeat startx
+		geta[myspawner].yrepeat starty, sub starty 2 ifl starty 26 set starty 26 seta[].yrepeat starty
+		ifspritepal 3 set monxp 200 else set monxp 100
+	}
+	
+	
+	set temp player[].player_par
+	set tempc mtype, mul tempc 71
+	add temp tempc
+	shiftvarl temp 7
+	sin tempb temp
+	shiftr tempb 13
+	ife tempb 0 { seta[].xrepeat startx seta[].yrepeat starty } else
+	{
+		set x startx, add x tempb seta[].xrepeat x
+		set y starty, add y tempb seta[].yrepeat y
+	}
+	
+	add countvar 1
+	ife countvar 4
+	ifl mtype 8
+	{
+		ife mtype 7 espawn PODTAIL else
+		espawn PODBODY
+		setav[RETURN].inithp actorvar[mysignpost].inithp
+		seta[RETURN].pal sprite[].pal
+		setav[RETURN].myspawner THISACTOR
+		set TMP_A mtype, add TMP_A 1
+		setav[RETURN].mtype TMP_A
+		setav[RETURN].mysignpost mysignpost
+	}
+	
+	ifmove PODWAIT nullop else
+	{
+		set spriteid myspawner
+		state facesprite
+	}
+	
+	getav[mysignpost].dashtime dashtime
+	ifn dashtime 0 fall
+	
+	geta[myspawner].xvel xvel
+	state podmovecode
+	
+
+enda
+
+useractor notenemy PODTAIL 100
+
+	ife myspawner -1 killit
+	
+	ife sprite[mysignpost].pal 3 clipdist 48
+	else clipdist 24
+	
+	ifmove 0
+	{
+		geta[].htflags temp, orvar temp 2097152 seta[].htflags temp
+		seta[].extra inithp
+		move PODMOVE1 geth
+		geta[].htflags temp, orvar temp 8192, orvar temp 2048, seta[].htflags temp
+		// spritepal 2
+		clipdist 24
+		setav[mysignpost].mysignpost THISACTOR
+		action ANULLACTION
+		ifspritepal 3 set monxp 200 else set monxp 100
+	}
+	ifspritepal 3 orvar monstflags 64
+	ifl burning -1 set burning -1
+	state monsterai
+	ifg sprite[].extra actorvar[mysignpost].inithp seta[].extra actorvar[mysignpost].inithp
+	getav[mysignpost].FEMKILLCOUNT FEMKILLCOUNT
+	// set x 30 set y 26
+	set x sprite[mysignpost].xrepeat, sub x 6
+	set y sprite[mysignpost].yrepeat, sub y 6
+	add x FEMKILLCOUNT add y FEMKILLCOUNT
+	seta[].xrepeat x seta[].yrepeat y
+	cstat 256
+	
+	ifmove PODWAIT nullop else
+	{
+		set spriteid myspawner
+		state facesprite
+	}
+	
+	getav[mysignpost].dashtime dashtime
+	ifn dashtime 0 fall
+	
+	ife spawnprotect 0
+	{
+		ifn dashtime 0
+		{	
+			ifspritepal 6 getlastpal else spritepal 6
+			// ifspritepal 76 getlastpal else spritepal 76
+		}
+		// else ifspritepal 76 getlastpal
+		else ifspritepal 6 getlastpal
+	}
+	
+	ifle dashtime 0 seta[].htextra -1
+	else
+	ifhitweapon
+	{
+		soundonce PODPAIN
+		ifdead
+		{
+			set countvarb 0
+			whilevarn countvarb 6
+			{
+			  rand zdist 1024
+			  sub zdist 3500
+			  ezshoot zdist EGGJIBPROJ
+			  rand angvar 2047
+			  seta[RETURN].ang angvar
+			  add countvarb 1
+			}
+			spritepal 2
+			state lite_jibs
+			ife sprite[myspawner].picnum PODHEAD 
+			{
+				setav[myspawner].mysignpost -1 
+				setav[myspawner].countvar -99
+			}
+			else
+			{
+				seta[myspawner].picnum PODTAIL
+				setav[myspawner].monstatus 0
+				seta[myspawner].clipdist 24
+				seta[myspawner].htextra -1
+				setav[myspawner].inithp actorvar[mysignpost].inithp
+				setav[myspawner].spawnprotect 90
+				setav[mysignpost].countvar -90
+				seta[myspawner].extra inithp
+				setav[mysignpost].mysignpost myspawner
+				setav[mysignpost].dashtime 0
+				seta[mysignpost].htextra -1
+				// seta[myspawner].pal 2
+			}
+			sound SQUISHED
+			getav[mysignpost].FEMKILLCOUNT FEMKILLCOUNT
+			add FEMKILLCOUNT 1
+			setav[mysignpost].FEMKILLCOUNT FEMKILLCOUNT
+			killit
+		}
+	}
+	
+	geta[myspawner].xvel xvel
+	state podmovecode
+	
+	ifactioncount 40
+	ifn bottarget -1
+	ifrnd 12
+	ife dashtime 0
+	{
+		cstat 0
+		ifrnd 96 ifn sprite[].pal 3 
+		{ 
+			espawn EGGMEDIUM setav[RETURN].mtype 4 
+			ifrnd 208 set temp NUKECOIN else ifrnd 128 set temp SHOTGUNAMMO else set temp BATTERYAMMO
+			setav[RETURN].droptile temp 
+			sound GLOOPIMPACT 
+		}
+		else
+		{
+			sound MEGAFIRE
+			eshoot SLIMEPROJ
+			seta[RETURN].owner mysignpost
+			eshoot SLIMEPROJ
+				geta[RETURN].ang angvar
+				sub angvar 64
+				seta[RETURN].ang angvar
+				seta[RETURN].owner mysignpost
+			eshoot SLIMEPROJ
+				geta[RETURN].ang angvar
+				add angvar 64
+				seta[RETURN].ang angvar
+				seta[RETURN].owner mysignpost
+				
+				
+			ifspritepal 3
+			{
+				getp[].posx x2
+				getp[].posy y2
+				sub x2 sprite[].x
+				sub y2 sprite[].y
+				getangle angle2 x2 y2
+				set xvel 512
+				state rpg_targetprep
+				ezshoot zdist BUBBLEPROJ
+				seta[RETURN].ang angle2
+				seta[RETURN].pal 11
+				
+				ezshoot zdist BUBBLEPROJ
+				seta[RETURN].pal 11
+				sub angle2 24, seta[RETURN].ang angle2
+				
+				ezshoot zdist BUBBLEPROJ
+				seta[RETURN].pal 11
+				add angle2 48, seta[RETURN].ang angle2
+			}
+		}
+		resetactioncount
+	}
+
+enda
+
+useractor notenemy WALLSLIME 0
+
+	ifaction 0
+	{
+		action ANULLACTION
+		sizeat 32 36
+		spritepal 8
+		ifrnd 128 cstator 4
+		ifrnd 128 cstator 8
+		ife initsprite 1 // wall mode
+		{
+			cstat 18
+			// cos mycos sprite[].ang
+			// sin mysin sprite[].ang
+			// hitscan sprite[].x sprite[].y sprite[].z sprite[].sectnum mycos mysin 0 hitsector hitwall hitsprite hitx hity hitz CLIPMASK1
+			
+			cos xvel sprite[].ang
+			sin yvel sprite[].ang
+			shiftr xvel 5
+			shiftr yvel 5
+			movesprite THISACTOR xvel yvel 0 1 RETURN
+			ife RETURN -1 killit
+		}
+		else 
+		{
+			fall fall
+			cstat 34 // floor or ceiling
+			rand x 208
+			sub x 104
+			add x sprite[].x
+			seta[].x x
+			rand y 208
+			sub y 104
+			add y sprite[].y
+			seta[].y y
+		}
+		
+	}
+
+	ifcount 300
+	{
+		geta[].alpha temp add temp 1 ifg temp 254 killit seta[].alpha temp
+	}
+
+enda
+

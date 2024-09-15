@@ -1,0 +1,1753 @@
+// PRINCESS DEANOVA
+
+action ADEASTAND  0   1  5  1  20
+action ADEAWALK   5   4  5  1  12
+action ADEACLOAK  25  1  5  1  20
+action ADEAREADY  30  2  5  1  50
+action ADEASHEATH 35  2  5  -1  50
+action ADEAATTK1  40  6  5  1  10
+action ADEASTAB1  70  2  5  1  18
+action ADEASTAB2  80  1  5  1  30
+action ADEAJUMP   85  1  5  1  20
+action ADEALAND   90  1  5  1  20
+action ADEARUN    95  4  5  1  8
+action ADEAKICK1  115 1  5  1  20
+action ADEAKICK2  120 1  8  1  20
+action ADEABLOCK  128 1  5  1  20
+action ADEADIE    133 6  1  1  16
+action ADEADEAD	  138
+action ADEADOWN   144 2  5  1  48
+
+move DEAWALKVELS 128
+move DEARUNVELS 320
+move DEARUNATPLAYER 320
+move DEAJUMPVELS 288 -112
+move DEAFALLVELS 256
+move DEAKICKVELS 300 -16
+move DEASTOPPED
+move DEABACK -64
+move DEACLOAK
+move DEAUNCLOAK
+move DEASLICEVEL 80
+move DEASTABVEL 160
+
+ai AIDEAWAIT ADEASTAND DEASTOPPED geth
+ai AIDEAWALK ADEAWALK DEAWALKVELS geth
+ai AIDEAATTK ADEAATTK1 DEASLICEVEL geth
+ai AIDEASTAB ADEASTAB1 DEASTABVEL geth
+ai AIDEAJUMP ADEAJUMP DEAJUMPVELS geth getv
+ai AIDEACLOAK ADEACLOAK DEACLOAK geth
+ai AIDEAHEAL ADEACLOAK DEASTOPPED geth
+ai AIDEAREADY ADEAREADY DEASTOPPED geth
+ai AIDEARUN ADEARUN DEARUNVELS geth
+ai AIDEAKICK ADEAKICK1 DEAKICKVELS geth getv
+ai AIDEABLOCK ADEABLOCK DEABACK geth
+ai AIDEADIE ADEADIE DEASTOPPED geth
+ai AIDEAFROZEN ADEAKICK1 DEASTOPPED geth
+ai AIDEADOWN ADEADOWN DEASTOPPED geth
+ai AIDEAFLINTCH ADEADOWN DEASTOPPED geth
+ai AIDEAGROW ADEASTAND DEASTOPPED geth
+
+state deafollowplayer
+	
+	ifp ponground
+	{
+		set B NO
+		ifpdistg 16384 set B YES
+		else ifpdistl 8192 ife pdown YES set B YES
+		
+		ife B YES
+		{
+			ai AIDEACLOAK
+			cstat 0
+			sound TELEPORTER
+			set initsprite 50 // time until uncloak
+			getp[].posx startx
+			getp[].posy starty
+			set myvictim player[].i
+			set countvar 40
+			break
+		}
+	}
+	ifn bottarget -1 break
+	
+	ifcount 20
+	{
+		ifpdistl 8192
+		ife bottarget -1
+		{
+			findnearspritez LASERLINE 1024 10240 spriteid
+			ifn spriteid -1 
+			{
+				geta[spriteid].x x2
+				geta[spriteid].y y2
+				sub x2 sprite[].x
+				sub y2 sprite[].y
+				getangle angvar x2 y2
+				getincangle temp angvar sprite[].ang
+				abs temp
+				ifl temp 512
+				ifai AIDEARUN ai AIDEAWAIT else
+				ifai AIDEAWALK ai AIDEAWAIT
+			}
+		}
+	
+		ifai AIDEARUN ifpdistl 4096 ai AIDEAWALK else
+		ifai AIDEAWALK ifpdistg 7168 ai AIDEARUN
+		
+		ifp pfacing
+		{
+			ifpdistl 2048 ai AIDEAWAIT
+		}
+		else ifpdistl 1024 ai AIDEAWAIT
+		
+		ifpdistl 8192 ifcansee
+		{
+			set bottarget player[].i
+			state turntotarget
+			set bottarget -1
+		}
+	}
+	
+
+ends
+
+state deajumpstate
+
+	seta[].ang lastangvel
+	set botclip 0
+	ifmove DEAJUMPVELS
+	{
+		ifcount 8 
+		{
+			move DEAFALLVELS geth
+			action ADEALAND
+		}
+	}
+	ifaction ADEALAND
+	{
+		iffloordistl 4
+		{
+			ai AIDEARUN
+			count 50
+		}
+		else ifcount 90
+		{
+			ai AIDEARUN
+			count 50
+		}
+		
+	}
+
+ends
+
+state deajumpcheck
+
+	ifceilingdistl 128 break
+	geta[].z z
+	sub z 4096
+	
+	cos mycos sprite[].ang
+	sin mysin sprite[].ang
+	hitscan sprite[].x sprite[].y z sprite[].sectnum mycos mysin 0 hitsector hitwall hitsprite hitx hity hitz 16777281
+	ifn hitsprite -1 ifvarand sprite[hitsprite].cstat 16 set hitsprite -1
+	
+	ife hitsprite -1
+	{
+		set x2 sprite[].x
+		sub x2 hitx
+		mul x2 x2
+		set y2 sprite[].y
+		sub y2 hity
+		mul y2 y2
+		add x2 y2
+		sqrt x2 x2
+		ifl x2 512
+		{
+			sub z 16384 // 10240
+			hitscan sprite[].x sprite[].y z sprite[].sectnum mycos mysin 0 hitsector hitwall hitsprite hitx hity hitz 16777281
+			
+			set x2 sprite[].x
+			sub x2 hitx
+			mul x2 x2
+			set y2 sprite[].y
+			sub y2 hity
+			mul y2 y2
+			add x2 y2
+			sqrt x2 x2
+			
+			ifg x2 1560 { ai AIDEAJUMP geta[].ang lastangvel ifai AIDEAWALK sound POPCLAW }
+		}
+	}
+
+
+ends
+
+state deakickstate
+
+// make sure that kicking target has not changed
+ifn bottarget -1
+{
+	
+	ifn bottarget myvictim
+	{
+		ife myvictim player[].i set bottarget player[].i
+		else
+		{
+			ife actorvar[myvictim].monstatus 1
+			ife sprite[myvictim].statnum 1
+			ifn actorvar[myvictim].team team
+			{
+				set bottarget myvictim
+			}
+			else
+			{
+				set myvictim -1
+				set bottarget -1
+			}
+		}
+	}
+}
+
+set botclip 0
+ifaction ADEAKICK1
+{
+	ifactioncount 2 { action ADEAKICK2 sound KICKOUT }
+	else
+	ifn myvictim -1
+	{
+		ldist xydist2 THISACTOR myvictim
+		ifl xydist2 1280 { action ADEAKICK2 sound KICKOUT }
+	}
+}
+ifaction ADEAKICK2
+{
+	iffloordistl 8 { action ADEALAND move DEASTOPPED geth sound POPCLAW } else
+	ifn myvictim -1
+	ifl targetdist 1536
+	{
+		soundonce KICKIMPACT
+		ife actorvar[myvictim].stun 0
+		{
+			seta[myvictim].htextra 40
+			setav[myvictim].stun 20
+		}
+		else seta[myvictim].htextra 4
+		seta[myvictim].htang sprite[].ang
+		seta[myvictim].htowner THISACTOR
+		seta[myvictim].htpicnum KNEE
+		ifl sprite[myvictim].extra 150 ifrnd 96 seta[myvictim].htpicnum HEADJIB1
+		ldist xydist2 THISACTOR myvictim
+		ifl xydist2 384 { action ADEALAND move DEASTOPPED geth sound POPCLAW }
+	}
+	ifactioncount 2 { action ADEALAND move DEASTOPPED geth sound POPCLAW }
+}
+ifaction ADEALAND
+{
+	seta[].ang lastangvel
+	ifinwater nullop else
+	ifg sprite[].zvel 0 resetcount
+	ifn bottarget -1
+	{
+		iffloordistl 4 ifcount 3
+		{
+			ifl targetdist 1432
+			{
+				ai AIDEAATTK
+				sound DEAMISS
+			}
+			else ai AIDEARUN
+			set myvictim -1
+		}
+		else ifonwater
+		{
+			ai AIDEARUN
+			set myvictim -1
+		}
+	}
+	else
+	{
+		ifg gametype 0 ai AIDEARUN else
+		iffloordistl 4 ifcount 8
+		{
+			ai AIDEAREADY
+			action ADEASHEATH
+			sound SHEATHCLAW
+		}
+		else ifonwater
+			ai AIDEARUN
+			
+		set myvictim -1
+	}
+}
+else
+ifn myvictim -1 // ensure proper height
+{
+	geta[myvictim].picnum picnum
+	set z2 tiledata[picnum].ysize
+	set temp sprite[myvictim].yrepeat
+	mul z2 temp
+	mul z2 3 // the distance up on sprite to target
+	
+	geta[myvictim].z zdist
+	sub zdist z2 // the z height she needs to reach
+	
+	sub zdist sprite[].z
+	shiftr zdist 1
+	ifg zdist 6144 set zdist 6144 ifl zdist -6144 set zdist -6144
+	movesprite THISACTOR 0 0 zdist CLIPMASK0 RETURN
+	geta[].ang lastangvel
+}
+
+ends
+
+state deapainsounds
+
+	ifn countvar 0 break
+	
+	geta[].htowner spriteid
+	
+	ifn spriteid -1
+	ife team actorvar[spriteid].team
+	ifrnd 128
+	ife team 1
+	{
+		sound DEA_CHECKFIRE
+		set countvar 90
+	}
+	ifn countvar 0 break
+	
+	ifn spriteid -1
+	ifstrength 150
+	ifrnd 32
+	{
+		ifn actorvar[spriteid].team team
+		soundonce DEA_HEAVYFIRE
+		set countvar 60
+	}
+	else
+	{
+		rand temp 3
+		ife temp 0 sound DEA_PAIN1 else
+		ife temp 1 sound DEA_PAIN2 else
+		ife temp 2 sound DEA_PAIN3 else
+		ife temp 3 sound DEA_PAIN4
+		set countvar 30
+	}
+
+
+ends
+
+state deapeacefulcode
+	ifn myspawner -1 // dialogbub visible
+	{
+		ife player[].cursectnum sprite[].sectnum
+		ife mtype 0
+		{
+			state playerturntome
+			setp[].horiz 100
+			setp[].jumping_counter 0
+			ifpdistg 1024
+			{
+				cos kickfvel angvar
+				sin kicksvel angvar
+				shiftl kicksvel 6
+				shiftl kickfvel 6
+				setp[].posxv kickfvel
+				setp[].posyv kicksvel
+			}
+			ifn myshelly -1 setav[myshelly].monstatus 70
+		}
+		seta[myspawner].cstat 0
+		ifmove STOPPED nullop else move STOPPED faceplayer
+		ifp pfacing
+		ifcansee
+		ifpdistl 1432
+		// ifhitspace
+		ife mtype 0
+		{
+			ifn myshelly -1 setav[myshelly].monstatus 30
+			ife SPRITELOTAG 8
+			{
+				sound GUIDE_PRINCESSINTRO
+				set mtype 900
+				set subtitle_time 900
+				lockplayer 900
+				set subtitle_start 446
+				set subtitle_numlines 9
+			}
+			ife SPRITELOTAG 12
+			{
+				sound GUIDE_PRINCESS2
+				set mtype 870
+				set subtitle_time 870
+				lockplayer 870
+				set subtitle_start 595
+				set subtitle_numlines 8
+			}
+			ife SPRITELOTAG 13
+			{
+				sound GUIDE_PRINCESS3
+				set mtype 580
+				set subtitle_time 580
+				lockplayer 580
+				set subtitle_start 628
+				set subtitle_numlines 5
+			}
+			ife SPRITELOTAG 15
+			{
+				sound GUIDE_PRINCESS5
+				set mtype 870
+				set subtitle_time 870
+				set subtitle_start 681
+				set subtitle_numlines 8
+				lockplayer 870
+				operatemasterswitches 50
+				
+			}
+			ife initsprite 7 // after ancients fights
+			{
+				sound GUIDE_PRINCESS4
+				set mtype 840
+				set subtitle_time 840
+				lockplayer 840
+				set subtitle_start 664
+				set subtitle_numlines 7
+			}
+		}
+		
+		setsprite myspawner sprite[].x sprite[].y sprite[].z // just in case it moved
+		
+		ifg mtype 0
+		{
+			state playerturntome
+			ifg subtitle_time 15 quote 311
+			ifl subtitle_time 15 ife player[].ftq 311 setp[].fta 0
+			ifhitspace ifg mtype 11 { sub mtype 10 sub subtitle_time 10 }
+			sub mtype 1
+			ife mtype 1 // ife subtitle_start 446
+			{
+				stopsound GUIDE_PRINCESSINTRO
+				stopsound GUIDE_PRINCESS2
+				stopsound GUIDE_PRINCESS3
+				// stopsound GUIDE_PRINCESS4
+				
+				ife initsprite 7 // initiate part 2
+				{
+					set mtype 930
+					set subtitle_time 930
+					lockplayer 930
+					set subtitle_start 671
+					set subtitle_numlines 6
+					set initsprite 8
+					break
+				}
+				ife initsprite 8
+				{
+					// mobile vendor reward
+					set award_screen VENDORUPGRADE
+					set award_string 741
+				}
+				else ifn SPRITELOTAG 15
+				{
+					set award_screen ACCESSCARD
+					set award_string 43 
+					getp[].got_access temp
+					ife SPRITELOTAG 13 orvar temp 4 else
+					ife SPRITELOTAG 12 orvar temp 2 else orvar temp 1
+					setp[].got_access temp
+				}
+				
+			}
+			ifle mtype 0
+			{
+				set navmode 3
+				setav[myspawner].monstatus 2
+				set myspawner -1
+				set SPRITELOTAG 0
+				ai AIDEAWALK
+				add tourgoal 1
+				lockplayer 1
+				set navpoint -1
+				mul SPRITELOTAG -1
+			}
+		}
+		break
+	}
+	ife navpoint mynavsprite set navpoint -1
+	state monsterai
+	ife monstatus 2 killit
+	
+	ifhitweapon
+	{
+		strength 1000
+		// ifdead
+		// {
+			// ife sprite[].htowner player[].i
+			// {
+				// set team 0
+				// strength 32000
+				// set navmode 2
+				// ai AIDEAWAIT
+			// }
+			// else 
+			// strength 1000
+		// }
+	}
+	
+	
+ends
+
+state deafrozenstate
+
+	ifcount THAWTIME
+    {
+      ai AIDEAWAIT
+	  addstrength 10
+	  set ikicked 0
+      getlastpal
+    }
+    else
+      ifcount FROZENDRIPTIME
+    {
+      ifactioncount 26
+      {
+        spawn WATERDRIP
+        resetactioncount
+      }
+    }
+    ifhitweapon
+    {
+      ifwasweapon FREEZEBLAST
+      {
+	    resetcount resetactioncount
+        strength 0
+        break
+      }
+      ifrnd 84
+        spawn BLOODPOOL
+	  lotsofglass 30
+	  // state lite_jibs
+      sound GLASS_BREAKING
+      // killit
+	  
+	  ife team 0
+	  {
+		state enemy_death ai AIDEADIE
+		break
+	  }
+
+	  ai AIDEADOWN
+	  strength 5
+	  getlastpal
+    }
+
+ends
+
+state deastabstate
+
+	ifg targetdist 2304
+	{
+		ai AIDEARUN
+		break
+	}
+	ife targethigher YES
+	{
+		set botclip 2
+		geta[bottarget].z zdist
+		sub zdist sprite[].z
+		shiftr zdist 1
+		ifl zdist -4096 set zdist -4096
+		movesprite THISACTOR 0 0 zdist CLIPMASK0 RETURN
+	}
+
+	ifmove DEASTOPPED nullop else
+	ifn bottarget -1
+	{
+		ife team actorvar[bottarget].team { set bottarget -1 ai AIDEARUN break }
+		ldist xydist2 THISACTOR bottarget
+		ifl xydist2 768
+		{
+			ifmove DEASLICEVEL nullop else move DEASLICEVEL geth
+			ifl xydist2 480 { ifmove DEASTOPPED nullop else move DEASTOPPED geth }
+		}
+	}
+
+	ifaction ADEASTAB1
+	ifactioncount 2
+	{
+		action ADEASTAB2
+	}
+	ifaction ADEASTAB2
+	{
+		espawn DENOVATRAIL
+		setav[RETURN].myspawner THISACTOR
+		
+		state shootsaberstate
+		ifn bottarget -1
+		{
+			geta[].ang lastangvel
+			ifl targetdist 1500
+				soundonce DEASTAB
+		}
+		else seta[].ang lastangvel
+		
+		ifactioncount 2
+		{
+			ai AIDEARUN
+			// ifg gametype 0 ai AIDEARUN
+			// else
+			// ife bottarget -1
+			// {
+				// ai AIDEAREADY
+				// action ADEASHEATH
+				// sound SHEATHCLAW
+			// }
+			// else ai AIDEARUN
+		}
+		
+	}
+
+ends
+
+state deattkstate
+
+	ifn bottarget -1
+	{
+		ife team actorvar[bottarget].team { set bottarget -1 ai AIDEARUN break }
+		ldist xydist2 THISACTOR bottarget
+		ifg xydist2 768 { ifmove DEASLICEVEL nullop else move DEASLICEVEL geth } else
+		ifg xydist2 640 { ifmove DEASTOPPED nullop else move DEASTOPPED geth } else
+		ifl xydist2 480 { ifmove DEABACK nullop else move DEABACK geth }
+		
+		ifactioncount 1 nullop else
+		{
+			ifg saberpos 0 ifpdistl 1560 ifp pfacing
+			ife blockang 6666
+			ifn actorvar[bottarget].team team
+			ifrnd 80
+			{ ai AIDEABLOCK set stun 0 break }
+		}
+	}
+	
+	state turntotarget
+	ifactioncount 2
+	{
+		resetactioncount
+		state shootsaberstate
+		state shootsaberstate
+		ife bottarget -1
+		{	
+			ai AIDEARUN
+			// ifg gametype 0 ai AIDEARUN
+			// else
+			// {
+				// ai AIDEAREADY
+				// action ADEASHEATH
+				// sound SHEATHCLAW
+			// }
+		}
+		else
+			ifg targetdist 2048 ai AIDEARUN
+		else ifg targetdist 1536 { sound DEAMISS sound DEA_SWING ai AIDEASTAB }
+		else
+		{
+			geta[bottarget].picnum picnum
+			state tiletype
+			switch TILETYPE
+			case 2 case 3 case 10 // metal enemy
+				ifrnd 192 sound DEAHITMETAL else
+					sound DEAHITCONCRETE
+			break
+			default
+				ifrnd 192 sound DEAHITFLESH else
+					sound DEAHITCONCRETE
+			break
+			endswitch
+			
+			ifrnd 32 { sound DEAMISS sound DEA_SWING ai AIDEASTAB }
+		}
+		
+	}
+	ifn bottarget -1 geta[].ang lastangvel else
+	seta[].ang lastangvel
+
+ends
+
+state deablockstate
+
+	set stun 0
+	ife sprite[].htpicnum GROWSPARK seta[].htpicnum SHOTSPARK1
+	ifn bottarget -1
+	{
+		set spriteid bottarget
+		state facesprite
+	}
+	
+	ifcount 6 ifg saberpos 0 ifpdistl 1560 ifp pfacing
+	ife blockang 6666 ifrnd 128 count 3
+
+	set mtype 1
+	ifcount 10
+	{
+		set mtype 0
+		ifn bottarget -1
+		{
+			ifg targetdist 2560 ai AIDEARUN else
+			ifg targetdist 2048 { set myvictim bottarget ai AIDEAKICK } else
+			ifg targetdist 1536 { ai AIDEASTAB sound DEAMISS sound DEA_SWING } else
+			{ 
+				ifrnd 160
+				{
+					ai AIDEAATTK sound DEAMISS 
+				}
+				else
+				ifrnd 128
+				{
+					ai AIDEASTAB sound DEAMISS sound DEA_SWING
+				}
+				else
+				{
+					ai AIDEAKICK
+					set myvictim bottarget
+					sound KICKOUT
+				}
+			}
+		}
+		else
+		{
+			ai AIDEARUN
+			// ifg gametype 0 ai AIDEARUN
+			// else
+			// {
+				// ai AIDEAREADY
+				// action ADEASHEATH
+				// sound SHEATHCLAW
+			// }
+		}
+	}
+	else
+	ifg sprite[].htextra 0
+	ife sprite[].htpicnum SHOTSPARK1
+	{
+		flash
+		seta[].htextra -1
+		set damflash 0
+		ifactorsound THISACTOR DEABLOCK nullop else sound DEABLOCK
+		ai AIDEABLOCK
+		count 3
+		ifn bottarget -1
+		ifn bottarget player[].i
+		ifl targetdist 2048
+		ifrnd 128
+		{
+			set spriteid bottarget
+			state facesprite
+			cos xvel sprite[].ang
+			sin yvel sprite[].ang
+			
+			shiftr xvel 1 shiftr yvel 1
+			movesprite bottarget xvel yvel 0 CLIPMASK0 RETURN
+			setav[bottarget].stun 10
+			seta[bottarget].htextra 10
+			seta[bottarget].htpicnum KNEE
+			seta[bottarget].htowner THISACTOR
+			
+			sound PUSHSOUND
+		}
+	}
+
+	// ife sprite[].htpicnum SHOTSPARK1 seta[].htextra -1
+	ife sprite[].htpicnum KNEE seta[].htextra -1
+
+	
+	ifg sprite[].htextra 1
+	{
+		geta[].htextra temp
+		shiftr temp 1
+		seta[].htextra temp
+		ifactorsound THISACTOR DEABLOCK nullop else sound DEABLOCK
+	}
+
+ends
+
+state deastartcombat
+	iffloordistl 4
+	{
+		ifg saberpos 0 ifpdistl 1560 ifp pfacing
+		ife blockang 6666
+		{ ai AIDEABLOCK set stun 0 break }
+	
+		ifg targetdist 2560 ifl targetdist 10240
+		{
+			set temp NO
+			
+			geta[].z z
+			sub z sprite[bottarget].z
+			ifg z 20480 set temp YES
+			else ifrnd 128 set temp YES
+			
+			ife temp YES
+			{
+				ai AIDEACLOAK
+				cstat 0
+				sound TELEPORTER
+				set initsprite targetdist
+				shiftr initsprite 7 // time until uncloak
+				geta[bottarget].x startx
+				geta[bottarget].y starty
+				set myvictim bottarget
+				ife countvar 0 { ifcansee ifpdistl 6144 sound DEA_CLOAKING set countvar 40 }
+				break
+			}
+		}
+		
+		
+		ai AIDEAREADY
+		sound POPCLAW
+		ife countvar 0 ifrnd 64 sound DEA_HOSTILEFORCES
+		
+	}
+	else ifinwater { ai AIDEAREADY sound POPCLAW }
+	else ifcount 60 { ai AIDEAREADY sound POPCLAW }
+ends
+
+state deadiestate
+
+	set temp NO
+	ife team 0 set temp YES
+	ifspritepal 85 set temp YES
+	
+	ife temp YES
+	{
+		ifaction ADEADIE
+		{
+			ifactioncount 6 { action ADEADEAD cstat 0 ifrnd 128 cstator 4 strength 0 }
+		}
+		ifaction ADEADEAD
+		{
+			ifhitweapon
+			{
+			  ifwasweapon RPG
+			  {
+				sound SQUISHED
+				state standard_jibs
+				killit
+			  }
+			  else
+				ifwasweapon RADIUSEXPLOSION
+			  {
+				sound SQUISHED
+				state standard_jibs
+				killit
+			  }
+			  strength 0
+			}
+		}
+		break
+	}
+	ifactioncount 6 ai AIDEADOWN
+
+ends
+
+state deadownstate
+
+	ifrnd 1 ife countvar 0 ifn ikicked -2 { soundonce DEA_REVIVEME set countvar 210 }
+	
+	ifcount 660 ifn ikicked -2 { resetcount set ikicked -2 }
+	
+	set burning 0
+	ifhitweapon { } 
+	ifstrength 5 strength 5
+		
+	ife ikicked -2 // healed by medic
+	{
+		addstrength 15
+		ifspritepal 33 getlastpal else spritepal 33
+	}
+	else
+	{
+		ifpdistl 1280
+		ifp pfacing
+		ifp palive
+		ifcansee
+		{
+			ifphealthl 30 { quote 775 break }
+			quote 129
+			ifhitspace
+			{
+				ifstrength 15
+				{
+					ife pchar 0
+					{
+						rand temp 3
+						ife temp 0 globalsound DUKE_HEAL1
+						ife temp 1 globalsound DUKE_HEAL2
+						ife temp 2 globalsound DUKE_HEAL3
+						ife temp 3 globalsound DUKE_HEAL4
+					}
+					else
+					ife pchar 1
+					{
+						rand temp 2
+						ife temp 0 globalsound B_TRYNOTODIE
+						ife temp 1 globalsound B_HANGINTHERE
+						ife temp 2 globalsound B_TRUSTME
+					}
+				}
+				addstrength 20
+				set countvarb 0
+				ifspritepal 33 getlastpal else spritepal 33
+				ifg player[].firstaid_amount 0
+				{
+					getp[].firstaid_amount temp
+					sub temp 1
+					setp[].firstaid_amount temp
+				}
+				else addphealth -1
+				
+			}
+			else ifspritepal 33 getlastpal
+		}
+		else 
+		{
+			ifspritepal 33 getlastpal
+			ife player[].ftq 129 setp[].fta 0
+			ife player[].ftq 775 ifg player[].fta 30 setp[].fta 30
+		}
+	}
+	ifstrength DEASTRENGTH nullop
+	else
+	{
+		strength DEASTRENGTH
+		ai AIDEAWAIT
+		ife countvar 0 { sound DEA_THANKYOU set countvar 120 }
+		set ikicked 0
+		set bottarget -1
+		set navpoint -1
+		set myvictim -1
+		seta[].htowner THISACTOR
+		set monstatus 1
+		cstat 257
+		ife player[].ftq 129 setp[].fta 0
+		ifspritepal 33 getlastpal
+	}
+
+ends
+
+state deaflintchstate
+
+ifcount 5
+ifg saberpos 0 ifpdistl 1560 ifp pfacing
+ife blockang 6666
+ifrnd 96
+{ ai AIDEABLOCK set stun 0 break }
+
+ifcount 12
+{
+	ai AIDEAWAIT
+	set stun 0
+}
+
+ends
+
+state deareadystate 
+
+	ifactioncount 2
+	{
+		ifaction ADEASHEATH
+		ai AIDEAWAIT
+		else
+		ai AIDEARUN
+	}
+
+ends
+
+state deacloakstate 
+
+// 28 26 normal size
+seta[].htextra -1
+ifmove DEACLOAK
+{
+	ifcount 3
+	{
+		sizeto 2 25
+		sizeto 2 25
+		ifcount 6
+		{
+			cstator 2
+			ifspritepal 33 getlastpal else spritepal 33
+			ifcount 10
+				cstator 512
+			ifcount 14
+			{
+				cstat 32768
+				ifspritepal 33 getlastpal
+				
+				ifl initsprite 1
+				{
+					set bottarget myvictim
+					
+					ifn myvictim player[].i
+					{
+						ifn actorvar[bottarget].monstatus 1 set bottarget -1 else
+						ife sprite[bottarget].statnum 1024 set bottarget -1
+					}
+					
+					ife bottarget -1
+					{
+						set mysector sprite[].sectnum
+						updatesectorz startx starty sprite[].z mysector
+						ifn mysector -1 setsprite THISACTOR startx starty sprite[].z
+						move DEAUNCLOAK
+						cstat 514
+						sound TELEPORTER
+						set botclip 40
+					}
+					else
+					{
+						geta[bottarget].ang angvar
+						add angvar 1024
+						
+						set x sprite[bottarget].x
+						add x 644
+						
+						rotatepoint sprite[bottarget].x sprite[bottarget].y x sprite[bottarget].y angvar x2 y2
+						set mysector sprite[bottarget].sectnum
+						updatesectorz x2 y2 sprite[bottarget].z mysector
+						ife mysector sprite[bottarget].sectnum
+						{
+							geta[bottarget].z z2
+							getflorzofslope mysector x2 y2 z
+							ifl z z2 set z2 z
+							setsprite THISACTOR x2 y2 z2
+						}
+						else
+						{
+							geta[bottarget].ang angvar
+							add angvar 512
+							
+							set x sprite[bottarget].x
+							add x 644
+							
+							rotatepoint sprite[bottarget].x sprite[bottarget].y x sprite[bottarget].y angvar x2 y2
+							set mysector sprite[bottarget].sectnum
+							updatesectorz x2 y2 sprite[bottarget].z mysector
+							ife mysector sprite[bottarget].sectnum
+							{
+								geta[bottarget].z z2
+								getflorzofslope mysector x2 y2 z
+								ifl z z2 set z2 z
+								setsprite THISACTOR x2 y2 z2
+							}
+							else
+							{
+								geta[bottarget].ang angvar
+								sub angvar 512
+								
+								set x sprite[bottarget].x
+								add x 644
+								
+								rotatepoint sprite[bottarget].x sprite[bottarget].y x sprite[bottarget].y angvar x2 y2
+								set mysector sprite[bottarget].sectnum
+								updatesectorz x2 y2 sprite[bottarget].z mysector
+								ife mysector sprite[bottarget].sectnum
+								{
+									geta[bottarget].z z2
+									getflorzofslope mysector x2 y2 z
+									ifl z z2 set z2 z
+									setsprite THISACTOR x2 y2 z2
+								}
+								else setsprite THISACTOR sprite[bottarget].x sprite[bottarget].y sprite[bottarget].z
+							}
+						}
+						move DEAUNCLOAK
+						cstat 514
+						sound TELEPORTER
+						set botclip 40
+					}
+				}
+			}
+		}
+		sub initsprite 1
+		
+		
+	}
+}
+else
+ifmove DEAUNCLOAK
+{
+	sizeto 28 25
+	sizeto 28 25
+	sizeto 28 25
+	ifcount 4 cstat 2
+	ifcount 8 cstat 257
+	ifcount 12
+	{
+		ife team 1
+		ife myvictim player[].i set bottarget -1
+		
+		ifn bottarget -1 
+		{
+			ifl targetdist 1432
+			{
+				ai AIDEAATTK
+				sound DEAMISS
+			}
+			else ai AIDEARUN
+		}
+		else ai AIDEAWAIT
+	}
+	
+}
+	
+ends
+
+defstate assess_allies
+
+ife team 1
+ifn gametype CTF
+ifn gametype CONTROL 
+{
+	ife pdown YES
+	ifcansee ifpdistl 16384
+	ifge sprite[].extra 75
+	{
+		ife bottarget player[].i ifai AIDEAHEAL
+		{
+			ldist targetdist THISACTOR bottarget
+			ifl targetdist 768 set bluetimer 6
+			else ai AIDEARUN
+			break
+		}
+		ife bottarget -1 { set bottarget player[].i set bluetimer 6 }
+		else
+		{
+			ifn actorvar[bottarget].team team
+			{
+				// assume she is already facing the enemy
+				getp[].posx x2
+				getp[].posy y2
+				sub x2 sprite[].x
+				sub y2 sprite[].y
+				getangle angvar x2 y2
+				// if the angle to face the player is close enough to the angle
+				// she is already facing, then she can keep her current target
+				getincangle temp sprite[].ang angvar
+				abs temp
+				ifg temp 384 { set bottarget player[].i set bluetimer 6 }
+				else // don't run much past the player either
+				{
+					ldist xydist THISACTOR player[].i
+					ldist xydist2 THISACTOR bottarget
+					sub xydist2 xydist
+					ifg xydist2 1024 { set bottarget player[].i set bluetimer 6 }
+				}
+			}
+		}
+	}
+	else ife bottarget player[].i set bottarget -1
+	
+	ife bottarget -1
+	ifn myshelly -1
+	ife actorvar[myshelly].monstatus 2
+	ifge sprite[].extra 75
+	{
+		ldist xydist THISACTOR myshelly
+		ifl xydist 10240
+		{
+			geta[].z z
+			sub z 6144
+			seta[].z z
+			canseespr THISACTOR myshelly temp
+			add z 6144
+			seta[].z z
+			ife temp YES
+			{
+				set bottarget myshelly
+				set bluetimer 6
+			}
+		}
+	}
+	
+	ifn myshelly -1
+	ife bottarget myshelly ifai AIDEAHEAL
+	{
+		ldist targetdist THISACTOR bottarget
+		ifl targetdist 768 set bluetimer 6
+		else ai AIDEARUN
+	}
+	ifn myshelly -1
+	ife bottarget myshelly ifn actorvar[myshelly].monstatus 2 set bottarget -1
+}
+
+ends
+
+state deahealstate
+
+	state assess_allies
+	
+	ife bottarget player[].i
+	{
+		soundonce AIRBURST
+		addphealth 1
+		addstrength -1
+		ifstrength 1 strength 1
+		// ifg sprite[player[].i].extra 50 addphealth 1
+		palfrom 16 0 10 63
+		espawn CAPTUREPLUS
+		seta[RETURN].x player[].posx
+		seta[RETURN].y player[].posy
+		seta[RETURN].z sprite[player[].i].z
+		seta[RETURN].pal 1
+		rand x 512
+		sub x 256
+		add x sprite[RETURN].x
+		seta[RETURN].x x
+		rand y 512
+		sub y 256
+		add y sprite[RETURN].y
+		seta[RETURN].y y
+	}
+	else ifn bottarget -1 ife bottarget myshelly
+	{
+		ife actorvar[bottarget].monstatus 2 // make sure they are still down
+		{
+			soundonce AIRBURST
+			addstrength -1
+			ifstrength 10 strength 10
+			setav[bottarget].ikicked -2
+		}
+		else { set bottarget -1 ai AIDEAWAIT }
+	}	
+	else { set bottarget -1 ai AIDEAWAIT }
+
+ends
+
+state dearunstate
+
+	ife bottarget player[].i
+	{
+		ifmove DEARUNVELS move DEARUNATPLAYER seekplayer
+		state turntotarget
+	}
+	
+	state assess_allies
+	
+	ifn bottarget -1
+	{
+		ifg targetdist 3072
+		ifcansee
+		ifpdistl 8192
+		ifphealthl 50
+		ife countvar 0
+		ife team actorvar[player[].i].team
+		{
+			sound DEA_YOUWOUNDED
+			set countvar 150
+		}
+	
+		ife actorvar[bottarget].team team // trying to heal someone
+		{
+			
+			ldist targetdist THISACTOR bottarget
+			ifl targetdist 768 ai AIDEAHEAL
+			else ifnotmoving { set bottarget -1 break }
+			else
+			{
+				ifn bottarget player[].i
+				ifn actorvar[bottarget].monstatus 2
+				{
+					set bottarget -1
+					break
+				}
+			}
+			ife bottarget THISACTOR { set bottarget -1 break } // paranoid failsafe
+			break
+		}
+	
+		ifl targetdist 3072
+		ifg targetdist 2560
+		{
+			geta[].z z
+			sub z sprite[bottarget].z
+			ifl z 16384
+			ifrnd 32
+			{
+				ai AIDEAKICK
+				set myvictim bottarget
+				ife bottarget player[].i
+				{
+					set spriteid bottarget
+					state facesprite
+				}
+			}
+		}
+		ifl targetdist 2048
+		ifg targetdist 1792
+		ifrnd 96
+		{
+			ai AIDEASTAB
+			sound DEAMISS
+			sound DEA_SWING
+		}
+		
+		ifg saberpos 0 ifpdistl 1560 ifp pfacing
+		ife blockang 6666
+		ifn actorvar[bottarget].team team
+		ifrnd 64
+		{ ai AIDEABLOCK set stun 0 break }
+		
+		ifl targetdist 1432
+		{
+			ai AIDEAATTK
+			sound DEAMISS
+		}
+		
+		set temp NO
+		
+		ldist xydist2 THISACTOR bottarget
+		ifl xydist2 512
+		ifcount 12
+		set temp YES
+		
+		ife sprite[bottarget].picnum SPIDERWALK
+		ife team 0
+		ifp palive ife pdown NO
+		{
+			set bottarget player[].i
+			set temp YES
+		}
+		
+		ifg xydist2 8192 ifrnd 4 set temp YES
+		
+		ife temp YES
+		{
+			sound SHEATHCLAW
+			ai AIDEACLOAK
+			cstat 0
+			sound TELEPORTER
+			set initsprite targetdist
+			shiftr initsprite 7 // time until uncloak
+			geta[bottarget].x startx
+			geta[bottarget].y starty
+			set myvictim bottarget
+			ife countvar 0 { ifcansee ifpdistl 6144 sound DEA_CLOAKING set countvar 40 }
+			break
+		}
+	}
+	else
+	{
+		state deajumpcheck
+		ifai AIDEAJUMP break
+		ife team 0 ifnotmoving ifrnd 16 operate
+		ifcount 30
+		{
+			ifl gametype 1
+			{
+				ai AIDEAREADY
+				action ADEASHEATH
+				sound SHEATHCLAW
+			}
+			else
+			ife gametype SURVIVAL ifpdistl 2048
+			{
+				ai AIDEAREADY
+				action ADEASHEATH
+				sound SHEATHCLAW
+			}
+		}
+	}
+	ife gametype 0 state deafollowplayer
+
+ends
+
+state deawalkstate 
+
+	ifcount 6
+	{
+		state assess_allies
+
+		ifn bottarget -1
+		{
+			ife actorvar[bottarget].team team // trying to heal someone
+			{
+				ai AIDEARUN
+				break
+			}
+			state deastartcombat
+		}
+		
+		ife bottarget -1
+		{
+			state deajumpcheck
+			ifai AIDEAJUMP break
+		}
+			
+		
+		ifnotmoving { operate ai AIDEAWAIT }
+	}
+	ife gametype 0 state deafollowplayer
+
+ends
+
+state deawaitstate
+
+	ife gametype SURVIVAL ifl player[].player_par 150 break
+	ifn thiscam -1 break
+	state assess_allies
+	ife bottarget -1
+	{
+		ifhitspace
+		ifp pfacing
+		ifpdistl 1280
+		ife team 1
+		{
+			resetcount
+			ife countvar 0 { sound DEA_GREETING set countvar 150 }
+			set spriteid player[].i
+			state facesprite
+		}
+		ifcount 30
+		{
+			ifg gametype 0 
+			{
+				ai AIDEAREADY
+				sound POPCLAW
+			}
+			else
+			ai AIDEAWALK
+		}
+	}
+	else
+	{
+		ife team actorvar[bottarget].team ai AIDEARUN
+		else
+		state deastartcombat
+	}
+		
+ends
+
+state deabattlecode
+
+	
+	state monsterai
+	ifai AIDEAFROZEN { state deafrozenstate break }
+	ifai AIDEAGROW { state genericgrowcode break }
+	ifai AIDEADIE { state deadiestate break }
+	ifai AIDEADOWN { state deadownstate break }
+	
+	ife team 1 state botblocking
+	
+	
+	ife countvar 0
+	ifn bottarget -1
+	ife actorvar[bottarget].monstatus 2
+	ifn actorvar[bottarget].team team
+	ifrnd 64
+	{
+		rand temp 3
+		ife temp 0 sound DEA_PAWNTAKEN else
+		ife temp 1 sound DEA_SUFFENDS else
+		ife temp 2 sound DEA_VOID else
+		sound DEA_TACTICAL
+		set countvar 90
+	}
+	ife team 1
+	{
+		ifn monstatus 2 ifg sprite[].extra 75 set shellyinmap 10
+	}
+	
+	ifai AIDEAWAIT state deawaitstate else
+	ifai AIDEAFLINTCH state deaflintchstate else
+	ifai AIDEAREADY state deareadystate else
+	ifai AIDEACLOAK state deacloakstate else
+	ifai AIDEAWALK state deawalkstate else
+	ifai AIDEARUN state dearunstate else
+	ifai AIDEAATTK state deattkstate else
+	ifai AIDEASTAB state deastabstate else
+	ifai AIDEAKICK state deakickstate else
+	ifai AIDEABLOCK state deablockstate else
+	ifai AIDEAJUMP state deajumpstate else
+	ifai AIDEAHEAL state deahealstate 
+	
+	ifg sprite[].htextra 0
+	ifn bottarget -1
+	ife sprite[].htowner bottarget
+	ifn sprite[].htpicnum RADWOUND
+	ifn sprite[].htpicnum BURNING
+	ifn sprite[].htpicnum STUCKARROW
+	{
+		set temp NO
+		ifai AIDEARUN set temp YES
+		ifai AIDEAATTK set temp YES
+		ife temp YES
+		{
+			ai AIDEABLOCK
+			ifrnd 192 set stun 0
+			state deablockstate
+			
+			
+			ifpdistl 3072 ife countvar 0
+			{
+				ifrnd 128
+				sound DEA_TAKECOVER
+				else
+				sound DEA_WATCHOUT
+				set countvar 50
+			}
+		}
+	}
+	
+	
+	ifhitweapon
+	{
+		// immune to shinker, no special code for it
+		
+		ifwasweapon GROWSPARK
+		  sound SPARKLESOUND
+		ifwasweapon FREEZEBLAST nullop else state random_wall_jibs
+		ifdead
+		{
+			ifg gametype 0 
+			{ 
+				ife gametype DM set tempb 1 else set tempb 5
+				ife team 0 add bluescore tempb else ife team 1 add redscore tempb 
+				state playerscorecheck
+			}
+			getp[].player_par ikicked
+			
+			ifwasweapon FREEZEBLAST
+			{
+			  sound NEWFREEZE
+			  spritepal 1
+			  ai AIDEAFROZEN
+			  strength 0
+			  state freezeme
+			  break
+			}
+			ife team 0
+			ifwasweapon GROWSPARK
+			{
+			  cstat 0
+			  sound ACTOR_GROWING
+			  ai AIDEAGROW
+			  break
+			}
+			ifinwater nullop else
+			{
+				// DEA DEATH SOUNDS
+				// rand temp 2
+				// ife temp 0 sound DEADIE1 else 
+				// ife temp 1 sound DEADIE2 else
+				// ife temp 2 sound DEADIE3
+			}
+			guts JIBS6 4
+			
+			cstat 0
+			strength 0
+			ai AIDEADIE
+			sound DEA_DEATH
+			ife team 0 
+			{
+				state enemy_death
+				ifwasweapon SABERPROJ
+				{
+					espawn DEASABERDEATH
+					seta[RETURN].xrepeat sprite[].xrepeat
+					seta[RETURN].yrepeat sprite[].yrepeat
+					seta[RETURN].pal sprite[].pal
+					killit
+				}
+			}
+			set monstatus 2
+			
+		}
+		else 
+		{
+			state deapainsounds
+			ifai AIDEAFLINTCH nullop else
+			ifai AIDEABLOCK nullop else
+			ifg stun 5
+			{
+				ai AIDEAFLINTCH
+				set mtype 0
+				set myvictim -1
+			}
+			
+		}
+	}
+	else
+	iffloordistl 2
+	{
+		ifg FEMFALLDMG 12 sound DEA_LAND
+		set FEMFALLDMG 0
+	}
+	ifg sprite[].zvel 0 add FEMFALLDMG 1
+	ifg countvar 0 sub countvar 1 // talking counter
+
+ends
+
+useractor enemy DEANOVA DEASTRENGTH
+
+ifmove 0
+{
+	ife gametype -1 
+	{
+		ifn initsprite 0
+		ifl ancients initsprite { cstat 32768 break }
+		ifl wave droptile { cstat 32768 break }
+		ifn SPRITELOTAG 0 // kill other deanovas
+		{
+			set spriteid 0
+			whilevarn spriteid 16384
+			{
+				ife sprite[spriteid].picnum DEANOVA
+				ifn sprite[spriteid].statnum 1024
+				ife actorvar[spriteid].SPRITELOTAG 0
+					setav[spriteid].monstatus 2
+					
+				add spriteid 1
+			}
+		}
+	}
+	ai AIDEAWAIT
+	ifspritepal 17 { set team 0 set navmode 4 ifl sprite[].xrepeat 4 spawn GLARESTAR }
+	else
+	{
+		getp[].max_actors_killed temp
+		sub temp 1
+		setp[].max_actors_killed temp
+		set team 1
+	}
+	cstat 257
+	sizeat 28 25
+	clipdist 32
+	
+	
+	ife gametype 0 set navmode 0 else 
+	{
+		set navmode 2
+		ife gametype -1 
+		{
+			ifn SPRITELOTAG 0 ifle tourgoal SPRITELOTAG
+			{
+				set tourgoal SPRITELOTAG
+				add tourgoal 1
+			}
+		}
+	}
+	
+}
+
+ifg botclip 0 sub botclip 1
+ife bottarget -1 set botclip 0
+ife botclip 0 fall
+
+ife gametype -1 ife team 1 ife pdown NO state deapeacefulcode
+else state deabattlecode
+
+ifspritepal 17 set team 0 // failsafe
+
+
+enda
+
+action ADEAWAITSTAND -1  1  5  1  10
+useractor notenemy DEAWAIT 0 ADEAWAITSTAND
+
+	ifmove 0
+	{
+		move STOPPED faceplayerslow
+		cstat 257
+		clipdist 32
+		sizeat 28 25
+		ifn SPRITELOTAG 0
+		{
+			espawn DIALOGBUB
+			set myspawner RETURN
+		}
+			
+	}
+
+	ifn myspawner -1 // dialogbub visible
+	{
+		ife player[].cursectnum sprite[].sectnum
+		ife mtype 0
+		{
+			state playerturntome
+			setp[].horiz 100
+			setp[].jumping_counter 0
+			ifpdistg 1024
+			{
+				cos kickfvel angvar
+				sin kicksvel angvar
+				shiftl kicksvel 6
+				shiftl kickfvel 6
+				setp[].posxv kickfvel
+				setp[].posyv kicksvel
+			}
+			ifn myshelly -1 setav[myshelly].monstatus 70
+		}
+		seta[myspawner].cstat 0
+		ifmove STOPPED nullop else move STOPPED faceplayer
+		ifp pfacing
+		ifcansee
+		ifpdistl 1432
+		// ifhitspace
+		ife mtype 0
+		{
+			ifn myshelly -1 setav[myshelly].monstatus 30
+			set subtitle_start SPRITELOTAG
+			set subtitle_numlines droptile
+			set subtitle_time subtitle_numlines
+			mul subtitle_time 90
+			set mtype subtitle_time
+			ife subtitle_start 771 globalsound DEA_COMEWITHYOU
+		}
+		
+		setsprite myspawner sprite[].x sprite[].y sprite[].z // just in case it moved
+		
+		ifg mtype 0
+		{
+			state playerturntome
+			setp[].weapon_pos -9
+			ifg subtitle_time 15 quote 311
+			ifl subtitle_time 15 ife player[].ftq 311 setp[].fta 0
+			ifhitspace ifg mtype 11 { sub mtype 10 sub subtitle_time 10 }
+			sub mtype 1
+
+			ifle mtype 0
+			{
+				ife subtitle_start 771 ifsound DEA_COMEWITHYOU stopsound DEA_COMEWITHYOU
+				set navmode 0
+				setav[myspawner].monstatus 2
+				set myspawner -1
+				set SPRITELOTAG 0
+				cactor DEANOVA
+				ai AIDEAWALK
+				set team 1
+				lockplayer 1
+				set navpoint -1
+				strength DEASTRENGTH
+				seta[].htextra -1
+			}
+		}
+	}
+
+enda
+
+action ADENTRAILFRAME  0  1  5  1  1
+useractor notenemy DENOVATRAIL 0 ADENTRAILFRAME
+
+ifmove 0
+{
+	move STOPPED
+	seta[].xrepeat sprite[myspawner].xrepeat
+	seta[].yrepeat sprite[myspawner].yrepeat
+	cstat 514
+	seta[].ang sprite[myspawner].ang
+	seta[].pal sprite[myspawner].pal
+}
+ifcount 3 killit
+
+enda

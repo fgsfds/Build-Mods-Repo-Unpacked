@@ -1,0 +1,890 @@
+// LITTLE LADY AKA Li'Ly'
+
+action ALILYSTAND  0  1  5  1  10
+action ALILYRUN   5  4  5  1  6
+action ALILYRUNBACK 20   4  5   -1   8
+
+
+action ALILYSHOOTPREP  25  1  5  1  40
+action ALILYSHOOTLEFT  30  1  5  1  20
+action ALILYSHOOTRIGHT  35  1  5  1  20
+action ALILYSTUN  40  1  5  1  20
+action ALILYFALL  45  1  5  1  16
+action ALILYJUMPAIR  50  1  5  1  16
+action ALILYLAND  55  1  5  1  20
+action ALILYFLY  60  1  5  1  10
+action ALILYSWIM 60  1  5  1  10
+action ALILYDIE  65  6  1  1  16
+action ALILYDEAD 70  1  1  1  10
+action ALILYSPIN 71  1  5  1  4
+
+move LILYRUNVEL 288
+move LILYBACKVEL -144
+move LILYFLYVEL 512 -12
+move LILYSWIMVEL 192 -12
+move LILYJUMPVEL 256 -96
+move LILYFALLVEL 208
+
+defstate lilyattkeval
+
+	ldist xydist THISACTOR bottarget
+	ifg targetdist 16384 
+	ifg xydist 3072
+	{
+		ife countvarb 0 { sound L_ATTACK1 set countvarb 30 }
+		action ALILYFLY
+		move LILYFLYVEL geth getv
+	}
+	else
+	ifl targetdist 1792
+	{
+		action ALILYSPIN
+		move STOPPED geth
+	}
+	else
+	{
+		ifaction ALILYRUN ifrnd 160 break
+		// ifrnd 128
+		ifg xydist 3072
+		{
+			ife countvarb 0 { sound L_ATTACK1 set countvarb 30 }
+			action ALILYFLY
+			move LILYFLYVEL geth getv
+		}
+		else
+		{
+			ife countvarb 0 { sound L_ATTACK2 set countvarb 30 }
+			action ALILYSHOOTPREP
+			move STOPPED geth
+		}
+		
+	}
+ends
+
+defstate lilyteleport
+
+	ife teamspawned player[].i
+	{
+		ifn player[].on_crane -1 break
+		
+		set B -1
+		headspritestat spriteid 999
+		whilevarn spriteid -1
+		{
+			ldist tempc player[].i spriteid
+			ifg tempc 2560 
+			ifl tempc 6144
+			{
+				canseespr spriteid player[].i temp
+				ife temp YES
+				set B spriteid
+			}
+			nextspritestat spriteid spriteid
+			ifn B -1 set spriteid -1
+		}
+		ifn B -1
+		{
+			setsprite THISACTOR sprite[B].x sprite[B].y sprite[B].z
+			action ALILYFLY
+			move LILYFLYVEL geth getv
+			set botclip 0
+		}
+	}
+	else 
+	{
+		setsprite THISACTOR sprite[teamspawned].x sprite[teamspawned].y sprite[teamspawned].z
+		action ALILYFLY
+		move LILYFLYVEL geth getv
+		set botclip 0
+	}
+
+ends
+
+defstate lilyshootstate
+
+	setprojectile[CBPROJ].xrepeat 24
+	setprojectile[CBPROJ].yrepeat 24
+	setprojectile[CBPROJ].spawns EXPLOSION3
+	setprojectile[CBPROJ].isound SMALLEXP1
+	
+	sound RPG_SHOOT
+	setactorsoundpitch THISACTOR RPG_SHOOT 644
+	set xvel 844
+	ifaction ALILYSHOOTRIGHT setprojectile[CBPROJ].offset 224
+	else setprojectile[CBPROJ].offset -160
+	state rpg_targetprep
+	zshoot zdist CBPROJ
+	setprojectile[CBPROJ].xrepeat 32
+	setprojectile[CBPROJ].yrepeat 32
+	setprojectile[CBPROJ].spawns CBPROJEXP
+	setprojectile[CBPROJ].isound BREAKROCK
+ends
+
+defstate lilyfightstate
+
+ife PSHRINKING 0
+ifp palive
+{
+	dist xydist3 THISACTOR teamspawned
+	ifg xydist3 26624 { state lilyteleport break } else
+	ifn bottarget -1 ifg targetdist 16384 ifg xydist3 16384 { state lilyteleport break } else
+	ifn sector[].lotag 2 ife sector[sprite[teamspawned].sectnum].lotag 2 { state lilyteleport break }
+}
+
+ifaction ALILYSTAND
+{
+	ifcount 8
+	{
+		action ALILYRUN
+		move LILYRUNVEL geth
+	}
+}
+else
+ifaction ALILYRUN
+{
+	ifactioncount 4
+	{
+		resetactioncount
+		state lilyattkeval
+	}
+}
+else
+ifaction ALILYFLY
+{
+	set spriteid bottarget
+	state facesprite
+	
+	geta[].z savz
+	sub savz 2048
+	seta[].z savz
+	espawn EXPLOSION2
+	seta[RETURN].pal 2
+	add savz 2048
+	seta[].z savz
+	
+	ifnotmoving
+	{
+		sound CYBOSS_LAND
+		action ALILYSTUN
+		set stun 20
+		move STOPPED geth
+		
+		ifvarl targetdist 1280
+		{
+			geta[].x x2
+			geta[].y y2
+			sub x2 sprite[bottarget].x
+			sub y2 sprite[bottarget].y
+			getangle angvar x2 y2
+			seta[bottarget].ang angvar
+
+			seta[bottarget].xvel -1024
+			getav[bottarget].stun temp
+			add temp 30
+			setav[bottarget].stun temp
+			ifl actorvar[bottarget].inithp 1000
+			{
+				geta[bottarget].z z
+				sub z 2048
+				seta[bottarget].z z
+			}
+			geta[bottarget].zvel z
+			sub z 2048
+			seta[bottarget].zvel z
+			
+			geta[bottarget].htextra tempc
+			rand tempb 10
+			add tempb 50
+			add tempc tempb
+			seta[bottarget].htextra tempc
+			seta[bottarget].htpicnum RPG
+			seta[bottarget].htowner THISACTOR
+			seta[bottarget].htang sprite[].ang
+		}
+
+		break
+	}
+	geta[bottarget].z z2
+	sub z2 2048
+	sub z2 sprite[].z
+	shiftl z2 9
+	div z2 targetdist
+	movesprite THISACTOR 0 0 z2 CLIPMASK0 RETURN
+	ifcount 50
+	{
+		action ALILYLAND
+		set thirdbaseval JUMPAD
+		move STOPPED geth
+	}
+}
+else
+ifaction ALILYSHOOTPREP
+{
+	ifactioncount 1
+	{
+		action ALILYSHOOTLEFT
+		state lilyshootstate
+	}
+}
+else
+ifaction ALILYSHOOTLEFT
+{
+	ifactioncount 1
+	{
+		action ALILYSHOOTRIGHT
+		state lilyshootstate
+	}
+}
+else
+ifaction ALILYSHOOTRIGHT
+{
+	ifactioncount 1
+	{
+		ifrnd 64
+		state lilyattkeval
+		else
+		{
+			action ALILYSHOOTLEFT
+			state lilyshootstate
+		}
+	}
+}
+else
+ifaction ALILYRUNBACK
+{
+	ifactioncount 8
+	{
+		ife countvarb 0 { sound L_ATTACK2 set countvarb 30 }
+		action ALILYSHOOTPREP
+		move STOPPED geth
+	}
+}
+else
+ifaction ALILYSPIN
+{
+	set dodgetime 3
+	geta[].ang angvar
+	add angvar 257
+	seta[].ang angvar
+	geta[bottarget].x x2
+	geta[bottarget].y y2
+	sub x2 sprite[].x
+	sub y2 sprite[].y
+	getangle angvel x2 y2
+	
+	cos xvel angvel
+	sin yvel angvel
+	  
+	shiftvarr xvel 6
+	shiftvarr yvel 6
+
+	geta[bottarget].z z2
+	sub z2 sprite[].z
+	shiftl z2 9
+	div z2 targetdist
+
+	movesprite THISACTOR xvel yvel z2 CLIPMASK0 RETURN
+	
+	ifcount 8
+	{
+		resetcount
+		sound DASHSOUND
+		setactorsoundpitch THISACTOR DASHSOUND 1024
+	}
+	add countvarc 1
+	ifg countvarc 60
+	{
+		set countvarc 0
+		action ALILYRUNBACK
+		move LILYBACKVEL geth
+		break
+	}
+	
+	geta[].ang savx
+	sub savx 512
+	seta[].ang savx
+	
+	shoot SAWPROJ
+	add savx 1024
+	seta[].ang savx
+	shoot SAWPROJ
+	sub savx 512
+	seta[].ang savx
+	
+	
+	ifn bottarget -1
+	ifg sprite[bottarget].htextra 0
+	ife sprite[bottarget].htowner THISACTOR
+	{
+		ifactorsound THISACTOR KNIFEIMPACT
+		{
+			sub ikicked player[].player_par
+			ifl ikicked -7
+			sound KNIFEIMPACT
+		}
+		else sound KNIFEIMPACT
+		set ikicked player[].player_par
+		
+	}
+	
+}
+
+ends
+
+defstate lilystartjump
+
+	action ALILYJUMPAIR
+	move LILYJUMPVEL geth getv
+	set thirdbaseval JUMPAD
+	ife countvarb 0 { sound L_JUMP set countvarb 30 }
+
+ends
+
+defstate lilyjumpstate
+
+	ifmove LILYJUMPVEL
+	{
+		set thirdbaseval JUMPAD
+		ifactioncount 2
+		{
+			move LILYFALLVEL geth
+			resetactioncount
+			// check for fly here
+			ife bottarget -1
+			{
+				set targethigher sprite[teamspawned].z
+				sub targethigher sprite[].z
+				ifl targethigher -1024
+				{
+					action ALILYFLY
+					move LILYFLYVEL geth getv
+					set thirdbaseval 0
+					break
+				}
+			}
+		}
+	}
+	else
+	ifmove LILYFALLVEL
+	{
+		ifactioncount 2 ifaction ALILYJUMPAIR action ALILYFALL
+		iffloordistl 4
+		{
+			sound THUD
+			action ALILYLAND
+			move STOPPED geth
+		}
+	}
+	else
+	{
+		ifactioncount 1
+		{
+			action ALILYSTAND
+			set thirdbaseval 0
+			set countvar 20
+		}
+	}
+
+ends
+
+defstate lilyjumpcheck
+
+	ifn countvar 0 break
+	
+	geta[].sectnum mysector
+	ife mysector -1 break
+	getceilzofslope mysector sprite[].x sprite[].y z
+	sub z sprite[].z
+	ifg z -16384 break
+	
+	// we want to scan at waist heigh in the direction angvel
+	// then another scan much higher if there is an obstacle
+
+	geta[].z z
+	sub z 512
+	cos mycos angvel
+	sin mysin angvel
+	hitscan sprite[].x sprite[].y z sprite[].sectnum mycos mysin 0 hitsector hitwall hitsprite hitx hity hitz CLIPMASK1
+	
+	set startx sprite[].x
+	sub startx hitx
+	mul startx startx
+	set y2 sprite[].y
+	sub y2 hity
+	mul y2 y2
+	add startx y2
+	sqrt startx startx
+
+	set temp NO
+	ifl startx JUMPDIST set temp YES
+	ifnotmoving { set startx 256 set temp YES }
+	ifn hitsprite -1 
+	{
+		ife actorvar[hitsprite].monstatus 1 set temp NO
+		ife sprite[hitsprite].picnum APLAYER set temp NO
+	}
+	
+	ife sprite[].zvel 0
+	ife temp YES
+	{
+		sub z 8192 // 18432
+		
+		state jumpheightcheck
+		ifg starty startx // new scan goes farther
+		{
+			sub starty startx
+			ifg starty 256 // enough space to stand on
+				state lilystartjump
+			
+		}
+		ifaction ALILYJUMPAIR nullop else
+		{
+			sub z 8192
+			state jumpheightcheck
+			ifg starty startx // new scan goes farther
+			{
+				sub starty startx
+				ifg starty 256 // enough space to stand on
+					state lilystartjump
+				
+			}
+		}
+	}
+	else ifg startx 384 ifl startx 1280 
+	ife gametype 0
+	ifn player[].cursectnum sprite[].sectnum ifn player[].cursectnum -1
+	ifpdistg 1560 operate
+
+ends
+
+defstate lilydyingstate
+
+	ifaction ALILYDIE
+	{
+		ifactioncount 5
+		action ALILYDEAD
+		sound THUD
+	}
+	ifaction ALILYDEAD
+	{
+		strength 0
+		ifhitweapon { }
+	}
+
+ends
+
+defstate lilystunstate
+
+	ife stun 0
+	{	
+		iffloordistl 4
+			action ALILYSTAND
+			
+		else
+		{
+			action ALILYLAND
+			set thirdbaseval JUMPAD
+		}
+			
+		move STOPPED geth
+	}
+	else
+	ifaction ALILYSTUN nullop else 
+	{
+		action ALILYSTUN
+		move STOPPED geth
+		set crumbwait 3
+		set dodgetime 3
+	}
+
+ends
+
+defstate lilydistress
+
+	rand temp 3
+	ife temp 0 sound L_ROAM1 else
+	ife temp 1 sound L_PAIN1 else
+	ife temp 2 sound L_PAIN2 else
+	ife temp 3 sound L_ROAM4
+	setactorsoundpitch THISACTOR temp 768
+	set countvarb 12
+
+ends
+
+defstate lilyroamsounds
+
+	ifrnd 1 ifrnd 64
+	ifpdistl 4096
+	{
+		rand temp 3
+		ife temp 0 sound L_ROAM1 else
+		ife temp 1 sound L_ROAM2 else
+		ife temp 2 sound L_ROAM3 else
+		ife temp 3 sound L_ROAM4
+	}
+
+ends
+
+
+useractor enemy LILY 200 ALILYSTAND
+
+seta[].ang angvel 
+
+
+ifmove 0
+{
+	// getp[].max_actors_killed temp
+	// sub temp 1
+	// setp[].max_actors_killed temp
+	ifn THISACTOR mylily killit
+	move STOPPED
+	clipdist 32
+	sizeat 20 18
+	set team 3
+	set monstatus 1
+	set monxp 0
+	set inithp player[].max_player_health
+	set mlevel plevel
+}
+
+ife startmode -1 { set mylily -1 set monstatus 3 killit }
+
+ife THISACTOR mylily
+{
+	ifvarand startmode 8 nullop else
+	{
+		set mylily -1
+		set monstatus 3
+		killit
+	}
+}
+
+ifaction ALILYFLY nullop else
+fall
+
+ifvarand inven_upgrades 4
+// ife pchar 3
+ifge player[].holoduke_amount HOLODUKE_AMOUNT
+ifg ptargeted 0
+{
+	ifn sprite[].pal 19 
+	{
+		sound L_GROW
+		ife player[].holoduke_on -1
+		setp[].holoduke_on THISACTOR
+		spritepal 19
+		cstator 257
+	}
+}
+else
+ife pchar 3
+ifn player[].holoduke_on -1
+{
+	ifn sprite[].pal 19 
+	{
+		sound L_GROW
+		spritepal 19
+	}
+}
+else
+{
+	sizeto 20 18
+	set team 3
+	spritepal 0
+}
+
+ifg countvar 0 sub countvar 1
+ifg countvarb 0 sub countvarb 1
+
+set teamspawned player[].i
+ifn myshelly -1
+{
+	ife sprite[myshelly].picnum MANDOFETT set teamspawned myshelly else
+	ife sprite[myshelly].picnum MANDOCROUCH set teamspawned myshelly
+}
+
+ife teamspawned player[].i { ife seeplayer NO add botclip 1 else set botclip 0 }
+else 
+{ 
+	geta[].z savz sub savz 8192 seta[].z savz 
+	canseespr THISACTOR teamspawned temp
+	ife temp NO add botclip 1 else set botclip 0
+	add savz 8192 seta[].z savz
+}
+
+set bossang bottarget
+state monsterai
+ife bossang -1 ifn bottarget -1 ifl targetdist 6144 sound L_GROW
+
+state botblocking
+
+ifg sprite[].htextra -1
+ifn sprite[].htowner -1
+{
+	ife sprite[].htowner player[].i seta[].htextra -1
+	else
+	ife actorvar[sprite[].htowner].team 1 seta[].htextra -1
+}
+
+ifspritepal 19
+{
+	sizeto 32 28
+	cstator 257
+	set team 1
+	ife countvarb 0 state lilyroamsounds
+	set temp sprite[].htextra
+	ife temp -1 set temp 0
+	set tempb player[].holoduke_amount
+	ifge tempb HOLODUKE_AMOUNT sub tempb 1
+	sub tempb temp
+	ifl tempb 0 set tempb 0
+	setp[].holoduke_amount tempb
+	
+	seta[].extra player[].holoduke_amount
+	set inithp HOLODUKE_AMOUNT
+	
+	ifn myvictim -1
+	ife actorvar[myvictim].monstatus 2
+	{
+		ifn actorvar[teamspawned].monstatus 2
+		{
+			ifsound M_GOODGIRL nullop else
+			ifsound M_WHOGOODGIRL nullop else
+			ifrnd 128
+			ifpdistl 14336
+			{
+				ifrnd 128 
+				{
+				screensound M_GOODGIRL screensound M_GOODGIRL screensound M_GOODGIRL screensound M_GOODGIRL 
+				}
+				else
+				{
+				screensound M_WHOGOODGIRL screensound M_WHOGOODGIRL screensound M_WHOGOODGIRL screensound M_WHOGOODGIRL
+				}
+				
+			}
+		}
+		set myvictim -1
+	}
+}
+else 
+{
+	cstat 0
+	set team 3
+	strength 200
+	set inithp 200
+	geta[].htflags temp
+	ifvarand temp 4 xorvar temp 4
+	orvar temp 8192
+	seta[].htflags temp
+	set burning 0
+	set bleeding 0
+	set myvictim -1
+	seta[].htextra -1
+	
+	ife actorvar[teamspawned].monstatus 2
+	ife countvarb 0 state lilydistress
+}
+
+ife THISACTOR player[].holoduke_on
+{
+	ife bottarget -1
+	ife ptargeted 0
+		setp[].holoduke_on -1
+}
+
+
+ife monstatus 2 state lilydyingstate else
+ife thirdbaseval JUMPAD state lilyjumpstate else
+ifaction ALILYSTUN state lilystunstate else
+ife bottarget -1
+{
+	set countvarc 0
+	dist xydist3 THISACTOR teamspawned
+	ifg xydist3 16384 { state lilyteleport break }
+	
+	ifnotmoving 
+	{
+		ife teamspawned player[].i
+		{
+			ife PSHRINKING 0
+			ifp palive
+			ifge botclip 10
+			{
+				state lilyteleport break
+			}
+			
+		}
+		else
+		ifge botclip 10
+		{
+			state lilyteleport break
+		}
+	}
+	
+	geta[teamspawned].x x2
+	geta[teamspawned].y y2
+	sub x2 sprite[].x
+	sub y2 sprite[].y
+	getangle angvel x2 y2
+	
+	ife teamspawned player[].i
+	ife pdown NO
+	ife crumbwait 0
+		state getcrumb
+
+	ife dodgetime 0
+	ife padmove 0
+	ifn sprite[].ang angvel
+	{
+		geta[].ang angvar
+		getincangle temp angvar angvel
+		set B MAXSHELLYTURN
+		mul B -1
+		ifg temp B ifl temp MAXSHELLYTURN
+			seta[].ang angvel
+		else
+		{
+			ifl temp 0 sub angvar MAXSHELLYTURN
+			else add angvar MAXSHELLYTURN
+			seta[].ang angvar
+		}
+	}
+	// the NOT fighting movement
+	
+	// targethigher negative values how much higher they are, negative how much lower
+	set targethigher sprite[teamspawned].z
+	sub targethigher sprite[].z
+	
+	set TMP_A 2560 // follow distance
+	ife actorvar[teamspawned].monstatus 2 set TMP_A -1000
+	ifg actorvar[teamspawned].spawnprotect 0 ifrnd 64 spawn HEARTFLOAT
+	ifinwater
+	{
+		spawn WATERBUBBLE
+		
+		ifaction ALILYSWIM nullop else
+		action ALILYSWIM
+		
+		ifmove STOPPED nullop else
+		ifl TMP_A 1560
+			move STOPPED geth
+		
+		ifmove LILYSWIMVEL nullop else
+		ifge TMP_A 1560
+			move LILYSWIMVEL geth getv
+			
+		geta[teamspawned].z z2
+		sub z2 sprite[].z
+		shiftl z2 9
+		div z2 targetdist
+		movesprite THISACTOR 0 0 z2 CLIPMASK0 RETURN
+	}
+	else
+	ifaction ALILYSTAND
+	{
+		add TMP_A 512
+		ifg xydist3 TMP_A
+		{
+			action ALILYRUN
+			move LILYRUNVEL geth
+		}
+		else ifl xydist3 1280 ife teamspawned player[].i
+		ifhitspace ifp pfacing 
+		ife countvarb 0
+		{ 
+			spawn HEARTFLOAT spawn HEARTFLOAT spawn HEARTFLOAT
+			set countvarb 60
+			sound L_ROAM2
+			ifphealthl 20 addphealth 1
+			ifsound M_GOODGIRL nullop else
+			ifsound M_WHOGOODGIRL nullop else
+			ifrnd 96 
+			{
+				ifrnd 128 sound M_GOODGIRL else
+				sound M_WHOGOODGIRL
+			}
+		}
+	}
+	else
+	ifaction ALILYRUN
+	{
+		ifg xydist3 16384
+		{
+			action ALILYFLY
+			move LILYFLYVEL geth getv
+		}
+		else
+		ifl xydist3 TMP_A
+		{
+			action ALILYSTAND
+			move STOPPED geth
+		}
+		else
+		iffloordistl 4
+		{
+			ife countvar 0
+			{
+				ifl targethigher -8192 state lilystartjump
+				else state lilyjumpcheck
+			}
+		}
+	}
+	else
+	ifaction ALILYFLY
+	{
+		geta[].z savz
+		sub savz 2048
+		seta[].z savz
+		espawn SMALLSMOKE
+		seta[RETURN].pal 2
+		add savz 2048
+		seta[].z savz
+	
+		geta[teamspawned].z z2
+		sub z2 8192
+		sub z2 sprite[].z
+		shiftl z2 9
+		div z2 targetdist
+		movesprite THISACTOR 0 0 z2 CLIPMASK0 RETURN
+		ifn RETURN 0
+		{
+			action ALILYSTAND
+			move STOPPED geth
+		}
+		
+		ifl xydist3 TMP_A
+		iffloordistl 64
+		{
+			action ALILYSTAND
+			move STOPPED geth
+		}
+	}
+	else
+	{
+		action ALILYSTAND
+		move STOPPED geth
+	}
+}
+else 
+{
+	ife dodgetime 0 set angvel sprite[].ang
+	state lilyfightstate
+}
+
+geta[].ang angvel
+
+
+ifhitweapon 
+{
+	seta[].extra player[].holoduke_amount
+	ifspritepal 19
+	ife countvarb 0
+	{
+		set countvarb 15
+		ifrnd 128 sound L_PAIN1 else
+		sound L_PAIN2
+	}
+}
+
+enda

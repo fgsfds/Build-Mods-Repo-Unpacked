@@ -1,0 +1,1216 @@
+
+
+
+action AGRAVEAIM  30  1  5  1  5
+action AGRAVESHOOT  25  1  5  1  5
+action AGRAVEDOWN  35  2  5  1  50
+action AGRAVEHIT  35  2  5  1  30
+action AGRAVERECOVER	35  2  5  1  50
+action AGRAVEFLARE  45  1  5  1  60
+action AGRAVEDIE  50  6  1  1  18
+action AGRAVEDEAD 55  1  1  1  10
+action AGRAVESTAND 180  1  5  1  10 // NO WEAPON
+action AGRAVEWALK 185  4  5  1  10
+action AGRAVEWALKBACK 20  4  5  -1  10
+action AGRAVESJUMP 205  1  5  1  20
+action AGRAVESFALL 210  1  5  1  20
+action AGRAVESTHROW1 215  1  5  1  50
+action AGRAVESTHROW2 220  1  5  1  50
+
+ai AIGRAVESHOOT AGRAVEAIM STOPPED geth
+ai AIGRAVESDYING AGRAVEDIE STOPPED geth
+ai AIGRAVEDODGE AFIGHTWALK STOPPED geth
+ai AIGRAVEHIT AGRAVEHIT STOPPED geth
+ai AIGRAVEDOWN AGRAVEDOWN STOPPED geth
+ai AIGRAVESHEAL AGRAVESTAND STOPPED faceplayer
+ai AIGRAVESTHROW AGRAVESTHROW1 STOPPED geth
+
+ai AIGRAVESCRIPT AFIGHTWALK EDFWALKVEL geth
+
+move GRAVESJUMPVEL 160 -96
+ai AIGRAVESJUMP AGRAVESJUMP GRAVESJUMPVEL geth getv
+
+defstate gravehealstate
+
+	ife pdown YES
+	{
+		ifcansee
+		{
+			ifpdistl 1024
+			{
+				ifphealthl 50 soundonce GRAVES_REVPLAYER
+				action AGRAVESTAND
+				move STOPPED faceplayer
+				soundonce AIRBURST
+				addphealth 1
+				palfrom 16 0 10 63
+				espawn CAPTUREPLUS
+				seta[RETURN].x player[].posx
+				seta[RETURN].y player[].posy
+				seta[RETURN].z sprite[player[].i].z
+				seta[RETURN].pal 1
+				rand x 512
+				sub x 256
+				add x sprite[RETURN].x
+				seta[RETURN].x x
+				rand y 512
+				sub y 256
+				add y sprite[RETURN].y
+				seta[RETURN].y y
+			}
+			else
+			{
+				set bottarget -1
+				set spriteid player[].i
+				state facesprite
+				ifmove EDFWALKVEL nullop
+				else
+				{
+					move EDFWALKVEL faceplayer
+					action AFIGHTWALK
+				}
+				ifnotmoving
+				{
+					set x2 sprite[].x
+					add x2 512
+					rotatepoint sprite[].x sprite[].y x2 sprite[].y sprite[].ang x y
+					setsprite THISACTOR x y sprite[].z
+				}
+			}
+		}
+		else
+		{
+			set bottarget -1
+			set spriteid player[].i
+			state facesprite
+			ifmove EDFWALKVEL nullop
+			else
+			{
+				move EDFWALKVEL faceplayer
+				action AFIGHTWALK
+			}
+			ifnotmoving
+			{
+				set x2 sprite[].x
+				add x2 512
+				rotatepoint sprite[].x sprite[].y x2 sprite[].y sprite[].ang x y
+				setsprite THISACTOR x y sprite[].z
+			}
+		}
+	}
+	else ai AIFIGHTWALK
+
+ends
+
+defstate gvr_reload
+
+	ifl botclip 0
+	{
+		add botclip 1
+		
+		ife botclip -45 
+		{
+			sound SHELLYCLIPOUT
+			espawn SHELL
+			setav[RETURN].mtype CLIPFALL
+		}
+		ife botclip -15 sound SHELLYCLIPIN
+		ife botclip 0 set botclip 30
+		
+	}
+
+ends
+
+defstate gvr_shootsmg
+
+	spawn SHELL		
+	sound SHELLYFIRE
+	state hitscan_targetprep
+	zshoot zdist SHOTSPARK1
+	zshoot zdist SHOTSPARK1
+	
+	sub botclip 1
+	ifle botclip 0
+	{
+		set botclip -60 // reloading
+		ai AIFIGHTSTAND
+	}
+ends
+
+defstate gvr_dodge
+
+	geta[].ang angvel
+	ifrnd 128 add angvel 512 else sub angvel 512
+	ai AIGRAVEDODGE
+	set dodgetime 10
+	
+ends
+
+defstate gvr_walkback
+
+	ifmove RESMOVEBACK break
+	ai AIFIGHTWALK
+	move RESMOVEBACK geth
+	action AGRAVEWALKBACK
+	
+ends
+
+defstate gvrgunselect
+
+	set target bottarget
+	state friendlyfirecheck
+
+	ifg targetdist 2560
+	ifl targetdist 12288
+	// ifge sprite[bottarget].extra 50
+	ifrnd 64
+	ifn target -1
+	{
+		ai AIGRAVESTHROW
+		ife countvarb 0
+		{
+			ifrnd 64 sound GRAVES_FRAGOUT
+			set countvarb 120
+		}
+	}
+	else
+	ai AIGRAVESHOOT
+	
+ends
+
+defstate gvr_combat_choice
+	
+	state avoidmines
+	ife B YES
+	{
+		state gvr_walkback
+		break
+	}
+	ifg botclip 0
+	ifnotmoving state gvrgunselect else
+	ifl targetdist 4096
+	ifrnd 96
+		state gvr_walkback
+	else
+	ifl targetdist 8192
+	ifrnd 192 ifg botclip 0
+		state gvrgunselect
+	else
+	ifl targetdist 12288
+	ifrnd 64 ifg botclip 0
+		state gvrgunselect
+	else
+		ai AIFIGHTWALK
+ends
+			
+defstate gvr_roam_choice
+
+	ifn gametype 0 
+	{
+		ai AIFIGHTWALK
+		break
+	}
+	
+	ifai AIFIGHTSTAND 
+	{
+		ifactioncount 6
+		{
+			ai AIFIGHTWALK
+			// ifcansee
+			// ifpdistg 2560
+				move EDFWALKVEL seekplayer
+			
+		}
+	}
+	else
+		ai AIFIGHTSTAND
+	
+
+ends
+
+defstate gvr_choice
+
+	ifn bottarget -1 state gvr_combat_choice
+	else state gvr_roam_choice
+
+ends
+
+defstate gravestate
+
+	// ifhitspace
+	// {
+		// set TMP_A 99999
+		// al TMP_A al TMP_A
+		// al monstatus
+		// al initsprite
+		// geta[].x x al x
+		// geta[].y y al y
+		// geta[].z z al z
+		// geta[].sectnum mysector al mysector
+		// al countvarb
+		// al countvarc
+		// al myvictim
+		// al mysignpost
+		// al TMP_A al TMP_A
+	// }
+	ifai 0
+	{
+		set botclip 30 
+		ai AIFIGHTSTAND
+		cstat 257
+		sizeat 22 22
+		clipdist 32
+		set initsprite 5 // 4 post-speeches script state
+		set team 1
+		// getp[].max_actors_killed temp
+		// sub temp 1
+		// setp[].max_actors_killed temp
+		set navmode 3
+		set mlevel 10
+		geta[].htflags temp
+		orvar temp 8192
+		seta[].htflags temp
+	}
+	fall
+	state monsterai
+	ifai AIGRAVESDYING
+	{
+		strength 0
+		ifaction AGRAVEDIE
+		{
+			ifhitweapon state random_wall_jibs
+			ifactioncount 5
+			{
+				cstat 0 ifrnd 128 cstator 4
+				action AGRAVEDEAD
+				count 0
+				iffloordistl 8 sound THUD
+				ifrnd 128 spawn BLOODPOOL
+				break
+			}
+		}
+		ifaction AGRAVEDEAD
+		{
+			// ifhitweapon
+			// {
+				// ifwasweapon RPG
+				// {
+					// sound SQUISHED
+					// spawn BLOODPOOL
+					// state standard_jibs	
+					// killit
+				// }
+				// ifwasweapon RADIUSEXPLOSION
+				// {
+					// sound SQUISHED
+					// spawn BLOODPOOL
+					// state standard_jibs
+					// killit
+				// }
+			// }
+			ifcount 30 ai AIGRAVEDOWN
+		}
+		break
+	}
+	else
+	ifai AIGRAVEDOWN
+	{
+		ifaction AGRAVERECOVER
+		{
+			ifspritepal 33 getlastpal else spritepal 33
+			addstrength 5
+			ifge sprite[].extra 195
+			{
+				ifspritepal 33 getlastpal
+				seta[].extra inithp
+				set ikicked 0
+				set monstatus 1
+				ai AIFIGHTSTAND
+				cstat 257
+				seta[].htextra -1
+			}
+			break
+		}
+		ife ikicked -2
+		{
+			action AGRAVERECOVER
+			strength 20
+			cstat 257
+			seta[].htextra -1
+		}
+		else
+		{
+			ifpdistl 1280
+			ifp pfacing
+			ifp palive
+			ifcansee
+			{
+				// ifphealthl 30 { quote 775 break }
+				quote 129
+				ifhitspace
+				{
+					ifstrength 15
+					{
+						ife pchar 0
+							globalsound DUKE_HEAL2
+						else
+						ife pchar 1
+						{
+							rand temp 2
+							ife temp 0 globalsound B_TRYNOTODIE
+							ife temp 1 globalsound B_HANGINTHERE
+							ife temp 2 globalsound B_TRUSTME
+						}
+					}
+					addstrength 10
+					resetcount
+					set countvarb 0
+					ifspritepal 33 getlastpal else spritepal 33
+					// ifg player[].firstaid_amount 0
+					// {
+						// getp[].firstaid_amount temp
+						// sub temp 1
+						// setp[].firstaid_amount temp
+					// }
+					// else addphealth -1
+					
+				}
+				else ifspritepal 33 getlastpal
+			}
+			else 
+			{
+				ifspritepal 33 getlastpal
+				ife player[].ftq 129 setp[].fta 0
+				ife player[].ftq 775 ifg player[].fta 30 setp[].fta 30
+			}
+			ifge sprite[].extra 195
+			{
+				ifspritepal 33 getlastpal
+				seta[].extra inithp
+				set ikicked 0
+				set monstatus 1
+				cstat 257
+				ai AIFIGHTSTAND
+				ifrnd 128 sound GRAVES_THANKS
+				else sound GRAVES_WICKED
+				seta[].htextra -1
+			}
+			ifcount 900
+			{
+				ifspritepal 33 getlastpal
+				set ikicked 0
+				set monstatus 1
+				ai AIFIGHTSTAND
+				cstat 257
+				seta[].htextra -1
+				strength 30
+			}
+		}
+		break
+	}
+	else
+	ifai AIFIGHTFROZEN
+	{
+		set myspawner -1
+		ifcount THAWTIME
+		{
+		  ai AIFIGHTSTAND
+		  getlastpal
+		}
+		else
+		  ifcount FROZENDRIPTIME
+		{
+		  ifactioncount 26
+		  {
+			spawn WATERDRIP
+			resetactioncount
+		  }
+		}
+		ifhitweapon
+		{
+		  ifwasweapon FREEZEBLAST
+		  {
+			resetcount resetactioncount
+			strength 0
+			break
+		  }
+		  
+		  // state enemy_death
+
+		  ifrnd 84
+			spawn BLOODPOOL
+		  lotsofglass 30
+		  state lite_jibs
+		  sound GLASS_BREAKING
+		  getlastpal
+		  ai AIGRAVESDYING
+		}
+		break
+	}
+	else 
+	ifai AIFIGHTGROW
+	{
+		state genericgrowcode
+		break
+	}
+	else
+	ifai AIFIGHTSHRUNK
+	{
+	  set myspawner -1
+	  ifcount SHRUNKDONECOUNT
+		ai AIFIGHTSTAND
+	  else
+		ifcount SHRUNKCOUNT
+		  sizeto 22 20
+		
+	  else
+		state genericshrunkcode
+		break
+	}
+	
+	ifai AIGRAVESCRIPT
+	{
+		seta[].htextra -1
+		set spriteid mysignpost
+		state facesprite
+		ife initsprite 7 ifcount 180 // failsafe
+		{
+			setsprite THISACTOR sprite[mysignpost].x sprite[mysignpost].y sprite[mysignpost].z
+			move STOPPED
+			action AGRAVEAIM
+			set countvarb 60
+			cstat 32768
+			set initsprite 8	
+		}
+		ifg countvarb 0 sub countvarb 1 // voice counter
+		ifmove EDFWALKVEL
+		{
+			
+			// push through objects
+			ifnotmoving
+			{
+				set x2 sprite[].x
+				add x2 512
+				rotatepoint sprite[].x sprite[].y x2 sprite[].y sprite[].ang x y
+				setsprite THISACTOR x y sprite[].z
+				ife initsprite 7 // going to tank
+					setsprite THISACTOR sprite[mysignpost].x sprite[mysignpost].y sprite[mysignpost].z
+			}
+			ldist xydist THISACTOR mysignpost
+			ifle xydist 1536
+			{
+				move STOPPED
+				action AGRAVEAIM
+				ife initsprite 7 // made it to EDFTANK
+				{
+					set countvarb 60
+					cstat 32768
+					set initsprite 8
+				}
+			}
+		}
+		else
+		{
+			ifn countvarb 0 break
+			ifaction AGRAVEAIM
+			{
+				ife initsprite 10
+				{
+					seta[].extra inithp
+					ai AIGRAVESJUMP
+					set countvarb 150
+					globalsound GRAVES_TANK2
+qputs 980	    GRAVES:  "Whelp,  so  much  for  that  tank.
+qputs 981		Got  some  use  out  of  it  though."
+
+				set subtitle_time countvarb
+				set subtitle_numlines 2
+				set subtitle_start 980
+					cstat 257
+					break
+				}
+				ife initsprite 9
+				{
+					seta[].htextra -1
+					setsprite THISACTOR sprite[mysignpost].x sprite[mysignpost].y sprite[mysignpost].z
+					break
+				}
+				ife initsprite 8
+				{
+					// start the tank
+					setav[mysignpost].initflags -22460
+					setav[mysignpost].mysignpost THISACTOR
+					set initsprite 9
+					break
+				}
+				ife initsprite 6
+				{
+					action AFIGHTWALK 
+					move EDFWALKVEL geth
+					set initsprite 7
+					break
+				}
+				ifactioncount 1
+				{
+					set target mysignpost
+					ife sprite[].htextra -1
+					state friendlyfirecheck
+					ifn target -1
+					{
+						action AGRAVESHOOT
+							spawn SHELL		
+						sound SHELLYFIRE
+						set bottarget mysignpost
+						state hitscan_targetprep
+						set bottarget -1
+						zshoot zdist SHOTSPARK1
+						zshoot zdist SHOTSPARK1
+						sub botclip 1
+					}
+					
+				}
+			}
+			else ifaction AGRAVESHOOT
+			{
+				ifactioncount 1
+				{
+					action AGRAVEAIM
+					ifle botclip 22
+					{
+						ifn sprite[mysignpost].picnum 4433
+						{
+							seta[mysignpost].htextra 10
+							seta[mysignpost].htowner THISACTOR
+							seta[mysignpost].htang sprite[].ang
+							seta[mysignpost].htpicnum SHOTSPARK1
+						}
+						ife sprite[mysignpost].picnum 4433
+						{
+							starttrackslot VOLUME LEVEL // level track
+							set initsprite 5
+							ai AIFIGHTSTAND
+							set mysignpost -1
+						}
+					}
+						
+				}
+			}
+		}
+		break
+	}
+	ifl shellyinmap 10 set shellyinmap 10
+	ifn myspawner -1 // incoming projectile
+	{
+		ifn sprite[myspawner].statnum 4 set myspawner -1
+		ifn dodgetime 0 set myspawner -1
+		ifn myspawner -1
+		{
+			set temp NO
+			ifai AIFIGHTSTAND set temp YES
+			ifai AIFIGHTWALK set temp YES
+			ifai AIGRAVESHEAL set temp YES
+			ifl botclip -1 set temp YES
+			ifai AIGRAVEHIT set temp NO
+			ife temp YES
+			{
+				geta[].ang angvel
+				ifrnd 128 add angvel 512 else sub angvel 512
+				ai AIGRAVEDODGE
+				set dodgetime 10
+			}
+		}
+		set myspawner -1
+	}
+	ife pdown YES 
+	{
+		ifai AIGRAVESHEAL nullop else ai AIGRAVESHEAL
+	}
+	// ife PLAYERONTHEBIKE 1
+	ife VOLUME 4 ife LEVEL 14
+	ife countvarb 0
+	ife initsprite 11
+	{
+		set LOADMAP 0 // safety clear
+		orvar LOADMAP 2 // trigger to search for pal 4 destination LEVELPLATE2
+		set LAST_LEVEL LEVEL // sets up arrival in cathedral basement
+	
+		globalsound GRAVES_BASED
+		set countvarb 160
+		set initsprite 12
+qputs 980	    GRAVES:  "Looks  like  there's  enough  bikes  to  go  around.
+qputs 981		I'll  see  you  back  at  the  base,  soldier."
+
+		set subtitle_time countvarb
+		set subtitle_numlines 2
+		set subtitle_start 980
+	}
+	ife initsprite 12
+	{
+		ifpdistl 8192 nullop else
+		ifcansee nullop else
+		{
+			al THISACTOR
+			set monstatus 666
+			killit
+		}
+	}
+	ifai AIGRAVESHEAL state gravehealstate
+	else
+	ifai AIGRAVEHIT
+	{
+		ifg stun 0 resetactioncount
+		ifactioncount 2 ai AIFIGHTSTAND
+	}
+	else
+	ifai AIFIGHTSTAND
+	{
+		ifactioncount 2
+			state gvr_choice
+		
+	}
+	else
+	ifai AIGRAVESHOOT
+	{
+		ifaction AGRAVEAIM
+		{
+			ifactioncount 1
+			{
+				ife botclip -30 state gvr_choice else
+				ifl botclip 1 { ifg sprite[].htextra 0 state gvr_walkback } else
+				ife bottarget -1 state gvr_choice else
+				{
+					set target bottarget
+					ife sprite[].htextra -1
+					state friendlyfirecheck
+					ife target -1 { state gvr_dodge break }
+					action AGRAVESHOOT
+					state gvr_shootsmg
+				}
+			}
+		}
+		else ifaction AGRAVESHOOT
+		{
+			ifactioncount 1
+				action AGRAVEAIM
+		}
+	}
+	else
+	ifai AIGRAVESTHROW
+	{
+		ifaction AGRAVESTHROW1
+		{
+			ifactioncount 1
+			{
+				action AGRAVESTHROW2
+				set xvel 1280 // real vel is 644, but use diff val to compensate for drop
+				state rpg_targetprep
+				getprojectile[GRENADEPROJ].offset savz
+				setprojectile[GRENADEPROJ].extra 150
+				setprojectile[GRENADEPROJ].offset 160
+				sub zdist 1024
+				ifl zdist -8192 set zdist -8192
+				ezshoot zdist GRENADEPROJ 
+				setprojectile[GRENADEPROJ].offset savz
+				setprojectile[GRENADEPROJ].extra GRENADE_WEAPON_STRENGTH
+				set countvarb 0
+			}
+		}
+		else ifactioncount 1
+			ai AIFIGHTSTAND
+	}
+	
+	ifai AIFIGHTWALK
+	{
+		ife initsprite 5
+		{
+			findnearactor EDFTANK 8192 spriteid
+			ifn spriteid -1
+			ife actorvar[spriteid].initflags 22460
+			{
+				set initsprite 6
+				ai AIGRAVESCRIPT
+				set mysignpost spriteid
+				globalsound GRAVES_TANK
+				move STOPPED
+				action AGRAVEAIM
+				set countvarb 360
+qputs 980	    GRAVES:  "Hey, that  tank  over  there  looks  to  be  in  good  condition.
+qputs 981		I  should  be  able  to  use  my  clearance  code  to  get  it started.
+qputs 982	    With  any  luck,  it's  still  armed  and  I  can  use  it  to  clear  the
+qputs 983		area  while  you  look  for  a  way  out  of  this  neighborhood."
+				set subtitle_time countvarb
+				set subtitle_numlines 4
+				set subtitle_start 980
+				break
+			}
+		}
+		ifn bottarget -1
+		{
+			ifg sprite[].htextra 0 ifrnd 128 { state gvr_combat_choice break }
+			
+			ifnotmoving { add countvarc 30 state gvrgunselect break }
+			else ifl targetdist 4096 ifmove EDFWALKVEL state gvr_combat_choice
+			else ifactioncount 4 
+			{
+				ifl targetdist 4096 ifrnd 8 state gvr_combat_choice
+				ifl targetdist 8192 ifrnd 3 state gvr_combat_choice
+			}
+				
+			
+		}
+		else
+		{
+			state edfjumpcheck
+			ife D YES ai AIGRAVESJUMP else
+			ifonwater ifnotmoving { add countvarc 30 ai AIGRAVESJUMP }
+			else
+			ifactioncount 4
+			{
+				ifnotmoving { add countvarc 30 ai AIFIGHTSTAND }
+				else ifaction AGRAVEWALKBACK ai AIFIGHTSTAND
+				else
+				ifpdistl 1280 ai AIFIGHTSTAND
+			}
+		}
+		
+		ife initsprite 4 
+		ife countvarb 0
+		{
+			findnearspritez GRAVESPANEL 3072 16384 spriteid
+			ifn spriteid -1
+			{
+				canseespr THISACTOR spriteid B
+				ife B YES
+				{
+					getav[spriteid].SPRITELOTAG SPRITELOTAG
+					ifn SPRITELOTAG 0 
+					{
+						set mysignpost spriteid
+						ai AIGRAVESCRIPT
+						set countvarb 180
+						globalsound GRAVES_DOOR
+qputs 980	    GRAVES:  "Hold  on.  I  think  I  can  get  this  door  open
+qputs 981		with  a  few  well  placed  bullets."
+
+				set subtitle_time countvarb
+				set subtitle_numlines 2
+				set subtitle_start 980
+						break
+					}
+				}
+			}
+		}
+		
+		ifcansee ifpdistl 8192 set countvarc 0 else
+		{
+			add countvarc 1
+			ifge countvarc 210
+			{
+				
+				headspritestat spriteid 999
+				ife spriteid -1
+				{
+					setsprite THISACTOR player[].posx player[].posy player[].posz
+					set countvarc 0
+				}
+				else
+				{
+					whilevarn spriteid -1
+					{
+						canseespr spriteid player[].i temp
+						
+						ifg countvarc 300
+						{
+							ife temp YES set savedvalue spriteid
+						}
+						else
+						{
+							ife temp NO set savedvalue spriteid
+						}
+						
+						nextspritestat spriteid spriteid
+						ifn savedvalue -1 set spriteid -1
+					}
+					ifn savedvalue -1
+					{
+						setsprite THISACTOR sprite[savedvalue].x sprite[savedvalue].y sprite[savedvalue].z
+						set countvarc 0
+						
+						ifcansee ifpdistl 8192 nullop else setsprite THISACTOR player[].posx player[].posy player[].posz
+						
+					}
+					else setsprite THISACTOR player[].posx player[].posy player[].posz
+				}
+			}
+		}
+	}
+	else
+	ifai AIGRAVEDODGE
+	{
+		cos xvel angvel
+		sin tempb angvel
+		shiftr xvel 7
+		shiftr tempb 7
+		movesprite THISACTOR xvel tempb 0 CLIPMASK0 RETURN
+		ifn RETURN 0 set dodgetime 0
+		ife dodgetime 0
+			state gvr_choice
+	}
+	else
+	ifai AIGRAVESJUMP
+	{
+		seta[].ang mtype
+		ifmove GRAVESJUMPVEL
+		{
+			ifcount 8
+			{
+				move EDFWALKVEL geth
+				action AGRAVESFALL
+			}
+		}
+		ifmove EDFWALKVEL
+		{
+			iffloordistl 8
+			{
+				ai AIFIGHTWALK
+				sound THUD
+			}
+			
+		}
+	}
+	
+	state gvr_reload
+	ifg countvarb 0 sub countvarb 1 // voice counter
+	else ifl countvarb 0
+	{
+		add countvarb 1
+		ife countvarb 0 
+		{
+			globalsound GRAVES_GOTMYGUN
+			set countvarb 190
+qputs 980	    GRAVES:  "All  right,  I've  got  my  gun  back.
+qputs 981		I'll  let  you  lead  the  way  out  of  here."
+
+				set subtitle_time countvarb
+				set subtitle_numlines 2
+				set subtitle_start 980
+		}
+	}
+	ifn myvictim -1
+	ifn myvictim -2
+	{
+		set temp NO
+		ife actorvar[myvictim].monstatus 2 set temp YES
+		ife sprite[myvictim].statnum 1024 set temp YES
+		ife temp YES
+		ife countvarb 0
+		{
+			rand temp 4
+			switch temp
+			case 0 sound GRAVES_DEPORTED break
+			case 1 sound GRAVES_MAGGOT break
+			case 2 sound GRAVES_INVADER break
+			endswitch
+			set countvarb 60
+		}
+		set myvictim -1
+	}
+	ifg sprite[].htextra 0 ife sprite[].htowner player[].i
+	ife countvarb 0
+	{
+		sound GRAVES_SAMETEAM
+		set countvarb 90
+	}
+	ifhitweapon
+	{
+		ifwasweapon SHRINKSPARK
+		{
+		  sound ACTOR_SHRINKING
+		  ai AIFIGHTSHRUNK
+		  //set shrunken 1
+		  break
+		}
+		else
+			ifwasweapon GROWSPARK
+			  sound SPARKLESOUND
+		state random_wall_jibs
+		ifdead
+		{
+			ifwasweapon FREEZEBLAST
+			{
+			  sound NEWFREEZE
+			  spritepal 1
+			  ai AIFIGHTFROZEN
+			  strength 0
+			  state freezeme
+			  break
+			}
+			// ifwasweapon GROWSPARK
+			// {
+			  // cstat 0
+			  // sound ACTOR_GROWING
+			  // ai AIFIGHTGROW
+			  // break
+			// }
+			// ifn team 1 ifn team 3 addkills 1
+			getp[].player_par ikicked
+			state enemy_death
+			ifrnd 128 cstator 4
+			ai AIGRAVESDYING
+			
+			sound GRAVES_DOWN
+			
+			guts JIBS6 4
+			
+			ifwasweapon RPG
+			{
+				sound SQUISHED
+				spawn BLOODPOOL
+				// state standard_jibs
+				// killit
+			}
+			ifwasweapon RADIUSEXPLOSION
+			{
+				sound SQUISHED
+				spawn BLOODPOOL
+				// state standard_jibs
+				// killit
+			}
+			break
+		}
+		ifrnd 2
+			spawn BLOODPOOL
+		ifsound GRAVES_DOWN nullop else
+		ifsound GRAVES_PAIN1 nullop else
+		ifsound GRAVES_PAIN2 nullop else
+		ifsound GRAVES_PAIN3 nullop else
+		ife countvarb 0
+		{
+			ifrnd 84 soundonce GRAVES_PAIN1 else
+			ifrnd 128 soundonce GRAVES_PAIN2 else
+			soundonce GRAVES_PAIN3
+		}
+		ifai AIGRAVEHIT nullop else
+		ifai AIFIGHTSHRUNK nullop else
+		{
+			ifg stun 0 { ai AIGRAVEHIT break }
+			ifrnd 24 
+			ifn sprite[].htpicnum BURNING
+			ifn sprite[].htpicnum RADWOUND
+			{
+				ai AIGRAVEHIT
+				break 
+			}
+		}
+	}
+	else ifsquished
+	ife monstatus 1
+	{
+		seta[].htextra 30
+		seta[].htpicnum RPG
+	}
+	
+
+ends
+
+useractor enemy GRAVESNPC 200 state gravestate enda
+
+
+useractor enemy GRAVESNOGUN 200 AFIGHTSTAND  
+
+	ifai 0
+	{
+		set mlevel 10
+		ife VOLUME 4 ife LEVEL 14 nullop else set initsprite 4
+		geta[].x startx
+		geta[].y starty
+		set botclip 30 
+		ai AIFIGHTSTAND
+		move STOPPED faceplayerslow
+		cstat 256
+		sizeat 22 22
+		clipdist 4
+
+		set team 3
+		// getp[].max_actors_killed temp
+		// sub temp 1
+		// setp[].max_actors_killed temp
+		set navmode 3
+
+		geta[].htflags temp
+		orvar temp 8192
+		seta[].htflags temp
+	}
+	fall
+	set bluetimer 10
+	state monsterai
+	set bottarget -1
+	ifg countvarb 0 sub countvarb 1 // voice counter
+	ifl initsprite 4
+	{
+		// add midscreen cutscene stuff
+		
+		ifpdistl 2560
+		ifcansee
+		{
+			ife initsprite 0
+			{
+				ifpdistl 1536
+				{
+					set countvarb 130
+					set initsprite 1
+					ife pchar 0 globalsound GRAVES_ISDUKE else
+					ife pchar 1 globalsound GRAVES_ISBOMBSHELL else
+					ifvarand startmode 1 globalsound GRAVES_ISDUKE else
+					ifvarand startmode 2 globalsound GRAVES_ISBOMBSHELL else
+					{ globalsound GRAVES_HELLOTHERE set countvarb 160 }
+					
+					ife pchar 0
+qputs 980 		"Is  that  Duke  Nukem?  I  knew  they  couldn't  keep  you  away  forever.
+					else ife pchar 1
+qputs 980 		"Is  that  Bombshell?  I  knew  they  couldn't  keep  you  away  forever.
+					else
+qputs 980		"Hello  there!  I  know  a  resistance  fighter  when  I  see  one.
+
+qputs 981	    "General  Graves  at  your  service.  It's  a  pity  we  can't  meet  under
+qputs 982		better  circumstances  but  as  you  have  surely  noticed  the  situation
+qputs 983	    is  completely  FUBAR  here  on  earth."
+					starttrackslot 0 2 // silence
+					set subtitle_time countvarb
+					set subtitle_numlines 4
+					set subtitle_start 980
+				}
+
+
+			
+			}
+			ife initsprite 1
+			ife countvarb 0
+			{
+				globalsound GRAVES_SPEECH1
+				set countvarb 310
+				add subtitle_time countvarb
+				set subtitle_numlines 4
+				set subtitle_start 980
+				set initsprite 2
+			}
+			ife initsprite 2
+			ife countvarb 0
+			{
+				globalsound GRAVES_SPEECH2
+				set countvarb 340
+				set initsprite 3
+qputs 980	    "An  alien  patrol  picked  me  up  for  not  having  proper  ID.  I've  held  up
+qputs 981		to  their  questioning  so  far,  but  I  need  to  get  out  of  here  before
+qputs 982	    they  bring  in  a  scanner  or  our  whole  operation  will  be  compromised."
+				set subtitle_time countvarb
+				set subtitle_numlines 3
+				set subtitle_start 980
+			}
+			ife initsprite 3
+			ife countvarb 0
+			{
+				ai AIFIGHTWALK
+				globalsound GRAVES_SPEECH3
+				set initsprite 4
+qputs 980	    "There  should  be  some  confiscated  weapons  nearby.  Those  would  be
+qputs 981		mighty  handy  right  about  now."
+				set subtitle_time 160
+				set subtitle_numlines 2
+				set subtitle_start 980
+			}
+		}
+		seta[].x startx
+		seta[].y starty
+		break
+	}
+	ifai AIFIGHTSTAND
+	{
+		ifcount 15 
+		{
+			ai AIFIGHTWALK
+			ifcansee move EDFWALKVEL faceplayer
+			else state setfarang
+		}
+	}
+	else
+	ifai AIFIGHTWALK
+	{
+		ifnotmoving ai AIFIGHTSTAND
+		
+		findnearspritez GRAVEGUNSPRITE 644 10240 spriteid
+		ifn spriteid -1
+		ifn actorvar[spriteid].initsprite NO
+		{
+			changespritestat spriteid 1
+			seta[spriteid].picnum SMALLSMOKE
+			seta[spriteid].cstat 32768
+			sound SHELLYCLIPIN
+			set countvarb -40
+			set navmode 0
+			set navpoint -1
+			set team 1
+			set initsprite 4
+			cactor GRAVESNPC
+			set mlevel 10
+			cstator 257
+			clipdist 32
+			ai AIFIGHTSTAND
+			seta[].htextra -1
+			set bleeding 0
+		}
+		else
+		{
+			findnearspritez GRAVEGUNSPRITE 2048 10240 spriteid
+			ifn spriteid -1 
+			{
+				canseespr THISACTOR spriteid temp
+				ife temp YES
+				state facesprite
+			}
+		}
+	}
+	ifhitweapon ifstrength 200 strength 200
+
+enda
+
+eventloadactor GRAVEGUNSPRITE 
+ifn sprite[].lotag 0
+{
+	set initsprite YES
+	seta[].lotag 0
+	sizeat 32 32
+}
+enda
+
+eventloadactor GRAVESPANEL
+ifn sprite[].lotag 0
+{
+	geta[].lotag SPRITELOTAG
+	seta[].lotag 0
+	cstator 256
+}
+enda
+
+useractor notenemy GRAVESPANEL 1
+	
+	ifhitweapon
+	{
+		strength 1
+		set temp NO
+		ifn SPRITELOTAG 0
+		{
+			set spriteid sprite[].htowner
+			ifn spriteid -1
+			ife sprite[spriteid].picnum GRAVESNPC
+			set temp YES
+		}
+		else set temp YES
+		ife temp YES
+		{
+			cactor 4433
+			state activatechannel
+		}
+	}
+
+enda
