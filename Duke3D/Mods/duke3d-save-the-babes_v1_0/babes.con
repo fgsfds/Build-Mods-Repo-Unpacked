@@ -1,0 +1,347 @@
+/*
+---------------------------------------------------------------------------------------
+Save the Babes Version 1.0
+By KiD MarsCat (11/2020)
+
+This CON file adds the feature to save the babes by teleporting them out of the game.
+They also give the player a health bonus for every babe saved, as further incentive.
+However, this disables most direct interactions with babes, such as tipping and speech.
+
+Also, there's a whole section for the pirate androids at the end of this file.
+"Saving" them is disabled by default to protect immersion. More info on that later.
+---------------------------------------------------------------------------------------
+*/
+
+
+
+/* CUSTOM SAVE BABE TILES */
+  define PODFEM1EMPTY 2090 
+  define FEM5EMPTY    2091 
+  define FEM6EMPTY    2092 
+  define NAKED1EMPTY  2093 
+  define FEM2EMPTY    2094 
+
+
+
+/* CUSTOM SAVE BABE HEALTH AND QUOTE */
+  /*
+  -----------------------------------------------------------------------------
+  This is where the babe health bonus and item pickup message is set up.
+  
+  The default is +20. If you were to want to remove the health bonus, you can
+  change the values and item pickup message here, e.g.:
+  
+  definequote 333 BABE RESCUED!
+  definequote 334 BABES RESCUED!
+  define          BABEHEALTHAMOUNT   0
+  -----------------------------------------------------------------------------
+  */
+  
+  definequote 333 BABE RESCUED! +20 HEALTH BONUS
+  definequote 334 BABES RESCUED! +40 HEALTH BONUS
+  define          BABEHEALTHAMOUNT 20
+
+
+
+/* CUSTOM ACTORS DEFINE */
+  /*
+  ------------------------------------------------------------------------------------------------
+  These actors have been created to be left behind after teleporting certain babes out of the map.
+  They can be shot at, and will spawn debris when destroyed. This means you can save a babe,
+  then destroy the alien pod or whatever left behind to keep moving forward on the level.
+  ------------------------------------------------------------------------------------------------
+  */
+  state emptybabe
+    ifhitweapon
+      ifdead
+      {
+        spritepal 6
+        debris SCRAP3 4;
+        killit
+      }
+  ends
+
+  actor PODFEM1EMPTY TOUGH
+    state emptybabe
+  enda
+
+  actor FEM5EMPTY TOUGH
+    state emptybabe
+  enda
+
+  actor FEM6EMPTY TOUGH
+    state emptybabe
+  enda
+
+  actor NAKED1EMPTY TOUGH
+    state emptybabe
+  enda
+
+
+
+/* CUSTOM SAVE BABE STATE ACTION */
+  state savebabe
+    ifspritepal 1
+    {
+      // disable saving babes when they're frozen
+      nullop
+    }
+    else
+    {
+      ifp pfacing
+        ifpdistl 1280
+          ifhitspace
+          {
+            soundonce  TELEPORTER       // play sound
+            addphealth BABEHEALTHAMOUNT // add +20 health to player.
+            spawn      TRANSPORTERBEAM  // spawn beam to signal that a babe has been saved
+            
+            // show message
+              switch sprite[THISACTOR].picnum
+                case FEM10
+                case PIRATE2A
+                case PIRATE5A
+                  quote 334
+                  break
+                default
+                  quote 333
+                  break
+              endswitch
+            
+            // changing actors
+              switch sprite[THISACTOR].picnum
+                case FEM1
+                case FEM3
+                case FEM7
+                  // spawn money
+                  money  4
+                  killit
+                  break
+                case NAKED1
+                  // change to alien tentacles
+                  strength TOUGH
+                  cactor   NAKED1EMPTY
+                  break
+                case PODFEM1
+                  // change to alien pod
+                  strength TOUGH
+                  cactor   PODFEM1EMPTY
+                  break
+                case FEM2
+                  // change to stripper pole and spawn money
+                  strength 0   // make pole indestructible
+                  money    4
+                  cactor   FEM2EMPTY
+                  break
+                case FEM5
+                  // change to alien pole
+                  strength TOUGH
+                  cactor   FEM5EMPTY
+                  break
+                case FEM8
+                  // change to bloody alien pole
+                  strength TOUGH
+                  cactor   BLOODYPOLE
+                  break
+                case FEM6
+                  // change to alien plate
+                  strength TOUGH
+                  cactor   FEM6EMPTY
+                  break
+                case FEM10
+                case PIRATE2A
+                case PIRATE5A
+                  // double health
+                  addphealth BABEHEALTHAMOUNT // additional health since it's two babes
+                  killit
+                  break
+                default
+                  killit
+                  break
+              endswitch
+          }
+    }
+  ends
+
+
+
+/* CUSTOM ACTOR ACTION REPLACE */
+
+  // stripper babe
+  actor FEM1 TOUGH FEMANIMATE
+    state savebabe
+    state femcode
+  enda
+
+  // stripper babe with pole
+  actor FEM2 TOUGH FEMANIMATE
+    state savebabe
+    state femcode
+  enda
+
+  // babe with purse
+  actor FEM3 TOUGH FEMANIMATE
+    state savebabe
+    state femcode
+  enda
+  
+  // dancing babe
+  actor FEM4 TOUGH FEMANIMATE
+    state savebabe
+    state femcode
+  enda
+
+  // alien pole babe
+  actor FEM5 TOUGH FEMANIMATE
+    state savebabe
+    state femcode
+  enda
+
+  // alien plate babe
+  actor FEM6 TOUGH FEMANIMATE
+    state savebabe
+    state femcode
+  enda
+
+  // tiki babe
+  actor FEM7 TOUGH FEMANIMATE
+    state savebabe
+    state femcode
+  enda
+
+  // bloody alien pole babe
+  /*
+  -----------------------------------------------------------------------------------------
+  this babe is already dead in game. however, shooting her still counts as a "babe death".
+  i'm leaving this enabled for gameplay purposes, but comment it out if it ruins immersion.
+  -----------------------------------------------------------------------------------------
+  */
+  actor FEM8 TOUGH FEMANIMATE
+    state savebabe
+    state femcode
+  enda
+
+  // cheerleader babe
+  actor FEM9 TOUGH FEMANIMATE
+    state savebabe
+    state femcode
+  enda
+
+  // sisters
+  actor FEM10 TOUGH FEMANIMATESLOW
+    state savebabe
+    state femcode
+  enda
+
+  // alien tentacles babe
+  actor NAKED1 TOUGH FEMANIMATE
+    state savebabe
+    state femcode
+  enda
+
+  // alien pod babe
+  actor PODFEM1 TOUGH FEMANIMATE
+    state savebabe
+    state femcode
+  enda
+
+  // s&m mistress
+  actor TOUGHGAL MANWOMANSTRENGTH TOUGHGALANIM
+    state savebabe
+    state femcode
+  enda
+
+  // (android) weathergirl
+  /*
+  ------------------------------------------------------------------------------------------
+  This also changes the weathergirl to behave as a regular fem rather than as an android.
+  Since she's not featured on the Babe Land pirate level, I decided to make the change here.
+  ------------------------------------------------------------------------------------------
+  */
+  useractor notenemy WOMAN TOUGH
+    state savebabe
+    state femcode
+  enda
+
+
+
+/* CUSTOM PIRATEBABES ACTION REPLACE */
+
+  /*
+  -----------------------------------------------------------------------------------
+  In this section you can find all the pirate ship androids from the map "Babe Land".
+  They're commented out as they're not actual babes but fembots and such.
+  Uncomment the section below to reenable rescuing them if you want!
+  -----------------------------------------------------------------------------------
+  */
+  
+  /* // remove this (optional)
+  
+  // chained android man
+  useractor notenemy MAN PIRATEGALSTRENGTH
+    state savebabe
+    state breakobject
+  enda
+
+  // chained android man alt
+  useractor notenemy MAN2 PIRATEGALSTRENGTH
+    state savebabe
+    state breakobject
+  enda
+  
+  // android pirate man with alien arm
+  useractor notenemy ROBOTPIRATE PIRATEGALSTRENGTH
+    state savebabe
+    state breakobject
+  enda
+  
+  
+
+  // android pirate babe
+  useractor notenemy PIRATE1A PIRATEGALSTRENGTH
+    state savebabe
+    state breakobject
+  enda
+
+  // android pirate babes fighting
+  useractor notenemy PIRATE2A PIRATEGALSTRENGTH
+    state savebabe
+    state breakobject
+  enda
+
+  // android pirate babe with guns
+  useractor notenemy PIRATE3A PIRATEGALSTRENGTH
+    state savebabe
+    state breakobject
+  enda
+  
+  // android pirate babe torso
+  useractor notenemy PIRATEHALF TOUGH
+    state savebabe
+    state breakobject
+  enda
+  
+  
+
+  // android pirate babe alt
+  useractor notenemy PIRATE4A PIRATEGALSTRENGTH
+    state savebabe
+    state breakobject
+  enda
+
+  // android pirate babes fighting alt
+  useractor notenemy PIRATE5A PIRATEGALSTRENGTH
+    state savebabe
+    state breakobject
+  enda
+
+  // android pirate babe with guns alt
+  useractor notenemy PIRATE6A PIRATEGALSTRENGTH
+    state savebabe
+    state breakobject
+  enda
+  
+  */ // remove this (optional)
+  
+  
+/* END OF FILE */
