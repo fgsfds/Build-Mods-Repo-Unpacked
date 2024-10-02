@@ -1,0 +1,534 @@
+/*
+--------------------------------------------------------------------------------
+Duke Nukem 3D - Blast Edition Version 2.0
+By Marcos
+2023 - Space In a Bottle
+*/
+
+//Firefly
+
+define FIREFLYSTRENGTH 3500
+
+define FF_RECOG 518
+define FF_ATTACK1 519
+define FF_ATTACK2 520
+define FF_ROAM 521
+define FF_PAIN 522
+define FF_DYING 523
+
+definesound FF_RECOG snd/liz_snd2.wav 0 0 3 0 0
+definesound FF_ROAM snd/liz_snd5.wav -1024 -768 3 0 0
+definesound FF_ATTACK1 snd/liz_snd4.wav -512 -512 3 0 0
+definesound FF_ATTACK2 snd/liz_snd3.wav 0 0 3 0 0
+definesound FF_PAIN snd/liz_snd.wav -256 -256 3 0 0
+definesound FF_DYING snd/liz_snd2.wav -768 -768 3 0 0
+
+action AFFWALK 0 4 5 1 8
+action AFFIDLE 20 1 5 1 20
+action AFFFIRE 20 2 5 1 14
+action AFFRUSH 30 1 5 1 30
+action AFFDUCKFIRE 40 2 5 1 8
+action AFFDYING 35 5 1 1 25
+action AFFDEAD 39 1
+action AFFFLINTCH 35 2 1 1 40 
+
+move FFWALKVEL 384
+move FFRUSHVEL 1024 -16
+move FFSTOP
+move FFSHRUNKVEL 64
+
+ai AIFFWALK AFFWALK FFWALKVEL seekplayer
+ai AIFFIDLE AFFIDLE FFSTOP faceplayerslow
+ai AIFFRUSH AFFRUSH FFRUSHVEL faceplayer getv
+ai AIFFDODGE AFFRUSH FFRUSHVEL dodgebullet getv
+ai AIFFDUCKFIRE AFFDUCKFIRE FFSTOP faceplayersmart
+ai AIFFFIRE AFFFIRE FFSTOP faceplayersmart
+ai AIFFDYING AFFDYING FFSTOP faceplayer
+ai AIFFSHRUNK AFFWALK FFSHRUNKVEL furthestdir
+
+defstate ffshrunk
+  ifcount SHRUNKDONECOUNT
+    ai AIFFWALK
+  else
+    ifcount SHRUNKCOUNT
+      sizeto 40 40
+  else
+	state genericshrunkcode	
+ends
+
+defstate ffwalk
+
+	ifactioncount 20
+	{
+		ifcansee
+		{
+			ifrnd 72
+			ifpdistl 12000
+			ifcanshoottarget
+			ifp palive
+			{
+				globalsound FF_ATTACK2
+				ai AIFFDUCKFIRE
+			}
+			else ifrnd 128
+			{
+				ifp palive
+				ifpdistl 16384
+				{
+					globalsound FF_ATTACK1
+					ai AIFFFIRE
+				}
+			}
+		}
+		else ifrnd 8
+		{
+			ifrnd 4
+				soundonce FF_ROAM
+				
+			ai AIFFIDLE
+		}
+		else ifrnd 96
+			resetactioncount
+	}
+	
+	ifbulletnear
+	ifrnd 128
+		ai AIFFDODGE
+	
+	ifcount 10
+	{
+		sound THUD
+		resetcount
+	}
+	
+	ifnotmoving
+	ifcanseetarget
+	{
+		ifpdistl 12144
+		{
+			ifrnd 196
+				ai AIFFFIRE
+			else
+			{
+				globalsound FF_ATTACK2
+				ai AIFFDUCKFIRE
+			}
+		}
+		else
+			ai AIFFRUSH
+	}
+	
+
+ends
+
+defstate fffire
+
+	ifcansee
+	ifp palive
+	ifpdistl 12144
+	{
+		ifactioncount 2
+		{
+			setprojectile[CLUSTERPROJ].vel 512
+			setprojectile[CLUSTERPROJ].extra 8
+			zshoot -4096 CLUSTERPROJ
+			setprojectile[CLUSTERPROJ].extra ROCKETCLUSTERDAMAGE
+			setprojectile[CLUSTERPROJ].vel 128
+			
+			resetactioncount
+			
+			ifrnd 6
+			{
+				globalsound FF_ATTACK2
+				ai AIFFDUCKFIRE
+			}
+			else ifrnd 12
+				ai AIFFWALK
+		}
+
+	}
+	else
+	{
+		globalsound FF_ROAM
+		ai AIFFIDLE
+	}
+	
+	ifcount 48
+	ifcanshoottarget
+	ifpdistl 8192
+	ifrnd 72
+	ifp palive
+	{
+		globalsound FF_ATTACK2
+		ai AIFFDUCKFIRE
+	}
+	
+
+ends
+
+defstate ffduckfire
+
+	ifcansee
+	ifp palive
+	ifpdistl 12144
+	{
+		ifactioncount 2
+		{
+			sound FLAMEFIRE_SOUND
+			setprojectile[FLAMEPROJ].extra 2
+			setprojectile[FLAMEPROJ].extra_rand 2
+			setprojectile[FLAMEPROJ].range 0
+			shoot FLAMEPROJ
+			setprojectile[FLAMEPROJ].extra FLAMEDAMAGE
+			setprojectile[FLAMEPROJ].extra_rand 15
+			setprojectile[FLAMEPROJ].range 12
+			
+			ifrnd 64
+				shoot MORTER
+			
+			resetactioncount 
+		}
+		
+		ifrnd 4
+		{
+			globalsound FF_ROAM
+			ai AIFFIDLE
+		}
+	}
+	else
+	{
+		globalsound FF_ROAM
+		ai AIFFIDLE
+	}
+	
+	ifcanseetarget
+	ifp palive
+	ifpdistl 8192
+	ifrnd 64
+	ifcount 64
+		ai AIFFRUSH
+
+ends
+
+defstate ffrush
+
+	cstat 0
+	spawn FRAMEEFFECT1
+	espawn EXPLOSION3
+	seta[RETURN].xrepeat 32
+	seta[RETURN].yrepeat 32
+	geta[RETURN].z atmp
+	sub atmp 8192
+	seta[RETURN].z atmp
+	
+	soundonce SNAK_ATTACK1
+
+	ifcansee
+	{
+		ifpdistl 2048
+		{
+			hitradius 4096 7 5 4 4
+			espawn PUSHERPLAYER
+			seta[RETURN].ang sprite[].htang
+			setactorvar[RETURN].pushervel 3500
+			seta[RETURN].yvel 1
+			spawn EXPLOSION2
+			sound PIPEBOMB_EXPLODE
+			ai AIFFIDLE
+			cstat 257
+		}
+		else ifactioncount 6
+		ifrnd 32
+		{
+			globalsound FF_ATTACK2
+			ai AIFFDUCKFIRE
+			cstat 257
+		}
+	}
+	else
+	{
+		ai AIFFWALK
+		cstat 257
+	}
+		
+	ifnotmoving
+	{
+		ai AIFFWALK
+		cstat 257
+	}
+
+ends
+
+defstate ffidle
+
+	ifactioncount 2
+	{
+		ifcansee
+		{
+			//ifrnd 192
+			//ifpdistg 8192
+				//ai AIFFRUSH
+			ifcanshoottarget
+			ifp palive
+			{
+				ifpdistl 8192
+				{
+					ifrnd 128
+					{
+						globalsound FF_ATTACK2
+						ai AIFFDUCKFIRE
+					}
+					else
+					{
+						globalsound FF_ATTACK1
+						ai AIFFFIRE
+					}
+				}
+				else
+				{
+					globalsound FF_ATTACK1
+					ai AIFFRUSH
+				}
+			}
+			else
+				ai AIFFWALK
+		}
+		else
+		{
+			ifrnd 32
+			{
+				spawn SNAKEHEAD
+				spawn SNAKEHEAD
+			}
+			
+			ai AIFFWALK
+		}
+	}
+
+ends
+
+defstate ffcheckhit
+
+	ifdead
+	{
+		ifai AIFFDYING
+			nullop
+		else
+		{
+			globalsound FF_DYING
+			ai AIFFDYING
+		}
+	}
+	else
+	{
+		debris SCRAP1 2
+		state random_wall_jibs
+		spawn BLOOD
+		
+		ifrnd 128
+			globalsound FF_PAIN
+			
+		ifspritepal 0
+			nullop
+		else
+		{
+			ifwasweapon SHRINKSPARK
+			{
+				sound ACTOR_SHRINKING
+				ai AIFFSHRUNK
+				cstat 0
+				break
+			}
+			else ifwasweapon FLAMEPROJ
+				set a_flaming 1
+			else ifwasweapon PLASMAPROJ
+				set a_plasmaeffect 1
+		}
+		
+		ifrnd 4
+		{
+			ifai AIFFIDLE
+				nullop
+			else
+			{
+				state SpawnShards3
+				state SpawnShards3
+				state SpawnShards3
+				state SpawnShards3
+				
+				action AFFFLINTCH
+				move 0
+			}
+		}
+		else ifrnd 16
+		{
+			ifp palive
+			ifcansee
+			ifcanseetarget
+			ifpdistl 8192
+				ai AIFFRUSH
+		}
+	}
+
+ends
+
+defstate ffdying
+
+	ifaction AFFDYING
+	{
+		cstat 0
+		ifactioncount 5
+		{
+			globalsound THUD
+			spawn BLOODPOOL
+			action AFFDEAD
+
+			ifspritepal 0
+			{
+				operateactivators 6666 0
+				operatemasterswitches 6666
+				stopallmusic
+			}
+			
+			quake 30
+				
+			addkills 1
+			resetactioncount
+			break
+		}
+	}
+	else
+	{
+		ifactioncount 30
+		{
+			spawn EXPLOSION2
+			spawn EXPLOSION2BOT
+			sound PIPEBOMB_EXPLODE
+			state standard_jibs
+			state random_wall_jibs
+			sound SQUISHED
+			killit
+		}
+	}
+
+ends
+
+useractor enemy FIREFLY FIREFLYSTRENGTH
+	
+	fall
+
+	ifdead nullop
+	else
+	{
+		ifg a_plasmaeffect 1
+		ifrnd 96
+			action AFFFLINTCH
+	}
+
+	ifai 0
+	{
+		ifaction 0
+		{
+			ifcansee
+			{
+				ifspritepal 0
+				{
+					sizeat 64 58
+					globalsound GENERIC_AMBIENCE14
+				}
+				else
+					sizeat 54 48
+				
+				action AFFIDLE
+				resetcount
+			}
+		}
+		else ifaction AFFIDLE
+		{
+			ifspritepal 0
+			{
+				ifcount 60
+				{
+					cstat 257
+					globalsound FF_RECOG
+					
+					spawn SNAKEHEAD
+					spawn SNAKEHEAD
+					ai AIFFIDLE	
+					set bossfighton THISACTOR
+				}
+			}
+			else
+			{
+				cstat 257
+				globalsound FF_RECOG
+					
+				spawn SNAKEHEAD
+				spawn SNAKEHEAD
+				ai AIFFIDLE	
+					
+				strength 1000
+				
+				ife userdef.enable_nuke 1
+				ife userdef.nuke_active 1
+				{
+					set atemp userdef.nuke_enemyhealth
+					mul atemp sprite[].extra
+					div atemp 100
+					seta[].extra atemp
+				}
+				setarray bosspal[num_bosspalfight] THISACTOR
+				add num_bosspalfight 1
+			}
+		}
+	}
+		
+	ifaction AFFFLINTCH
+	{
+		ifactioncount 4
+		{
+			globalsound FF_ROAM
+			ai AIFFIDLE
+		}
+	}
+	else
+	ifai AIFFDODGE
+	{
+		ifcount 6
+		{
+			ifcansee
+			ifcanshoottarget
+			ifpdistl 4096
+				ai AIFFDUCKFIRE
+			else
+				ai AIFFIDLE
+				
+			resetcount
+		}
+	}
+	else
+	ifai AIFFIDLE
+		state ffidle
+	else
+	ifai AIFFWALK
+		state ffwalk
+	else
+	ifai AIFFFIRE
+		state fffire
+	else
+	ifai AIFFDUCKFIRE
+		state ffduckfire
+	else
+	ifai AIFFRUSH
+		state ffrush
+	else
+	ifai AIFFSHRUNK
+		state ffshrunk
+	else
+	ifai AIFFDYING
+		state ffdying
+	
+	ifhitweapon
+		state ffcheckhit
+	
+enda

@@ -1,0 +1,449 @@
+/*
+--------------------------------------------------------------------------------
+Duke Nukem 3D - Blast Edition Version 2.0
+By Marcos
+2022 - Space In a Bottle
+*/
+
+//RPG configuration code
+
+define ULTRARPGSPRITE 17
+define ULTRARPGAMMO 18
+define ROCKETPROJ 2621
+define CLUSTERSPAWNER 2547
+define CLUSTERPROJ 1479
+define ULTRARPG 2703
+define EXPLOSIONSTAR 1479
+
+define ULTRARPG_FIRE 405
+definesound ULTRARPG_FIRE snd/URPG.VOC 0 0 254 0 0
+
+define ROCKETDAMAGE 120
+
+define ROCKETCLUSTERDAMAGE 60
+
+var i_UltraRPG 0 1 //Holstered or not
+
+defineprojectile ROCKETPROJ PROJ_WORKSLIKE 32770
+defineprojectile ROCKETPROJ PROJ_VEL 896
+defineprojectile ROCKETPROJ PROJ_VEL_MULT 2
+defineprojectile ROCKETPROJ PROJ_EXTRA ROCKETDAMAGE
+defineprojectile ROCKETPROJ PROJ_EXTRA_RAND 15
+defineprojectile ROCKETPROJ PROJ_XREPEAT 32
+defineprojectile ROCKETPROJ PROJ_YREPEAT 32
+defineprojectile ROCKETPROJ PROJ_TRAIL SMALLSMOKE
+defineprojectile ROCKETPROJ PROJ_HITRADIUS 1280
+defineprojectile ROCKETPROJ PROJ_ISOUND PIPEBOMB_EXPLODE
+defineprojectile ROCKETPROJ PROJ_DROP -128
+defineprojectile ROCKETPROJ PROJ_SPAWNS EXPLOSION2
+defineprojectile ROCKETPROJ PROJ_SXREPEAT 24
+defineprojectile ROCKETPROJ PROJ_SYREPEAT 24
+defineprojectile ROCKETPROJ PROJ_TXREPEAT 8
+defineprojectile ROCKETPROJ PROJ_TYREPEAT 8
+
+defineprojectile CLUSTERPROJ PROJ_WORKSLIKE 2190
+defineprojectile CLUSTERPROJ PROJ_VEL 128
+defineprojectile CLUSTERPROJ PROJ_XREPEAT 2
+defineprojectile CLUSTERPROJ PROJ_YREPEAT 2
+defineprojectile CLUSTERPROJ PROJ_TRAIL EXPLOSION3
+defineprojectile CLUSTERPROJ PROJ_TXREPEAT 4
+defineprojectile CLUSTERPROJ PROJ_TYREPEAT 4
+defineprojectile CLUSTERPROJ PROJ_DROP -384
+defineprojectile CLUSTERPROJ PROJ_HITRADIUS 2048
+defineprojectile CLUSTERPROJ PROJ_SPAWNS EXPLOSION2
+defineprojectile CLUSTERPROJ PROJ_SXREPEAT 16
+defineprojectile CLUSTERPROJ PROJ_SYREPEAT 16
+defineprojectile CLUSTERPROJ PROJ_EXTRA ROCKETCLUSTERDAMAGE
+defineprojectile CLUSTERPROJ PROJ_ISOUND PIPEBOMB_EXPLODE
+defineprojectile CLUSTERPROJ PROJ_BSOUND PIPEBOMB_BOUNCE
+defineprojectile CLUSTERPROJ PROJ_BOUNCES 2
+
+action A_ROCKET 0 0 7 0 0
+useractor notenemy ROCKETPROJ ROCKETDAMAGE A_ROCKET enda
+
+action A_ROCKETPF -1 0 7 0 0
+
+move ROCKETPFMOV 900
+
+useractor notenemy ROCKETPROJPF 0 A_ROCKETPF
+
+	angoff -512
+
+	cstat 128
+	sizeat 24 24
+
+	ifmove 0
+		move ROCKETPFMOV faceplayer getv
+
+	ldist atmp player[].i THISACTOR
+	
+	ifl atmp 900
+	{
+		seta[].xvel atmp
+		set atmp 1
+	}
+	else
+		div atmp 900
+	
+	getp[].posz atmp2
+	sub atmp2 sprite[].z
+	sub atmp2 8192
+	
+	ifn atmp 0
+		div atmp2 atmp
+		
+	seta[].zvel atmp2
+	
+	ifpdistl 2536
+	{
+		espawn EXPLOSION2
+		hitradius 2048 8 12 16 32
+		sound RPG_EXPLODE
+		killit
+	}
+	
+	espawn SMALLSMOKE
+	seta[RETURN].xrepeat 16
+	seta[RETURN].yrepeat 16
+
+enda
+
+useractor notenemy CLUSTERSPAWNER 0
+
+	espawn EXPLOSION2
+	setactor[RETURN].xrepeat 32
+	setactor[RETURN].yrepeat 32
+
+	zshoot -4096 CLUSTERPROJ
+	
+	ezshoot -4096 CLUSTERPROJ
+	setactor[RETURN].ang 341
+	
+	ezshoot -4096 CLUSTERPROJ
+	setactor[RETURN].ang 682
+	
+	ezshoot -4096 CLUSTERPROJ
+	setactor[RETURN].ang 1024
+	
+	ezshoot -4096 CLUSTERPROJ
+	setactor[RETURN].ang 1364
+	
+	ezshoot -4096 CLUSTERPROJ
+	setactor[RETURN].ang 1705
+	
+	killit
+
+enda
+
+state draw_rpg // RPG_WEAPON:
+
+    setvarvar hud_x weapon_xoffset
+    setvarvar hud_y looking_arc
+    shiftvarl hud_y 1
+    subvarvar hud_y gun_pos
+
+    setvarvar hud_temp weaponcount
+    shiftvarl hud_temp 7
+    addvar hud_temp 768
+    sin hud_temp hud_temp
+    shiftvarr hud_temp 11
+
+    subvarvar hud_x hud_temp
+    subvarvar hud_y hud_temp
+
+    //orvar hud_orientation 512
+
+    addvar hud_x 164
+
+    addvar hud_y 176
+
+    ifvarg weaponcount 0
+        ifvarl weaponcount 8
+        {
+            setvarvar hud_tilenum weaponcount
+            shiftvarr hud_tilenum 1
+            addvar hud_tilenum RPGGUN
+
+            state G_DrawWeaponTile
+        }
+
+    setvar hud_tilenum RPGGUN
+
+    state G_DrawWeaponTile
+	/*
+	    ifvarand hud_orientation 512
+        xorvar hud_orientation 512
+		*/
+ends
+
+state draw_urpg
+
+    setvarvar hud_x weapon_xoffset
+    setvarvar hud_y looking_arc
+    shiftvarl hud_y 1
+    subvarvar hud_y gun_pos
+
+    orvar hud_orientation 512
+
+    addvar hud_x 180
+
+    addvar hud_y 240
+
+    setvar hud_tilenum ULTRARPG
+	
+	ife weaponcount 0
+		ife i_UltraRPG 1
+	{
+		add hud_x 40
+		sub hud_y 50
+		add hud_tilenum 2
+	}
+	else ifg weaponcount 0
+	{
+		ife i_UltraRPG 0
+		{	
+			ifle weaponcount 2
+			{
+				add hud_x 40
+				add hud_tilenum 1
+			}
+			else
+			{
+				add hud_x 40
+				sub hud_y 50
+				add hud_tilenum 2
+			}
+		}
+		else
+		{
+			add hud_x 40
+			sub hud_y 50
+			add hud_tilenum 2
+			
+			ifge weaponcount 8
+			{
+				setvarvar hud_temp weaponcount
+				shiftvarl hud_temp 7
+				addvar hud_temp 768
+				mul hud_temp -1
+				sin hud_temp hud_temp
+				shiftvarr hud_temp 10
+				
+				ife weaponcount 9
+					add hud_tilenum 1
+
+				subvarvar hud_x hud_temp
+				subvarvar hud_y hud_temp
+				mul hud_temp 2
+				sub hud_angle hud_temp
+			}
+		}
+	}
+
+    state G_DrawWeaponTile
+	
+	ifvarand hud_orientation 512
+        xorvar hud_orientation 512
+ends
+
+
+appendevent EVENT_DOFIRE
+
+	ife player[].curr_weapon RPG_WEAPON
+	{
+		ife 1 player[].bsubweapon RPG_WEAPON
+		{
+			ifg urpgammo 0
+			{
+				eshoot RPG
+				sound WEAPON4_FIRESOUND
+				
+				ife userdef.enable_nuke 1
+				ife userdef.nuke_active 1
+				ifg userdef.nuke_wpnsel 0
+					nullop
+				else
+				{
+					espawn PUSHERPLAYER
+					setactorvar[RETURN].pushervel 32
+					setactorvar[RETURN].pushercounter 4
+					getp[].ang atemp
+					add atemp 1024
+					seta[RETURN].ang atemp
+				}
+					
+				sub urpgammo 1
+			}
+			else
+				set RETURN -1
+		}
+		else
+		{
+			ife alt_ready 1
+			{
+				eshoot ROCKETPROJ
+				
+				set wc_temp ROCKETDAMAGE
+				sub wc_temp 40
+				//sub wc_temp ROCKETCLUSTERDAMAGE
+				
+				setthisprojectile[RETURN].extra wc_temp
+				setthisprojectile[RETURN].spawns CLUSTERSPAWNER
+				
+				sound WEAPON4_FIRESOUND
+				
+				sub rpgammo 2
+			}
+			else
+			{
+				ifg rpgammo 0
+				{				
+					eshoot WEAPON4_SHOOTS
+					sound WEAPON4_FIRESOUND
+					
+					sub rpgammo 1
+				}
+				else
+					set RETURN -1
+			}
+		}
+	}
+
+endevent
+
+
+appendevent EVENT_PRESSEDFIRE
+
+	ife WEAPON RPG_WEAPON
+	{
+		ife 1 player[].bsubweapon RPG_WEAPON
+			ifl urpgammo 1
+				set RETURN -1
+				
+		ife 0 player[].bsubweapon RPG_WEAPON
+			ifl rpgammo 1
+				set RETURN -1
+	}
+
+endevent
+
+
+useractor notenemy ULTRARPGSPRITE
+  fall
+  sizeat 24 24
+  ifmove RESPAWN_ACTOR_FLAG
+    state respawnit
+  else
+    ifp pshrunk nullop
+    else
+      ifp palive
+        ifpdistl RETRIEVEDISTANCE
+          ifcount 6
+            ifcanseetarget
+      {
+        
+          ifgotweaponce 0
+            break
+		  
+		  ifn gotweapons[RPGBLAST_WEAPON] 1
+		  {
+		     ife player[].curr_weapon RPG_WEAPON
+			  {
+				set change_weapon 1
+				setp[].weapon_pos -1
+			  }
+			  else ife gotweapons[RPG_WEAPON] 1
+			  {
+			    sound SELECT_WEAPON
+				set weapon_to_switch RPG_WEAPON
+				setp[].bsubweapon RPG_WEAPON 1
+				setp[].weapon_pos -1
+			  }
+		  
+			setarray gotweapons[RPGBLAST_WEAPON] 1
+			addweapon RPG_WEAPON 1
+			
+			ifl urpgammo MAXURPGAMMO
+				add urpgammo 3
+		  } else ifl urpgammo MAXURPGAMMO
+				add urpgammo 3
+			else break
+			
+          quote 130
+
+        ifspawnedby ULTRARPGSPRITE
+          state getweaponcode
+        else
+          state quikweaponget
+      }
+enda
+
+useractor notenemy ULTRARPGAMMO
+  fall
+  sizeat 24 24
+  ifmove RESPAWN_ACTOR_FLAG
+    state respawnit
+  else
+    ifp pshrunk nullop
+    else
+      ifp palive
+        ifpdistl RETRIEVEDISTANCE
+			ifl urpgammo MAXURPGAMMO
+          ifcount 6
+            ifcanseetarget
+      {
+		ife userdef.enable_nuke 1
+		ife userdef.nuke_active 1
+		ife nuke_n5 1
+		ifge urpgammo 2
+			break
+	  
+	    ife userdef.player_skill 6
+			add urpgammo 2
+		else
+          add urpgammo 4
+          quote 131
+        ifspawnedby ULTRARPGAMMO
+          state getcode
+        else
+          state quikget
+      }
+enda
+
+appendevent EVENT_GAME
+	
+	ife sprite[].picnum SMALLSMOKE
+	{
+		ifspawnedby RPG
+		{
+			//geta[].owner w_temp
+			//geta[w_temp].xrepeat w_temp
+			
+			//ife w_temp 14
+			//{
+				espawn EXPLOSION3
+				seta[RETURN].xrepeat 14
+				seta[RETURN].yrepeat 14
+				seta[RETURN].yoffset -16 
+				killit
+			//}
+		}
+	}
+	else ife sprite[].picnum ROCKETPROJ
+	{
+		ife sprite[].xrepeat 32
+		ife sprite[].yrepeat 32
+		{
+			ife userdef.enable_nuke 1
+			ife userdef.nuke_active 1
+			{
+				ife nuke_n4 1
+					setthisprojectile[].drop 0
+					
+				ife userdef.nuke_wpnsel 1
+					setthisprojectile[].hitradius 2048
+			}
+		}
+	}
+
+endevent

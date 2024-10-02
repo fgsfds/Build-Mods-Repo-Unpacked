@@ -1,0 +1,762 @@
+/*
+--------------------------------------------------------------------------------
+Duke Nukem 3D - Legacy Edition Version 2.0
+By Marcos
+2022 - Space In a Bottle
+*/
+
+//Initialization code
+
+define GAME_NAME 9997
+define GAME_VERSION 9996
+
+definequote GAME_NAME Duke Nukem 3D - Legacy Edition
+definequote GAME_VERSION Version 2.05
+
+var in_temp 0 0
+var in_temp2 0 0
+
+precache 2492 2499 1
+precache 2500 2501 1
+precache 2509 2522 1
+precache 2586 2589 1
+precache 2600 2601 1
+precache 2605 2611 1
+precache 2688 2706 1
+precache 3650 3827 1
+precache 3840 3907 0
+precache 3908 3938 1
+precache 4005 4047 0
+precache 5376 5679 0
+precache 5690 5750 0
+precache 5751 5758 1
+precache 5770 5818 1
+precache 5820 5857 0
+precache 5860 5887 1
+
+onevent EVENT_INIT
+
+	echo GAME_NAME
+	echo GAME_VERSION
+
+endevent
+
+appendevent EVENT_INITCOMPLETE
+
+	setuserdef[].statusbarflags 64
+	setuserdef[].statusbarrange -1
+	setuserdef[].statusbarcustom 0
+	setuserdef[].show_level_text 0
+	readgamevar EPLOCK
+	readgamevar EP1LOCKS
+	readgamevar EP2LOCKS
+	readgamevar EP22LOCKS
+	readgamevar EP3LOCKS
+	readgamevar EP32LOCKS
+	readgamevar EP4LOCKS
+	readgamevar EP42LOCKS
+	
+	readgamevar enable_nuke
+	setu[].enable_nuke enable_nuke
+	
+	readgamevar score_id
+	
+	state RandomSeedGen
+	
+	ife score_id -2
+	{
+		set score_id -1
+		savegamevar score_id
+		
+		qstrcpy RQUOTE NAMESFILE
+		writequotestofile RQUOTE 9000 9015
+		
+		set t_temp 0
+		whilen t_temp 1152
+		{
+			rand t_temp3 10000
+		
+			set t_temp2 t_temp
+			mod t_temp2 72
+			
+			ifge t_temp2 66
+			{
+				rand t_temp2 8
+				mul t_temp3 t_temp2
+			}
+			
+			setarray record_scores[t_temp] t_temp3
+			
+			add t_temp 1
+		}
+		
+		qstrcpy RQUOTE SCOREFILE
+		writearraytofile record_scores RQUOTE
+	}
+	else
+	{
+		//Load slots used
+		state CheckIfSlotsWereUsed
+		
+		//Load score names
+		qstrcpy RQUOTE NAMESFILE
+		readquotesfromfile RQUOTE 9000 9015 YES
+	}
+	
+	//Load scores
+	qstrcpy RQUOTE SCOREFILE
+	readarrayfromfile record_scores RQUOTE
+	
+	state getNukePowerup
+
+endevent
+
+appendevent EVENT_ENTERLEVEL
+
+	//activatecheat 1 //For testing - All stuff
+	setuserdef[].respawn_monsters 0
+	//setuserdef[].respawn_items 1
+	
+	state getNukePowerup
+	
+	set loadtip 0
+	
+	ifn LEVEL 0
+	{
+		readgamevar tutorialWeapon
+		readgamevar tutorialLastWeap
+		readgamevar tutorialAltFire
+		readgamevar tutorialChangeItem
+		readgamevar tutorialUseItem
+		readgamevar tutorialSteroids
+		readgamevar tutorialMF
+		readgamevar tutorialAltWeap
+		readgamevar tutorialCater
+	}
+	
+	set music_reset 0
+	set t_temp userdef.volume_number
+	add t_temp 66
+	set t_temp3 72
+	mul t_temp3 score_id
+	
+	set s_epscore record_scores[t_temp3]
+	
+	set s_lvscore 0
+	set s_bodies 0
+	set s_blowkills 0
+	set s_shotblowkills 0
+	set s_items 0
+	set s_doublekills 0
+	set s_multkills 0
+	set s_damage 0
+	set s_blowdamage 0
+	set s_destruction 0
+	set s_displayscore 0
+	set s_weapshot 0
+	set s_bosskill 0
+	set s_babekilled 0
+	set s_killed 0
+	
+	ife userdef.level_number 0
+	{
+		set s_killed 0
+		set t_temp3 6
+		mul t_temp3 score_id
+		add t_temp3 userdef.volume_number
+			
+		set t_temp ep_deaths[t_temp3]
+		set s_epscore 0
+		
+		set t_temp userdef.volume_number
+		add t_temp 66
+		set t_temp3 72
+		mul t_temp3 score_id
+		
+		setarray record_scores[t_temp3] 0
+	}
+	
+	ife secretprize 1
+	ife bodiesprize 1
+	ife itemsprize 1
+	ife killsprize 1
+		nullop
+	else
+	ife userdef.enable_nuke 1
+	ife userdef.nuke_active 1
+	ife nuke_n1 1
+		nullop
+	else
+	ifge userdef.player_skill 5
+	ife lastbonuslevel 0
+	{
+		setp[].ammo_amount SHOTGUN_WEAPON 0
+		setp[].ammo_amount HANDBOMB_WEAPON 0
+		setp[].ammo_amount SHRINKER_WEAPON 0
+		setp[].ammo_amount GROW_WEAPON 0
+		setp[].ammo_amount TRIPBOMB_WEAPON 0
+			
+		set ripperammo 0
+		
+		ife userdef.player_skill 6
+		{
+			ife plasmaammo 0
+				set plasmaammo 14
+		}
+		else
+			set plasmaammo 0
+		
+		set rpgammo 0
+		set urpgammo 0
+		set freezeammo 0
+		set flameammo 0
+		set devistatorammo 0
+		set sonicammo 0
+		
+		ifn sector[player[].cursectnum].floorpicnum HURTRAIL
+		{
+			setp[].ammo_amount PISTOL_WEAPON 48
+			setp[].curr_weapon PISTOL_WEAPON
+			state i_Pistol
+		}
+		
+	}
+	
+
+	ife userdef.player_skill 6
+	{
+		ife userdef.enable_nuke 1
+		ife userdef.nuke_active 1
+		ife nuke_n1 1
+			nullop
+		else
+		ife userdef.enable_nuke 1
+		ife userdef.nuke_active 1
+		ife nuke_n1 2
+			nullop
+		else
+		ife plasmaammo 0
+			set plasmaammo 14
+			
+			
+		ife userdef.enable_nuke 1
+		ife userdef.nuke_active 1
+		ife nuke_n2 1
+			nullop
+		else
+			setarray gotweapons[CATERKILAR_WEAPON] 1
+	}
+	
+	/*
+	ife plasmaammo 0
+			set plasmaammo 14
+		
+		ife flameammo 0
+			set flameammo 14
+			
+		setarray gotweapons[CATERKILAR_WEAPON] 1
+	*/
+	
+	ife killsprize 1
+	{
+		spawn SIXPAK
+		spawn FIRSTAID
+	}
+		
+	ife itemsprize 1
+	{
+		ifrnd 64
+		{
+			espawn SHIELD
+			setactorvar[RETURN].atmp2 1
+		}
+		else
+			spawn STEROIDS
+	}
+		
+	ife secretprize 1
+	{
+		ifrnd 96
+			spawn SHIELD
+		else ifrnd 96
+			spawn ATOMICHEALTH
+		else ifrnd 96 ifn userdef.volume_number 1
+			spawn SHOTGUNAMMO
+		else ifrnd 96 ifn  userdef.volume_number 0
+			spawn PLASMAAMMO
+		else ifrnd 96
+			spawn RPGAMMO
+		else ifrnd 4
+			spawn ONEUP
+		else
+			spawn CHAINGUNSPRITE
+	}
+	
+	ife bodiesprize 1
+	{
+		spawn ULTRARPGAMMO
+		spawn RPGAMMO
+		spawn HEAVYHBOMB
+	}
+	
+	ife damageprize 1
+	{
+		spawn ONEUP
+		spawn ATOMICHEALTH
+	}
+	
+	set killsprize 0
+	set bodiesprize 0
+	set itemsprize 0
+	set secretprize 0
+	set damageprize 0
+	
+	set cycloid_beam_0 -1
+	set cycloid_beam_1 -1
+	set cycloid_beam_2 -1
+	set cycloid_under_octa 0
+	set cycloid_sprite -1
+	set boss3musictrack 0
+	set StartLevelFadeout 255
+	
+	//Fix for starting with primary WITHOUT having it
+	switch player[].curr_weapon
+		case SHOTGUN_WEAPON
+			ife 0 player[].bsubweapon SHOTGUN_WEAPON
+			ife gotweapons[SHOTGUN_WEAPON] 0
+			{
+				ife gotweapons[SHOTGUNDOUBLE_WEAPON] 1
+					setp[].bsubweapon SHOTGUN_WEAPON 1
+				else
+					state CheckWeaponAvailable
+			}
+			
+			break
+			
+		case CHAINGUN_WEAPON
+			ife 0 player[].bsubweapon CHAINGUN_WEAPON
+			ife gotweapons[CHAINGUN_WEAPON] 0
+			{
+				ife gotweapons[PLASMA_WEAPON] 1
+					setp[].bsubweapon CHAINGUN_WEAPON 1
+				else
+					state CheckWeaponAvailable
+			}
+			
+			break
+			
+		case RPG_WEAPON
+			ife 0 player[].bsubweapon RPG_WEAPON
+			ife gotweapons[RPG_WEAPON] 0
+			{
+				ife gotweapons[RPGBLAST_WEAPON] 1
+					setp[].bsubweapon RPG_WEAPON 1
+				else
+					state CheckWeaponAvailable
+			}
+			
+			break
+			
+		case DEVISTATOR_WEAPON
+			ife 0 player[].bsubweapon DEVISTATOR_WEAPON
+			ife gotweapons[DEVISTATOR_WEAPON] 0
+			{
+				ife gotweapons[SONICRESONATOR_WEAPON] 1
+					setp[].bsubweapon DEVISTATOR_WEAPON 1
+				else
+					state CheckWeaponAvailable
+			}
+			
+			break
+			
+		case FREEZE_WEAPON
+			ife 0 player[].bsubweapon FREEZE_WEAPON
+			ife gotweapons[FREEZE_WEAPON] 0
+			{
+				ife gotweapons[FLAME_WEAPON] 1
+					setp[].bsubweapon FREEZE_WEAPON 1
+				else
+					state CheckWeaponAvailable
+			}
+			
+			break
+			
+	endswitch
+	
+	ife userdef.enable_nuke 1
+	ife userdef.nuke_active 1
+	ife nuke_n1 1
+		nullop
+	else
+	ife userdef.user_map 1
+	ife userdef.um_enhanced 1
+	{
+		ife plasmaammo 0
+			set plasmaammo 14
+			
+		setarray gotweapons[CATERKILAR_WEAPON] 1
+	}
+	
+	ife BOSSFIGHT_LEVEL 1
+	{
+		ife VOLUME 0
+		ife LEVEL 4
+		{
+			spawn RPGSPRITE
+			spawn SHOTGUNSPRITE
+			spawn SHOTGUNBETASPRITE
+			spawn CHAINGUNSPRITE
+			spawn AMMO
+			spawn AMMO
+			spawn SHOTGUNAMMO
+			spawn SHOTGUNAMMO
+			spawn HBOMBAMMO
+			spawn SIXPAK
+			spawn ATOMICHEALTH
+			spawn BOOTS
+			addinventory GET_SHIELD 50
+		}
+		else ife VOLUME 1
+		ife LEVEL 8
+		{
+			spawn RPGSPRITE
+			spawn ULTRARPGSPRITE
+			spawn FLAMETHROWERSPRITE
+			spawn SHRINKERSPRITE
+			spawn PLASMASPRITE
+			spawn CHAINGUNSPRITE
+			spawn HBOMBAMMO
+			spawn ATOMICHEALTH
+			spawn BATTERYAMMO
+			spawn PLASMAAMMO
+			spawn RPGAMMO
+			spawn AMMO
+			spawn FUEL
+			spawn AIRTANK
+			spawn ATOMICHEALTH
+			addinventory GET_SHIELD 50
+			state PlayRegularMusic
+		}
+		else ife VOLUME 3
+		ife LEVEL 9
+		{
+			spawn RPGSPRITE
+			spawn ULTRARPGSPRITE
+			spawn FLAMETHROWERSPRITE
+			spawn FREEZESPRITE
+			spawn DEVISTATORSPRITE
+			spawn SONICSPRITE
+			spawn SHRINKERSPRITE
+			spawn PLASMASPRITE
+			spawn CHAINGUNSPRITE
+			spawn SHOTGUNSPRITE
+			spawn SHOTGUNBETASPRITE
+			spawn CATERKILARSPRITE
+			spawn HBOMBAMMO
+			spawn ATOMICHEALTH
+			spawn BATTERYAMMO
+			spawn PLASMAAMMO
+			spawn RPGAMMO
+			spawn ULTRARPGAMMO
+			spawn SHOTGUNAMMO
+			spawn AMMO
+			spawn FREEZEAMMO
+			spawn GROWAMMO
+			spawn DEVISTATORAMMO
+			spawn BATTERYAMMO
+			spawn FUEL
+			spawn BOOTS
+			addinventory GET_SHIELD 50
+			stopallmusic
+		}
+	}
+	else ife BOSSFIGHT_LEVEL 2
+	{
+		ife VOLUME 0
+		ife LEVEL 4
+		{
+			spawn RPGSPRITE
+			spawn SHOTGUNSPRITE
+			spawn SHOTGUNBETASPRITE
+			spawn CHAINGUNSPRITE
+			spawn FLAMETHROWERSPRITE
+			spawn AMMO
+			spawn HBOMBAMMO
+			spawn SIXPAK
+			spawn ATOMICHEALTH
+			spawn BOOTS
+			addinventory GET_SHIELD 50
+		}
+	}
+	
+	set boss4phase 0
+	set boss4att 0
+	set boss4locator -1
+	set SE120Active 0
+	set overlord_init 0
+	set overlord_SEpos -1
+	set boss1fx 0
+	
+endevent
+
+appendevent EVENT_RESETPLAYER
+
+	readgamevar EPLOCK
+	readgamevar score_id
+	
+	state RandomSeedGen
+	
+	state getNukePowerup
+	
+	ife score_id -2
+	{
+		set score_id -1
+		savegamevar score_id
+		
+		qstrcpy RQUOTE NAMESFILE
+		writequotestofile RQUOTE 9000 9015
+		
+		set t_temp 0
+		whilen t_temp 1152
+		{
+			rand t_temp3 32768
+		
+			set t_temp2 t_temp
+			mod t_temp2 72
+			
+			ifge t_temp2 66
+			{
+				rand t_temp2 32768
+				mul t_temp3 t_temp2
+			}
+			
+			setarray record_scores[t_temp] t_temp3
+			
+			add t_temp 1
+		}
+		
+		qstrcpy RQUOTE SCOREFILE
+		writearraytofile record_scores RQUOTE
+	}
+	else
+	{
+		//Load slots used
+		state CheckIfSlotsWereUsed
+		
+		//Load score names
+		qstrcpy RQUOTE NAMESFILE
+		readquotesfromfile RQUOTE 9000 9015 YES
+	}
+	
+	//Load scores
+	qstrcpy RQUOTE SCOREFILE
+	readarrayfromfile record_scores RQUOTE
+	
+	set num_bosspalfight 0
+	set bossfighton -1	
+	
+	//set curSaveSlot -1
+	
+	//set PlayerLives 0
+	
+	setp[].sound_pitch 0
+
+endevent
+
+
+appendevent EVENT_LOADGAME
+
+	readgamevar EPLOCK
+	readgamevar score_id
+	
+	//Load slots used
+	state CheckIfSlotsWereUsed
+		
+	//Load score names
+	qstrcpy RQUOTE NAMESFILE
+	readquotesfromfile RQUOTE 9000 9015 YES
+	
+	//Load scores
+	qstrcpy RQUOTE SCOREFILE
+	readarrayfromfile record_scores RQUOTE
+	
+	set curSaveSlot RETURN
+	
+	state getNukePowerup
+	
+	switch curSaveSlot
+	
+		case 0
+			readgamevar eLivesSlot00
+			set PlayerLives eLivesSlot00
+			break
+			
+		case 1
+			readgamevar eLivesSlot01
+			set PlayerLives eLivesSlot01
+			break
+			
+		case 2
+			readgamevar eLivesSlot02
+			set PlayerLives eLivesSlot02
+			break
+			
+		case 3
+			readgamevar eLivesSlot03
+			set PlayerLives eLivesSlot03
+			break
+			
+		case 4
+			readgamevar eLivesSlot04
+			set PlayerLives eLivesSlot04
+			break
+			
+		case 5
+			readgamevar eLivesSlot05
+			set PlayerLives eLivesSlot05
+			break
+			
+		case 6
+			readgamevar eLivesSlot06
+			set PlayerLives eLivesSlot06
+			break
+			
+		case 7
+			readgamevar eLivesSlot07
+			set PlayerLives eLivesSlot07
+			break
+			
+		case 8
+			readgamevar eLivesSlot08
+			set PlayerLives eLivesSlot08
+			break
+			
+		case 9
+			readgamevar eLivesSlot09
+			set PlayerLives eLivesSlot09
+			break
+			
+	endswitch
+
+endevent
+
+appendevent EVENT_SAVEGAME
+
+	set curSaveSlot RETURN
+	
+	switch curSaveSlot
+	
+		case 0
+			set eLivesSlot00 PlayerLives
+			savegamevar eLivesSlot00
+			break
+			
+		case 1
+			set eLivesSlot01 PlayerLives
+			savegamevar eLivesSlot01
+			break
+			
+		case 2
+			set eLivesSlot02 PlayerLives
+			savegamevar eLivesSlot02
+			break
+			
+		case 3
+			set eLivesSlot03 PlayerLives
+			savegamevar eLivesSlot03
+			break
+			
+		case 4
+			set eLivesSlot04 PlayerLives
+			savegamevar eLivesSlot04
+			break
+			
+		case 5
+			set eLivesSlot05 PlayerLives
+			savegamevar eLivesSlot05
+			break
+			
+		case 6
+			set eLivesSlot06 PlayerLives
+			savegamevar eLivesSlot06
+			break
+			
+		case 7
+			set eLivesSlot07 PlayerLives
+			savegamevar eLivesSlot07
+			break
+			
+		case 8
+			set eLivesSlot08 PlayerLives
+			savegamevar eLivesSlot08
+			break
+			
+		case 9
+			set eLivesSlot09 PlayerLives
+			savegamevar eLivesSlot09
+			break
+			
+	endswitch
+
+endevent
+
+appendevent EVENT_LOADACTOR
+
+	switch sprite[].picnum
+		case ROBOTTROOPER
+		case ROBOTTROOPERSTAYPUT
+		case ROBOTTROOPERSHOOT
+		case ROBOTTROOPERJETPACK
+		case ELITEENFORCER
+		case ELITEENFORCERSTAYPUT
+		case ELITEENFORCERSPITTING
+		case ELITEENFORCERJUMP
+		case FLAMEENFORCER
+		case FLAMEENFORCERSTAYPUT
+		case FLAMEENFORCERSPITTING
+		case FLAMEENFORCERJUMP
+		case DPIGCOP
+		case DPIGCOPSTAYPUT
+		case DPIGCOPDIVE
+		case ELITEPIGCOP
+		case ELITEPIGCOPSTAYPUT
+		case ELITEPIGCOPDIVE
+		case SNAKEHEAD
+		case SNAKEDRONE
+		case ORGANTIC
+		case SARGE
+		case SCORPIONTANK
+			ifg sprite[].lotag userdef.player_skill
+				killit
+			break
+	
+	endswitch
+
+endevent
+
+appendevent EVENT_EGS
+
+	ifactor APLAYER
+	{
+		ife VOLUME 0
+		ife LEVEL 4
+		{
+			ifg BOSSFIGHT_LEVEL 0
+				setsprite THISACTOR SEBOSSFIGHT[0] SEBOSSFIGHT[1] SEBOSSFIGHT[2]
+		}
+		else
+		ife VOLUME 1
+		ife LEVEL 8
+		{
+			ifg BOSSFIGHT_LEVEL 0
+				setsprite THISACTOR SEBOSSFIGHT[0] SEBOSSFIGHT[1] SEBOSSFIGHT[2]
+		}
+		ife VOLUME 3
+		ife LEVEL 9
+		{
+			ifg BOSSFIGHT_LEVEL 0
+				setsprite THISACTOR SEBOSSFIGHT[0] SEBOSSFIGHT[1] SEBOSSFIGHT[2]
+		}
+	}
+
+endevent

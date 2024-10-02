@@ -1,0 +1,76 @@
+/*
+--------------------------------------------------------------------------------
+Duke Nukem 3D - Blast Edition Version 2.0
+By Marcos
+2023 - Space In a Bottle
+*/
+
+var uAnimTile 10000 0
+var uAnimStart 10000 0
+var uAnimLength 10512 0
+var uAnimSizeX 2 0
+var uAnimFPS 60 0
+var uAnimNextFrame 0 0
+var uAnimFrameSet 0 0
+var uAnimFrameSkip 0 0
+
+var animRun 0 0
+
+gamearray uAnimSounds 512
+
+var uatmp 0 0
+var uatmp2 0 0
+
+defstate ResetAnimSounds
+
+	set uatmp 0
+	whilen uatmp 511
+	{
+		setarray uAnimSounds[uatmp] -1
+		add uatmp 1
+	}
+
+ends
+
+include sys/anim_defs.con
+
+defstate DrawUpscaledAnim
+
+	ife animRun 1
+	{
+		ife uAnimFrameSet 0
+		{
+			set uatmp2 120
+			div uatmp2 uAnimFPS
+			
+			set uAnimNextFrame totalclock
+			add uAnimNextFrame uatmp2
+			set uAnimFrameSet 1
+			
+			ifn uAnimSounds[uatmp] -1
+				screensound uAnimSounds[uatmp]
+		}
+		else ifge totalclock uAnimNextFrame
+		{
+			set uAnimFrameSet 0
+			add uAnimTile 1
+			add uAnimTile uAnimFrameSkip
+		}
+				
+		ife uAnimTile uAnimLength
+		{
+			set animRun 0
+			setp[].palette 0
+		}
+			
+		
+		set uatmp 65536
+		div uatmp uAnimSizeX
+
+		rotatesprite 0 0 uatmp 0 uAnimTile 0 0 88 0 0 xdim ydim
+		
+		set uatmp uAnimTile
+		sub uatmp uAnimStart
+	}
+
+ends

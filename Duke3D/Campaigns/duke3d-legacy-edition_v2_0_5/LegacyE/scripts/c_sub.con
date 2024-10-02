@@ -1,0 +1,953 @@
+/*
+--------------------------------------------------------------------------------
+Duke Nukem 3D - Blast Edition Version 2.0
+By Marcos
+2022 - Space In a Bottle
+*/
+
+//Common Subroutines
+
+var atemp 0 2
+var atemp2 0 2
+var atemp3 0 2
+var atemp4 0 2
+var atemp8 0 2
+
+var atmp 0 2
+var atmp2 0 2
+
+var ax 0 2
+var ay 0 2
+var az 0 2
+var aang 0 2
+var hang 0 2
+
+var tmpx 0 2
+var tmpy 0 2
+var tmpz 0 2
+
+var tmpid -1 2
+var tmpid2 -1 2
+
+var tracerid -1 0
+
+var noshards 0 2
+
+define GETSHARD 514
+definesound GETSHARD item15.voc -128 -128 4 0 0
+
+define GETAMMODROP 530
+definesound GETAMMODROP snd/pistol_restore.wav 0 0 4 0 0
+
+var shardtmp 0 2
+
+defstate getNukePowerup
+
+	set nuke_n1 userdef.nuke_powerup
+	and nuke_n1 0x1
+	
+	set nuke_n2 userdef.nuke_powerup
+	shiftr nuke_n2 1
+	and nuke_n2 0x1
+	
+	set nuke_n3 userdef.nuke_powerup
+	shiftr nuke_n3 2
+	and nuke_n3 0x1
+	
+	set nuke_n4 userdef.nuke_powerup
+	shiftr nuke_n4 3
+	and nuke_n4 0x1
+	
+	set nuke_n5 userdef.nuke_powerup
+	shiftr nuke_n5 4
+	and nuke_n5 0x1
+	
+	set nuke_n6 userdef.nuke_powerup
+	shiftr nuke_n6 5
+	and nuke_n6 0x1
+	
+	set nuke_n7 userdef.nuke_powerup
+	shiftr nuke_n7 6
+	and nuke_n7 0x1
+
+ends
+
+defstate SpawnShards
+
+	ife noshards 0
+	{
+		ife caterkilled 1
+		{
+			set atemp actorlife
+			div atemp CATERDAMAGE
+			
+			set atmp catertimes
+			mul atmp 10
+			
+			ife atemp 0
+				set atmp 15
+			else
+				div atmp atemp
+			
+			ifg atmp 15
+				set atmp 15
+		}
+		else
+			set atmp 15
+
+		set shardtmp 0
+		whilen shardtmp atmp
+		{
+			espawn DROPPER
+			
+			ifrnd 196
+				seta[RETURN].pal 0
+			else ifrnd 128
+				seta[RETURN].pal 3
+			else
+				seta[RETURN].pal 21
+				
+			add shardtmp 1
+		}
+	}
+
+ends
+
+defstate SpawnShards2
+
+	set shardtmp 0
+	whilen shardtmp 2
+	{
+		espawn DROPPER
+		
+		ifrnd 24
+			seta[RETURN].pal 0
+		else ifrnd 48
+			seta[RETURN].pal 3
+		else
+			seta[RETURN].pal 21
+			
+		add shardtmp 1
+	}
+
+ends
+
+defstate SpawnShards3
+
+	set shardtmp 0
+	whilen shardtmp 6
+	{
+		espawn DROPPER
+		
+		ifrnd 160
+			seta[RETURN].pal 0
+		else ifrnd 96
+			seta[RETURN].pal 3
+		else
+			seta[RETURN].pal 21
+			
+		add shardtmp 1
+	}
+
+ends
+
+defstate SpawnShards4
+
+	set shardtmp 0
+	whilen shardtmp 4
+	{
+		espawn DROPPER
+		
+		switch sprite[].picnum
+			case LIZMAN
+			case BOSS1
+				seta[RETURN].yvel 30
+				break
+				
+			case LIZTROOP
+			case ROBOTTROOPER
+				seta[RETURN].yvel 10
+				break
+				
+			case FLAMEENFORCER
+				seta[RETURN].yvel 91
+				break
+				
+			case ELITEENFORCER
+				seta[RETURN].yvel 31
+				break
+				
+			case PIGCOP
+			case DPIGCOP
+			case ELITEPIGCOP
+				seta[RETURN].yvel 20
+				break
+			
+			case COMMANDER
+				seta[RETURN].yvel 40
+				break
+				
+			case SARGE
+				seta[RETURN].yvel 81
+				break
+				
+			case NEWBEAST
+				getlastpal
+				ifspritepal 17
+					seta[RETURN].yvel 61
+				else
+					seta[RETURN].yvel 60
+				break
+				
+			case BOSS3
+				seta[RETURN].yvel 41
+				break
+				
+			case SHARK
+				seta[RETURN].yvel 90
+				break
+				
+			case EGG
+				seta[RETURN].yvel 31
+				break	
+				
+			case OCTABRAIN
+				seta[RETURN].yvel 90
+				break	
+		
+		endswitch
+		
+		add shardtmp 1
+	}
+	
+	switch sprite[].picnum
+			case LIZMAN
+			case BOSS1
+				ifrnd 64
+					spawn CHAINGUNSPRITE
+				break
+				
+			case FLAMEENFORCER
+				ifrnd 64
+					spawn FLAMETHROWERSPRITE
+				break
+				
+			case ELITEENFORCER
+				ifrnd 64
+					spawn PLASMASPRITE
+				break
+				
+			case PIGCOP
+			case DPIGCOP
+			case ELITEPIGCOP
+				ifrnd 64
+					spawn SHOTGUNSPRITE
+				else ifrnd 64
+					spawn SHOTGUNBETASPRITE
+				break
+			
+			case COMMANDER
+				ifrnd 64
+					spawn RPGSPRITE
+				break
+				
+			case SARGE
+				ifrnd 64
+					spawn SONICSPRITE
+				break
+				
+			case BOSS3
+				ifrnd 64
+					spawn 17
+				break
+		
+		endswitch
+
+ends
+
+defstate getPlayerHoriz
+
+	getp[].horiz hang
+	add hang player[].horizoff
+	sub hang 100
+
+ends
+
+defstate worldToScreen
+
+	geta[tmpid].x ax
+	geta[tmpid].y ay
+	geta[tmpid].z az
+	
+	sub ax player[].posx
+	sub ay player[].posy
+	sub az player[].posz
+	//sub az -8192
+	div az -16
+	
+	getangle atemp ax ay
+	getincangle aang player[].ang atemp
+	div aang 2
+	
+	ldist atemp2 tmpid2 tmpid
+	getangle atemp atemp2 az
+	
+	getangle atemp3 128 hang
+	getincangle hang atemp atemp3
+	mul hang 7
+	div hang 15
+	
+	add aang 160
+	add hang 80
+
+ends
+
+state jib_sounds
+  ifrnd SWEARFREQUENCY
+  {
+    ifrnd 128
+    {
+      ifrnd 128
+      {
+        ifrnd 128
+        {
+          ifrnd 128
+          {
+            ifrnd 128
+              globalsound JIBBED_ACTOR12
+            else
+              globalsound JIBBED_ACTOR1
+          }
+          else
+          {
+            ifrnd 128
+              globalsound JIBBED_ACTOR9
+            else
+              globalsound JIBBED_ACTOR14
+          }
+        }
+        else
+        {
+          ifrnd 128
+            globalsound SMACKED
+          else
+            globalsound JIBBED_ACTOR2
+        }
+      }
+      else
+      {
+        ifrnd 128
+          globalsound MDEVSPEECH
+        else
+          globalsound JIBBED_ACTOR5
+      }
+    }
+    else
+    {
+      ifrnd 128
+      {
+        ifrnd 128
+        {
+          ifrnd 128
+            globalsound JIBBED_ACTOR11
+          else
+            globalsound JIBBED_ACTOR13
+        }
+        else
+        {
+          ifrnd 128
+            globalsound JIBBED_ACTOR3
+          else
+            globalsound JIBBED_ACTOR8
+        }
+      }
+      else
+      {
+        ifrnd 128
+        {
+          ifrnd 128
+            globalsound JIBBED_ACTOR6
+          else
+            globalsound JIBBED_ACTOR4
+        }
+        else
+        {
+          ifrnd 128
+          {
+            ifrnd 128
+              globalsound JIBBED_ACTOR10
+            else
+              globalsound JIBBED_ACTOR15
+
+          }
+          else
+            globalsound JIBBED_ACTOR7
+        }
+      }
+    }
+  }
+ends
+
+var checkforboss 0 2
+
+state standard_jibs
+  guts JIBS2 2
+  guts JIBS3 9
+  guts JIBS4 4
+  guts JIBS5 2
+  guts JIBS6 12
+  ifrnd 48
+  {
+    guts JIBS1 2
+    spawn BLOODPOOL
+  }         // a badly drawn spine
+
+  state jib_sounds
+ends
+
+var shrunksquishcheck 0 2
+
+state genericshrunkcode
+  ifcount 32
+  {
+    ifpdistl SQUISHABLEDISTANCE
+	{
+		pstomp
+		
+		ife shrunksquishcheck 0
+		{
+			ife userdef.player_skill 6
+				state SpawnShards
+			else
+				spawn SIXPAK
+				
+			switch sprite[THISACTOR].picnum
+				case BOSS1
+				case BOSS2
+				case BOSS3
+					ife checkforboss 0
+					{
+						add s_bosskill 1
+						set checkforboss 1
+						
+						ifrnd 72
+							spawn ONEUP
+						else
+							spawn ATOMICHEALTH
+					}
+					break
+			endswitch
+				
+			set shrunksquishcheck 1
+		}
+	}
+  }
+  else
+  {
+    sizeto MINXSTRETCH MINYSTRETCH
+    spawn FRAMEEFFECT1
+  }
+ends
+
+state genericgrowcode
+  ifcount 32
+  {
+    guts JIBS4 24
+    guts JIBS6 28
+	guts JIBS1 2
+	guts JIBS3 16
+	guts JIBS6 8
+    addkills 1
+    sound SQUISHED
+    sound PIPEBOMB_EXPLODE
+    hitradius 2048 60 70 80 90
+    spawn BLOODPOOL
+    spawn EXPLOSION2
+	switch sprite[THISACTOR].picnum
+		case BOSS1
+		case BOSS2
+		case BOSS3
+			add s_bosskill 1
+			break
+	endswitch
+	
+	seta[].picnum PIGCOP //Make the shield drop with less amount
+	espawn SHIELD
+	
+    killit
+  }
+  else
+  {
+    ifactor COMMANDER
+      sizeto 100 100
+    else
+      ifactor SHARK
+        sizeto 84 84
+    else
+	  ifactor JELLYPROTECTOR
+		sizeto 164 164
+	else
+      sizeto MAXXSTRETCH MAXYSTRETCH
+    break
+  }
+ends
+
+state random_wall_jibs
+  ifrnd 256
+    shoot BLOODSPLAT1
+  ifrnd 256
+    shoot BLOODSPLAT2
+  ifrnd 256
+    shoot BLOODSPLAT3
+  ifrnd 256
+    shoot BLOODSPLAT4
+  ifrnd 256
+    shoot BLOODSPLAT1
+
+ends
+
+state troop_body_jibs
+  ifrnd 128
+    guts HEADJIB1 1
+	
+  ifactor 1763 //LIZHACKED
+	nullop
+  else ifactor 3691 //LIZTORSODEAD
+	nullop
+  else ifrnd 128
+    guts LEGJIB1 2
+	
+  ifrnd 128
+    guts ARMJIB1 1
+  ifrnd 64
+    spawn BLOODPOOL
+ends
+
+defstate genericburn_dead_code
+
+	spritepal 30
+	sound THUD
+	spawn FIRE
+	state random_wall_jibs
+	ifrnd 96
+		quote 125
+		
+	set a_flaming 0
+		
+	ifrnd 32
+	{
+		state random_wall_jibs
+		state random_wall_jibs
+		state standard_jibs
+		sound SQUISHED
+		spawn BLOODPOOL
+
+		killit
+	}
+
+ends
+
+move RESPAWN_ACTOR_FLAG
+
+defstate getcode
+  ifactor ATOMICHEALTH
+    globalsound GETATOMICHEALTH
+  else
+    globalsound DUKE_GET
+  palfrom 16 0 32
+  ifrespawn
+  {
+    move RESPAWN_ACTOR_FLAG
+    spawn RESPAWNMARKERRED
+    cstat 32768
+  }
+  else
+    killit
+ends
+
+defstate randgetweapsnds
+  ifrnd 64
+    globalsound DUKE_GETWEAPON1
+  else
+    ifrnd 96
+      globalsound DUKE_GETWEAPON2
+  else
+    ifrnd 128
+      globalsound DUKE_GETWEAPON3
+  else
+    ifrnd 140
+      globalsound DUKE_GETWEAPON4
+  else
+    globalsound DUKE_GETWEAPON6
+ends
+
+defstate getweaponcode
+
+  state randgetweapsnds
+
+  palfrom 32 0 32
+  ifgotweaponce 1
+    break
+  ifrespawn
+  {
+    move RESPAWN_ACTOR_FLAG
+    spawn RESPAWNMARKERRED
+    cstat 32768
+  }
+  else
+    killit
+ends
+
+
+defstate respawnit
+  ifcount RESPAWNITEMTIME
+  {
+    spawn TRANSPORTERSTAR
+    move 0
+    cstat 0
+    sound TELEPORTER
+  }
+ends
+
+defstate quikget
+  ifactor ATOMICHEALTH
+    globalsound GETATOMICHEALTH
+  else ifactor DROPPER
+  {
+    ifspritepal 0
+		globalsound DUKE_GET
+	else ifspritepal 3
+		globalsound KICK_HIT
+	else ifspritepal 21
+		globalsound GETSHARD
+  }
+  else
+    globalsound DUKE_GET
+
+    switch sprite[].picnum
+		case FIRSTAID
+		case AIRTANK
+		case JETPACK
+		case HEATSENSOR
+		case BOOTS
+		case SPACESUIT
+			ife tutorialChangeItem 0
+				set tutorialChangeItem 1
+			break
+	endswitch
+	
+  palfrom 16 0 32
+  killit
+ends
+
+defstate quikweaponget
+  state randgetweapsnds
+  palfrom 32 0 32
+  ifgotweaponce 1
+    break
+  killit
+ends
+
+defstate standard_scraps
+
+	debris SCRAP1 8
+	debris SCRAP2 8
+	debris SCRAP3 8	
+
+ends
+
+defstate random_scraps
+
+	ifrnd 96
+		debris SCRAP1 2
+	ifrnd 96
+		debris SCRAP2 2
+	ifrnd 96
+		debris SCRAP3 2
+
+ends
+
+defstate rf
+  ifrnd 128
+    cstat 4
+  else
+    cstat 0
+ends
+
+defstate RandomVar
+
+	set atmp2 255
+	sub atmp2 atmp
+	set atmp atmp2
+	
+	randvar atmp2 255
+	ifge atmp2 atmp
+		set atmp 1
+	else
+		set atmp 0
+
+ends
+
+state drop_ammo
+  ifrnd SPAWNAMMOODDS
+    spawn AMMO
+   else ifrnd SPAWNCOLAODDS
+	spawn COLA
+ends
+
+state drop_battery
+  ifrnd SPAWNAMMOODDS
+    spawn BATTERYAMMO
+ends
+
+state drop_sgshells
+  ifrnd SPAWNAMMOODDS
+    spawn SHOTGUNAMMO
+ends
+
+state drop_shotgun
+  ifrnd SPAWNAMMOODDS
+  {
+	  ifactor DPIGCOP
+		spawn SHOTGUNSPRITE
+	  else
+		spawn SHOTGUNBETASPRITE
+  }
+  else ifrnd SPAWNCOLAODDS
+	spawn COLA
+ends
+
+state drop_chaingun
+  ifrnd SPAWNAMMOODDS
+  {
+	ifactor FLAMEENFORCER
+	{
+		ifrnd SPAWNWEAPONODDS
+		  spawn FLAMETHROWERSPRITE
+		else
+		  spawn FUEL
+    }
+	else ifactor ELITEENFORCER
+	{
+		ifrnd SPAWNWEAPONODDS
+		  spawn PLASMASPRITE
+		else
+		  spawn PLASMAAMMO
+    }
+    else
+	{
+		ifrnd SPAWNWEAPONODDS
+		  spawn CHAINGUNSPRITE
+		else
+		  spawn BATTERYAMMO
+    }
+  }
+  else ifrnd SPAWNCOLAODDS
+	spawn COLA
+ends
+
+defstate drop_cola
+
+	ifrnd SPAWNCOLAODDS
+		spawn COLA
+
+ends
+
+state random_ooz
+  ifrnd 128
+    spawn OOZ2
+  else
+    spawn OOZ
+ends
+
+state checksquished
+  ifsquished
+  {
+    addkills 1
+    sound SQUISHED
+    state standard_jibs
+    state random_ooz
+    killit
+  }
+ends
+
+var yeard 0 0
+var monthd 0 0
+var dayd 0 0
+var hourd 0 0
+var mind 0 0
+var secd 0 0
+var wdayd 0 0
+var ydayd 0 0 
+
+var gtemp 0 0
+var gtemp2 0 0
+
+
+defstate GetDateSeq
+
+	gettimedate secd mind hourd dayd monthd yeard wdayd ydayd
+	set gtemp yeard
+	sub gtemp 2000
+	add gtemp monthd
+	mul gtemp 10000000
+	mul dayd 1000000
+	add gtemp dayd
+	mul hourd 10000
+	add gtemp hourd
+	mul mind 100
+	add gtemp mind
+	add gtemp secd
+	//al gtemp
+
+ends
+
+defstate RandomSeedGen
+
+	state GetDateSeq
+	getticks gtemp2
+	add gtemp gtemp2
+	add gtemp totalclock
+	set randomseed gtemp
+
+ends
+
+var wallDist 256 2
+var wallTouch 0 2
+var sectorID -1 2
+var wallHitAng 0 2
+var wctmp 0 2
+var wctmp2 0 2
+
+defstate CheckWallNearby
+
+	set wallTouch 0
+	set wallHitAng 0
+	set sectorID -1
+
+	set tmpx sprite[].x
+	add tmpx wallDist
+	set tmpy sprite[].y
+	add tmpy wallDist
+	
+	updatesectorz tmpx tmpy sprite[].z atmp
+	getangle wallHitAng wallDist wallDist
+	
+	ife atmp sprite[].sectnum
+	{
+		sub tmpx wallDist
+		sub tmpy wallDist
+		sub tmpx wallDist
+		sub tmpy wallDist
+		updatesectorz tmpx tmpy sprite[].z atmp
+		
+		set wctmp wallDist
+		mul wctmp -1
+		
+		getangle wallHitAng wctmp wctmp
+		
+		ife atmp sprite[].sectnum
+		{
+			add tmpx wallDist
+			add tmpx wallDist
+			add tmpy wallDist
+			updatesectorz tmpx tmpy sprite[].z atmp
+			
+			set wctmp wallDist
+			mul wctmp -1
+		
+			getangle wallHitAng wallDist 0
+			
+			ife atmp sprite[].sectnum
+			{
+				sub tmpx wallDist
+				add tmpy wallDist
+				
+				updatesectorz tmpx tmpy sprite[].z atmp
+		
+				getangle wallHitAng 0 wallDist
+				
+				ifn atmp sprite[].sectnum
+					set wallTouch 1
+			}
+			else
+				set wallTouch 1
+		}
+		else
+			set wallTouch 1
+	}
+	else
+		set wallTouch 1
+		
+	set sectorID atmp
+
+ends
+
+var wcx 0 2
+var wcy 0 2
+var wcz 0 2
+var wcs 0 2
+
+defstate CheckWallNearby2
+
+	set wallTouch 0
+	set wallHitAng 0
+	set sectorID -1
+
+	set tmpx wcx
+	add tmpx wallDist
+	set tmpy wcy
+	add tmpy wallDist
+	
+	updatesectorz tmpx tmpy wcz atmp
+	getangle wallHitAng wallDist wallDist
+	
+	ife atmp wcs
+	{
+		sub tmpx wallDist
+		sub tmpy wallDist
+		sub tmpx wallDist
+		sub tmpy wallDist
+		updatesectorz tmpx tmpy wcz atmp
+		
+		set wctmp wallDist
+		mul wctmp -1
+		
+		getangle wallHitAng wctmp wctmp
+		
+		ife atmp wcs
+		{
+			add tmpx wallDist
+			add tmpx wallDist
+			add tmpy wallDist
+			updatesectorz tmpx tmpy wcz atmp
+			
+			set wctmp wallDist
+			mul wctmp -1
+		
+			getangle wallHitAng wallDist 0
+			
+			ife atmp wcs
+			{
+				sub tmpx wallDist
+				add tmpy wallDist
+				
+				updatesectorz tmpx tmpy wcz atmp
+		
+				getangle wallHitAng 0 wallDist
+				
+				ifn atmp wcs
+					set wallTouch 1
+			}
+			else
+				set wallTouch 1
+		}
+		else
+			set wallTouch 1
+	}
+	else
+		set wallTouch 1
+		
+	set sectorID atmp
+
+ends

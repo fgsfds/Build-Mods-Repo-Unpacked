@@ -1,0 +1,646 @@
+/*
+--------------------------------------------------------------------------------
+Duke Nukem 3D - Blast Edition Version 0.1
+By Marcos
+2022 - Space In a Bottle
+*/
+
+//Double Shot Pig Cop
+
+useractor enemy DPIGCOPDIVE DPIGCOPSTRENGTH
+  ifai 0
+  {
+	sound PIG_RECOG
+	sizeat 40 40
+	cstat 257
+  }
+  ai AIPIGDIVING
+  action APIGDIVESHOOT
+  cactor DPIGCOP
+enda
+
+useractor enemystayput DPIGCOPSTAYPUT DPIGCOPSTRENGTH
+  ifai 0
+  {
+	sound PIG_RECOG
+	sizeat 40 40
+	cstat 257
+  }
+  ai AIPIGSEEKENEMY
+  cactor DPIGCOP
+enda
+
+useractor enemy DPIGCOP DPIGCOPSTRENGTH APIGSTAND
+  fall
+  
+  ifai 0
+  {
+	sound PIG_RECOG
+	sizeat 40 40
+	cstat 257
+  }
+  
+  state checksquished
+  ifaction APIGSTAND
+    ai AIPIGSEEKENEMY
+  else
+    ifaction APIGDEAD
+  {
+    action 0
+	 cactor DPIGCOPDEAD
+  
+    ifrespawn
+      ifcount RESPAWNACTORTIME
+    {
+      spawn TRANSPORTERSTAR
+      cstat 257
+      strength PIGCOPSTRENGTH
+      ai AIPIGSEEKENEMY
+    }
+    else
+    {
+      strength 0
+	  //cstat 256
+      ifhitweapon
+        ifwasweapon RADIUSEXPLOSION
+      {
+        sound SQUISHED
+        state standard_jibs
+        killit
+      }
+      break
+    }
+  }
+  else
+    ifaction APIGFROZEN
+  {
+    ifcount THAWTIME
+    {
+      ai AIPIGSEEKENEMY
+      getlastpal
+    }
+    else
+      ifcount FROZENDRIPTIME
+        ifrnd 8
+          spawn WATERDRIP
+
+    ifhitweapon
+    {
+      ifwasweapon FREEZEBLAST
+      {
+        strength 0
+        break
+      }
+      addkills 1
+
+      lotsofglass 30
+      ifrnd 84 spawn BLOODPOOL
+      sound GLASS_BREAKING
+      killit
+    }
+    ifp pfacing
+      ifpdistl FROZENQUICKKICKDIST
+        pkick
+    break
+  }
+  else
+   ifaction ADPIGTORSO
+	{
+	 action 0
+	cactor PIGCOPLIMBLESS
+      ifhitweapon
+        ifwasweapon RADIUSEXPLOSION
+      {
+        sound SQUISHED
+        state standard_jibs
+        killit
+      }
+      break
+	}
+  else
+   ifaction ADPIGHEADLESSDEAD
+	{
+	 action 0
+	cactor PIGCOPHEADLESS
+      ifhitweapon
+        ifwasweapon RADIUSEXPLOSION
+      {
+        sound SQUISHED
+        state standard_jibs
+        killit
+      }
+      break
+	}
+   else ifaction ADPIGLOSINGLIMBS2
+  {
+	cstat 0
+	ifactioncount 2
+	{
+		ife actioncheck 6
+		{
+			state random_wall_jibs
+			state random_wall_jibs
+			
+			set actioncheck 8
+		}
+		
+		guts JIBS6 1
+		
+		ifcount 30
+		{
+			state random_wall_jibs
+			state random_wall_jibs
+			state standard_jibs
+			
+			sound SQUISHED
+			ifrnd 84 spawn BLOODPOOL
+			killit
+		}
+	}
+	else ifactioncount 1
+	{
+		ifcount 10
+		{
+			guts JIBS6 1
+			state random_wall_jibs
+		}
+		
+		resetcount
+	} 
+  }
+  else
+	ifai AIDPIGLOSINGLIMBS
+	{
+	   cstat 0
+	   ifaction ADPIGHEADLESS
+	   {
+			ifactioncount 5
+				action ADPIGHEADLESSDEAD
+	   }
+	  else
+	  {
+		ifactioncount 6
+		{
+			ifn actioncheck 6
+			{
+				state SpawnShards
+				set actioncheck 6
+				ifrnd 128
+				{
+					set gutPic PIGLEG
+					set gutAng 1024
+					state GutSlow
+					
+					set gutPic PIGLEG
+					set gutAng -768
+					state GutSlow
+					
+					ai AIDPIGLIMBLESSTORSO
+				}
+				else
+					action ADPIGLOSINGLIMBS2
+					
+				guts JIBS3 5
+				guts JIBS1 2
+				guts JIBS4 2
+				
+				espawn PIGHEAD
+				seta[RETURN].yvel 1
+				
+				state random_wall_jibs
+				state standard_jibs
+				guts JIBS6 2
+				
+				ifrnd 192
+					guts JIBS2 1
+				
+				ifrnd 96
+					guts JIBS3 5
+				sound SQUISHED
+			}
+		}
+		else ifactioncount 5
+		{
+			ifn actioncheck 5
+			{
+				set actioncheck 5
+				ifrnd 128
+				{
+					set gutPic PIGARM2
+					set gutAng -512
+					state GutSlow
+				}
+				else
+				{
+					set gutPic PIGARM1
+					set gutAng 512
+					state GutSlow
+				}
+				
+				seta[RETURN].yvel 1
+				
+				state random_wall_jibs
+				guts JIBS6 2
+				sound SQUISHED
+			}
+		}
+		else ifactioncount 4
+			nullop
+		else ifactioncount 3
+			nullop
+		else ifactioncount 2
+			nullop
+		else ifactioncount 1
+		ife actioncheck 0
+		{
+			set actioncheck 1
+			ifrnd 128
+			{
+				set gutPic PIGARM2
+				set gutAng -512
+				state GutSlow
+			}
+			else
+			{
+				set gutPic PIGARM1
+				set gutAng 512
+				state GutSlow
+			}
+				
+			seta[RETURN].yvel 1
+			state random_wall_jibs
+			guts JIBS6 2
+			sound SQUISHED
+		}
+	  }
+	}
+  else
+	ifai AIDPIGLIMBLESSTORSO
+		state pigdyingstate
+  else
+    ifai AIPIGDYING
+      state pigdyingstate
+  else
+    ifai AIPIGHIT
+    {
+      ifactioncount 3
+      ai AIPIGSEEKENEMY
+    }
+  else
+    ifai AIPIGSHRINK
+      state pigshrinkstate
+  else
+  {
+    ifai AIPIGSEEKENEMY
+      state pigseekenemystate
+    else
+      ifai AIPIGDODGE
+        state pigseekenemystate
+    else
+      ifai AIPIGSHOOTENEMY
+        state pigshootenemystate
+    else
+      ifai AIPIGGROW
+        state genericgrowcode
+    else
+      ifai AIPIGFLEEENEMY
+        state pigfleeenemystate
+    else
+      ifai AIPIGDIVING
+        state pigdivestate
+    else
+      ifai AIPIGCHARGE
+        state pigseekenemystate
+    ifhitweapon
+      state checkpighitstate
+	  
+	 ifdead nullop
+	 else ifg a_plasmaeffect 0
+	{
+		ifrnd 64
+			ai AIPIGHIT
+	}
+	
+    ifrnd 1
+    {
+      ifrnd 32
+        soundonce PIG_ROAM
+      else
+        ifrnd 64
+          soundonce PIG_ROAM2
+      else
+        soundonce PIG_ROAM3
+    }
+  }
+enda
+
+
+//Elite Pig Cop
+
+useractor enemy ELITEPIGCOPDIVE ELITEPIGCOPSTRENGTH
+  ifai 0
+  {
+	sound PIG_RECOG
+	sizeat 55 45
+	cstat 257
+  }
+  ai AIPIGDIVING
+  action APIGDIVESHOOT
+  cactor ELITEPIGCOP
+enda
+
+useractor enemystayput ELITEPIGCOPSTAYPUT ELITEPIGCOPSTRENGTH
+  ifai 0
+  {
+	sound PIG_RECOG
+	sizeat 55 45
+	cstat 257
+  }
+  ai AIPIGSHOOTENEMY
+  cactor ELITEPIGCOP
+enda
+
+useractor enemy ELITEPIGCOP ELITEPIGCOPSTRENGTH APIGSTAND
+  fall
+  
+  ifai 0
+  {
+	sound PIG_RECOG
+	sizeat 55 45
+	cstat 257
+	
+	ai AIPIGSHOOTENEMY
+  }
+  
+  state checksquished
+  ifaction APIGSTAND
+    ai AIPIGSEEKENEMY
+  else
+    ifaction APIGDEAD
+  {
+    action 0
+	 cactor ELITEPIGCOPDEAD
+  
+    ifrespawn
+      ifcount RESPAWNACTORTIME
+    {
+      spawn TRANSPORTERSTAR
+      cstat 257
+      strength PIGCOPSTRENGTH
+      ai AIPIGSEEKENEMY
+    }
+    else
+    {
+      strength 0
+	  //cstat 256
+      ifhitweapon
+        ifwasweapon RADIUSEXPLOSION
+      {
+        sound SQUISHED
+        state standard_jibs
+        killit
+      }
+      break
+    }
+  }
+  else
+    ifaction APIGFROZEN
+  {
+    ifcount THAWTIME
+    {
+      ai AIPIGSEEKENEMY
+      getlastpal
+    }
+    else
+      ifcount FROZENDRIPTIME
+        ifrnd 8
+          spawn WATERDRIP
+
+    ifhitweapon
+    {
+      ifwasweapon FREEZEBLAST
+      {
+        strength 0
+        break
+      }
+      addkills 1
+
+      lotsofglass 30
+      ifrnd 84 spawn BLOODPOOL
+      sound GLASS_BREAKING
+      killit
+    }
+    ifp pfacing
+      ifpdistl FROZENQUICKKICKDIST
+        pkick
+    break
+  }
+  else
+    ifaction AELITEPIGTORSO
+	{
+	 action 0
+	 cactor PIGCOPLIMBLESS
+	
+      ifhitweapon
+        ifwasweapon RADIUSEXPLOSION
+      {
+        sound SQUISHED
+        state standard_jibs
+        killit
+      }
+      break
+	}
+   else ifaction AELITEPIGLOSINGLIMBS2
+  {
+	cstat 0
+	ifactioncount 2
+	{
+		ife actioncheck 6
+		{
+			state random_wall_jibs
+			state random_wall_jibs
+			
+			set actioncheck 8
+		}
+		
+		guts JIBS6 1
+		
+		ifcount 30
+		{
+			state random_wall_jibs
+			state random_wall_jibs
+			state standard_jibs
+			
+			sound SQUISHED
+			ifrnd 84 spawn BLOODPOOL
+			killit
+		}
+	}
+	else ifactioncount 1
+	{
+		ifcount 10
+		{
+			guts JIBS6 1
+			state random_wall_jibs
+		}
+		
+		resetcount
+	} 
+  }
+  else
+	ifai AIELITEPIGLOSINGLIMBS
+	{
+	   cstat 0
+		ifactioncount 6
+		{
+			ifn actioncheck 6
+			{
+				state SpawnShards
+				set actioncheck 6
+				ifrnd 128
+				{
+					set gutPic PIGLEG
+					set gutAng 1024
+					state GutSlow
+					
+					set gutPic PIGLEG
+					set gutAng -768
+					state GutSlow
+					
+					ai AIELITEPIGLIMBLESSTORSO
+				}
+				else
+					action AELITEPIGLOSINGLIMBS2
+					
+				guts JIBS3 5
+				guts JIBS1 2
+				guts JIBS4 2
+				
+				espawn PIGHEAD
+				seta[RETURN].yvel 1
+				
+				state random_wall_jibs
+				state standard_jibs
+				guts JIBS6 2
+				
+				ifrnd 192
+					guts JIBS2 1
+				
+				ifrnd 96
+					guts JIBS3 5
+				sound SQUISHED
+			}
+		}
+		else ifactioncount 5
+		{
+			ifn actioncheck 5
+			{
+				set actioncheck 5
+				ifrnd 128
+				{
+					set gutPic PIGARM2
+					set gutAng -512
+					state GutSlow
+				}
+				else
+				{
+					set gutPic PIGARM1
+					set gutAng 512
+					state GutSlow
+				}
+				
+				seta[RETURN].yvel 1
+				
+				state random_wall_jibs
+				guts JIBS6 2
+				sound SQUISHED
+			}
+		}
+		else ifactioncount 4
+			nullop
+		else ifactioncount 3
+			nullop
+		else ifactioncount 2
+			nullop
+		else ifactioncount 1
+		ife actioncheck 0
+		{
+			set actioncheck 1
+			ifrnd 128
+			{
+				set gutPic PIGARM2
+				set gutAng -512
+				state GutSlow
+			}
+			else
+			{
+				set gutPic PIGARM1
+				set gutAng 512
+				state GutSlow
+			}
+				
+			seta[RETURN].yvel 1
+			state random_wall_jibs
+			guts JIBS6 2
+			sound SQUISHED
+		}
+	}
+  else
+	ifai AIELITEPIGLIMBLESSTORSO
+		state pigdyingstate
+  else
+    ifai AIPIGDYING
+      state pigdyingstate
+  else
+    ifai AIPIGHIT
+    {
+      ifactioncount 3
+      ai AIPIGSEEKENEMY
+    }
+  else
+    ifai AIPIGSHRINK
+      state pigshrinkstate
+  else
+  {
+    ifai AIPIGSEEKENEMY
+      state pigseekenemystate
+    else
+      ifai AIPIGDODGE
+        state pigseekenemystate
+    else
+      ifai AIPIGSHOOTENEMY
+        state pigshootenemystate
+    else
+      ifai AIPIGGROW
+        state genericgrowcode
+    else
+      ifai AIPIGFLEEENEMY
+        state pigfleeenemystate
+    else
+      ifai AIPIGDIVING
+        state pigdivestate
+    else
+      ifai AIPIGCHARGE
+        state pigseekenemystate
+    ifhitweapon
+      state checkpighitstate
+	  
+	 ifdead nullop
+	 else ifg a_plasmaeffect 0
+	{
+		ifrnd 64
+			ai AIPIGHIT
+	}
+	
+    ifrnd 1
+    {
+      ifrnd 32
+        soundonce PIG_ROAM
+      else
+        ifrnd 64
+          soundonce PIG_ROAM2
+      else
+        soundonce PIG_ROAM3
+    }
+  }
+enda

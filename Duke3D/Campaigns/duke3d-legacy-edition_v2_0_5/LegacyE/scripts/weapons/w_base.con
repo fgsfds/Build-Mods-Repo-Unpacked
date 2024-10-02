@@ -1,0 +1,245 @@
+/*
+--------------------------------------------------------------------------------
+Duke Nukem 3D - Blast Edition Version 2.0
+By Marcos
+2022 - Space In a Bottle
+*/
+
+//Weapons draw routines and vars
+//Most of these come from weapons.sample.con
+
+gamevar hud_tilenum 0 1
+gamevar hud_x 0 1
+gamevar hud_y 0 1
+gamevar hud_scale 65536 1
+gamevar hud_angle 0 1
+gamevar hud_shade 0 1
+gamevar hud_pal 0 1
+gamevar hud_orientation 0 1
+
+gamevar hud_fistsign 0 1
+gamevar hud_totaltime 0 1
+
+gamevar hud_shadef 0 1
+gamevar hud_palf 0 1
+
+// It is unfortunate that we need so many temporary gamevars.
+gamevar hud_temp 0 1
+gamevar hud_temp2 0 1
+gamevar hud_temp3 0 1
+gamevar hud_temp4 0 1
+
+// The following temporary gamevars are internal to the G_Draw subroutines.
+gamevar hud_int_temp 0 1
+gamevar hud_int_temp2 0 1
+gamevar hud_int_x 0 1
+gamevar hud_int_y 0 1
+gamevar hud_int_scale 0 1
+gamevar hud_int_angle 0 1
+gamevar hud_int_orientation 0 1
+
+var hud_zoom 0 1
+
+gamevar weapon_pos 0 1
+gamevar weaponscale 0 1
+gamevar playerid 0 1
+
+// define ROTATESPRITE_MAX 2048
+
+//Variables for alternate fire
+var alt_enabled 0 1 //bool for enabling altfire
+var alt_start 0 1 //starter: 0 - off, 1 - on, 2 - running
+var alt_ready 0 1 //bool for readyness - 2 is on delay
+var alt_readytime 0 1 //time to get ready
+var alt_readydelay 0 1 //delay before using it again
+var alt_time 0 1 //current animation time
+var alt_animtime 0 1 //animation time
+var alt_firedelay 0 1
+var alt_burst 0 1
+var alt_numloops 0 1 //number of animation loops 
+var alt_loop 0 1 //current animation loop
+var alt_fireproj SHOTSPARK1 1 //projectile to fire
+
+//New weapons
+gamearray gotweapons 20 1048576 //Internal gotweapons
+
+var ripperammo 0 1
+var plasmaammo 0 1
+var rpgammo 0 1
+var urpgammo 0 1
+var freezeammo 0 1
+var flameammo 0 1
+var sonicammo 0 1
+var devistatorammo 0 1
+
+var w_temp 0 1
+var w_temp2 0 1
+var w_temp5 0 2
+var w_temp6 0 2
+
+var weapon_to_switch -1 1
+
+define PLASMA_SLOT 0
+define URPG_SLOT 1
+define FLAME_SLOT 2 
+
+define MAXPLASMAAMMO 90
+define MAXURPGAMMO 9
+define MAXFLAMEAMMO 90
+define MAXSONICAMMO 24
+
+define TAZER_WEAPON 12
+define SHOTGUNDOUBLE_WEAPON 13
+define PLASMA_WEAPON 14
+define RPGBLAST_WEAPON 15
+define FLAME_WEAPON 16
+define CATERKILAR_WEAPON 17
+define SONICRESONATOR_WEAPON 18
+
+define EXPLOSION3 1480
+define EXPLOSION4 1489
+
+// preliminary functions
+
+state G_DrawTilePal
+    setvarvar hud_int_angle hud_angle
+    setvarvar hud_int_orientation hud_orientation
+
+    ifvarand hud_orientation 4
+        addvar hud_int_angle 1024
+
+    orvar hud_int_orientation 2
+
+    rotatesprite hud_x hud_y hud_scale hud_int_angle hud_tilenum hud_shade hud_pal hud_int_orientation windowx1 windowy1 windowx2 windowy2
+ends
+
+state G_DrawTileScaled
+    setvarvar hud_int_x hud_x
+    setvarvar hud_int_y hud_y
+    setvarvar hud_int_scale hud_scale
+    setvarvar hud_int_angle hud_angle
+    setvarvar hud_int_orientation hud_orientation
+
+    shiftvarl hud_int_x 16
+    shiftvarl hud_int_y 16
+
+    setvar hud_int_temp 12582912 // 192<<16
+
+    switch currentweapon
+        case DEVISTATOR_WEAPON
+        case TRIPBOMB_WEAPON
+            setvar hud_int_temp 10485760 // 160<<16
+            break
+        default
+            ifvarand hud_orientation 262144
+            {
+                setvar hud_int_temp 10485760 // 160<<16
+                xorvar hud_int_orientation 262144
+            }
+            break
+    endswitch
+
+    ifvarand hud_orientation 4
+        addvar hud_int_angle 1024
+
+    /*
+    ifvarg rendermode 2
+        ifvarn usemodels 0
+            ifhasmodel hud_tilenum hud_pal
+            {
+                setvar hud_int_temp2 14680064 // 224<<16
+                mulvarvar hud_int_temp2 weaponscale
+                divvar hud_int_temp2 100
+
+                addvar hud_int_y 14680064 // 224<<16
+                subvarvar hud_int_y hud_int_temp2
+            }
+    */
+
+    mulvarvar hud_int_x weaponscale
+    divvar hud_int_x 100
+    setvarvar hud_int_temp2 hud_int_temp
+    mulvarvar hud_int_temp2 weaponscale
+    divvar hud_int_temp2 100
+    subvarvar hud_int_temp hud_int_temp2
+    addvarvar hud_int_x hud_int_temp
+
+    mulvarvar hud_int_y weaponscale
+    divvar hud_int_y 100
+    setvar hud_int_temp 13107200 // 200<<16
+    setvarvar hud_int_temp2 hud_int_temp
+    mulvarvar hud_int_temp2 weaponscale
+    divvar hud_int_temp2 100
+    subvarvar hud_int_temp hud_int_temp2
+    addvarvar hud_int_y hud_int_temp
+
+    mulvarvar hud_int_scale weaponscale
+    divvar hud_int_scale 100
+
+    orvar hud_int_orientation 2050 // 2|2048
+	
+	add hud_int_scale hud_zoom
+
+    rotatesprite hud_int_x hud_int_y hud_int_scale hud_int_angle hud_tilenum hud_shade hud_pal hud_int_orientation windowx1 windowy1 windowx2 windowy2
+ends
+
+state G_DrawWeaponTile
+    // basic fading between player weapon shades
+    ifvarvarn hud_shade hud_shadef
+    {
+        setvar hud_int_temp 0
+        ifvare hud_pal 0 setvar hud_int_temp 1
+        ifvarvare hud_pal hud_palf setvar hud_int_temp 1
+        ifvare hud_int_temp 1
+        {
+            setvarvar hud_int_temp hud_shade
+            subvarvar hud_int_temp hud_shadef
+            setvarvar hud_int_temp2 hud_int_temp
+            shiftvarr hud_int_temp 2
+            addvarvar hud_shadef hud_int_temp
+
+            ifvare hud_int_temp 0
+            {
+                shiftvarr hud_int_temp2 1
+                addvarvar hud_shadef hud_int_temp2
+                ifvare hud_int_temp2 0
+                    setvarvar hud_shadef hud_shade
+            }
+        }
+    }
+    else
+        setvarvar hud_shadef hud_shade
+
+    setvarvar hud_palf hud_pal
+    setvarvar hud_shade hud_shadef
+
+    state G_DrawTileScaled
+ends
+
+// helper states
+
+state reset_hud_weapon_x_coordinate
+    setvarvar hud_x weapon_xoffset
+    subvarvar hud_x looking_angSR1
+ends
+state reset_hud_weapon_y_coordinate
+    setvarvar hud_y looking_arc
+    subvarvar hud_y gun_pos
+ends
+state reset_hud_weapon_coordinates
+    state reset_hud_weapon_x_coordinate
+    state reset_hud_weapon_y_coordinate
+ends
+
+state determine_animation
+    getuserdef[THISACTOR].pause_on hud_temp
+    ifvarn hud_temp 0
+        setvar hud_temp 1
+
+    ifvarand player[THISACTOR].gm 1 // MODE_MENU
+        orvar hud_temp 1
+
+    getactor[playerid].pal hud_int_temp
+    ifvare hud_int_temp 1
+        orvar hud_temp 1
+ends

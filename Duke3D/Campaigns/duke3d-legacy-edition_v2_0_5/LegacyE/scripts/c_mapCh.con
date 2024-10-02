@@ -1,0 +1,226 @@
+/*
+--------------------------------------------------------------------------------
+Duke Nukem 3D - Blast Edition Version 0.1
+By Marcos
+2022 - Space In a Bottle
+*/
+
+//Map CON hack system
+
+//3 types of sprites: 0 - modify; 1 - add; 2 - delete
+//the first entry contains the number of processed sprites
+//14 bits - sprite ID; 2 bits - type; 16 bits - bitmask for what is going to be altered: x, y, z, sector, angle, hitag, lotag, picnum, cstat, sx, sy, pal, shade, unused, unused, unused
+//the next indexes in the array corresponds to each entry, except for sector and angle (16-bits each, they are together), hitag and lotag as well, picnum and cstat, sx, sy, pal and shade are all together (8 bits each)
+
+gamearray mapch 257 65536 //Unsigned 32-bits - default array is ready for 32 sprites with full bitmask modification
+
+var mctemp 0 0
+var mctemp2 0 0
+var mctemp3 0 0
+var mctemp4 0 0
+var mci 0 0
+
+var h_numsprites 0 0
+
+var h_id 0 0
+var h_bit 0 0
+var h_bitmask 0 0
+var h_x 0 0
+var h_y 0 0
+var h_z 0 0
+var h_sect 0 0
+var h_ang 0 0
+var h_hitag 0 0
+var h_lotag 0 0
+var h_pic 0 0
+var h_cstat 0 0
+var h_sx 0 0
+var h_sy 0 0
+var h_pal 0 0
+var h_shade 0 0
+
+defstate LoadMapCONHack
+
+	qgetsysstr RQUOTE STR_MAPFILENAME
+	redefinequote RQUOTE2 .MCH
+	
+	qstrcat RQUOTE RQUOTE2
+	
+	readarrayfromfile mapch RQUOTE
+	
+	set h_numsprites mapch[0]
+	add h_numsprites 1
+	
+	set mci 1
+	
+	whilevarn mci h_numsprites
+	{
+		set h_id mapch[mci]
+		set h_bitmask mapch[mci]
+		shiftr h_id 16
+		
+		set h_bit h_id
+		and h_id 0xFFFC
+		
+		and h_bit 0x3
+		
+		and h_bitmask 0xFFFF
+		
+		ife h_bit 2
+			seta[h_id].xrepeat 0
+		else
+		{
+			ife h_bit 1
+			{
+				espawn SECTOREFFECTOR
+				set h_id RETURN
+			}
+			
+			ifand h_bitmask 0x1 //positioning - if one of them is activated, them all are
+			ifand h_bitmask 0x2
+			ifand h_bitmask 0x4
+			ifand h_bitmask 0x8 //sector
+			ifand h_bitmask 0x10 //angle
+			{
+				add mci 1
+				set h_x mapch[mc1]
+				
+				add mci 1
+				set h_y mapch[mc1]
+				
+				add mci 1
+				set h_z mapch[mc1]
+				
+				add mci 1
+				set h_sect mapch[mc1]
+				set h_ang mapch[mci]
+				
+				shiftr h_sect 16
+				and h_ang 0xFFFF
+				
+				seta[h_id].x h_x
+				seta[h_id].y h_y
+				seta[h_id].z h_z
+				seta[h_id].sectnum h_sect
+				seta[h_id].ang h_ang
+			}
+			
+			ifand h_bitmask 0x20 //hitag
+			{
+				add mci 1
+				set h_hitag mapch[mci]
+				shiftr h_hitag 16
+				
+				seta[h_id].hitag h_hitag
+				
+				ifand h_bitmask 0x40
+				{
+					set h_lotag mapch[mci]
+					and h_lotag 0xFFFF
+					
+					seta[h_id].lotag h_lotag
+				}
+			}
+			else ifand h_bitmask 0x40
+			{
+				add mci 1
+				set h_lotag mapch[mci]
+				and h_lotag 0xFFFF
+				
+				seta[h_id].lotag h_lotag
+			}
+			
+			ifand h_bitmask 0x80 //picnum
+			{
+				add mci 1
+				set h_picnum mapch[mci]
+				shiftr h_picnum 16
+				
+				seta[h_id].picnum
+				
+				ifand h_bitmask 0x100
+				{
+					set h_cstat mapch[mci]
+					and h_cstat 0xFFFF
+					
+					seta[h_id].cstat h_cstat
+				}
+			}
+			else ifand h_bitmask 0x100
+			{
+				add mci 1
+				set h_cstat mapch[mci]
+				and h_cstat 0xFFFF
+					
+				seta[h_id].cstat h_cstat
+			}
+			
+			ifand h_bitmask 0x200 //sx
+			ifand h_bitmask 0x400 //sy
+			{
+				add mci 1
+				set h_sx mapch[mci]
+				set h_sy mapch[mci]
+				shiftr h_sx 24
+				shiftr h_sy 16
+				and h_sy 0xFF
+				
+				seta[h_id].xrepeat h_sx
+				seta[h_id].yrepeat h_sy
+				
+				ifand h_bitmask 0x800 //pal
+				{
+					set h_pal mapch[mci]
+					shiftr h_pal 8
+					and h_cstat 0xFF
+					
+					seta[h_id].pal h_pal
+				}
+				
+				ifand h_bitmask 0x1000 //shade
+				{
+					set h_shade mapch[mci]
+					and h_shade 0xFF
+					
+					seta[h_id].shade h_shade
+				}
+			}
+			else
+			{
+				ifand h_bitmask 0x800
+				{
+					add mci 1
+					set h_pal mapch[mci]
+					shiftr h_pal 8
+					and h_cstat 0xFF
+					
+					seta[h_id].pal h_pal
+					
+					ifand h_bitmask 0x1000 //shade
+					{
+						set h_shade mapch[mci]
+						and h_shade 0xFF
+						
+						seta[h_id].shade h_shade
+					}
+				}
+				else ifand h_bitmask 0x1000 //shade
+				{
+					add mci 1
+					set h_shade mapch[mci]
+					and h_shade 0xFF
+					
+					seta[h_id].shade h_shade
+				}
+			}
+			
+		}
+		
+		add mci 1
+	}
+
+ends
+
+defstate Build
+
+

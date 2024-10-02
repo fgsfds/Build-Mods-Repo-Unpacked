@@ -1,0 +1,693 @@
+/*
+--------------------------------------------------------------------------------
+Duke Nukem 3D - Blast Edition Version 2.0
+By Marcos
+2022 - Space In a Bottle
+*/
+
+//Sarge
+
+define SARGESTRENGTH 260
+
+define FLYPADDAMAGE 32
+
+defineprojectile FLYPAD PROJ_WORKSLIKE 16462
+defineprojectile FLYPAD PROJ_EXTRA FLYPADDAMAGE
+defineprojectile FLYPAD PROJ_VEL 512
+defineprojectile FLYPAD PROJ_DROP -256
+defineprojectile FLYPAD PROJ_XREPEAT 40
+defineprojectile FLYPAD PROJ_YREPEAT 38
+defineprojectile FLYPAD PROJ_TRAIL EXPLOSION3
+defineprojectile FLYPAD PROJ_TXREPEAT 12
+defineprojectile FLYPAD PROJ_TYREPEAT 12
+defineprojectile FLYPAD PROJ_SPAWNS EXPLOSION2
+defineprojectile FLYPAD PROJ_HITRADIUS 2048
+defineprojectile FLYPAD PROJ_BOUNCES 4
+defineprojectile FLYPAD PROJ_RANGE 60
+defineprojectile FLYPAD PROJ_SOUND RPG_EXPLODE
+defineprojectile FLYPAD PROJ_BSOUND PIPEBOMB_BOUNCE
+
+action AFLYPAD 0 5 1 1 2
+
+useractor notenemy FLYPAD 0 AFLYPAD enda
+
+
+action ASARGEBREETH  0  3  5  1  30
+action ASARGEFROZEN  0  1  5
+action ASARGESPIN   0  1  5  1  12
+action ASARGEGET   0  3  5  1  30
+action ASARGEBLOW  15  3  1   1 25
+action ASARGEDEAD  17 1
+action ASARGEARMLESS 43 3 1 1 40
+action ASARGEARMLESSDEAD 45 1 
+action ASARGEHEADLESS 46 3 1 1 40
+action ASARGEHEADLESSDEAD 48 1 
+action ASARGEHALF -1 1
+action ASARGEHACKED 100 8 1 1 20
+
+move SARGEGETUPVELS 196 -64
+move SARGEGETVELS 196 64
+move SARGEBULLVELS 768 64
+move SARGESLOW 64 24
+move SARGECRAWL 32
+move SARGESTOPPED
+
+ai AISARGEWAIT ASARGEBREETH SARGESTOPPED faceplayerslow
+ai AISARGEGET ASARGEGET SARGEGETVELS seekplayer
+ai AISARGEBULL ASARGEGET SARGEBULLVELS faceplayer
+ai AISARGESPIN ASARGESPIN SARGEGETVELS spin
+ai AISARGEBLOW ASARGEBLOW SARGESTOPPED faceplayer
+ai AISARGESHRUNK ASARGEGET SARGESLOW furthestdir
+ai AISARGEGROW ASARGEGET SARGESTOPPED furthestdir
+//ai AISARGECRAWL ASARGECRAWL SARGECRAWL furthestdir
+
+state checksargehitstate
+
+  ifhitweapon
+  {
+    guts JIBS6 2
+
+    ifdead
+    {
+	  state drop_cola
+      ifwasweapon FREEZEBLAST
+      {
+        sound SOMETHINGFROZE
+        spritepal 1
+        move 0
+        action ASARGEFROZEN
+        strength 0
+        break
+      }
+      else
+        ifwasweapon GROWSPARK
+      {
+        sound ACTOR_GROWING
+        ai AISARGEGROW
+        break
+      }
+
+      addkills 1
+	  
+	  ifwasweapon CATERKILAR
+	  {
+	    ifrnd 96
+		{
+			ai AISARGEBLOW
+			state random_wall_jibs
+			sound SQUISHED
+			ifrnd 128
+				action ASARGEHEADLESS
+			else
+				action ASARGEARMLESS
+			
+			break
+		}
+		else ifrnd 96
+		{
+			ifrnd 96
+			{
+				espawn SARGEHALFDEAD
+				seta[RETURN].xrepeat 40
+				seta[RETURN].yrepeat 38
+			}
+			
+			spawn EXPLOSION2
+			sound RPG_EXPLODE
+			state SpawnShards
+			state standard_jibs
+			state random_wall_jibs
+			state standard_scraps
+			state standard_scraps
+			state standard_scraps
+			ai 0
+			action 0
+			move 0
+			cactor SARGECRAWLING
+			break
+		}
+		else
+		{
+			ai AISARGEBLOW
+			state random_wall_jibs
+			sound SQUISHED
+			
+			action ASARGEHACKED
+			break
+		}
+	  }
+	  
+	ifwasweapon PLASMAPROJ
+      {
+        spawn BLOODPOOL
+        sound SQUISHED
+        state standard_jibs
+		state sg_jibs
+        killit
+      }
+      else
+      ifwasweapon RADIUSEXPLOSION
+      {
+        spawn BLOODPOOL
+        sound SQUISHED
+        state standard_jibs
+		state sg_jibs
+        killit
+      }
+      else
+        ifwasweapon RPG
+      {
+	    ifrnd 96
+		{
+			ai AISARGEBLOW
+			action ASARGEHALF
+			sound SQUISHED
+			state standard_jibs
+			state random_wall_jibs
+			state standard_scraps
+			guts JIBS6 3
+			state sg_jibs
+			spawn BLOODPOOL
+			break
+		}
+		else
+		{
+			sound SQUISHED
+			spawn BLOODPOOL
+			state standard_jibs
+			state sg_jibs
+			killit
+		}
+      }
+	  
+	  ifwasweapon FLAMEPROJ
+		state genericburn_dead_code
+	  
+      sound COMM_DYING
+      ai AISARGEBLOW
+    }
+    else
+    {
+	  ifwasweapon SONICPROJ
+	  {
+		ife commpad 1
+		{
+			ezshoot -6144 FLYPAD
+			geta[].htang atemp
+			//add atemp 1024
+			seta[RETURN].ang atemp
+			
+			spawn EXPLOSION2
+			sound RPG_EXPLODE
+			state standard_jibs
+			state random_wall_jibs
+			state standard_scraps
+			state standard_scraps
+			state standard_scraps
+			ai 0
+			action 0
+			move 0
+			cactor SARGECRAWLING
+			break
+		}
+	  }
+	  
+	  ifwasweapon CATERKILAR
+		{
+			ifrnd 32
+				state SpawnShards2
+					
+			ai AISARGEWAIT
+		}
+	
+	  ifwasweapon FLAMEPROJ
+			set a_flaming 1
+			
+		ifwasweapon PLASMAPROJ
+		set a_plasmaeffect 1
+		
+      soundonce COMM_PAIN
+      ifwasweapon SHRINKSPARK
+      {
+        sound ACTOR_SHRINKING
+        ai AISARGESHRUNK
+      }
+      else
+        ifwasweapon GROWSPARK
+          sound EXPANDERHIT
+      else
+	  {
+	    ifai AISARGEBULL
+			nullop
+		else
+          ifrnd 24
+            ifcansee
+		      ai AISARGEBULL
+	  }
+    }
+  }
+ends
+
+useractor enemy SARGE SARGESTRENGTH
+
+  state checksquished
+  
+   ifdead nullop
+   else ifg a_plasmaeffect 0
+	{
+		ifrnd 64
+			ai AISARGEWAIT
+	}
+	
+	getsector[sprite[].sectnum].ceilingz atemp
+	add atemp 8192
+	
+	
+  ifl sprite[].z atemp
+	seta[].z atemp
+
+  ifaction ASARGEFROZEN
+  {
+    fall
+
+    ifcount THAWTIME
+    {
+      getlastpal
+      ai AISARGEWAIT
+    }
+    else
+      ifcount FROZENDRIPTIME
+    {
+      ifactioncount 26
+      {
+        spawn WATERDRIP
+        resetactioncount
+      }
+    }
+
+    ifhitweapon
+    {
+      ifwasweapon FREEZEBLAST
+      {
+        strength 0
+        break
+      }
+      addkills 1
+
+      ifrnd 84
+        spawn BLOODPOOL
+      lotsofglass 30
+      sound GLASS_BREAKING
+      killit
+    }
+    ifp pfacing
+      ifpdistl FROZENQUICKKICKDIST
+        pkick
+    break
+  }
+  else
+  ifai 0
+  {
+	sizeat 40 38
+	cstat 257
+	ifcansee
+	{
+		sound COMM_RECOG
+		ifpdistg 4096
+			ai AISARGEBULL
+		else
+			ai AISARGESPIN
+	}
+  }
+  else
+    ifai AISARGEWAIT
+  {
+    ifcount 20
+    {
+      ifcansee
+      {
+        ifcanshoottarget
+        {
+          ifrnd 96
+            ai AISARGEGET
+          else
+		  {
+			ifpdistg 4096
+				ai AISARGEBULL
+			else ifpdistg 2048
+				ai AISARGEGET
+			else
+				ai AISARGESPIN
+          } 
+        }
+      }
+      else
+        ai AISARGEGET
+    }
+  }
+  else
+    ifai AISARGEBULL
+  {
+    spawn FRAMEEFFECT1
+	
+	ifpdistl 1280
+	ifcansee
+	ifp palive
+	{
+		addphealth -3
+		spawn PUSHERPLAYER
+		palfrom 42 64
+		sound DUKE_GRUNT
+		ai AISARGESPIN
+	}
+	
+	ifcansee
+		nullop
+	else
+		ai AISARGEWAIT
+  }
+  else
+    ifai AISARGESHRUNK
+  {
+    ifcount SHRUNKDONECOUNT
+      ai AISARGEGET
+    else
+      ifcount SHRUNKCOUNT
+        sizeto 40 38
+    else
+      state genericshrunkcode
+  }
+  else
+    ifai AISARGEGROW
+      state genericgrowcode
+  else
+    ifai AISARGEGET
+  {
+    ifnotmoving
+      ifrnd 4
+        operate
+    ifpdistl 1280
+      ifp palive
+    {
+      sound COMM_SPIN
+      ai AISARGESPIN
+      break
+    }
+
+    ifcansee
+    {
+      ifp phigher
+        move SARGEGETUPVELS getv geth faceplayer
+      else ifrnd 16 ifpdistg 2048
+		ai AISARGEBULL
+	  else
+        move SARGEGETVELS getv geth faceplayer
+    }
+	
+    ifactioncount 8
+      ifrnd 8
+	    ifcansee
+		 ifpdistg 4096
+          ai AISARGEBULL
+		
+  }
+  else
+    ifai AISARGESPIN
+  {
+    soundonce COMM_SPIN
+    ifcount 16
+    {
+      ifpdistl 1280
+      {
+        addphealth -2
+        sound DUKE_GRUNT
+        palfrom 32 16
+		resetcount
+      }
+      else
+        ifpdistg 2300
+          ai AISARGEWAIT
+    }
+    ifactioncount 52
+      ai AISARGEWAIT
+    ifnotmoving
+      ifrnd 32
+        operate
+  }
+  
+  ifai AISARGEBLOW
+  {
+    fall
+    strength 0
+	
+	ifaction ASARGEHALF
+	{
+		 iffloordistl 8
+			sound THUD
+			
+		action 0
+		move 0
+		
+		cactor SARGEHALFDEAD
+		break
+	}
+
+    ifhitweapon
+      ifwasweapon RADIUSEXPLOSION
+    {
+      sound SQUISHED
+      spawn BLOODPOOL
+      state standard_jibs
+	  state drop_cola
+      killit
+    }
+
+    ifaction ASARGEBLOW
+	{
+		ifactioncount 3
+		{
+		  iffloordistl 8
+			sound THUD
+			
+		  ifrnd 96
+		  {
+		    state random_wall_jibs
+			state random_wall_jibs
+			state standard_jibs
+			
+			ai 0
+			action 0
+			move 0
+			cactor SARGECRAWLING
+		  }
+		  else
+		  {
+		      cstat 0
+			  action 0
+			  cactor SGDEAD
+		  }
+		  
+		  break
+		}
+		else ifactioncount 2
+		ife actioncheck 0
+		{
+			set actioncheck 1
+			sound RPG_EXPLODE
+			spawn EXPLOSION2
+			state standard_scraps
+			state standard_scraps
+			state standard_scraps
+			
+			hitradius 1536 14 8 6 4
+		}
+		else ifactioncount 1
+			sound LASERTRIP_ARMING
+			
+	}
+	else ifaction ASARGEHEADLESS
+	{
+		ifactioncount 3
+		{
+		  iffloordistl 8
+			sound THUD
+		  cstat 0
+		  state SpawnShards
+		  action 0
+		  cactor SGDEADH
+		  break
+		}
+		else ifactioncount 2
+		ife actioncheck 1
+		{
+			set actioncheck 2
+			state sg_headjib
+			sound SQUISHED
+			state random_wall_jibs
+			guts JIBS6 2
+		}
+		else ifactioncount 1
+		ife actioncheck 0
+		{
+			set actioncheck 1
+			state sg_armjib
+			sound SQUISHED
+			state random_wall_jibs
+			guts JIBS6 2
+		}
+	}
+	else ifaction ASARGEARMLESS
+	{
+		ifactioncount 3
+		{
+		  iffloordistl 8
+			sound THUD
+		  cstat 0
+		  state SpawnShards
+		  action 0
+		  cactor SGDEADA
+		  break
+		}
+		else ifactioncount 2
+		ife actioncheck 0
+		{
+			set actioncheck 1
+			state sg_armjib
+			sound SQUISHED
+			state random_wall_jibs
+			guts JIBS6 2
+		}
+	}
+	else ifaction ASARGEHACKED
+	{
+		ifcount 16
+		{
+			state random_wall_jibs
+			guts JIBS6 2
+			guts JIBS3 2
+			sound SQUISHED
+			
+			ifactioncount 3
+			ifrnd 96
+				guts JIBS4 1
+				
+			resetcount
+		}
+		
+		ifactioncount 8
+		{
+			state SpawnShards
+			action 0
+			cstat 0
+			cactor SARGEHACKED
+			state random_wall_jibs
+			spawn BLOODPOOL
+			sound THUD
+			break
+		}
+	}
+  }
+  else
+  {
+		ifrnd 2
+		  soundonce COMM_ROAM
+		state checksargehitstate
+  }
+enda
+
+action ASARGECRAWL 0 5 5 1 20
+action ASARGECRAWLSHRUNK 0 5 5 1 20
+
+useractor enemy SARGECRAWLING
+
+	fall
+
+	ifaction 0
+	{
+		cstat 257
+		strength 30
+		action ASARGECRAWL
+		move SARGECRAWL furthestdir geth
+	}
+	else
+	{
+		ifaction ASARGECRAWLSHRUNK
+		{
+			 ifcount SHRUNKDONECOUNT
+				action ASARGECRAWL
+			  else
+				ifcount SHRUNKCOUNT
+				  sizeto 40 38
+			  else
+				state genericshrunkcode
+		}
+		else
+		{
+			ifmove SARGECRAWL
+			{
+				ifcount 32
+				ifnotmoving
+				{
+					move SARGECRAWL randomangle geth
+					//resetcount
+				}
+			}
+				
+			ifactioncount 5
+			{
+				ifrnd 72
+					spawn BLOODPOOL
+				
+				ifrnd 148
+				{
+					guts JIBS6 1
+					state random_wall_jibs
+				}
+				
+				soundonce COMM_PAIN
+				
+				resetactioncount
+				
+				//move SARGECRAWL furthestdir geth
+			}
+		}
+	}
+	
+	ifhitweapon
+	{
+		ifdead
+		{
+			state standard_jibs
+			state random_wall_jibs
+			state sg_jibs
+			sound SQUISHED
+			add s_bodies 1
+			
+			ifge userdef.player_skill 3
+			ifrnd 192
+				spawn COLA
+						
+			ife userdef.player_skill 6
+				ifrnd 64
+					spawn DROPPER
+			
+			killit
+		}
+		else
+		{
+			state random_wall_jibs
+			guts JIBS6 1
+			spawn BLOOD
+			soundonce COMM_PAIN
+			
+			ifwasweapon SHRINKSPARK
+			{
+				sound ACTOR_SHRINKING
+				action ASARGECRAWLSHRUNK
+				move 0
+				break
+			}
+		}
+	}
+
+enda

@@ -1,0 +1,772 @@
+/*
+--------------------------------------------------------------------------------
+Duke Nukem 3D - Blast Edition Version 2.0
+By Marcos
+2022 - Space In a Bottle
+*/
+
+//Score system
+
+var st 0 1
+var st2 0 1
+
+var s_temp 0 1
+var s_temp2 0 1
+var s_temp3 0 1
+var s_temp4 0 1
+var s_temp5 0 1
+var sa_temp 0 2
+
+var killsprize 0 1
+var secretprize 0 1
+var itemsprize 0 1
+var bodiesprize 0 1
+var damageprize 0 1
+
+//Changing the player name, will change the current ID score name
+//The first time you play the game, you must select a slot
+//which will store your current name.
+//The slot is the SCORE ID
+
+//10 character long name - 6 bits per character
+var s_name 0 131072
+
+//ID of the current score
+var score_id -1 131072
+
+//6 slots
+definequote 9000 SLOT 01
+definequote 9001 SLOT 02
+definequote 9002 SLOT 03
+definequote 9003 SLOT 04
+definequote 9004 SLOT 05
+definequote 9005 SLOT 06
+
+definequote 9006 CALEB
+definequote 9007 LOWANG
+definequote 9008 DUKE
+definequote 9009 NOOB
+definequote 9010 LAN96
+definequote 9011 KENN
+definequote 9012 SLAYER
+definequote 9013 MARCOLINO
+definequote 9014 OVERLORD
+definequote 9015 UMOM64
+
+gamearray s_slotused 6
+
+gamearray s_scoreboard 16
+
+var s_displayscore 0 1
+var s_score 0 131072
+var s_lvscore 0 1
+var s_epscore 0 131072
+var s_gscore 0 1
+
+var s_mult 1 1
+
+var s_damage 0 1
+var s_load 0 1
+var s_killed 0 1
+var s_blowdamage 0 1
+
+var s_supersecret 0 1
+var s_secrets 0 1
+var s_items 0 1
+var s_kills 0 1
+var s_blowkills 0 1
+var s_shotblowkills 0 1
+var s_doublekills 0 1
+var s_multkills 0 1
+var s_bodies 0 1
+var s_allitems 0 0
+var s_destruction 0 0
+var s_weapshot 0 1
+var s_babekilled 0 1
+var s_babesaved 0 1
+
+var s_counter 0 1
+var s_lastcounter 0 1
+var s_lastkill 0 1
+
+var map_numitems 0 0
+
+gamearray record_scores 1152
+gamearray ep_deaths 96
+
+define SCORE_KILL 35
+define SCORE_SECRET 300
+define SCORE_SUPERSECRET 1000
+define SCORE_ITEM 8
+define SCORE_BABESAVED 100
+define SCORE_BLOWKILL 13
+define SCORE_SHOTBLOWKILL 21
+define SCORE_ALLKILLS 850
+define SCORE_ALLSECRETS 1200
+define SCORE_ALLITEMS 250
+define SCORE_LVLWRECKED 400
+define SCORE_NOBODIES 1000
+define SCORE_NODAMAGE 2000
+define SCORE_NOEPDEATH 4000
+define SCORE_NOLOAD 5000
+define SCORE_SECRETLEVEL 1200
+define SCORE_BOSSKILL 1500
+define SCORE_LEVELFINISH 500
+
+define SCORE_BODYDESTROY 7
+define SCORE_DESTRUCTION 3
+define SCORE_SEENINE 2
+
+define SCORE_WEAPSHOT 1
+define SCORE_WEAPPLASMA 2
+define SCORE_WEAPKICK 8
+define SCORE_WEAPROCKET 5
+define SCORE_WEAPRPG 4
+define SCORE_WEAPBOMB 7
+define SCORE_WEAPSHRINKER 9
+define SCORE_WEAPGROW 11
+define SCORE_WEAPFREEZE 7
+define SCORE_WEAPFLAME 6
+
+define SCOREN_DAMAGE 30
+define SCOREN_BLOWDAMAGE 50
+define SCOREN_KILLED 1500
+define SCOREN_BABEKILLED 70
+
+defstate S_ScoreItem
+
+	add s_items 1
+
+ends
+
+defstate S_ScoreBlowkill
+
+	add s_blowkills SCORE_BLOWKILL
+
+ends
+
+defstate S_ScoreShotblowkill
+
+	add s_shotblowkills SCORE_SHOTBLOWKILL
+
+ends
+
+appendevent EVENT_GAME
+
+	
+	ife THISACTOR player.i
+	{
+		ifge userdef.player_skill 3
+		{
+			ife userdef.player_skill 3
+				set s_mult 2
+			else ife userdef.player_skill 4
+				set s_mult 3
+			else ife userdef.player_skill 5
+				set s_mult 4
+			else ife userdef.player_skill 6
+				set s_mult 5
+		}
+		
+		ife st 1
+		{
+			setp[].gm 8
+			set st 0
+		}
+		ife userdef.enable_nuke 1
+		ife userdef.nuke_active 1
+			nullop
+		else
+		ifn player.actors_killed s_lastkill
+		{
+			getp[].actors_killed s_temp
+			sub s_temp s_lastkill
+			
+			ife s_temp 2
+				add s_doublekills 1
+			else ifg s_temp 2
+				add s_multkills 1
+		}
+	
+		getp[].actors_killed s_lastkill
+		getp[].secret_rooms s_secrets
+		ife userdef.enable_nuke 1
+		ife userdef.nuke_active 1
+			nullop
+		else
+		{
+			set s_kills s_lastkill
+			
+			mul s_kills SCORE_KILL
+			mul s_secrets SCORE_SECRET
+			
+			set s_temp s_doublekills
+			mul s_temp 2
+			mul s_temp SCORE_KILL
+			
+			add s_kills s_temp
+			
+			set s_temp s_multkills
+			mul s_temp 4
+			mul s_temp SCORE_KILL
+			
+			add s_kills s_temp
+			
+			set s_lvscore s_kills
+			add s_lvscore s_secrets
+			
+			set s_temp s_bosskill
+			mul s_temp SCORE_BOSSKILL
+			add s_lvscore s_temp
+			
+			set s_temp s_items
+			mul s_temp SCORE_ITEM
+			add s_lvscore s_temp
+			
+			add s_lvscore s_destruction
+			add s_lvscore s_weapshot
+			
+			set s_temp s_babesaved
+			mul s_temp SCORE_BABESAVED
+			add s_lvscore s_temp
+			
+			//ifge s_items s_allitems
+				//add s_lvscore SCORE_ALLITEMS
+			
+			add s_lvscore s_blowkills
+			add s_lvscore s_shotblowkills
+			
+			set s_temp s_bodies
+			mul s_temp SCORE_BODYDESTROY
+			add s_lvscore s_temp
+			
+			set s_temp s_damage
+			add s_temp s_blowdamage
+			add s_temp s_killed
+				
+			set s_temp2 s_babekilled
+			mul s_temp2 SCOREN_BABEKILLED
+			add s_temp s_temp2
+				
+			mul s_temp -1
+				
+			sub s_lvscore s_damage
+			sub s_lvscore s_blowdamage
+			sub s_lvscore s_killed
+			
+			//ifge s_bodies player.max_actors_killed
+				//add s_lvscore SCORE_NOBODIES
+			
+			///sub s_lvscore s_damage
+			//sub s_lvscore s_blowdamage
+			//sub s_lvscore s_killed
+			//mul s_lvscore s_mult
+			
+			ifl s_displayscore s_lvscore
+			{
+				set s_temp s_lvscore
+				sub s_temp s_displayscore
+				
+				set s_temp2 8
+				
+				ifg s_temp 480
+					set s_temp2 16
+				
+				ifg s_temp 960
+					set s_temp2 32
+				
+				ifl s_temp 8
+					set s_displayscore s_lvscore
+				else
+					add s_displayscore s_temp2
+			}
+			
+			ifg s_displayscore s_lvscore
+			{
+				set s_temp s_displayscore
+				sub s_temp s_lvscore
+				
+				set s_temp2 8
+				
+				ifg s_temp 60
+					set s_temp2 16
+				
+				ifg s_temp 240
+					set s_temp2 32
+				
+				ifl s_temp 8
+					set s_displayscore s_lvscore
+				else
+					sub s_displayscore s_temp2
+			}
+		}
+	}
+
+endevent
+
+appendevent EVENT_PREACTORDAMAGE
+
+	switch sprite[THISACTOR].picnum
+			case EGG
+			case LIZTROOP
+			case PIGCOP
+			case DPIGCOP
+			case ROBOTTROOPER
+			case LIZMAN
+			case FLAMEENFORCER
+			case ELITEENFORCER
+			case OCTABRAIN
+			case COMMANDER
+			case ORGANTIC
+			case ROTATEGUN
+			case DRONE
+			case SNAKEHEAD
+			case BOSS1
+			case BOSS2
+			case BOSS3
+			case NEWBEAST
+			case SARGE
+			case TANK
+			case SCORPIONTANK
+				ifn sprite[THISACTOR].htextra -1
+				{
+					switch sprite[THISACTOR].htpicnum
+						case RPG
+						case ROCKETPROJ
+						case RADIUSEXPLOSION
+							geta[THISACTOR].htextra sa_temp
+							sub sa_temp sprite[THISACTOR].extra
+							
+							ifg sa_temp -1
+							{
+								add s_blowkills SCORE_BLOWKILL
+								
+								ife userdef.player_skill 6
+								{
+									set atemp RETURN
+									
+									espawn DROPPER
+									ifrnd 64
+										seta[RETURN].pal 0
+									else
+										seta[RETURN].pal 3
+										
+									set RETURN atemp
+								}
+							}
+							break
+							
+						case KNEE
+							ife userdef.player_skill 6
+							{
+								set atemp RETURN
+									
+								state SpawnShards2
+										
+								set RETURN atemp
+							}
+							break
+					endswitch
+					
+					ife sprite[THISACTOR].htowner player[].i
+					{
+						switch sprite[THISACTOR].htpicnum
+							case SHOTSPARK1
+								add s_weapshot SCORE_WEAPSHOT
+								break
+								
+							case KNEE
+								add s_weapshot SCORE_WEAPKICK
+								break
+								
+							case PLASMAPROJ
+							case PLASMAMICROPROJ
+								add s_weapshot SCORE_WEAPPLASMA
+								break
+								
+							case ROCKETPROJ
+								add s_weapshot SCORE_WEAPROCKET
+								break
+								
+							case RPG
+								add s_weapshot SCORE_WEAPRPG
+								break
+								
+							case RADIUSEXPLOSION
+								add s_weapshot SCORE_WEAPBOMB
+								break	
+								
+							case SHRINKER
+								add s_weapshot SCORE_WEAPSHRINKER
+								break
+								
+							case GROWSPARK
+								add s_weapshot SCORE_WEAPGROW
+								break
+								
+							case FREEZEBLAST
+								add s_weapshot SCORE_WEAPFREEZE
+								break
+								
+							case FLAMEPROJ
+								add s_weapshot SCORE_WEAPFLAME
+								break
+						endswitch
+					}
+				}
+				break
+		endswitch
+
+endevent
+
+appendevent EVENT_KILLIT
+
+	
+	//al sprite[].picnum
+	
+	ifge sprite[].picnum 1960
+	ifle sprite[].picnum 1973
+		add s_bodies 1
+
+	switch sprite[THISACTOR].picnum
+		case COLA
+		case SIXPAK
+		case FIRSTAID
+		case SHIELD
+		case STEROIDS
+		case ATOMICHEALTH
+		case HOLODUKE
+		case JETPACK
+		case AIRTANK
+		case SPACESUIT
+		case BOOTS
+		case HEATSENSOR
+		case AMMO
+		case SHOTGUNAMMO
+		case BATTERYAMMO
+		case DEVISTATORAMMO
+		case RPGAMMO
+		case GROWAMMO
+		case CRYSTALAMMO
+		case HBOMBAMMO
+		case PLASMAAMMO
+		case ULTRARPGAMMO
+		case FREEZEAMMO
+		case FUEL
+		case FIRSTGUNSPRITE
+		case SHOTGUNBETASPRITE
+		case SHOTGUNSPRITE
+		case CHAINGUNSPRITE
+		case PLASMASPRITE
+		case RPGSPRITE
+		case ULTRARPGSPRITE
+		case HEAVYHBOMB
+		case SHRINKERSPRITE
+		case DEVISTATORSPRITE
+		case TRIPBOMBSPRITE
+		case FLAMETHROWERSPRITE
+		case FREEZESPRITE
+		case ACCESSCARD
+		ifspritepal 1
+			nullop
+		else
+			state S_ScoreItem
+			break
+			
+		case EGG
+		case LIZTROOP
+		case LIZTROOPRUNNING
+		case LIZTROOPSTAYPUT
+		case LIZTOP
+		case LIZTROOPSHOOT
+		case LIZTROOPJETPACK
+		case LIZTROOPONTOILET
+		case LIZTROOPJUSTSIT
+		case LIZTROOPDUCKING
+		case PIGCOP
+		case PIGCOPSTAYPUT
+		case PIGCOPDIVE
+		case DPIGCOP
+		case DPIGCOPSTAYPUT
+		case DPIGCOPDIVE
+		case ELITEPIGCOP
+		case ELITEPIGCOPSTAYPUT
+		case ELITEPIGCOPDIVE
+		case ROBOTTROOPER
+		case LIZMAN
+		case LIZMANSTAYPUT
+		case LIZMANSPITTING
+		case LIZMANFEEDING
+		case LIZMANJUMP
+		case FLAMEENFORCER
+		case FLAMEENFORCERSTAYPUT
+		case FLAMEENFORCERSPITTING
+		case FLAMEENFORCERJUMP
+		case ELITEENFORCER
+		case ELITEENFORCERSTAYPUT
+		case ELITEENFORCERSPITTING
+		case ELITEENFORCERJUMP
+		case OCTABRAIN
+		case OCTABRAINSTAYPUT
+		case COMMANDER
+		case COMMANDERSTAYPUT
+		case ORGANTIC
+		case ROTATEGUN
+		case DRONE
+		case SNAKEHEAD
+		case BOSS1
+		case BOSS1STAYPUT
+		case BOSS2
+		case BOSS3STAYPUT
+		case BOSS3
+		case SNAKEDRONE
+		case 2370
+		case 2371
+		case 2372
+		case 2373
+		case 2374
+		case 2375
+		case 2376
+		case 2377
+		case NEWBEAST
+		case SARGE
+		case SCORPIONTANK
+		case TANK
+		case SHARK
+			ifg totalclock 10
+			{
+				ifge userdef.player_skill 3
+				ifrnd 192
+					spawn COLA
+				
+				ife userdef.player_skill 6
+				ifrnd 64
+					spawn DROPPER
+				
+				add s_bodies 1
+			}
+			break
+			
+		case SEENINE
+		case OOZFILTER
+		case EXPLODINGBARREL
+			add s_destruction SCORE_SEENINE
+			break
+			
+		case RUBBERCAN
+		case DUKEBURGER
+		case MOP
+		case BROOM
+		case WETFLOOR
+		case DESKLAMP
+		case WOODENHORSE
+		case HORSEONSIDE
+		case NUKEBARREL
+		case FIREBARREL
+		case FIREVASE
+		case CLOCK
+		case CHAIR1
+		case CHAIR2
+		case WATERFOUNTAIN
+		case TOILET
+		case STALL
+		case REACTOR2
+		case GRATE1
+		case PIPE2
+		case PIPE1B
+		case PIPE3
+		case PIPE1
+		case CAMERA1
+		case PIPE2B
+		case CHAIR3
+		case VACUUM
+		case SCALE
+		case CAMERALIGHT
+		case MOVIECAMERA
+		case IVUNIT
+		case POT1
+		case POT2
+		case POT3
+		case 690
+		case WAITTOBESEATED
+		case VASE
+		case STATUE
+		case DOMELITE
+		case SATELITE
+		case FUELPOD
+		case SUSHIPLATE1
+		case SUSHIPLATE2
+		case SUSHIPLATE3
+		case SUSHIPLATE4
+		case SUSHIPLATE5
+		case STATUEFLASH
+		case CACTUS
+		case FIREEXT
+		case BOX
+		case BOUNCEMINE
+		case BOTTLE1
+		case BOTTLE2
+		case BOTTLE3
+		case BOTTLE4
+		case HYDROPLANT
+		case OCEANSPRITE1
+		case OCEANSPRITE2
+		case OCEANSPRITE3
+		case OCEANSPRITE4
+		case OCEANSPRITE5
+		case CONE
+		case HANGLIGHT
+		case HYDRENT
+		case TIRE
+		case PIPE4
+		case PIPE5
+		case PIPE6
+		case BOTTLE5
+		case BOTTLE6
+		case BOTTLE7
+		case BOTTLE8
+		case REACTOR
+		case BOTTLE10
+		case BOTTLE11
+		case BOTTLE12
+		case BOTTLE13
+		case BOTTLE14
+		case BOTTLE15
+		case BOTTLE16
+		case BOTTLE17
+		case BOTTLE18
+		case BOTTLE19
+		case CANWITHSOMETHING
+			add s_destruction SCORE_DESTRUCTION
+			
+			ife userdef.player_skill 6
+			ifrnd 48
+			{
+				set atemp RETURN
+				espawn DROPPER
+				seta[RETURN].pal 3
+				set RETURN atemp
+			}
+			break
+	endswitch
+
+endevent
+
+appendevent EVENT_LOADACTOR
+	switch sprite[THISACTOR].picnum
+		case COLA
+		case SIXPAK
+		case FIRSTAID
+		case SHIELD
+		case STEROIDS
+		case ATOMICHEALTH
+		case HOLODUKE
+		case JETPACK
+		case AIRTANK
+		case SPACESUIT
+		case BOOTS
+		case HEATSENSOR
+		case AMMO
+		case SHOTGUNAMMO
+		case BATTERYAMMO
+		case DEVISTATORAMMO
+		case RPGAMMO
+		case GROWAMMO
+		case CRYSTALAMMO
+		case HBOMBAMMO
+		case PLASMAAMMO
+		case ULTRARPGAMMO
+		case FREEZEAMMO
+		case FUEL
+		case FIRSTGUNSPRITE
+		case SHOTGUNBETASPRITE
+		case SHOTGUNSPRITE
+		case CHAINGUNSPRITE
+		case PLASMASPRITE
+		case RPGSPRITE
+		case ULTRARPGSPRITE
+		case HEAVYHBOMB
+		case SHRINKERSPRITE
+		case DEVISTATORSPRITE
+		case TRIPBOMBSPRITE
+		case FLAMETHROWERSPRITE
+		case FREEZESPRITE
+		case ACCESSCARD
+		ifspritepal 1
+			nullop
+		else
+			add s_allitems 1
+			break
+	endswitch
+
+endevent
+
+appendevent EVENT_EGS
+
+	ifge sprite[].picnum 2390
+	ifle sprite[].picnum 2418
+	ifrnd 64
+		add s_destruction 1
+	
+	ifge sprite[].picnum 1031
+	ifle sprite[].picnum 1033
+	ifrnd 64
+		add s_destruction 1
+
+endevent
+
+damageeventtile SCREENBREAK1
+damageeventtile SCREENBREAK2
+damageeventtile SCREENBREAK3
+damageeventtile SCREENBREAK4
+damageeventtile SCREENBREAK5
+damageeventtile SCREENBREAK6
+damageeventtile SCREENBREAK7
+damageeventtile SCREENBREAK8
+damageeventtile SCREENBREAK9
+damageeventtile SCREENBREAK10
+damageeventtile SCREENBREAK11
+damageeventtile SCREENBREAK12
+damageeventtile SCREENBREAK13
+damageeventtile SCREENBREAK14
+damageeventtile SCREENBREAK15
+damageeventtile SCREENBREAK16
+damageeventtile SCREENBREAK17
+damageeventtile SCREENBREAK18
+damageeventtile SCREENBREAK19
+damageeventtile OJ
+damageeventtile FEMPIC2
+damageeventtile FEMPIC3
+damageeventtile COLAMACHINE
+damageeventtile VENDMACHINE
+damageeventtile BORNTOBEWILDSCREEN
+damageeventtile W_TECHWALL1
+damageeventtile W_TECHWALL2
+damageeventtile W_TECHWALL3
+damageeventtile W_TECHWALL4
+damageeventtile W_TECHWALL5
+damageeventtile W_TECHWALL6
+damageeventtile W_TECHWALL7
+damageeventtile W_TECHWALL8
+damageeventtile W_TECHWALL9
+damageeventtile W_TECHWALL10
+damageeventtile W_TECHWALL11
+damageeventtile W_TECHWALL12
+damageeventtile W_TECHWALL13
+damageeventtile W_TECHWALL14
+damageeventtile W_TECHWALL15
+damageeventtile W_TECHWALL16
+damageeventtile W_MILKSHELF
+damageeventtile ATM
+damageeventtile WALLLIGHT1
+damageeventtile WALLLIGHT2
+damageeventtile WALLLIGHT3
+damageeventtile WALLLIGHT4
+damageeventtile TECHLIGHT2
+damageeventtile TECHLIGHT4
+
+onevent EVENT_DAMAGEWALL
+	
+	add s_destruction SCORE_DESTRUCTION
+
+endevent

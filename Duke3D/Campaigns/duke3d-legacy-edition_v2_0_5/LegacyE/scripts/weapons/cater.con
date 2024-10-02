@@ -1,0 +1,741 @@
+/*
+--------------------------------------------------------------------------------
+Duke Nukem 3D - Blast Edition Version 0.1
+By Marcos
+2022 - Space In a Bottle
+*/
+
+//Freeze/Flame/Caterkilar configuration code
+
+define FLAMEDAMAGE 18
+define FLAMEFIRE_SOUND 407
+definesound FLAMEFIRE_SOUND catfire.voc 0  0   4   0   0
+
+define FLAMEALT_SOUND 408
+definesound FLAMEALT_SOUND snd/flamethrower_alt.wav 0  0   4   0   0
+
+define CATER_SOUND 510
+definesound CATER_SOUND catfire.voc 256  256   4   0   0
+
+define CATERALT_SOUND 511
+definesound CATERALT_SOUND snd/caterkilar_fire.wav 0  0   4   0   0
+
+define CATERFIRE_SOUND 512
+definesound CATERFIRE_SOUND snd/PLASMAM.VOC 192 192 3 0 0
+
+define CATERHIT_SOUND 513
+definesound CATERHIT_SOUND EXSHOT3B.VOC -128 -96 3 0 0
+
+defineprojectile FLAMEPROJ PROJ_WORKSLIKE 118850 //100354
+defineprojectile FLAMEPROJ PROJ_EXTRA FLAMEDAMAGE
+defineprojectile FLAMEPROJ PROJ_EXTRA_RAND 15
+defineprojectile FLAMEPROJ PROJ_HITRADIUS 768 //1024
+defineprojectile FLAMEPROJ PROJ_DROP -256
+defineprojectile FLAMEPROJ PROJ_VEL 812 //648
+defineprojectile FLAMEPROJ PROJ_TRAIL EXPLOSION3
+defineprojectile FLAMEPROJ PROJ_TXREPEAT 6
+defineprojectile FLAMEPROJ PROJ_TYREPEAT 6
+defineprojectile FLAMEPROJ PROJ_TNUM 1
+defineprojectile FLAMEPROJ PROJ_SPAWNS FLAMEPROJSPAWNED
+defineprojectile FLAMEPROJ PROJ_XREPEAT 6
+defineprojectile FLAMEPROJ PROJ_YREPEAT 6
+defineprojectile FLAMEPROJ PROJ_OFFSET 372
+defineprojectile FLAMEPROJ PROJ_RANGE 15
+
+defineprojectile CATERKILAR PROJ_WORKSLIKE 16
+defineprojectile CATERKILAR PROJ_EXTRA CATERDAMAGE
+defineprojectile CATERKILAR PROJ_SOUND CATERHIT_SOUND
+defineprojectile CATERKILAR PROJ_RANGE 2048
+
+var i_FlameInit 0 1
+var i_CaterInit 0 1
+var i_FreezeInit 0 1
+var ctemp 0 2
+var ctemp2 0 2
+
+state draw_freezer // FREEZE_WEAPON:
+    state reset_hud_weapon_coordinates
+
+    setvar hud_tilenum FREEZE
+
+    //orvar hud_orientation 512
+
+    addvar hud_x 205
+
+    addvar hud_y 255
+
+    ifvarg weaponcount 0
+    {
+		sub hud_x 15
+		sub hud_y 15
+	
+		ife i_FreezeInit 0
+		{
+			ifle weaponcount 3
+				add hud_tilenum 1
+			else ifg weaponcount 3
+				add hud_tilenum 2
+				
+			displayrand hud_temp
+			andvar hud_temp 3
+
+			addvarvar hud_x hud_temp
+
+			displayrand hud_temp
+			andvar hud_temp 3
+
+			addvarvar hud_y hud_temp
+		}
+		else
+		{
+			displayrand hud_temp
+			andvar hud_temp 3
+
+			addvarvar hud_x hud_temp
+
+			displayrand hud_temp
+			andvar hud_temp 3
+
+			addvarvar hud_y hud_temp
+
+			addvar hud_tilenum 2
+
+			setvar hud_shade -32
+		}
+    }
+
+    state G_DrawWeaponTile
+/*
+    ifvarand hud_orientation 512
+        xorvar hud_orientation 512
+		*/
+ends
+
+state draw_flamer
+    state reset_hud_weapon_coordinates
+
+    setvar hud_tilenum FLAMETHROWER
+
+    //orvar hud_orientation 512
+
+    addvar hud_x 205
+
+    addvar hud_y 255
+
+    ifvarg weaponcount 0
+    {
+		sub hud_x 15
+		sub hud_y 15
+	
+		ife i_FlameInit 0
+		{
+			ifle weaponcount 3
+				add hud_tilenum 1
+			else ifg weaponcount 3
+				ifle weaponcount 5
+				add hud_tilenum 2
+			else ifg weaponcount 5
+				add hud_tilenum 3
+				
+			displayrand hud_temp
+			andvar hud_temp 3
+
+			addvarvar hud_x hud_temp
+
+			displayrand hud_temp
+			andvar hud_temp 3
+
+			addvarvar hud_y hud_temp
+		}
+		else
+		{
+			displayrand hud_temp
+			andvar hud_temp 3
+
+			addvarvar hud_x hud_temp
+
+			displayrand hud_temp
+			andvar hud_temp 3
+
+			addvarvar hud_y hud_temp
+
+			addvar hud_tilenum 3
+
+			setvar hud_shade -32
+		}
+    }
+
+    state G_DrawWeaponTile
+/*
+    ifvarand hud_orientation 512
+        xorvar hud_orientation 512
+		*/
+ends
+
+state draw_cater
+    state reset_hud_weapon_coordinates
+
+    setvar hud_tilenum CATERKILAR
+
+    orvar hud_orientation 512
+
+    addvar hud_x 230
+
+    addvar hud_y 245
+
+    ifg weaponcount 0
+    {
+		ife i_CaterInit 0
+		{
+			ifle weaponcount 3
+				add hud_tilenum 1
+			else ifg weaponcount 3
+				ifle weaponcount 5
+				add hud_tilenum 2
+			else ifg weaponcount 5
+				ifle weaponcount 7
+				add hud_tilenum 3
+			else
+			{
+				set i_CaterInit 1
+				
+				add hud_tilenum 4
+				setp[].kickback_pic 1
+			}
+		}
+		else
+		{
+			displayrand hud_temp
+			andvar hud_temp 6
+
+			addvarvar hud_x hud_temp
+
+			displayrand hud_temp
+			andvar hud_temp 6
+
+			addvarvar hud_y hud_temp
+
+			ife catergot 0
+			{
+				ifle weaponcount 10
+				{
+					ife catergot 0
+						set hud_temp weaponcount
+					else
+						set hud_temp catergot
+					//sub hud_temp 4
+					//mul hud_temp -13
+					
+					set hud_temp3 1024
+					mul hud_temp3 hud_temp
+					div hud_temp3 10
+					add hud_temp3 512
+					sin hud_temp3 hud_temp3
+					shiftr hud_temp3 9
+					mul hud_temp hud_temp3
+					//mul hud_temp -1
+
+					add hud_x hud_temp
+					mul hud_temp -1
+					div hud_temp 5
+					add hud_y hud_temp
+					addvar hud_tilenum 4
+				}
+				else ifle weaponcount 20
+				ifg weaponcount 10
+				{
+					set hud_temp 20
+					
+					ife catergot 0
+						sub hud_temp weaponcount
+					else
+						sub hud_temp catergot
+					
+					
+					set hud_temp3 1024
+					mul hud_temp3 hud_temp
+					div hud_temp3 10
+					add hud_temp3 512
+					sin hud_temp3 hud_temp3
+					shiftr hud_temp3 8
+					mul hud_temp hud_temp3
+					//mul hud_temp -1
+					//mul hud_temp 15
+
+					add hud_x hud_temp
+					mul hud_temp -1
+					div hud_temp 5
+					add hud_y hud_temp
+					
+					addvar hud_tilenum 5
+				}
+			}
+			else
+			{
+				ifle catergot 10
+				{
+					ife catergot 0
+						set hud_temp weaponcount
+					else
+						set hud_temp catergot
+					//sub hud_temp 4
+					//mul hud_temp -13
+					
+					set hud_temp3 1024
+					mul hud_temp3 hud_temp
+					div hud_temp3 10
+					add hud_temp3 512
+					sin hud_temp3 hud_temp3
+					shiftr hud_temp3 9
+					mul hud_temp hud_temp3
+					//mul hud_temp -1
+
+					add hud_x hud_temp
+					mul hud_temp -1
+					div hud_temp 5
+					add hud_y hud_temp
+					addvar hud_tilenum 4
+				}
+				else ifle catergot 20
+				ifg catergot 10
+				{
+					set hud_temp 20
+					
+					ife catergot 0
+						sub hud_temp weaponcount
+					else
+						sub hud_temp catergot
+					
+					
+					set hud_temp3 1024
+					mul hud_temp3 hud_temp
+					div hud_temp3 10
+					add hud_temp3 512
+					sin hud_temp3 hud_temp3
+					shiftr hud_temp3 8
+					mul hud_temp hud_temp3
+					//mul hud_temp -1
+					//mul hud_temp 15
+
+					add hud_x hud_temp
+					mul hud_temp -1
+					div hud_temp 5
+					add hud_y hud_temp
+					addvar hud_tilenum 5
+				}
+			}
+			
+			setvar hud_shade -32
+		}
+    }
+	
+	ifl plasmaammo 2
+		set hud_tilenum CATERKILAR
+	
+	ifn hud_tilenum CATERKILAR 
+	ife alt_start 0
+	{
+		add hud_orientation 33
+		ifle weaponcount 10
+		ifge weaponcount 5
+		ife i_CaterInit 1
+		{
+			add hud_x 60
+			add hud_y -30
+		}
+		else ifg weaponcount 10
+		//ifl weaponcount 18
+		ife i_CaterInit 1
+		{
+			add hud_x -120
+			add hud_y 30
+		}
+		
+		state G_DrawWeaponTile
+		
+		sub hud_orientation 32
+		
+		ifle weaponcount 10
+		ifge weaponcount 5
+		ife i_CaterInit 1
+		{
+			add hud_x -30
+			add hud_y 15
+		}
+		else ifg weaponcount 10
+		//ifl weaponcount 18
+		ife i_CaterInit 1
+		{
+			add hud_x 30
+			add hud_y -15
+		}
+		
+		state G_DrawWeaponTile
+		
+		sub hud_orientation 1
+		
+		ifle weaponcount 10
+		ife i_CaterInit 1
+		{
+			add hud_x -30
+			add hud_y 15
+		}
+		else ifg weaponcount 10
+		//ifl weaponcount 18
+		ife i_CaterInit 1
+		{
+			add hud_x 30
+			add hud_y -15
+		}
+	}
+	
+	state G_DrawWeaponTile
+
+    ifvarand hud_orientation 512
+        xorvar hud_orientation 512
+ends
+
+
+action FLAMEPROJ_FRAMES 0 9 1 1 3
+useractor notenemy FLAMEPROJ FLAMEDAMAGE FLAMEPROJ_FRAMES enda
+
+useractor notenemy FLAMEPROJSPAWNED 0
+
+	espawn EXPLOSION2
+	setactor[RETURN].xrepeat 16
+	setactor[RETURN].yrepeat 16
+	espawn FIRE
+	seta[RETURN].yvel 1
+	killit
+	
+enda
+
+useractor notenemy FLAMECLUSTERSPAWNER 0
+
+	spawn FLAMEPROJSPAWNED
+	
+	setprojectile[FLAMEPROJ].vel 128
+	
+	ifspritepal 2
+	{
+		setprojectile[FLAMEPROJ].extra 2
+		setprojectile[FLAMEPROJ].pal 2
+	}
+	else
+		setprojectile[FLAMEPROJ].extra 15
+	//setprojectile[FLAMEPROJ].drop -256
+	setprojectile[FLAMEPROJ].workslike 100354
+	setprojectile[FLAMEPROJ].range 0
+	setprojectile[FLAMEPROJ].hitradius 1024
+	
+	set ctemp2 320
+	
+	whilevarn ctemp 8
+	{
+		ezshoot -3072 FLAMEPROJ
+		setactor[RETURN].ang ctemp2
+		
+		add ctemp2 256
+		add ctemp 1
+	}
+	
+	setprojectile[FLAMEPROJ].vel 812
+	setprojectile[FLAMEPROJ].extra FLAMEDAMAGE
+	//setprojectile[FLAMEPROJ].drop 0
+	setprojectile[FLAMEPROJ].workslike 118850
+	setprojectile[FLAMEPROJ].hitradius 768
+	setprojectile[FLAMEPROJ].range 12
+	setprojectile[FLAMEPROJ].pal 0
+	
+	killit
+
+enda
+
+appendevent EVENT_EGS
+
+	ife sprite[].picnum FLAMECLUSTERSPAWNER
+		seta[].pal sprite[sprite[].owner].pal
+	else ife sprite[].picnum EXPLOSION3
+	ife sprite[sprite[].owner].picnum FLAMEPROJ
+		seta[].pal sprite[sprite[].owner].pal
+
+endevent
+
+useractor notenemy CATERKILARSPRITE
+  fall
+  sizeat 32 32
+  ifmove RESPAWN_ACTOR_FLAG
+    state respawnit
+  else
+    ifp pshrunk nullop
+    else
+      ifp palive
+        ifpdistl RETRIEVEDISTANCE
+          ifcount 6
+            ifcanseetarget
+      {
+        
+          ifgotweaponce 0
+            break
+		  ifn gotweapons[CATERKILAR_WEAPON] 1
+		  {
+		     ife player[].curr_weapon KNEE_WEAPON
+			  {
+				set change_weapon 1
+				setp[].weapon_pos -1
+			  }
+			  else
+			  {
+			    sound SELECT_WEAPON
+				set weapon_to_switch KNEE_WEAPON
+				setp[].bsubweapon KNEE_WEAPON 1
+				setp[].weapon_pos -1
+			  }
+		  
+			setarray gotweapons[CATERKILAR_WEAPON] 1
+				
+			ifl plasmaammo MAXPLASMAAMMO
+				add plasmaammo 8
+			
+		  }
+		  else ifl plasmaammo MAXPLASMAAMMO
+				add plasmaammo 8
+		  else break
+		  
+          quote 139
+
+        ifspawnedby CATERKILARSPRITE
+          state getweaponcode
+        else
+          state quikweaponget
+      }
+enda
+
+useractor notenemy FUEL
+  fall
+  sizeat 24 24
+  ifmove RESPAWN_ACTOR_FLAG
+    state respawnit
+  else
+    ifp pshrunk nullop
+    else
+      ifp palive
+        ifpdistl RETRIEVEDISTANCE
+			ifl flameammo MAXFLAMEAMMO
+          ifcount 6
+            ifcanseetarget
+      {
+		ife userdef.enable_nuke 1
+		ife userdef.nuke_active 1
+		ife nuke_n5 1
+		ifge flameammo 30
+			break
+	  
+	    ife userdef.player_skill 6
+			add flameammo 7
+		else
+          add flameammo 15
+          quote 133
+        ifspawnedby FUEL
+          state getcode
+        else
+          state quikget
+      }
+enda
+
+useractor notenemy FLAMETHROWERSPRITE
+  fall
+  sizeat 32 32
+  ifmove RESPAWN_ACTOR_FLAG
+    state respawnit
+  else
+    ifp pshrunk nullop
+    else
+      ifp palive
+        ifpdistl RETRIEVEDISTANCE
+          ifcount 6
+            ifcanseetarget
+      {
+        
+          ifgotweaponce 0
+            break
+		  ifn gotweapons[FLAME_WEAPON] 1
+		  {
+		     ife player[].curr_weapon FREEZE_WEAPON
+			  {
+				set change_weapon 1
+				setp[].weapon_pos -1
+			  }
+			  else ife gotweapons[FREEZE_WEAPON] 1
+			  {
+			    sound SELECT_WEAPON
+				set weapon_to_switch FREEZE_WEAPON
+				setp[].bsubweapon FREEZE_WEAPON 1
+				setp[].weapon_pos -1
+			  }
+		  
+			setarray gotweapons[FLAME_WEAPON] 1
+			addweapon FREEZE_WEAPON 1
+			
+			ifl flameammo MAXFLAMEAMMO
+				add flameammo 15
+		  } else ifl flameammo MAXFLAMEAMMO
+				add flameammo 15
+			else break
+		  
+          quote 132
+
+        ifspawnedby FLAMETHROWERSPRITE
+          state getweaponcode
+        else
+          state quikweaponget
+      }
+enda
+
+appendevent EVENT_DOFIRE
+
+	ife player[].curr_weapon FREEZE_WEAPON
+	{
+		ife 1 player[].bsubweapon FREEZE_WEAPON
+		{
+			ifg flameammo 0
+			{
+				eshoot FLAMEPROJ
+				set horizseek horizfire
+				set horizcur 0
+								
+				set angseek angfire
+				displayrandvar angdir 1
+				
+				ife alt_ready 0
+				ife userdef.enable_nuke 1
+				ife userdef.nuke_active 1
+				ifg userdef.nuke_wpnsel 0
+				{
+					setthisprojectile[RETURN].extra wc_temp
+					setthisprojectile[RETURN].drop 0
+					setthisprojectile[RETURN].vel 384
+					setthisprojectile[RETURN].hitradius 1024
+					setthisprojectile[RETURN].workslike 86082
+					setthisprojectile[RETURN].range 10
+				}
+			
+				ife alt_ready 1
+				{
+					sound FLAMEALT_SOUND
+				
+					set wc_temp FLAMEDAMAGE
+					mul wc_temp 2
+					
+					setthisprojectile[RETURN].extra wc_temp
+					setthisprojectile[RETURN].spawns FLAMECLUSTERSPAWNER
+					//setthisprojectile[RETURN].drop -256
+					setthisprojectile[RETURN].vel 648
+					setthisprojectile[RETURN].hitradius 1024
+					setthisprojectile[RETURN].workslike 86082
+					setthisprojectile[RETURN].range 0
+					
+					sub flameammo 3
+				}		
+				else
+				{
+					sound WEAPON9_FIRESOUND
+					sub flameammo 1
+				}
+			}
+			else
+				set RETURN -1
+		}
+		else
+		{
+			ifg freezeammo 0
+			{
+				eshoot FREEZEBLAST
+				sound WEAPON9_FIRESOUND
+				
+				set horizseek horizfire
+								
+				set angseek angfire
+				displayrandvar angdir 1
+				
+				sub freezeammo 1
+			}
+			else
+				set RETURN -1
+		}
+	}
+	else ife player[].curr_weapon KNEE_WEAPON
+	ife 1 player[].bsubweapon KNEE_WEAPON
+	{		
+		ifge plasmaammo 1
+		{
+			ife weaponcount 9
+				sound CATER_SOUND
+			
+			set ctemp weaponcount
+			mod ctemp 5
+			ife ctemp 0
+				sub plasmaammo 1
+		
+			set ctemp weaponcount
+			set ctemp2 1024
+			mul ctemp2 hud_temp
+			div ctemp2 10
+			add ctemp2 512
+			sin ctemp2 hud_temp3
+			shiftr ctemp2 8
+			mul ctemp ctemp2
+			
+			getp[].ang ctemp2
+			add ctemp2 ctemp
+			setp[].ang ctemp2
+			eshoot CATERKILAR
+			sub ctemp2 ctemp
+			setp[].ang ctemp2
+			
+			set horizseek horizfire
+			set horizcur 0
+								
+			set angseek angfire
+			displayrandvar angdir 1
+			set angcur 0
+		}
+		else
+			set RETURN -1
+	}
+
+endevent
+
+appendevent EVENT_FIRE
+
+	ife player[].curr_weapon KNEE_WEAPON
+		ife 1 player[].bsubweapon KNEE_WEAPON	
+		{		
+			ifl plasmaammo 1
+				set RETURN -1
+		}
+
+endevent
+
+appendevent EVENT_PRESSEDFIRE
+
+	ife WEAPON FREEZE_WEAPON
+	{
+		ife 1 player[].bsubweapon FREEZE_WEAPON
+			ifl flameammo 1
+				set RETURN -1
+				
+		ife 0 player[].bsubweapon FREEZE_WEAPON
+			ifl freezeammo 1
+				set RETURN -1
+	}
+	
+	ife player[].curr_weapon KNEE_WEAPON
+		ife 1 player[].bsubweapon KNEE_WEAPON	
+		{		
+			ifl plasmaammo 1
+				set RETURN -1
+		}
+
+endevent
+	

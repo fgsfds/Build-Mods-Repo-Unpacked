@@ -1,0 +1,243 @@
+/*
+--------------------------------------------------------------------------------
+Duke Nukem 3D - Blast Edition Version 2.0
+By Marcos
+2023 - Space In a Bottle
+*/
+
+//Debugging operations
+
+//Main var, set this to 1 enable debugging options
+var dev_maker 0 0
+var dev_init 0 0
+
+var dev_temp 0 0
+var dev_temp2 0 0
+var dev_temp3 0 0
+var dev_temp4 0 0
+
+var dev_hitcos 0 0
+var dev_hitsin 0 0
+var dev_sprhit -1 0
+var dev_wallhit -1 0
+var dev_sectorhit -1 0
+var dev_xhit 0 0
+var dev_yhit 0 0
+var dev_zhit 0 0
+
+var dev_prvpal 0 0
+var dev_prvsecpal
+var dev_prvwalpal 0 0
+var dev_prvshd 0 0
+var dev_cursprhit -1 0
+
+var dev_curspr -1 0
+var dev_disx 0 0
+var dev_disy 0 0
+var dev_sprcstat 0 0
+var dev_setspr 0 0
+
+var dev_lotagactivate 0 0
+var dev_activate NO 0
+
+definequote 5000 DEV QUOTE
+definequote 5001 DEV QUOTE2
+define DEV_QUOTE 5000
+define DEV_QUOTE2 5001
+
+useractor notenemy 4841 0
+
+	sizeat 8 8
+	cstat 0
+	
+	geta[].owner atemp
+	setsprite THISACTOR sprite[atemp].x sprite[atemp].y sprite[atemp].z
+	seta[].pal sprite[atemp].pal
+
+enda
+
+appendevent EVENT_GAME
+
+	//Roch 8 map fix when in "See You In Hell"
+	//IT MUST STAY HERE, I DON'T KNOW IT DOESN'T WORK ANYWHERE ELSE
+	//Roch 8 got to be modified a bit (moved the last SE 7 transport bloser to the edge of the sector)
+	ife sprite[].picnum SECTOREFFECTOR
+	ife sprite[].lotag 7
+	{
+			updatesectorz sprite[].x sprite[].y sprite[].z atemp
+			seta[].sectnum atemp
+	}
+	else
+	ife THISACTOR player[].i
+	{
+		ife dev_maker 1
+		{
+			ife dev_init 0
+			{
+				//make all sprites visible
+				set dev_temp 0
+				for dev_temp allsprites
+				{
+					ifand sprite[dev_temp].cstat 32768
+					{
+						geta[dev_temp].cstat dev_temp2
+						xor dev_temp2 32768
+						or dev_temp2 256
+						seta[dev_temp].cstat dev_temp2
+					}
+					
+					ife sprite[dev_temp].picnum SECTOREFFECTOR
+					{
+						espawn 4841
+						seta[RETURN].owner dev_temp
+						setsprite RETURN sprite[dev_temp].x sprite[dev_temp].y sprite[dev_temp].z
+					}
+				}
+				
+				set dev_init 1
+			}
+			else
+			{
+				ife dev_activate 1
+				{
+					operateactivators dev_lotagactivate 0
+					operatemasterswitches dev_lotagactivate
+					operaterespawns dev_lotagactivate
+					
+					set dev_activate 0
+				}
+				
+				ife dev_setspr 1
+				{
+					seta[dev_curspr].cstat dev_sprcstat
+					set dev_setspr 0
+				}
+			
+				//Hitscanner from player
+				cos dev_hitcos player[].ang
+				sin dev_hitsin player[].ang
+				
+				getp[].horiz dev_temp
+				sub dev_temp 100
+				mul dev_temp -2048
+				
+				hitscan player[].posx player[].posy player[].posz player[].cursectnum dev_hitcos dev_hitsin dev_temp dev_sectorhit dev_wallhit dev_sprhit dev_xhit dev_yhit dev_zhit 4294901808
+				
+				ifn dev_sprhit -1
+				{
+					switch sprite[dev_sprhit].picnum
+						case SECTOREFFECTOR
+						case ACTIVATOR
+						case MASTERSWITCH
+						case LOCATORS
+						case MUSICANDSFX
+						case GPSPEED
+						case ACTIVATORLOCKED
+						case CYCLER
+						case TOUCHPLATE
+						case RESPAWN
+							ifn dev_cursprhit dev_sprhit
+							{
+								ifn dev_cursprhit -1
+								{
+									seta[dev_sprhit].pal dev_prvpal
+									setsector[sprite[dev_sprhit].sectnum].floorpal dev_prvsecpal
+									set dev_cursprhit -1
+								}
+								
+								ifn dev_sprhit -1
+								{
+									geta[dev_sprhit].pal dev_prvpal
+									getsector[sprite[dev_sprhit].sectnum].floorpal dev_prvsecpal
+									seta[dev_sprhit].pal 65
+									setsector[sprite[dev_sprhit].sectnum].floorpal 65
+								}
+							}
+							break
+					
+					endswitch
+				}
+				else ifn dev_cursprhit -1
+				{
+					seta[dev_sprhit].pal dev_prvpal
+					setsector[sprite[dev_sprhit].sectnum].floorpal dev_prvsecpal
+					set dev_cursprhit -1
+				}
+			}
+		}
+		else
+			set dev_init 0
+	}
+
+endevent
+
+appendevent EVENT_DISPLAYREST
+
+	ife dev_maker 1
+	{
+		ifn dev_curspr -1
+		{
+			//Current sprite var info
+			set dev_disx 10
+			set dev_disy 50
+		
+			rotatesprite 10 30 16384 0 sprite[dev_curspr].picnum 0 0 24 0 0 xdim ydim
+			
+			
+			qputs DEV_QUOTE spr: %d - pic: %d
+			qsprintf DEV_QUOTE DEV_QUOTE dev_curspr sprite[dev_curspr].picnum
+			
+			minitext 11 51 DEV_QUOTE 30 4
+			minitext 10 50 DEV_QUOTE 0 23
+			
+			
+			add dev_disy 8
+			add dev_disx 1
+			
+			qputs DEV_QUOTE ang: %d - sect: %d - cstat: %d
+			qsprintf DEV_QUOTE DEV_QUOTE sprite[dev_curspr].ang sprite[dev_curspr].sectnum sprite[dev_curspr].cstat
+			
+			minitext dev_disx dev_disy DEV_QUOTE 30 4
+			sub dev_disy 1
+			sub dev_disx 1
+			minitext dev_disx dev_disy DEV_QUOTE 0 23
+			
+			
+			add dev_disy 8
+			add dev_disx 1
+			
+			qputs DEV_QUOTE x: %d - y: %d - z: %d
+			qsprintf DEV_QUOTE DEV_QUOTE sprite[dev_curspr].x sprite[dev_curspr].y sprite[dev_curspr].z
+			
+			minitext dev_disx dev_disy DEV_QUOTE 30 4
+			sub dev_disy 1
+			sub dev_disx 1
+			minitext dev_disx dev_disy DEV_QUOTE 0 23
+			
+			
+			add dev_disy 8
+			add dev_disx 1
+			
+			qputs DEV_QUOTE hitag: %d - lotag: %d
+			qsprintf DEV_QUOTE DEV_QUOTE sprite[dev_curspr].hitag sprite[dev_curspr].lotag
+			
+			minitext dev_disx dev_disy DEV_QUOTE 30 4
+			sub dev_disy 1
+			sub dev_disx 1
+			minitext dev_disx dev_disy DEV_QUOTE 0 23
+			
+			
+			add dev_disy 8
+			add dev_disx 1
+			
+			qputs DEV_QUOTE  sect_hitag: %d - sect_lotag: %d
+			qsprintf DEV_QUOTE DEV_QUOTE sector[sprite[dev_curspr].sectnum].hitag sector[sprite[dev_curspr].sectnum].lotag
+			
+			minitext dev_disx dev_disy DEV_QUOTE 30 4
+			sub dev_disy 1
+			sub dev_disx 1
+			minitext dev_disx dev_disy DEV_QUOTE 0 23
+		}
+	}
+
+endevent

@@ -1,0 +1,396 @@
+/*
+--------------------------------------------------------------------------------
+Duke Nukem 3D - Blast Edition Version 2.0
+By Marcos
+2022 - Space In a Bottle
+*/
+
+//Inventory
+
+define SPACESUITAMOUNT 3600
+
+var space_on 0 1
+var space_amount 0 1
+var selected_inv 0 1
+var invdtime 0 1
+var invtemp 0 1
+var invtemp2 0 1
+var invtemp3 0 1
+var using_scuba 0 1
+var using_boots 0 1
+var using_space 0 1
+
+define DEFAULT_INV_TIME 60
+
+define ICON_NONE                        0
+define ICON_FIRSTAID                    1
+define ICON_STEROIDS                    2
+define ICON_HOLODUKE                    3
+define ICON_JETPACK                     4
+define ICON_HEATS                       5
+define ICON_SCUBA                       6
+define ICON_BOOTS                       7
+define ICON_SPACE 						8
+
+define SPACE_ICON 2466
+
+
+onevent EVENT_INVENTORYLEFT
+
+	set RETURN -1
+	
+	ifge selected_inv 0
+	{
+		set invtemp 0
+		
+		ife selected_inv 0
+			set selected_inv ICON_SPACE
+			
+		ife selected_inv 9
+			set selected_inv ICON_FIRSTAID
+		
+		set invtemp2 selected_inv
+		set invtemp3 selected_inv
+		
+		whilevarn invtemp 1
+		{
+			sub invtemp2 1
+			
+			ifl invtemp2 ICON_FIRSTAID
+			{
+				set invtemp2 ICON_SPACE
+				set invtemp 2
+			}
+			
+			switch invtemp2
+				case ICON_FIRSTAID
+					ifg player[].firstaid_amount 0
+						set invtemp 1
+					break
+				case ICON_STEROIDS
+					ifg player[].steroids_amount 0
+						set invtemp 1
+					break
+				case ICON_HOLODUKE
+					ifg player[].holoduke_amount 0
+						set invtemp 1
+					break
+				case ICON_JETPACK
+					ifg player[].jetpack_amount 0
+						set invtemp 1
+					break
+				case ICON_HEATS
+					ifg player[].heat_amount 0
+						set invtemp 1
+					break
+				case ICON_SCUBA
+					ifg player[].scuba_amount 0
+						set invtemp 1
+					break
+				case ICON_BOOTS
+					ifg player[].boot_amount 0
+						set invtemp 1
+					break
+				case ICON_SPACE
+					ifg space_amount 0
+						set invtemp 1
+					break
+			endswitch
+			
+			ife invtemp 2
+			{
+				set invtemp 1
+				set invtemp2 invtemp3
+			}
+			
+			ife invtemp 1
+				set selected_inv invtemp2
+		}
+	}
+	
+	set invdtime DEFAULT_INV_TIME
+
+endevent
+
+onevent EVENT_INVENTORYRIGHT
+
+	set RETURN -1
+	
+	ifl selected_inv 9
+	ifge selected_inv 0
+	{
+		set invtemp 0
+		
+		ife selected_inv 0
+			set selected_inv ICON_SPACE
+			
+		ife selected_inv 9
+			set selected_inv ICON_FIRSTAID
+		
+		set invtemp2 selected_inv
+		set invtemp3 selected_inv
+		
+		whilevarn invtemp 1
+		{
+			add invtemp2 1
+			
+			ifg invtemp2 ICON_SPACE
+			{
+				set invtemp2 ICON_FIRSTAID
+				set invtemp 2
+			}
+			
+			switch invtemp2
+				case ICON_FIRSTAID
+					ifg player[].firstaid_amount 0
+						set invtemp 1
+					break
+				case ICON_STEROIDS
+					ifg player[].steroids_amount 0
+						set invtemp 1
+					break
+				case ICON_HOLODUKE
+					ifg player[].holoduke_amount 0
+						set invtemp 1
+					break
+				case ICON_JETPACK
+					ifg player[].jetpack_amount 0
+						set invtemp 1
+					break
+				case ICON_HEATS
+					ifg player[].heat_amount 0
+						set invtemp 1
+					break
+				case ICON_SCUBA
+					ifg player[].scuba_amount 0
+						set invtemp 1
+					break
+				case ICON_BOOTS
+					ifg player[].boot_amount 0
+						set invtemp 1
+					break
+				case ICON_SPACE
+					ifg space_amount 0
+						set invtemp 1
+					break
+			endswitch
+			
+			ife invtemp 2
+			{
+				set invtemp 1
+				set invtemp2 invtemp3
+			}
+			
+			ife invtemp 1
+				set selected_inv invtemp2
+		}
+	}
+	
+	set invdtime DEFAULT_INV_TIME
+
+endevent
+
+onevent EVENT_INVENTORY
+
+	ife selected_inv ICON_SPACE
+		set RETURN -1
+	else
+		setp[].inven_icon selected_inv
+
+endevent
+
+appendevent EVENT_GAME
+
+	ife THISACTOR player[].i
+	{
+		ife usedmedkit 1
+			set usedmedkit 0
+			
+		setp[].invdisptime 0
+		
+		ifg invdtime 0
+			sub invdtime 1
+			
+		ife player[].scuba_on 1
+			ife using_scuba 0
+		{
+			set selected_inv ICON_SCUBA
+			set using_scuba 1
+		}
+		else ife player[].scuba_on 0
+			set using_scuba 0
+		
+		ife space_on 1
+			ife using_space 0
+		{
+			set selected_inv ICON_SPACE
+			set using_space 1
+		}
+		else ife space_on 0
+			set using_space 0
+			
+		ife in_space 1
+		ifg space_amount 0
+			set space_on 1
+		else
+			set space_on 0
+			
+		ife in_space 1
+		ifl space_amount 1
+		{
+			getp[].extra_extra8 atemp
+			add atemp 128
+			setp[].extra_extra8 atemp
+			soundonce DUKE_LONGTERM_PAIN
+			palfrom 32 32
+		}
+		
+		ife space_on 1
+		ifg space_amount 0
+			sub space_amount 1
+			
+		switch selected_inv
+			case ICON_FIRSTAID
+				ifl player[].firstaid_amount 1
+					set selected_inv 0
+				break
+			case ICON_STEROIDS
+				ifl player[].steroids_amount 1
+					set selected_inv 0
+				break
+			case ICON_HOLODUKE
+				ifl player[].holoduke_amount 1
+					set selected_inv 0
+				break
+			case ICON_JETPACK
+				ifl player[].jetpack_amount 1
+					set selected_inv 0
+				break
+			case ICON_HEATS
+				ifl player[].heat_amount 1
+					set selected_inv 0
+				break
+			case ICON_SCUBA
+				ifl player[].scuba_amount 1
+					set selected_inv 0
+				break
+			case ICON_BOOTS
+				ifl player[].boot_amount 1
+					set selected_inv 0
+				break
+			case ICON_SPACE
+				ifl space_amount 1
+					set selected_inv 0
+				break
+		endswitch
+	}
+
+endevent
+
+var fovinc 96
+var fovmax 131072
+var fovcur 0 1
+
+appendevent EVENT_DISPLAYROOMS
+
+	ifl player[].steroids_amount 400
+	ifg player[].steroids_amount 0
+	{
+		setaspect fovcur yxaspect
+		
+		ifl fovcur fovmax
+			add fovcur fovinc
+	}
+
+endevent
+
+onevent EVENT_USEMEDKIT
+
+	ifg player[].firstaid_amount 0
+	{
+		set selected_inv ICON_FIRSTAID
+		set usedmedkit 1
+	}
+
+endevent
+
+onevent EVENT_HOLODUKEON
+
+	ifg player[].holoduke_amount 0
+		set selected_inv ICON_HOLODUKE
+
+endevent
+
+onevent EVENT_USESTEROIDS
+
+	ife player[].steroids_amount 400
+	{
+		set selected_inv ICON_STEROIDS
+		
+		geta[].extra atemp4
+		add atemp4 35
+		seta[].extra atemp4
+		setp[].last_extra atemp4
+		
+		ifg sprite[].extra 200
+		{
+			seta[].extra 200
+			setp[].last_extra 200
+		}
+	
+		set fovcur viewingrange
+	}
+
+endevent
+
+onevent EVENT_USEJETPACK
+
+	ifg player[].jetpack_amount 0
+		set selected_inv ICON_JETPACK
+
+endevent
+
+onevent EVENT_USENIGHTVISION
+
+	ifg player[].heat_amount 0
+		set selected_inv ICON_HEATS
+
+endevent
+
+onevent EVENT_RESETINVENTORY
+
+	set space_amount 0
+	set selected_inv ICON_NONE
+	set using_boots 0
+	set using_scuba 0
+	set using_space 0
+
+endevent
+
+useractor notenemy SPACESUIT
+  ifspritepal 3 nullop
+  else
+  {
+	  sizeat 32 32
+	  fall
+	  ifmove RESPAWN_ACTOR_FLAG
+		state respawnit
+	  else
+		ifp pshrunk nullop
+		else
+		  ifp palive
+			ifcount 6
+			  ifpdistl RETRIEVEDISTANCE
+			   ifl space_amount SPACESUITAMOUNT
+				  ifcanseetarget
+		  {
+			set space_amount SPACESUITAMOUNT
+			set selected_inv ICON_SPACE
+			quote 42
+			ifspawnedby SPACESUIT
+			  state getcode
+			else
+			  state quikget
+		  }
+	}
+enda

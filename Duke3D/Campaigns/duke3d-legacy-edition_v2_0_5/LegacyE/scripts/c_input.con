@@ -1,0 +1,2634 @@
+/*
+--------------------------------------------------------------------------------
+Duke Nukem 3D - Blast Edition Version 2.0
+By Marcos
+2023 - Space In a Bottle
+*/
+
+//Input code
+
+//Temp vars
+var i_temp 0 1
+var i_temp2 0 1
+
+var altkey_counter 0 1 //counter for altfire key
+var altkey_lastval 0 1 //last value from counter for comparision
+
+defstate i_Mighty
+
+	set alt_enabled 0
+	
+	set WEAPON0_SHOOTS KNEE
+	set WEAPON0_TOTALTIME 14 //13
+	set WEAPON0_FIRESOUND -1
+	set WEAPON0_INITIALSOUND -1 //FLAMEFIRE_SOUND
+	set WEAPON0_SOUND2SOUND -1
+	set WEAPON0_SOUND2TIME -1
+	set WEAPON0_FIREDELAY 7
+	set WEAPON0_FLAGS 292 //65616
+	//sound SELECT_WEAPON
+	
+	//set i_CaterInit 0
+
+ends
+
+defstate i_Cater
+
+	set alt_enabled 0
+	
+	set WEAPON0_SHOOTS CATERKILAR
+	set WEAPON0_TOTALTIME 20 //13
+	//set WEAPON0_FIRESOUND EXPANDER_WAVE
+	set WEAPON0_INITIALSOUND CATERFIRE_SOUND
+	set WEAPON0_SOUND2SOUND CATERFIRE_SOUND
+	set WEAPON0_SOUND2TIME 10
+	set WEAPON0_FIREDELAY 7
+	set WEAPON0_FLAGS 12 //65616
+	//sound SELECT_WEAPON
+	
+	set horizfire 3
+	set horizcnt 1
+	
+	set angfire 3
+	set angcnt 3
+	
+	set i_CaterInit 0
+
+ends
+
+//Mighty Foot/Caterkilar select key
+onevent EVENT_WEAPKEY1
+
+	ife userdef.nuke_wpnsel 0
+	{
+		ife player[].curr_weapon KNEE_WEAPON
+		{
+			ife player[].weapon_pos 0
+					//ife 0 player[].bsubweapon KNEE_WEAPON
+					ife gotweapons[CATERKILAR_WEAPON] 1
+			{
+				setplayer[THISACTOR].weapon_pos -1
+				set change_weapon 1
+			}
+		}
+		else
+		{
+			ife 0 player[].bsubweapon KNEE_WEAPON
+				state i_Mighty
+			else
+			{
+				ife gotweapons[CATERKILAR_WEAPON] 1
+					state i_Cater
+				else
+					state i_Mighty
+			}
+		}
+	}
+	else
+	ife userdef.enable_nuke 1
+	ife userdef.nuke_active 1
+	{
+		setp[].bsubweapon KNEE_WEAPON 0
+		state i_Mighty
+	}
+
+endevent
+
+//Pistol select key
+
+defstate i_Pistol
+	
+	ife wpnrosterpwr[PISTOL_WEAPON] 0
+		set alt_enabled 1
+	else
+	ife userdef.enable_nuke 1
+	ife userdef.nuke_active 1
+	ife wpnrosterpwr[PISTOL_WEAPON] 2
+		set alt_enabled 1
+	else
+	ife userdef.enable_nuke 1
+	ife userdef.nuke_active 1
+		set alt_enabled 0
+	
+	ife wpnrosterpwr[PISTOL_WEAPON] 0
+	{
+		set alt_readytime 0
+		set alt_readydelay 15
+		set alt_numloops 5
+		set alt_animtime 4
+		sub alt_animtime 3
+		set alt_fireproj CHAINGUN
+		set WEAPON1_FIRESOUND PISTOL_FIRE
+	}
+	else ife wpnrosterpwr[PISTOL_WEAPON] 2
+	ife userdef.enable_nuke 1
+	ife userdef.nuke_active 1
+	{
+		set alt_readytime 0
+		set alt_readydelay 1
+		set alt_numloops 0
+		set alt_animtime 4
+		sub alt_animtime 3
+		set alt_fireproj EXPTRACER
+		
+		ifg userdef.nuke_wpnsel 2
+		ife userdef.enable_nuke 1
+		ife userdef.nuke_active 1
+			set WEAPON1_FIRESOUND PISTOLBURST_FIRE
+		else
+			set WEAPON1_FIRESOUND CHAINGUN_FIRE
+	}
+	else ife wpnrosterpwr[PISTOL_WEAPON] 1
+	ife userdef.enable_nuke 1
+	ife userdef.nuke_active 1
+	{
+		ife userdef.enable_nuke 1
+		ife userdef.nuke_active 1
+		ifg userdef.nuke_wpnsel 2
+			set WEAPON1_FIRESOUND PISTOLBURST_FIRE
+		else
+			set WEAPON1_FIRESOUND CHAINGUN_FIRE
+	}
+		
+	set WEAPON1_FLAGS 49152
+	set WEAPON1_SHOOTS CHAINGUN
+	
+	ife userdef.pistolauto 1
+		sub WEAPON1_FLAGS 16384
+	
+	set WEAPON1_TOTALTIME 4
+	
+	ife userdef.pistolauto 1
+		add WEAPON1_TOTALTIME 1
+		
+	set horizfire 4
+	set horizcnt 1
+	
+	set angfire 3
+	set angcnt 2
+
+ends
+
+onevent EVENT_WEAPKEY2
+
+	ife 1 player[].gotweapon PISTOL_WEAPON
+		state i_Pistol
+
+endevent
+
+defstate i_ShotgunDouble
+
+	set alt_readytime 0
+	set alt_readydelay 30
+	set alt_numloops 1
+	set alt_animtime 3//WEAPON1_TOTALTIME
+	set alt_burst 6
+	//set alt_firedelay 2
+	//sub alt_animtime 5
+	ife wpnrosterpwr[SHOTGUNDOUBLE_WEAPON] 0
+		set alt_enabled 1
+	else
+	ife userdef.enable_nuke 1
+	ife userdef.nuke_active 1
+		set alt_enabled 0
+	//set alt_fireproj CHAINGUN
+	set WEAPON2_FIRESOUND SHOTGUN_FIRE 
+	set WEAPON2_SHOTSPERBURST 8
+	set WEAPON2_SHOOTS SHOTGUN
+	set WEAPON2_TOTALTIME 36
+	set WEAPON2_SOUND2TIME 15
+	set WEAPON2_SPAWNTIME 26
+	
+	set horizfire 6
+	set horizcnt 10
+	
+	set angfire 6
+	set angcnt 8
+	
+	//sound SHOTGUN_COCK
+
+ends
+
+defstate i_Shotgun
+
+	set alt_enabled 0
+	set WEAPON2_FIRESOUND SHOTGUNBETA_FIRE 
+	set WEAPON2_SHOTSPERBURST 9
+	set WEAPON2_SHOOTS SHOTSPARK1
+	set WEAPON2_TOTALTIME 23
+	set WEAPON2_SOUND2TIME 9
+	set WEAPON2_SPAWNTIME 16
+	set horizfire 4
+	set horizcnt 5
+	
+	set angfire 4
+	set angcnt 6
+	//sound SHOTGUN_COCK
+
+ends
+
+//Shotgun select key
+onevent EVENT_WEAPKEY3
+
+	ife userdef.nuke_wpnsel 0
+	{
+		ife player[].curr_weapon SHOTGUN_WEAPON
+		{
+			ife player[].weapon_pos 0
+				ife player[].reloading 0
+					ife gotweapons[SHOTGUN_WEAPON] 1
+						ife gotweapons[SHOTGUNDOUBLE_WEAPON] 1
+			{
+				setplayer[THISACTOR].weapon_pos -1
+				set change_weapon 1
+			}
+		}
+		else
+		{
+			ife 0 player[].bsubweapon SHOTGUN_WEAPON
+			{
+				ife gotweapons[SHOTGUN_WEAPON] 0
+				ife gotweapons[SHOTGUNDOUBLE_WEAPON] 1
+				{
+					state i_ShotgunDouble
+					setplayer[THISACTOR].bsubweapon SHOTGUN_WEAPON 1
+				}
+				else ife gotweapons[SHOTGUN_WEAPON] 1
+					state i_Shotgun
+			}
+			else ife gotweapons[SHOTGUNDOUBLE_WEAPON] 1
+				state i_ShotgunDouble
+		}
+	}
+	else ife userdef.nuke_wpnsel 1
+	ife userdef.enable_nuke 1
+	ife userdef.nuke_active 1
+	{
+		ife gotweapons[SHOTGUN_WEAPON] 1
+		{
+			setplayer[THISACTOR].bsubweapon CHAINGUN_WEAPON 0
+			state i_Shotgun
+		}
+	}
+	else
+	ife userdef.enable_nuke 1
+	ife userdef.nuke_active 1
+		set RETURN -1
+
+endevent
+
+defstate i_Plasma
+
+	ife userdef.nuke_wpnsel 0
+	{
+		set alt_readytime 0
+		set alt_readydelay 15
+		set alt_numloops 0
+		set alt_animtime 12//WEAPON1_TOTALTIME
+		set alt_burst 0
+		//set alt_firedelay 2
+		//sub alt_animtime 5
+	}
+	else
+	ife userdef.enable_nuke 1
+	ife userdef.nuke_active 1
+	{
+		set alt_readytime 0
+		set alt_readydelay 1
+		set alt_numloops 0
+		set alt_animtime 8//WEAPON1_TOTALTIME
+		set alt_burst 0
+		//set alt_firedelay 2
+		//sub alt_animtime 5
+	}
+	
+	ife wpnrosterpwr[PLASMA_WEAPON] 0
+		set alt_enabled 1
+	else
+	ife userdef.enable_nuke 1
+	ife userdef.nuke_active 1
+		set alt_enabled 0
+	
+	set alt_fireproj PLASMAPROJ
+	
+	set WEAPON3_FIRESOUND PLASMAMICRO_FIRE
+	set WEAPON3_SHOOTS PLASMAMICROPROJ
+	set WEAPON3_TOTALTIME 8
+	set WEAPON3_FIREDELAY 3
+	set WEAPON3_FLAGS 4100
+	set WEAPON3_SPAWN SHOTGUNSHELL
+	set WEAPON3_SPAWNTIME 3
+	set WEAPON3_HOLDDELAY 3
+	set horizfire 6
+	set horizcnt 2
+	
+	set angfire 4
+	set angcnt 4
+	//sound SELECT_WEAPON
+
+ends
+
+defstate i_Chaingun
+
+	set alt_enabled 0
+	set WEAPON3_FIRESOUND CHAINGUN_FIRE 
+	set WEAPON3_SHOOTS RIPPERPROJ
+	set WEAPON3_TOTALTIME 10
+	set WEAPON3_FLAGS 73804
+	set WEAPON3_SHOTSPERBURST 0
+	set WEAPON3_FIREDELAY 2
+	set WEAPON3_HOLDDELAY 2
+	set WEAPON3_SPAWNTIME 1
+	set WEAPON3_SPAWN SHELL
+	set horizfire 3
+	set horizcnt -2
+	
+	set angfire 3
+	set angcnt 3
+	//sound SELECT_WEAPON
+
+ends
+
+//Chaingun select key
+onevent EVENT_WEAPKEY4
+
+	ife userdef.nuke_wpnsel 0
+	{
+		ife player[].curr_weapon CHAINGUN_WEAPON
+		{
+			ife player[].weapon_pos 0
+				ife player[].reloading 0
+					ife gotweapons[CHAINGUN_WEAPON] 1
+						ife gotweapons[PLASMA_WEAPON] 1
+			{
+				setplayer[THISACTOR].weapon_pos -1
+				set change_weapon 1
+			}
+		}
+		else
+		{
+			ife 0 player[].bsubweapon CHAINGUN_WEAPON
+			{
+				ife gotweapons[CHAINGUN_WEAPON] 0
+				ife gotweapons[PLASMA_WEAPON] 1
+				{
+					state i_Plasma
+					setplayer[THISACTOR].bsubweapon CHAINGUN_WEAPON 1
+				}
+				else ife gotweapons[CHAINGUN_WEAPON] 1 
+					state i_Chaingun
+			}
+			else ife gotweapons[PLASMA_WEAPON] 1
+				state i_Plasma
+		}
+	}
+	else ife userdef.nuke_wpnsel 1
+	ife userdef.enable_nuke 1
+	ife userdef.nuke_active 1
+	{
+		ife gotweapons[CHAINGUN_WEAPON] 1
+		{
+			setplayer[THISACTOR].bsubweapon CHAINGUN_WEAPON 0
+			state i_Chaingun
+		}
+	}
+	else ifge userdef.nuke_wpnsel 2
+	ife userdef.enable_nuke 1
+	ife userdef.nuke_active 1
+	{
+		ife gotweapons[PLASMA_WEAPON] 1
+		{
+			setplayer[THISACTOR].bsubweapon CHAINGUN_WEAPON 1
+			state i_Plasma
+		}
+	}
+
+endevent
+
+
+defstate i_URPG
+
+	set alt_enabled 0
+	
+	//set WEAPON4_FIRESOUND PLASMAMICRO_FIRE
+	set WEAPON4_SHOOTS RPG
+	set WEAPON4_TOTALTIME 5
+	set WEAPON4_FIREDELAY 6
+	set WEAPON4_FLAGS 16384
+	set WEAPON4_FIRESOUND ULTRARPG_FIRE
+	//sound SELECT_WEAPON
+	
+	set i_UltraRPG 0
+	
+	set horizfire 8
+	set horizcnt 10
+	
+	set angfire 6
+	set angcnt 4
+
+ends
+
+defstate i_RPG
+
+	ifge userdef.nuke_wpnsel 0
+	ifle userdef.nuke_wpnsel 1
+	{
+		set WEAPON4_FIRESOUND RPG_SHOOT
+		set WEAPON4_SHOOTS ROCKETPROJ
+		
+		set alt_readytime 0
+		set alt_readydelay 0
+		set alt_numloops 0
+		set alt_animtime 20//WEAPON1_TOTALTIME
+		set alt_burst 0
+		set alt_enabled 1
+		set alt_fireproj ROCKETPROJ
+	}
+	else ifge userdef.nuke_wpnsel 2
+	ife userdef.enable_nuke 1
+	ife userdef.nuke_active 1
+	{
+		set alt_enabled 0
+		set WEAPON4_FIRESOUND ULTRARPG_FIRE
+		set WEAPON4_SHOOTS RPG
+	}
+	
+	set WEAPON4_FIREDELAY 4
+	set WEAPON4_TOTALTIME 20
+	
+	set horizfire 4
+	set horizcnt 6
+	
+	set angfire 8
+	set angcnt 4
+
+ends
+
+//RPG select key
+onevent EVENT_WEAPKEY5
+
+	ife userdef.nuke_wpnsel 0
+	{
+		ife player[].curr_weapon RPG_WEAPON
+		{
+			ife player[].weapon_pos 0
+				ife player[].reloading 0
+					ife gotweapons[RPG_WEAPON] 1
+						ife gotweapons[RPGBLAST_WEAPON] 1
+			{
+				setplayer[THISACTOR].weapon_pos -1
+				set change_weapon 1
+			}
+		}
+		else
+		{
+			ife 0 player[].bsubweapon RPG_WEAPON
+			{
+				ife gotweapons[RPG_WEAPON] 0
+				ife gotweapons[RPGBLAST_WEAPON] 1
+				{
+					state i_URPG
+					setplayer[THISACTOR].bsubweapon RPG_WEAPON 1
+				}
+				else ife gotweapons[RPG_WEAPON] 1
+					state i_RPG
+			}
+			else ife gotweapons[RPGBLAST_WEAPON] 1
+				state i_URPG
+		}
+	}
+	else ifge userdef.nuke_wpnsel 1
+	ifle userdef.nuke_wpnsel 2
+	ife userdef.enable_nuke 1
+	ife userdef.nuke_active 1
+	{
+		ife gotweapons[RPG_WEAPON] 1
+		{
+			setplayer[THISACTOR].bsubweapon RPG_WEAPON 0
+			state i_RPG
+		}
+	}
+	else ifge userdef.nuke_wpnsel 3
+	ife userdef.enable_nuke 1
+	ife userdef.nuke_active 1
+	{
+		ife gotweapons[RPGBLAST_WEAPON] 1
+		{
+			setplayer[THISACTOR].bsubweapon RPG_WEAPON 1
+			state i_URPG
+		}
+	}
+
+endevent
+
+defstate i_Sonic
+
+	set alt_enabled 0
+	
+	set WEAPON7_SHOOTS SONICPROJ
+	set WEAPON7_TOTALTIME 30 //13
+	set WEAPON7_INITIALSOUND SONIC_FIRE
+	set WEAPON7_FIREDELAY 10
+	set WEAPON7_FLAGS 0
+	set WEAPON7_SHOTSPERBURST 0
+	
+	set horizfire 4
+	set horizcnt 7
+	
+	set angfire 10
+	set angcnt 5
+
+ends
+
+defstate i_Devistator
+
+	set alt_enabled 1
+	
+	set WEAPON7_SHOOTS ROCKETPROJ
+	set WEAPON7_TOTALTIME 6
+	set WEAPON7_INITIALSOUND CAT_FIRE
+	set WEAPON7_FIREDELAY 3
+	set WEAPON7_FLAGS 72
+	set WEAPON7_SHOTSPERBURST 2
+	
+	set horizfire 3
+	set horizcnt -3
+	
+	set angfire 3
+	set angcnt 2
+
+ends
+
+//Devistator/Sonic Resonator select key
+onevent EVENT_WEAPKEY8
+
+	ife userdef.nuke_wpnsel 0
+	{
+		ife player[].curr_weapon DEVISTATOR_WEAPON
+		{
+			ife player[].weapon_pos 0
+					ife gotweapons[DEVISTATOR_WEAPON] 1
+						ife gotweapons[SONICRESONATOR_WEAPON] 1
+			{
+				setplayer[THISACTOR].weapon_pos -1
+				set change_weapon 1
+			}
+		}
+		else
+		{
+			ife 0 player[].bsubweapon DEVISTATOR_WEAPON
+			{
+				ife gotweapons[DEVISTATOR_WEAPON] 0
+				ife gotweapons[SONICRESONATOR_WEAPON] 1
+				{
+					state i_Sonic
+					setplayer[THISACTOR].bsubweapon DEVISTATOR_WEAPON 1
+				}
+				else ife gotweapons[DEVISTATOR_WEAPON] 1
+					state i_Devistator
+			}
+			else ife gotweapons[SONICRESONATOR_WEAPON] 1
+				state i_Sonic
+		}
+	}
+	else ife userdef.nuke_wpnsel 4
+	ife userdef.enable_nuke 1
+	ife userdef.nuke_active 1
+	{
+		ife gotweapons[SONICRESONATOR_WEAPON] 1
+		{
+			setplayer[THISACTOR].bsubweapon DEVISTATOR_WEAPON 1
+			state i_Sonic
+		}
+	}
+	else
+	ife userdef.enable_nuke 1
+	ife userdef.nuke_active 1
+		set RETURN -1
+
+endevent
+
+defstate i_Flame
+
+	ife wpnrosterpwr[FLAME_WEAPON] 0
+		set alt_enabled 1
+	else
+		set alt_enabled 0
+	
+	set WEAPON9_SHOOTS FLAMEPROJ
+	set WEAPON9_TOTALTIME 12 //13
+	set WEAPON9_FIRESOUND FLAMEFIRE_SOUND
+	set WEAPON9_INITIALSOUND -1 //FLAMEFIRE_SOUND
+	set WEAPON9_FIREDELAY 2
+	set WEAPON9_FLAGS 84 //65616
+	//sound SELECT_WEAPON
+	
+	set i_FlameInit 0
+	
+	set horizfire 5
+	set horizcnt -2
+	
+	set angfire 5
+	set angcnt 2
+
+ends
+
+defstate i_Freeze
+
+/*
+	set alt_readytime 0
+	set alt_readydelay 0
+	set alt_numloops 0
+	set alt_animtime 20//WEAPON1_TOTALTIME
+	set alt_burst 0
+	//set alt_firedelay 2
+	//sub alt_animtime 5
+	*/
+	set alt_enabled 0
+	//set alt_fireproj ROCKETPROJ
+
+	set WEAPON9_SHOOTS FREEZEBLAST
+	set WEAPON9_FIREDELAY 3
+	set WEAPON9_TOTALTIME 5
+	set WEAPON9_FIRESOUND CAT_FIRE
+	set WEAPON9_INITIALSOUND CAT_FIRE
+	set WEAPON9_FLAGS 65536
+	
+	set i_FreezeInit 0
+	
+	set horizfire 3
+	set horizcnt -2
+	
+	set angfire 3
+	set angcnt 2
+	
+	//sound SELECT_WEAPON
+
+ends
+
+//Caterkilar select key
+onevent EVENT_WEAPKEY10
+
+	ife userdef.nuke_wpnsel 0
+	{
+		ife player[].curr_weapon FREEZE_WEAPON
+		{
+			ife player[].weapon_pos 0
+				ife player[].reloading 0
+					ife gotweapons[FREEZE_WEAPON] 1
+						ife gotweapons[FLAME_WEAPON] 1
+			{
+				setplayer[THISACTOR].weapon_pos -1
+				set change_weapon 1
+			}
+		}
+		else
+		{
+			ife 0 player[].bsubweapon FREEZE_WEAPON
+			{
+				ife gotweapons[FREEZE_WEAPON] 0
+				ife gotweapons[FLAME_WEAPON] 1
+				{
+					state i_Flame
+					setplayer[THISACTOR].bsubweapon FREEZE_WEAPON 1
+				}
+				else ife gotweapons[FREEZE_WEAPON] 1
+					state i_Freeze
+			}
+			else ife gotweapons[FLAME_WEAPON] 1
+				state i_Flame
+		}
+	}
+	else ifge userdef.nuke_wpnsel 1
+	ifle userdef.nuke_wpnsel 3
+	ife userdef.enable_nuke 1
+	ife userdef.nuke_active 1
+	{
+		ife gotweapons[FLAME_WEAPON] 1
+		{
+			setplayer[THISACTOR].bsubweapon FREEZE_WEAPON 1
+			state i_Flame
+		}
+	}
+	else ife userdef.nuke_wpnsel 4
+	ife userdef.enable_nuke 1
+	ife userdef.nuke_active 1
+	{
+		ife gotweapons[CATERKILAR_WEAPON] 1
+		{
+			ife gotweapons[CATERKILAR_WEAPON] 1
+			{
+				set weapon_to_switch 0
+				setp[].weapon_pos -1
+				setp[].bsubweapon KNEE_WEAPON 1
+				setp[].last_used_weapon player[].curr_weapon
+				set RETURN -1
+			}
+		}
+	}
+
+endevent
+
+defstate CheckAltWeaponAvail
+
+	switch player[].curr_weapon
+		case 0
+			ife gotweapons[CATERKILAR_WEAPON] 0
+				return
+			
+			break
+
+		case 2
+			ife gotweapons[SHOTGUN_WEAPON] 0
+				return
+			
+			ife gotweapons[SHOTGUNDOUBLE_WEAPON] 0
+				return
+				
+			break
+			
+		case 3
+			ife gotweapons[CHAINGUN_WEAPON] 0
+				return
+			
+			ife gotweapons[PLASMA_WEAPON] 0
+				return
+				
+			break
+			
+		case 4
+			ife gotweapons[RPG_WEAPON] 0
+				return
+			
+			ife gotweapons[RPGBLAST_WEAPON] 0
+				return
+				
+			break
+			
+		case 7
+			ife gotweapons[DEVISTATOR_WEAPON] 0
+				return
+			
+			ife gotweapons[SONICRESONATOR_WEAPON] 0
+				return
+				
+			break
+		
+		case 9
+			ife gotweapons[FREEZE_WEAPON] 0
+				return
+			
+			ife gotweapons[FLAME_WEAPON] 0
+				return
+				
+			break
+	
+	endswitch
+
+ends
+
+defstate CheckWeaponAvailable
+
+	set weapon_to_switch -1
+	
+	ifn player[].last_used_weapon player[].curr_weapon
+	ife player[].kickback_pic 0
+	{
+		set weapon_to_switch player[].last_used_weapon
+		
+		switch player[].last_used_weapon
+			case 0
+				ife gotweapons[CATERKILAR_WEAPON] 1
+				ifg plasmaammo 1
+					setp[].bsubweapon KNEE_WEAPON 1
+				else
+					setp[].bsubweapon KNEE_WEAPON 0
+					
+				break	
+			
+			case 3
+				ife 1 player[].bsubweapon CHAINGUN_WEAPON
+				{
+					ife gotweapons[PLASMA_WEAPON] 0
+					{
+						ife gotweapons[CHAINGUN_WEAPON] 1
+						ifg ripperammo 0
+							setp[].bsubweapon CHAINGUN_WEAPON 0
+						else
+							set weapon_to_switch -1
+					}
+					else ifl plasmaammo 1
+					{
+						ife gotweapons[CHAINGUN_WEAPON] 1
+						ifg ripperammo 0
+							setp[].bsubweapon CHAINGUN_WEAPON 0
+						else
+							set weapon_to_switch -1
+					}
+				}
+				else ife 0 player[].bsubweapon CHAINGUN_WEAPON
+				{
+					ife gotweapons[CHAINGUN_WEAPON] 0
+					{
+						ife gotweapons[PLASMA_WEAPON] 1
+						ifg plasmaammo 0
+							setp[].bsubweapon CHAINGUN_WEAPON 1
+						else
+							set weapon_to_switch -1
+					}
+					else ifl ripperammo 1
+					{
+						ife gotweapons[PLASMA_WEAPON] 1
+						ifg plasmaammo 0
+							setp[].bsubweapon CHAINGUN_WEAPON 1
+						else
+							set weapon_to_switch -1
+					}
+				}
+				break
+				
+			case 4
+				ife 1 player[].bsubweapon RPG_WEAPON
+				{
+					ife gotweapons[RPGBLAST_WEAPON] 0
+					{
+						ife gotweapons[RPG_WEAPON] 1
+						ifg rpgammo 0
+							setp[].bsubweapon RPG_WEAPON 0
+						else
+							set weapon_to_switch -1
+					}
+					else ifl urpgammo 1
+					{
+						ife gotweapons[RPG_WEAPON] 1
+						ifg rpgammo 0
+							setp[].bsubweapon RPG_WEAPON 0
+						else
+							set weapon_to_switch -1
+					}
+				}
+				else ife 0 player[].bsubweapon RPG_WEAPON
+				{
+					ife gotweapons[RPG_WEAPON] 0
+					{
+						ife gotweapons[RPGBLAST_WEAPON] 1
+						ifg urpgammo 0
+							setp[].bsubweapon RPG_WEAPON 1
+						else
+							set weapon_to_switch -1
+					}
+					else ifl rpgammo 1
+					{
+						ife gotweapons[RPGBLAST_WEAPON] 1
+						ifg urpgammo 0
+							setp[].bsubweapon RPG_WEAPON 1
+						else
+							set weapon_to_switch -1
+					}
+				}
+				
+				break
+				
+			case 7
+				ife 1 player[].bsubweapon DEVISTATOR_WEAPON
+				{
+					ife gotweapons[SONICRESONATOR_WEAPON] 0
+					{
+						ife gotweapons[DEVISTATOR_WEAPON] 1
+						ifg devistatorammo 0
+							setp[].bsubweapon DEVISTATOR_WEAPON 0
+						else
+							set weapon_to_switch -1
+					}
+					else ifl sonicammo 1
+					{
+						ife gotweapons[DEVISTATOR_WEAPON] 1
+						ifg devistatorammo 0
+							setp[].bsubweapon DEVISTATOR_WEAPON 0
+						else
+							set weapon_to_switch -1
+					}
+				}
+				else ife 0 player[].bsubweapon DEVISTATOR_WEAPON
+				{
+					ife gotweapons[DEVISTATOR_WEAPON] 0
+					{
+						ife gotweapons[SONICRESONATOR_WEAPON] 1
+						ifg sonicammo 0
+							setp[].bsubweapon DEVISTATOR_WEAPON 1
+						else
+							set weapon_to_switch -1
+					}
+					else ifl devistatorammo 1
+					{
+						ife gotweapons[SONICRESONATOR_WEAPON] 1
+						ifg sonicammo 0
+							setp[].bsubweapon DEVISTATOR_WEAPON 1
+						else
+							set weapon_to_switch -1
+					}
+				}
+				
+				break
+				
+			case 9
+				ife 1 player[].bsubweapon FREEZE_WEAPON
+				{
+					ife gotweapons[FLAME_WEAPON] 0
+					{
+						ife gotweapons[FREEZE_WEAPON] 1
+						ifg freezeammo 0
+							setp[].bsubweapon FREEZE_WEAPON 0
+						else
+							set weapon_to_switch -1
+					}
+					else ifl flameammo 1
+					{
+						ife gotweapons[FREEZE_WEAPON] 1
+						ifg freezeammo 0
+							setp[].bsubweapon FREEZE_WEAPON 0
+						else
+							set weapon_to_switch -1
+					}
+				}
+				else ife 0 player[].bsubweapon FREEZE_WEAPON
+				{
+					ife gotweapons[FREEZE_WEAPON] 0
+					{
+						ife gotweapons[FLAME_WEAPON] 1
+						ifg flameammo 0
+							setp[].bsubweapon FREEZE_WEAPON 1
+						else
+							set weapon_to_switch -1
+					}
+					else ifl freezeammo 1
+					{
+						ife gotweapons[FLAME_WEAPON] 1
+						ifg flameammo 0
+							setp[].bsubweapon FREEZE_WEAPON 1
+						else
+							set weapon_to_switch -1
+					}
+				}
+				
+				break
+			
+		endswitch
+	}
+	
+	ife weapon_to_switch -1
+	ife player[].kickback_pic 0
+	{
+		//Check available weapons to switch
+		//Start from the strongest to the weakest
+		
+		ife gotweapons[RPGBLAST_WEAPON] 1
+		ifg urpgammo 0
+		{
+			set weapon_to_switch 4
+			setp[].bsubweapon RPG_WEAPON 1
+		}
+		else ife gotweapons[DEVISTATOR_WEAPON] 1
+		ifg devistatorammo 0
+		{
+			set weapon_to_switch 7
+			setp[].bsubweapon DEVISTATOR_WEAPON 0
+		}
+		else ife gotweapons[FLAME_WEAPON] 1
+		ifg flameammo 0
+		{
+			set weapon_to_switch 9
+			setp[].bsubweapon FREEZE_WEAPON 1
+		}
+		else ife gotweapons[SONICRESONATOR_WEAPON] 1
+		ifg sonicammo 0
+		{
+			set weapon_to_switch 7
+			setp[].bsubweapon DEVISTATOR_WEAPON 1
+		}
+		else ife 1 player[].gotweapon GROW_WEAPON
+		ifl 0 player[].ammo_amount GROW_WEAPON
+			set weapon_to_switch GROW_WEAPON
+		else ife gotweapons[RPG_WEAPON] 1
+		ifg rpgammo 0
+		{
+			set weapon_to_switch 4
+			setp[].bsubweapon RPG_WEAPON 0
+		}
+		else ife 1 player[].gotweapon SHRINKER_WEAPON
+		ifl 0 player[].ammo_amount SHRINKER_WEAPON
+			set weapon_to_switch SHRINKER_WEAPON
+		else ife gotweapons[FREEZE_WEAPON] 1
+		ifg freezeammo 0
+		{
+			set weapon_to_switch 9
+			setp[].bsubweapon FREEZE_WEAPON 0
+		}
+		else ife gotweapons[PLASMA_WEAPON] 1
+		ifg plasmaammo 0
+		{
+			set weapon_to_switch 3
+			setp[].bsubweapon CHAINGUN_WEAPON 1
+		}
+		else ife gotweapons[SHOTGUNDOUBLE_WEAPON] 1
+		ifl 0 player[].ammo_amount SHOTGUN_WEAPON
+		{
+			set weapon_to_switch 2
+			setp[].bsubweapon SHOTGUN_WEAPON 1
+		}
+		else ife gotweapons[SHOTGUN_WEAPON] 1
+		ifl 0 player[].ammo_amount SHOTGUN_WEAPON
+		{
+			set weapon_to_switch 2
+			setp[].bsubweapon SHOTGUN_WEAPON 0
+		}
+		else ife gotweapons[CHAINGUN_WEAPON] 1
+		ifg ripperammo 0
+		{
+			set weapon_to_switch 3
+			setp[].bsubweapon CHAINGUN_WEAPON 0
+		}
+		else ife 1 player[].gotweapon PISTOL_WEAPON
+		ifl 0 player[].ammo_amount PISTOL_WEAPON
+			set weapon_to_switch PISTOL_WEAPON
+		else
+			set weapon_to_switch 0
+	}
+	
+	ife player[].kickback_pic 0
+	{
+		setp[].weapon_pos -1
+		setp[].last_used_weapon -1
+	}
+
+ends
+
+appendevent EVENT_ENTERLEVEL
+
+	//Startup weapon config
+	
+	switch userdef.nuke_wpnsel
+				case 0
+					setarray wpnroster[SHOTGUN_WEAPON] 0
+					setarray wpnroster[SHOTGUNDOUBLE_WEAPON] 0
+					setarray wpnroster[CHAINGUN_WEAPON] 0
+					setarray wpnroster[PLASMA_WEAPON] 0
+					setarray wpnroster[RPG_WEAPON] 0
+					setarray wpnroster[RPGBLAST_WEAPON] 0
+					setarray wpnroster[SHRINKER_WEAPON] 0
+					setarray wpnroster[GROW_WEAPON] 0
+					setarray wpnroster[DEVISTATOR_WEAPON] 0
+					setarray wpnroster[SONICRESONATOR_WEAPON] 0
+					setarray wpnroster[FREEZE_WEAPON] 0
+					setarray wpnroster[FLAME_WEAPON] 0
+					setarray wpnroster[CATERKILAR_WEAPON] 0
+					
+					setarray wpnrosterpwr[PISTOL_WEAPON] 0
+					setarray wpnrosterpwr[SHOTGUNDOUBLE_WEAPON] 0
+					setarray wpnrosterpwr[PLASMA_WEAPON] 0
+					setarray wpnrosterpwr[RPG_WEAPON] 0
+					setarray wpnrosterpwr[DEVISTATOR_WEAPON] 0
+					setarray wpnrosterpwr[FLAME_WEAPON] 0
+					break
+			
+				case 1
+					setarray wpnroster[SHOTGUN_WEAPON] 0
+					setarray wpnroster[SHOTGUNDOUBLE_WEAPON] 1
+					setarray wpnroster[CHAINGUN_WEAPON] 0
+					setarray wpnroster[PLASMA_WEAPON] 1
+					setarray wpnroster[RPG_WEAPON] 0
+					setarray wpnroster[RPGBLAST_WEAPON] 1
+					setarray wpnroster[SHRINKER_WEAPON] 0
+					setarray wpnroster[GROW_WEAPON] 1
+					setarray wpnroster[DEVISTATOR_WEAPON] 1
+					setarray wpnroster[SONICRESONATOR_WEAPON] 1
+					setarray wpnroster[FREEZE_WEAPON] 1
+					setarray wpnroster[FLAME_WEAPON] 0
+					setarray wpnroster[CATERKILAR_WEAPON] 1
+					
+					setarray wpnrosterpwr[PISTOL_WEAPON] 2
+					setarray wpnrosterpwr[SHOTGUNDOUBLE_WEAPON] 1
+					setarray wpnrosterpwr[PLASMA_WEAPON] 0
+					setarray wpnrosterpwr[RPG_WEAPON] 2
+					setarray wpnrosterpwr[FLAME_WEAPON] 0
+					break
+					
+				case 2
+					setarray wpnroster[SHOTGUN_WEAPON] 1
+					setarray wpnroster[SHOTGUNDOUBLE_WEAPON] 1
+					setarray wpnroster[CHAINGUN_WEAPON] 1
+					setarray wpnroster[PLASMA_WEAPON] 0
+					setarray wpnroster[RPG_WEAPON] 0
+					setarray wpnroster[RPGBLAST_WEAPON] 1
+					setarray wpnroster[SHRINKER_WEAPON] 0
+					setarray wpnroster[GROW_WEAPON] 0
+					setarray wpnroster[DEVISTATOR_WEAPON] 1
+					setarray wpnroster[SONICRESONATOR_WEAPON] 1
+					setarray wpnroster[FREEZE_WEAPON] 1
+					setarray wpnroster[FLAME_WEAPON] 0
+					setarray wpnroster[CATERKILAR_WEAPON] 1
+					
+					setarray wpnrosterpwr[PISTOL_WEAPON] 1
+					setarray wpnrosterpwr[SHOTGUNDOUBLE_WEAPON] 1
+					setarray wpnrosterpwr[PLASMA_WEAPON] 0
+					setarray wpnrosterpwr[RPG_WEAPON] 2
+					setarray wpnrosterpwr[FLAME_WEAPON] 0
+					break
+					
+				case 3
+					setarray wpnroster[SHOTGUN_WEAPON] 1
+					setarray wpnroster[SHOTGUNDOUBLE_WEAPON] 1
+					setarray wpnroster[CHAINGUN_WEAPON] 1
+					setarray wpnroster[PLASMA_WEAPON] 0
+					setarray wpnroster[RPG_WEAPON] 1
+					setarray wpnroster[RPGBLAST_WEAPON] 0
+					setarray wpnroster[SHRINKER_WEAPON] 0
+					setarray wpnroster[GROW_WEAPON] 0
+					setarray wpnroster[DEVISTATOR_WEAPON] 1
+					setarray wpnroster[SONICRESONATOR_WEAPON] 1
+					setarray wpnroster[FREEZE_WEAPON] 1
+					setarray wpnroster[FLAME_WEAPON] 0
+					setarray wpnroster[CATERKILAR_WEAPON] 1
+					
+					setarray wpnrosterpwr[PISTOL_WEAPON] 1
+					setarray wpnrosterpwr[SHOTGUNDOUBLE_WEAPON] 1
+					setarray wpnrosterpwr[PLASMA_WEAPON] 0
+					setarray wpnrosterpwr[RPG_WEAPON] 0
+					setarray wpnrosterpwr[FLAME_WEAPON] 0
+					break
+					
+				case 4
+					setarray wpnroster[SHOTGUN_WEAPON] 1
+					setarray wpnroster[SHOTGUNDOUBLE_WEAPON] 1
+					setarray wpnroster[CHAINGUN_WEAPON] 1
+					setarray wpnroster[PLASMA_WEAPON] 0
+					setarray wpnroster[RPG_WEAPON] 1
+					setarray wpnroster[RPGBLAST_WEAPON] 0
+					setarray wpnroster[SHRINKER_WEAPON] 0
+					setarray wpnroster[GROW_WEAPON] 0
+					setarray wpnroster[DEVISTATOR_WEAPON] 1
+					setarray wpnroster[SONICRESONATOR_WEAPON] 0
+					setarray wpnroster[FREEZE_WEAPON] 1
+					setarray wpnroster[FLAME_WEAPON] 1
+					setarray wpnroster[CATERKILAR_WEAPON] 0
+					
+					setarray wpnrosterpwr[PISTOL_WEAPON] 1
+					setarray wpnrosterpwr[SHOTGUNDOUBLE_WEAPON] 1
+					setarray wpnrosterpwr[PLASMA_WEAPON] 1
+					setarray wpnrosterpwr[RPG_WEAPON] 0
+					setarray wpnrosterpwr[FLAME_WEAPON] 1
+					break
+			endswitch
+	
+	switch player[].curr_weapon
+		case KNEE_WEAPON
+			ife 0 player[].bsubweapon KNEE_WEAPON
+				state i_Mighty
+			else
+				state i_Cater
+			break
+	
+		case PISTOL_WEAPON
+			state i_Pistol
+			break
+			
+		case SHOTGUN_WEAPON
+			ife 0 player[].bsubweapon SHOTGUN_WEAPON
+				state i_Shotgun
+			else
+				state i_ShotgunDouble
+			break
+			
+		case CHAINGUN_WEAPON
+			ife 0 player[].bsubweapon CHAINGUN_WEAPON
+				state i_Chaingun
+			else
+				state i_Plasma
+			break
+			
+		case RPG_WEAPON
+			ife 0 player[].bsubweapon RPG_WEAPON
+				state i_RPG
+			else
+				state i_URPG
+			break
+			
+		case DEVISTATOR_WEAPON
+			ife 0 player[].bsubweapon DEVISTATOR_WEAPON
+				state i_Devistator
+			else
+				state i_Sonic
+			break
+			
+		case FREEZE_WEAPON
+			ife 0 player[].bsubweapon FREEZE_WEAPON
+				state i_Freeze
+			else
+				state i_Flame
+			break
+	
+	endswitch
+
+endevent
+
+//Alternate fire system
+
+//Alt-fire key
+onevent EVENT_ALTFIRE
+
+	ife alt_enabled 1
+	ife player[].reloading 0
+	ife player[].kickback_pic 0
+	{
+		switch player[].curr_weapon 
+			/*
+			case KNEE_WEAPON
+				ife alt_ready 0
+					//ifge rpgammo 2
+				{
+					set alt_start 2
+					set alt_ready 1
+					set WEAPON0_TOTALTIME 40
+					set WEAPON0_FIREDELAY 30
+					sound CATERALT_SOUND
+					//mul WEAPON2_TOTALTIME alt_numloops //Pistol totaltime * alt_numloops
+					//set i_temp2 WEAPON1_SHOOTS
+					//set i_temp WEAPON3_TOTALTIME
+					//set WEAPON3_TOTALTIME alt_animtime
+					//set WEAPON3_SHOOTS alt_fireproj
+					//set WEAPON3_FIRESOUND PLASMARIFLE_FIRE
+						
+					setp[].kickback_pic 1
+				}
+				break
+				*/
+			case PISTOL_WEAPON //Pistol alt-fire
+				ife alt_ready 0
+				{
+					ife wpnrosterpwr[PISTOL_WEAPON]   0
+					{
+						set i_temp player[].ammo_amount PISTOL_WEAPON
+						
+						modvar i_temp 12
+						
+						ife i_temp 1
+						{
+							set WEAPON1_FIRESOUND PISTOL_FIRE
+							set WEAPON1_FLAGS 49152
+							ife userdef.pistolauto 1
+								sub WEAPON1_FLAGS 16384
+							set WEAPON1_TOTALTIME 4
+							ife userdef.pistolauto 1
+								add WEAPON1_TOTALTIME 1
+							setp[].kickback_pic 1
+							//set alt_start 2
+							set alt_ready 2
+							
+						}
+						else
+						{
+							set alt_start 1
+						
+							ifl i_temp alt_numloops
+							ifg i_temp 1
+							{
+								set alt_numloops i_temp
+								sub alt_numloops 1
+							}
+							
+							ife alt_start 1
+							{
+								set alt_ready 1
+								set WEAPON1_FLAGS 32772
+								set WEAPON1_TOTALTIME alt_animtime
+								mul WEAPON1_TOTALTIME alt_numloops //Pistol totaltime * alt_numloops
+								add WEAPON1_TOTALTIME 2
+								set i_temp2 WEAPON1_SHOOTS
+								set WEAPON1_SHOOTS alt_fireproj
+								//set WEAPON1_FIREDELAY 1
+								set WEAPON1_FIRESOUND PISTOLBURST_FIRE
+								
+								setp[].kickback_pic 1
+								set alt_start 2
+								set alt_time 0
+							}
+						}
+					}
+					else ife wpnrosterpwr[PISTOL_WEAPON] 2
+					ife player[]~.kickback_pic 0
+					{
+						set alt_start 2
+						set alt_ready 1
+						set WEAPON1_FIRESOUND PISTOL_FIRE
+						setp[].kickback_pic 1
+						set i_temp2 WEAPON1_SHOOTS
+						set WEAPON1_SHOOTS alt_fireproj
+					}
+				}
+				break
+				
+			case SHOTGUN_WEAPON
+				set i_temp player[].ammo_amount SHOTGUN_WEAPON
+				ife alt_ready 0
+					ifge i_temp 2
+				{
+					set alt_ready 1
+					//mul WEAPON2_TOTALTIME alt_numloops //Pistol totaltime * alt_numloops
+					//set i_temp2 WEAPON1_SHOOTS
+					//set WEAPON1_SHOOTS alt_fireproj
+					set i_temp2 WEAPON2_SHOTSPERBURST
+					set WEAPON2_SHOTSPERBURST alt_burst
+						
+					setp[].kickback_pic 1
+					set alt_start 2
+					set alt_time 0
+				}
+				break
+				
+			case CHAINGUN_WEAPON
+				
+				ife alt_ready 0
+					ifge plasmaammo 5
+				{
+					set alt_start 2
+					set alt_ready 1
+					//mul WEAPON2_TOTALTIME alt_numloops //Pistol totaltime * alt_numloops
+					//set i_temp2 WEAPON1_SHOOTS
+					set WEAPON3_FLAGS 16384
+					set i_temp WEAPON3_TOTALTIME
+					set WEAPON3_TOTALTIME alt_animtime
+					set WEAPON3_SHOOTS alt_fireproj
+					set WEAPON3_FIRESOUND PLASMARIFLE_FIRE
+						
+					setp[].kickback_pic 1
+				}
+				break
+				
+			case RPG_WEAPON
+				
+				ife alt_ready 0
+					ifge rpgammo 2
+				{
+					set alt_start 2
+					set alt_ready 1
+					//mul WEAPON2_TOTALTIME alt_numloops //Pistol totaltime * alt_numloops
+					//set i_temp2 WEAPON1_SHOOTS
+					//set i_temp WEAPON3_TOTALTIME
+					//set WEAPON3_TOTALTIME alt_animtime
+					//set WEAPON3_SHOOTS alt_fireproj
+					//set WEAPON3_FIRESOUND PLASMARIFLE_FIRE
+						
+					setp[].kickback_pic 1
+				}
+				break
+				
+			case DEVISTATOR_WEAPON
+				
+				ife alt_ready 0
+					ifge devistatorammo 2
+				{
+					set alt_start 2
+					set alt_ready 1
+						
+					setp[].kickback_pic 1
+				}
+				break
+				
+			case FREEZE_WEAPON
+				
+				ife alt_ready 0
+					ifge flameammo 3
+				{
+					set alt_start 2
+					set alt_ready 1
+					set WEAPON9_FLAGS 16384 //81920
+					//mul WEAPON2_TOTALTIME alt_numloops //Pistol totaltime * alt_numloops
+					//set i_temp2 WEAPON1_SHOOTS
+					//set i_temp WEAPON3_TOTALTIME
+					//set WEAPON3_TOTALTIME alt_animtime
+					//set WEAPON3_SHOOTS alt_fireproj
+					//set WEAPON3_FIRESOUND PLASMARIFLE_FIRE
+						
+					setp[].kickback_pic 1
+				}
+				break
+		endswitch
+	}
+	
+		
+endevent
+
+
+appendevent EVENT_GAME
+
+	ife THISACTOR player[].i
+	{
+		ife userdef.god 1
+			setp[].jetpack_amount JETPACK_AMOUNT
+			
+		ifg ripperammo MAXCHAINGUNAMMO
+			set ripperammo MAXCHAINGUNAMMO
+			
+		ifg plasmaammo MAXPLASMAAMMO
+			set plasmaammo MAXPLASMAAMMO
+			
+		ifg rpgammo MAXRPGAMMO
+			set rpgammo MAXRPGAMMO
+			
+		ifg urpgammo MAXURPGAMMO
+			set urpgammo MAXURPGAMMO
+			
+		ifg freezeammo MAXFREEZEAMMO
+			set freezeammo MAXFREEZEAMMO
+			
+		ifg flameammo MAXFLAMEAMMO
+			set flameammo MAXFLAMEAMMO
+			
+		ifg devistatorammo MAXDEVISTATORAMMO
+			set devistatorammo MAXDEVISTATORAMMO
+			
+		ifg sonicammo MAXSONICAMMO
+			set sonicammo MAXSONICAMMO
+			
+		ife userdef.enable_nuke 1
+		ife userdef.nuke_active 1
+		ife nuke_n5 1
+		{
+			ifg player[].ammo_amount PISTOL_WEAPON 24
+				setp[].ammo_amount PISTOL_WEAPON 24
+				
+			ifg player[].ammo_amount SHOTGUN_WEAPON 8
+				setp[].ammo_amount SHOTGUN_WEAPON 8
+			
+			ifg ripperammo 50
+				set ripperammo 50
+				
+			ifg plasmaammo 25
+				set plasmaammo 25
+			
+			ifg rpgammo 4
+				set rpgammo 4
+				
+			ifg urpgammo 2
+				set urpgammo 2
+				
+			ifg player[].ammo_amount HANDBOMB_WEAPON 4
+				setp[].ammo_amount HANDBOMB_WEAPON 4
+				
+			ifg player[].ammo_amount SHRINKER_WEAPON 3
+				setp[].ammo_amount SHRINKER_WEAPON 3
+				
+			ifg player[].ammo_amount GROW_WEAPON 10
+				setp[].ammo_amount GROW_WEAPON 10
+				
+			ifg freezeammo 30
+				set freezeammo 30
+				
+			ifg flameammo 30
+				set flameammo 30
+				
+			ifg devistatorammo 15
+				set devistatorammo 15
+				
+			ifg sonicammo 6
+				set sonicammo 6
+		}
+			
+		ifl ripperammo 0
+			set ripperammo 0
+			
+		ifl plasmaammo 0
+			set plasmaammo 0
+			
+		ifl rpgammo 0
+			set rpgammo 0
+			
+		ifl urpgammo 0
+			set urpgammo 0
+			
+		ifl devistatorammo 0
+			set devistatorammo 0
+			
+		ifl sonicammo 0
+			set sonicammo 0
+			
+		ifl flameammo 0
+			set flameammo 0
+			
+		ifl freezeammo 0
+			set freezeammo 0
+	
+		ife alt_ready 0
+		ife player[].curr_weapon PISTOL_WEAPON
+		{
+			ife userdef.pistolauto 1
+			{
+				ife WEAPON1_FLAGS 49152
+					sub WEAPON1_FLAGS 16384
+					
+				ife WEAPON1_TOTALTIME 4
+					add WEAPON1_TOTALTIME 1
+			
+			}
+			else
+			{
+				ife WEAPON1_FLAGS 32768
+					add WEAPON1_FLAGS 16384
+					
+				ife WEAPON1_TOTALTIME 5
+					sub WEAPON1_TOTALTIME 1
+			}
+		}
+	
+		ife alt_ready 1
+		ife alt_enabled 1
+		{
+			ife alt_start 2
+			{	
+				switch player[].curr_weapon 
+				/*
+					case KNEE_WEAPON //Pistol alt-fire
+						ife player[].kickback_pic 0
+						ife alt_ready 1
+						{
+							set alt_ready 0
+							set alt_start 0
+							set WEAPON0_TOTALTIME 20
+							set WEAPON0_FIREDELAY 7
+						}
+						else ifn player[].kickback_pic 0
+						{
+							ife i_CaterInit 1
+							ifl weaponcount 20
+								setp[].kickback_pic 21
+								
+							ife weaponcount 39
+								setp[].kickback_pic 0
+						}
+						break
+						*/
+					case PISTOL_WEAPON //Pistol alt-fire
+					//ife player.kickback_pic 0
+						ife wpnrosterpwr[PISTOL_WEAPON] 0
+						{
+							ife alt_start 2
+							ife alt_ready 1
+							{
+								//set WEAPON1_FLAGS 49152
+								//set WEAPON1_TOTALTIME 4
+								//set WEAPON1_FIRESOUND PISTOL_FIRE
+								///set alt_start 0
+								//set alt_ready 2
+							//}
+								ife alt_time alt_animtime
+								{
+									ifl alt_loop alt_numloops
+									{
+										setp[].kickback_pic 1
+										add alt_loop 1
+										set alt_time 0
+									}
+									else
+									{
+										set alt_ready 2
+										set alt_start 0
+										set alt_time 0
+										set alt_loop 0
+										set WEAPON1_FLAGS 49152
+										ife userdef.pistolauto 1
+											sub WEAPON1_FLAGS 16384
+										set WEAPON1_SHOOTS CHAINGUN
+										set WEAPON1_TOTALTIME 4
+										ife userdef.pistolauto 1
+											add WEAPON1_TOTALTIME 1
+										//add WEAPON1_TOTALTIME 4
+										set WEAPON1_FIRESOUND PISTOL_FIRE
+										//set WEAPON1_FIREDELAY 2
+										set alt_numloops 5
+									}
+								}
+								else
+									add alt_time 1
+									
+							}
+						}
+						else ife wpnrosterpwr[PISTOL_WEAPON] 2
+						{
+							ife player[].kickback_pic 0
+							ife alt_ready 1
+							{
+								set alt_ready 2
+								set alt_start 0
+								set WEAPON1_FIRESOUND CHAINGUN_FIRE
+								set WEAPON1_SHOOTS CHAINGUN
+							}
+						}
+							
+						break
+						
+					case SHOTGUN_WEAPON
+						ife alt_time alt_animtime
+						{
+							ifl alt_loop alt_numloops
+							{
+								setp[].kickback_pic 1
+								add alt_loop 1
+								set alt_time 0
+							}
+							else
+							{
+								set alt_ready 2
+								set alt_start 0
+								set alt_time 0
+								set alt_loop 0
+								set WEAPON2_SHOTSPERBURST i_temp2
+							}
+						}
+						else
+							add alt_time 1
+						break
+						
+					case CHAINGUN_WEAPON
+						ife player[].kickback_pic 0
+							ife alt_ready 1
+							{
+								set alt_ready 2
+								set alt_start 0
+								set WEAPON3_FIRESOUND PLASMAMICRO_FIRE
+								set WEAPON3_SHOOTS PLASMAMICROPROJ
+								set WEAPON3_FLAGS 4
+								set WEAPON3_TOTALTIME 8
+							}
+						break
+						
+					case DEVISTATOR_WEAPON
+					case RPG_WEAPON
+					case FREEZE_WEAPON
+						ife player[].kickback_pic 0
+							ife alt_ready 1
+							{
+								set alt_ready 0
+								set alt_start 0
+								
+								ife player[].curr_weapon FREEZE_WEAPON
+									set WEAPON9_FLAGS 84
+							}
+						break
+						
+				endswitch
+			}
+		}
+			
+		ife alt_ready 2
+		{
+		/*
+			set i_temp player[].ammo_amount PISTOL_WEAPON
+			mod i_temp 12
+			
+			ife player[].curr_weapon PISTOL_WEAPON
+			ifn i_temp 0
+				setp[].kickback_pic 4
+		*/
+		
+			ife player[].curr_weapon SHOTGUN_WEAPON
+			ife 1 player[].bsubweapon SHOTGUN_WEAPON
+			{
+				ife player[].kickback_pic 26
+				{
+					setp[].kickback_pic 14
+					set alt_ready 0
+					set alt_time 0
+					set alt_start 0
+					set altkey_counter 0
+					set altkey_lastval 0
+				}
+			}
+		
+			ifge alt_time alt_readydelay
+			{
+				set alt_ready 0
+				set alt_time 0
+				set alt_start 0
+				set altkey_counter 0
+				set altkey_lastval 0
+				//sound PISTOL_RESTORE
+			}
+			else
+				add alt_time 1
+		}
+		
+		ife player[].weapon_pos 0
+		ife player[].kickback_pic 0
+		{
+			switch player[].curr_weapon
+				case KNEE_WEAPON
+					ife 1 player[].bsubweapon KNEE_WEAPON
+					{
+						ife change_weapon 0
+						{
+							ifl plasmaammo 1
+							{
+								setplayer[THISACTOR].weapon_pos -1
+								set change_weapon 1
+							}
+						}
+					}
+				
+					break
+					
+				case PISTOL_WEAPON
+					ifl player[].ammo_amount PISTOL_WEAPON 1
+					ife weapon_to_switch -1
+						state CheckWeaponAvailable
+						
+					break
+					
+				case SHOTGUN_WEAPON
+					ifl player[].ammo_amount SHOTGUN_WEAPON 1
+					ife weapon_to_switch -1
+						state CheckWeaponAvailable
+						
+					break
+			
+				case CHAINGUN_WEAPON
+					ife 0 player[].bsubweapon CHAINGUN_WEAPON
+					{
+						ifl ripperammo 1
+							ifg plasmaammo 0
+								ife gotweapons[PLASMA_WEAPON] 1
+									ife change_weapon 0
+						{
+								setplayer[THISACTOR].weapon_pos -1
+								set change_weapon 1
+						}
+						else ifl ripperammo 1
+							ifg plasmaammo 0
+							ife gotweapons[PLASMA_WEAPON] 0
+							ife weapon_to_switch -1
+							{
+								state CheckWeaponAvailable
+							}
+						else ifl ripperammo 1
+						ifl plasmaammo 1
+						ife weapon_to_switch -1
+							state CheckWeaponAvailable
+					}
+					else
+					{
+						ifl plasmaammo 1
+							ifg ripperammo 0
+								ife gotweapons[CHAINGUN_WEAPON] 1
+									ife change_weapon 0
+						{
+							setplayer[THISACTOR].weapon_pos -1
+							set change_weapon 1
+						}
+						else ifl plasmaammo 1
+							ifg ripperammo 0
+							ife gotweapons[CHAINGUN_WEAPON] 0
+							ife weapon_to_switch -1
+							{
+								state CheckWeaponAvailable
+							}
+						else ifl ripperammo 1
+						ifl plasmaammo 1
+						ife weapon_to_switch -1
+							state CheckWeaponAvailable
+					}
+					break
+					
+				case RPG_WEAPON
+					ife 0 player[].bsubweapon RPG_WEAPON
+					{
+						ifl rpgammo 1
+							ifg urpgammo 0
+								ife gotweapons[RPGBLAST_WEAPON] 1
+									ife change_weapon 0
+							{
+								setplayer[THISACTOR].weapon_pos -1
+								set change_weapon 1
+							}
+						else ifl rpgammo 1
+							ifg urpgammo 0
+							ife gotweapons[RPGBLAST_WEAPON] 0
+							ife weapon_to_switch -1
+							{
+								state CheckWeaponAvailable
+							}
+						else ifl rpgammo 1
+						ifl urpgammo 1
+						ife weapon_to_switch -1
+							state CheckWeaponAvailable
+					}
+					else
+					{
+						ifl urpgammo 1
+							ifg rpgammo 0
+								ife gotweapons[RPG_WEAPON] 1
+									ife change_weapon 0
+						{
+							setplayer[THISACTOR].weapon_pos -1
+							set change_weapon 1
+						}
+						else ifl urpgammo 1
+							ifg rpgammo 0
+							ife gotweapons[RPG_WEAPON] 0
+							ife weapon_to_switch -1
+							{
+								state CheckWeaponAvailable
+							}
+						else ifl rpgammo 1
+						ifl urpgammo 1
+						ife weapon_to_switch -1
+							state CheckWeaponAvailable
+					}
+					break
+					
+				case HANDBOMB_WEAPON
+					ifl player[].ammo_amount HANDBOMB_WEAPON 1
+					ife weapon_to_switch -1
+						state CheckWeaponAvailable
+						
+					break
+					
+				case HANDREMOTE_WEAPON
+					ifl player[].ammo_amount HANDBOMB_WEAPON 1
+					ife player[].hbomb_on 0
+					ife weapon_to_switch -1
+						state CheckWeaponAvailable
+						
+					break
+					
+				case SHRINKER_WEAPON
+					ifl player[].ammo_amount SHRINKER_WEAPON 1
+					ife weapon_to_switch -1
+						state CheckWeaponAvailable
+						
+					break
+					
+				case GROW_WEAPON
+					ifl player[].ammo_amount GROW_WEAPON 1
+					ife weapon_to_switch -1
+						state CheckWeaponAvailable
+						
+					break
+					
+				case TRIPBOMB_WEAPON
+					ifl player[].ammo_amount TRIPBOMB_WEAPON 1
+					ife weapon_to_switch -1
+						state CheckWeaponAvailable
+						
+					break
+					
+				case DEVISTATOR_WEAPON
+					ife 0 player[].bsubweapon DEVISTATOR_WEAPON
+					{
+						ifl devistatorammo 1
+							ifg sonicammo 0
+								ife gotweapons[SONICRESONATOR_WEAPON] 1
+									ife change_weapon 0
+							{
+								setplayer[THISACTOR].weapon_pos -1
+								set change_weapon 1
+							}
+						else ifl devistatorammo 1
+							ifg sonicammo 0
+							ife gotweapons[SONICRESONATOR_WEAPON] 0
+							ife weapon_to_switch -1
+							{
+								state CheckWeaponAvailable
+							}
+						else ifl devistatorammo 1
+						ifl sonicammo 1
+						ife weapon_to_switch -1
+							state CheckWeaponAvailable
+					}
+					else
+					{
+						ifl sonicammo 1
+							ifg devistatorammo 0
+								ife gotweapons[DEVISTATOR_WEAPON] 1
+									ife change_weapon 0
+						{
+							setplayer[THISACTOR].weapon_pos -1
+							set change_weapon 1
+						}
+						else ifl sonicammo 1
+							ifg devistatorammo 0
+							ife gotweapons[DEVISTATOR_WEAPON] 0
+							ife weapon_to_switch -1
+							{
+								state CheckWeaponAvailable
+							}
+						else ifl devistatorammo 1
+						ifl sonicammo 1
+						ife weapon_to_switch -1
+							state CheckWeaponAvailable
+					}
+					break
+					
+				case FREEZE_WEAPON
+					ife 0 player[].bsubweapon FREEZE_WEAPON
+					{
+						ifl freezeammo 1
+							ifg flameammo 0
+								ife gotweapons[FLAME_WEAPON] 1
+									ife change_weapon 0
+							{
+								setplayer[THISACTOR].weapon_pos -1
+								set change_weapon 1
+							}
+						else ifl freezeammo 1
+							ifg flameammo 0
+							ife gotweapons[FLAME_WEAPON] 0
+							ife weapon_to_switch -1
+							{
+								state CheckWeaponAvailable
+							}
+						else ifl freezeammo 1
+						ifl flameammo 1
+						ife weapon_to_switch -1
+							state CheckWeaponAvailable
+					}
+					else
+					{
+						ifl flameammo 1
+							ifg freezeammo 0
+								ife gotweapons[FREEZE_WEAPON] 1
+									ife change_weapon 0
+						{
+							setplayer[THISACTOR].weapon_pos -1
+							set change_weapon 1
+						}
+						else ifl flameammo 1
+							ifg freezeammo 0
+							ife gotweapons[FREEZE_WEAPON] 0
+							ife weapon_to_switch -1
+							{
+								state CheckWeaponAvailable
+							}
+						else ifl freezeammo 1
+						ifl flameammo 1
+						ife weapon_to_switch -1
+							state CheckWeaponAvailable
+					}
+					break
+			endswitch
+		}
+		
+		ife player[].weapon_pos -9
+		{
+			setp[].kickback_pic 0
+			
+			ifn weapon_to_switch -1
+			{
+				setp[].curr_weapon weapon_to_switch
+				set weapon_to_switch -1
+			}
+			
+			ife change_weapon 1
+			{
+				switch player[].curr_weapon 
+					case KNEE_WEAPON
+						ife 0 player[].bsubweapon KNEE_WEAPON
+							ife gotweapons[CATERKILAR_WEAPON] 1
+						{
+							state i_Cater
+							setp[].bsubweapon KNEE_WEAPON 1
+							sound SELECT_WEAPON
+						}
+						else ife 1 player[].bsubweapon KNEE_WEAPON
+						{
+							state i_Mighty
+							setp[].bsubweapon KNEE_WEAPON 0
+						}
+				
+					case PISTOL_WEAPON
+						state i_Pistol
+						break
+						
+					case SHOTGUN_WEAPON
+						ife 0 player[].bsubweapon SHOTGUN_WEAPON
+							ife gotweapons[SHOTGUNDOUBLE_WEAPON] 1
+						{
+							state i_ShotgunDouble
+							setplayer[THISACTOR].bsubweapon SHOTGUN_WEAPON 1
+						}
+						else ife 1 player[].bsubweapon SHOTGUN_WEAPON
+							ife gotweapons[SHOTGUN_WEAPON] 1
+						{
+							state i_Shotgun
+							setplayer[THISACTOR].bsubweapon SHOTGUN_WEAPON 0
+						}
+						
+						sound WEAPON2_SELECTSOUND
+						break
+						
+					case CHAINGUN_WEAPON
+						ife 0 player[].bsubweapon CHAINGUN_WEAPON
+							ife gotweapons[PLASMA_WEAPON] 1
+						{
+							state i_Plasma
+							setplayer[THISACTOR].bsubweapon CHAINGUN_WEAPON 1
+						}
+						else ife 1 player[].bsubweapon CHAINGUN_WEAPON
+							ife gotweapons[CHAINGUN_WEAPON] 1
+						{
+							state i_Chaingun
+							setplayer[THISACTOR].bsubweapon CHAINGUN_WEAPON 0
+						}
+						
+						sound WEAPON3_SELECTSOUND
+						break
+						
+					case RPG_WEAPON
+						ife 0 player[].bsubweapon RPG_WEAPON
+							ife gotweapons[RPGBLAST_WEAPON] 1
+						{
+							state i_URPG
+							setplayer[THISACTOR].bsubweapon RPG_WEAPON 1
+						}
+						else ife 1 player[].bsubweapon RPG_WEAPON
+							ife gotweapons[RPG_WEAPON] 1
+						{
+							state i_RPG
+							setplayer[THISACTOR].bsubweapon RPG_WEAPON 0
+						}
+						
+						sound WEAPON4_SELECTSOUND
+						break
+						
+					case DEVISTATOR_WEAPON
+						ife 0 player[].bsubweapon DEVISTATOR_WEAPON
+							ife gotweapons[SONICRESONATOR_WEAPON] 1
+						{
+							state i_Sonic
+							setplayer[THISACTOR].bsubweapon DEVISTATOR_WEAPON 1
+						}
+						else ife 1 player[].bsubweapon DEVISTATOR_WEAPON
+							ife gotweapons[DEVISTATOR_WEAPON] 1
+						{
+							state i_Devistator
+							setplayer[THISACTOR].bsubweapon DEVISTATOR_WEAPON 0
+						}
+						
+						sound WEAPON7_SELECTSOUND
+						break
+						
+					case FREEZE_WEAPON
+						ife 0 player[].bsubweapon FREEZE_WEAPON
+							ife gotweapons[FLAME_WEAPON] 1
+						{
+							state i_Flame
+							setplayer[THISACTOR].bsubweapon FREEZE_WEAPON 1
+						}
+						else ife 1 player[].bsubweapon FREEZE_WEAPON
+							ife gotweapons[FREEZE_WEAPON] 1
+						{
+							state i_Freeze
+							setplayer[THISACTOR].bsubweapon FREEZE_WEAPON 0
+						}
+						
+						sound WEAPON9_SELECTSOUND
+						break
+				endswitch		
+				
+				set change_weapon 0
+			}
+			else
+			{
+				switch player[].curr_weapon 
+					case KNEE_WEAPON
+						ife 0 player[].bsubweapon KNEE_WEAPON
+							state i_Mighty
+						else ife gotweapons[CATERKILAR_WEAPON] 1
+							state i_Cater
+						break
+				
+					case PISTOL_WEAPON
+						state i_Pistol
+						break
+						
+					case SHOTGUN_WEAPON
+						ife 1 player[].bsubweapon SHOTGUN_WEAPON
+							ife gotweapons[SHOTGUNDOUBLE_WEAPON] 1
+							state i_ShotgunDouble
+						else ife 0 player[].bsubweapon SHOTGUN_WEAPON
+							ife gotweapons[SHOTGUN_WEAPON] 1
+							state i_Shotgun
+						break
+						
+					case CHAINGUN_WEAPON
+						ife 1 player[].bsubweapon CHAINGUN_WEAPON
+							ife gotweapons[PLASMA_WEAPON] 1
+						{
+							state i_Plasma
+							//setplayer[THISACTOR].bsubweapon CHAINGUN_WEAPON 1
+						}
+						else ife 0 player[].bsubweapon CHAINGUN_WEAPON
+							ife gotweapons[CHAINGUN_WEAPON] 1
+						{
+							state i_Chaingun
+							//setplayer[THISACTOR].bsubweapon CHAINGUN_WEAPON 0
+						}
+						break
+						
+					case RPG_WEAPON
+						ife 1 player[].bsubweapon RPG_WEAPON
+							ife gotweapons[RPGBLAST_WEAPON] 1
+						{
+							state i_URPG
+							//setplayer[THISACTOR].bsubweapon RPG_WEAPON 1
+						}
+						else ife 0 player[].bsubweapon RPG_WEAPON
+							ife gotweapons[RPG_WEAPON] 1
+						{
+							state i_RPG
+							//setplayer[THISACTOR].bsubweapon RPG_WEAPON 0
+						}
+						break
+						
+					case DEVISTATOR_WEAPON
+						ife 1 player[].bsubweapon DEVISTATOR_WEAPON
+							ife gotweapons[SONICRESONATOR_WEAPON] 1
+						{
+							state i_Sonic
+							//setplayer[THISACTOR].bsubweapon RPG_WEAPON 1
+						}
+						else ife 0 player[].bsubweapon DEVISTATOR_WEAPON
+							ife gotweapons[DEVISTATOR_WEAPON] 1
+						{
+							state i_Devistator
+							//setplayer[THISACTOR].bsubweapon RPG_WEAPON 0
+						}
+						break
+						
+					case FREEZE_WEAPON
+						ife 1 player[].bsubweapon FREEZE_WEAPON
+							ife gotweapons[FLAME_WEAPON] 1
+						{
+							state i_Flame
+							//setplayer[THISACTOR].bsubweapon FREEZE_WEAPON 1
+						}
+						else ife 0 player[].bsubweapon FREEZE_WEAPON
+							ife gotweapons[FREEZE_WEAPON] 1
+						{
+							state i_Freeze
+							//setplayer[THISACTOR].bsubweapon FREEZE_WEAPON 0
+						}
+						break
+				endswitch		
+			}
+		}
+		else ife player[].weapon_pos 0
+		ifn weapon_to_switch -1
+			set weapon_to_switch -1
+		
+		ife player[].curr_weapon RPG_WEAPON
+			ife 1 player[].bsubweapon RPG_WEAPON 
+				ife i_UltraRPG 0
+		{
+			ifg player[].kickback_pic 3
+			{
+				set i_UltraRPG 1
+				
+				set WEAPON4_TOTALTIME 25
+				set WEAPON4_FIREDELAY 8
+				set WEAPON4_FLAGS 4
+				
+				setp[].kickback_pic 0
+			}
+		}
+		
+		ife player[].curr_weapon FREEZE_WEAPON
+		{
+			ife 1 player[].bsubweapon FREEZE_WEAPON 
+			{
+				ife i_FlameInit 0
+				{
+					set i_temp WEAPON9_TOTALTIME
+					sub i_temp 1
+					ife player[].kickback_pic i_temp
+						set i_FlameInit 1
+				}
+				else ife player[].kickback_pic 0
+					set i_FlameInit 0
+			}
+			else
+			{
+				ife i_FreezeInit 0
+				{
+					set i_temp WEAPON9_TOTALTIME
+					sub i_temp 1
+					ife player[].kickback_pic i_temp
+						set i_FreezeInit 1
+				}
+				else ife player[].kickback_pic 0
+					set i_FreezeInit 0
+			}
+		}
+		
+		ife player[].curr_weapon KNEE_WEAPON
+			ife 1 player[].bsubweapon KNEE_WEAPON 
+		{
+			ife i_CaterInit 0
+			{
+				set i_temp WEAPON0_TOTALTIME
+				sub i_temp 1
+				ife weaponcount i_temp
+					set i_CaterInit 4
+			}
+			else ife player[].kickback_pic 0
+				set i_CaterInit 0
+		}
+		
+		ifl ripperammo 1
+		{
+			ifl plasmaammo 1
+				setp[].ammo_amount CHAINGUN_WEAPON 0
+			else
+				setp[].ammo_amount CHAINGUN_WEAPON 1
+		}
+		else
+			setp[].ammo_amount CHAINGUN_WEAPON 1
+			
+		ifl rpgammo 1
+		{
+			ifl urpgammo 1
+				setp[].ammo_amount RPG_WEAPON 0
+			else
+				setp[].ammo_amount RPG_WEAPON 1
+		}
+		else
+			setp[].ammo_amount RPG_WEAPON 1
+			
+		ifl devistatorammo 1
+		{
+			ifl sonicammo 1
+				setp[].ammo_amount DEVISTATOR_WEAPON 0
+			else
+				setp[].ammo_amount DEVISTATOR_WEAPON 1
+		}
+		else
+			setp[].ammo_amount DEVISTATOR_WEAPON 1
+
+		ifl freezeammo 1
+		{
+			ifl flameammo 1
+				setp[].ammo_amount FREEZE_WEAPON 0
+			else
+				setp[].ammo_amount FREEZE_WEAPON 1
+		}
+		else
+			setp[].ammo_amount FREEZE_WEAPON 1
+	}
+
+endevent
+
+onevent EVENT_ACTIVATECHEAT
+
+	ife RETURN 21
+	{
+		setarray gotweapons[SHOTGUN_WEAPON] 1
+		setarray gotweapons[SHOTGUNDOUBLE_WEAPON] 1
+		
+		setarray gotweapons[CHAINGUN_WEAPON] 1
+		setarray gotweapons[PLASMA_WEAPON] 1
+		set plasmaammo MAXPLASMAAMMO
+		set ripperammo MAXCHAINGUNAMMO
+		
+		setarray gotweapons[RPG_WEAPON] 1
+		setarray gotweapons[RPGBLAST_WEAPON] 1
+		set urpgammo MAXURPGAMMO
+		set rpgammo MAXRPGAMMO
+		
+		setarray gotweapons[FREEZE_WEAPON] 1
+		setarray gotweapons[FLAME_WEAPON] 1
+		set flameammo MAXFLAMEAMMO
+		set freezeammo MAXFREEZEAMMO
+		
+		setarray gotweapons[CATERKILAR_WEAPON] 1
+		setarray gotweapons[DEVISTATOR_WEAPON] 1
+		setarray gotweapons[SONICRESONATOR_WEAPON] 1
+		set devistatorammo MAXDEVISTATORAMMO
+		set sonicammo MAXSONICAMMO
+	}
+	else ife RETURN 1
+	{
+		setarray gotweapons[SHOTGUN_WEAPON] 1
+		setarray gotweapons[SHOTGUNDOUBLE_WEAPON] 1
+		
+		setarray gotweapons[CHAINGUN_WEAPON] 1
+		setarray gotweapons[PLASMA_WEAPON] 1
+		set plasmaammo MAXPLASMAAMMO
+		set ripperammo MAXCHAINGUNAMMO
+		
+		setarray gotweapons[RPG_WEAPON] 1
+		setarray gotweapons[RPGBLAST_WEAPON] 1
+		set urpgammo MAXURPGAMMO
+		set rpgammo MAXRPGAMMO
+		
+		setarray gotweapons[FREEZE_WEAPON] 1
+		setarray gotweapons[FLAME_WEAPON] 1
+		set flameammo MAXFLAMEAMMO
+		set freezeammo MAXFREEZEAMMO
+		
+		set space_amount SPACESUITAMOUNT 
+		
+		setp[].jetpack_amount JETPACK_AMOUNT
+		
+		setarray gotweapons[CATERKILAR_WEAPON] 1
+		setarray gotweapons[DEVISTATOR_WEAPON] 1
+		setarray gotweapons[SONICRESONATOR_WEAPON] 1
+		set devistatorammo MAXDEVISTATORAMMO
+		set sonicammo MAXSONICAMMO
+	}
+	else ife RETURN 19
+	{
+		set enable_nuke 1
+		setu[].enable_nuke enable_nuke
+		savegamevar enable_nuke
+	}
+	else ife RETURN 11
+	{
+		readgamevar EP1LOCKS
+		readgamevar EP2LOCKS
+		readgamevar EP22LOCKS
+		readgamevar EP3LOCKS
+		readgamevar EP32LOCKS
+		readgamevar EP4LOCKS
+		readgamevar EP42LOCKS
+		or EP1LOCKS 0x1F
+		or EP2LOCKS 0x1F
+		or EP22LOCKS 0x1F		
+		or EP3LOCKS 0x1F
+		or EP32LOCKS 0x1F
+		or EP4LOCKS 0x1F
+		or EP42LOCKS 0x1F
+		
+		//Boss fight levels
+		or EP1LOCKS 0x60
+		or EP22LOCKS 0x10
+		or EP42LOCKS 0x20
+						
+		savegamevar EP1LOCKS
+		savegamevar EP2LOCKS
+		savegamevar EP22LOCKS
+		savegamevar EP3LOCKS
+		savegamevar EP32LOCKS
+		savegamevar EP4LOCKS
+		savegamevar EP42LOCKS
+		
+	}
+
+endevent
+
+
+onevent EVENT_CHANGEWEAPON
+	
+	ife player[].kickback_pic 0
+	{
+		switch RETURN
+			case KNEE_WEAPON
+				ife 0 player[].bsubweapon KNEE_WEAPON
+					state i_Mighty
+				else ife gotweapons[CATERKILAR_WEAPON] 1
+				{
+					state i_Cater
+					setp[].bsubweapon KNEE_WEAPON 1
+				}
+				break
+		
+			case PISTOL_WEAPON
+				state i_Pistol
+				break
+			case SHOTGUN_WEAPON
+				ife 0 player[].bsubweapon SHOTGUN_WEAPON
+				ife gotweapons[SHOTGUN_WEAPON] 1
+					state i_Shotgun
+				else ife gotweapons[SHOTGUNDOUBLE_WEAPON] 1
+				{
+					state i_ShotgunDouble
+					setp[].bsubweapon SHOTGUN_WEAPON 1
+				}
+				break
+			case CHAINGUN_WEAPON
+				ife 0 player[].bsubweapon CHAINGUN_WEAPON
+				ife gotweapons[CHAINGUN_WEAPON] 1
+					state i_Chaingun
+				else ife gotweapons[PLASMA_WEAPON] 1
+				{
+					state i_Plasma
+					setp[].bsubweapon CHAINGUN_WEAPON 1
+				}
+				break
+			case RPG_WEAPON
+				ife 0 player[].bsubweapon RPG_WEAPON
+				ife gotweapons[RPG_WEAPON] 1
+					state i_RPG
+				else ife gotweapons[RPGBLAST_WEAPON] 1
+				{
+					state i_URPG
+					setp[].bsubweapon RPG_WEAPON 1
+				}
+				break
+			case DEVISTATOR_WEAPON
+				ife 0 player[].bsubweapon DEVISTATOR_WEAPON
+				ife gotweapons[DEVISTATOR_WEAPON] 1
+					state i_Devistator
+				else ife gotweapons[SONICRESONATOR_WEAPON] 1
+				{
+					state i_Sonic
+					setp[].bsubweapon DEVISTATOR_WEAPON 1
+				}
+				break
+			case FREEZE_WEAPON
+				ife 0 player[].bsubweapon FREEZE_WEAPON
+				ife gotweapons[FREEZE_WEAPON] 1
+					state i_Freeze
+				else ife gotweapons[FLAME_WEAPON] 1
+				{
+					state i_Flame
+					setp[].bsubweapon FREEZE_WEAPON 1
+				}
+				break
+		endswitch
+	}
+
+endevent
+
+onevent EVENT_RESETWEAPONS
+
+	set ripperammo 0
+	set plasmaammo 0
+	set rpgammo 0
+	set urpgammo 0
+	set freezeammo 0
+	set flameammo 0
+	set devistatorammo 0
+	set sonicammo 0
+	
+	set i_temp 1
+	whilevarn i_temp 19
+	{
+		setarray gotweapons[i_temp] 0
+		add i_temp 1
+	}
+
+endevent
+
+
+
+onevent EVENT_ALTWEAPON
+
+	ife userdef.enable_nuke 1
+	ife userdef.nuke_active 1
+	ifn userdef.nuke_wpnsel 0
+		set RETURN -1
+	else
+	{
+		ife player[].kickback_pic 0
+		{
+			switch player[].curr_weapon
+				case 0
+				case 2
+				case 3
+				case 4
+				case 7
+				case 9
+					state CheckAltWeaponAvail
+				
+					setp[].weapon_pos -1
+					set change_weapon 1
+					break
+			
+			endswitch
+		}
+	}
+
+endevent
+
+onevent EVENT_LOOKDOWN
+
+	set RETURN -1
+	
+	ife userdef.enable_nuke 1
+	ife userdef.nuke_active 1
+	ifn userdef.nuke_wpnsel 0
+		nullop
+	else
+	{
+		ife player[].kickback_pic 0
+		{
+			ifn player[].curr_weapon KNEE_WEAPON
+			{
+				ife gotweapons[CATERKILAR_WEAPON] 1
+				{
+					set weapon_to_switch 0
+					setp[].weapon_pos -1
+					setp[].bsubweapon KNEE_WEAPON 1
+					setp[].last_used_weapon player[].curr_weapon
+				}
+			}
+			else
+			{
+				set weapon_to_switch player[].last_used_weapon
+				setp[].weapon_pos -1
+			}
+		}
+	}
+
+endevent
+
+
+//Weapon wheel input
+onevent EVENT_LOOKUP
+
+	set RETURN -1
+	
+	ife player[].kickback_pic 0
+	{
+		set wheeldisptime 5
+		
+		ife wheelactive 0
+		{
+			set wheelang player[].ang
+			set wheelhoriz player[].horiz
+			
+			set wheelselection player[].curr_weapon
+			
+			ife wheelselection 11
+				set wheelselection 6
+			
+			ifl wheelselection 2
+				add wheelselection 10
+			
+			sub wheelselection 2
+			
+			set weapwheel_rot wheelselection
+			mul weapwheel_rot 204
+			
+			switch weapwheel_rot
+				case 1836
+				case -204
+					set weapwheel_horiz 180
+					set weapwheel_ang 129
+					break
+					
+				case 0
+					set weapwheel_horiz 180
+					set weapwheel_ang 300
+					break
+					
+				case 204
+					set weapwheel_horiz 180
+					set weapwheel_ang 600
+					break
+					
+				case 408
+					set weapwheel_horiz 100
+					set weapwheel_ang 300
+					break
+					
+				case 612
+					set weapwheel_horiz 0
+					set weapwheel_ang 300
+					break
+					
+				case 816
+					set weapwheel_horiz -80
+					set weapwheel_ang 600
+					break
+					
+				case 1020
+					set weapwheel_horiz -80
+					set weapwheel_ang 300
+					break
+					
+				case 1224
+					set weapwheel_horiz -80
+					set weapwheel_ang 129
+					break
+					
+				case 1428
+					set weapwheel_horiz 0
+					set weapwheel_ang 129
+					break
+					
+				case 1632
+					set weapwheel_horiz 100
+					set weapwheel_ang 129
+					break
+			
+			endswitch
+			
+			setp[].ang weapwheel_ang
+			setp[].horiz weapwheel_horiz
+			
+			set returnview 2
+			
+			set wheelactive 1
+		}
+	}
+
+endevent

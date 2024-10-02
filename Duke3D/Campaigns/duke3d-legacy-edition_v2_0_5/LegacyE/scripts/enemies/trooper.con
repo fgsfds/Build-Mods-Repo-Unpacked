@@ -1,0 +1,835 @@
+/*
+--------------------------------------------------------------------------------
+Duke Nukem 3D - Blast Edition Version 2.0
+By Marcos
+2022 - Space In a Bottle
+*/
+
+//Robot Trooper
+
+definesound ROBOT_RECOG snd/FTA_R.VOC -128 -128 3 0 0
+definesound ROBOT_ROAM snd/FTA_R.VOC 0 0 3 0 0
+definesound ROBOT_DIE JETPAKOF.VOC -512 -512 3 0 0
+definesound ROBOT_PAIN snd/PLASMAF.VOC -512 -512 3 0 0
+
+//
+//
+//    TROOP CODE
+//
+//
+
+action ARTROOPSTAND     30  1  5  1  1
+action ARTROOPGROW    30  1  5  1  1
+action ARTROOPSTAYSTAND  29  1  5  1  1
+action ARTROOPWALKING   0  6  5  1   10
+action ARTROOPWALKINGBACK 25   6  5   -1   10
+action ARTROOPRUNNING   0  6  5  1  8
+action ARTROOPSHOOT    30  2  5  1   20
+action ARTROOPJETPACK  40  1  5  1  1
+action ARTROOPJETPACKILL 40  2  5  1   30
+action ARTROOPFLINTCH  50  1  1  1  6
+action ARTROOPDYING    50  4  1  1   16
+action ARTROOPDEAD     54
+action ARTROOPFROZEN    0  1  5
+action ARTROOPHEADLESS -1624 5 1 1 45
+action ARTROOPHEADLESSDEAD -1620 1
+action ARTROOPARMLESS -1618 5 1 1 45
+action ARTROOPARMLESSDEAD -1614 1
+action ARTROOPTORSOLESS -1612 5 1 1 45
+action ARTROOPTORSOLESSDEAD -1608 1
+action ARTROOPHACKED -526 7 1 1 22
+
+move RTROOPWALKVELS 96
+move RTROOPWALKVELSBACK -96
+move RTROOPJETPACKVELS 80 -84
+move RTROOPJETPACKILLVELS 192 -38
+move RTROOPRUNVELS 108
+move RTROOPSTOPPED
+move RDONTGETUP
+move RSHRUNKVELS 32
+
+ai AIRTROOPSEEKENEMY  ARTROOPWALKING   RTROOPWALKVELS seekplayer
+ai AIRTROOPSEEKPLAYER ARTROOPWALKING   RTROOPWALKVELS seekplayer
+ai AIRTROOPFLEEING  ARTROOPWALKING   RTROOPWALKVELS fleeenemy
+ai AIRTROOPFLEEINGBACK ARTROOPWALKINGBACK   RTROOPWALKVELSBACK faceplayer
+ai AIRTROOPDODGE    ARTROOPWALKING   RTROOPRUNVELS  dodgebullet
+ai AIRTROOPSHOOTING   ARTROOPSHOOT   RTROOPSTOPPED  faceplayer
+ai AIRTROOPJETPACK  ARTROOPJETPACK   RTROOPJETPACKVELS seekplayer
+ai AIRTROOPSHRUNK   ARTROOPWALKING   RSHRUNKVELS fleeenemy
+ai AIRTROOPGROW     ARTROOPGROW    RDONTGETUP faceplayerslow
+
+state rtroopgunnashoot
+  ifp palive
+  {
+    ifpdistl 8192
+      ai AIRTROOPSHOOTING
+    else
+      ifactornotstayput
+    {
+      ifactioncount 12
+        ifrnd 16
+          ifcanshoottarget
+      {
+          ifpdistl 2048
+            ai AIRTROOPFLEEING
+          else
+          {
+            ifpdistl 8192
+              ifcansee
+                ifcanshoottarget
+                  ai AIRTROOPSHOOTING
+            else
+            {
+              move RTROOPRUNVELS seekplayer
+              action ARTROOPRUNNING
+            }
+          }
+      }
+    }
+    else
+      ifcount 26
+        ifrnd 32
+          ai AIRTROOPSHOOTING
+  }
+ends
+
+state rtroopseekstate
+  state rtroopgunnashoot
+  ifinwater
+  {
+    ai AIRTROOPJETPACK
+    break
+  }
+  ifcansee
+  {
+    ifp phigher
+    {
+      ifceilingdistl 128 nullop
+      else
+        ifactornotstayput
+          ai AIRTROOPJETPACK
+      break
+    }
+    else
+      ifrnd 2
+    {
+      ifbulletnear
+      {
+          ai AIRTROOPDODGE
+        break
+      }
+    }
+  }
+  ifnotmoving
+  {
+    ifrnd 32
+      operate
+    else
+      ifcount 32
+        ifp palive
+          ifcansee
+            ifcanshoottarget
+              ai AIRTROOPSHOOTING
+  }
+  ifrnd 1
+  {
+      soundonce ROBOT_ROAM
+  }
+ends
+
+state rtroopshootstate
+  ifactioncount 2
+  {
+    ifcanshoottarget
+    {
+	  sound PRED_ATTACK
+      shoot FIRELASER
+      resetactioncount
+      ifrnd 128
+        ai AIRTROOPSEEKPLAYER
+      ifcount 24
+      {
+        ifrnd 96
+          ifpdistg 10000
+            ai AIRTROOPSEEKPLAYER
+          else
+          {
+            ifpdistg 8192
+              ai AIRTROOPFLEEING
+            else
+              ai AIRTROOPFLEEINGBACK
+          }
+      }
+    }
+    else
+      ai AIRTROOPSEEKPLAYER
+  }
+ends
+
+state rtroopfleestate
+  ifactioncount 7
+  {
+    ifpdistg 8192
+    {
+      ai AIRTROOPSEEKPLAYER
+      break
+    }
+    else
+      ifrnd 32
+        ifp palive
+          ifcansee
+            ifcanshoottarget
+      {
+          ai AIRTROOPSHOOTING
+          break
+      }
+  }
+  ifnotmoving
+  {
+    ifrnd 32
+      operate
+    else
+      ifcount 32
+        ifp palive
+          ifcansee
+            ifcanshoottarget
+      {
+          ai AIRTROOPSHOOTING
+      }
+  }
+ends
+
+state rtroopdying
+
+  cstat 0
+
+  ifaction ARTROOPHACKED
+  {
+	
+	ifcount 16
+	{
+		guts JIBS6 2
+		state random_wall_jibs
+		guts JIBS3 1
+		sound SQUISHED
+		resetcount
+	}
+	
+	ifactioncount 7
+	{
+		state SpawnShards
+		action 0
+		cactor ROBOTTROOPERHACKED
+		state random_wall_jibs
+		sound THUD
+		spawn BLOODPOOL
+	}
+	
+	break
+  }
+  else ifaction ARTROOPHEADLESS
+  {
+	ifcount 5
+	{
+		guts JIBS6 2
+		state random_wall_jibs
+		resetcount
+	}
+	
+	ifactioncount 4
+    {
+		state SpawnShards
+      cstat 0
+      iffloordistl 8
+		sound THUD
+      ifrnd 64
+        spawn BLOODPOOL
+      state rf
+	  cstat 0
+      strength 0
+      move RTROOPSTOPPED
+      action ARTROOPHEADLESSDEAD
+    }
+	
+	break
+  }
+  else ifaction ARTROOPARMLESS
+  {
+	ifcount 5
+	{
+		guts JIBS6 2
+		state random_wall_jibs
+		resetcount
+	}
+	
+	ifactioncount 4
+	ife actioncheck 4
+    {
+	  set actioncheck 5
+	  state SpawnShards
+	  
+      cstat 0
+      iffloordistl 8
+		sound THUD
+      ifrnd 64
+        spawn BLOODPOOL
+      state rf
+	  cstat 0
+      strength 0
+      move RTROOPSTOPPED
+      action ARTROOPARMLESSDEAD
+    }
+	else ifactioncount 3
+	ife actioncheck 0
+	{
+		set actioncheck 4
+		state troop_armjib
+		state random_wall_jibs
+		sound SQUISHED
+	}
+	
+	break
+  }
+   else ifaction ARTROOPTORSOLESS
+  {
+	ifcount 5
+	{
+		guts JIBS6 2
+		state random_wall_jibs
+		resetcount
+	}
+	
+	ifactioncount 4
+	ife actioncheck 4
+    {
+	  set actioncheck 5
+	  state SpawnShards
+	  
+      cstat 0
+      iffloordistl 8
+		sound THUD
+      ifrnd 64
+        spawn BLOODPOOL
+      state rf
+	  cstat 0
+      strength 0
+      move RTROOPSTOPPED
+      action ARTROOPTORSOLESSDEAD
+    }
+	else ifactioncount 3
+	ife actioncheck 0
+	{
+		set actioncheck 4
+		state troop_armjib
+		state troop_torsojib
+		state random_wall_jibs
+		state random_wall_jibs
+		sound SQUISHED
+	}
+	
+	break
+  }
+  else
+  {
+	  iffloordistl 32
+	  {
+		ifactioncount 4
+		{
+		  cstat 0
+		  iffloordistl 8
+		  sound THUD
+		  ifrnd 64
+			spawn BLOODPOOL
+		  state rf
+		  cstat 0
+		  strength 0
+		  move RTROOPSTOPPED
+		  action ARTROOPDEAD
+		}
+		break
+	  }
+	  else
+	  {
+		state rf
+		move 0
+		action ARTROOPDYING
+	  }
+  }
+  
+ends
+
+state checkrtroophit
+  ifdead
+  {
+    ifwasweapon FREEZEBLAST
+    {
+      sound SOMETHINGFROZE
+      spritepal 1
+      move 0
+      action ARTROOPFROZEN
+      strength 0
+      break
+    }
+
+    addkills 1
+
+    state drop_ammo
+    state random_wall_jibs
+	state random_scraps
+
+	ifwasweapon CATERKILAR
+	{
+		state random_wall_jibs
+		guts JIBS6 2
+		sound SQUISHED
+		sound ROBOT_DIE
+		
+		ifrnd 96
+			action ARTROOPHEADLESS
+		else ifrnd 96
+			action ARTROOPARMLESS
+		else ifrnd 96
+			action ARTROOPTORSOLESS
+		else
+		{
+			action ARTROOPHACKED
+			break
+		}
+		
+		state troop_headjib
+			
+		break
+	}
+
+    ifwasweapon RPG
+    {
+      sound SQUISHED
+      state standard_scraps
+      state standard_jibs
+	  state troop_jibs
+      killit
+    }
+    else
+      ifwasweapon RADIUSEXPLOSION
+    {
+      sound SQUISHED
+      state standard_scraps
+      state standard_jibs
+	  state troop_jibs
+      killit
+    }
+	 else
+      ifwasweapon GROWSPARK
+	  {
+		sound EXPANDERHIT
+		strength 0
+		cstat 0
+		sound ACTOR_GROWING
+		ai AIRTROOPGROW
+		break
+	  }
+    else
+    {
+		 sound ROBOT_DIE
+		 
+	  ifwasweapon FLAMEPROJ
+		state genericburn_dead_code
+      action ARTROOPDYING
+      break
+    }
+  }
+  else
+  {
+    state random_wall_jibs
+	state random_scraps
+    sound ROBOT_PAIN
+	
+	ifwasweapon CATERKILAR
+		action ARTROOPFLINTCH
+
+    ifwasweapon SHRINKSPARK
+    {
+      sound ACTOR_SHRINKING
+      ai AIRTROOPSHRUNK
+    }
+    else
+      ifwasweapon GROWSPARK
+	  {
+		sound EXPANDERHIT
+		strength 0
+		cstat 0
+		sound ACTOR_GROWING
+		ai AIRTROOPGROW
+		break
+	  }
+	else
+	{
+		//ifwasweapon FLAMEPROJ
+			//set a_flaming 1
+			
+		ifwasweapon PLASMAPROJ
+		{
+			action ARTROOPFLINTCH
+			set a_plasmaeffect 1
+		}
+		
+      iffloordistl 32
+        ifrnd 96
+          action ARTROOPFLINTCH
+	}
+  }
+ends
+
+state rtroopjetpackstate
+  ifaction ARTROOPJETPACKILL
+  {
+    ifcansee
+      ifactioncount 2
+    {
+      resetactioncount
+      sound PRED_ATTACK
+      shoot FIRELASER
+    }
+
+    ifp phigher
+      ai AIRTROOPJETPACK
+    else
+      ifinwater
+        ai AIRTROOPJETPACK
+    else
+      ifcount 26
+        iffloordistl 32
+          ai AIRTROOPSEEKPLAYER
+  }
+  else
+    ifcount 48
+      ifcansee
+  {
+    action ARTROOPJETPACKILL
+    move RTROOPJETPACKILLVELS
+    seekplayer
+  }
+ends
+
+state rchecksquished
+  ifsquished
+  {
+    addkills 1
+    sound SQUISHED
+    state standard_jibs
+	state standard_scraps
+    state random_ooz
+    killit
+  }
+ends
+
+state rtroopshrunkstate
+  ifcount SHRUNKDONECOUNT
+    ai AIRTROOPSEEKENEMY
+  else
+    ifcount SHRUNKCOUNT
+      sizeto 48 40
+  else
+    state genericshrunkcode
+ends
+
+
+state rtroopcode fall
+	
+	ifai 0
+	{
+		sizeat 42 38
+		cstat 257
+		spritepal 21
+		sound ROBOT_RECOG
+	}
+	
+	ifdead nullop
+	else ifg a_plasmaeffect 0
+	{
+		ifrnd 32
+			action ARTROOPFLINTCH
+	}
+		
+  ifinwater
+    ifrnd 1
+      spawn WATERBUBBLE
+  ifaction ARTROOPSTAND
+  {
+    ifrnd 192
+      ai AIRTROOPSHOOTING
+    else
+      ai AIRTROOPSEEKPLAYER
+  }
+  else
+    ifaction ARTROOPFROZEN
+  {
+    ifcount THAWTIME
+    {
+      ai AIRTROOPSEEKENEMY
+      getlastpal
+    }
+    else
+      ifcount FROZENDRIPTIME
+    {
+      ifactioncount 26
+      {
+        spawn WATERDRIP
+        resetactioncount
+      }
+    }
+    ifhitweapon
+    {
+      ifwasweapon FREEZEBLAST
+      {
+        strength 0
+        break
+      }
+      addkills 1
+
+      ifrnd 84
+        spawn BLOODPOOL
+      lotsofglass 30
+      sound GLASS_BREAKING
+      killit
+    }
+    ifp pfacing
+      ifpdistl FROZENQUICKKICKDIST
+        pkick
+    break
+  } 
+  else
+    ifaction ARTROOPDEAD
+  {
+     action 0
+	 cactor ROBOTTROOPERDEAD
+  
+    strength 0
+	cstat 0
+    ifrespawn
+      ifcount RESPAWNACTORTIME
+    {
+      spawn TRANSPORTERSTAR
+      cstat 257
+      strength ROBOTTROOPERSTRENGTH
+      ai AIRTROOPSEEKENEMY
+    }
+    ifhitweapon
+    {
+      ifwasweapon RADIUSEXPLOSION
+      {
+        sound SQUISHED
+        state standard_scraps
+		state troop_jibs
+        state standard_jibs
+        killit
+      }
+      break
+    }
+    else
+      state rchecksquished
+    break
+  }
+  else
+    ifaction ARTROOPHEADLESSDEAD
+  {
+    strength 0
+	cstat 0
+	
+	 action 0
+	 cactor ROBOTTROOPERHEADLESS
+   
+    ifhitweapon
+    {
+      ifwasweapon RADIUSEXPLOSION
+      {
+        sound SQUISHED
+        state standard_scraps
+		state troop_jibs
+        state standard_jibs
+        killit
+      }
+      break
+    }
+    else
+      state rchecksquished
+    break
+  }
+   else
+    ifaction ARTROOPARMLESSDEAD
+  {
+    strength 0
+	cstat 0
+	
+	action 0
+	 cactor ROBOTTROOPERARMLESS
+   
+    ifhitweapon
+    {
+      ifwasweapon RADIUSEXPLOSION
+      {
+        sound SQUISHED
+        state standard_scraps
+		state troop_jibs
+        state standard_jibs
+        killit
+      }
+      break
+    }
+    else
+      state rchecksquished
+    break
+  }
+   else
+    ifaction ARTROOPTORSOLESSDEAD
+  {
+    strength 0
+	cstat 0
+	
+	action 0
+	 cactor ROBOTTROOPERTORSOLESS
+   
+    ifhitweapon
+    {
+      ifwasweapon RADIUSEXPLOSION
+      {
+        sound SQUISHED
+        state standard_scraps
+		state troop_jibs
+        state standard_jibs
+        killit
+      }
+      break
+    }
+    else
+      state rchecksquished
+    break
+  }
+  else
+    ifaction ARTROOPDYING
+  {
+    state rtroopdying
+    break
+  }
+   else
+    ifaction ARTROOPHACKED
+  {
+    state rtroopdying
+    break
+  }
+   else
+    ifaction ARTROOPHEADLESS
+  {
+    state rtroopdying
+    break
+  }
+  else
+    ifaction ARTROOPARMLESS
+  {
+    state rtroopdying
+    break
+  }
+  else
+    ifaction ARTROOPTORSOLESS
+  {
+    state rtroopdying
+    break
+  }
+  else
+    ifaction ARTROOPFLINTCH
+  {
+    ifactioncount 4
+      ai AIRTROOPSEEKENEMY
+  }
+  else
+  {
+    ifai AIRTROOPSEEKPLAYER
+      state rtroopseekstate
+    else
+      ifai AIRTROOPJETPACK
+    {
+      state rtroopjetpackstate
+      ifinwater nullop
+      else
+        soundonce DUKE_JETPACK_IDLE
+    }
+    else
+      ifai AIRTROOPSEEKENEMY
+        state rtroopseekstate
+    else
+      ifai AIRTROOPSHOOTING
+        state rtroopshootstate
+    else
+      ifai AIRTROOPFLEEING
+        state rtroopfleestate
+    else
+      ifai AIRTROOPFLEEINGBACK
+        state rtroopfleestate
+    else
+      ifai AIRTROOPDODGE
+        state rtroopseekstate
+    else
+      ifai AIRTROOPSHRUNK
+        state rtroopshrunkstate
+    else
+      ifai AIRTROOPGROW
+        state genericgrowcode
+  }
+
+  ifhitweapon
+    state checkrtroophit
+  else
+    state rchecksquished
+ends
+
+
+useractor enemy ROBOTTROOPERJETPACK ROBOTTROOPERSTRENGTH
+  //state checktrooppalette
+  
+	ifai 0
+	{
+		sizeat 42 38
+		cstat 257
+		spritepal 21
+		sound ROBOT_RECOG
+	}
+  
+  ai AIRTROOPJETPACK
+  cactor ROBOTTROOPER
+enda
+
+useractor enemy ROBOTTROOPERSHOOT ROBOTTROOPERSTRENGTH
+  //state checktrooppalette
+  
+	ifai 0
+	{
+		sizeat 42 38
+		cstat 257
+		spritepal 21
+		sound ROBOT_RECOG
+	}
+  
+  ai AIRTROOPSHOOTING
+  cactor ROBOTTROOPER
+enda
+
+useractor enemystayput ROBOTTROOPERSTAYPUT ROBOTTROOPERSTRENGTH
+  //state checktrooppalette
+  
+	ifai 0
+	{
+		sizeat 42 38
+		cstat 257
+		spritepal 21
+		sound ROBOT_RECOG
+	}
+  
+  ai AIRTROOPSEEKPLAYER
+  cactor ROBOTTROOPER
+enda
+
+
+useractor enemy ROBOTTROOPER ROBOTTROOPERSTRENGTH ARTROOPSTAND
+  //state checktrooppalette
+  state rtroopcode
+enda

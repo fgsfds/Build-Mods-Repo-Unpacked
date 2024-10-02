@@ -1,0 +1,813 @@
+/*
+--------------------------------------------------------------------------------
+Duke Nukem 3D - Blast Edition Version 2.0
+By Marcos
+2023 - Space In a Bottle
+*/
+
+//Jelly Cycloid Protector code
+
+define JELLYSTRENGTH 700
+
+defineprojectile JELLYCONNECTOR PROJ_WORKSLIKE 65538
+defineprojectile JELLYCONNECTOR PROJ_EXTRA 1
+defineprojectile JELLYCONNECTOR PROJ_HITRADIUS 1024
+defineprojectile JELLYCONNECTOR PROJ_VEL 800
+defineprojectile JELLYCONNECTOR PROJ_XREPEAT 24
+defineprojectile JELLYCONNECTOR PROJ_YREPEAT 24
+defineprojectile JELLYCONNECTOR PROJ_TXREPEAT 24
+defineprojectile JELLYCONNECTOR PROJ_TYREPEAT 24
+defineprojectile JELLYCONNECTOR PROJ_CSTAT 128
+defineprojectile JELLYCONNECTOR PROJ_TRAIL JELLYCONNECTORACTOR
+
+useractor notenemy JELLYCONNECTOR 0 enda
+
+move JAMOVE 950
+move JAMOVE2 1000
+move JAMOVE3 512
+move JAMOVESTOPPED
+useractor notenemy JELLYCONNECTORACTOR 0
+	
+	ife sprite[].yvel 1
+	{
+		cstat 128
+		sizeat 24 24
+		
+		ifmove 0
+			move JAMOVE geth getv
+			
+		ifn sprite[cycloid_sprite].picnum BOSS4
+		{	
+			espawn JELLYCONNECTORACTOR
+			seta[RETURN].xrepeat 18
+			seta[RETURN].yrepeat 18
+		}
+	
+		set atemp6 cycloid_sprite
+		
+		geta[atemp6].z atemp
+		sub atemp sprite[].z
+		
+		ldist atemp THISACTOR atemp6
+		
+		ifl atemp 256
+			killit
+		
+		geta[atemp6].x atemp
+		geta[atemp6].y atemp2
+		sub atemp sprite[].x
+		sub atemp2 sprite[].y
+		getangle atemp3 atemp atemp2
+			
+		ldist atemp5 THISACTOR atemp6
+		
+		ifl atemp5 800
+		{
+			seta[].xvel atemp5
+			set atemp5 1
+		}
+		else
+			div atemp5 800
+							
+		geta[atemp6].z atemp
+		sub atemp sprite[].z
+							
+		ifn atemp5 0
+			div atemp atemp5
+			
+		seta[].zvel atemp
+		seta[].ang atemp3
+	
+		ifnotmoving
+		ifcount 5
+			killit
+			
+		iffloordistl 3
+			killit
+			
+		ifceilingdistl 3
+			killit
+	}
+	else ife sprite[].yvel 2
+	{
+		ife cycloid_sprite -1
+			killit
+		
+		ifn sprite[cycloid_sprite].picnum BOSS2RED
+			killit
+			
+		ifg cycloid_under_octa 2
+			killit
+	
+		cstat 128
+		sizeat 24 24
+		
+		espawn JELLYCONNECTORACTOR
+		seta[RETURN].xrepeat 18
+		seta[RETURN].yrepeat 18
+		
+		set atemp6 cycloid_sprite
+		
+		geta[atemp6].x atemp
+		
+		add atemp 1024
+		
+		rotatepoint sprite[atemp6].x sprite[atemp6].y atemp sprite[atemp6].y atemp7 atemp atemp2
+		
+		seta[].x atemp
+		seta[].y atemp2
+		add atemp7 64
+		
+		set atemp3 0
+		
+		ifn cycloid_beam_0 THISACTOR
+			add atemp3 1
+			
+		ifn cycloid_beam_1 THISACTOR
+			add atemp3 1
+			
+		ifn cycloid_beam_2 THISACTOR
+			add atemp3 1
+			
+		ife atemp3 3
+			killit
+	}
+	else ifge sprite[].yvel 3
+	ifle sprite[].yvel 4
+	{
+		sizeat 2 2
+		cstat 128
+	
+		ifmove 0
+		{
+			ifspawnedby SECTOREFFECTOR
+				move JAMOVE3 geth getv
+			else
+				move JAMOVE2 geth getv
+			
+			ifn atmp 0
+			{
+				seta[].zvel atmp
+				set atmp2 atmp
+				set atmp 0
+			}
+		}
+		
+		ifl atmp2 0
+		{
+			add atmp2 512
+			seta[].zvel atmp2
+		}
+		else ifg atmp2 0
+		{
+			add atmp2 512
+			seta[].zvel atmp2
+		}
+		
+		ifcount 6
+		{
+			ife sprite[].yvel 4
+				spawn FIRE2
+			
+			ifg atmp 20
+				hitradius 1536 1 2 3 6
+			
+			espawn EXPLOSION2
+			
+			ifrnd 96
+				spawn FIREBALL
+				
+			ifrnd 96
+				spawn FIREBALL
+				
+			seta[RETURN].z sprite[].z
+			sound PIPEBOMB_EXPLODE
+			quake 2
+			resetcount
+		}
+		
+		ifnotmoving
+			killit
+		
+		ife atmp 120
+			killit
+		
+		ifl atmp 121
+			add atmp 1
+	}
+	else ifge sprite[].yvel 10
+	ifle sprite[].yvel 30
+	{
+		sizeat 2 2
+		cstat 32768
+	
+		ifmove 0
+		{
+			move JAMOVE geth getv
+			
+			ifn atmp 0
+			{
+				seta[].zvel atmp
+				set atmp2 atmp
+				set atmp 0
+			}
+		}
+		
+		ifl atmp2 0
+		{
+			add atmp2 512
+			seta[].zvel atmp2
+		}
+		else ifg atmp2 0
+		{
+			add atmp2 512
+			seta[].zvel atmp2
+		}
+		
+		ife atmp 0
+		ifge sprite[].yvel 20
+		{
+			switch sprite[].yvel
+				case 20
+					ifrnd 96
+						espawn ULTRARPGAMMO
+					else ifrnd 96
+						espawn RPGAMMO
+					else
+						espawn DEVISTATORAMMO
+					break
+					
+				case 21
+					espawn ATOMICHEALTH
+					break
+					
+				case 22
+					ifrnd 96
+						espawn SHOTGUNAMMO
+					else ifrnd 96
+						espawn PLASMAAMMO
+					else ifrnd 96
+						espawn BATTERYAMMO
+					else
+						espawn FUEL
+					break
+					
+				case 23
+					espawn COLA
+					break
+					
+				case 24
+					ifrnd 1
+						espawn ONEUP
+					else
+						espawn SHIELD
+					break
+			endswitch
+			
+			set atemp RETURN
+		}
+		else ifg atmp 0
+		ifge sprite[].yvel 20
+			setsprite atemp sprite[].x sprite[].y sprite[].z
+		
+		ife atmp 10
+		{
+			ifge sprite[].yvel 10
+			ifle sprite[].yvel 19
+			{
+				switch sprite[].yvel
+					case 10
+						espawn OCTABRAIN
+						geta[].z atemp2
+						sub atemp2 65536
+						seta[].z atemp2
+						break
+						
+					case 11
+						ifrnd 96
+							espawn ELITEENFORCER
+						else ifrnd 96
+							espawn ROBOTTROOPER
+						else ifrnd 96
+							espawn SNAKEDRONE
+						else ifrnd 96
+							espawn COMMANDER
+						break
+				endswitch
+			}
+			
+			killit
+		}
+		
+		ifl atmp 11
+			add atmp 1
+	}
+	else
+	{	
+		sizeto 1 1
+		cstat 128
+		
+		ife sprite[].xrepeat 1
+			killit
+	}
+
+enda
+
+action AJELLYIDLE 0 3 5 1 12
+action AJELLYFROZEN 0 1 5 1 12
+action AJELLYATTACK 15 3 5 1 15
+action AJELLYFLINTCH 30 2 1 1 10
+action AJELLYDYING 30 8 1 1 7
+action AJELLYDEAD 38 1 1 1 1
+
+move JELLYWALK 200
+move JELLYWALKUP 200 -32
+move JELLYRUN 400 -32
+move JELLYWALKDOWN  200 32
+move JELLYLOWER 96 -16
+move JELLYSTOPPED 0
+
+ai AIJELLYIDLE AJELLYIDLE JELLYSTOPPED faceplayerslow getv
+ai AIJELLYWALK AJELLYIDLE JELLYWALKDOWN seekplayer getv
+ai AIJELLYDODGE AJELLYIDLE JELLYRUN dodgebullet getv
+ai AIJELLYATTACK AJELLYATTACK JELLYLOWER faceplayer getv
+ai AIJELLYDYING AJELLYDYING JELLYSTOPPED faceplayer
+ai AIJELLYGROW AJELLYIDLE JELLYSTOPPED faceplayer
+
+defstate JellyDying
+
+	ifaction AJELLYDYING
+	{
+		ifactioncount 7
+		{
+			addkills 1
+			spawn BLOODPOOL
+			guts JIBS6 5
+			action AJELLYDEAD
+			cstat 0
+			break
+		}
+		else ifactioncount 5 nullop
+		else ifactioncount 4
+		iffloordistl 8
+			sound THUD
+	}
+
+ends
+
+defstate JellyHit
+
+	//ifhitweapon
+	//{
+		ifdead
+		{	
+			sound OCTA_DYING
+			
+			ifwasweapon RPG
+			{
+				addkills 1
+				sound SQUISHED
+				state standard_jibs
+				state standard_jibs
+				spawn BLOODPOOL
+				
+				add cycloid_under_octa 1
+				ifn cycloid_beam_0 -1
+					set cycloid_beam_0 -1
+				else ifn cycloid_beam_1 -1
+					set cycloid_beam_1 -1
+				else ifn cycloid_beam_2 -1
+					set cycloid_beam_2 -1
+					
+				quake 15
+				palfrom 32 63 63 63
+				
+				killit
+			}
+			else ifwasweapon PLASMAPROJ
+			{
+				addkills 1
+				
+				add cycloid_under_octa 1
+				ifn cycloid_beam_0 -1
+					set cycloid_beam_0 -1
+				else ifn cycloid_beam_1 -1
+					set cycloid_beam_1 -1
+				else ifn cycloid_beam_2 -1
+					set cycloid_beam_2 -1
+					
+				quake 15
+				palfrom 32 63 63 63
+				
+				sound SQUISHED
+				state standard_jibs
+				state standard_jibs
+				spawn BLOODPOOL
+				killit
+			}
+			else ifwasweapon ROCKETPROJ
+			{
+				addkills 1
+				
+				add cycloid_under_octa 1
+				ifn cycloid_beam_0 -1
+					set cycloid_beam_0 -1
+				else ifn cycloid_beam_1 -1
+					set cycloid_beam_1 -1
+				else ifn cycloid_beam_2 -1
+					set cycloid_beam_2 -1
+				
+				quake 15
+				palfrom 32 63 63 63
+				
+				sound SQUISHED
+				state standard_jibs
+				state standard_jibs
+				spawn BLOODPOOL
+				killit
+			}
+			else ifwasweapon RADIUSEXPLOSION
+			{
+				addkills 1
+				
+				add cycloid_under_octa 1
+				ifn cycloid_beam_0 -1
+					set cycloid_beam_0 -1
+				else ifn cycloid_beam_1 -1
+					set cycloid_beam_1 -1
+				else ifn cycloid_beam_2 -1
+					set cycloid_beam_2 -1
+				
+				quake 15
+				palfrom 32 63 63 63
+				
+				sound SQUISHED
+				state standard_jibs
+				state standard_jibs
+				spawn BLOODPOOL
+				killit
+			}
+			else ifwasweapon GROWSPARK
+			{
+				cstat 0
+				
+				add cycloid_under_octa 1
+				ifn cycloid_beam_0 -1
+					set cycloid_beam_0 -1
+				else ifn cycloid_beam_1 -1
+					set cycloid_beam_1 -1
+				else ifn cycloid_beam_2 -1
+					set cycloid_beam_2 -1
+				
+				quake 15
+				palfrom 32 63 63 63
+				
+				sound ACTOR_GROWING
+				ai AIJELLYGROW
+				break
+			}
+			else ifwasweapon FREEZEBLAST
+			{
+				sound SOMETHINGFROZE
+				strength 0
+				action AJELLYFROZEN
+				move 0
+				spritepal 1
+				break
+			}
+			else
+			{
+				add cycloid_under_octa 1
+				ifn cycloid_beam_0 -1
+					set cycloid_beam_0 -1
+				else ifn cycloid_beam_1 -1
+					set cycloid_beam_1 -1
+				else ifn cycloid_beam_2 -1
+					set cycloid_beam_2 -1
+				
+				quake 15
+				palfrom 32 63 63 63
+				
+				ifwasweapon FLAMEPROJ
+					state genericburn_dead_code
+				
+				state rf
+				ai AIJELLYDYING
+			}
+		}
+		else
+		{
+			ifwasweapon FLAMEPROJ
+				set a_flaming 1
+			else ifwasweapon GROWSPARK
+				sound EXPANDERHIT
+				
+			sound OCTA_PAIN
+			spawn BLOOD
+			guts JIBS6 2
+			
+			state random_wall_jibs
+			
+			ifrnd 96
+				action AJELLYFLINTCH
+		}
+	//}
+
+ends
+
+defstate JellyWalk
+
+	ifrnd 1
+		soundonce OCTA_ROAM
+		
+	ifbulletnear
+		ai AIJELLYDODGE
+		
+	ifcansee
+	{
+		ifpdistl 4096
+		{
+			ifcanshoottarget
+			ifrnd 128
+				ai AIJELLYATTACK
+		}
+	}
+	
+	ifactioncount 6
+	{
+		ifp phigher
+		ifrnd 96
+			move JELLYWALKDOWN furthestdir geth getv
+		else ifrnd 96
+		ifpdistl 8192
+			move JELLYRUN furthestdir geth getv
+		else ifrnd 96
+		ifpdistl 8192
+			move JELLYRUN faceplayerslow
+		else ifrnd 32
+		{
+			ifceilingdistl 16 nullop
+			else
+				move JELLYWALKUP furthestdir getv
+		}
+		resetactioncount
+	}
+	
+	ifmove JELLYRUN
+	ifceilingdistl 16
+		move JELLYWALKDOWN furthestdir getv
+	else ifmove JELLYWALKUP
+	ifceilingdistl 8
+		move JELLYWALKDOWN furthestdir getv
+	else ifmove JELLYWALKDOWN
+	iffloordistl 14
+		move JELLYWALK furthestdir geth
+	
+	ifcount 32
+	ifnotmoving
+	{
+		iffloordistl 14
+			move JELLYWALK faceplayerslow geth
+		else
+			move JELLYWALKDOWN faceplayerslow getv
+			
+		resetcount
+	}
+	
+ends
+
+defstate JellyIdle
+
+	ifg sprite[].yvel 0
+	{
+		cstat 0
+		//al sprite[].yvel
+		
+		geta[sprite[].yvel].x atemp
+		geta[sprite[].yvel].y atemp2
+		sub atemp sprite[].x
+		sub atemp2 sprite[].y
+		getangle atemp3 atemp atemp2
+		
+		seta[].ang atemp3
+		
+		ifl atemp4 10
+		{
+			ife atemp6 0
+			{
+				action AJELLYATTACK
+				set atemp6 1
+			}
+			
+			ifn cycloid_sprite -1
+				set atemp4 10
+			
+			ifactioncount 3
+			{
+				ldist atemp5 THISACTOR sprite[].yvel
+				div atemp5 800
+				
+				geta[sprite[].yvel].z atemp
+				sub atemp sprite[].z
+				
+				ifn atemp5 0
+					div atemp atemp5
+					
+				ezshoot atemp JELLYCONNECTOR
+				seta[RETURN].ang atemp3
+				add atemp4 1
+				
+				resetactioncount
+			}
+		}
+		else
+		{
+			ifcount 30
+			{
+				cstat 257
+				set atemp6 sprite[].yvel
+				seta[].yvel -1
+				action AJELLYIDLE
+				set atemp7 0
+				resetcount
+			}
+		}
+	}
+	else
+	{
+		ifbulletnear
+			ai AIJELLYDODGE
+
+		ifcount 30
+		{
+			ai AIJELLYWALK
+			resetcount
+		}
+	}
+
+ends
+
+defstate JellyAttack
+
+	ifcansee
+	{
+		ifactioncount 3
+		{
+			sound OCTA_ATTACK1
+			shoot COOLEXPLOSION1
+			
+			ifrnd 48
+				ai AIJELLYIDLE
+				
+			resetactioncount
+		}
+	}
+	else
+		ai AIJELLYWALK
+
+ends
+
+useractor enemy JELLYPROTECTOR JELLYSTRENGTH
+
+	ifl sprite[].yvel 1
+		fall
+
+	ifai 0
+	{
+		cstat 257
+		sizeat 80 80
+		ai AIJELLYIDLE
+		ifg sprite[].yvel 0
+			move JELLYSTOPPED geth getv
+		sound OCTA_RECOG
+	}
+	
+	ifaction AJELLYDEAD nullop
+	else ifaction AJELLYDYING nullop
+	else ifaction AJELLYATTACK nullop
+	else
+	{
+		ife atemp7 15
+		{
+			set atemp6 cycloid_sprite
+			geta[atemp6].x atemp
+			geta[atemp6].y atemp2
+			sub atemp sprite[].x
+			sub atemp2 sprite[].y
+			getangle atemp3 atemp atemp2
+		
+			ldist atemp5 THISACTOR atemp6
+			div atemp5 1000
+						
+			geta[atemp6].z atemp
+			sub atemp sprite[].z
+						
+			ifn atemp5 0
+				div atemp atemp5
+							
+			
+			espawn JELLYCONNECTORACTOR
+			seta[RETURN].ang atemp3
+			seta[RETURN].yvel 1
+			
+			geta[RETURN].z atemp
+			sub atemp 14000
+			seta[RETURN].z atemp
+			
+			set atemp7 0
+		}
+		else
+			add atemp7 1
+	}
+	
+	ifaction AJELLYDEAD
+	{
+		strength 0
+		
+		ifcount 30
+		{
+			state standard_jibs
+			state standard_jibs
+			sound SQUISHED
+			killit
+		}
+	}
+	else ifaction AJELLYFLINTCH
+	{
+		ifactioncount 2
+			ai AIJELLYATTACK
+	}
+	else ifaction AJELLYFROZEN
+	{
+		ifcount THAWTIME
+		{
+		  ai AIJELLYWALK
+		  getlastpal
+		}
+		else ifcount FROZENDRIPTIME
+		{
+			ifactioncount 26
+			{
+				spawn WATERDRIP
+				resetactioncount
+			}
+		}
+
+		ifhitweapon
+		{
+			ifwasweapon FREEZEBLAST
+			{
+				strength 0
+				break
+			}
+			else
+			{
+				add cycloid_under_octa 1
+				ifn cycloid_beam_0 -1
+					set cycloid_beam_0 -1
+				else ifn cycloid_beam_1 -1
+					set cycloid_beam_1 -1
+				else ifn cycloid_beam_2 -1
+					set cycloid_beam_2 -1
+			
+				addkills 1
+				
+				quake 15
+				palfrom 32 63 63 63
+				
+				
+
+				lotsofglass 30
+				ifrnd 84
+					spawn BLOODPOOL
+					
+				sound GLASS_BREAKING
+				killit
+			}
+		}
+		
+		ifp pfacing
+		  ifpdistl FROZENQUICKKICKDIST
+			pkick
+		break
+	}
+	else ifai AIJELLYIDLE
+		state JellyIdle
+	else ifai AIJELLYWALK
+		state JellyWalk
+	else ifai AIJELLYWALK
+		state JellyWalk
+	else ifai AIJELLYDYING
+		state JellyDying
+	else ifai AIJELLYATTACK
+		state JellyAttack
+	else ifai AIJELLYGROW
+		state genericgrowcode
+	else ifai AIJELLYDODGE
+		ifactioncount 4
+			ai AIJELLYWALK
+	
+	ifhitweapon
+		state JellyHit
+
+enda

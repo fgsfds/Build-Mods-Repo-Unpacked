@@ -1,0 +1,1538 @@
+/*
+--------------------------------------------------------------------------------
+Duke Nukem 3D - Blast Edition Version 2.0
+By Marcos
+2023 - Space In a Bottle
+*/
+
+//Devistator configuration code
+
+var WEAPON7_SHOOTS ROCKETPROJ
+var devistatorhack 0 1
+
+define MINIROCKETDAMAGE 40
+
+define ROCKET_SEEKER 517
+definesound ROCKET_SEEKER snd/rocket_seeker.wav 0 0 0 0 0
+
+var lasttarget -1 1
+
+state draw_devastator // DEVISTATOR_WEAPON:
+    state reset_hud_weapon_coordinates
+
+    // for guniqhudid
+    setvarvar hud_temp4 currentweapon
+    shiftvarl hud_temp4 1
+
+    setvar hud_tilenum DEVISTATOR
+
+    setvar hud_temp -1 // flag
+
+    ifvarg weaponcount 0
+    {
+        addvar hud_totaltime 1
+        ifvarvarl weaponcount hud_totaltime
+        {
+            setvar hud_temp 0
+
+            switch weaponcount
+                default
+                    addlogvar weaponcount // debug
+                    break
+                    /*
+                case 0
+                case 6
+                    setvar hud_temp 0
+                    break
+                    */
+                case 1
+                case 5
+                    setvar hud_temp 4
+                    break
+                case 2
+                case 4
+                    setvar hud_temp 12
+                    break
+                case 3
+                    setvar hud_temp 24
+                    break
+            endswitch
+
+            setvarvar hud_temp2 weaponcount
+			/*
+            shiftvarr hud_temp2 2
+            // sign function:
+            ifvare hud_temp2 0
+                setvar hud_temp3 0
+            else ifvarg hud_temp2 0
+                setvar hud_temp3 1
+            else ifvarl hud_temp2 0
+                setvar hud_temp3 -1
+			*/
+			
+			switch weaponcount
+				case 1
+				case 5
+					set hud_temp3 1
+					break
+				case 2
+				case 4
+					set hud_temp3 -1
+					break
+				case 3
+					set hud_temp3 2
+					break
+					
+			endswitch
+
+            ifvarn player[THISACTOR].hbomb_hold_delay 0
+            {
+                guniqhudid currentweapon
+
+                setvarvar hud_temp2 hud_temp
+                shiftvarr hud_temp2 1
+                addvarvar hud_x hud_temp2
+                addvar hud_x 268
+
+                addvarvar hud_y hud_temp
+                addvar hud_y 238
+
+                addvarvar hud_tilenum hud_temp3
+
+                setvar hud_shade -32
+
+                state G_DrawWeaponTile
+
+                // cleanup
+                /*
+                subvar hud_x 268
+                subvarvar hud_x hud_temp2
+                subvar hud_y 238
+                subvarvar hud_y hud_temp
+                */
+                state reset_hud_weapon_coordinates
+                subvarvar hud_tilenum hud_temp3
+                setvarvar hud_shade gs
+
+                guniqhudid hud_temp4
+
+                addvar hud_x 30
+
+                addvar hud_y 240
+
+                orvar hud_orientation 4
+
+                state G_DrawWeaponTile
+
+                ifvarand hud_orientation 4
+                    xorvar hud_orientation 4
+
+                guniqhudid 0
+            }
+            else
+            {
+                guniqhudid hud_temp4
+
+                addvar hud_x 30
+                setvarvar hud_temp2 hud_temp
+                shiftvarr hud_temp2 1
+                subvarvar hud_x hud_temp2
+
+                addvar hud_y 240
+                addvarvar hud_y hud_temp
+
+                addvarvar hud_tilenum hud_temp3
+
+                setvar hud_shade -32
+
+                orvar hud_orientation 4
+
+                state G_DrawWeaponTile
+
+                // cleanup
+                /*
+                subvar hud_x 30
+                addvarvar hud_x hud_temp2
+                subvar hud_y 240
+                subvarvar hud_y hud_temp
+                */
+                state reset_hud_weapon_coordinates
+                subvarvar hud_tilenum hud_temp3
+                setvarvar hud_shade gs
+                ifvarand hud_orientation 4
+                    xorvar hud_orientation 4
+
+                guniqhudid currentweapon
+
+                addvar hud_x 268
+
+                addvar hud_y 238
+
+                state G_DrawWeaponTile
+
+                guniqhudid 0
+            }
+        break
+        }
+    }
+
+    ifvare hud_temp -1
+    {
+        guniqhudid currentweapon
+
+        addvar hud_x 268
+
+        addvar hud_y 238
+
+        state G_DrawWeaponTile
+
+        subvar hud_x 268
+        subvar hud_y 238
+
+        guniqhudid hud_temp4
+
+        addvar hud_x 30
+
+        addvar hud_y 240
+
+        orvar hud_orientation 4
+
+        state G_DrawWeaponTile
+
+        ifvarand hud_orientation 4
+            xorvar hud_orientation 4
+
+        guniqhudid 0
+    }
+ends
+
+
+define ROCKETSEEKER 2623
+
+action AROCKETSEEKER -2 0 7 0 0
+
+move ROCKETSEEKERVEL 72 -32
+
+useractor notenemy ROCKETSEEKER 10 AROCKETSEEKER
+
+	angoff -512
+	cstat 257
+	cstator 128
+	
+	sizeat 16 16
+	
+	ifmove 0
+		move ROCKETSEEKERVEL faceplayer getv
+		
+	ifl atemp5 20
+		add atemp5 1
+				
+	ife atemp5 15
+	{
+		sound SWITCH_ON
+				
+		seta[].xvel 450
+		espawn EXPLOSION3
+		seta[RETURN].xrepeat 4
+		seta[RETURN].yrepeat 4
+	}
+				
+	ife atemp5 19
+		sound ROCKET_SEEKER
+				
+	ife atemp5 20
+	{
+		ifp palive
+		{
+			set atemp6 player[].i
+				
+			ldist atmp player[].i THISACTOR
+			
+			espawn EXPLOSION3
+			seta[RETURN].xrepeat 4
+			seta[RETURN].yrepeat 4
+			
+			/*
+			ifg atmp 512
+			{
+				geta[atemp6].x atemp
+				geta[atemp6].y atemp2
+				sub atemp sprite[].x
+				sub atemp2 sprite[].y
+				getangle atemp3 atemp atemp2
+								
+				seta[].ang atemp3
+			}
+			*/
+			
+			ifl atmp 450
+			{
+				ifl atmp 128
+				ife lasttarget atemp6
+					set lasttarget -1
+								
+				seta[].xvel atmp
+				set atmp 1
+			}
+			else
+			{
+				seta[].xvel 450
+				div atmp 450
+			}
+							
+			geta[atemp6].z atmp2
+			sub atmp2 sprite[].z
+							
+			ifp pducking
+				nullop
+			else
+			{
+				ife atemp4 1
+					sub atmp2 4096
+				else
+					sub atmp2 8192
+			}
+							
+			ifn atmp 0
+				div atmp2 atmp
+								
+			seta[].zvel atmp2
+			
+
+			ifnotmoving
+			{
+				espawn EXPLOSION2
+				seta[RETURN].xrepeat 24
+				seta[RETURN].yrepeat 24
+				sound PIPEBOMB_EXPLODE
+				hitradius 1024 3 3 2 1
+				killit
+			}
+
+			ifpdistl 1024
+			{
+				espawn EXPLOSION2
+				seta[RETURN].xrepeat 24
+				seta[RETURN].yrepeat 24
+				sound PIPEBOMB_EXPLODE
+				hitradius 1024 3 3 2 1
+				killit
+			}		
+					
+			ifhitweapon
+			{
+				ifdead
+				{
+					espawn EXPLOSION2
+					seta[RETURN].xrepeat 24
+					seta[RETURN].yrepeat 24
+					sound PIPEBOMB_EXPLODE
+					hitradius 1024 3 3 2 1
+					killit
+				}
+			}
+		}
+		else
+		{
+			espawn EXPLOSION2
+			seta[RETURN].xrepeat 24
+			seta[RETURN].yrepeat 24
+			sound PIPEBOMB_EXPLODE
+			hitradius 1024 3 3 2 1
+			killit
+		}
+	}
+enda
+
+appendevent EVENT_GAME
+	
+	ife sprite[].picnum ROCKETPROJ
+	{
+	/*
+		ife thisprojectile[].xrepeat 8
+		{
+			ifl atemp5 20
+				add atemp5 1
+				
+			ife atemp5 15
+			ife sprite[].xvel 72
+			{
+				sound SWITCH_ON
+					
+				seta[].xvel 96
+				setthisprojectile[].trail EXPLOSION3
+			}
+				
+			ife atemp5 19
+				sound ROCKET_SEEKER
+				
+			ife atemp5 20
+			ifp palive
+			{
+				setthisprojectile[].cstat 257
+				set atemp6 player[].i
+			
+				ldist atmp player[].i THISACTOR
+						
+				ifg atmp 512
+				{
+					geta[atemp6].x atemp
+					geta[atemp6].y atemp2
+					sub atemp sprite[].x
+					sub atemp2 sprite[].y
+					getangle atemp3 atemp atemp2
+							
+					seta[].ang atemp3
+				}
+			
+				ifl atmp 96
+				{
+					ifl atmp 128
+					ife lasttarget atemp6
+						set lasttarget -1
+							
+					seta[].xvel atmp
+					set atmp 1
+				}
+				else
+					div atmp 96
+						
+				geta[atemp6].z atmp2
+				sub atmp2 sprite[].z
+						
+				ifp pducking
+					nullop
+				else
+				{
+					ife atemp4 1
+						sub atmp2 4096
+					else
+						sub atmp2 8192
+				}
+						
+				ifn atmp 0
+					div atmp2 atmp
+							
+				seta[].zvel atmp2
+				
+				ifhitweapon
+				{
+					espawn thisprojectile[].spawns
+					seta[RETURN].xrepeat thisprojectile[].sxrepeat
+					seta[RETURN].yrepeat thisprojectile[].syrepeat
+					sound PIPEBOMB_EXPLODE
+					hitradius 2048 8 4 2 2
+					killit
+				}
+			}
+		}
+		else
+		*/
+		ife thisprojectile[].xrepeat 7
+		{
+			ife atemp7 0
+			{
+				ifl atemp5 1
+					add atemp5 1
+				else
+					setthisprojectile[].trail EXPLOSION3
+			}
+			else
+			{
+				ifl atemp5 13
+					add atemp5 1
+				
+				ife atemp5 10
+				ife sprite[].xvel 96
+				{
+					sound SWITCH_ON
+					
+					seta[].xvel 600
+					setthisprojectile[].trail EXPLOSION3
+				}
+				
+				ife atemp5 12
+					sound ROCKET_SEEKER
+				
+				ife atemp5 13
+				{
+					ife atemp6 -1
+					{
+						ifrnd 64
+							findnearactor LIZTROOP 16384 atemp6
+						else ifrnd 64
+							findnearactor SNAKEHEAD 16384 atemp6
+						else ifrnd 64
+							findnearactor SNAKEDRONE 16384 atemp6
+						else ifrnd 64
+							findnearactor SHARK 16384 atemp6
+						else ifrnd 64
+							findnearactor DRONE 16384 atemp6
+						else ifrnd 64
+							findnearactor OCTABRAIN 16384 atemp6
+						else ifrnd 64
+							findnearactor PIGCOP 16384 atemp6
+						else ifrnd 64
+							findnearactor EGG 16384 atemp6
+						else ifrnd 64
+							findnearactor LIZMAN 16384 atemp6
+						else ifrnd 64
+							findnearactor DPIGCOP 16384 atemp6
+						else ifrnd 64
+							findnearactor FLAMEENFORCER 16384 atemp6
+						else ifrnd 64
+							findnearactor ROBOTTROOPER 16384 atemp6
+						else ifrnd 64
+							findnearactor ORGANTIC 16384 atemp6
+						else ifrnd 64
+							findnearactor COMMANDER 16384 atemp6
+						else ifrnd 64
+							findnearactor ELITEENFORCER 16384 atemp6
+						else ifrnd 64
+							findnearactor ELITEPIGCOP 16384 atemp6
+						else ifrnd 64
+							findnearactor BOSS1 16384 atemp6
+						else ifrnd 64
+							findnearactor BOSS3 16384 atemp6
+						else ifrnd 64
+							findnearactor BOSS2 16384 atemp6
+						else ifrnd 64
+							findnearactor GREENSLIME 16384 atemp6
+					
+						
+						ife lasttarget atemp6
+						{
+							set atemp6 -1
+							set atmp2 0
+						}
+						
+						ifn atemp6 -1
+						{
+							geta[atemp6].z atmp
+							sub atmp 8192
+							seta[atemp6].z atmp
+							
+							set atemp4 0
+							cansee sprite[].x sprite[].y sprite[].z sprite[].sectnum sprite[atemp6].x sprite[atemp6].y atmp sprite[atemp6].sectnum atmp2
+							
+							ife atmp2 0
+							{
+								add atmp 4096
+								seta[atemp6].z atmp
+								
+								set atemp4 1
+								cansee sprite[].x sprite[].y sprite[].z sprite[].sectnum sprite[atemp6].x sprite[atemp6].y atmp sprite[atemp6].sectnum atmp2
+							}
+							
+							add atmp 8192
+							seta[atemp6].z atmp
+						}
+						
+						ife lasttarget atemp6
+						{
+							set atemp6 -1
+							set atmp2 0
+						}
+						
+						ife atmp2 0
+						{
+							findnearactor LIZTROOP 16384 atemp6
+							ifn atemp6 -1
+							{
+								geta[atemp6].z atmp
+								sub atmp 8192
+								seta[atemp6].z atmp
+								
+								set atemp4 0
+								cansee sprite[].x sprite[].y sprite[].z sprite[].sectnum sprite[atemp6].x sprite[atemp6].y atmp sprite[atemp6].sectnum atmp2
+								
+								ife atmp2 0
+								{
+									add atmp 4096
+									seta[atemp6].z atmp
+									
+									set atemp4 1
+									cansee sprite[].x sprite[].y sprite[].z sprite[].sectnum sprite[atemp6].x sprite[atemp6].y atmp sprite[atemp6].sectnum atmp2
+								}
+								
+								add atmp 8192
+								seta[atemp6].z atmp
+							}
+						}
+						
+						ife lasttarget atemp6
+						{
+							set atemp6 -1
+							set atmp2 0
+						}
+						
+						ife atmp2 0
+						{
+							findnearactor SNAKEHEAD 16384 atemp6
+							ifn atemp6 -1
+							{
+								geta[atemp6].z atmp
+								sub atmp 8192
+								seta[atemp6].z atmp
+								
+								set atemp4 0
+								cansee sprite[].x sprite[].y sprite[].z sprite[].sectnum sprite[atemp6].x sprite[atemp6].y atmp sprite[atemp6].sectnum atmp2
+								
+								ife atmp2 0
+								{
+									add atmp 4096
+									seta[atemp6].z atmp
+									
+									set atemp4 1
+									cansee sprite[].x sprite[].y sprite[].z sprite[].sectnum sprite[atemp6].x sprite[atemp6].y atmp sprite[atemp6].sectnum atmp2
+								}
+								
+								add atmp 8192
+								seta[atemp6].z atmp
+							}
+						}
+						
+						ife lasttarget atemp6
+						{
+							set atemp6 -1
+							set atmp2 0
+						}
+						
+						ife atmp2 0
+						{
+							findnearactor SNAKEDRONE 16384 atemp6
+							ifn atemp6 -1
+							{
+								geta[atemp6].z atmp
+								sub atmp 8192
+								seta[atemp6].z atmp
+								
+								set atemp4 0
+								cansee sprite[].x sprite[].y sprite[].z sprite[].sectnum sprite[atemp6].x sprite[atemp6].y atmp sprite[atemp6].sectnum atmp2
+								
+								ife atmp2 0
+								{
+									add atmp 4096
+									seta[atemp6].z atmp
+									
+									set atemp4 1
+									cansee sprite[].x sprite[].y sprite[].z sprite[].sectnum sprite[atemp6].x sprite[atemp6].y atmp sprite[atemp6].sectnum atmp2
+								}
+								
+								add atmp 8192
+								seta[atemp6].z atmp
+							}
+						}
+						
+						ife lasttarget atemp6
+						{
+							set atemp6 -1
+							set atmp2 0
+						}
+						
+						ife atmp2 0
+						{
+							findnearactor DRONE 16384 atemp6
+							ifn atemp6 -1
+							{
+								geta[atemp6].z atmp
+								sub atmp 8192
+								seta[atemp6].z atmp
+								
+								set atemp4 0
+								cansee sprite[].x sprite[].y sprite[].z sprite[].sectnum sprite[atemp6].x sprite[atemp6].y atmp sprite[atemp6].sectnum atmp2
+								
+								ife atmp2 0
+								{
+									add atmp 4096
+									seta[atemp6].z atmp
+									
+									set atemp4 1
+									cansee sprite[].x sprite[].y sprite[].z sprite[].sectnum sprite[atemp6].x sprite[atemp6].y atmp sprite[atemp6].sectnum atmp2
+								}
+								
+								add atmp 8192
+								seta[atemp6].z atmp
+							}
+						}
+						
+						ife lasttarget atemp6
+						{
+							set atemp6 -1
+							set atmp2 0
+						}
+						
+						ife atmp2 0
+						{
+							findnearactor SHARK 16384 atemp6
+							ifn atemp6 -1
+							{
+								geta[atemp6].z atmp
+								sub atmp 8192
+								seta[atemp6].z atmp
+								
+								set atemp4 0
+								cansee sprite[].x sprite[].y sprite[].z sprite[].sectnum sprite[atemp6].x sprite[atemp6].y atmp sprite[atemp6].sectnum atmp2
+								
+								ife atmp2 0
+								{
+									add atmp 4096
+									seta[atemp6].z atmp
+									
+									set atemp4 1
+									cansee sprite[].x sprite[].y sprite[].z sprite[].sectnum sprite[atemp6].x sprite[atemp6].y atmp sprite[atemp6].sectnum atmp2
+								}
+								
+								add atmp 8192
+								seta[atemp6].z atmp
+							}
+						}
+						
+						ife lasttarget atemp6
+						{
+							set atemp6 -1
+							set atmp2 0
+						}
+						
+						ife atmp2 0
+						{
+							findnearactor OCTABRAIN 16384 atemp6
+							ifn atemp6 -1
+							{
+								geta[atemp6].z atmp
+								sub atmp 8192
+								seta[atemp6].z atmp
+								
+								set atemp4 0
+								cansee sprite[].x sprite[].y sprite[].z sprite[].sectnum sprite[atemp6].x sprite[atemp6].y atmp sprite[atemp6].sectnum atmp2
+								
+								ife atmp2 0
+								{
+									add atmp 4096
+									seta[atemp6].z atmp
+									
+									set atemp4 1
+									cansee sprite[].x sprite[].y sprite[].z sprite[].sectnum sprite[atemp6].x sprite[atemp6].y atmp sprite[atemp6].sectnum atmp2
+								}
+								
+								add atmp 8192
+								seta[atemp6].z atmp
+							}
+						}
+						
+						ife lasttarget atemp6
+						{
+							set atemp6 -1
+							set atmp2 0
+						}
+						
+						ife atmp2 0
+						{
+							findnearactor PIGCOP 16384 atemp6
+							ifn atemp6 -1
+							{
+								geta[atemp6].z atmp
+								sub atmp 8192
+								seta[atemp6].z atmp
+								
+								set atemp4 0
+								cansee sprite[].x sprite[].y sprite[].z sprite[].sectnum sprite[atemp6].x sprite[atemp6].y atmp sprite[atemp6].sectnum atmp2
+								
+								ife atmp2 0
+								{
+									add atmp 4096
+									seta[atemp6].z atmp
+									
+									set atemp4 1
+									cansee sprite[].x sprite[].y sprite[].z sprite[].sectnum sprite[atemp6].x sprite[atemp6].y atmp sprite[atemp6].sectnum atmp2
+								}
+								
+								add atmp 8192
+								seta[atemp6].z atmp
+							}
+						}
+						
+						ife lasttarget atemp6
+						{
+							set atemp6 -1
+							set atmp2 0
+						}
+						
+						ife atmp2 0
+						{
+							findnearactor LIZMAN 16384 atemp6
+							ifn atemp6 -1
+							{
+								geta[atemp6].z atmp
+								sub atmp 8192
+								seta[atemp6].z atmp
+								
+								set atemp4 0
+								cansee sprite[].x sprite[].y sprite[].z sprite[].sectnum sprite[atemp6].x sprite[atemp6].y atmp sprite[atemp6].sectnum atmp2
+								
+								ife atmp2 0
+								{
+									add atmp 4096
+									seta[atemp6].z atmp
+									
+									set atemp4 1
+									cansee sprite[].x sprite[].y sprite[].z sprite[].sectnum sprite[atemp6].x sprite[atemp6].y atmp sprite[atemp6].sectnum atmp2
+								}
+								
+								add atmp 8192
+								seta[atemp6].z atmp
+							}
+						}
+						
+						ife lasttarget atemp6
+						{
+							set atemp6 -1
+							set atmp2 0
+						}
+						
+						ife atmp2 0
+						{
+							findnearactor EGG 16384 atemp6
+							ifn atemp6 -1
+							{
+								geta[atemp6].z atmp
+								sub atmp 8192
+								seta[atemp6].z atmp
+								
+								set atemp4 0
+								cansee sprite[].x sprite[].y sprite[].z sprite[].sectnum sprite[atemp6].x sprite[atemp6].y atmp sprite[atemp6].sectnum atmp2
+								
+								ife atmp2 0
+								{
+									add atmp 6144
+									seta[atemp6].z atmp
+									
+									set atemp4 1
+									cansee sprite[].x sprite[].y sprite[].z sprite[].sectnum sprite[atemp6].x sprite[atemp6].y atmp sprite[atemp6].sectnum atmp2
+								}
+								
+								add atmp 8192
+								seta[atemp6].z atmp
+							}
+						}
+						
+						ife lasttarget atemp6
+						{
+							set atemp6 -1
+							set atmp2 0
+						}
+						
+						ife atmp2 0
+						{
+							findnearactor COMMANDER 16384 atemp6
+							ifn atemp6 -1
+							{
+								geta[atemp6].z atmp
+								sub atmp 8192
+								seta[atemp6].z atmp
+								
+								set atemp4 0
+								cansee sprite[].x sprite[].y sprite[].z sprite[].sectnum sprite[atemp6].x sprite[atemp6].y atmp sprite[atemp6].sectnum atmp2
+								
+								ife atmp2 0
+								{
+									add atmp 4096
+									seta[atemp6].z atmp
+									
+									set atemp4 1
+									cansee sprite[].x sprite[].y sprite[].z sprite[].sectnum sprite[atemp6].x sprite[atemp6].y atmp sprite[atemp6].sectnum atmp2
+								}
+								
+								add atmp 8192
+								seta[atemp6].z atmp
+							}
+						}
+						
+						ife lasttarget atemp6
+						{
+							set atemp6 -1
+							set atmp2 0
+						}
+						
+						ife atmp2 0
+						{
+							findnearactor ROBOTTROOPER 16384 atemp6
+							ifn atemp6 -1
+							{
+								geta[atemp6].z atmp
+								sub atmp 8192
+								seta[atemp6].z atmp
+								
+								set atemp4 0
+								cansee sprite[].x sprite[].y sprite[].z sprite[].sectnum sprite[atemp6].x sprite[atemp6].y atmp sprite[atemp6].sectnum atmp2
+								
+								ife atmp2 0
+								{
+									add atmp 4096
+									seta[atemp6].z atmp
+									
+									set atemp4 1
+									cansee sprite[].x sprite[].y sprite[].z sprite[].sectnum sprite[atemp6].x sprite[atemp6].y atmp sprite[atemp6].sectnum atmp2
+								}
+								
+								add atmp 8192
+								seta[atemp6].z atmp
+							}
+						}
+						
+						ife lasttarget atemp6
+						{
+							set atemp6 -1
+							set atmp2 0
+						}
+						
+						ife atmp2 0
+						{
+							findnearactor DPIGCOP 16384 atemp6
+							ifn atemp6 -1
+							{
+								geta[atemp6].z atmp
+								sub atmp 8192
+								seta[atemp6].z atmp
+								
+								set atemp4 0
+								cansee sprite[].x sprite[].y sprite[].z sprite[].sectnum sprite[atemp6].x sprite[atemp6].y atmp sprite[atemp6].sectnum atmp2
+								
+								ife atmp2 0
+								{
+									add atmp 4096
+									seta[atemp6].z atmp
+									
+									set atemp4 1
+									cansee sprite[].x sprite[].y sprite[].z sprite[].sectnum sprite[atemp6].x sprite[atemp6].y atmp sprite[atemp6].sectnum atmp2
+								}
+								
+								add atmp 8192
+								seta[atemp6].z atmp
+							}
+						}
+						
+						ife lasttarget atemp6
+						{
+							set atemp6 -1
+							set atmp2 0
+						}
+						
+						ife atmp2 0
+						{
+							findnearactor ELITEPIGCOP 16384 atemp6
+							ifn atemp6 -1
+							{
+								geta[atemp6].z atmp
+								sub atmp 8192
+								seta[atemp6].z atmp
+								
+								set atemp4 0
+								cansee sprite[].x sprite[].y sprite[].z sprite[].sectnum sprite[atemp6].x sprite[atemp6].y atmp sprite[atemp6].sectnum atmp2
+								
+								ife atmp2 0
+								{
+									add atmp 4096
+									seta[atemp6].z atmp
+									
+									set atemp4 1
+									cansee sprite[].x sprite[].y sprite[].z sprite[].sectnum sprite[atemp6].x sprite[atemp6].y atmp sprite[atemp6].sectnum atmp2
+								}
+								
+								add atmp 8192
+								seta[atemp6].z atmp
+							}
+						}
+						
+						ife lasttarget atemp6
+						{
+							set atemp6 -1
+							set atmp2 0
+						}
+						
+						ife atmp2 0
+						{
+							findnearactor FLAMEENFORCER 16384 atemp6
+							ifn atemp6 -1
+							{
+								geta[atemp6].z atmp
+								sub atmp 8192
+								seta[atemp6].z atmp
+								
+								set atemp4 0
+								cansee sprite[].x sprite[].y sprite[].z sprite[].sectnum sprite[atemp6].x sprite[atemp6].y atmp sprite[atemp6].sectnum atmp2
+								
+								ife atmp2 0
+								{
+									add atmp 4096
+									seta[atemp6].z atmp
+									
+									set atemp4 1
+									cansee sprite[].x sprite[].y sprite[].z sprite[].sectnum sprite[atemp6].x sprite[atemp6].y atmp sprite[atemp6].sectnum atmp2
+								}
+								
+								add atmp 8192
+								seta[atemp6].z atmp
+							}
+						}
+						
+						ife lasttarget atemp6
+						{
+							set atemp6 -1
+							set atmp2 0
+						}
+						
+						ife atmp2 0
+						{
+							findnearactor ELITEENFORCER 16384 atemp6
+							ifn atemp6 -1
+							{
+								geta[atemp6].z atmp
+								sub atmp 8192
+								seta[atemp6].z atmp
+								
+								set atemp4 0
+								cansee sprite[].x sprite[].y sprite[].z sprite[].sectnum sprite[atemp6].x sprite[atemp6].y atmp sprite[atemp6].sectnum atmp2
+								
+								ife atmp2 0
+								{
+									add atmp 4096
+									seta[atemp6].z atmp
+									
+									set atemp4 1
+									cansee sprite[].x sprite[].y sprite[].z sprite[].sectnum sprite[atemp6].x sprite[atemp6].y atmp sprite[atemp6].sectnum atmp2
+								}
+								
+								add atmp 8192
+								seta[atemp6].z atmp
+							}
+						}
+						
+						ife lasttarget atemp6
+						{
+							set atemp6 -1
+							set atmp2 0
+						}
+						
+						ife atmp2 0
+						{
+							findnearactor SARGE 16384 atemp6
+							ifn atemp6 -1
+							{
+								geta[atemp6].z atmp
+								sub atmp 8192
+								seta[atemp6].z atmp
+								
+								set atemp4 0
+								cansee sprite[].x sprite[].y sprite[].z sprite[].sectnum sprite[atemp6].x sprite[atemp6].y atmp sprite[atemp6].sectnum atmp2
+								
+								ife atmp2 0
+								{
+									add atmp 4096
+									seta[atemp6].z atmp
+									
+									set atemp4 1
+									cansee sprite[].x sprite[].y sprite[].z sprite[].sectnum sprite[atemp6].x sprite[atemp6].y atmp sprite[atemp6].sectnum atmp2
+								}
+								
+								add atmp 8192
+								seta[atemp6].z atmp
+							}
+						}
+						
+						ife lasttarget atemp6
+						{
+							set atemp6 -1
+							set atmp2 0
+						}
+						
+						ife atmp2 0
+						{
+							findnearactor GREENSLIME 16384 atemp6
+							ifn atemp6 -1
+							{
+								geta[atemp6].z atmp
+								sub atmp 8192
+								seta[atemp6].z atmp
+								
+								set atemp4 0
+								cansee sprite[].x sprite[].y sprite[].z sprite[].sectnum sprite[atemp6].x sprite[atemp6].y atmp sprite[atemp6].sectnum atmp2
+								
+								ife atmp2 0
+								{
+									add atmp 4096
+									seta[atemp6].z atmp
+									
+									set atemp4 1
+									cansee sprite[].x sprite[].y sprite[].z sprite[].sectnum sprite[atemp6].x sprite[atemp6].y atmp sprite[atemp6].sectnum atmp2
+								}
+								
+								add atmp 8192
+								seta[atemp6].z atmp
+							}
+						}
+						
+						ife lasttarget atemp6
+						{
+							set atemp6 -1
+							set atmp2 0
+						}
+						
+						ife atmp2 0
+						{
+							findnearactor ORGANTIC 16384 atemp6
+							ifn atemp6 -1
+							{
+								geta[atemp6].z atmp
+								sub atmp 8192
+								seta[atemp6].z atmp
+								
+								set atemp4 0
+								cansee sprite[].x sprite[].y sprite[].z sprite[].sectnum sprite[atemp6].x sprite[atemp6].y atmp sprite[atemp6].sectnum atmp2
+								
+								ife atmp2 0
+								{
+									add atmp 4096
+									seta[atemp6].z atmp
+									
+									set atemp4 1
+									cansee sprite[].x sprite[].y sprite[].z sprite[].sectnum sprite[atemp6].x sprite[atemp6].y atmp sprite[atemp6].sectnum atmp2
+								}
+								
+								add atmp 8192
+								seta[atemp6].z atmp
+							}
+						}
+						
+						ife lasttarget atemp6
+						{
+							set atemp6 -1
+							set atmp2 0
+						}
+						
+						ife atmp2 0
+						{
+							findnearactor ROTATEGUN 16384 atemp6
+							ifn atemp6 -1
+							{
+								geta[atemp6].z atmp
+								sub atmp 8192
+								seta[atemp6].z atmp
+								
+								set atemp4 0
+								cansee sprite[].x sprite[].y sprite[].z sprite[].sectnum sprite[atemp6].x sprite[atemp6].y atmp sprite[atemp6].sectnum atmp2
+								
+								ife atmp2 0
+								{
+									add atmp 4096
+									seta[atemp6].z atmp
+									
+									set atemp4 1
+									cansee sprite[].x sprite[].y sprite[].z sprite[].sectnum sprite[atemp6].x sprite[atemp6].y atmp sprite[atemp6].sectnum atmp2
+								}
+								
+								add atmp 8192
+								seta[atemp6].z atmp
+							}
+						}
+						
+						ife lasttarget atemp6
+						{
+							set atemp6 -1
+							set atmp2 0
+						}
+						
+						ife atmp2 0
+						{
+							findnearactor BOSS1 16384 atemp6
+							ifn atemp6 -1
+							{
+								geta[atemp6].z atmp
+								sub atmp 8192
+								seta[atemp6].z atmp
+								
+								set atemp4 0
+								cansee sprite[].x sprite[].y sprite[].z sprite[].sectnum sprite[atemp6].x sprite[atemp6].y atmp sprite[atemp6].sectnum atmp2
+								
+								ife atmp2 0
+								{
+									add atmp 4096
+									seta[atemp6].z atmp
+									
+									set atemp4 1
+									cansee sprite[].x sprite[].y sprite[].z sprite[].sectnum sprite[atemp6].x sprite[atemp6].y atmp sprite[atemp6].sectnum atmp2
+								}
+								
+								add atmp 8192
+								seta[atemp6].z atmp
+							}
+						}
+						
+						ife lasttarget atemp6
+						{
+							set atemp6 -1
+							set atmp2 0
+						}
+						
+						ife atmp2 0
+						{
+							findnearactor BOSS3 16384 atemp6
+							ifn atemp6 -1
+							{
+								geta[atemp6].z atmp
+								sub atmp 8192
+								seta[atemp6].z atmp
+								
+								set atemp4 0
+								cansee sprite[].x sprite[].y sprite[].z sprite[].sectnum sprite[atemp6].x sprite[atemp6].y atmp sprite[atemp6].sectnum atmp2
+								
+								ife atmp2 0
+								{
+									add atmp 4096
+									seta[atemp6].z atmp
+									
+									set atemp4 1
+									cansee sprite[].x sprite[].y sprite[].z sprite[].sectnum sprite[atemp6].x sprite[atemp6].y atmp sprite[atemp6].sectnum atmp2
+								}
+								
+								add atmp 8192
+								seta[atemp6].z atmp
+							}
+						}
+						
+						ife lasttarget atemp6
+						{
+							set atemp6 -1
+							set atmp2 0
+						}
+						
+						ife atmp2 0
+						{
+							findnearactor BOSS2 16384 atemp6
+							ifn atemp6 -1
+							{
+								geta[atemp6].z atmp
+								sub atmp 8192
+								seta[atemp6].z atmp
+								
+								set atemp4 0
+								cansee sprite[].x sprite[].y sprite[].z sprite[].sectnum sprite[atemp6].x sprite[atemp6].y atmp sprite[atemp6].sectnum atmp2
+								
+								ife atmp2 0
+								{
+									add atmp 4096
+									seta[atemp6].z atmp
+									
+									set atemp4 1
+									cansee sprite[].x sprite[].y sprite[].z sprite[].sectnum sprite[atemp6].x sprite[atemp6].y atmp sprite[atemp6].sectnum atmp2
+								}
+								
+								add atmp 8192
+								seta[atemp6].z atmp
+							}
+						}
+						
+						ife lasttarget atemp6
+						{
+							set atemp6 -1
+							set atmp2 0
+						}
+						
+						ife atmp2 0
+						{
+							findnearactor BOSS2RED 16384 atemp6
+							ifn atemp6 -1
+							{
+								geta[atemp6].z atmp
+								sub atmp 8192
+								seta[atemp6].z atmp
+								
+								set atemp4 0
+								cansee sprite[].x sprite[].y sprite[].z sprite[].sectnum sprite[atemp6].x sprite[atemp6].y atmp sprite[atemp6].sectnum atmp2
+								
+								ife atmp2 0
+								{
+									add atmp 4096
+									seta[atemp6].z atmp
+									
+									set atemp4 1
+									cansee sprite[].x sprite[].y sprite[].z sprite[].sectnum sprite[atemp6].x sprite[atemp6].y atmp sprite[atemp6].sectnum atmp2
+								}
+								
+								add atmp 8192
+								seta[atemp6].z atmp
+							}
+						}
+						
+						ife lasttarget atemp6
+						{
+							set atemp6 -1
+							set atmp2 0
+						}
+						
+						ife atmp2 0
+						{
+							findnearactor RECON 16384 atemp6
+							ifn atemp6 -1
+							{
+								geta[atemp6].z atmp
+								sub atmp 8192
+								seta[atemp6].z atmp
+								
+								set atemp4 0
+								cansee sprite[].x sprite[].y sprite[].z sprite[].sectnum sprite[atemp6].x sprite[atemp6].y atmp sprite[atemp6].sectnum atmp2
+								
+								ife atmp2 0
+								{
+									add atmp 4096
+									seta[atemp6].z atmp
+									
+									set atemp4 1
+									cansee sprite[].x sprite[].y sprite[].z sprite[].sectnum sprite[atemp6].x sprite[atemp6].y atmp sprite[atemp6].sectnum atmp2
+								}
+								
+								add atmp 8192
+								seta[atemp6].z atmp
+							}
+						}
+						
+						ife lasttarget atemp6
+						{
+							set atemp6 -1
+							set atmp2 0
+						}
+						
+						ife atmp2 0
+						{
+							findnearactor JELLYPROTECTOR 16384 atemp6
+							ifn atemp6 -1
+							{
+								geta[atemp6].z atmp
+								sub atmp 8192
+								seta[atemp6].z atmp
+								
+								set atemp4 0
+								cansee sprite[].x sprite[].y sprite[].z sprite[].sectnum sprite[atemp6].x sprite[atemp6].y atmp sprite[atemp6].sectnum atmp2
+								
+								ife atmp2 0
+								{
+									add atmp 4096
+									seta[atemp6].z atmp
+									
+									set atemp4 1
+									cansee sprite[].x sprite[].y sprite[].z sprite[].sectnum sprite[atemp6].x sprite[atemp6].y atmp sprite[atemp6].sectnum atmp2
+								}
+								
+								add atmp 8192
+								seta[atemp6].z atmp
+							}
+						}
+						
+						ife lasttarget atemp6
+						{
+							set atemp6 -1
+							set atmp2 0
+							set lasttarget -1
+						}
+						else
+							set lasttarget atemp6
+					}
+					else
+					{
+						ifl sprite[atemp6].extra 1
+							set atemp6 -1
+						
+						ifn atemp6 -1
+						ife sprite[atemp6].statnum 1024
+							set atemp6 -1
+							
+						ifn atemp6 -1
+						{
+							ldist atmp atemp6 THISACTOR
+							
+							ifg atmp 512
+							{
+								geta[atemp6].x atemp
+								geta[atemp6].y atemp2
+								sub atemp sprite[].x
+								sub atemp2 sprite[].y
+								getangle atemp3 atemp atemp2
+								
+								seta[].ang atemp3
+							}
+				
+							ifl atmp 600
+							{
+								ifl atmp 128
+								ife lasttarget atemp6
+									set lasttarget -1
+								
+								seta[].xvel atmp
+								set atmp 1
+							}
+							else
+							{
+								div atmp 600
+								seta[].xvel 600
+							}
+							
+							geta[atemp6].z atmp2
+							sub atmp2 sprite[].z
+							
+							ifn sprite[atemp6].picnum ROTATEGUN
+							ifn sprite[atemp6].picnum ORGANTIC
+							ifn sprite[atemp6].picnum EGG
+							ifn sprite[atemp6].picnum GREENSLIME
+							{
+								ife atemp4 1
+									sub atmp2 4096
+								else
+									sub atmp2 8192
+							}
+						
+						
+							ifn atmp 0
+								div atmp2 atmp
+								
+							seta[].zvel atmp2
+						}
+					}
+				}
+			}
+		}
+	}
+	
+	ife sprite[].picnum EXPLOSION2
+	{
+		ifspawnedby ROCKETPROJ
+		{
+			geta[].owner w_temp
+			geta[w_temp].xrepeat w_temp
+			
+			ife w_temp 7
+				sizeat 8 8
+		}
+	}	
+	
+	ife THISACTOR player[].i
+	{
+		ife devistatorhack 1
+		{
+			set devistatorhack 0
+			
+			ifg devistatorammo 0
+			{
+				sub devistatorammo 1
+				
+				setprojectile[ROCKETPROJ].xrepeat 7
+				setprojectile[ROCKETPROJ].yrepeat 7
+				
+				ife player[].hbomb_hold_delay 0
+					setprojectile[ROCKETPROJ].offset -96
+				else
+					setprojectile[ROCKETPROJ].offset 96
+					
+				setprojectile[ROCKETPROJ].trail -1
+				setprojectile[ROCKETPROJ].txrepeat 8
+				setprojectile[ROCKETPROJ].tyrepeat 8
+				setprojectile[ROCKETPROJ].extra MINIROCKETDAMAGE
+				setprojectile[ROCKETPROJ].vel 1000
+				
+				eshoot ROCKETPROJ
+				set horizseek horizfire
+				set horizcur 0
+									
+				set angseek angfire
+				displayrandvar angdir 1
+				set angcur 0
+				
+				setprojectile[ROCKETPROJ].vel 896
+				setprojectile[ROCKETPROJ].xrepeat 32
+				setprojectile[ROCKETPROJ].yrepeat 32
+				setprojectile[ROCKETPROJ].offset 168
+				setprojectile[ROCKETPROJ].trail SMALLSMOKE
+				setprojectile[ROCKETPROJ].extra ROCKETDAMAGE
+				setprojectile[ROCKETPROJ].txrepeat 8
+				setprojectile[ROCKETPROJ].tyrepeat 8
+				
+			}
+		}
+	}
+
+endevent
+
+appendevent EVENT_DOFIRE
+
+	ife player[].curr_weapon DEVISTATOR_WEAPON
+	ife player[].bsubweapon DEVISTATOR_WEAPON 0
+	{
+		ifg devistatorammo 0
+		{			
+			setprojectile[ROCKETPROJ].xrepeat 7
+			setprojectile[ROCKETPROJ].yrepeat 7
+				
+			ife player[].hbomb_hold_delay 0
+				setprojectile[ROCKETPROJ].offset -224
+			else
+				setprojectile[ROCKETPROJ].offset 224
+				
+			setprojectile[ROCKETPROJ].trail -1
+			setprojectile[ROCKETPROJ].txrepeat 8
+			setprojectile[ROCKETPROJ].tyrepeat 8
+			setprojectile[ROCKETPROJ].extra MINIROCKETDAMAGE
+		
+			ifn alt_start 0
+			{
+				setprojectile[ROCKETPROJ].trail -1
+				setprojectile[ROCKETPROJ].vel 96
+				setprojectile[ROCKETPROJ].drop 32
+				eshoot ROCKETPROJ
+				set horizseek horizfire
+				set horizcur 0
+									
+				set angseek angfire
+				displayrandvar angdir 1
+				set angcur 0
+				
+				sub devistatorammo 2
+				ife player[].hbomb_hold_delay 0
+					setp[].hbomb_hold_delay 1
+				else
+					setp[].hbomb_hold_delay 0
+					
+				setactorvar[RETURN].atemp7 1
+				setactorvar[RETURN].atemp6 -1
+					
+				sound WEAPON7_INITIALSOUND
+			}
+			else
+			{
+				setprojectile[ROCKETPROJ].vel 1000
+				
+				eshoot ROCKETPROJ
+				set horizseek horizfire
+				set horizcur 0
+									
+				set angseek angfire
+				displayrandvar angdir 1
+				set angcur 0
+				
+				sub devistatorammo 1
+				set devistatorhack 1
+			}
+			
+			setprojectile[ROCKETPROJ].vel 896
+			setprojectile[ROCKETPROJ].xrepeat 32
+			setprojectile[ROCKETPROJ].yrepeat 32
+			setprojectile[ROCKETPROJ].offset 168
+			setprojectile[ROCKETPROJ].trail SMALLSMOKE
+			setprojectile[ROCKETPROJ].extra ROCKETDAMAGE
+			setprojectile[ROCKETPROJ].txrepeat 8
+			setprojectile[ROCKETPROJ].tyrepeat 8
+			setprojectile[ROCKETPROJ].drop -128
+		}
+		else
+			set RETURN -1
+	}
+
+endevent

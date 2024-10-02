@@ -1,0 +1,257 @@
+/*
+--------------------------------------------------------------------------------
+Duke Nukem 3D - Blast Edition Version 2.0
+By Marcos
+2023 - Space In a Bottle
+*/
+
+//Snakehead enemy
+
+define SNAK_ROAM                      430
+define SNAK_RECOG                     431
+define SNAK_ATTACK1                   432
+define SNAK_PAIN                      433
+define SNAK_DYING                     434
+define SNAK_ATTACK2					  435
+
+definesound SNAK_ROAM     predrm.voc             128   256   3   0   0
+definesound SNAK_RECOG    blroam2a.voc           256   256   3   0   0
+definesound SNAK_ATTACK1  JETPAKON.voc           512   512   3   0   0
+definesound SNAK_ATTACK2  snakatB.voc            0   0   3   0   0
+definesound SNAK_PAIN     snd/liz_snd.wav        0   0   3   0   0
+definesound SNAK_DYING    snakdy.voc             0   0   3   0   0
+
+action SNAKEFRAMES     0   1   5   1   1
+action SNAKESCREAM     5   1   5   1   1
+
+move SNAKERUNVELS 300 128
+move SNAKEBULLVELS 400
+move SNAKERUNUPVELS 300 -64
+move SNAKEBACKWARDS -198 -64
+move SNAKEDODGE 256 -64
+move SNAKEWALK 64 -32
+move SNAKERISE 32 -16
+move SNAKESTOPPED
+
+ai AISNAKEGETE SNAKESCREAM SNAKERUNVELS faceplayer getv
+ai AISNAKEGETUP SNAKESCREAM SNAKERUNUPVELS faceplayer getv
+ai AISNAKEWALK SNAKEFRAMES SNAKEWALK seekplayer
+ai AISNAKELOOK SNAKEFRAMES SNAKESTOPPED faceplayerslow
+ai AISNAKEPULLBACK SNAKEFRAMES SNAKEBACKWARDS faceplayer getv
+ai AISNAKEHIT SNAKESCREAM SNAKEBACKWARDS dodgebullet getv
+ai AISNAKESHRUNK SNAKEFRAMES RSHRUNKVELS fleeenemy
+ai AISNAKEDODGE SNAKEFRAMES SNAKEDODGE dodgebullet getv
+ai AISNAKEGROW SNAKEFRAMES SNAKESTOPPED geth
+
+state checksnakehitstate
+	ifhitweapon
+	{
+		state random_wall_jibs
+		
+		ifbulletnear
+			ifrnd 128
+			ai AISNAKEDODGE
+			
+		ifwasweapon CATERKILAR
+		{
+			addkills 1
+			sound SNAK_DYING
+			sound SQUISHED
+			state standard_jibs
+			
+			state SpawnShards3
+			
+			killit
+		}
+		else ifwasweapon PLASMAPROJ
+		{
+			addkills 1
+			sound SNAK_DYING
+			sound SQUISHED
+			state standard_jibs
+			
+			ife userdef.player_skill 6
+			ifrnd 196
+				state SpawnShards3
+			
+			killit
+		}
+		else ifwasweapon FLAMEPROJ
+		{
+			addkills 1
+			sound SNAK_DYING
+			sound SQUISHED
+			state standard_jibs
+			
+			ife userdef.player_skill 6
+			ifrnd 196
+				state SpawnShards3
+			
+			killit
+		}
+		else ifwasweapon SHRINKSPARK
+		{
+			sound ACTOR_SHRINKING
+			ai AISNAKESHRUNK
+		}
+		else ifwasweapon GROWSPARK
+		{
+			cstat 0
+			sound ACTOR_GROWING
+			ai AISNAKEGROW
+			break
+		}
+		else
+		{
+			ifdead
+			{ 
+				addkills 1
+				sound SNAK_DYING
+				sound SQUISHED
+				state standard_jibs
+				
+				ife userdef.player_skill 6
+				ifrnd 196
+					state SpawnShards3
+				
+				killit
+			}
+			else
+			{ 
+				sound SNAK_PAIN
+				ai AISNAKEHIT
+			}
+		}
+	}
+ends
+
+defstate snakedodgestate
+
+	ifcount 8
+	{
+		spawn EXPLOSION3
+		ai AISNAKEGETE
+	}
+	else ifnotmoving
+	{
+		spawn EXPLOSION3
+		ai AISNAKEGETE
+	}
+
+ends
+
+state snakeshrunkstate
+    ifcount 24 killit
+    else sizeto 1 1
+ends
+
+useractor enemy SNAKEHEAD SNAKEHEADSTRENGTH
+
+	clipdist 64
+    
+	ifrnd 8 spawn WATERDRIP
+
+    state rchecksquished
+	
+	state checksnakehitstate
+	
+	//soundonce RECO_ROAM
+	
+	ifai 0
+	{
+		sizeat 40 40
+		cstat 257
+		sound SNAK_RECOG
+		ai AISNAKEWALK
+	}
+    else ifai AISNAKELOOK
+    {
+        ifrnd 1 soundonce SNAK_ROAM
+		//al 1
+        ifactioncount 8
+        {
+            ifcanseetarget
+            {
+                ifcanshoottarget { sound SNAK_ATTACK1 spawn EXPLOSION3 ifp phigher ai AISNAKEGETUP else ai AISNAKEGETE }
+                else ai AISNAKEWALK
+            }
+            else ai AISNAKEWALK
+        }
+    }
+    else ifai AISNAKEWALK
+    {
+        //ifcansee
+        ifrnd 32
+			ifnotmoving
+			move SNAKERISE faceplayerslow
+
+        ifcount 30
+        {
+            ifcanseetarget { sound SNAK_ATTACK1 spawn EXPLOSION3 ifp phigher ai AISNAKEGETUP else ai AISNAKEGETE }
+            else resetcount
+        }
+    }
+    else ifai AISNAKEGETE
+    {
+        //ifcansee
+		
+		soundonce DUKE_JETPACK_IDLE
+		
+		iffloordistl 32
+		ifmove SNAKERUNVELS
+			move SNAKEBULLVELS faceplayer
+		
+		ifcansee
+			ifbulletnear
+				ifrnd 96
+			ai AISNAKEDODGE
+		
+        ifcount 64
+			ai AISNAKEPULLBACK
+        else ifpdistl 1024
+        {
+            sound SNAK_ATTACK2
+			palfrom 32 63
+			ifrnd 128
+          sound DUKE_LONGTERM_PAIN5
+		else ifrnd 128
+			sound DUKE_LONGTERM_PAIN6
+			
+            addphealth -5
+            ai AISNAKEPULLBACK
+        }
+        ifnotmoving
+            ifcount 16 ai AISNAKEPULLBACK
+    }
+    else ifai AISNAKEGETUP
+    {
+		soundonce DUKE_JETPACK_IDLE
+	
+        ifcansee
+			ifbulletnear
+				ifrnd 96
+			ai AISNAKEDODGE
+		
+        ifcount 64
+			ai AISNAKEPULLBACK
+        else ifpdistl 1024
+        {
+            sound SNAK_ATTACK2
+            addphealth -5
+			palfrom 32 63
+			ifrnd 128
+          sound DUKE_LONGTERM_PAIN5
+		else ifrnd 128
+			sound DUKE_LONGTERM_PAIN6
+            ai AISNAKEPULLBACK
+        }
+        ifnotmoving
+            ifcount 16 ai AISNAKEPULLBACK
+    }
+    else ifai AISNAKEPULLBACK { ifnotmoving ai AISNAKELOOK ifcount 16 ai AISNAKELOOK }
+    else ifai AISNAKEHIT ifcount 8 ai AISNAKELOOK
+    else ifai AISNAKESHRUNK state snakeshrunkstate
+	else ifai AISNAKEDODGE state snakedodgestate
+	else ifai AISNAKEGROW state genericgrowcode
+	
+enda

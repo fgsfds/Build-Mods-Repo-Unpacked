@@ -1,0 +1,2095 @@
+/*
+--------------------------------------------------------------------------------
+Duke Nukem 3D - Blast Edition Version 2.0
+By Marcos
+2022 - Space In a Bottle
+*/
+
+//HUD
+
+var hx 0 1
+var hy 0 1
+var hx2 0 1
+var hy2 0 1
+var hx3 0 1
+var hy3 0 1
+var hshade 0 0
+var hpicnum 0 1
+
+define WEAPON_WHEEL 2432
+define WEAPON_WHEEL_SELECTION 2433
+define WEAPON_WHEEL_SELECTOR 2443
+
+var wheeldisptime 0 1
+var wheelselection 0 1
+var last_wheelselection 0 1
+var wheelactive 0 1
+var wheelhoriz 0 1
+var wheelang 0 1
+
+appendevent EVENT_DISPLAYSBAR
+
+	set RETURN -1
+	
+	ife userdef.enable_nuke 1
+	ife userdef.nuke_active 1
+		nullop
+	else
+	{
+		redefinequote RQUOTE SCORE: %d
+		qsprintf RQUOTE RQUOTE s_displayscore
+		qstrdim hx hy STARTALPHANUM 280 5 32768 0 RQUOTE 528 5 8 0 0 8 0 0 xdim ydim
+		set hx2 320
+		sub hx2 hx
+		sub hx2 5
+		screentext STARTALPHANUM hx2 5 32768 0 0 RQUOTE 0 0 528 0 5 8 0 0 8 0 0 xdim ydim
+	}
+	
+	ife space_on 1
+	{
+		rotatesprite 160 100 65536 0 SPACEMASK gs 0 1024 windowx1 windowy1 windowx2 windowy2
+		rotatesprite 160 100 65536 0 2578 0 0 1025 windowx1 windowy1 windowx2 windowy2
+	}
+	
+	ifn bossfighton -1
+	ife num_bosspalfight 0
+	{
+		ifl sprite[bossfighton].extra 1
+			set bossfighton -1
+	
+		rotatesprite 160 4 65536 0 BOSSMETER 0 0 8 0 0 xdim ydim
+		
+		geta[bossfighton].extra dtemp
+		switch sprite[bossfighton].picnum
+			case BOSS1
+				set dtemp5 BOSS1STRENGTH
+				break
+				
+			case BOSS3
+				set dtemp5 BOSS3STRENGTH
+				break
+				
+			case BOSS2
+				set dtemp5 BOSS2STRENGTH
+				break
+				
+			case BOSS2RED
+				set dtemp5 BOSS2STRENGTH
+				break
+				
+			case BOSS4
+				set dtemp5 BOSS4STRENGTH
+				break
+				
+			case FIREFLY
+				set dtemp5 3500
+				break
+		endswitch
+		
+		ife userdef.enable_nuke 1
+		ife userdef.nuke_active 1
+		{
+			mul dtemp5 userdef.nuke_enemyhealth
+			div dtemp5 100
+		}
+		
+		set dtemp4 dtemp5
+		div dtemp4 4
+		
+		ifl dtemp dtemp4
+			set dtemp4 21
+		else
+			set dtemp4 0
+		
+		mul dtemp 100
+		
+		div dtemp dtemp5
+		
+		set dtemp2 xdim
+		mul dtemp2 2500
+		div dtemp2 10000
+		
+		set dtemp3 xdim
+		sub dtemp3 dtemp2
+		sub dtemp3 dtemp2
+		
+		mul dtemp dtemp3
+		div dtemp 100
+		
+		add dtemp dtemp2
+		
+		rotatesprite 160 4 65536 0 BOSSMETERFILL 0 dtemp4 8 dtemp2 0 dtemp ydim
+		
+		ifg bossmeterfilled 0
+		{
+			rotatesprite 160 4 65536 0 BOSSMETERFILL 0 23 8 dtemp 0 bossmeterfilled ydim
+			
+			sub bossmeterfilled 1
+			
+			ifl bossmeterfilled dtemp2
+				set bossmeterfilled 0
+		}
+	}
+	
+	ifg num_bosspalfight 0
+	{
+		set dtemp2 0
+		set dtemp 0
+		set dtemp5 0
+		for dtemp2 range num_bosspalfight
+		{
+			ifg bosspal[dtemp2] 0
+			{
+				ifand sprite[bosspal[dtemp2]].statnum 1024
+				{
+					geta[bosspal[dtemp2]].picnum dtemp3
+					mul dtemp3 -1
+					setarray bosspal[dtemp2] dtemp3
+				}
+				else ifg sprite[bosspal[dtemp2]].extra 0
+					add dtemp sprite[bosspal[dtemp2]].extra
+				else
+				{
+					geta[bosspal[dtemp2]].picnum dtemp3
+					mul dtemp3 -1
+					setarray bosspal[dtemp2] dtemp3
+				}
+			}
+			
+			ifl bosspal[dtemp2] 0
+			{
+				set dtemp3 bosspal[dtemp2]
+				mul dtemp3 -1
+			}
+			else
+				geta[bosspal[dtemp2]].picnum dtemp3
+			
+			switch dtemp3
+				case BOSS1
+					add dtemp5 BOSS1PALSTRENGTH
+					break
+						
+				case BOSS3
+					add dtemp5 BOSS3PALSTRENGTH
+					break
+						
+				case FIREFLY
+					add dtemp5 1000
+					break
+			endswitch
+		}
+		
+		ifl dtemp 1
+			set num_bosspalfight 0
+		
+		ifn bossfighton -1
+		{
+			ifg sprite[bossfighton].extra 0
+				add dtemp sprite[bossfighton].extra
+			
+			switch sprite[bossfighton].picnum
+				case BOSS1
+					add dtemp5 BOSS1STRENGTH
+					break
+					
+				case BOSS3
+					add dtemp5 BOSS3STRENGTH
+					break
+					
+				case BOSS2
+					add dtemp5 BOSS2STRENGTH
+					break
+					
+				case BOSS2RED
+					add dtemp5 BOSS2STRENGTH
+					break
+					
+				case BOSS4
+					add dtemp5 BOSS4STRENGTH
+					break
+					
+				case FIREFLY
+					add dtemp5 3500
+					break
+			endswitch
+		}
+		
+		ife userdef.enable_nuke 1
+		ife userdef.nuke_active 1
+		{
+			mul dtemp5 userdef.nuke_enemyhealth
+			div dtemp5 100
+		}
+		
+		rotatesprite 160 4 65536 0 BOSSMETER 0 0 8 0 0 xdim ydim
+		
+		set dtemp4 dtemp5
+		div dtemp4 4
+		
+		ifl dtemp dtemp4
+			set dtemp4 21
+		else
+			set dtemp4 0
+		
+		mul dtemp 100
+		
+		div dtemp dtemp5
+		
+		set dtemp2 xdim
+		mul dtemp2 2500
+		div dtemp2 10000
+		
+		set dtemp3 xdim
+		sub dtemp3 dtemp2
+		sub dtemp3 dtemp2
+		
+		mul dtemp dtemp3
+		div dtemp 100
+		
+		add dtemp dtemp2
+		
+		rotatesprite 160 4 65536 0 BOSSMETERFILL 0 dtemp4 8 dtemp2 0 dtemp ydim
+		
+		ifg bossmeterfilled 0
+		{
+			rotatesprite 160 4 65536 0 BOSSMETERFILL 0 23 8 dtemp 0 bossmeterfilled ydim
+			
+			sub bossmeterfilled 2
+			
+			ifl bossmeterfilled dtemp2
+				set bossmeterfilled 0
+		}
+	}
+	
+	ifge userdef[].screen_size 8
+	{
+		//Full status bar
+		rotatesprite 160 197 SIZE1X 0 BOTTOMSTATUSBAR 4 0 8 0 0 xdim ydim
+		
+		//Bar lights
+		geta[player[].i].shade dtemp
+		rotatesprite -1 181 SIZE1X 0 2464 dtemp 0 24 0 0 xdim ydim
+		rotatesprite 321 181 SIZE1X 1024 2464 dtemp 0 28 0 0 xdim ydim
+		
+		//Health
+		digitalnumber DIGITALNUM 37 183 player[].last_extra -16 0 24 0 0 xdim ydim
+		
+		//Armor
+		digitalnumber DIGITALNUM 72 183 player[].shield_amount -16 0 24 0 0 xdim ydim
+		
+		//Ammo
+		switch player[].curr_weapon
+			case KNEE_WEAPON
+				ife 1 player[].bsubweapon KNEE_WEAPON
+					set dtemp2 plasmaammo
+				break
+		
+			case PISTOL_WEAPON
+				getp[].ammo_amount PISTOL_WEAPON dtemp2
+				break
+			case SHOTGUN_WEAPON
+				getp[].ammo_amount SHOTGUN_WEAPON dtemp2
+				break	
+			case CHAINGUN_WEAPON
+				ife 0 player[].bsubweapon CHAINGUN_WEAPON
+					set dtemp2 ripperammo
+				else
+					set dtemp2 plasmaammo
+				break
+			case RPG_WEAPON
+				ife 0 player[].bsubweapon RPG_WEAPON
+					set dtemp2 rpgammo
+				else
+					set dtemp2 urpgammo
+				break
+			case HANDBOMB_WEAPON
+			case HANDREMOTE_WEAPON
+				getp[].ammo_amount HANDBOMB_WEAPON dtemp2
+				break
+			case SHRINKER_WEAPON
+				getp[].ammo_amount SHRINKER_WEAPON dtemp2
+				break
+			case DEVISTATOR_WEAPON
+				ife 0 player[].bsubweapon DEVISTATOR_WEAPON
+					set dtemp2 devistatorammo
+				else
+					set dtemp2 sonicammo
+				break
+			case TRIPBOMB_WEAPON
+				getp[].ammo_amount TRIPBOMB_WEAPON dtemp2
+				break
+			case FREEZE_WEAPON
+				ife 0 player[].bsubweapon FREEZE_WEAPON
+					set dtemp2 freezeammo
+				else
+					set dtemp2 flameammo
+				break
+			case GROW_WEAPON
+				getp[].ammo_amount GROW_WEAPON dtemp2
+				break
+				
+		endswitch
+		
+		ife player[].curr_weapon KNEE_WEAPON
+			ife player[].bsubweapon KNEE_WEAPON 0
+			nullop
+		else
+			digitalnumber DIGITALNUM 208 183 dtemp2 -16 0 24 0 0 xdim ydim
+		
+		//Keycards
+		ifvarand player[].got_access 1
+			rotatesprite 238 179 55000 0 2471 -16 0 24 0 0 xdim ydim
+			
+		ifvarand player[].got_access 2
+			rotatesprite 238 185 55000 0 2471 -16 21 24 0 0 xdim ydim
+			
+		ifvarand player[].got_access 4
+			rotatesprite 238 191 55000 0 2471 -16 23 24 0 0 xdim ydim
+			
+		//Inventory
+		set hx 262
+		set hy 181
+		set hx2 281
+		set hy2 188
+		
+		switch selected_inv
+			case ICON_FIRSTAID
+				set dtemp FIRSTAID_ICON
+				getp[].firstaid_amount dtemp2
+				break
+			case ICON_STEROIDS
+				set dtemp STEROIDS_ICON
+				ifl player[].steroids_amount 400
+					redefinequote RQUOTE on
+				else
+					redefinequote RQUOTE off
+				
+				getp[].steroids_amount dtemp2
+				div dtemp2 4
+				
+				//sub hx2 2
+				add hx 2
+				sub hy 2
+				break
+			case ICON_HOLODUKE
+				set dtemp HOLODUKE_ICON
+				ifn player[].holoduke_on -1
+					redefinequote RQUOTE on
+				else
+					redefinequote RQUOTE off
+				
+				getp[].holoduke_amount dtemp2
+				div dtemp2 24
+				
+				//sub hx2 2
+				add hx 1
+				sub hy 4
+				break
+			case ICON_JETPACK
+				set dtemp JETPACK_ICON
+				ifg player[].jetpack_on 0
+					redefinequote RQUOTE on
+				else
+					redefinequote RQUOTE off
+					
+				getp[].jetpack_amount dtemp2
+				div dtemp2 12
+				//add hx 3
+				sub hy 2
+				break
+			case ICON_HEATS
+				set dtemp HEAT_ICON
+				ife player[].heat_on 1
+					redefinequote RQUOTE on
+				else
+					redefinequote RQUOTE off
+					
+				getp[].heat_amount dtemp2
+				div dtemp2 12
+				break
+			case ICON_SCUBA
+				set dtemp AIRTANK_ICON
+				redefinequote RQUOTE auto
+					
+				getp[].scuba_amount dtemp2
+				div dtemp2 64
+				
+				sub hy 3
+				break
+			case ICON_BOOTS
+				set dtemp BOOT_ICON
+				redefinequote RQUOTE auto
+				
+				getp[].boot_amount dtemp2
+				div dtemp2 2
+				
+				sub hy 2
+				break
+			case ICON_SPACE
+				set dtemp SPACE_ICON
+				redefinequote RQUOTE auto
+				
+				set dtemp2 space_amount
+				div dtemp2 36
+				
+				sub hy 2
+				break
+		endswitch
+		
+		ifn selected_inv ICON_NONE
+		{
+			rotatesprite hx hy SIZE1X 0 dtemp -16 0 24 0 0  xdim ydim
+			
+			ifg selected_inv ICON_FIRSTAID
+			ifl selected_inv ICON_SCUBA
+				minitext 284 181 RQUOTE -16 2 
+			else ife selected_inv ICON_BOOTS
+				minitext 281 181 RQUOTE -16 2 
+			else ife selected_inv ICON_SCUBA
+				minitext 281 181 RQUOTE -16 2 
+			else ife selected_inv ICON_SPACE
+				minitext 281 181 RQUOTE -16 2 
+			
+			redefinequote RQUOTE %d%
+			qsprintf RQUOTE RQUOTE dtemp2
+			minitext hx2 hy2 RQUOTE -16 8 
+		}
+		
+		//Weapons ammo amounts
+		set dtemp 2
+		whilevarn dtemp 11
+		{
+			set hx 103
+			set hy 178
+			
+			ifge dtemp 5
+			ifle dtemp 7
+				add hx 31
+				
+			ifge dtemp 8
+			ifle dtemp 10
+				add hx 62
+			
+			set hshade 16
+			
+			switch dtemp
+				case 2
+					ife 1 player[].gotweapon PISTOL_WEAPON
+						set hshade -16
+					break
+				case 3
+					ife gotweapons[SHOTGUN_WEAPON] 1
+						set hshade -16
+					else
+					{
+						ife gotweapons[SHOTGUNDOUBLE_WEAPON] 1
+							set hshade -16
+					}
+					break
+				case 4
+					ife gotweapons[CHAINGUN_WEAPON] 1
+						set hshade -16
+					else
+					{
+						ife gotweapons[PLASMA_WEAPON] 1
+							set hshade -16
+					}
+					break
+				case 5
+					ife gotweapons[RPG_WEAPON] 1
+						set hshade -16
+					else
+					{
+						ife gotweapons[RPGBLAST_WEAPON] 1
+							set hshade -16
+					}
+					break
+				case 6
+					ife 1 player[].gotweapon HANDBOMB_WEAPON
+						set hshade -16
+					break
+				case 7
+					ife 1 player[].gotweapon SHRINKER_WEAPON
+						set hshade -16
+					else ife 1 player[].gotweapon GROW_WEAPON
+						set hshade -16
+					break
+				case 8
+					ife gotweapons[DEVISTATOR_WEAPON] 1
+						set hshade -16
+					else ife gotweapons[SONICRESONATOR_WEAPON] 1
+						set hshade -16
+					break
+				case 9
+					ife 1 player[].gotweapon TRIPBOMB_WEAPON
+						set hshade -16
+					break
+				case 10
+					ife gotweapons[FREEZE_WEAPON] 1
+						set hshade -16
+					else
+					{
+						ife gotweapons[FLAME_WEAPON] 1
+							set hshade -16
+					}
+					break
+			endswitch
+				
+			switch dtemp
+				case 3
+				case 6
+				case 9
+					add hy 6
+					break
+				case 4
+				case 7
+				case 10
+					add hy 12
+					break
+			endswitch
+			
+			//Index
+			set dtemp2 dtemp
+			
+			ife dtemp2 10
+				set dtemp2 0
+				
+			digitalnumber THREEBYFIVE hx hy dtemp2 hshade 7 24 0 0 xdim ydim
+			
+			add hx 3
+			add hy 1
+			rotatesprite hx hy SIZE1X 0 3020 hshade 7 24 0 0 xdim ydim
+			
+			switch dtemp
+				case 2
+					getp[].ammo_amount PISTOL_WEAPON dtemp2
+					break
+				case 3
+					getp[].ammo_amount SHOTGUN_WEAPON dtemp2
+					break	
+				case 4
+					set dtemp2 ripperammo
+					break
+				case 5
+					set dtemp2 rpgammo
+					break
+				case 6
+					getp[].ammo_amount HANDBOMB_WEAPON dtemp2
+					break
+				case 7
+					getp[].ammo_amount SHRINKER_WEAPON dtemp2
+					break
+				case 8
+					set dtemp2 devistatorammo
+					break
+				case 9
+					getp[].ammo_amount TRIPBOMB_WEAPON dtemp2
+					break
+				case 10
+					set dtemp2 freezeammo
+					break
+			endswitch
+			
+			add hx 6
+			sub hy 1
+			
+			ifg dtemp2 99
+				set dtemp2 99
+			
+			digitalnumber THREEBYFIVE hx hy dtemp2 hshade 0 24 0 0 xdim ydim
+			
+			add hx 6
+			
+			rotatesprite hx hy SIZE1X 0 3084 hshade 8 24 0 0 xdim ydim
+			
+			switch dtemp
+				case 2
+					getp[].ammo_amount PISTOL_WEAPON dtemp2
+					break
+				case 3
+					getp[].ammo_amount SHOTGUN_WEAPON dtemp2
+					break	
+				case 4
+					set dtemp2 plasmaammo
+					break
+				case 5
+					set dtemp2 urpgammo
+					break
+				case 6
+					getp[].ammo_amount HANDBOMB_WEAPON dtemp2
+					break
+				case 7
+					getp[].ammo_amount GROW_WEAPON dtemp2
+					break
+				case 8
+					set dtemp2 sonicammo
+					break
+				case 9
+					getp[].ammo_amount TRIPBOMB_WEAPON dtemp2
+					break
+				case 10
+					set dtemp2 flameammo
+					break
+			endswitch
+			
+			add hx 8
+			digitalnumber THREEBYFIVE hx hy dtemp2 hshade 0 24 0 0 xdim ydim
+			
+			add dtemp 1
+		}
+	}
+	else ife userdef[].screen_size 4
+	{
+		//Health
+		rotatesprite 5 172 SIZE1X 0 HEALTHBOX 0 21 280 0 0 xdim ydim
+		digitalnumber DIGITALNUM 20 183 sprite[player[].i].extra -16 0 280 0 0 xdim ydim
+		
+		set hx3 37
+		
+		//Armor
+		ifg player[].shield_amount 0
+		{
+			rotatesprite hx3 172 SIZE1X 0 66 0 21 280 0 0 xdim ydim
+			add hx3 16
+			digitalnumber DIGITALNUM hx3 183 player[].shield_amount -16 0 280 0 0 xdim ydim
+			add hx3 16
+		}
+		
+		//Ammo
+		ifn selected_inv ICON_NONE
+			set hx3 245
+		else
+			set hx3 284
+			
+		rotatesprite hx3 172 SIZE1X 0 AMMOBOX 0 21 536 0 0 xdim ydim
+		add hx3 16
+		
+		switch player[].curr_weapon
+			case KNEE_WEAPON
+				ife 1 player[].bsubweapon KNEE_WEAPON
+					set dtemp2 plasmaammo
+				break
+		
+			case PISTOL_WEAPON
+				getp[].ammo_amount PISTOL_WEAPON dtemp2
+				break
+			case SHOTGUN_WEAPON
+				getp[].ammo_amount SHOTGUN_WEAPON dtemp2
+				break	
+			case CHAINGUN_WEAPON
+				ife 0 player[].bsubweapon CHAINGUN_WEAPON
+					set dtemp2 ripperammo
+				else
+					set dtemp2 plasmaammo
+				break
+			case RPG_WEAPON
+				ife 0 player[].bsubweapon RPG_WEAPON
+					set dtemp2 rpgammo
+				else
+					set dtemp2 urpgammo
+				break
+			case HANDBOMB_WEAPON
+			case HANDREMOTE_WEAPON
+				getp[].ammo_amount HANDBOMB_WEAPON dtemp2
+				break
+			case SHRINKER_WEAPON
+				getp[].ammo_amount SHRINKER_WEAPON dtemp2
+				break
+			case DEVISTATOR_WEAPON
+				ife 0 player[].bsubweapon DEVISTATOR_WEAPON
+					set dtemp2 devistatorammo
+				else
+					set dtemp2 sonicammo
+				break
+			case TRIPBOMB_WEAPON
+				getp[].ammo_amount TRIPBOMB_WEAPON dtemp2
+				break
+			case FREEZE_WEAPON
+				ife 0 player[].bsubweapon FREEZE_WEAPON
+					set dtemp2 freezeammo
+				else
+					set dtemp2 flameammo
+				break
+			case GROW_WEAPON
+				getp[].ammo_amount GROW_WEAPON dtemp2
+				break
+		endswitch
+		
+		ife player[].curr_weapon KNEE_WEAPON
+			ife player[].bsubweapon KNEE_WEAPON  0
+			nullop
+		else
+			digitalnumber DIGITALNUM hx3 183 dtemp2 -16 0 536 0 0 xdim ydim
+		
+		//Inventory
+		
+		ifn selected_inv ICON_NONE
+		{
+			add hx3 16
+			set hx hx3
+			add hx 4
+			set hy 181
+			set hx2 hx
+			add hx2 20
+			set hy2 190
+		
+			switch selected_inv
+				case ICON_FIRSTAID
+					set dtemp FIRSTAID_ICON
+					getp[].firstaid_amount dtemp2
+					break
+				case ICON_STEROIDS
+					set dtemp STEROIDS_ICON
+					ifl player[].steroids_amount 400
+						redefinequote RQUOTE on
+					else
+						redefinequote RQUOTE off
+					
+					getp[].steroids_amount dtemp2
+					div dtemp2 4
+					
+					//sub hx2 2
+					add hx 2
+					sub hy 2
+					break
+				case ICON_HOLODUKE
+					set dtemp HOLODUKE_ICON
+					ifn player[].holoduke_on -1
+						redefinequote RQUOTE ON
+					else
+						redefinequote RQUOTE OFF
+					
+					getp[].holoduke_amount dtemp2
+					div dtemp2 24
+					
+					//sub hx2 2
+					add hx 3
+					sub hy 4
+					break
+				case ICON_JETPACK
+					set dtemp JETPACK_ICON
+					ifg player[].jetpack_on 0
+						redefinequote RQUOTE ON
+					else
+						redefinequote RQUOTE OFF
+						
+					getp[].jetpack_amount dtemp2
+					div dtemp2 12
+					add hx 2
+					sub hy 2
+					break
+				case ICON_HEATS
+					set dtemp HEAT_ICON
+					ife player[].heat_on 1
+						redefinequote RQUOTE ON
+					else
+						redefinequote RQUOTE OFF
+						
+					getp[].heat_amount dtemp2
+					div dtemp2 12
+					break
+				case ICON_SCUBA
+					set dtemp AIRTANK_ICON
+					redefinequote RQUOTE AUTO
+						
+					getp[].scuba_amount dtemp2
+					div dtemp2 64
+					
+					sub hy 3
+					break
+				case ICON_BOOTS
+					set dtemp BOOT_ICON
+					redefinequote RQUOTE AUTO
+					
+					getp[].boot_amount dtemp2
+					div dtemp2 2
+					
+					sub hy 2
+					break
+				case ICON_SPACE
+					set dtemp SPACE_ICON
+					redefinequote RQUOTE AUTO
+					
+					set dtemp2 space_amount
+					div dtemp2 36
+					
+					sub hy 2
+					break
+			endswitch
+			
+			rotatesprite hx3 170 SIZE1X 0 INVENTORYBOX 0 21 536 0 0 xdim ydim
+			
+			rotatesprite hx hy SIZE1X 0 dtemp -16 0 536 0 0  xdim ydim
+			
+			add hx3 27
+			
+			ifg selected_inv ICON_FIRSTAID
+			ifl selected_inv ICON_SCUBA
+				screentext MINIFONT hx3 183 SIZE1X 0 0 RQUOTE -16 2 520 0 4 6 1 1 8192 0 0 xdim ydim
+			else ifge selected_inv ICON_SCUBA
+			{
+				sub hx3 3
+				screentext MINIFONT hx3 183 SIZE1X 0 0 RQUOTE -16 2 520 0 4 6 1 1 8192 0 0 xdim ydim
+			}
+			
+			redefinequote RQUOTE %d%
+			qsprintf RQUOTE RQUOTE dtemp2
+			screentext MINIFONT hx2 hy2 SIZE1X 0 0 RQUOTE -16 8 520 0 4 6 1 1 8192 0 0 xdim ydim
+		}
+	}
+	
+	ifg invdtime 0
+		{
+			set dtemp2 0
+			
+			ifg player[].firstaid_amount 0
+				add dtemp2 1		
+			ifg player[].steroids_amount 0
+				add dtemp2 1		
+			ifg player[].holoduke_amount 0
+				add dtemp2 1		
+			ifg player[].jetpack_amount 0
+				add dtemp2 1		
+			ifg player[].heat_amount 0
+				add dtemp2 1	
+			ifg player[].scuba_amount 0
+				add dtemp2 1		
+			ifg player[].boot_amount 0
+				add dtemp2 1		
+			ifg space_amount 0
+				add dtemp2 1
+			
+			mul dtemp2 11
+			
+			set hx 160
+			sub hx dtemp2
+			
+			set dtemp 1
+			whilevarn dtemp 9
+			{
+				set hy 144
+				
+				set dtemp2 0
+				set hx2 0
+				
+				switch dtemp
+					case ICON_FIRSTAID
+						set dtemp3 FIRSTAID_ICON
+						ifg player[].firstaid_amount 0
+							set dtemp2 1
+						break
+					case ICON_STEROIDS
+						set dtemp3 STEROIDS_ICON
+						add hx2 2
+						ifg player[].steroids_amount 0
+							set dtemp2 1
+						break
+					case ICON_HOLODUKE
+						set dtemp3 HOLODUKE_ICON
+						add hx2 4
+						ifg player[].holoduke_amount 0
+							set dtemp2 1
+						break
+					case ICON_JETPACK
+						set dtemp3 JETPACK_ICON
+						add hx2 2
+						ifg player[].jetpack_amount 0
+							set dtemp2 1
+						break
+					case ICON_HEATS
+						set dtemp3 HEAT_ICON
+						ifg player[].heat_amount 0
+							set dtemp2 1
+						break
+					case ICON_SCUBA
+						set dtemp3 AIRTANK_ICON
+						sub hx2 1
+						ifg player[].scuba_amount 0
+							set dtemp2 1
+						break
+					case ICON_BOOTS
+						set dtemp3 BOOT_ICON
+						ifg player[].boot_amount 0
+							set dtemp2 1
+						break
+					case ICON_SPACE
+						set dtemp3 SPACE_ICON
+						ifg space_amount 0
+							set dtemp2 1
+						break
+				endswitch
+				
+				ife dtemp2 1
+				{
+					add hx hx2
+					rotatesprite hx hy SIZE1X 0 dtemp3 -16 0 24 0 0 xdim ydim
+					sub hx hx2
+					
+					sub hy 5
+					sub hx 4
+					
+					ife selected_inv dtemp
+						rotatesprite hx hy SIZE1X 0 ARROW -32 0 16 0 0 xdim ydim
+						
+					add hx 4
+					add hx 22
+				}
+				add dtemp 1
+			}
+		}
+endevent
+
+var weapwheel_size 14 1 //1.5 times
+var weapwheel_cursize 0 1
+var weapwheel_rot 0 1
+var weapwwheel_pic 0 1
+var weapwheel_pal 0 1
+var weapwheel_ang 0 1
+var weapwheel_horiz 0 1
+
+//var wwp00 0 1
+var wwp01 0 1
+var wwp02 0 1
+var wwp03 0 1
+var wwp04 0 1
+var wwp05 0 1
+var wwp06 0 1
+var wwp07 0 1
+var wwp08 0 1
+var wwp09 0 1
+var wwp10 0 1
+var wwp11 0 1
+var wwp12 0 1
+var wwp13 0 1
+var wwp14 0 1
+var wwp15 0 1
+
+appendevent EVENT_DISPLAYLEVELSTATS
+
+	ife userdef.levelstats 1
+	{
+		qputs RQUOTE B: ^15%d
+		qsprintf RQUOTE RQUOTE s_bodies
+		getu[].gametext_zoom dtemp
+		scalevar dtemp dtemp userdef.textscale 400
+		set hy 198
+		
+		ife userdef.screen_size 4
+		{
+			ife userdef.hudontop 0
+			{
+				scalevar dtemp2 28 userdef.statusbarscale 100
+				sub hy dtemp2
+			}
+		}
+		else ifg userdef.screen_size 2
+		{
+			scalevar dtemp2 34 userdef.statusbarscale 100
+			sub hy dtemp2
+		}
+		
+		scalevar dtemp2 28 userdef.textscale 400
+		
+		sub hy dtemp2
+		screentext STARTALPHANUM 2 hy dtemp 0 0 RQUOTE 0 0 280 0 5 8 0 0 0 0 0 xdim ydim
+		
+		qputs RQUOTE W: ^15%d/1000
+		qsprintf RQUOTE RQUOTE s_destruction
+		getu[].gametext_zoom dtemp
+		scalevar dtemp dtemp userdef.textscale 400
+		set hy 195
+		
+		ife userdef.screen_size 4
+		{
+			ife userdef.hudontop 0
+			{
+				scalevar dtemp2 28 userdef.statusbarscale 100
+				sub hy dtemp2
+			}
+		}
+		else ifg userdef.screen_size 2
+		{
+			scalevar dtemp2 34 userdef.statusbarscale 100
+			sub hy dtemp2
+		}
+		
+		scalevar dtemp2 28 userdef.textscale 400
+		
+		sub hy dtemp2
+		screentext STARTALPHANUM 2 hy dtemp 0 0 RQUOTE 0 0 280 0 5 8 0 0 0 0 0 xdim ydim
+	}
+
+endevent
+
+appendevent EVENT_DISPLAYREST
+
+	ifg p_invul 1 //Tries to avoid some intense palfrom during the invulnerability time
+		screenpal 0 0 0 0
+/*
+	qputs RQUOTE BETA
+	screentext STARTALPHANUM 280 10 65536 0 0 RQUOTE 0 1 536 0 5 8 0 0 0 0 0 xdim ydim
+*/
+	ifg PlayerLives 0
+	{
+		rotatesprite 5 10 16384 0 3168 0 2 280 0 0 xdim ydim
+		qputs RQUOTE %d
+		qsprintf RQUOTE RQUOTE PlayerLives
+		screentext MINIFONT 20 13 SIZE1X 0 0 RQUOTE 0 2 280 0 4 6 1 1 8192 0 0 xdim ydim
+	}
+	
+	ife userdef.tutorial 1
+	ifg tutorialTime 0
+	{
+		ife userdef.on_mobile 1
+		{
+			ife tutorialType 201
+				rotatesprite 93 158 10000 0 4840 tutorialShade 0 tutorialTrans 0 0 xdim ydim
+			else ife tutorialType 202
+				rotatesprite 132 158 8192 0 4841 tutorialShade 0 tutorialTrans 0 0 xdim ydim
+			ife tutorialType 205
+				rotatesprite 120 158 8192 0 4842 tutorialShade 0 tutorialTrans 0 0 xdim ydim
+		}
+		
+		screentext MINIFONT 161 159 60000 0 0 199 tutorialShade 4 tutorialTrans 0 4 6 1 1 8194 0 0 xdim ydim
+		screentext MINIFONT HALFX 158 60000 0 0 199 tutorialShade 21 tutorialTrans 0 4 6 1 1 8194 0 0 xdim ydim
+	}
+
+	ifg wheeldisptime 0
+	{
+		rotatesprite 246 100 32768 0 WEAPON_WHEEL 0 0 8 0 0 xdim ydim
+		
+		//set wwp00 0
+		set wwp01 0
+		set wwp02 0
+		set wwp03 0
+		set wwp04 0
+		set wwp05 0
+		set wwp06 0
+		set wwp07 0
+		set wwp08 0
+		set wwp09 0
+		set wwp10 0
+		set wwp11 0
+		set wwp12 0
+		set wwp13 0
+		set wwp14 0
+		set wwp15 0
+		
+		ifl player[].ammo_amount PISTOL_WEAPON 1
+			set wwp01 2
+			
+		ifl player[].ammo_amount SHOTGUN_WEAPON 1
+			set wwp03 2
+			
+		ifl player[].ammo_amount HANDBOMB_WEAPON 1
+			set wwp08 2
+			
+		ifl player[].ammo_amount SHRINKER_WEAPON 1
+			set wwp09 2
+		
+		ifl player[].ammo_amount GROW_WEAPON 1
+			set wwp10 2
+		
+		ifl devistatorammo 1
+			set wwp11 2
+			
+		ifl sonicammo 1
+			set wwp15 2
+			
+		ifl player[].ammo_amount TRIPBOMB_WEAPON 1
+			set wwp12 2
+			
+		ifl ripperammo 1
+			set wwp04 2
+		
+		ifl plasmaammo 1
+			set wwp05 2
+			
+		ifl rpgammo 1
+			set wwp06 2
+			
+		ifl urpgammo 1
+			set wwp07 2
+			
+		ifl freezeammo 1
+			set wwp13 2
+			
+		ifl flameammo 1
+			set wwp14 2
+		
+		set dtemp 0
+		whilen dtemp 9
+		{
+			set dtemp3 dtemp
+			add dtemp3 2
+			ifg dtemp3 9
+				sub dtemp3 10
+				
+			set weapwheel_pal 0	
+				
+			ife dtemp3 3
+			{
+				set dtemp2 ripperammo
+				set dtemp4 plasmaammo
+				
+				set dtemp5 0
+				
+				ife gotweapons[CHAINGUN_WEAPON] 1
+					or dtemp5 1
+					
+				ife gotweapons[CHAINGUN_WEAPON] 1
+				ifl dtemp2 1
+					or dtemp5 2
+					
+				ife gotweapons[PLASMA_WEAPON] 1
+					or dtemp5 4
+				
+				ife gotweapons[PLASMA_WEAPON] 1
+				ifl dtemp4 1
+					or dtemp5 8
+					
+				ife dtemp5 3
+					set weapwheel_pal 21
+				else ife dtemp5 12
+					set weapwheel_pal 21
+				else ife dtemp5 7
+					set weapwheel_pal 23
+				else ife dtemp5 13
+					set weapwheel_pal 23
+				else ife dtemp5 15
+					set weapwheel_pal 21
+			}
+			else ife dtemp3 4
+			{
+				set dtemp2 rpgammo
+				set dtemp4 urpgammo
+				
+				set dtemp5 0
+				ife gotweapons[RPG_WEAPON] 1
+					add dtemp5 1
+				ife gotweapons[RPG_WEAPON] 1
+				ifl dtemp2 1
+					add dtemp5 2
+				ife gotweapons[RPGBLAST_WEAPON] 1
+					add dtemp5 4
+				ife gotweapons[RPGBLAST_WEAPON] 1
+				ifl dtemp4 1
+					add dtemp5 8
+				
+				ife dtemp5 3
+					set weapwheel_pal 21
+				else ife dtemp5 12
+					set weapwheel_pal 21
+				else ife dtemp5 7
+					set weapwheel_pal 23
+				else ife dtemp5 13
+					set weapwheel_pal 23
+				else ife dtemp5 15
+					set weapwheel_pal 21
+			}
+			else ife dtemp3 7
+			{
+				set dtemp2 devistatorammo
+				set dtemp4 sonicammo
+				
+				set dtemp5 0
+				ife gotweapons[DEVISTATOR_WEAPON] 1
+					add dtemp5 1
+				ife gotweapons[DEVISTATOR_WEAPON] 1
+				ifl dtemp2 1
+					add dtemp5 2
+				ife gotweapons[SONICRESONATOR_WEAPON] 1
+					add dtemp5 4
+				ife gotweapons[SONICRESONATOR_WEAPON] 1
+				ifl dtemp4 1
+					add dtemp5 8
+				
+				ife dtemp5 3
+					set weapwheel_pal 21
+				else ife dtemp5 12
+					set weapwheel_pal 21
+				else ife dtemp5 7
+					set weapwheel_pal 23
+				else ife dtemp5 13
+					set weapwheel_pal 23
+				else ife dtemp5 15
+					set weapwheel_pal 21
+			}
+			else ife dtemp3 9
+			{
+				set dtemp2 freezeammo
+				set dtemp4 flameammo
+				
+				set dtemp5 0
+				ife gotweapons[FREEZE_WEAPON] 1
+					add dtemp5 1
+				ife gotweapons[FREEZE_WEAPON] 1
+				ifl dtemp2 1
+					add dtemp5 2
+				ife gotweapons[FLAME_WEAPON] 1
+					add dtemp5 4
+				ife gotweapons[FLAME_WEAPON] 1
+				ifl dtemp4 1
+					add dtemp5 8
+				
+				ife dtemp5 3
+					set weapwheel_pal 21
+				else ife dtemp5 12
+					set weapwheel_pal 21
+				else ife dtemp5 7
+					set weapwheel_pal 23
+				else ife dtemp5 13
+					set weapwheel_pal 23
+				else ife dtemp5 15
+					set weapwheel_pal 21
+			}
+			else
+			{
+				getp[].ammo_amount dtemp3 dtemp2
+				
+				ife dtemp3 6
+				{
+					getp[].ammo_amount GROW_WEAPON dtemp4
+					
+					set dtemp5 0
+					ife 1 player[].gotweapon GROW_WEAPON
+						add dtemp5 1
+					ife 1 player[].gotweapon GROW_WEAPON
+					ifl dtemp4 1
+						add dtemp5 2
+					ife 1 player[].gotweapon SHRINKER_WEAPON
+						add dtemp5 4
+					ife 1 player[].gotweapon SHRINKER_WEAPON
+					ifl dtemp2 1
+						add dtemp5 8
+					
+					ife dtemp5 3
+						set weapwheel_pal 21
+					else ife dtemp5 12
+						set weapwheel_pal 21
+					else ife dtemp5 7
+						set weapwheel_pal 23
+					else ife dtemp5 13
+						set weapwheel_pal 23
+					else ife dtemp5 15
+						set weapwheel_pal 21
+				}
+				else ife dtemp3 2
+				{
+					set dtemp5 0
+					ife gotweapons[SHOTGUN_WEAPON] 1
+						add dtemp5 1
+					ifl dtemp2 1
+						add dtemp5 2
+					ife gotweapons[SHOTGUNDOUBLE_WEAPON] 1
+						add dtemp5 4
+						
+					ife dtemp5 7
+						set weapwheel_pal 21
+					else ife dtemp5 3
+						set weapwheel_pal 21
+					else ife dtemp5 6
+						set weapwheel_pal 21
+				}
+				else
+				{
+					ife 1 player[].gotweapon dtemp3
+					ifl dtemp2 1
+						set weapwheel_pal 21
+					else
+						set weapwheel_pal 0
+				}
+			}
+
+			ifn weapwheel_pal 0
+			ifn dtemp3 0
+			{
+				set dtemp3 WEAPON_WHEEL_SELECTION
+				add dtemp3 dtemp
+				rotatesprite 246 100 32768 0 dtemp3 0 weapwheel_pal 8 0 0 xdim ydim
+			}
+		
+			add dtemp 1
+		}
+		
+		set dtemp wheelselection
+		add dtemp 2
+		
+		ifg dtemp 9
+			sub dtemp 10
+		
+		ife dtemp 3
+		{
+			set dtemp2 ripperammo
+			set dtemp4 plasmaammo
+			
+			ifl dtemp2 1
+					qputs RQUOTE ^21%d
+				else
+					qputs RQUOTE ^11%d
+					
+				ifl dtemp4 1
+					qputs RQUOTE2 ^21%d
+				else
+					qputs RQUOTE2 ^11%d
+					
+				qsprintf RQUOTE RQUOTE dtemp2
+				qsprintf RQUOTE2 RQUOTE2 dtemp4
+				qputs RQUOTE3 /
+				qstrcat RQUOTE RQUOTE3
+				qstrcat RQUOTE RQUOTE2
+		
+			ife gotweapons[CHAINGUN_WEAPON] 1
+			ifl dtemp2 1
+			ife gotweapons[PLASMA_WEAPON] 1
+			ifl dtemp4 1
+				set weapwheel_pal 10
+			else
+				set weapwheel_pal 0
+		}
+		else ife dtemp 4
+		{
+			set dtemp2 rpgammo
+			set dtemp4 urpgammo
+			
+			ifl dtemp2 1
+					qputs RQUOTE ^21%d
+				else
+					qputs RQUOTE ^11%d
+					
+				ifl dtemp4 1
+					qputs RQUOTE2 ^21%d
+				else
+					qputs RQUOTE2 ^11%d
+					
+				qsprintf RQUOTE RQUOTE dtemp2
+				qsprintf RQUOTE2 RQUOTE2 dtemp4
+				qputs RQUOTE3 /
+				qstrcat RQUOTE RQUOTE3
+				qstrcat RQUOTE RQUOTE2
+			
+			ife gotweapons[RPG_WEAPON] 1
+			ifl dtemp2 1
+			ife gotweapons[RPGBLAST_WEAPON] 1
+			ifl dtemp4 1
+				set weapwheel_pal 10
+			else
+				set weapwheel_pal 0
+		}
+		else ife dtemp 7
+		{
+			set dtemp2 devistatorammo
+			set dtemp4 sonicammo
+			
+			ifl dtemp2 1
+					qputs RQUOTE ^21%d
+				else
+					qputs RQUOTE ^11%d
+					
+				ifl dtemp4 1
+					qputs RQUOTE2 ^21%d
+				else
+					qputs RQUOTE2 ^11%d
+					
+				qsprintf RQUOTE RQUOTE dtemp2
+				qsprintf RQUOTE2 RQUOTE2 dtemp4
+				qputs RQUOTE3 /
+				qstrcat RQUOTE RQUOTE3
+				qstrcat RQUOTE RQUOTE2
+			
+			ife gotweapons[DEVISTATOR_WEAPON] 1
+			ifl dtemp2 1
+			ife gotweapons[SONICRESONATOR_WEAPON] 1
+			ifl dtemp4 1
+				set weapwheel_pal 10
+			else
+				set weapwheel_pal 0
+		}
+		else ife dtemp 9
+		{
+			set dtemp2 freezeammo
+			set dtemp4 flameammo
+			
+			ifl dtemp2 1
+					qputs RQUOTE ^21%d
+				else
+					qputs RQUOTE ^11%d
+					
+				ifl dtemp4 1
+					qputs RQUOTE2 ^21%d
+				else
+					qputs RQUOTE2 ^11%d
+					
+				qsprintf RQUOTE RQUOTE dtemp2
+				qsprintf RQUOTE2 RQUOTE2 dtemp4
+				qputs RQUOTE3 /
+				qstrcat RQUOTE RQUOTE3
+				qstrcat RQUOTE RQUOTE2
+			
+			ife gotweapons[FREEZE_WEAPON] 1
+			ifl dtemp2 1
+			ife gotweapons[FLAME_WEAPON] 1
+			ifl dtemp4 1
+				set weapwheel_pal 10
+			else
+				set weapwheel_pal 0
+		}
+		else
+		{
+			getp[].ammo_amount dtemp dtemp2
+			
+			ife dtemp 6
+			{
+				
+				getp[].ammo_amount GROW_WEAPON dtemp4
+				
+				ifl dtemp2 1
+					qputs RQUOTE ^21%d
+				else
+					qputs RQUOTE ^11%d
+					
+				ifl dtemp4 1
+					qputs RQUOTE2 ^21%d
+				else
+					qputs RQUOTE2 ^11%d
+					
+				qsprintf RQUOTE RQUOTE dtemp2
+				qsprintf RQUOTE2 RQUOTE2 dtemp4
+				qputs RQUOTE3 /
+				qstrcat RQUOTE RQUOTE3
+				qstrcat RQUOTE RQUOTE2
+				
+				ife 1 player[].gotweapon GROW_WEAPON
+				ifl dtemp4 1
+				ife 1 player[].gotweapon SHRINKER_WEAPON
+				ifl dtemp2 1
+					set weapwheel_pal 10
+				else
+					set weapwheel_pal 0
+			}
+			else ife dtemp 0
+			{
+				ife gotweapons[CATERKILAR_WEAPON] 1
+				{
+					ifl plasmaammo 1
+						qputs RQUOTE ^21%d
+					else
+						qputs RQUOTE ^11%d
+				
+					qsprintf RQUOTE RQUOTE plasmaammo
+				}
+			}
+			else
+			{
+				ife 1 player[].gotweapon dtemp
+				ifl dtemp2 1
+				{
+					qputs RQUOTE ^21%d
+					set weapwheel_pal 10
+				}
+				else
+				{
+					qputs RQUOTE ^11%d
+					set weapwheel_pal 0
+				}
+				qsprintf RQUOTE RQUOTE dtemp2
+			}
+		}
+			
+		ife dtemp 0
+		{
+			set weapwheel_pal 0
+			
+			ife gotweapons[CATERKILAR_WEAPON] 1
+			{
+				screentext MINIFONT 247 101 SIZE1X 0 0 RQUOTE 32 4 8 0 4 6 1 1 10 0 0 xdim ydim 
+				screentext MINIFONT 246 100 SIZE1X 0 0 RQUOTE 0 0 8 0 4 6 1 1 10 0 0 xdim ydim 
+			}
+		}
+		else
+		{
+			screentext MINIFONT 247 101 SIZE1X 0 0 RQUOTE 32 4 8 0 4 6 1 1 10 0 0 xdim ydim 
+			screentext MINIFONT 246 100 SIZE1X 0 0 RQUOTE 0 0 8 0 4 6 1 1 10 0 0 xdim ydim 
+		}
+		
+		set wheelselection weapwheel_rot
+		
+		ifn wheelselection 0
+			div wheelselection 204
+			
+		set weapwwheel_pic WEAPON_WHEEL_SELECTION
+		add weapwwheel_pic wheelselection
+		rotatesprite 246 100 36500 0 weapwwheel_pic 0 weapwheel_pal 8 0 0 xdim ydim
+		
+		set hx 236
+		set hy 100
+		
+		sub hx 42
+		sub hy 18
+		
+		set weapwheel_cursize 15000
+		ife wheelselection 8
+		{
+			mul weapwheel_cursize weapwheel_size
+			div weapwheel_cursize 10
+		}
+		
+		rotatesprite hx hy weapwheel_cursize 0 1452 0 0 8 0 0 xdim ydim
+		
+		add hx 16
+		add hy 7
+		
+		set weapwheel_cursize 20580
+		ife wheelselection 8
+		{
+			mul weapwheel_cursize weapwheel_size
+			div weapwheel_cursize 10
+		}
+		
+		ife gotweapons[CATERKILAR_WEAPON] 1
+			rotatesprite hx hy weapwheel_cursize 0 CATERKILARSPRITE 0 wwp05 8 0 0 xdim ydim
+			
+		set hx 236
+		set hy 100
+		
+		sub hx 36
+		sub hy 14
+		
+		add hx 14
+		sub hy 24
+		
+		set weapwheel_cursize 28672
+		ife wheelselection 9
+		{
+			mul weapwheel_cursize weapwheel_size
+			div weapwheel_cursize 10
+		}
+		
+		ife 1 player[].gotweapon PISTOL_WEAPON
+			rotatesprite hx hy weapwheel_cursize 0 FIRSTGUNSPRITE 0 wwp01 8 0 0 xdim ydim
+		
+		add hx 32
+		sub hy 14
+		
+		set weapwheel_cursize 8192
+		ife wheelselection 0
+		{
+			mul weapwheel_cursize weapwheel_size
+			div weapwheel_cursize 10
+		}
+		
+		ife gotweapons[SHOTGUN_WEAPON] 1
+			rotatesprite hx hy weapwheel_cursize 0 SHOTGUNBETASPRITE 0 wwp03 8 0 0 xdim ydim
+		
+		add hy 8
+		
+		set weapwheel_cursize 16384
+		ife wheelselection 0
+		{
+			mul weapwheel_cursize weapwheel_size
+			div weapwheel_cursize 10
+		}
+		
+		ife gotweapons[SHOTGUNDOUBLE_WEAPON] 1
+			rotatesprite hx hy weapwheel_cursize 0 SHOTGUNSPRITE 0 wwp03 8 0 0 xdim ydim
+		
+		set hx 236
+		set hy 100
+		
+		add hx 45
+		sub hy 44
+		
+		set weapwheel_cursize 20580
+		ife wheelselection 1
+		{
+			mul weapwheel_cursize weapwheel_size
+			div weapwheel_cursize 10
+		}
+		
+		ife gotweapons[CHAINGUN_WEAPON] 1
+			rotatesprite hx hy weapwheel_cursize 0 CHAINGUNSPRITE 0 wwp04 8 0 0 xdim ydim
+		
+		sub hx 2
+		add hy 9
+		
+		set weapwheel_cursize 14000
+		ife wheelselection 1
+		{
+			mul weapwheel_cursize weapwheel_size
+			div weapwheel_cursize 10
+		}
+		
+		ife gotweapons[PLASMA_WEAPON] 1
+			rotatesprite hx hy weapwheel_cursize 0 PLASMASPRITE 0 wwp05 8 0 0 xdim ydim
+		
+		set hx 236
+		set hy 100
+		
+		add hx 63
+		sub hy 18
+		
+		set weapwheel_cursize 20580
+		ife wheelselection 2
+		{
+			mul weapwheel_cursize weapwheel_size
+			div weapwheel_cursize 10
+		}
+		
+		ife gotweapons[RPG_WEAPON] 1
+			rotatesprite hx hy weapwheel_cursize 0 RPGSPRITE 0 wwp06 8 0 0 xdim ydim
+		
+		sub hx 7
+		add hy 10
+		
+		set weapwheel_cursize 16384
+		ife wheelselection 2
+		{
+			mul weapwheel_cursize weapwheel_size
+			div weapwheel_cursize 10
+		}
+		
+		ife gotweapons[RPGBLAST_WEAPON] 1
+			rotatesprite hx hy weapwheel_cursize 0 ULTRARPGSPRITE 0 wwp07 8 0 0 xdim ydim
+		
+		set hx 236
+		set hy 100
+		
+		add hx 63
+		add hy 13
+		
+		set weapwheel_cursize 16384
+		ife wheelselection 3
+		{
+			mul weapwheel_cursize weapwheel_size
+			div weapwheel_cursize 10
+		}
+		
+		ife 1 player[].gotweapon HANDBOMB_WEAPON
+			rotatesprite hx hy weapwheel_cursize 0 HEAVYHBOMB 0 wwp08 8 0 0 xdim ydim
+		
+		set hx 236
+		set hy 100
+		
+		add hx 42
+		add hy 44
+		
+		set weapwheel_cursize 16384
+		ife wheelselection 4
+		{
+			mul weapwheel_cursize weapwheel_size
+			div weapwheel_cursize 10
+		}
+		
+		ife 1 player[].gotweapon SHRINKER_WEAPON
+			rotatesprite hx hy weapwheel_cursize 0 SHRINKERSPRITE 0 wwp09 8 0 0 xdim ydim
+		
+		add hx 2
+		sub hy 10
+		
+		set weapwheel_cursize 15000
+		ife wheelselection 4
+		{
+			mul weapwheel_cursize weapwheel_size
+			div weapwheel_cursize 10
+		}
+		
+		ife 1 player[].gotweapon GROW_WEAPON
+			rotatesprite hx hy weapwheel_cursize 0 GROWSPRITEICON 0 wwp10 8 0 0 xdim ydim
+		
+		set hx 246
+		set hy 100
+		
+		add hy 50
+		
+		set weapwheel_cursize 24000
+		ife wheelselection 5
+		{
+			mul weapwheel_cursize weapwheel_size
+			div weapwheel_cursize 10
+		}
+		
+		ife gotweapons[DEVISTATOR_WEAPON] 1
+			rotatesprite hx hy weapwheel_cursize 0 DEVISTATORSPRITE 0 wwp11 8 0 0 xdim ydim
+			
+		add hx 1
+		sub hy 13
+			
+		set weapwheel_cursize 24000
+		ife wheelselection 5
+		{
+			mul weapwheel_cursize weapwheel_size
+			div weapwheel_cursize 10
+		}
+		
+		ife gotweapons[SONICRESONATOR_WEAPON] 1
+			rotatesprite hx hy weapwheel_cursize 0 SONICSPRITE 0 wwp15 8 0 0 xdim ydim
+		
+		set hx 236
+		set hy 100
+		
+		sub hx 24
+		add hy 38
+		
+		set weapwheel_cursize 32768
+		ife wheelselection 6
+		{
+			mul weapwheel_cursize weapwheel_size
+			div weapwheel_cursize 10
+		}
+		
+		ife 1 player[].gotweapon TRIPBOMB_WEAPON
+			rotatesprite hx hy weapwheel_cursize 0 TRIPBOMBSPRITE 0 wwp12 8 0 0 xdim ydim
+		
+		set hx 246
+		set hy 100
+		
+		sub hx 52
+		add hy 16
+		
+		set weapwheel_cursize 20580
+		ife wheelselection 7
+		{
+			mul weapwheel_cursize weapwheel_size
+			div weapwheel_cursize 10
+		}
+		
+		ife gotweapons[FREEZE_WEAPON] 1
+			rotatesprite hx hy weapwheel_cursize 0 FREEZESPRITE 0 wwp13 8 0 0 xdim ydim
+		
+		add hx 6		
+		sub hy 8
+		
+		set weapwheel_cursize 20580
+		ife wheelselection 7
+		{
+			mul weapwheel_cursize weapwheel_size
+			div weapwheel_cursize 10
+		}
+		
+		ife gotweapons[FLAME_WEAPON] 1
+			rotatesprite hx hy weapwheel_cursize 0 FLAMETHROWERSPRITE 0 wwp14 8 0 0 xdim ydim
+		
+		
+		ifg player[].horiz 150
+		{
+			ifg player[].ang 384
+				set weapwheel_rot 204
+			else ifg player[].ang 256
+			ifle player[].ang 384
+				set weapwheel_rot 0
+			else //ifg player[].ang 128
+			ifle player[].ang 256
+				set weapwheel_rot 1836
+				
+			ifg player[].ang 512
+			ifle player[].ang 1536
+				setp[].ang 511
+				
+			ifg player[].ang 1536
+			ifle player[].ang 2048
+				setp[].ang 1
+				
+			ifge player[].ang 0
+			ifle player[].ang 128
+				setp[].ang 129
+		}
+		
+		ifl player[].horiz -50
+		{
+			ifg player[].ang 384
+				set weapwheel_rot 816
+			else ifg player[].ang 256
+			ifle player[].ang 384
+				set weapwheel_rot 1020
+			else //ifg player[].ang 128
+			ifle player[].ang 256
+				set weapwheel_rot 1224
+				
+			ifg player[].ang 512
+			ifle player[].ang 1536
+				setp[].ang 511
+				
+			ifg player[].ang 1536
+			ifle player[].ang 2048
+				setp[].ang 129
+				
+			ifge player[].ang 0
+			ifle player[].ang 128
+				setp[].ang 129
+		}
+		
+		ifge player[].horiz -50
+		ifle player[].horiz 50
+		{
+			ifle player[].ang 256
+			//ifg player[].ang 128
+				set weapwheel_rot 1428
+			else ifg player[].ang 256
+				set weapwheel_rot 612
+				
+			ifg player[].ang 256
+			ifle player[].ang 1536
+				setp[].ang 511
+				
+			ifg player[].ang 1536
+			ifle player[].ang 2048
+				setp[].ang 129
+				
+			ifge player[].ang 0
+			ifle player[].ang 128
+				setp[].ang 129
+		}
+		
+		ifg player[].horiz 50
+		ifle player[].horiz 150
+		{
+			ifle player[].ang 256
+			//ifg player[].ang 128
+				set weapwheel_rot 1632
+			else ifg player[].ang 256
+				set weapwheel_rot 408
+				
+			ifg player[].ang 256
+			ifle player[].ang 1536
+				setp[].ang 511
+				
+			ifg player[].ang 1536
+			ifle player[].ang 2048
+				setp[].ang 129
+				
+			ifge player[].ang 0
+			ifle player[].ang 128
+				setp[].ang 129
+		}
+		
+		/*
+		ifge player[].ang -102
+		ifle player[].ang 102
+			set weapwheel_rot 0
+		else ifge player[].ang 103
+		ifle player[].ang 306
+			set weapwheel_rot 204
+		else ifge player[].ang 307
+		ifle player[].ang 510
+			set weapwheel_rot 408
+		else ifge player[].ang 511
+		ifle player[].ang 714
+			set weapwheel_rot 612
+		else ifge player[].ang 715
+		ifle player[].ang 918
+			set weapwheel_rot 816
+		else ifge player[].ang 919
+		ifle player[].ang 1123
+			set weapwheel_rot 1020
+		else ifge player[].ang 1122
+		ifle player[].ang 1325
+			set weapwheel_rot 1224
+		else ifge player[].ang 1326
+		ifle player[].ang 1531
+			set weapwheel_rot 1428
+		else ifge player[].ang 1530
+		ifle player[].ang 1735
+			set weapwheel_rot 1632
+		else ifge player[].ang 1734
+		ifle player[].ang 1939
+			set weapwheel_rot 1836
+		else ifge player[].ang 1938
+		ifle player[].ang 2142
+			set weapwheel_rot 0
+		*/
+		
+		rotatesprite 246 100 32768 weapwheel_rot WEAPON_WHEEL_SELECTOR 0 0 8 0 0 xdim ydim
+	}
+		
+	//set tracerid 77
+	/*
+	ifn tracerid -1
+	{
+		set tmpid tracerid
+		set tmpid2 THISACTOR
+		
+		state getPlayerHoriz
+		state worldToScreen
+		
+		set atmp aang
+		set atmp2 hang
+		
+		set tmpid player[].i
+		
+		state getPlayerHoriz
+		state worldToScreen
+		
+		set atemp xdim
+		set atemp2 ydim
+		
+		shiftl atemp 12
+		shiftl atemp2 12
+		
+		scalevar atmp atmp atemp 320
+		scalevar atmp2 atmp2 atemp2 200
+		
+		scalevar aang aang atemp 320
+		scalevar hang hang atemp2 200
+		
+		drawlinergb atmp atmp2 aang hang 16 16777215
+		
+		set tracerid -1
+	}
+	*/
+
+endevent
+
+var returnview 0 1
+
+appendevent EVENT_GAME
+
+	ife THISACTOR player[].i
+	{
+		ifg wheeldisptime 0
+		{
+			set dtemp wheeldisptime
+			mul dtemp 16
+			//div dtemp 10
+			set dtemp2 120
+			sub dtemp2 dtemp
+			inittimer dtemp2
+			sub wheeldisptime 1
+		}
+		else
+		ife wheeldisptime 0
+		ife wheelactive 1
+		{
+			setp[].horiz wheelhoriz
+			setp[].ang wheelang
+			inittimer 120
+			
+			set dtemp wheelselection
+			add dtemp 2
+			
+			ifg dtemp 9
+				sub dtemp 10
+			
+			set dtemp5 0
+			
+			ife dtemp 2
+			{
+				ife gotweapons[SHOTGUN_WEAPON] 0
+				ife gotweapons[SHOTGUNDOUBLE_WEAPON] 0
+					set dtemp5 1
+			}
+			else ife dtemp 3
+			{
+				ife gotweapons[CHAINGUN_WEAPON] 0
+				ife gotweapons[PLASMA_WEAPON] 0
+					set dtemp5 1
+			}
+			else ife dtemp 4
+			{
+				ife gotweapons[RPG_WEAPON] 0
+				ife gotweapons[RPGBLAST_WEAPON] 0
+					set dtemp5 1
+			}
+			else ife dtemp 9
+			{
+				ife gotweapons[FREEZE_WEAPON] 0
+				ife gotweapons[FLAME_WEAPON] 0
+					set dtemp5 1
+			}
+			else ife dtemp 6
+			{
+				ife 0 player[].gotweapon SHRINKER_WEAPON
+				ife 0 player[].gotweapon GROW_WEAPON
+					set dtemp5 1
+			}
+			else
+			{
+				ife 0 player[].gotweapon dtemp
+					set dtemp5 1
+			}
+			
+			ife dtemp5 0
+			ifn player[].curr_weapon dtemp
+			{
+				setp[].last_used_weapon player[].curr_weapon
+				
+				ife dtemp 6
+				ife player[].subweapon 2048
+					set dtemp 11
+				
+				switch dtemp
+					case 1
+						sound WEAPON1_SELECTSOUND
+						break
+						
+					case 2
+						sound WEAPON2_SELECTSOUND
+						break
+						
+					case 3
+						sound WEAPON3_SELECTSOUND
+						break
+						
+					case 4
+						sound WEAPON4_SELECTSOUND
+						break
+						
+					case 6
+						sound WEAPON6_SELECTSOUND
+						break
+						
+					case 7
+						sound WEAPON7_SELECTSOUND
+						break
+						
+					//case 8
+						//sound WEAPON8_SELECTSOUND
+						//break
+						
+					case 9
+						sound WEAPON9_SELECTSOUND
+						break
+						
+					case 11
+						sound WEAPON11_SELECTSOUND
+						break
+					
+				endswitch
+			
+				set weapon_to_switch dtemp
+				setp[].weapon_pos -1
+				//set change_weapon 1
+			}
+			
+			set wheelactive 0
+		}
+	}
+
+endevent
+
+onevent EVENT_DISPLAYROOMS
+
+	ifg returnview 0
+	{
+		set cameraang wheelang
+		set camerahoriz wheelhoriz
+		
+		ife wheelactive 0
+			sub returnview 1
+	}
+
+endevent
+
+onevent EVENT_DISPLAYSCUBA
+
+	set RETURN -1
+	/*
+	ifg userdef.screen_size 4
+	ife userdef.statusbarmode 0
+		mulscale hx 8 userdef.statusbascale 100
+		
+	inv hx	
+	*/
+	rotatesprite 43 0 SIZE1X 0 SCUBAMASK 0 sprite[].pal 1040 windowx1 windowy1 windowx2 windowy2
+	rotatesprite 277 0 SIZE1X 1024 SCUBAMASK 0 sprite[].pal 1044 windowx1 windowy1 windowx2 windowy2
+
+endevent

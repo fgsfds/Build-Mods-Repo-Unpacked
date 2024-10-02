@@ -1,0 +1,2052 @@
+/*
+--------------------------------------------------------------------------------
+Duke Nukem 3D - Blast Edition Version 2.0
+By Marcos
+2023 - Space In a Bottle
+*/
+
+//Enhanced User map mode & Nuke mode
+
+var ue_chainspr 0 0
+var ue_plasmaspr 0 0
+var ue_shotspr 0 0
+var ue_rpgspr 0 0
+var ue_urpgspr 0 0
+var ue_devspr 0 0
+var ue_sonicspr 0 0
+var ue_freezespr 0 0
+var ue_flamespr 0 0
+var ue_temp 0 2
+var ue_temp2 0 0
+var ue_random 0 0
+var ue_init 0 0
+var ue_init2 0 0
+
+//If set to 1, it means we should kill it
+var ue_settotkil 0 2
+
+gamearray nukeenemies 32
+gamearray nukewpns 32
+gamearray nukeammo 32
+
+var nuke_init 0 0
+var nmx 0 0
+var nmy 0 0
+var nmz 0 0
+var nms 0 0
+var nma 0 0
+
+var in_picnum 0 0
+
+//Map balancing
+appendevent EVENT_LOADACTOR
+
+	geta[].picnum in_picnum
+	ife userdef[].volume_number 0
+	{
+		switch userdef[].level_number
+			case 0
+			case 1
+				ife in_picnum SHOTGUNSPRITE
+				ifn sprite[].pal 1
+				{				
+					seta[].picnum SHOTGUNBETASPRITE
+					sizeat 14 14
+				}
+				break
+		endswitch
+	}
+
+endevent
+
+appendevent EVENT_NEWGAME
+
+	ife userdef.enable_nuke 1
+	ife userdef.nuke_active 1
+		set nuke_init 1
+
+endevent
+
+appendevent EVENT_ENTERLEVEL
+
+	ife userdef.enable_nuke 1
+	ife userdef.nuke_active 1
+	ife nuke_init 1
+	{
+		ifg userdef.nuke_lives 0
+			set PlayerLives userdef.nuke_lives
+	
+		switch userdef.nuke_player
+			case 1
+				seta[player[].i].extra 200
+				setp[].last_extra 200
+				break
+			
+			case 2
+				seta[player[].i].extra 200
+				setp[].last_extra 200
+				addinventory GET_SHIELD 100
+				break
+				
+			case 3
+				addinventory GET_STEROIDS STEROID_AMOUNT
+				addinventory GET_SHIELD 100
+				addinventory GET_SCUBA SCUBA_AMOUNT
+				addinventory GET_HOLODUKE HOLODUKE_AMOUNT
+				addinventory GET_JETPACK JETPACK_AMOUNT
+				addinventory GET_FIRSTAID FIRSTAID_AMOUNT
+				addinventory GET_HEATS HEAT_AMOUNT
+				addinventory GET_BOOTS BOOT_AMOUNT
+				break
+				
+			case 4
+				addinventory GET_SHIELD 100
+				break
+				
+			case 5
+				seta[player[].i].extra 200
+				setp[].last_extra 200
+				
+				addinventory GET_STEROIDS STEROID_AMOUNT
+				addinventory GET_SHIELD 100
+				addinventory GET_SCUBA SCUBA_AMOUNT
+				addinventory GET_HOLODUKE HOLODUKE_AMOUNT
+				addinventory GET_JETPACK JETPACK_AMOUNT
+				addinventory GET_FIRSTAID FIRSTAID_AMOUNT
+				addinventory GET_HEATS HEAT_AMOUNT
+				addinventory GET_BOOTS BOOT_AMOUNT
+				break
+			
+		endswitch
+		
+		switch userdef.nuke_wpnstart
+			case 1
+				 addweapon SHRINKER_WEAPON 6
+				 addweapon FREEZE_WEAPON 1
+				 setarray gotweapons[FREEZE_WEAPON] 1
+				 add freezeammo 30
+				 addweapon GROW_WEAPON 20
+				 setarray gotweapons[CATERKILAR_WEAPON] 1
+				 add plasmaammo 20
+				 break
+				 
+			case 2
+				activatecheat 21
+				break
+				
+			case 3
+				addweapon SHOTGUN_WEAPON 1
+				addweapon CHAINGUN_WEAPON 1
+				addweapon RPG_WEAPON 1
+				addweapon SHRINKER_WEAPON 1
+				addweapon DEVISTATOR_WEAPON 1
+				addweapon FREEZE_WEAPON 1
+				setarray gotweapons[SHOTGUN_WEAPON] 1
+				setarray gotweapons[SHOTGUNDOUBLE_WEAPON] 1
+				setarray gotweapons[CHAINGUN_WEAPON] 1
+				setarray gotweapons[PLASMA_WEAPON] 1
+				setarray gotweapons[RPG_WEAPON] 1
+				setarray gotweapons[RPGBLAST_WEAPON] 1
+				setarray gotweapons[DEVISTATOR_WEAPON] 1
+				setarray gotweapons[SONICRESONATOR_WEAPON] 1
+				setarray gotweapons[FREEZE_WEAPON] 1
+				setarray gotweapons[FLAME_WEAPON] 1
+				setarray gotweapons[CATERKILAR_WEAPON] 1
+				
+				
+				break
+				
+			case 4
+				setarray gotweapons[CATERKILAR_WEAPON] 1
+				add plasmaammo 90
+				break
+		endswitch
+		
+		set nuke_init 0
+	}
+
+endevent
+
+defstate NMloadArrays
+
+	setarray nukeenemies[0] EGG
+	setarray nukeenemies[1] LIZTROOP
+	setarray nukeenemies[2] PIGCOP
+	setarray nukeenemies[3] DPIGCOP
+	setarray nukeenemies[4] ELITEPIGCOP
+	setarray nukeenemies[5] ROBOTTROOPER
+	setarray nukeenemies[6] LIZMAN
+	setarray nukeenemies[7] FLAMEENFORCER
+	setarray nukeenemies[8] ELITEENFORCER
+	setarray nukeenemies[9] OCTABRAIN
+	setarray nukeenemies[10] COMMANDER
+	setarray nukeenemies[11] DRONE
+	setarray nukeenemies[12] SNAKEHEAD
+	setarray nukeenemies[13] SNAKEDRONE
+	setarray nukeenemies[14] SARGE
+	setarray nukeenemies[15] NEWBEAST
+	setarray nukeenemies[16] FIREFLY
+	setarray nukeenemies[17] SCORPIONTANK
+	setarray nukeenemies[18] TANK
+	setarray nukeenemies[19] FIREFLY
+	setarray nukeenemies[20] BOSS1
+	setarray nukeenemies[21] BOSS3
+	
+	setarray nukewpns[0] FIRSTGUNSPRITE
+	setarray nukewpns[1] SHOTGUNBETASPRITE
+	setarray nukewpns[2] SHOTGUNSPRITE
+	setarray nukewpns[3] CHAINGUNSPRITE
+	setarray nukewpns[4] PLASMASPRITE
+	setarray nukewpns[5] RPGSPRITE
+	setarray nukewpns[6] ULTRARPGSPRITE
+	setarray nukewpns[7] HBOMBAMMO
+	setarray nukewpns[8] SHRINKERSPRITE
+	setarray nukewpns[9] DEVISTATORSPRITE
+	setarray nukewpns[10] SONICSPRITE
+	setarray nukewpns[11] FREEZESPRITE
+	setarray nukewpns[12] FLAMETHROWERSPRITE
+	setarray nukewpns[13] CATERKILARSPRITE
+	
+	setarray nukeammo[0] AMMO
+	setarray nukeammo[1] SHOTGUNAMMO
+	setarray nukeammo[2] BATTERYAMMO
+	setarray nukeammo[3] RPGAMMO
+	setarray nukeammo[4] ULTRARPGAMMO
+	setarray nukeammo[5] HBOMBAMMO
+	setarray nukeammo[6] CRYSTALAMMO
+	setarray nukeammo[7] GROWAMMO
+	setarray nukeammo[8] DEVISTATORAMMO
+	setarray nukeammo[9] FREEZEAMMO
+	setarray nukeammo[10] FUEL
+	setarray nukeammo[11] PLASMAAMMO
+	setarray nukeammo[12] SONICAMMO
+
+ends
+
+
+appendevent EVENT_RESETPLAYER
+
+	ife ue_init2 1
+	ife userdef.customep 1
+	ifg userdef.customep_lvl  0
+		set ue_init2 0
+
+endevent
+
+appendevent EVENT_LOADACTOR
+
+	state getNukePowerup
+
+	state NMloadArrays
+
+	ife userdef.user_map 1
+	ife userdef.umvoxels 0
+	{
+		switch sprite[].picnum
+			case ACCESSSWITCH
+			case LIGHTSWITCH
+			case SPACEDOORSWITCH
+			case DIPSWITCH
+			case DIPSWITCH2
+			case TECHSWITCH
+			case DIPSWITCH3
+			case ACCESSSWITCH2
+			case LIGHTSWITCH2
+			case POWERSWITCH1
+			case LOCKSWITCH1
+			case POWERSWITCH2
+			case HANDSWITCH
+			case PULLSWITCH
+			case ALIENSWITCH
+			case HANDPRINTSWITCH
+				geta[].mdflags atemp
+				ifand atemp 1
+					nullop
+				else
+				{
+					or atemp 1
+					seta[].mdflags atemp
+				}
+				
+				break
+			
+		endswitch
+	}
+	
+	ife ue_init2 0
+	ife userdef.customep 1
+	ifg userdef.customep_lvl 0
+	{
+		ife ue_plasmaspr 0
+			set ue_chainspr 2
+		else
+			set ue_chainspr 0
+			
+		ife ue_urpgspr 0
+			set ue_rpgspr 2
+		else
+			set ue_rpgspr 0
+			
+		ife ue_sonicspr 0
+			set ue_devspr 2
+		else
+			set ue_devspr 0
+		
+		ife ue_flamespr 0
+			set ue_freezespr 2
+		else
+			set ue_freezespr 0
+			
+		set ue_init2 1
+	}
+
+	ife userdef.user_map 1
+	ife userdef.um_enhanced 1
+	ife ue_init 0
+	{
+		ife ue_random 0
+		{
+			state RandomSeedGen
+			set ue_random 1
+		}
+		
+		//randvar atemp 256
+		
+		switch sprite[].picnum
+			case LIZTROOP
+				ifle sprite[].lotag 2
+				ifrnd 48
+					seta[].picnum ROBOTTROOPER
+				else ife sprite[].lotag 3
+				ifrnd 96
+					seta[].picnum ROBOTTROOPER
+				else ifge sprite[].lotag 4
+				{
+					ifrnd 96
+						seta[].picnum ROBOTTROOPER
+					else ifrnd 96
+					{
+						seta[].picnum SNAKEHEAD
+						spritepal 0
+					}
+					else ifrnd 48
+					{
+						seta[].picnum SNAKEDRONE
+						spritepal 0
+					}
+				}
+				
+				ife userdef.player_skill 3
+				ifrnd 96
+					seta[].picnum ROBOTTROOPER
+				else ifge userdef.player_skill 4
+				{
+					ifrnd 96
+						seta[].picnum ROBOTTROOPER
+					else ifrnd 96
+					{
+						spritepal 0
+						seta[].picnum SNAKEHEAD
+					}
+					else ifrnd 48
+					{
+						spritepal 0
+						seta[].picnum SNAKEDRONE
+					}
+				}
+				else ifrnd 48
+					seta[].picnum ROBOTTROOPER
+				
+				break
+				
+			case PIGCOP
+				ifle sprite[].lotag 2
+				ifrnd 48
+					seta[].picnum DPIGCOP
+				else ife sprite[].lotag 3
+				{
+					ifrnd 96
+						seta[].picnum DPIGCOP
+					else ifrnd 64
+						seta[].picnum ELITEPIGCOP
+				}
+				else ifge sprite[].lotag 4
+				{
+					ifrnd 96
+						seta[].picnum DPIGCOP
+					else ifrnd 128
+						seta[].picnum ELITEPIGCOP
+				}
+				
+				ife userdef.player_skill 3
+				{
+					ifrnd 96
+						seta[].picnum DPIGCOP
+					else ifrnd 64
+						seta[].picnum ELITEPIGCOP
+				}
+				else ifge userdef.player_skill 4
+				{
+					ifrnd 96
+						seta[].picnum DPIGCOP
+					else ifrnd 128
+						seta[].picnum ELITEPIGCOP
+				}
+				else ifrnd 48
+					seta[].picnum DPIGCOP
+				
+				break
+				
+			case LIZMAN
+				ifle sprite[].lotag 2
+				ifrnd 48
+					seta[].picnum FLAMEENFORCER
+				else ife sprite[].lotag 3
+				{
+					ifrnd 64
+						seta[].picnum ELITEENFORCER
+					else ifrnd 96
+						seta[].picnum FLAMEENFORCER
+				}
+				else ifge sprite[].lotag 4
+				{
+					ifrnd 128
+						seta[].picnum ELITEENFORCER
+					else ifrnd 96
+						seta[].picnum FLAMEENFORCER
+				}
+				
+				ife userdef.player_skill 3
+				{
+					ifrnd 64
+						seta[].picnum ELITEENFORCER
+					else ifrnd 96
+						seta[].picnum FLAMEENFORCER
+				}
+				else ifge userdef.player_skill 4
+				{
+					ifrnd 128
+						seta[].picnum ELITEENFORCER
+					else ifrnd 96
+						seta[].picnum FLAMEENFORCER
+				}
+				else ifrnd 48
+					seta[].picnum FLAMEENFORCER
+				
+				break
+				
+			case OCTABRAIN
+				ifge sprite[].lotag 4
+				ifrnd 64
+					seta[].picnum SNAKEDRONE
+					
+				ifge userdef.player_skill 4
+				ifrnd 64
+					seta[].picnum SNAKEDRONE
+				
+				break
+				
+			case COMMANDER
+				ifle sprite[].lotag 2
+				ifrnd 48
+					seta[].picnum SARGE
+				else ife sprite[].lotag 3
+				ifrnd 96
+					seta[].picnum SARGE
+				else ifge sprite[].lotag 4
+				{
+					ifrnd 128
+						seta[].picnum SARGE
+					else ifrnd 96
+						seta[].picnum SNAKEDRONE
+				}
+				
+				ife userdef.player_skill 3
+				ifrnd 96
+					seta[].picnum SARGE
+				else ifge userdef.player_skill 4
+				{
+					ifrnd 128
+						seta[].picnum SARGE
+					else ifrnd 96
+						seta[].picnum SNAKEDRONE
+				}
+				else ifrnd 48
+					seta[].picnum SARGE
+				
+				break
+				
+			case DRONE
+				ifle sprite[].lotag 2
+				ifrnd 48
+					seta[].picnum SNAKEHEAD
+				else ife sprite[].lotag 3
+				{
+					ifrnd 96
+						seta[].picnum SNAKEHEAD
+					else ifrnd 64
+						seta[].picnum SNAKEDRONE
+				}
+				else ifge sprite[].lotag 4
+				{
+					ifrnd 96
+						seta[].picnum SNAKEHEAD
+					else ifrnd 96
+						seta[].picnum SNAKEDRONE
+				}
+				
+				ife userdef.player_skill 3
+				{
+					ifrnd 96
+						seta[].picnum SNAKEHEAD
+					else ifrnd 64
+						seta[].picnum SNAKEDRONE
+				}
+				else ifge userdef.player_skill 4
+				{
+					ifrnd 96
+						seta[].picnum SNAKEHEAD
+					else ifrnd 96
+						seta[].picnum SNAKEDRONE
+				}
+				else ifrnd 48
+					seta[].picnum SNAKEHEAD
+				
+				break
+				
+			case TANK
+				ifle sprite[].lotag 2
+				ifrnd 48
+					seta[].picnum SCORPIONTANK
+				else ife sprite[].lotag 3
+				ifrnd 96
+					seta[].picnum SCORPIONTANK
+				else ifge sprite[].lotag 4
+				ifrnd 128
+					seta[].picnum SCORPIONTANK
+					
+				ife userdef.player_skill 3
+				ifrnd 96
+					seta[].picnum SCORPIONTANK
+				else ifge userdef.player_skill 4
+				ifrnd 128
+					seta[].picnum SCORPIONTANK
+				else ifrnd 48
+					seta[].picnum SCORPIONTANK
+				
+				break
+				
+			case NEWBEAST
+				ifle sprite[].lotag 2
+				ifrnd 48
+					seta[].pal 17
+				else ife sprite[].lotag 3
+				ifrnd 96
+					seta[].pal 17
+				else ifge sprite[].lotag 4
+				ifrnd 128
+					seta[].pal 17
+					
+				ife userdef.player_skill 3
+				ifrnd 96
+					seta[].pal 17
+				else ifge userdef.player_skill 4
+				ifrnd 128
+					seta[].pal 17
+				else ifrnd 48
+					seta[].pal 17
+				
+				break
+				
+			case BOSS1
+				ifle sprite[].lotag 2
+				ifrnd 48
+					seta[].picnum BOSS3
+				else ife sprite[].lotag 3
+				ifrnd 96
+					seta[].picnum BOSS3
+				else ifge sprite[].lotag 4
+				ifrnd 128
+					seta[].picnum BOSS3
+					
+				ife userdef.player_skill 3
+				ifrnd 96
+					seta[].picnum BOSS3
+				else ifge userdef.player_skill 4
+				ifrnd 128
+					seta[].picnum BOSS3
+				else ifrnd 48
+					seta[].picnum FIREFLY
+				
+				break
+				
+			case ROTATEGUN
+				ifle sprite[].lotag 2
+				ifrnd 48
+					seta[].picnum ORGANTIC
+				else ife sprite[].lotag 3
+				ifrnd 96
+					seta[].picnum ORGANTIC
+				else ifge sprite[].lotag 4
+				ifrnd 128
+					seta[].picnum ORGANTIC
+					
+				ife userdef.player_skill 3
+				ifrnd 96
+					seta[].picnum ORGANTIC
+				else ifge userdef.player_skill 4
+				ifrnd 128
+					seta[].picnum ORGANTIC
+				else ifrnd 48
+					seta[].picnum ORGANTIC
+					
+				ife sprite[].picnum ORGANTIC
+				{
+					ifand sprite[].cstat 8
+					{
+						geta[].cstat ue_temp
+						sub ue_temp 8
+						seta[].cstat ue_temp
+					}
+					else
+						cstator 8
+				}
+				
+				break
+				
+			//Weapons and ammo
+			case FIRSTGUNSPRITE
+				ifle userdef.player_skill 2
+				ifn sprite[].pal 1
+				ifrnd 32
+					seta[].picnum CATERKILARSPRITE
+				else ifge userdef.player_skill 3
+				ifn sprite[].pal 1
+				{
+					ifrnd 64
+						seta[].picnum CATERKILARSPRITE
+					else ifrnd 72
+						seta[].picnum PLASMASPRITE
+				}
+				
+				break
+				
+			case SHOTGUNSPRITE
+				ifrnd 96
+				ifn sprite[].pal 1
+					seta[].picnum SHOTGUNBETASPRITE
+				else ifrnd 64
+				ifn sprite[].pal 1
+					seta[].picnum PLASMASPRITE
+				
+				break
+				
+			case CHAINGUNSPRITE
+				
+				ifn sprite[].pal 1
+				{
+					set ue_temp 0
+					set ue_temp2 0
+					
+					ife ue_chainspr 0
+					{
+						for ue_temp allsprites
+						{
+							ife sprite[ue_temp].picnum CHAINGUNSPRITE
+							ifn sprite[ue_temp].pal 1
+								add ue_chainspr 1
+						}
+					}
+					
+					set ue_temp ue_chainspr
+					div ue_temp 2
+					
+					ife userdef.customep 1
+					ifg userdef.customep_lvl 0
+					ife ue_plasmaspr 0
+					ifl ue_plasmaspr ue_temp
+					{
+						seta[].picnum PLASMASPRITE
+						add ue_plasmaspr 1
+					}
+					else
+					ifl ue_plasmaspr ue_temp
+					ifrnd 128
+					{
+						seta[].picnum PLASMASPRITE
+						add ue_plasmaspr 1
+					}
+				}
+				
+				break
+				
+			case RPGSPRITE
+				
+				ifn sprite[].pal 1
+				{
+					set ue_temp 0
+					set ue_temp2 0
+					
+					ife ue_rpgspr 0
+					{
+						for ue_temp allsprites
+						{
+							ife sprite[ue_temp].picnum RPGSPRITE
+							ifn sprite[ue_temp].pal 1
+								add ue_rpgspr 1
+						}
+					}
+					
+					set ue_temp ue_rpgspr
+					div ue_temp 2
+					
+					ife userdef.customep 1
+					ifg userdef.customep_lvl 0
+					ife ue_urpgspr 0
+					ifl ue_urpgspr ue_temp
+					{
+						seta[].picnum ULTRARPGSPRITE
+						add ue_urpgspr 1
+					}
+					else
+					ifl ue_urpgspr ue_temp
+					ifrnd 128
+					{
+						seta[].picnum ULTRARPGSPRITE
+						add ue_urpgspr 1
+					}
+				}
+				
+				break
+				
+			case DEVISTATORSPRITE
+				
+				ifn sprite[].pal 1
+				{
+					set ue_temp 0
+					set ue_temp2 0
+					
+					ife ue_devspr 0
+					{
+						for ue_temp allsprites
+						{
+							ife sprite[ue_temp].picnum DEVISTATORSPRITE
+							ifn sprite[ue_temp].pal 1
+								add ue_devspr 1
+						}
+					}
+					
+					set ue_temp ue_devspr
+					div ue_temp 2
+					
+					ife userdef.customep 1
+					ifg userdef.customep_lvl 0
+					ife ue_sonicspr 0
+					ifl ue_sonicspr ue_temp
+					{
+						seta[].picnum SONICSPRITE
+						add ue_sonicspr 1
+					}
+					else
+					ifl ue_sonicspr ue_temp
+					ifrnd 128
+					{
+						seta[].picnum SONICSPRITE
+						add ue_sonicspr 1
+					}
+				}
+				
+				break
+				
+			case FREEZESPRITE
+				
+				ifn sprite[].pal 1
+				{
+					set ue_temp 0
+					set ue_temp2 0
+					
+					ife ue_freezespr 0
+					{
+						for ue_temp allsprites
+						{
+							ife sprite[ue_temp].picnum FREEZESPRITE
+							ifn sprite[ue_temp].pal 1
+								add ue_freezespr 1
+						}
+					}
+					
+					set ue_temp ue_freezespr
+					div ue_temp 2
+					
+					ife userdef.customep 1
+					ifg userdef.customep_lvl 0
+					ife ue_flamespr 0
+					ifl ue_flamespr ue_temp
+					{
+						seta[].picnum FLAMETHROWERSPRITE
+						add ue_flamespr 1
+					}
+					else
+					ifl ue_flamespr ue_temp
+					ifrnd 128
+					{
+						seta[].picnum FLAMETHROWERSPRITE
+						add ue_flamespr 1
+					}
+				}
+				
+				break
+				
+			case AMMO
+				ifrnd 48
+				ifn sprite[].pal 1
+					seta[].picnum PLASMAAMMO
+				
+				break
+				
+			case SHOTGUNAMMO
+				ifrnd 64
+				ifn sprite[].pal 1
+					seta[].picnum PLASMAAMMO
+				
+				break
+				
+			case BATTERYAMMO
+				ifrnd 96
+				ifn sprite[].pal 1
+					seta[].picnum PLASMAAMMO
+				
+				break
+				
+			case RPGAMMO
+				ifrnd 64
+				ifn sprite[].pal 1
+					seta[].picnum ULTRARPGAMMO
+				
+				break
+				
+			case DEVISTATORAMMO
+				ifrnd 64
+				ifn sprite[ue_temp].pal 1
+					seta[].picnum SONICAMMO
+				
+				break
+				
+			case FREEZEAMMO
+				ifrnd 96
+				ifn sprite[].pal 1
+					seta[].picnum FUEL
+				
+				break
+				
+			case ATOMICHEALTH
+				ifrnd 64
+					seta[].picnum ONEUP
+					
+				break
+				
+		endswitch
+	}
+	
+	//Nuke Mode
+	ife userdef.enable_nuke 1
+	ife userdef.nuke_active 1
+	{
+		ifg userdef.nuke_random 0
+		{
+			switch sprite[].picnum
+				case EGG
+				case LIZTROOP
+				case LIZTROOPJETPACK
+				case PIGCOP
+				case DPIGCOP
+				case ELITEPIGCOP
+				case ROBOTTROOPER
+				case LIZMAN
+				case FLAMEENFORCER
+				case ELITEENFORCER
+				case OCTABRAIN
+				case COMMANDER
+				case ORGANTIC
+				case ROTATEGUN
+				case DRONE
+				case SNAKEHEAD
+				case SNAKEDRONE
+				case SARGE
+				case NEWBEAST
+				case SHARK
+				case TANK
+				case SCORPIONTANK
+					ifg sprite[].lotag userdef.player_skill
+						nullop
+					else ifand userdef.nuke_random 1
+					{
+						ifactor ROTATEGUN
+						{
+							ifrnd 128
+								seta[].picnum ORGANTIC
+						
+							ife sprite[].picnum ORGANTIC
+							{
+								ifand sprite[].cstat 8
+								{
+									geta[].cstat ue_temp
+									sub ue_temp 8
+									seta[].cstat ue_temp
+								}
+								else
+									cstator 8
+							}
+						}
+						else ifactor ORGANTIC
+						{
+							ifrnd 128
+								seta[].picnum ROTATEGUN
+						
+							ife sprite[].picnum ROTATEGUN
+							{
+								ifand sprite[].cstat 8
+								{
+									geta[].cstat ue_temp
+									sub ue_temp 8
+									seta[].cstat ue_temp
+								}
+								else
+									cstator 8
+							}
+						}
+						else
+						{
+							ifrnd 16
+								displayrandvar ue_temp 21
+							else
+								displayrandvar ue_temp 18
+								
+							ife nukeenemies[ue_temp] FIREFLY
+							ifrnd 96
+								displayrandvar ue_temp 15
+								
+							ife nukeenemies[ue_temp] BOSS1
+							ifrnd 96
+								displayrandvar ue_temp 15
+								
+							ife nukeenemies[ue_temp] BOSS3
+							ifrnd 96
+								displayrandvar ue_temp 15
+							
+							seta[].picnum nukeenemies[ue_temp]
+							
+							ife nukeenemies[ue_temp] LIZTROOP
+							ifrnd 128
+								spritepal 21
+							else ife nukeenemies[ue_temp] NEWBEAST
+							ifrnd 128
+								spritepal 17
+							else ife nukeenemies[ue_temp] FIREFLY
+								spritepal 3
+							else ife nukeenemies[ue_temp] BOSS3
+								spritepal 3
+							else ife nukeenemies[ue_temp] BOSS1
+								spritepal 3
+							else
+								spritepal 0
+								
+							ife sprite[].picnum BOSS1
+								seta[].pal 3
+								
+							ife sprite[].picnum BOSS3
+								seta[].pal 3
+								
+							ife sprite[].picnum FIREFLY
+								seta[].pal 3
+						}
+					}
+					
+					break
+				
+				case BOSS1
+				case BOSS3
+				case FIREFLY
+					ifand userdef.nuke_random 1
+					{
+						ifspritepal 0
+							nullop
+						else
+						{
+							displayrandvar ue_temp 2
+							
+							switch ue_temp
+								case 0
+									seta[].picnum BOSS1
+									break
+									
+								case 1
+									seta[].picnum BOSS3
+									break
+									
+								case 2
+									seta[].picnum FIREFLY
+									break
+							endswitch
+						}
+					}
+					break
+					
+				case FIRSTGUNSPRITE
+				case SHOTGUNBETASPRITE
+				case SHOTGUNSPRITE
+				case CHAINGUNSPRITE
+				case PLASMASPRITE
+				case RPGSPRITE
+				case ULTRARPGSPRITE
+				case SHRINKERSPRITE
+				case DEVISTATORSPRITE
+				case SONICSPRITE
+				case FREEZESPRITE
+				case FLAMETHROWERSPRITE
+				case CATERKILARSPRITE
+					ifand userdef.nuke_random 2
+					{
+						ifspritepal 1
+							spritepal 0
+							
+						displayrandvar ue_temp 13
+						seta[].picnum nukewpns[ue_temp]
+					}
+					
+					break
+					
+				case AMMO
+				case SHOTGUNAMMO
+				case BATTERYAMMO
+				case PLASMAAMMO
+				case RPGAMMO
+				case ULTRARPGAMMO
+				case CRYSTALAMMO
+				case GROWAMMO
+				case DEVISTATORAMMO
+				case SONICAMMO
+				case FREEZEAMMO
+				case FUEL
+					ifand userdef.nuke_random 2
+					{
+						ife userdef.nuke_noammo 1
+							killit
+						else
+						{
+							ifspritepal 1
+								spritepal 0
+								
+							displayrandvar ue_temp 12
+							seta[].picnum nukeammo[ue_temp]
+						}
+					}
+					
+					break
+				
+				
+			endswitch
+		}
+		
+		ife nuke_n7 1
+		{
+			switch sprite[].picnum
+				case SIXPAK
+					ifrnd 32
+						seta[].picnum ONEUP
+					break
+					
+				case ATOMICHEALTH
+					ifrnd 96
+						seta[].picnum ONEUP
+					break
+					
+				case HOLODUKE
+					ifrnd 96
+						seta[].picnum ONEUP
+					break
+
+			endswitch
+		}
+		
+		ife userdef.nuke_hppickup 1
+		{
+			switch sprite[].picnum
+				case SIXPAK
+				case COLA
+					killit
+					break
+
+			endswitch
+		}
+	}
+	
+endevent
+	
+appendevent EVENT_SPAWN
+
+	ife userdef.enable_nuke 1
+	ife userdef.nuke_active 1
+	{
+		ife userdef.nuke_enemy 1
+		{
+			switch sprite[].picnum
+				case EGG
+				case LIZTROOP
+				case LIZTROOPJETPACK
+				case LIZTROOPSTAYPUT
+				case LIZTROOPONTOILET
+				case LIZTROOPJUSTSIT
+				case LIZTROOPDUCKING
+				case PIGCOP
+				case PIGCOPSTAYPUT
+				case PIGCOPDIVE
+				case DPIGCOP
+				case DPIGCOPSTAYPUT
+				case DPIGCOPDIVE
+				case ELITEPIGCOP
+				case ELITEPIGCOPSTAYPUT
+				case ELITEPIGCOPDIVE
+				case ROBOTTROOPER
+				case ROBOTTROOPERJETPACK
+				case ROBOTTROOPERSTAYPUT
+				case ROBOTTROOPERSHOOT
+				case LIZMAN
+				case LIZMANSTAYPUT
+				case LIZMANJUMP
+				case LIZMANSPITTING
+				case FLAMEENFORCER
+				case ELITEENFORCER
+				case OCTABRAIN
+				case OCTABRAINSTAYPUT
+				case COMMANDER
+				case COMMANDERSTAYPUT
+				case ORGANTIC
+				case ROTATEGUN
+				case DRONE
+				case SNAKEHEAD
+				case SNAKEDRONE
+				case JELLYPROTECTOR
+				case SARGE
+				case NEWBEAST
+				case NEWBEASTSTAYPUT
+				case NEWBEASTJUMP
+				case NEWBEASTHANG
+					ifg sprite[].lotag userdef.player_skill
+						set ue_settotkil 1
+						
+					ife ue_settotkil 0
+					ifn sprite[].owner -1
+					ifn sprite[].owner THISACTOR
+						set ue_settotkil 1	
+					
+					ife ue_settotkil 0
+					whilel ue_temp 2047
+					{
+						geta[].x nmx
+						add nmx 1024
+						geta[].y nmy
+						geta[].z nmz
+						geta[].sectnum nms
+					
+						rotatepoint sprite[].x sprite[].y nmx nmy ue_temp nmx nmy
+						updatesectorz nmx nmy nmz nms
+						
+						ifn nms -1
+						{
+							set wcx sector[nms].floorz
+							set wcy sector[nms].ceilingz
+							
+							sub wcx wcy
+							abs wcx
+							
+							ifl wcx 8192
+								set nms -1
+						}
+						
+						set wcx nmx
+						set wcy nmy
+						set wcz nmz
+						set wcs nms
+						
+						set wallTouch 0
+						
+						ifn wcs -1
+							state CheckWallNearby2
+						
+						ifn nms -1
+						ife wallTouch 0
+						ifrnd 192
+						{
+							ifactor ELITEENFORCER
+							{
+								ifrnd 96
+									espawn LIZMAN
+								else ifrnd 96
+									espawn FLAMEENFORCER
+								else ifand userdef.nuke_random 1
+								{
+										ifrnd 16
+											displayrandvar ue_temp2 21
+										else
+											displayrandvar ue_temp2 16
+										
+										ife nukeenemies[ue_temp2] FIREFLY
+										ifrnd 96
+											displayrandvar ue_temp2 15
+											
+										ife nukeenemies[ue_temp2] BOSS1
+										ifrnd 96
+											displayrandvar ue_temp2 15
+											
+										ife nukeenemies[ue_temp2] BOSS3
+										ifrnd 96
+											displayrandvar ue_temp2 15
+										
+										espawnvar nukeenemies[ue_temp2]
+										
+										ife nukeenemies[ue_temp2] LIZTROOP
+										ifrnd 128
+											seta[RETURN].pal 21
+										else ife nukeenemies[ue_temp2] NEWBEAST
+										ifrnd 128
+											seta[RETURN].pal 17
+										else ife nukeenemies[ue_temp2] FIREFLY
+											seta[RETURN].pal 3
+										else ife nukeenemies[ue_temp2] BOSS3
+											seta[RETURN].pal 3
+										else ife nukeenemies[ue_temp2] BOSS1
+											seta[RETURN].pal 3
+								}
+								else
+								{
+									ife VOLUME 1
+									{
+										ifrnd 96
+											espawn ROBOTTROOPER
+										else ifrnd 96
+											espawn LIZTROOP
+										else ifrnd 64
+											espawn SARGE
+										else
+											espawn SNAKEHEAD
+									}
+									else
+									{
+										ifrnd 64
+											espawn DPIGCOP
+										else ifrnd 64
+											espawn PIGCOP
+										else ifrnd 64
+											espawn SNAKEDRONE
+										else ifrnd 64
+											espawn ROBOTTROOPER
+										else ifrnd 64
+											espawn SARGE
+										else ifrnd 64
+											espawn LIZTROOP
+										else
+											espawn SNAKEHEAD
+									}
+								}
+							}
+							else ifactor ELITEPIGCOP
+							{
+								ifrnd 96
+									espawn PIGCOP
+								else ifrnd 96
+									espawn DPIGCOP
+								else ifand userdef.nuke_random 1
+								{
+									ifrnd 16
+											displayrandvar ue_temp2 21
+										else
+											displayrandvar ue_temp2 16
+										
+										ife nukeenemies[ue_temp2] FIREFLY
+										ifrnd 96
+											displayrandvar ue_temp2 15
+											
+										ife nukeenemies[ue_temp2] BOSS1
+										ifrnd 96
+											displayrandvar ue_temp2 15
+											
+										ife nukeenemies[ue_temp2] BOSS3
+										ifrnd 96
+											displayrandvar ue_temp2 15
+										
+										espawnvar nukeenemies[ue_temp2]
+										
+										ife nukeenemies[ue_temp2] LIZTROOP
+										ifrnd 128
+											seta[RETURN].pal 21
+										else ife nukeenemies[ue_temp2] NEWBEAST
+										ifrnd 128
+											seta[RETURN].pal 17
+										else ife nukeenemies[ue_temp2] FIREFLY
+											seta[RETURN].pal 3
+										else ife nukeenemies[ue_temp2] BOSS3
+											seta[RETURN].pal 3
+										else ife nukeenemies[ue_temp2] BOSS1
+											seta[RETURN].pal 3
+								}
+								else
+								{
+									ifrnd 72
+										espawn FLAMEENFORCER
+									else ifrnd 72
+										espawn NEWBEAST
+									else ifrnd 72
+										espawn COMMANDER
+									else ifrnd 72
+										espawn LIZMAN
+									else ifrnd 72
+										espawn OCTABRAIN
+									else
+										espawn LIZTROOP
+								}
+							}
+							else
+							{
+								ifand userdef.nuke_random 1
+								{
+										ifrnd 16
+											displayrandvar ue_temp2 21
+										else
+											displayrandvar ue_temp2 16
+										
+										ife nukeenemies[ue_temp2] FIREFLY
+										ifrnd 96
+											displayrandvar ue_temp2 15
+											
+										ife nukeenemies[ue_temp2] BOSS1
+										ifrnd 96
+											displayrandvar ue_temp2 15
+											
+										ife nukeenemies[ue_temp2] BOSS3
+										ifrnd 96
+											displayrandvar ue_temp2 15
+										
+										espawnvar nukeenemies[ue_temp2]
+										
+										ife nukeenemies[ue_temp2] LIZTROOP
+										ifrnd 128
+											seta[RETURN].pal 21
+										else ife nukeenemies[ue_temp2] NEWBEAST
+										ifrnd 128
+											seta[RETURN].pal 17
+										else ife nukeenemies[ue_temp2] FIREFLY
+											seta[RETURN].pal 3
+										else ife nukeenemies[ue_temp2] BOSS3
+											seta[RETURN].pal 3
+										else ife nukeenemies[ue_temp2] BOSS1
+											seta[RETURN].pal 3
+								}
+								else
+								{
+									ifactor FLAMEENFORCER
+									{
+										ife VOLUME 1
+										{
+											ifrnd 72
+												espawn LIZMAN
+											else ifrnd 72
+												espawn FLAMEENFORCER
+											else ifrnd 72
+												espawn ROBOTTROOPER
+											else ifrnd 72
+												espawn LIZTROOP
+											else
+												espawn SNAKEHEAD
+										}
+										else
+										{
+											ifrnd 72
+												espawn LIZMAN
+											else ifrnd 72
+												espawn FLAMEENFORCER
+											else ifrnd 72
+												espawn PIGCOP
+											else ifrnd 72
+												espawn ROBOTTROOPER
+											else ifrnd 72
+												espawn LIZTROOP
+											else
+												espawn SNAKEHEAD
+										}
+									}
+									else ifactor LIZMAN
+									{
+										ife VOLUME 1
+										{
+											ifrnd 72
+												espawn LIZMAN
+											else ifrnd 72
+												espawn ROBOTTROOPER
+											else ifrnd 72
+												espawn OCTABRAIN
+											else
+												espawn LIZTROOP
+										}
+										else
+										{
+											ifrnd 64
+												espawn LIZMAN
+											else ifrnd 64
+												espawn PIGCOP
+											else ifrnd 64
+												espawn ROBOTTROOPER
+											else ifrnd 64
+												espawn OCTABRAIN
+											else
+												espawn LIZTROOP
+										}
+									}
+									else ifactor DPIGCOP
+									{
+										ifrnd 64
+											espawn LIZMAN
+										else ifrnd 64
+											espawn FLAMEENFORCER
+										else ifrnd 64
+											espawn DPIGCOP
+										else ifrnd 64
+											espawn PIGCOP
+										else ifrnd 64
+											espawn LIZTROOP
+									}
+									else ifactor PIGCOP
+									{
+										ifrnd 96
+											espawn PIGCOP
+										else ifrnd 96
+											espawn OCTABRAIN
+										else
+											espawn LIZTROOP
+									}
+									else ifactor OCTABRAIN
+									{
+										ifrnd 96
+											espawn LIZMAN
+										else ifrnd 96
+											espawn OCTABRAIN
+										else ifrnd 96
+											espawn SNAKEHEAD
+										else
+											espawn LIZTROOP
+									}
+									else ifactor SNAKEHEAD
+									{
+										else ifrnd 128
+											espawn SNAKEHEAD
+										else
+											espawn OCTABRAIN
+									}
+									else ifactor DRONE
+									{
+										ifrnd 72
+											espawn DRONE
+										else ifrnd 72
+											espawn SNAKEDRONE
+										else ifrnd 72
+											espawn SNAKEHEAD
+										else ifrnd 72
+											espawn ROBOTTROOPER
+										else
+											espawn LIZTROOP
+									}
+									else ifactor SNAKEDRONE
+									{
+										ifrnd 72
+											espawn SNAKEDRONE
+										else ifrnd 72
+											espawn DRONE
+										else ifrnd 72
+											espawn SNAKEHEAD
+										else ifrnd 72
+											espawn ROBOTTROOPER
+										else ifrnd 72
+											espawn SARGE
+										else ifrnd 72
+											espawn LIZMAN
+										else
+											espawn LIZTROOP
+									}
+									else ifactor COMMANDER
+									{
+										ifrnd 48
+											espawn COMMANDER
+										else ifrnd 48
+											espawn DRONE
+										else ifrnd 48
+											espawn FLAMEENFORCER
+										else ifrnd 48
+											espawn LIZMAN
+										else ifrnd 48
+											espawn ROBOTTROOPER
+										else ifrnd 48
+											espawn SNAKEHEAD
+										else ifg VOLUME 1
+										{
+											ifrnd 48
+												espawn DPIGCOP
+											else ifrnd 48
+												espawn PIGCOP
+										}
+										else ifrnd 48
+											espawn SARGE
+										else
+											espawn LIZTROOP
+									}
+									else ifactor SARGE
+									{
+										ifrnd 48
+											espawn COMMANDER
+										else ifrnd 48
+											espawn SARGE
+										else ifrnd 48
+											espawn SNAKEDRONE
+										else ifrnd 48
+											espawn FLAMEENFORCER
+										else ifrnd 48
+											espawn ELITEENFORCER
+										else ifrnd 48
+											espawn NEWBEAST
+										else ifrnd 48
+											espawn ELITEPIGCOP
+										else ifrnd 48
+											espawn DPIGCOP
+										else
+											espawn LIZTROOP
+									}
+									else ifactor NEWBEAST
+									{
+										ifrnd 32
+											espawn COMMANDER
+										else ifrnd 32
+											espawn SARGE
+										else ifrnd 32
+											espawn NEWBEAST
+										else ifrnd 32
+											espawn SNAKEDRONE
+										else ifrnd 32
+											espawn DRONE
+										else ifrnd 32
+											espawn LIZMAN
+										else ifrnd 32
+											espawn PIGCOP
+										else ifrnd 32
+											espawn FLAMEENFORCER
+										else ifrnd 32
+											espawn ELITEENFORCER
+										else ifrnd 32
+											espawn NEWBEAST
+										else ifrnd 32
+											espawn ELITEPIGCOP
+										else ifrnd 32
+											espawn DPIGCOP
+										else
+											espawn LIZTROOP
+									}
+									else
+									{
+										ifrnd 16
+											displayrandvar ue_temp2 21
+										else
+											displayrandvar ue_temp2 16
+										
+										ife nukeenemies[ue_temp2] FIREFLY
+										ifrnd 96
+											displayrandvar ue_temp2 15
+											
+										ife nukeenemies[ue_temp2] BOSS1
+										ifrnd 96
+											displayrandvar ue_temp2 15
+											
+										ife nukeenemies[ue_temp2] BOSS3
+										ifrnd 96
+											displayrandvar ue_temp2 15
+										
+										espawnvar nukeenemies[ue_temp2]
+										
+										ife nukeenemies[ue_temp2] LIZTROOP
+										ifrnd 128
+											seta[RETURN].pal 21
+										else ife nukeenemies[ue_temp2] NEWBEAST
+										ifrnd 128
+											seta[RETURN].pal 17
+										else ife nukeenemies[ue_temp2] FIREFLY
+											seta[RETURN].pal 3
+										else ife nukeenemies[ue_temp2] BOSS3
+											seta[RETURN].pal 3
+										else ife nukeenemies[ue_temp2] BOSS1
+											seta[RETURN].pal 3
+									}
+								}
+							}
+							setsprite RETURN nmx nmy nmz
+							changespritesect RETURN nms
+
+							ife sprite[RETURN].picnum BOSS1
+								seta[RETURN].pal 3
+								
+							ife sprite[RETURN].picnum BOSS3
+								seta[RETURN].pal 3
+								
+							ife sprite[RETURN].picnum FIREFLY
+								seta[RETURN].pal 3
+							
+							setactorvar[RETURN].ue_settotkil 1
+							
+							//HACK
+							getp[].max_actors_killed ue_temp2
+							sub ue_temp2 1
+							setp[].max_actors_killed ue_temp2
+							
+							add nma 1
+							
+							ifg nma 2
+								set ue_temp 2048
+						}
+						else
+							add ue_temp 384
+					}
+					
+					break
+				
+			endswitch
+		}
+
+		switch sprite[].picnum
+				case BOSS1
+				case BOSS2
+				case BOSS2RED
+				case BOSS3
+				case BOSS4
+				case FIREFLY
+					ifactor FIREFLY
+						nullop
+					else ifspritepal 0
+					{
+						set ue_temp 0
+						whilel ue_temp 2047
+						{
+							geta[].x nmx
+							add nmx 1024
+							geta[].y nmy
+							geta[].z nmz
+							geta[].sectnum nms
+						
+							rotatepoint sprite[].x sprite[].y nmx nmy ue_temp nmx nmy
+							updatesectorz nmx nmy nmz nms
+							
+							set wcx nmx
+							set wcy nmy
+							set wcz nmz
+							set wcs nms
+							
+							ifn nms -1
+							{
+								set wcx sector[nms].floorz
+								set wcy sector[nms].ceilingz
+								
+								sub wcx wcy
+								abs wcx
+								
+								ifl wcx 8192
+									set nms -1
+							}
+							
+							set wallTouch 0
+							
+							ifn wcs -1
+								state CheckWallNearby2
+							
+							ifn nms -1
+							ife wallTouch 0
+							ifrnd 192
+							{
+								ifactor BOSS1
+								{
+									ifrnd 128
+									{
+										espawn FIREFLY
+										seta[RETURN].pal 3
+									}
+									else
+									{
+										espawn BOSS1
+										seta[RETURN].pal 3
+									}
+								}
+								else ifactor BOSS3
+								{
+									ifrnd 128
+									{
+										espawn FIREFLY
+										seta[RETURN].pal 3
+									}
+									else ifrnd 128
+									{
+										espawn BOSS3
+										seta[RETURN].pal 3
+									}
+									else
+									{
+										espawn BOSS1
+										seta[RETURN].pal 3
+									}
+								}
+								else ifactor BOSS2
+								{
+									ifrnd 128
+									{
+										espawn FIREFLY
+										seta[RETURN].pal 3
+									}
+									else ifrnd 128
+									{
+										espawn BOSS1
+										seta[RETURN].pal 3
+									}
+									else
+									{
+										espawn BOSS3
+										seta[RETURN].pal 3
+									}
+								}
+								else ifactor BOSS4
+								{
+									ifrnd 128
+									{
+										espawn FIREFLY
+										seta[RETURN].pal 3
+									}
+									else ifrnd 128
+									{
+										espawn BOSS3
+										seta[RETURN].pal 3
+									}
+									else
+									{
+										espawn BOSS1
+										seta[RETURN].pal 3
+									}
+								}
+								
+								setsprite RETURN nmx nmy nmz
+								
+								changespritesect RETURN nms
+								
+								setactorvar[RETURN].ue_settotkil 1
+							
+								//HACK
+								getp[].max_actors_killed ue_temp2
+								sub ue_temp2 1
+								setp[].max_actors_killed ue_temp2
+								
+								add nma 1
+								
+								ifg nma 2
+									set ue_temp 2048
+							}
+							else
+								add ue_temp 384
+						}
+					}
+		
+				case EGG
+				case LIZTROOP
+				case LIZTROOPJETPACK
+				case LIZTROOPSTAYPUT
+				case LIZTROOPONTOILET
+				case LIZTROOPJUSTSIT
+				case LIZTROOPDUCKING
+				case PIGCOP
+				case PIGCOPSTAYPUT
+				case PIGCOPDIVE
+				case DPIGCOP
+				case DPIGCOPSTAYPUT
+				case DPIGCOPDIVE
+				case ELITEPIGCOP
+				case ELITEPIGCOPSTAYPUT
+				case ELITEPIGCOPDIVE
+				case ROBOTTROOPER
+				case ROBOTTROOPERJETPACK
+				case ROBOTTROOPERSTAYPUT
+				case ROBOTTROOPERSHOOT
+				case LIZMAN
+				case LIZMANSTAYPUT
+				case LIZMANJUMP
+				case LIZMANSPITTING
+				case FLAMEENFORCER
+				case ELITEENFORCER
+				case OCTABRAIN
+				case OCTABRAINSTAYPUT
+				case COMMANDER
+				case COMMANDERSTAYPUT
+				case ORGANTIC
+				case ROTATEGUN
+				case DRONE
+				case SNAKEHEAD
+				case SNAKEDRONE
+				case JELLYPROTECTOR
+				case SARGE
+				case NEWBEAST
+				case NEWBEASTSTAYPUT
+				case NEWBEASTJUMP
+				case NEWBEASTHANG
+				case SHARK
+				case TANK
+				case SCORPIONTANK
+				case BOSS1STAYPUT
+				case BOSS3STAYPUT
+					set ue_temp userdef.nuke_enemyhealth
+					mul ue_temp sprite[].extra
+					div ue_temp 100
+					seta[].extra ue_temp
+					
+					break
+		
+		endswitch
+	}
+
+endevent
+
+appendevent EVENT_GAME
+
+	ife userdef.nuke_active 1
+	ife userdef.enable_nuke 1
+	ifg userdef.nuke_wpnsel 0
+	{
+		ife userdef.nuke_wpnsel 1
+		{
+			switch sprite[].picnum
+				case CATERKILARSPRITE
+					seta[].picnum FLAMETHROWERSPRITE
+					break
+					
+				case SHOTGUNSPRITE
+					seta[].picnum SHOTGUNBETASPRITE
+					break
+				
+				case PLASMASPRITE
+					seta[].picnum CHAINGUNSPRITE
+					break
+					
+				case ULTRARPGSPRITE
+					seta[].picnum RPGSPRITE
+					break
+					
+				case FREEZESPRITE
+					seta[].picnum FLAMETHROWERSPRITE
+					break
+					
+				case DEVISTATORSPRITE
+					seta[].picnum FLAMETHROWERSPRITE
+					break
+					
+				case SONICSPRITE
+					seta[].picnum SHRINKERSPRITE
+					break
+					
+				case PLASMAAMMO
+					seta[].picnum BATTERYAMMO
+					break
+					
+				case ULTRARPGAMMO
+					seta[].picnum RPGAMMO
+					break
+					
+				case FREEZEAMMO
+					seta[].picnum FUEL
+					break
+					
+				case DEVISTATORAMMO
+					seta[].picnum FUEL
+					break
+				
+				case SONICAMMO
+					seta[].picnum GROWAMMO
+					break
+				
+			endswitch
+		}
+		else ife userdef.nuke_wpnsel 2
+		{
+			switch sprite[].picnum
+				case CATERKILARSPRITE
+					seta[].picnum FLAMETHROWERSPRITE
+					break
+					
+				case SHOTGUNSPRITE
+					seta[].picnum PLASMASPRITE
+					break
+					
+				case SHOTGUNBETASPRITE
+					seta[].picnum PLASMASPRITE
+					break
+				
+				case CHAINGUNSPRITE
+					seta[].picnum PLASMASPRITE
+					break
+					
+				case ULTRARPGSPRITE
+					seta[].picnum RPGSPRITE
+					break
+					
+				case FREEZESPRITE
+					seta[].picnum FLAMETHROWERSPRITE
+					break
+					
+				case DEVISTATORSPRITE
+					seta[].picnum FLAMETHROWERSPRITE
+					break
+					
+				case SONICSPRITE
+					seta[].picnum SHRINKERSPRITE
+					break
+					
+				case BATTERYAMMO
+					seta[].picnum PLASMAAMMO
+					break
+					
+				case SHOTGUNAMMO
+					seta[].picnum PLASMAAMMO
+					break
+					
+				case RPGAMMO
+					seta[].picnum ULTRARPGAMMO
+					break
+					
+				case FREEZEAMMO
+					seta[].picnum FUEL
+					break
+					
+				case DEVISTATORAMMO
+					seta[].picnum FUEL
+					break
+				
+				case SONICAMMO
+					seta[].picnum GROWAMMO
+					break
+				
+			endswitch
+		}
+		else ife userdef.nuke_wpnsel 3
+		{
+			switch sprite[].picnum
+				case CATERKILARSPRITE
+					seta[].picnum FLAMETHROWERSPRITE
+					break
+					
+				case SHOTGUNSPRITE
+					seta[].picnum PLASMASPRITE
+					break
+					
+				case SHOTGUNBETASPRITE
+					seta[].picnum PLASMASPRITE
+					break
+				
+				case CHAINGUNSPRITE
+					seta[].picnum PLASMASPRITE
+					break
+					
+				case RPGSPRITE
+					seta[].picnum ULTRARPGSPRITE
+					break
+					
+				case FREEZESPRITE
+					seta[].picnum FLAMETHROWERSPRITE
+					break
+					
+				case DEVISTATORSPRITE
+					seta[].picnum FLAMETHROWERSPRITE
+					break
+					
+				case SONICSPRITE
+					seta[].picnum SHRINKERSPRITE
+					break
+					
+				case BATTERYAMMO
+					seta[].picnum PLASMAAMMO
+					break
+					
+				case SHOTGUNAMMO
+					seta[].picnum PLASMAAMMO
+					break
+					
+				case RPGAMMO
+					seta[].picnum ULTRARPGAMMO
+					break
+					
+				case FREEZEAMMO
+					seta[].picnum FUEL
+					break
+					
+				case DEVISTATORAMMO
+					seta[].picnum FUEL
+					break
+				
+				case SONICAMMO
+					seta[].picnum GROWAMMO
+					break
+				
+			endswitch
+		}
+		else ife userdef.nuke_wpnsel 4
+		{
+			switch sprite[].picnum
+				case FLAMETHROWERSPRITE
+					seta[].picnum CATERKILARSPRITE
+					break
+					
+				case SHOTGUNSPRITE
+					seta[].picnum PLASMASPRITE
+					break
+					
+				case SHOTGUNBETASPRITE
+					seta[].picnum PLASMASPRITE
+					break
+				
+				case CHAINGUNSPRITE
+					seta[].picnum PLASMASPRITE
+					break
+					
+				case RPGSPRITE
+					seta[].picnum ULTRARPGSPRITE
+					break
+					
+				case FREEZESPRITE
+					seta[].picnum CATERKILARSPRITE
+					break
+					
+				case DEVISTATORSPRITE
+					seta[].picnum SONICSPRITE
+					break
+					
+				case BATTERYAMMO
+					seta[].picnum PLASMAAMMO
+					break
+					
+				case SHOTGUNAMMO
+					seta[].picnum PLASMAAMMO
+					break
+					
+				case RPGAMMO
+					seta[].picnum ULTRARPGAMMO
+					break
+					
+				case FREEZEAMMO
+					seta[].picnum PLASMAAMMO
+					break
+					
+				case DEVISTATORAMMO
+					seta[].picnum SONICAMMO
+					break
+				
+			endswitch
+		}
+	}
+
+endevent

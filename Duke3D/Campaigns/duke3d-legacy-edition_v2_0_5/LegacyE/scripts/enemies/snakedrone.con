@@ -1,0 +1,326 @@
+/*
+--------------------------------------------------------------------------------
+Duke Nukem 3D - Blast Edition Version 0.1
+By Marcos
+2022 - Space In a Bottle
+*/
+
+//Snake Drone
+
+define SNAKESNDRONESTRNEGTH 120
+
+action SNDRONEFRAMES   0   1   5   1   1
+action SNDRONESHOOT   5   2   5   1   16
+
+move SNDRONERUNVELS 128 64
+move SNDRONERUNUPVELS 128 -64
+move SNDRONEBULLVELS 192 -64
+move SNDRONEBACKWARDS -64 -64
+move SNDRONERISE 48 -48
+move SNDRONESTOPPED -16
+
+ai AISNDRONEGETE SNDRONEFRAMES SNDRONERUNVELS faceplayerslow getv
+ai AISNDRONEWAIT SNDRONEFRAMES SNDRONESTOPPED faceplayerslow
+ai AISNDRONEGETUP SNDRONEFRAMES SNDRONERUNUPVELS faceplayer getv
+ai AISNDRONEPULLBACK SNDRONEFRAMES SNDRONEBACKWARDS faceplayerslow
+ai AISNDRONEHIT SNDRONEFRAMES SNDRONEBACKWARDS faceplayer
+ai AISNDRONESHRUNK SNDRONEFRAMES SNDRONERISE fleeenemy
+ai AISNDRONEDODGE SNDRONEFRAMES SNDRONEBULLVELS dodgebullet geth
+ai AISNDRONEDODGEUP SNDRONEFRAMES SNDRONERISE getv geth
+ai AISNDRONESHOOT SNDRONESHOOT SNDRONERISE faceplayer
+
+state sndronedead
+  addkills 1
+  debris SCRAP1 8
+  debris SCRAP2 4
+  debris SCRAP3 7
+  spawn EXPLOSION2
+  sound RPG_EXPLODE
+  hitradius 2048 7 10 15 20
+  killit
+ends
+
+state checksndronehitstate
+
+  ifdead state sndronedead
+  else ifsquished state sndronedead
+  else
+  {
+    ifwasweapon PLASMAPROJ
+		set a_plasmaeffect 1
+		
+    sound DRON_PAIN
+    ifbulletnear
+    {
+      ifceilingdistl 64
+        ifrnd 48
+          ai AISNDRONEDODGE
+      ai AISNDRONEDODGEUP
+    }
+    else ifcanseetarget
+	ifcansee
+	{
+	  ifai AISNDRONESHOOT
+		nullop
+	else
+	  ai AISNDRONESHOOT
+	}
+	else
+      ai AISNDRONEGETE
+  }
+ends
+
+state sndroneshrunkstate
+  ifcount 24
+    killit
+  else
+    sizeto 1 1
+ends
+
+state sndroneshoot
+
+	ifpdistl 16384
+	ifp palive
+	//ifcanseetarget
+	{
+		//ifpdistl 16384
+		//{
+			//ifpdistl 6144
+			//{
+				ifactioncount 2
+				{
+					/*
+					setprojectile[ROCKETPROJ].xrepeat 8
+					setprojectile[ROCKETPROJ].yrepeat 8
+					setprojectile[ROCKETPROJ].extra_rand 2
+					setprojectile[ROCKETPROJ].trail -1
+					setprojectile[ROCKETPROJ].txrepeat 4
+					setprojectile[ROCKETPROJ].tyrepeat 4
+					setprojectile[ROCKETPROJ].extra 2
+					setprojectile[ROCKETPROJ].vel 72
+					setprojectile[ROCKETPROJ].drop 32
+					setactorvar[RETURN].atemp7 1
+					setactorvar[RETURN].atemp6 -1
+					
+					eshoot ROCKETPROJ
+					
+					setprojectile[ROCKETPROJ].vel 896
+					setprojectile[ROCKETPROJ].xrepeat 32
+					setprojectile[ROCKETPROJ].yrepeat 32
+					setprojectile[ROCKETPROJ].offset 168
+					setprojectile[ROCKETPROJ].extra_rand 15
+					setprojectile[ROCKETPROJ].trail SMALLSMOKE
+					setprojectile[ROCKETPROJ].extra ROCKETDAMAGE
+					setprojectile[ROCKETPROJ].txrepeat 8
+					setprojectile[ROCKETPROJ].tyrepeat 8
+					setprojectile[ROCKETPROJ].drop -128
+					*/
+					
+					espawn ROCKETSEEKER
+					
+					geta[].z atemp
+					sub atemp 8192
+					seta[RETURN].z atemp
+					
+					sound PISTOLBURST_FIRE
+					resetactioncount
+				}
+			//}
+			/*
+			else
+			{
+				ifactioncount 2
+				{
+					shoot FIRELASER
+					shoot FIRELASER
+					sound PISTOLBURST_FIRE
+					resetactioncount
+				}
+				
+				ifrnd 2
+				{
+					ifp phigher
+						ai AISNDRONEGETUP
+					else
+						ai AISNDRONEGETE
+				}
+			}
+			*/
+		//}
+		//else
+		//{
+			ifrnd 2
+			{
+				ifpdistg 2048
+				{
+					ifp phigher
+						ai AISNDRONEGETUP
+					else
+						ai AISNDRONEGETE
+				}
+				else
+					ai AISNDRONEGETE
+			}
+		//}
+	}
+	else
+	{
+		ifp phigher
+			ai AISNDRONEGETUP
+		else
+			ai AISNDRONEGETE
+	}
+ends
+
+state sndronegetstate
+  ifrnd 192
+  {
+    //ifcansee
+    //{
+      ifbulletnear
+      {
+        ai AISNDRONEDODGE
+        break
+      }
+	  
+	  iffloordistl 32
+		ifmove SNDRONERUNVELS
+			move SNDRONEBULLVELS faceplayerslow
+	  
+      ifmove SNDRONEBULLVELS
+      {
+        ifcount 64
+          ai AISNDRONEPULLBACK
+        else
+		{
+          ifnotmoving
+		  {
+		    ifrnd 1
+				operate
+            ifcount 16
+              ai AISNDRONEPULLBACK
+		  }
+		  else ifp palive
+		  ifpdistl 16384
+		  {
+		    ifcanseetarget
+			ifcanshoottarget
+				ai AISNDRONESHOOT
+		  }
+		}
+      }
+      else
+        ifcount 32
+      {
+        ifp phigher
+          move SNDRONEBULLVELS geth getv
+        else
+          move SNDRONEBULLVELS geth
+      }
+    //}
+    //else
+      
+  }
+ends
+
+state sndronedodgestate
+  ifai AISNDRONEDODGEUP
+  {
+     ifcount 8
+       ai AISNDRONEGETE
+     else
+       ifnotmoving
+         ai AISNDRONEGETE
+  }
+  else
+  {
+    ifcount 8
+      ai AISNDRONEGETE
+    else
+      ifnotmoving
+        ai AISNDRONEGETE
+  }
+ends
+
+useractor enemy SNAKEDRONE SNAKESNDRONESTRNEGTH
+
+ ifdead nullop
+  else ifg a_plasmaeffect 0
+	{
+		ifrnd 32
+			ai AISNDRONEWAIT
+	}
+	
+    ifai 0
+	{
+		sizeat 58 48
+		cstat 257
+		sound DRON_RECOG
+	}   
+
+  ifrnd 2
+    fall
+  else
+    soundonce DRON_JETSND
+
+  ifaction 0
+    ai AISNDRONEGETE
+
+  else
+    ifai AISNDRONEWAIT
+  {
+    ifactioncount 4
+      ifrnd 16
+        ifcansee
+    {
+		ifcanseetarget
+		ifcanshoottarget
+		ifrnd 128
+			ai AISNDRONESHOOT
+		else
+		{
+		  sound DRON_ATTACK1
+		  ifp phigher
+			ai AISNDRONEGETUP
+		  else ai AISNDRONEGETE
+		}
+    }
+  }
+  else
+    ifai AISNDRONEGETE
+      state sndronegetstate
+  else
+    ifai AISNDRONEGETUP
+      state sndronegetstate
+  else
+    ifai AISNDRONEPULLBACK
+  {
+    ifcount 32
+    ai AISNDRONEWAIT
+  }
+  else
+    ifai AISNDRONEHIT
+  {
+    ifcount 8
+      ai AISNDRONEWAIT
+  }
+  else
+    ifai AISNDRONESHRUNK
+      state sndroneshrunkstate
+  else
+    ifai AISNDRONEDODGE
+      state sndronedodgestate
+  else
+    ifai AISNDRONEDODGEUP
+      state sndronedodgestate
+  else
+    ifai AISNDRONESHOOT
+		state sndroneshoot
+
+  ifhitweapon
+    state checksndronehitstate
+
+  ifrnd 1
+    soundonce DRON_ROAM
+
+enda

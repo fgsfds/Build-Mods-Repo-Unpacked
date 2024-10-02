@@ -1,0 +1,258 @@
+/*
+--------------------------------------------------------------------------------
+Duke Nukem 3D - Blast Edition Version 2.0
+By Marcos
+2022 - Space In a Bottle
+*/
+
+var htest_x 0 1
+var htest_y 0 1
+
+//Weapons individual routines
+include scripts/weapons/w_base.con
+include scripts/weapons/knee.con
+include scripts/weapons/pistol.con
+include scripts/weapons/shotgun.con
+include scripts/weapons/chaingun.con
+include scripts/weapons/rpg.con
+include scripts/weapons/pipebomb.con
+include scripts/weapons/shrinker.con
+include scripts/weapons/devistator.con
+include scripts/weapons/tripbomb.con
+include scripts/weapons/cater.con
+include scripts/weapons/sonic.con
+
+
+defstate draw_shrunk_fists // Shrunk Running Fists
+    // common calculations
+    state reset_hud_weapon_x_coordinate
+
+    setvarvar hud_temp3 looking_arc
+    ifvare player[THISACTOR].jetpack_on 0
+    {
+        getactor[playerid].xvel hud_temp2
+        shiftvarr hud_temp2 3
+        addvar hud_temp3 32
+        subvarvar hud_temp3 hud_temp2
+        addvarvar hud_fistsign hud_temp2
+    }
+    // common calculations continued
+    setvarvar hud_temp2 hud_fistsign
+    sin hud_temp2 hud_temp2
+    setvarvar hud_temp4 hud_temp2
+    shiftvarr hud_temp2 10
+    shiftvarr hud_temp4 8
+    ifvarl hud_temp4 0
+        mulvar hud_temp4 -1
+
+    // right fist
+    guniqhudid 101
+
+    addvarvar hud_x hud_temp2
+    addvar hud_x 250
+
+    setvarvar hud_y hud_temp3
+    addvar hud_y 258
+    subvarvar hud_y hud_temp4
+
+    setvar hud_tilenum FIST
+
+    state G_DrawTilePal
+
+    // cleanup
+    subvar hud_x 250
+
+    // left fist
+    guniqhudid 102
+
+    subvarvar hud_x hud_temp2
+    addvar hud_x 40
+
+    setvarvar hud_y hud_temp3
+    addvar hud_y 200
+    addvarvar hud_y hud_temp4
+
+    orvar hud_orientation 4
+
+    state G_DrawTilePal
+
+    // cleanup
+    setvar hud_orientation 0
+    setvar hud_angle 0
+    guniqhudid 0
+ends
+
+//Weapon display event
+
+onevent EVENT_DISPLAYWEAPON // P_DisplayWeapon
+
+    getplayer[THISACTOR].weapon_pos weapon_pos
+    getuserdef[THISACTOR].weaponscale weaponscale
+    getplayer[THISACTOR].i playerid
+
+    getuserdef[THISACTOR].drawweapon hud_temp
+
+    ifvare hud_temp 2 // weapon icons
+    {
+        setvar hud_tilenum -1
+
+        switch currentweapon
+            case PISTOL_WEAPON
+                setvar hud_tilenum FIRSTGUNSPRITE
+                break
+            case CHAINGUN_WEAPON
+                setvar hud_tilenum CHAINGUNSPRITE
+                break
+            case RPG_WEAPON
+                setvar hud_tilenum RPGSPRITE
+                break
+            case FREEZE_WEAPON
+                setvar hud_tilenum FREEZESPRITE
+                break
+            case SHRINKER_WEAPON
+                setvar hud_tilenum SHRINKERSPRITE
+                break
+            case GROW_WEAPON
+                setvar hud_tilenum GROWSPRITEICON
+                break
+            case DEVISTATOR_WEAPON
+                setvar hud_tilenum DEVISTATORSPRITE
+                break
+            case TRIPBOMB_WEAPON
+                setvar hud_tilenum TRIPBOMBSPRITE
+                break
+            case HANDREMOTE_WEAPON
+            case HANDBOMB_WEAPON
+                setvar hud_tilenum HEAVYHBOMB
+                break
+            case SHOTGUN_WEAPON
+                setvar hud_tilenum SHOTGUNSPRITE
+                break
+            case KNEE_WEAPON
+                break
+            default
+                addlogvar currentweapon
+                break
+        endswitch
+
+        ifvarn hud_tilenum -1
+        {
+            setvar hud_x 160
+            setvarvar hud_y weapon_pos
+            mulvarvar hud_y weapon_pos
+            addvar hud_y 180
+            setvar hud_scale 65536
+            getuserdef[THISACTOR].statusbarscale hud_temp2
+            mulvarvar hud_scale hud_temp2
+            divvar hud_scale 100
+            rotatesprite hud_x hud_y hud_scale 0 hud_tilenum 0 0 2 windowx1 windowy1 windowx2 windowy2
+        }
+
+        setvar RETURN -1
+    }
+
+    ifvarn hud_temp 1 break // If we are not displaying the actual HUD weapons, stop processing.
+
+    // these gamevars can get changed in the states up above, so reset them now.
+    setvar hud_scale 65536
+    setvar hud_orientation 0
+    setvar hud_angle 0
+    setvarvar hud_shade gs
+
+    state draw_quick_kick
+
+    // cleanup
+    setvar hud_orientation 0
+    setvar hud_angle 0
+    guniqhudid 0
+
+    getplayer[THISACTOR].hudpal hud_pal
+
+    getactor[playerid].xrepeat hud_temp
+    ifvarl hud_temp 40
+        state draw_shrunk_fists
+    else
+    {
+        switch currentweapon
+            case KNEE_WEAPON
+                setvarvar hud_totaltime WEAPON0_TOTALTIME
+				ife 0 player[].bsubweapon KNEE_WEAPON
+					state draw_kick
+				else
+					state draw_cater
+                break
+            case TRIPBOMB_WEAPON
+                setvarvar hud_totaltime WEAPON8_TOTALTIME
+                state draw_tripbomb
+                break
+            case RPG_WEAPON
+                setvarvar hud_totaltime WEAPON4_TOTALTIME
+                 ife 0 player[].bsubweapon RPG_WEAPON
+					state draw_rpg
+				else
+					state draw_urpg
+                break
+            case SHOTGUN_WEAPON
+                setvarvar hud_totaltime WEAPON2_TOTALTIME
+				ife 0 player[].bsubweapon SHOTGUN_WEAPON
+					state draw_BETAshotgun
+				else
+					state draw_shotgun
+                break
+            case CHAINGUN_WEAPON
+                setvarvar hud_temp4 WEAPON3_FIREDELAY
+                setvarvar hud_totaltime WEAPON3_TOTALTIME
+                ife 0 player[].bsubweapon CHAINGUN_WEAPON
+					state draw_chaingun
+				else
+					state draw_plasma
+                break
+            case PISTOL_WEAPON
+                setvarvar hud_temp3 WEAPON1_RELOAD
+                setvarvar hud_temp4 WEAPON1_FIREDELAY
+                setvarvar hud_totaltime WEAPON1_TOTALTIME
+                state draw_pistol
+                break
+            case HANDBOMB_WEAPON
+                setvarvar hud_totaltime WEAPON5_TOTALTIME
+                state draw_pipebomb
+                break
+            case HANDREMOTE_WEAPON
+                setvarvar hud_totaltime WEAPON10_TOTALTIME
+                state draw_detonator
+                break
+            case DEVISTATOR_WEAPON
+                setvarvar hud_totaltime WEAPON7_TOTALTIME
+				ife 0 player[].bsubweapon DEVISTATOR_WEAPON
+					state draw_devastator
+				else
+					state draw_sonic
+                break
+            case FREEZE_WEAPON
+                setvarvar hud_totaltime WEAPON9_TOTALTIME
+                ife 0 player[].bsubweapon FREEZE_WEAPON
+					state draw_freezer
+				else
+					state draw_flamer
+                break
+            case GROW_WEAPON
+                setvarvar hud_totaltime WEAPON11_TOTALTIME
+                state draw_expander
+                break
+            case SHRINKER_WEAPON
+                setvarvar hud_totaltime WEAPON6_TOTALTIME
+                state draw_shrinker
+                break
+            default
+                addlogvar currentweapon
+                break
+        endswitch
+
+        // cleanup
+        setvar hud_orientation 0
+        setvar hud_angle 0
+        guniqhudid 0
+    }
+
+    setvar RETURN -1
+endevent

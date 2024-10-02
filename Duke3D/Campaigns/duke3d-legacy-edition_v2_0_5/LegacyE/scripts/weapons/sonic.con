@@ -1,0 +1,284 @@
+/*
+--------------------------------------------------------------------------------
+Duke Nukem 3D - Blast Edition Version 2.0
+By Marcos
+2022 - Space In a Bottle
+*/
+
+//Sonic Resonator configuration code
+
+define SONICPROJ 3960
+define SONICWEAPON 5870
+define SONICSPAWNER 3961
+
+define SONIC_FIRE 515
+
+definesound SONIC_FIRE snd/sonic_fire.wav 0 0 254 0 0
+
+define SONIC_DAMAGE 8
+
+defineprojectile SONICPROJ PROJ_WORKSLIKE 65614
+defineprojectile SONICPROJ PROJ_TRAIL SONICSPAWNER
+defineprojectile SONICPROJ PROJ_VEL 900
+defineprojectile SONICPROJ PROJ_XREPEAT 32
+defineprojectile SONICPROJ PROJ_YREPEAT 32
+defineprojectile SONICPROJ PROJ_TXREPEAT 2
+defineprojectile SONICPROJ PROJ_TYREPEAT 2
+defineprojectile SONICPROJ PROJ_EXTRA SONIC_DAMAGE
+defineprojectile SONICPROJ PROJ_HITRADIUS 1536
+defineprojectile SONICPROJ PROJ_BSOUND SOMETHINGHITFORCE
+defineprojectile SONICPROJ PROJ_SOUND SOMETHINGHITFORCE
+defineprojectile SONICPROJ PROJ_VEL_MULT 3
+defineprojectile SONICPROJ PROJ_BOUNCES 3
+defineprojectile SONICPROJ PROJ_RANGE 20
+defineprojectile SONICPROJ PROJ_CSTAT 130
+//defineprojectile SONICPROJ PROJ_PAL 7
+defineprojectile SONICPROJ PROJ_SHADE -32
+defineprojectile SONICPROJ PROJ_SPAWNS SONICSPAWNER
+defineprojectile SONICPROJ PROJ_SXREPEAT 8
+defineprojectile SONICPROJ PROJ_SYREPEAT 8
+
+action ASONICFX 0 10 1 1 2
+useractor notenemy SONICPROJ 0 ASONICFX
+	cstat 128
+	sizeto 64 64
+	sizeto 64 64
+	sizeto 64 64
+	//spritepal 7
+	seta[].shade -32
+enda
+
+action ASONICFX2 -1 10 1 1 2
+useractor notenemy SONICSPAWNER 0 ASONICFX2
+
+	cstat 128
+	sizeto 32 32
+	sizeto 32 32
+	sizeto 32 32
+	
+	//spritepal 7
+	seta[].shade -32
+	
+	ifactioncount 10
+		killit
+	else ifactioncount 5
+		cstator 512
+	else ifactioncount 2
+		cstator 2
+	
+enda
+
+state draw_sonic
+    state reset_hud_weapon_coordinates
+
+    addvar hud_x 40
+    addvar hud_y 2
+
+    setvarvar hud_temp4 hud_pal
+    setvar hud_pal 0
+
+    setvarvar hud_temp3 currentweapon
+    shiftvarl hud_temp3 1
+	//orvar hud_orientation 512
+
+    setvar hud_temp2 0
+
+    ifvarg weaponcount 0
+    {
+        ifvarvarl weaponcount hud_totaltime
+        {
+            state determine_animation
+            ifvarn hud_temp 1
+            {
+                displayrand hud_temp
+                andvar hud_temp 3
+
+                addvarvar hud_x hud_temp
+
+                displayrand hud_temp
+                andvar hud_temp 3
+
+                subvarvar hud_y hud_temp
+            }
+
+            addvar hud_x 184
+
+            addvar hud_y 240
+
+            addvar hud_x 4
+
+            setvar hud_tilenum SONICWEAPON
+			
+			sub hud_x 40
+			sub hud_y 30
+			
+			set hud_zoom -4096
+			
+			ifg weaponcount WEAPON7_FIREDELAY
+			ifl weaponcount 13
+			{
+				sub hud_y 5
+			
+				add hud_tilenum 11
+				
+				set hud_zoom -20000
+				
+				state G_DrawWeaponTile
+				
+				add hud_y 5
+				
+				sub hud_tilenum 9
+			}
+			else ifle weaponcount WEAPON7_FIREDELAY
+			ifg weaponcount 4
+			{
+				add hud_tilenum 10
+				
+				set hud_temp WEAPON7_FIREDELAY
+				sub hud_temp weaponcount
+				//add hud_temp 4
+				mul hud_zoom hud_temp
+				
+				sub hud_zoom 20000
+				
+				state G_DrawWeaponTile
+				
+				sub hud_tilenum 9
+			}
+			
+			set hud_zoom 0
+			
+			add hud_x 40
+			add hud_y 30
+			
+            setvarvar hud_shade gs
+
+            setvarvar hud_pal hud_temp4
+
+            state G_DrawWeaponTile
+
+            guniqhudid 0
+        }
+    }
+    else
+    {
+        addvar hud_x 184
+
+        addvar hud_y 240
+
+        addvar hud_x 4
+
+        setvar hud_tilenum SONICWEAPON
+
+        setvarvar hud_shade gs
+
+        setvarvar hud_pal hud_temp4
+
+        state G_DrawWeaponTile
+
+        guniqhudid 0
+    }
+	
+ends
+
+appendevent EVENT_DOFIRE
+
+	ife player[].curr_weapon DEVISTATOR_WEAPON
+	ife player[].bsubweapon DEVISTATOR_WEAPON 1
+	{
+		ifg sonicammo 0
+		{
+			eshoot WEAPON7_SHOOTS
+			set horizseek horizfire
+			set horizcur 0
+								
+			set angseek angfire
+			displayrandvar angdir 1
+			//set angcur 0
+					
+			sub sonicammo 1
+		}
+		else
+			set RETURN -1
+	}
+
+endevent
+
+useractor notenemy SONICAMMO
+  fall
+  sizeat 16 16
+  ifmove RESPAWN_ACTOR_FLAG
+    state respawnit
+  else
+    ifp pshrunk nullop
+    else
+      ifp palive
+        ifpdistl RETRIEVEDISTANCE
+			ifl sonicammo MAXSONICAMMO
+          ifcount 6
+            ifcanseetarget
+      {
+		ife userdef.enable_nuke 1
+		ife userdef.nuke_active 1
+		ife nuke_n5 1
+		ifge sonicammo 6
+			break
+	  
+	    ife userdef.player_skill 6
+			add sonicammo 3
+		else
+            add sonicammo 6
+			
+          quote 141
+        ifspawnedby SONICAMMO
+          state getcode
+        else
+          state quikget
+      }
+enda
+
+useractor notenemy SONICSPRITE
+  fall
+  sizeat 32 32
+  ifmove RESPAWN_ACTOR_FLAG
+    state respawnit
+  else
+    ifp pshrunk nullop
+    else
+      ifp palive
+        ifpdistl RETRIEVEDISTANCE
+          ifcount 6
+            ifcanseetarget
+      {
+		  ifn gotweapons[SONICRESONATOR_WEAPON] 1
+		  {
+		     ife player[].curr_weapon DEVISTATOR_WEAPON
+			  {
+				set change_weapon 1
+				setp[].weapon_pos -1
+			  }
+			  else ife gotweapons[DEVISTATOR_WEAPON] 1
+			  {
+			    sound SELECT_WEAPON
+				set weapon_to_switch DEVISTATOR_WEAPON
+				setp[].bsubweapon DEVISTATOR_WEAPON 1
+				setp[].weapon_pos -1
+			  }
+		  
+			setarray gotweapons[SONICRESONATOR_WEAPON] 1
+			addweapon DEVISTATOR_WEAPON 1
+			
+			ifl sonicammo MAXSONICAMMO
+				add sonicammo 6
+		  } else ifl sonicammo MAXSONICAMMO
+				add sonicammo 6
+			else break
+		  
+          quote 140
+
+        ifspawnedby SONICSPRITE
+          state getweaponcode
+        else
+          state quikweaponget
+      }
+enda
