@@ -1,0 +1,941 @@
+// EVIL KNIGHT CODE
+
+action AKNIGHTSTAND  	0  1  5  1  10
+action AKNIGHTWALK   	5  4  5  1  12
+action AKNIGHTRUN		5  4  5  1  8
+action AKNIGHTJUMP1  	25 1  5  1  30
+action AKNIGHTJUMP2  	30 1  5  1  20
+action AKNIGHTLAND   	35 1  5  1  24
+action AKNIGHTSWING	 	40 4  5  1  10
+action AKNIGHTSWUNG  	55 1  5  1  18
+action AKNIGHTSLASH	 	60 3  5  1  14
+action AKNIGHTSLASHED   70 1  5  1  18
+action AKNIGHTDYING		75 5  1  1  18
+action AKNIGHTDEAD      79 1  1  1  10
+action AKNIGHTSHIELD	80 1  5  1  20
+action AKNIGHTSTAB1		85 2  5  1  16
+action AKNIGHTSTAB2		95 1  5  1  20
+
+move KNIGHTSWINGVEL 64
+move KNIGHTJUMPVEL 320 -96
+move KNIGHTBIGJUMP 400 -100
+move KNIGHTSTABVEL 320
+move KNIGHTLANDVEL 288
+move KNIGHTWALKVEL 180
+move KNIGHTREAPPEAR
+
+ai AIKNIGHTJUMP AKNIGHTJUMP1 KNIGHTJUMPVEL geth getv
+ai AIKNIGHTWALK AKNIGHTWALK KNIGHTWALKVEL seekplayer
+ai AIKNIGHTWAIT AKNIGHTSTAND STOPPED geth
+ai AIKNIGHTPORT AKNIGHTSTAND STOPPED geth
+ai AIKNIGHTDYING AKNIGHTDYING STOPPED geth
+ai AIKNIGHTSWING AKNIGHTSWING KNIGHTSWINGVEL geth
+ai AIKNIGHTSLASH AKNIGHTSLASH STOPPED geth
+ai AIKNIGHTSTAB AKNIGHTSTAB1 KNIGHTSWINGVEL geth
+ai AIKNIGHTSHIELD AKNIGHTSHIELD STOPPED geth
+
+eventloadactor EVILKNIGHT 
+sizeat 26 24 cstator 257 ifspritepal 0 spritepal 21 
+ifspritepal 18 sizeat 40 36
+ifspritepal 17 
+{
+	action AKNIGHTSTAND
+	getactor[THISACTOR].lotag lotag
+	setactor[THISACTOR].lotag 0
+	getactor[THISACTOR].ang command
+}
+enda
+
+// 21 normal red, 18 purple, 24 fiery, 85 golden, 62 green
+
+state coordsnearplayer
+	
+	set tempb 0
+	set weap 0
+	whilevarn weap 1
+	{
+		rand angvar 2048
+		rotatepoint player[].posx player[].posy x player[].posy angvar mx my
+		updatesectorz mx my z sect 
+		ifn sect -1
+		ife sect player[].cursectnum
+		set weap 1
+		else add tempb 1
+		
+		ifg tempb 64 { set weap 1 set mx player[].posx set my player[].posx set sect player[].cursectnum }
+	}
+ends
+
+state knight_attack
+
+	// pick an attack if a target is available
+	
+	ife target -1 ifn cursed 0 break
+	
+	set temp YES
+	ife target -1
+	{
+		ifl targetdist 16384 ifcansee nullop else
+		set temp NO
+	}
+	ife temp NO { ai AIKNIGHTWAIT break }
+	
+	ifg targetdist 10240
+	{
+		ifrnd 128 ife target -1
+		ifp ponground
+		{
+			ai AIKNIGHTPORT
+			sound TELEPORTER
+		}
+		else
+		{
+			state facetarget
+			ai AIKNIGHTSLASH 
+			sound KGTSLASH
+		}
+		break 
+	}
+	else
+	ifg targetdist 6144 
+	{
+		ifrnd 84 ife target -1
+		ifp ponground
+		{
+			ai AIKNIGHTPORT
+			sound TELEPORTER
+		}
+		else
+		{
+			state facetarget
+			ai AIKNIGHTSLASH 
+			sound KGTSLASH
+		}
+		break 
+	}
+	else
+	ifg targetdist 4096 
+	{ 
+		ifrnd 32
+		ifp ponground
+		{
+			ai AIKNIGHTPORT
+			sound TELEPORTER
+		}
+		else
+		ifrnd 64 
+		{
+			state facetarget
+			ai AIKNIGHTSLASH
+			sound KGTSLASH
+		}
+		else
+		{
+			ai AIKNIGHTJUMP 
+			move KNIGHTBIGJUMP geth getv
+			sound KGTGRUNT
+			state facetarget
+			geta[].ang initz
+		}
+		break 
+	}
+	else
+	ifg targetdist 2560 
+	{
+		ifrnd 96 
+		{
+			ai AIKNIGHTJUMP
+			sound KGTGRUNT
+			state facetarget
+			geta[].ang initz
+		}
+		else
+		{
+			ai AIKNIGHTSTAB
+			sound KGTGRUNT
+			state facetarget
+		}
+		break 
+	}
+	else 
+	{ 
+		ifrnd 96 
+		{
+			ai AIKNIGHTSTAB 
+			sound KGTGRUNT
+			state facetarget
+		}
+		else
+		{
+			ai AIKNIGHTSWING 
+			sound SWORDSWING
+			state facetarget
+		}
+		break 
+	}
+	
+	ai AIKNIGHTWAIT
+
+ends
+
+state knightjumpcheck
+
+// checks whether to jump over an obstacle
+
+	ifceilingdistl 128 break
+	
+	geta[].z z
+	sub z 4096
+	
+	cos mycos sprite[].ang
+	sin mysin sprite[].ang
+	hitscan sprite[].x sprite[].y z sprite[].sectnum mycos mysin 0 hitsector hitwall hitsprite hitx hity hitz 16777281
+	
+	ifn hitsprite -1 ifvarand sprite[hitsprite].cstat 16 set hitsprite -1
+	
+	ife hitsprite -1
+	{
+		set mx sprite[].x
+		sub mx hitx
+		mul mx mx
+		set my sprite[].y
+		sub my hity
+		mul my my
+		add mx my
+		sqrt mx mx
+		ifl mx 512
+		{
+			sub z 16384 // 10240
+			hitscan sprite[].x sprite[].y z sprite[].sectnum mycos mysin 0 hitsector hitwall hitsprite hitx hity hitz 16777281
+			
+			set mx sprite[].x
+			sub mx hitx
+			mul mx mx
+			set my sprite[].y
+			sub my hity
+			mul my my
+			add mx my
+			sqrt mx mx
+			
+			ifg mx 1560 
+			{ 
+				ai AIKNIGHTJUMP
+				sound KGTGRUNT
+				geta[].ang initz  
+			}
+		}
+	}
+
+
+ends
+
+state knightshieldcheck
+
+	ifn target2 -1
+	{
+		ifn sprite[target2].owner THISACTOR
+		ife sprite[target2].statnum 4
+		{
+			ldist temp THISACTOR target2
+			geta[target2].xvel xvel
+			ife xvel 0 set xvel 999999
+			div temp xvel
+			ifl temp 8
+			{
+				ai AIKNIGHTSHIELD
+				getactor[target2].x mx
+				getactor[target2].y my
+				getactor[].x x
+				getactor[].y y
+				subvarvar mx x
+				subvarvar my y
+				getangle angvar mx my
+				setactor[].ang angvar
+			}
+			set target2 -1
+		}
+		else set target2 -1
+	}
+	else ifp pfacing ifn KICKBACKPIC 0
+	ifrnd 160
+	{
+		switch player[].curr_weapon
+		case 0 ifl xydist 2048 ai AIKNIGHTSHIELD break
+		case 1
+		case 2
+		case 3 
+		case 7 
+		case 11
+			ai AIKNIGHTSHIELD break
+		endswitch
+	}
+	ifai AIKNIGHTSHIELD geta[].ang initz
+
+ends
+
+state knightwaitstate
+
+	ifcount 6
+	{
+		state knightshieldcheck
+		ifai AIKNIGHTSHIELD break
+	
+		ifl targetdist 2560
+		state knight_attack
+		else
+		ifl targetdist 4096
+		{
+			ifrnd 160 state knight_attack
+		}
+		else ifl targetdist 8192
+		{
+			ifrnd 128 state knight_attack
+		}
+		else ifl targetdist 12288
+		{
+			ifrnd 84 state knight_attack
+		}
+		else ifl targetdist 16384
+		{
+			ifrnd 64 state knight_attack
+		}
+		ifai AIKNIGHTWAIT ai AIKNIGHTWALK
+	}
+
+ends
+
+state knightwalkstate
+
+	ifspritepal 18
+	{
+		ifmove KNIGHTWALKVEL move KNIGHTLANDVEL seekplayer else
+		ifaction AKNIGHTRUN { ifmove KNIGHTLANDVEL move KNIGHTSTABVEL faceplayer }
+	}
+	state knightjumpcheck
+	ifai AIKNIGHTJUMP break
+	
+	ifcount 30
+	{
+		ifaction AKNIGHTWALK
+		{
+			ifl targetdist 7168
+			ifrnd 8
+			{
+				action AKNIGHTRUN
+				move KNIGHTLANDVEL faceplayer
+			}
+		}
+		else
+		ifaction AKNIGHTRUN
+		{
+			ifg targetdist 5120
+			ifrnd 6
+			{
+				action AKNIGHTWALK
+				move KNIGHTWALKVEL seekplayer
+			}
+		}	
+	}
+	
+	ifrnd 1 ifrnd 128
+	{
+		ifrnd 128 soundonce KGTROAM1
+		else soundonce KGTROAM2
+	}
+	
+	ifcount 6
+	{
+		state knightshieldcheck
+		ifai AIKNIGHTSHIELD break
+		
+		ifaction AKNIGHTRUN ifl targetdist 2048 state knight_attack
+	}
+	
+	ifnotmoving ai AIKNIGHTWAIT
+	else
+	ifcount 80 ifrnd 16 ifl targetdist 10240
+	{
+		state knight_attack
+		break
+	}
+	ifcount 150 ifrnd 8 ifl targetdist 30000
+	{
+		ai AIKNIGHTWAIT
+		count 10
+	}
+
+ends
+
+
+
+state knightswingstate
+
+	
+	state gradualturn
+	
+	ifmove STOPPED nullop else
+	ifl targetdist 1024 move STOPPED geth
+	
+	ifaction AKNIGHTSWING
+	{
+		ifmove STOPPED state facetarget
+		ifactioncount 3
+		{
+			action AKNIGHTSWUNG
+			move STOPPED geth
+			state monsterbite
+			state monsterbite
+			state monsterbite
+			ifspritepal 18 state monsterbite
+		}
+	}
+	ifaction AKNIGHTSWUNG
+	{
+		ifactioncount 1
+		{
+			ai AIKNIGHTWAIT
+		
+			set temp NO
+			ife target -1
+			{
+				ifangdiffl 512 nullop else
+				 ifcansee ifrnd 128 set temp 1
+			}
+			else
+			{
+				ifrnd 128 set temp 1
+				else ifl targetdist 4096 ifrnd 128 set temp 2
+			}
+			
+			ife temp 1
+			{
+				sound KGTSLASH
+				ai AIKNIGHTSLASH
+			}
+			else
+			ife temp 2
+			{
+				ai AIKNIGHTSTAB 
+				sound KGTGRUNT
+				state facetarget
+			}
+		}
+	}
+
+ends
+
+state knightslashstate
+
+	state gradualturn
+	
+	ifaction AKNIGHTSLASH
+	{
+		ifactioncount 3
+		{
+			action AKNIGHTSLASHED
+			state monsterbite
+			ifspritepal 18 state monsterbite
+			// geta[].x saveit
+			// geta[].y saveit2
+			// set mx sprite[].x
+			// add mx 512
+			// rotatepoint sprite[].x sprite[].y mx sprite[].y sprite[].ang x y
+			// setsprite THISACTOR x y sprite[].z
+			ife target -1 set target player[].i
+			state calczdist
+			ldist tempe THISACTOR target
+			ifvare tempe 0 setvar temp 1
+			mul zdist 768
+			divvarvar zdist tempe
+			ezshoot zdist SLASHPROJ
+			sound MAGICSLASH
+			seta[RETURN].pal 18
+			ife target player[].i set target -1
+			// seta[].x saveit
+			// seta[].y saveit2	
+		}
+	}
+	ifaction AKNIGHTSLASHED
+	{
+		ifactioncount 1
+			ai AIKNIGHTWAIT
+	}
+
+ends
+
+state knightshieldstate
+
+	set peractor4 2
+	ifvarg sprite[THISACTOR].htextra 0
+	{
+		ifg burning 1 set burning 1
+		getactor[THISACTOR].htang tempb
+		getactor[THISACTOR].ang angvar
+		getincangle tempc angvar tempb
+		abs tempc
+		ifvarg tempc 768
+		{
+			set temp NO
+			ife sprite[].htpicnum RPG set temp YES
+			else
+			ife sprite[].htpicnum RADIUSEXPLOSION set temp YES
+			ife temp YES
+			{
+				geta[].htextra temp
+				shiftr temp 2
+				seta[].htextra temp
+			}
+			else
+			{
+				setactor[THISACTOR].htextra -1
+				setactor[THISACTOR].htpicnum -1
+			}
+			resetactioncount
+			getactor[THISACTOR].z z
+			subvar z 8192
+			setactor[THISACTOR].z z
+			spawn SHIELDRING
+			sound PUFFSND
+			addvar z 8192
+			setactor[THISACTOR].z z
+		}
+		else { state facetarget geta[].ang initz }
+
+	}
+	setactor[THISACTOR].ang initz
+	ifactioncount 1
+	{
+		ifn target2 -1 
+		{ 
+			ife sprite[target2].statnum 4
+			{
+				getactor[target2].x mx
+				getactor[target2].y my
+				getactor[].x x
+				getactor[].y y
+				subvarvar mx x
+				subvarvar my y
+				getangle angvar mx my
+				setactor[].ang angvar
+				geta[].ang initz
+			}
+			set target2 -1 
+			resetactioncount 
+			break 
+		}
+		state knight_attack
+	}
+	else set target2 -1
+
+	
+ends
+
+state knightstabstate
+
+	ifaction AKNIGHTSTAB1
+	ifactioncount 2
+	{
+		action AKNIGHTSTAB2
+		move KNIGHTSTABVEL geth
+		geta[].ang initz
+	}
+	ifaction AKNIGHTSTAB2
+	{
+		seta[].ang initz
+		state gradualturn
+		
+		espawn KNIGHTTRAIL
+		setav[RETURN].myspawner THISACTOR
+		
+		ifvarand player[].player_par 1
+		{
+			ife target -1 set target player[].i
+			state monsterbite
+			ifspritepal 18 state monsterbite
+		}
+			
+		ifl targetdist 1500
+			soundonce DEMONOVA_STAB
+		
+		ife target player[].i set target -1
+		geta[].ang initz
+		
+		ifactioncount 2
+			ai AIKNIGHTWAIT
+	}
+
+ends
+
+state knightjumpstate
+
+	seta[].ang initz
+	ifaction AKNIGHTJUMP1
+	{
+		ifmove KNIGHTBIGJUMP state gradualturn
+		ifactioncount 1 
+		{
+			action AKNIGHTJUMP2
+			move KNIGHTLANDVEL geth
+		}
+	}
+	else
+	ifaction AKNIGHTJUMP2
+	{
+		iffloordistl 4 
+		{
+			action AKNIGHTLAND
+			move STOPPED geth
+			sound BIGTHUD
+		}
+		else
+		{
+			ife target -1
+			{
+				ifangdiffl 512 nullop else
+				ifl targetdist 3072 ifcansee
+				{
+					action AKNIGHTSWING
+					sound SWORDSWING
+					break
+				}
+			}
+			else
+			{
+				ifl targetdist 3072
+				{
+					action AKNIGHTSWING
+					sound SWORDSWING
+					break
+				}
+			}
+		}
+	}
+	else
+	ifaction AKNIGHTLAND
+	{
+		ifactioncount 1
+			ai AIKNIGHTWAIT
+	}
+	else ifaction AKNIGHTSWING
+	{
+		state knightswingstate
+		ifmove KNIGHTLANDVEL iffloordistl 4 
+		{
+			move KNIGHTSWINGVEL geth
+			sound BIGTHUD
+		}
+	}
+	else ifaction AKNIGHTSWUNG
+	{
+		state knightswingstate
+		ifmove KNIGHTLANDVEL iffloordistl 4
+		{
+			move STOPPED geth
+			sound BIGTHUD
+		}
+	}
+
+ends
+
+state knightportstate
+
+	seta[].htextra -1
+	seta[].htowner -1
+	ifmove STOPPED
+	{
+		seta[].blend 1
+		seta[].shade -127
+		cstat 2
+		geta[].xrepeat x
+		ifg x 2 
+		{
+			sub x 1
+			ifspritepal 18 sub x 1
+		}
+		seta[].xrepeat x
+		geta[].alpha temp
+		add temp 9
+		seta[].alpha temp
+		ifspritepal 33 getlastpal else spritepal 33
+		ifcount 27
+		{
+			move KNIGHTREAPPEAR
+			
+			ifg player[].cursectnum -1
+			{
+				getp[].posz z, add z 8192
+				getflorzofslope player[].cursectnum player[].posx player[].posy mz
+				ifg z mz set z mz
+				set x player[].posx
+				add x 512
+				rand mx 768
+				add x mx
+				state coordsnearplayer
+				setsprite THISACTOR mx my z
+			}
+			sound TELEPORTER
+		}
+	}
+	else
+	ifmove KNIGHTREAPPEAR
+	{
+		seta[].shade -127
+		geta[].xrepeat x
+		add x 1
+		ifspritepal 18 add x 1
+		seta[].xrepeat x
+		geta[].alpha temp
+		sub temp 10
+		seta[].alpha temp
+		ifspritepal 33 getlastpal else spritepal 33
+		ifcount 20
+		{
+			ifspritepal 33 getlastpal
+			sizeat 26 24 
+			ifspritepal 18 sizeat 40 36
+			cstat 257
+			seta[].blend 0
+			seta[].alpha 0
+			state facetarget
+			ai AIKNIGHTWAIT
+			state knight_attack
+		}
+	}
+
+ends
+
+useractor enemy EVILKNIGHT EVILKNIGHTSTRENGTH
+
+ifspritepal 17
+{
+	setactor[].ang command
+	action AKNIGHTSTAND
+	cstator 257
+	ifvarn lotag 0 
+	{
+		resetcount 
+		checkactivatormotion lotag
+		ifvare RETURN 1 setvar lotag 0
+	    fall 
+		break
+	}
+	fall
+	soundonce CRUMBLE
+	debris SCRAP2 1
+	debris SCRAP3 1
+	debris SCRAP4 1
+	debris SCRAP5 1
+	strength EVILKNIGHTSTRENGTH
+	setactor[THISACTOR].htextra -1
+	ifcount 26
+	{
+		setvar command 0
+		spritepal 21
+		action 0
+	}
+	else break
+}
+
+ifai 0
+{
+	ai AIKNIGHTWAIT
+	sizeat 26 24 
+	
+	cstator 257 
+	ifspritepal 0 spritepal 21
+	sound KGTROAM1
+	ifg SKILL 3 state randomaura
+	setvar gold GOLD4
+
+	ifspritepal 24 { orvar aura -64 addstrength 50 }
+	ifspritepal 18 
+	{ 
+		sizeat 40 36 strength 5000 set gold GOLD5 
+		state spawnpups
+		set mtype 600
+	}
+	geta[].x initx
+	geta[].y inity
+}
+
+fall
+
+ifspritepal 18
+{
+	ifg mtype 0 sub mtype 1
+	ife mtype 0 ifai AIKNIGHTWALK
+	{
+		ai AIKNIGHTWAIT
+		state spawnpups
+		set mtype 600
+	}
+}
+
+
+ifai AIKNIGHTDYING
+{
+	ifaction AKNIGHTDYING
+	{
+		ifactioncount 4 action AKNIGHTDEAD
+		ifhitweapon { } strength 0
+		break
+	}
+	ifhitweapon
+	{
+		state standard_jibs
+		state randsquishsound
+		killit
+	}
+	strength 0
+	break
+}
+
+state monsterai
+set targetdist 32768
+ife target -1 
+{
+	ifp palive
+	set targetdist xydist
+	else set targetdist 32768
+	
+	ifcansee set ammo 0 else
+	add ammo 1
+	ifg ammo 180
+	{
+		ifai AIKNIGHTPORT nullop else
+		{
+			al THISACTOR
+			set ammo 0
+			ai AIKNIGHTPORT
+			sound TELEPORTER
+		}
+	}
+}	
+else
+set targetdist xydist2
+
+ifspritepal 18
+{
+	ifvarg sprite[THISACTOR].extra 0
+	ifp pfacing ifpdistl 16384 ifvarvarn bossid THISACTOR
+	{
+		setvarvar bossid THISACTOR
+		starttrackslot 1 1
+		set music2 1
+	}
+}
+
+ifaction AKNIGHTWALK soundonce KGTSTEP else
+ifactorsound THISACTOR KGTSTEP stopactorsound THISACTOR KGTSTEP
+
+ifai AIKNIGHTJUMP state knightjumpstate else
+ifai AIKNIGHTSWING state knightswingstate else
+ifai AIKNIGHTSLASH state knightslashstate else
+ifai AIKNIGHTSTAB state knightstabstate else
+ifai AIKNIGHTSHIELD state knightshieldstate else
+ifai AIKNIGHTWAIT state knightwaitstate else
+ifai AIKNIGHTWALK state knightwalkstate else
+ifai AIKNIGHTPORT state knightportstate
+
+
+ifhitweapon
+{
+	ifwasweapon BURNING nullop else
+		state random_wall_jibs
+	ifdead
+	{
+		ifspritepal 33 getlastpal
+		
+		ifwasweapon FREEZEBLAST
+		    spawn BIGSMOKE
+			
+		sound KGTDIE
+		cstat 0
+		seta[].alpha 0
+		
+		guts JIBS6 3
+		ai AIKNIGHTDYING
+		addkills 1 add globalkills 1
+		state specialdeath
+		
+		setvar temp 0
+		ifwasweapon RADIUSEXPLOSION setvar temp 1
+		ifwasweapon RPG setvar temp 1
+		ifvare temp 1
+		{
+
+			state standard_jibs
+			state randsquishsound
+			
+			debris SCRAP3 3
+			debris SCRAP4 3
+    		killit
+		}
+		
+	}
+	else 
+	{
+		ifrnd 128
+		soundonce KGTPAIN1 else soundonce KGTPAIN2
+		
+		ifai AIKNIGHTWALK 
+		{
+			ifrnd 64 state knight_attack
+			else ifg bleeding 50 ifrnd 128 state knight_attack
+		}
+	}
+}
+else state checksquished
+
+// ifcount 10 ifhitspace
+// {
+	// resetcount
+	// ifaction AKNIGHTSTAND action AKNIGHTWALK else
+	// ifaction AKNIGHTWALK action AKNIGHTJUMP1 else
+	// ifaction AKNIGHTJUMP1 action AKNIGHTJUMP2 else
+	// ifaction AKNIGHTJUMP2 action AKNIGHTLAND else
+	// ifaction AKNIGHTLAND action AKNIGHTSWING else
+	// ifaction AKNIGHTSWING action AKNIGHTSWUNG else
+	// ifaction AKNIGHTSWUNG action AKNIGHTSLASH else
+	// ifaction AKNIGHTSLASH action AKNIGHTSLASHED else
+	// ifaction AKNIGHTSLASHED action AKNIGHTDYING else
+	// ifaction AKNIGHTDYING action AKNIGHTDEAD else
+	// ifaction AKNIGHTDEAD action AKNIGHTSHIELD else
+	// ifaction AKNIGHTSHIELD action AKNIGHTSTAB else
+	// ifaction AKNIGHTSTAB action AKNIGHTSTABBED else
+	// ifaction AKNIGHTSTABBED action AKNIGHTSTAND
+
+// }
+
+enda
+
+useractor enemystayput EVILKNIGHTSTAYPUT
+
+	sizeat 26 24 cstator 257 
+	ifspritepal 0 spritepal 21
+	ifspritepal 18 
+	{
+		sizeat 40 36 strength 3500 set gold GOLD5 
+		state spawnpups
+		set mtype 600
+	}
+	ai AIKNIGHTWAIT
+	cactor EVILKNIGHT
+	sound KGTROAM1
+
+enda
+
+useractor notenemy KNIGHTTRAIL 0 ADENTRAILFRAME
+
+ifmove 0
+{
+	move STOPPED
+	seta[].xrepeat sprite[myspawner].xrepeat
+	seta[].yrepeat sprite[myspawner].yrepeat
+	cstat 514
+	seta[].ang sprite[myspawner].ang
+	seta[].pal sprite[myspawner].pal
+}
+ifcount 3 killit
+
+enda

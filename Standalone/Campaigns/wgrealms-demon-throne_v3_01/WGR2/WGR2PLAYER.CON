@@ -1,0 +1,8362 @@
+state wakereplays
+setvar spriteid 0
+whilevarn spriteid 16384
+{
+	ifvarn sprite[spriteid].statnum 1024
+	ifvare sprite[spriteid].picnum REPLAYSPRITE
+	{
+		getactorvar[spriteid].savedpicnum temp
+		setactor[spriteid].picnum temp
+		getactorvar[spriteid].initcstat temp
+		setactor[spriteid].cstat temp
+		ifvarl sprite[spriteid].picnum 11 setactor[spriteid].cstat 32768
+		ifvare sprite[spriteid].picnum SECTOREFFECTOR changespritestat spriteid 3 else
+		ifvare sprite[spriteid].picnum ACTIVATOR changespritestat spriteid 8 else
+		ifvare sprite[spriteid].picnum TOUCHPLATE changespritestat spriteid 6 else
+		ifvare sprite[spriteid].picnum ACTIVATORLOCKED changespritestat spriteid 8 else
+		ifvare sprite[spriteid].picnum MUSICANDSFX changespritestat spriteid 5 else
+		ifvare sprite[spriteid].picnum LOCATORS changespritestat spriteid 7 else
+		ifvare sprite[spriteid].picnum MASTERSWITCH changespritestat spriteid 6 else
+		ifvare sprite[spriteid].picnum RESPAWN changespritestat spriteid 11 else
+		changespritestat spriteid 1
+
+	}
+	addvar spriteid 1
+}
+ends
+
+state encaseinice
+
+getplayer[THISACTOR].posx mx
+getplayer[THISACTOR].posy my
+getplayer[THISACTOR].posz mz
+getplayer[THISACTOR].ang angvar
+addvar mz 8192
+setvar countvar 8
+whilevarn countvar 0
+{
+	espawn ICEWALL1
+	setactor[RETURN].ang angvar
+	
+	setactor[RETURN].cstat 787
+	setactor[RETURN].xrepeat 27
+	setactor[RETURN].yrepeat 192
+	setvarvar temp mx
+	addvar temp 512
+	rotatepoint mx my temp my angvar x y
+	setactor[RETURN].x x
+	setactor[RETURN].y y
+	
+	setactor[RETURN].z mz
+	setactor[RETURN].htpicnum APLAYER
+	setactor[RETURN].ang angvar
+	setactorvar[RETURN].mtype 1
+	subvar countvar 1
+	addvar angvar 256
+}
+lockplayer 10
+sound FREEZEOVER
+
+ends
+
+state imcold
+
+ifvarl burning -780 setvar burning -780
+ifvarl burning -442 ifactor APLAYER
+{
+	setvar burning -390
+	ifl player[].boot_amount 1
+	state encaseinice
+}
+addvar burning 1
+
+
+ifactor APLAYER
+{
+	ifvarand fintips 33554432 nullop else
+	{
+		setvar currtip2 0 setvar currtip 33554432
+		orvar fintips 33554432
+		state inithelp
+	}
+	getplayer[THISACTOR].boot_amount temp
+	ifvarg temp 0
+	{
+		soundonce ENVSUIT
+		subvar temp 1
+		setplayer[THISACTOR].boot_amount temp
+		addvar burning 6
+		ifvarg burning 0 setvar burning 0
+	}
+	else
+	ifl sprite[].htextra 1
+	{
+		set temp timer
+		modvar temp 20
+		ife temp 0
+		addphealth -1
+			
+	}
+	ifp ponsteroids { setvar burning 0 break }
+	
+	ifvarg slowtime 0 setvar temp SPRINTSPEED else
+	{
+		ifvare character 1 
+		setvar temp RUNNINGSPEED2
+		else
+		setvar temp RUNNINGSPEED
+	}
+	ife player[].boot_amount 0
+	{
+		setvarvar tempb burning
+		shiftvarl tempb 5 // 4
+		addvarvar temp tempb
+		subvar temp 1000
+		setplayer[THISACTOR].runspeed temp
+	}
+
+	// set pals
+
+	ifvarg player[THISACTOR].pals 0 0
+	{
+		getplayer[THISACTOR].pals 0 temp
+		subvar temp 1
+		setplayer[THISACTOR].pals 0 temp
+	}
+	ifvarg player[THISACTOR].pals 1 0
+	{
+		getplayer[THISACTOR].pals 1 temp
+		subvar temp 1
+		setplayer[THISACTOR].pals 1 temp
+	}
+	setvarvar temp burning
+	mulvar temp -1
+	shiftvarr temp 4
+	addvar temp 10
+	ifvarg temp 52 setvar temp 52
+	setplayer[THISACTOR].pals_time temp
+	
+	setplayer[THISACTOR].pals 2 50
+}
+ends
+
+state imcursed
+
+ifvarg cursed 300 setvar cursed 300
+subvar cursed 1
+palfrom 28 0 0 0
+
+ifvarand fintips 33554432 nullop else
+{
+	setvar currtip2 0 setvar currtip 33554432
+	orvar fintips 33554432
+	state inithelp
+}
+
+getplayer[THISACTOR].boot_amount temp
+ifvarg temp 0
+{
+	soundonce ENVSUIT
+	subvar temp 1
+	setplayer[THISACTOR].boot_amount temp
+	subvar cursed 4
+	ifvarl cursed 0 setvar cursed 0
+}
+
+ends
+
+state poisoned
+
+ifvarand fintips 33554432 nullop else
+{
+	setvar currtip2 0 setvar currtip 33554432
+	orvar fintips 33554432
+	state inithelp
+}
+
+ife player[].boot_amount 0
+ifvare player[THISACTOR].jumping_counter 721 setplayer[THISACTOR].jumping_counter 0
+
+ifvarg ppoison 999 setvar ppoison 999
+ifvarg player[THISACTOR].pals_time 0
+ifvarg player[THISACTOR].pals 0 0 nullop
+else
+{
+	// set pals
+	setvarvar temp ppoison
+	shiftvarr temp 4
+	addvar temp 10
+	ifvarg temp 40 setvar temp 40
+	setplayer[THISACTOR].pals_time temp
+	//setplayer[THISACTOR].pals 0 0
+	setplayer[THISACTOR].pals 1 50
+	//setplayer[THISACTOR].pals 2 0
+}
+
+setvarvar temp timer
+modvar temp 20
+
+ifvare temp 0
+ifl player[].boot_amount 1
+{
+	ifg ppoison 500 set ppoison 500
+	ifg ppoison 150 addphealth -1
+	ifg ppoison 300 addphealth -1
+	addphealth -1
+	ifvare character 1 state painsounds
+	else
+	{
+		ifrnd 128
+		{
+			ifrnd 128
+			sound DUKE_LONGTERM_PAIN
+			else 
+			sound DUKESICK1
+		}
+		else
+		{
+			ifrnd 128
+			sound DUKESICK2
+			else
+			sound DUKESICK3
+		}
+	}
+	
+}
+subvar ppoison 1
+getplayer[THISACTOR].boot_amount temp
+ifvarg temp 0
+{
+	soundonce ENVSUIT
+	subvar temp 1
+	setplayer[THISACTOR].boot_amount temp
+	subvar ppoison 4
+	ifvarl ppoison 0 setvar ppoison 0
+}
+
+ends
+
+state darkproj_retaliate
+	
+	ifn endlevel 0 break
+	ife shieldupgrade NO break
+	ife player[].boot_amount 0 break
+	ifn retaliate -1 set target retaliate else
+	{
+		ife sprite[].htowner -1 break
+		ife sprite[].htowner THISACTOR break
+		set target sprite[].htowner
+	}
+	
+	sound ARCHONSHOOT2
+	
+	
+	state calczdist
+	ldist tempe THISACTOR target
+	ifvare tempe 0 setvar tempe 1
+	mul zdist 1024
+	divvarvar zdist tempe	
+	ezshoot zdist DARKPROJ
+	setav[RETURN].target target
+	state projzveltotarg
+	
+	seta[RETURN].xrepeat 32
+	seta[RETURN].yrepeat 32
+	
+	seta[RETURN].pal pal
+	
+	set target -1
+
+ends
+
+state standard_pjibs
+  guts JIBS1 1
+  guts JIBS3 2
+  guts JIBS4 1
+  guts JIBS5 1
+  guts JIBS6 2
+  guts DUKETORSO 1
+  guts DUKELEG 2
+  guts DUKEGUN 1
+ends
+
+move DUKENOTMOVING
+state handle_dead_dukes
+  fall
+  ifmove 0   // 1st time initializiation...
+  {
+	sizeat 42 36
+    ifrnd 128
+      cstat 4
+    else
+      cstat 0
+    move DUKENOTMOVING
+  }
+
+  ifsquished
+  {
+    sound SQUISHED
+    state random_ooz
+    killit
+  }
+  else
+    ifcount 1024
+      ifpdistg 4096
+        killit
+  else
+  {
+    strength 0
+    ifhitweapon
+      ifwasweapon RADIUSEXPLOSION
+    {
+      state standard_jibs
+      state randsquishsound
+      killit
+    }
+  }
+ends
+
+defstate raincode
+
+setvarvar countvarb raining
+ifvarl countvarb 0 mulvar countvarb -1
+
+ifvarg countvarb 128 setvar countvarb 128
+
+ifl framerate 30
+{
+	mul countvarb framerate
+	div countvarb 36
+}
+
+setvar tempe 0
+setvar countvar 0
+getplayer[THISACTOR].posx x
+getplayer[THISACTOR].posy y
+whilevarvarn countvar countvarb
+{
+	addvar countvar 1
+	setvarvar xydist x
+	randvarvar temp rainradius // the random component of the distance from player
+	addvar temp 512
+	addvarvar xydist temp
+	randvar angvar 2047
+	
+	rotatepoint x y xydist y angvar tempb y
+	// tempb and y are the new x and y coords
+	updatesector tempb y tempd
+	ifvarn tempd -1
+	{
+		ifvarn sector[tempd].hitag 101
+		ifvarand sector[tempd].ceilingstat 1
+		{
+/*
+			getceilzofslope tempd tempb y z // z is the return var
+			ifvarl raining 0 // don't put snow too high up
+			{
+				getplayer[THISACTOR].posz temp
+				setvarvar tempc temp // save posz in tempc
+				subvarvar temp z // positive value is distance above player to ceiling
+				ifvarvarg temp snowceiling 
+				{
+					subvarvar tempc snowceiling 
+					setvarvar z tempc 
+				}
+			}
+			updatesectorz tempb y z tempd
+			ifvarn tempd -1
+			{
+				ifvarg raining 0
+				espawn RAINSPRITE
+				else espawn SNOWSPRITE
+				setactor[RETURN].x tempb
+				setactor[RETURN].y y
+				setactor[RETURN].z z
+				changespritesect RETURN tempd
+				addvar tempe 1
+			}
+*/		
+			getplayer[THISACTOR].posz z
+			set tempc snowceiling
+			ifg raining 0 mul tempc 4
+			sub z tempc
+			ifg raining 0
+			espawn RAINSPRITE
+			else espawn SNOWSPRITE
+			setsprite RETURN tempb y z
+			add tempe 1
+		}
+	}
+}
+
+ifvarg tempe 3 // 4 
+{
+	ifoutside
+	{
+		ifvarg raining 0
+		{
+			ifsound RAINLOOP nullop else
+			screensound RAINLOOP
+		}
+		else
+		{
+			ifsound WINDLOOP nullop else
+			screensound WINDLOOP
+		}
+	}
+}
+
+
+ends
+
+
+action PLYINGFRAMES 0 1 0 1 1
+
+actor DUKELYINGDEAD 0 PLYINGFRAMES
+  sizeat 32 32
+  state handle_dead_dukes
+enda
+
+actor BARBDEADSPRITE 0 PLYINGFRAMES
+  sizeat 32 32
+  state handle_dead_dukes
+enda
+
+action BARBSTAND	7811   1   5   1  1
+action BARBEXPLODE   7892   9   1   1   10
+action BARBEXPLODEAD   7897   1	 1
+
+action BARBWALK		7816   4   5   1   18
+action BARBRUN		7816   4   5   1   12
+action BARBWALKBACK	7841   4   5  -1   18
+action BARBRUNBACK	7841   4   5  -1   14
+action BARBJUMPING   7836   4   5   1   30
+action BARBFALLING   7841   1   5
+action BARBKICKING	7908   2   5   1   25
+action BARBFLINTCHING	7891  1   1   1   10
+action BARBTHROWNBACK  7891  7   1   1   18
+action BARBLYINGDEAD 7897  1   1
+action BARBDUCKING   7846   1   5
+action BARBCRAWLING   7851   4   5  1  20
+action BARBFROZEN	7816  1  5
+action BARBSWIMMINGGO   7871   1   5   1   10
+action BARBSWIMMING   7871   4   5   1   13
+action BARBSWIMMINGWAIT 7886   1   5   1   13
+action BARBTREDWATER  7871   4   5   1   17
+/*
+action PGROWING   0
+action PSTAND     0   1   5   1  1
+action PEXPLODE   106   5   1   1   10
+action PEXPLODEAD   113   1   1
+action PJPHOUVER  15   1   5   1
+action PWALK    20   4   5   1   16
+action PRUN     20   4   5   1   10
+action PWALKBACK  45   4   5  -1   16
+action PRUNBACK   45   4   5  -1   10
+action PJUMPING   50   4   5   1   30
+action PFALLING   65   1   5
+action PDUCKING   86   1   5
+action PCRAWLING  86   3   5   1   20
+action PAKICKING  40   2   5   1   25
+action PFLINTCHING  106  1   1   1   10
+action PTHROWNBACK  106  5   1   1   18
+action PFROZEN     20  1   5
+action PLYINGDEAD   113  1   1
+
+action PSWIMMINGGO   375   1   5   1   10
+action PSWIMMING   375   4   5   1   13
+action PSWIMMINGWAIT 395   1   5   1   13
+action PTREDWATER  395   2   5   1   17
+*/
+
+action PGROWING   7920
+action PSTAND     7920   1   5   1  1
+action PEXPLODE   8001   5   1   1   10
+action PEXPLODEAD   8006   1   1
+action PJPHOUVER  7945   1   5   1
+action PWALK    7925   4   5   1   16
+action PRUN     7925   4   5   1   10
+action PWALKBACK  7950   4   5  -1   16
+action PRUNBACK   7950   4   5  -1   10
+action PJUMPING   7945   4   5   1   30
+action PFALLING   7955   1   5
+action PDUCKING   7960   1   5
+action PCRAWLING  7965   3   5   1   20
+action PAKICKING  8007   2   5   1   25
+action PFLINTCHING  8000  1   1   1   10
+action PTHROWNBACK  8000  5   1   1   18
+action PFROZEN     7925  1   5
+action PLYINGDEAD   8006  1   1
+
+action PSWIMMINGGO   7980   1   5   1   10
+action PSWIMMING   7980   4   5   1   13
+action PSWIMMINGWAIT 7985   1   5   1   13
+action PTREDWATER  7980   2   5   1   17
+
+
+move PSTOPED
+move PSHRINKING // used as a var only
+
+state check_pstandard
+
+ifp pkicking
+{
+	setvar temp 1
+	ifvare CURRWEAP 0 ifvare gotsaw 1 ifvarn KICKBACKPIC 0 setvar temp 0
+}
+else setvar temp 0
+
+  ifp pwalking
+  {
+	ifvare character 1 action BARBWALK else
+    action PWALK
+  }
+  else
+    ifp pkicking
+     ifvare temp 1
+     {
+	  ifvare character 1 action BARBKICKING else
+      action PAKICKING
+     }
+  else
+    ifp pwalkingback
+    {
+	  ifvare character 1 action BARBWALKBACK else
+      action PWALKBACK
+    }
+  else
+    ifp prunning
+    {
+	  ifvare character 1 action BARBRUN else
+      action PRUN
+    }
+  else
+    ifp prunningback
+    {
+	  ifvare character 1 action BARBRUNBACK else
+      action PRUNBACK
+    }
+  else
+    ifp pjumping
+    {
+	  ifvare character 1 action BARBJUMPING else
+      action PJUMPING
+    }
+  else
+    ifp pducking
+	{
+	  ifvare character 1 action BARBDUCKING else
+      action PDUCKING
+	}
+	
+ends
+
+state stepsounds
+
+ifactor APLAYER
+{
+	ifvarn camerasprite -1 break
+ 	ifvarn endlevel 0 break
+	ifp pducking break
+	ifp pstanding { setvar stepcount 32000 break }
+	
+	getplayer[THISACTOR].posxv mx
+	divvar mx 644
+	mulvarvar mx mx
+	getplayer[THISACTOR].posyv my
+	divvar my 644
+	mulvarvar my my
+	addvarvar mx my
+	sqrt mx mx
+	ifvarg mx 6144 setvar mx 6144
+	addvarvar stepcount mx
+	
+	ifvarn upside 0 // reversed gravity
+	{
+	
+		// view bob hack
+		geta[].xvel xvel
+		klabs xvel
+		ifg xvel 16
+		ifn sector[].lotag 2
+		ife onceiling YES
+		{
+			getp[].pycount temp
+			add temp 52
+
+			setp[].pycount temp
+			getp[].pycount temp
+			andvar temp 2047
+			
+			
+			sin tempb temp
+			mul tempb xvel
+			div tempb 1536
+			setp[].pyoff tempb
+		}
+		
+		// weapon sway hack
+		setvarvar temp mx
+		divvar temp 80 // 40
+		addvar temp 4 // 8
+		ifvarg mx 512	
+		{
+			// ifvare upside 0
+			// {
+				// ifp ponground addvarvar swayhack temp
+			// }
+			// else
+			addvarvar swayhack temp
+		}
+		else ifvarn swayhack 1024
+		{
+			setvarvar tempb swayhack
+			modvar tempb 1024
+			ifvarl tempb 24 setvar swayhack 1024
+			else 
+			{
+				ifvarg tempb 512
+				addvarvar swayhack temp
+				else subvarvar swayhack temp
+			}
+		}
+		
+		setplayer[THISACTOR].weapon_sway swayhack
+	}
+
+	ifvarg stepcount 32768
+		subvar stepcount 32768	
+	else break	
+}
+else
+{
+	ifactioncount 2 nullop else break
+}
+
+setvar temp 0
+ifactor APLAYER ifp ponground setvar temp 1
+else
+iffloordistl 2 setvar temp 1
+else ifvarn upside 0 // reversed gravity
+ifactor APLAYER
+ifvare fakejump 0 ifceilingdistl 96 setvar temp 1
+
+ifvare temp 1
+{
+	resetactioncount
+	ifinwater break
+
+	ifonwater 
+	{
+		ifactor APLAYER ifvarn upside 0 nullop else
+		{
+			ifrnd 128 sound WATER1
+			else sound WATER2
+			break
+		}
+	}
+	
+	ifactor APLAYER
+	ifvare player[THISACTOR].spritebridge YES
+	{
+		getplayer[THISACTOR].sbs spriteid
+		getactor[spriteid].picnum picnum
+	}
+	else 
+	ifactor APLAYER
+	ifvarn upside 0 getsector[THISACTOR].ceilingpicnum picnum
+	else
+	getsector[THISACTOR].floorpicnum picnum
+	state surfacetype
+	randvar temp 3
+	switch tempb
+	case 1 // GRASS OR FOLIAGE
+	ifvare temp 0 sound GRASS1
+	ifvare temp 1 sound GRASS2
+	ifvare temp 2 sound GRASS3
+	ifvare temp 3 sound GRASS4
+	break
+	case 2 // SNOW
+	ifvare temp 0 sound SNOW1
+	ifvare temp 1 sound SNOW2
+	ifvare temp 2 sound SNOW3
+	ifvare temp 3 sound SNOW4
+	break
+	case 3 // DIRT OR GRAVEL
+	ifvare temp 0 sound DIRT1
+	ifvare temp 1 sound DIRT2
+	ifvare temp 2 sound DIRT3
+	ifvare temp 3 sound DIRT4
+	break
+	case 4 // WOOD
+	ifvare temp 0 sound WOOD1
+	ifvare temp 1 sound WOOD2
+	ifvare temp 2 sound WOOD3
+	ifvare temp 3 sound WOOD4
+	break
+	default // generic hard surface
+	ifvare temp 0 sound STEP1
+	ifvare temp 1 sound STEP2
+	ifvare temp 2 sound STEP3
+	ifvare temp 3 sound STEP4
+	break
+
+	endswitch
+	
+
+}
+ends
+
+state landsounds
+
+ifonwater
+{
+	sound WATER2
+	break
+}
+
+ifvare player[THISACTOR].spritebridge YES
+{
+	getplayer[THISACTOR].sbs spriteid
+	getactor[spriteid].picnum picnum
+}
+else getsector[THISACTOR].floorpicnum picnum
+
+	state surfacetype
+	switch tempb
+	case 1 // GRASS OR FOLIAGE
+	sound GRASS1
+	break
+	
+	case 2 // SNOW
+	sound SNOW1
+	break
+	
+	case 3 // DIRT OR GRAVEL
+	sound DIRT4
+	break
+	
+	case 4 // WOOD
+	sound WOOD3
+	break
+	
+	default // generic hard surface
+	ifvarn sector[THISACTOR].lotag 1
+	sound LAND_NORMAL
+	break
+
+	endswitch
+
+ends
+
+state underwatercode
+
+ifn swordtarg -1 break
+
+ifvarand timer 1
+ifinwater
+{
+	getplayer[THISACTOR].airleft temp
+	ifvarg temp 0
+	addvar temp 1
+	setplayer[THISACTOR].airleft temp
+}
+
+ife player[].scuba_amount 0
+{
+	setplayer[THISACTOR].runspeed SWIMSPEED
+	getplayer[THISACTOR].poszv zvel
+
+	ifvarl zvel -288 setvar zvel -288
+	ifvarand bits 2 // crouch
+	{
+		ifvarvarg zvel oposzv // player moving down faster, presumably because pressing crouch
+		ifvarg zvel 256 setvar zvel 256
+	}
+	ifg player[].scuba_amount 0 { mul zvel 3 div zvel 2 }
+	setplayer[THISACTOR].poszv zvel
+	
+	ifvarvare player[THISACTOR].posx player[THISACTOR].oposx
+	setvar oposxv 0
+	ifvarvare player[THISACTOR].posy player[THISACTOR].oposy
+	setvar oposyv 0
+	getplayer[THISACTOR].posxv xvel
+	getplayer[THISACTOR].posyv yvel
+	subvarvar oposxv xvel
+	mulvar oposxv 4 divvar oposxv 5
+	addvarvar xvel oposxv
+	setplayer[THISACTOR].posxv xvel
+	subvarvar oposyv yvel
+	mulvar oposyv 4 divvar oposyv 5
+	addvarvar yvel oposyv
+	setplayer[THISACTOR].posyv yvel
+}
+else ifinwater 
+{
+	setp[].runspeed RUNNINGSPEED
+	getplayer[THISACTOR].posz z
+	addvar z 96
+	setplayer[THISACTOR].posz z
+}
+else
+{
+	ifvare character 1 
+	setplayer[THISACTOR].runspeed RUNNINGSPEED2
+	else
+	setplayer[THISACTOR].runspeed RUNNINGSPEED
+}
+
+ends
+
+state resetmaxes
+// ifmultiplayer ifvare COOP YES nullop else
+// {
+	setvar REGEN 0
+	setvar pgold 0
+	setvar stash 0
+	setvar keys 0
+	setvar bossid -1
+	setvar temp MAXPISTOLAMMO
+	smaxammo 1 temp
+	setvar temp MAXSHOTGUNAMMO
+	smaxammo 2 temp
+	setvar temp MAXCHAINGUNAMMO
+	smaxammo 3 temp
+	setvar temp MAXRPGAMMO
+	smaxammo 4 temp
+	setvar temp MAXHANDBOMBAMMO
+	smaxammo 5 temp
+	setvar temp MAXSHRINKERAMMO
+	smaxammo 6 temp
+	setvar temp MAXSMGAMMO
+	smaxammo 11 temp
+	setvar temp MAXFLAMEAMMO
+	smaxammo 7 temp
+	setvar temp MAXPLASMAAMMO
+	smaxammo 9 temp
+	setvar temp MAXTRIPBOMBAMMO
+	smaxammo 8 temp
+	setvar temp MAXSMGAMMO
+	smaxammo 11 temp
+	setvar MAXGRENADES 20
+ 	setplayer[THISACTOR].max_player_health MAXPLAYERHEALTH
+// 	
+// }
+ends
+
+state shufflepowchoices
+
+	// gamearray tier1order, 5 elements, other arrays up to 4
+	
+	// tier 1 : 1,2,32,64,1024
+	// tier 2 : 128,2048,4096,32768,131072
+	// tier 3 : 4,16,256,16384,262144
+	// tier 4 : 8,512,8192,65536,524288
+	
+	set temp 0
+	whilevarn temp 5
+	{
+		setarray tier1order[temp] 0
+		setarray tier2order[temp] 0
+		setarray tier3order[temp] 0
+		setarray tier4order[temp] 0
+		add temp 1
+	}
+	
+	setarray temparray[0] 1
+	setarray temparray[1] 2
+	setarray temparray[2] 32
+	setarray temparray[3] 64
+	setarray temparray[4] 1024
+	
+	set temp 0
+	set tempb 0
+	whilevarn temp 1
+	{
+		rand tempc 4
+		ifn temparray[tempc] 0 
+		{
+			setarray tier1order[tempb] temparray[tempc]
+			setarray temparray[tempc] 0
+			add tempb 1
+			ife tempb 5 set temp 1
+		}
+	}
+	
+	setarray temparray[0] 128
+	setarray temparray[1] 2048
+	setarray temparray[2] 4096
+	setarray temparray[3] 32768
+	setarray temparray[4] 131072
+	
+	set temp 0
+	set tempb 0
+	whilevarn temp 1
+	{
+		rand tempc 4
+		ifn temparray[tempc] 0 
+		{
+			setarray tier2order[tempb] temparray[tempc]
+			setarray temparray[tempc] 0
+			add tempb 1
+			ife tempb 5 set temp 1
+		}
+	}
+	
+	setarray temparray[0] 4
+	setarray temparray[1] 16
+	setarray temparray[2] 256
+	setarray temparray[3] 16384
+	setarray temparray[4] 262144
+	
+	set temp 0
+	set tempb 0
+	whilevarn temp 1
+	{
+		rand tempc 4
+		ifn temparray[tempc] 0 
+		{
+			setarray tier3order[tempb] temparray[tempc]
+			setarray temparray[tempc] 0
+			add tempb 1
+			ife tempb 5 set temp 1
+		}
+	}
+	
+	setarray temparray[0] 8
+	setarray temparray[1] 512
+	setarray temparray[2] 8192
+	setarray temparray[3] 65536
+	setarray temparray[4] 524288
+	
+	set temp 0
+	set tempb 0
+	whilevarn temp 1
+	{
+		rand tempc 4
+		ifn temparray[tempc] 0 
+		{
+			setarray tier4order[tempb] temparray[tempc]
+			setarray temparray[tempc] 0
+			add tempb 1
+			ife tempb 5 set temp 1
+		}
+	}
+
+ends
+
+onevent EVENT_SETDEFAULTS
+	
+	setuserdef[].userbyteversion 103020
+	
+endevent
+
+onevent EVENT_LOADGAME
+	ifvare endlevel 0
+	setuserdef[THISACTOR].clipping NO
+	ifvare slowtime 0 inittimer gamespeed
+
+endevent
+
+onevent EVENT_NEWGAME
+state resetmaxes
+setvar temp 0
+whilevarn temp 20
+{
+	setarray mapsprocstage2[temp] NO
+	addvar temp 1
+}
+// ifvare charwritten 0
+readgamevar charlocked
+readgamevar airdash
+readgamevar fintips
+readgamevar fintips2
+readgamevar jedtip
+
+state shufflepowchoices
+
+setarray powchoices[0] tier1order[tierslot]
+setarray powchoices[1] tier2order[tierslot]
+setarray powchoices[2] tier3order[tierslot]
+setarray powchoices[3] tier4order[tierslot]
+
+ife userdef[].player_skill 1 set pdamage 120
+
+
+// setvar temp 1000
+// setvar tempb 0
+// whilevarn tempb 100
+// {
+	// setarray xpcaps[tempb] temp
+	// mulvar temp 4
+	// divvar temp 3
+	// addvar temp 1000
+	// addvar tempb 1
+// }
+
+// setvar tempb 0
+// whilevarn tempb 12
+// {
+	// setarray weapcap[tempb] 300
+	// addvar tempb 1
+// }
+endevent
+
+state laddercode
+
+ifvare character 1 action BARBSTAND else
+    action PSTAND
+
+ifp ponground setvar bpress 0
+setplayer[THISACTOR].falling_counter 0
+ifvare fpress 0 ifvare bpress 0
+{
+	 setvar laddervel -256
+	 getplayer[THISACTOR].posx lastladderx
+	 getplayer[THISACTOR].posy lastladdery
+}
+ else
+ {
+	 ifvarn laddersound -1
+	 soundoncevar laddersound
+	 getplayer[THISACTOR].posz z
+	 updatesectorz lastladderx lastladdery z mysector
+	 ifvarn mysector -1
+	 {
+		 setplayer[THISACTOR].posx lastladderx
+		 setplayer[THISACTOR].posy lastladdery
+		 getplayer[THISACTOR].i spriteid
+		 setactor[spriteid].x lastladderx
+		 setactor[spriteid].y lastladdery
+	 }
+ }
+ifp ponground { ifvarg laddervel 0 setvar laddervel 0 } else
+{
+	setplayer[THISACTOR].posxv 0
+	setplayer[THISACTOR].posyv 0
+}
+subvar onladder 1
+setplayer[THISACTOR].poszv laddervel
+
+ends
+
+state sleepingcode
+
+setplayer[THISACTOR].movement_lock 31
+setp[].heat_on NO
+setvar ftap 0
+setvar btap 0
+
+setactor[THISACTOR].htextra -1
+
+addvar sleeping 1
+
+ifvare sleeping 0 
+{
+	addvar sleeping 1 // do not let it be zero until finished
+	// teleport to next SE if one exists
+	setvar spriteid 0
+	whilevarn spriteid 16384
+	{
+		ifvare sprite[spriteid].picnum SECTOREFFECTOR ifvarn sprite[spriteid].statnum 1024
+		{
+			getactorvar[spriteid].lotag temp
+			ifvare temp 105
+			{
+				getactorvar[myspawner].hitag hitag
+				getactorvar[spriteid].hitag tempb
+				ifvarvare hitag tempb
+				{
+					getactor[spriteid].x x
+					getactor[spriteid].y y
+					getactor[spriteid].z z
+					setplayer[THISACTOR].posx x
+					setplayer[THISACTOR].posy y
+					setactor[THISACTOR].z z
+					subvar z 8192
+					setplayer[THISACTOR].posz z
+					getactor[spriteid].sectnum mysector
+					changespritesect THISACTOR mysector
+					setplayer[THISACTOR].cursectnum mysector
+					setactorvar[spriteid].lotag 106
+					getactor[spriteid].ang angvar
+					setplayer[THISACTOR].ang angvar
+					setvarvar myspawner spriteid
+// 					getactorvar[spriteid].monstflags temp
+// 					ifvarand temp 1
+// 					{
+// 						state resetweaponstate
+// 						state clearinventory
+// 					}
+					
+					setvar spriteid 16383
+				}
+			}
+			
+		}
+		addvar spriteid 1
+	}
+}
+	
+setplayer[THISACTOR].horiz 100
+getactor[myspawner].ang angvar
+setplayer[THISACTOR].ang angvar
+	
+getactor[myspawner].pal pal
+switch pal
+	case 0 case 4
+	setplayer[THISACTOR].pals 0 0
+	setplayer[THISACTOR].pals 1 0
+	setplayer[THISACTOR].pals 2 0
+	break
+	
+	case 1
+	setplayer[THISACTOR].pals 0 0
+	setplayer[THISACTOR].pals 1 0
+	setplayer[THISACTOR].pals 2 42
+	break
+	
+	case 2
+	setplayer[THISACTOR].pals 0 42
+	setplayer[THISACTOR].pals 1 0
+	setplayer[THISACTOR].pals 2 0
+	break
+	
+	case 3
+	case 13
+	setplayer[THISACTOR].pals 0 63
+	setplayer[THISACTOR].pals 1 63
+	setplayer[THISACTOR].pals 2 63
+	break
+	
+	case 8
+	setplayer[THISACTOR].pals 0 0
+	setplayer[THISACTOR].pals 1 42
+	setplayer[THISACTOR].pals 2 0
+	break
+	
+	default
+	setplayer[THISACTOR].pals 0 0
+	setplayer[THISACTOR].pals 1 0
+	setplayer[THISACTOR].pals 2 0
+	break
+endswitch
+	
+setvarvar temp sleeping
+ifvarl temp 0
+mulvar temp -1
+setvar tempb 130
+subvarvar tempb temp
+mulvar tempb 2 divvar tempb 3
+ifvarg tempb 63 setvar tempb 63
+setplayer[THISACTOR].pals_time tempb
+
+ifvarg sleeping 130
+{
+	setvar sleeping 0
+	setplayer[THISACTOR].movement_lock 0
+	getactorvar[myspawner].monstflags temp
+	ifvarg temp 0 ifvare character 0 globalsoundvar temp
+	setvar myspawner -1
+}
+
+
+ends
+
+state transitioncode
+
+
+ifvarl transition 30
+ifg transition 15
+setplayer[THISACTOR].ang sprite[myspawner].ang
+
+ifg transition 15
+{
+	setplayer[THISACTOR].posxv 0
+	setplayer[THISACTOR].posyv 0
+}
+
+ifvare transition 30
+{
+	// switch to other door
+	getactorvar[myspawner].hitag temp
+	setvar spriteid 0
+	whilevarn spriteid 16384
+	{
+		ifvarn sprite[spriteid].statnum 1024
+		ifvare sprite[spriteid].picnum FAKEDOOR
+		ifvarvarn myspawner spriteid
+		ifvarvare actorvar[spriteid].hitag temp
+		{
+			setvarvar myspawner spriteid
+			setsprite THISACTOR sprite[myspawner].x sprite[myspawner].y sprite[myspawner].z
+			setplayer[THISACTOR].posx sprite[myspawner].x
+			setplayer[THISACTOR].posy sprite[myspawner].y
+			getactor[myspawner].z z
+			subvar z 8192
+			setplayer[THISACTOR].posz z
+			setplayer[THISACTOR].cursectnum sprite[myspawner].sectnum		
+			setvar spriteid 16383
+		}
+		addvar spriteid 1
+	}
+}
+
+	
+subvar transition 1
+ifvare transition 0 setvar myspawner -1
+
+ends
+
+state selectpow
+
+ifvarg cursorx 0 ifvarl cursorx 320 // old values 80, 240
+{
+	// ifvarg cursory 33 ifvarl cursory 52
+	ifl cursory 150
+	{
+		ifvarand bits 4
+		{
+			addvar inputime 1
+			ifvarvarn inputime timer
+			{
+				ifvare powmode 1 { setvar powmode 0 sound SWITCH_ON } else
+				ifvare powmode 0 { setvar powmode 1 sound SWITCH_ON }
+				set powchosen YES
+			}
+			setvarvar inputime timer
+		}
+	}
+	
+	// ifvarg cursory 70 ifvarl cursory 85 setvar powselected 0 else
+	// ifvarg cursory 84 ifvarl cursory 100 setvar powselected 1 else
+	// ifvarg cursory 99 ifvarl cursory 115 setvar powselected 2 else
+	// ifvarg cursory 114 ifvarl cursory 130 setvar powselected 3 else
+	// ifvarg cursory 129 ifvarl cursory 145 setvar powselected 4
+	// else setvar powselected -1
+	
+	
+	// ifvarn powselected -1
+	// ifvarand bits 4
+	// {
+		// addvar inputime 1
+		// ifvarvarn inputime timer
+		// {
+			// sound SWITCH_ON
+			// ifvare powselected 0 { ifvare powchoices[0] 1 setarray powchoices[0] 32 else ifvare powchoices[0] 32 setarray powchoices[0] 1024 else setarray powchoices[0] 1 }
+			// ifvare powselected 1 { ifvare powchoices[1] 2 setarray powchoices[1] 64  else ifvare powchoices[1] 64 setarray powchoices[1] 2048 else setarray powchoices[1] 2 }
+			// ifvare powselected 2 { ifvare powchoices[2] 4 setarray powchoices[2] 128  else ifvare powchoices[2] 128 setarray powchoices[2] 4096 else setarray powchoices[2] 4 }
+			// ifvare powselected 3 { ifvare powchoices[3] 8 setarray powchoices[3] 256  else ifvare powchoices[3] 256 setarray powchoices[3] 8192 else setarray powchoices[3] 8 }
+			// ifvare powselected 4 { ifvare powchoices[4] 16 setarray powchoices[4] 512  else ifvare powchoices[4] 512 setarray powchoices[4] 16384 else setarray powchoices[4] 16 }
+		// }
+		// setvarvar inputime timer
+	// }
+}
+else setvar powselected -1
+
+
+
+ifvarand bits 4 ifvarg cursory 170 ifvarg cursorx 120 ifvarl cursorx 200
+{
+	addvar character 10
+	setplayer[THISACTOR].weapon_pos -9
+	setplayer[THISACTOR].movement_lock 0
+	// character specific settings
+	setplayer[THISACTOR].runspeed RUNNINGSPEED2
+	ifvare character 1
+	{
+		ifvarand fintips 134217728 nullop else
+		{
+			setvar currtip2 0 setvar currtip 134217728
+			orvar fintips 134217728
+			state inithelp
+		}
+		setplayer[THISACTOR].runspeed RUNNINGSPEED2
+		setvar WEAPON0_TOTALTIME 14
+		setvar WEAPON0_FLAGS 256
+		setvar WEAPON0_FIREDELAY 6
+		setvar WEAPON0_SHOOTS PUNCHPROJ
+
+		setvar WEAPON1_SHOOTS SWORDPROJ
+		setvar WEAPON1_TOTALTIME 16
+		setvar WEAPON1_FIREDELAY 5
+		setvar WEAPON1_FLAGS 65792
+		setvar WEAPON1_SPAWN -1
+		setvar WEAPON1_FIRESOUND -1
+		setvar WEAPON1_SOUND2SOUND -1
+		setvar WEAPON1_RELOADSOUND1 -1
+		setvar WEAPON1_RELOADSOUND2 -1
+		setvar WEAPON1_SHOTSPERBURST 1
+		
+		setvar WEAPON2_SHOOTS KNEE
+		setvar WEAPON2_TOTALTIME 24
+		setvar WEAPON2_FIREDELAY 6
+		setvar WEAPON2_FLAGS 65792
+		setvar WEAPON2_SPAWN -1
+		setvar WEAPON2_FIRESOUND -1
+		setvar WEAPON2_SOUND2SOUND -1
+		setvar WEAPON2_RELOADSOUND1 -1
+		setvar WEAPON2_RELOADSOUND2 -1
+		setvar WEAPON2_SHOTSPERBURST 2
+		setvar WEAPON2_CLIP 0
+		setvar WEAPON2_RELOAD 0
+		
+		setvar WEAPON3_SHOOTS SWORDPROJ
+		setvar WEAPON3_TOTALTIME 22
+		setvar WEAPON3_FIREDELAY 8
+		setvar WEAPON3_FLAGS 65792
+		setvar WEAPON3_SPAWN -1
+		setvar WEAPON3_FIRESOUND -1
+		setvar WEAPON3_SOUND2SOUND -1
+		setvar WEAPON3_RELOADSOUND1 -1
+		setvar WEAPON3_RELOADSOUND2 -1
+		setvar WEAPON3_SHOTSPERBURST 1
+		setvar WEAPON3_CLIP 0
+		setvar WEAPON3_RELOAD 0
+		
+		setvar WEAPON4_FIREDELAY 16
+		orvar WEAPON4_FLAGS 256
+		setvar WEAPON4_SHOOTS ARROWPROJ
+		
+		setvar WEAPON5_SHOOTS SMALLSMOKE
+		
+		setvar WEAPON6_SHOOTS SWORDPROJ
+		setvar WEAPON6_TOTALTIME 16
+		setvar WEAPON6_FIREDELAY 8
+		setvar WEAPON6_FLAGS 256
+		setvar WEAPON6_SPAWN -1
+		setvar WEAPON6_FIRESOUND -1
+		setvar WEAPON6_INITIALSOUND -1
+		setvar WEAPON6_SOUND2SOUND -1
+		setvar WEAPON6_RELOADSOUND1 -1
+		setvar WEAPON6_RELOADSOUND2 -1
+		setvar WEAPON6_SHOTSPERBURST 3
+		setvar WEAPON6_SELECTSOUND -1
+		
+		setvar WEAPON7_TOTALTIME 10
+		setvar WEAPON7_FIREDELAY 6
+		setvar WEAPON7_SHOOTS REDSHOCK
+		setvar WEAPON7_SHOTSPERBURST 3
+		setvar WEAPON7_FIRESOUND -1
+		
+		setvar WEAPON9_SELECTSOUND CANSEL
+		setvar WEAPON9_SHOTSPERBURST 1
+		setvar WEAPON9_TOTALTIME 60 // 70
+		setvar WEAPON9_FIREDELAY 31 // 41
+		setvar WEAPON9_SHOOTS CANNONBALL2
+		setvar WEAPON9_FIRESOUND SHOOT_CANNON
+		setvar WEAPON9_FLASHCOLOR 24575
+		setvar WEAPON9_INITIALSOUND FUSE
+	
+		setplayer[THISACTOR].max_ammo_amount 1 31
+		setplayer[THISACTOR].max_ammo_amount 2 31
+		setplayer[THISACTOR].max_ammo_amount 3 31
+		setplayer[THISACTOR].max_ammo_amount 4 31
+		setplayer[THISACTOR].max_ammo_amount 6 30
+		setplayer[THISACTOR].max_ammo_amount 7 MAXGAUNTAMMO
+		setplayer[THISACTOR].max_ammo_amount 9 15
+		state convertbarbitems
+	}
+}
+
+ends
+
+state headhitstate
+
+ife upside YES break
+
+// ifvare CURRWEAP 1 ifvarand bits 268435456 break
+ifvare CURRWEAP 1 ifvarand extbits 64 break
+wackplayer
+randvar tempb 256
+subvar tempb 128
+setplayer[THISACTOR].rotscrnang temp
+
+ends
+
+state jumpsounds
+
+ifmultiplayer nullop else
+{
+	 stopactorsound THISACTOR JUMP5
+	 stopactorsound THISACTOR JUMP2
+	 stopactorsound THISACTOR JUMP4
+	 stopactorsound THISACTOR BARBJUMP1
+	 stopactorsound THISACTOR BARBJUMP2
+	 stopactorsound THISACTOR BARBJUMP3
+}
+randvar temp 2
+ifvare character 0
+{
+	ifvare temp 0 sound JUMP5 else
+	ifvare temp 1 sound JUMP2 else
+	sound JUMP4
+}
+else
+{
+	ifvare temp 0 sound BARBJUMP1 else
+	ifvare temp 1 sound BARBJUMP2 else
+	sound BARBJUMP3
+}
+
+ends
+
+defstate kludges
+
+setplayer[THISACTOR].knuckle_incs 0
+
+ifvarn pdestination 0
+ifvare endlevel 0
+{
+	headspritestat spriteid 3
+	whilevarn spriteid -1
+	{
+		ifvare sprite[spriteid].lotag 67 // destination only SE
+		ifvarvare pdestination actorvar[spriteid].hitag
+		{
+			setsprite THISACTOR sprite[spriteid].x sprite[spriteid].y sprite[spriteid].z
+			setplayer[THISACTOR].posx sprite[spriteid].x
+			setplayer[THISACTOR].posy sprite[spriteid].y
+			getactor[spriteid].z z
+			subvar z 8192
+			setplayer[THISACTOR].posz z
+			setplayer[THISACTOR].ang sprite[spriteid].ang
+			changespritesect THISACTOR sprite[spriteid].sectnum
+			setplayer[THISACTOR].cursectnum sprite[spriteid].sectnum
+			setvar pdestination 0
+		}
+		nextspritestat spriteid spriteid
+	}
+}
+
+ifsound LIGHTNING_SLAP
+{
+	stopsound LIGHTNING_SLAP
+	flash
+	randvar temp 4
+	ifvare temp 0 sound LIGHTN1 else
+	ifvare temp 1 sound LIGHTN2 else
+	ifvare temp 2 sound LIGHTN3 else
+	ifvare temp 3 sound LIGHTN4 else
+	ifvare temp 4 sound LGTNSND
+}
+
+ifvarand fintips 1 nullop else
+// ifvare cutscene NO
+// ifvare player[THISACTOR].transporter_hold 0
+{
+		setvar currtip2 0 setvar currtip 1
+		orvar fintips 1
+		state inithelp
+}
+
+ifvarl player[THISACTOR].player_par 2
+{
+	ife musicepisode 1
+	ife musictrack 7
+	{
+		al THISACTOR
+		starttrackslot VOLUME LEVEL
+		set musicepisode VOLUME
+		set musictrack LEVEL
+	}
+	ife LEVEL 24 set crawlclock 2
+	
+	setarray mapsprocstage2[LEVEL] YES
+	ife SKILL -1
+	{
+		getuserdef[THISACTOR].player_skill SKILL // 1-5
+		ife SKILL 4 setuserdef[].player_skill 5 // to allow cheats
+		ife SKILL 5 screensound DAY2DIE
+	}
+	setuserdef[THISACTOR].clipping NO
+	setvar pathnode 0
+	setvar temp 0
+	// reset skybox in case player died on steroids
+	whilevarvarn temp NUMSECTORS
+	{
+		getsector[temp].ceilingpal pal
+		ifvare pal 33
+		setsector[temp].ceilingpal 0
+		getsector[temp].floorpal pal
+		ifvare pal 33
+		setsector[temp].floorpal 0
+		addvar temp 1
+	}
+	setvar powchosen NO
+	setvar upside 0
+	setvar swordtarg -1
+	setvar hammertarg -1
+	setvar portalview 0
+	setvar portalcam -1
+	setvar arrowview -1
+	setvar hookid -1
+	setvar tailsprite -1
+	setvar myminotaur -1
+	setvar camerasprite -1
+	setvar barbquake 0
+	setvar invicon 1
+	setvar bossid -1
+	setvar fhold 0
+	setvar fpresstime 0
+	setvar ftap 0
+	setvar btap 0
+	setvar bigmsgcount 0
+	setvar bigmsg 0
+	setvar pow 0
+	setvar camroll 0
+	// addvarvar stash pgold
+	// setvar pgold 0
+	setvar superjump 0
+	setvar boost 0
+	setvar sjumpcharge 0
+	setvarvar raining rainstart
+	setvar rainstart 0
+	// setvar playertarg -1
+	setvar altfirehold 0
+	setvar ammohack 0
+	setvar fta 0
+	setvar roxq 0
+	setvar healthcount 0
+	setvar ALTFIRING 0
+	setvar pshrunk 0
+	ife VOLUME 0 ife LEVEL 0 setp[].jetpack_amount 0
+	setplayer[THISACTOR].got_access 0
+	setarray playertarg[0] -1
+	setarray playertarg[1] -1
+	setarray playertarg[2] -1
+	setarray playertarg[3] -1
+	setarray playertarg[4] -1
+	setarray guidedrox[0] -1
+	setarray guidedrox[1] -1
+	setarray guidedrox[2] -1
+	setarray guidedrox[3] -1
+	setarray guidedrox[4] -1
+	ifvare character 1 state convertbarbitems
+	// calculate max apples and max ammopacks
+	setvar spriteid 0
+	setvar tempb 0 // apple count
+	setvar tempc 0 // ammopack count
+	setvar tempd 0 // gem count
+	setvar tempe 0 // key count
+	
+	whilevarvarn spriteid NUMSECTORS
+	{
+		getsector[spriteid].lotag temp
+		ifvare temp -1
+		{
+			setsector[spriteid].lotag 6969
+			addlogvar spriteid
+		}
+		addvar spriteid 1
+	}
+	setvar spriteid 0
+	whilevarn spriteid 16384
+	{
+		ifvarn sprite[spriteid].statnum 1024
+		{
+			getactor[spriteid].picnum picnum
+			switch sprite[spriteid].picnum
+			case TCHEST changespritestat spriteid 1 break
+			case APPLE addvar tempb 1 break
+			case AMMOPACK addvar tempc 1 break
+			case GEMSPRITE addvar tempd 1 break
+			case KEY 
+				add tempe 1 
+				add tempe actorvar[spriteid].monstflags
+			break
+
+			case RESPAWN
+				getactor[spriteid].hitag picnum
+				ifvare picnum APPLE addvar tempb 1
+				ifvare picnum AMMOPACK addvar tempc 1
+				ifvare picnum GEMSPRITE addvar tempd 1
+				ifvare picnum KEY addvar tempe 1
+			break
+			
+			case CANWITHSOMETHING
+			case POTWITHSOMETHING
+			case POTWITHSOMETHING2
+				getactor[spriteid].lotag picnum
+				ife picnum 0 getav[spriteid].lotag picnum
+				ifvare picnum APPLE addvar tempb 1
+				ifvare picnum AMMOPACK addvar tempc 1
+				ifvare picnum GEMSPRITE addvar tempd 1
+				ifvare picnum KEY addvar tempe 1
+			break
+			endswitch
+			
+			getactorvar[spriteid].droptile picnum
+			ifvare picnum APPLE addvar tempb 1
+			ifvare picnum AMMOPACK addvar tempc 1
+			ifvare picnum GEMSPRITE ifn actorvar[spriteid].peractor1 1 addvar tempd 1
+			ifvare picnum KEY addvar tempe 1
+		}
+		addvar spriteid 1
+	}
+	//addvarvar tempb foundapples[LEVEL]
+	ifvare maxapples[LEVEL] 0 setarray maxapples[LEVEL] tempb
+	//addvarvar tempc foundpacks[LEVEL]
+	ifvare maxpacks[LEVEL] 0 setarray maxpacks[LEVEL] tempc
+	ifvare maxgems[LEVEL] 0 setarray maxgems[LEVEL] tempd
+	ifvare maxkeys[LEVEL] 0 setarray maxkeys[LEVEL] tempe
+	
+	setvar nearwaterfall -1
+	setvar endlevel 0
+	
+	setvar doorinmap 0
+	setvar slowtime 0
+	
+	setplayer[THISACTOR].sound_pitch 0
+	ifvare character 1 
+	setplayer[THISACTOR].runspeed RUNNINGSPEED2
+	else ife character 0
+	setplayer[THISACTOR].runspeed RUNNINGSPEED
+	
+	setvar helpmenu 0
+	inittimer gamespeed
+	setvar music2 0
+	
+	// we  need to initiate the  quest items
+	setvar temp 0
+	whilevarn temp MAXQUESTS
+	{
+		ifvare quests[temp] 0 { setvar temp MAXQUESTS subvar temp 1 }
+		else
+		{		
+				setvar spriteid 0
+				whilevarn spriteid 16384
+				{
+					ifvarn sprite[spriteid].statnum 1024
+					{
+						ifvare sprite[spriteid].picnum QUESTITEM
+						ifvarvare quests[temp] actorvar[spriteid].lotag
+						{
+							setactorvar[spriteid].mtype 1
+							setvar spriteid 16383
+						}
+					}
+					addvar spriteid 1
+				}
+		}
+		addvar temp 1
+	}
+	setvar temp 0
+	whilevarn temp 200
+	{
+		setarray waypoint[temp] -1
+		addvar temp 1
+	}
+	
+	// setvar temp 0
+	// whilevarn temp 2048
+	// {
+		// setarray towntrails[temp] -1
+		// addvar temp 1
+	// }
+	
+	// ifvare LEVEL 0 ifvarn scroll 0
+	// {
+		// setvar tempc 9
+		// whilevarn tempc 0
+		// {
+			// setvarvar temp savedheroes[0]
+			// addvarvar temp savedheroes[tempc]
+			// setarray savedheroes[0] temp
+			// setarray savedheroes[tempc] 0
+			// subvar tempc 1
+		// }
+		
+	// }
+	setvar spriteid 0
+	// setvar tempc 0
+	whilevarn spriteid 16384
+	{
+		ifvarn sprite[spriteid].statnum 1024
+		{
+			getactor[spriteid].picnum picnum
+			ifvare picnum WAYPOINT
+			{
+				getactorvar[spriteid].lotag tempb
+				ifvarg tempb 0
+				{
+					subvar tempb 1
+					setarray waypoint[tempb] spriteid
+				}
+			}
+			// ifvare picnum TOWNTRAIL
+			// ifvarl tempc 2048
+			// {
+				// setarray towntrails[tempc] spriteid
+				// addvar tempc 1
+			// }
+		
+			ifvare picnum SPAWNPOINT
+			ifvare actorvar[spriteid].myspawner -666
+			setactorvar[spriteid].myspawner -1
+			
+			// ifvare actorvar[spriteid].monstatus 2
+			// setactor[spriteid].picnum SMALLSMOKE
+			
+			ifvare picnum HERO
+			ifvare actorvar[spriteid].mtype 1
+			ifvarg savedheroes[0] 0
+			{
+				setvarvar tempb savedheroes[0]
+				subvar tempb 1
+				setarray savedheroes[0] tempb
+				setactorvar[spriteid].mtype 0
+				setactorvar[spriteid].monstatus 0
+				setactor[spriteid].cstat 257
+			}
+		}
+
+		addvar spriteid 1
+	}
+	
+	// make sure last waypoint is pal 4
+	ifvarn waypoint[0] -1
+	{
+		setvar temp 0
+		setvarvar spriteid waypoint[0]
+		whilevarn spriteid -1
+		{
+			addvar temp 1
+			setvarvar spriteid waypoint[temp]
+			ifvare temp 199 setvar spriteid -1
+		}
+		subvar temp 1
+		setvarvar spriteid waypoint[temp]
+		ifvarn sprite[spriteid].pal 4
+		{
+			setactor[spriteid].pal 4
+			// userquote 455
+			// addlogvar spriteid
+		}
+	}
+	
+	// ifvarand fintips 67108864 nullop else
+	// ifvare LEVEL 0
+	// ifvarand scroll 1
+	// {
+		// setvar currtip2 0 setvar currtip 67108864
+		// orvar fintips 67108864
+		// state inithelp
+	// }
+	ife LEVEL 21 nullop else save 9
+	// setvar newtip YES
+}
+
+ife VOLUME 0 ife LEVEL 0 // hub
+ifn returnlevel -1
+{
+	// find the matching RETURNPOINT sprite and move player to it
+	set spriteid 0
+	whilevarn spriteid 16384
+	{
+		ife sprite[spriteid].picnum RETURNPOINT
+		ife returnlevel actorvar[spriteid].lotag
+		{
+			setp[].posx sprite[spriteid].x
+			setp[].posy sprite[spriteid].y
+			geta[spriteid].z z sub z 8192
+			setp[].posz z
+			setp[].cursectnum sprite[spriteid].sectnum
+			setp[].ang sprite[spriteid].ang
+		}
+		add spriteid 1
+	}
+	set returnlevel -1
+}
+
+ifvarn helpmenu NO
+{
+	// first check for window grab
+	setvar wingrab NO
+	// game tips screen when helpmenu == 1
+	ifvarl goldnear 3 setvar goldnear 3
+	ifvarl keynear 3 setvar keynear 3
+	setvar podnear 0
+/*
+	ifvarg helpmenu 1
+	ifvarand bits 4
+	{
+		setvarvar y winy
+		subvar y 80
+		setvarvar my y
+		addvar my 8
+		ifvarvarg cursory y ifvarvarl cursory my
+		{
+			setvarvar x winx
+			subvar x 75
+			setvarvar mx x
+			addvar mx 145
+			ifvarvarg cursorx x ifvarvarl cursorx mx setvar wingrab YES
+		}
+	}
+*/
+	getplayer[THISACTOR].ang temp
+	getplayer[THISACTOR].oang tempb
+	set oang tempb
+	getincangle angvar temp tempb
+	switch angvar
+		case -1 case 0 case 1 
+		break
+		case -2 case 2 case -3 case 3
+		case -4 case 4 case -5 case 5
+		divvar angvar 2
+		break
+		
+		default
+		divvar angvar 3
+		break
+	endswitch
+	
+	// ifvare wingrab YES 
+	// { 
+		// setvarvar temp winx
+		// subvarvar winx angvar ifvarl winx 70 setvar winx 70 ifvarg winx 250 setvar winx 250
+		// subvarvar temp winx
+		// setvarvar angvar temp
+	// }
+	subvarvar cursorx angvar
+	ifvarl cursorx 0 setvar cursorx 0
+	ifvarg cursorx 320 setvar cursorx 320
+	
+	getplayer[THISACTOR].horiz temp
+	getplayer[THISACTOR].ohoriz tempb
+	subvarvar temp tempb
+	getuserdef[THISACTOR].mouseflip tempc
+	ifvare tempc YES mulvar temp -1
+	// ifvare wingrab YES 
+	// { 
+		// setvarvar tempd winy
+		// addvarvar winy temp ifvarl winy 85 setvar winy 85 ifvarg winy 220 setvar winy 220
+		// subvarvar tempd winy mulvar tempd -1
+		// setvarvar temp tempd
+	// }
+	addvarvar cursory temp
+
+
+	ifvarl cursory 0 setvar cursory 0
+	ifvarg cursory 200 setvar cursory 200
+	setplayer[THISACTOR].ang player[THISACTOR].oang
+	setplayer[THISACTOR].horiz 100
+	
+	set temp NO
+	ifvarand bits 4 set temp YES
+	ifhitspace set temp YES
+	
+	ife temp YES
+	{
+		ifn inputime timer
+		{
+			ifge cursory 25 ifle cursory 70
+			ifge cursorx 135 ifle cursorx 185
+			{
+				sound SWITCH_ON
+				ife helpmenu 1 set helpmenu 2 else
+				ife helpmenu 2 set helpmenu 1
+			}
+			else 
+			ife helpmenu 2
+			ifge cursory 132 ifle cursory 148
+			ifge cursorx 120 ifle cursorx 160
+			ife powcount 0
+			{
+				sound SWITCH_ON
+				ife powmode 1 set powmode 0 else
+				set powmode 1
+				set combo 0
+			}
+		}
+		
+		set inputime timer
+		add inputime 1
+	}
+	
+/*
+	ifvarg helpmenu 1
+	{
+		setvar popuptime 0 // defaults to 0, will get set only if needed
+		ifvarand bits 4
+		{
+			setvarvar y winy
+			subvar y 65
+			setvarvar my y
+			addvar my 12
+			ifvarvarg cursory y ifvarvarl cursory my // page changing buttons
+			{
+				setvarvar x winx
+				subvar x 61
+				setvarvar mx x
+				addvar mx 32
+				ifvarvarg cursorx x ifvarvarl cursorx mx
+				{
+					ifvarn helpmenu 2
+					{
+						sound BUTTONCLICK
+						setvar helpmenu 2 // stats
+					}
+				}
+				setvarvar x mx
+				setvarvar mx x
+				addvar mx 32
+				ifvarvarg cursorx x ifvarvarl cursorx mx
+				{
+					ifvarn helpmenu 3
+					{
+						sound BUTTONCLICK
+						setvar helpmenu 3 // arms
+					}
+				}
+				setvarvar x mx
+				setvarvar mx x
+				addvar mx 32
+				ifvarvarg cursorx x ifvarvarl cursorx mx
+				{
+					ifvarn helpmenu 4
+					{
+						sound BUTTONCLICK
+						setvar helpmenu 4 // items
+					}
+				}
+				setvarvar x mx
+				setvarvar mx x
+				addvar mx 32
+				ifvarvarg cursorx x ifvarvarl cursorx mx
+				{
+					ifvarn helpmenu 5
+					{
+						sound BUTTONCLICK
+						setvar helpmenu 5 // quests
+					}
+				}
+			}
+		}
+		ifvarg statpoints 0
+		ifvare helpmenu 2
+		{
+			setvarvar x winx
+			subvar x 55
+			setvarvar mx x
+			addvar mx 10
+			ifvarvarg cursorx x ifvarvarl cursorx mx // stat buttons
+			{
+				setvarvar y winy
+				addvar y 19
+				setvarvar my y
+				addvar my 11
+				ifvarvarg cursory y ifvarvarl cursory my // strength stat selected
+				{
+					setvar statsel 1
+					ifvarand bits 4
+					{
+						addvar inputime 1
+						ifvarvarn inputime timer
+						{
+							sound SWITCH_ON
+							addvar pdamage 1
+							subvar statpoints 1
+						}
+						setvarvar inputime timer
+					}
+				}
+				else ifvare statsel 1 setvar statsel 0
+				setvarvar y my
+				addvar y 2
+				setvarvar my y
+				addvar my 11
+				ifvarvarg cursory y ifvarvarl cursory my // vitality stat selected
+				{
+					setvar statsel 2
+					ifvarand bits 4
+					{
+						addvar inputime 1
+						ifvarvarn inputime timer
+						{
+							sound SWITCH_ON
+							getplayer[THISACTOR].max_player_health temp
+							addvar temp 2
+							setplayer[THISACTOR].max_player_health temp
+							addphealth 2
+							subvar statpoints 1
+						}
+						setvarvar inputime timer
+					}
+				}
+				else ifvare statsel 2 setvar statsel 0
+				setvarvar y my
+				addvar y 2
+				setvarvar my y
+				addvar my 11
+				ifvarvarg cursory y ifvarvarl cursory my // energy stat selected
+				{
+					setvar statsel 3
+					ifvarand bits 4
+					{
+						addvar inputime 1
+						ifvarvarn inputime timer
+						{
+							sound SWITCH_ON
+							addvar manamax 200
+							addvar mana 200
+							subvar statpoints 1
+						}
+						setvarvar inputime timer
+					}
+				}
+				else ifvare statsel 3 setvar statsel 0
+			}
+			else setvar statsel 0
+		}
+		else setvar statsel 0
+
+		ifvare helpmenu 5 // quests
+		ifvarn quests[0] 0
+		{
+			setvarvar questsel firstquest
+			setvarvar x winx
+			subvar x 53
+			setvarvar mx x
+			addvar mx 97
+			ifvarvarg cursorx x ifvarvarl cursorx mx
+			{
+				setvarvar y winy
+				subvar y 42
+				setvarvar my y
+				addvar my 8
+				ifvarvarg cursory y
+				{
+					ifvarvarl cursory my
+					{
+						setvarvar questsel firstquest
+						setvar popuptime 20
+					}
+					else
+					{
+						setvar popuptime 20
+						setvar temp 1
+						whilevarn temp 8
+						{
+							addvar y 8 addvar my 8
+							ifvarvarg cursory y
+								addvar questsel 1
+							ifvare quests[questsel] 0 { subvar questsel 1 setvar temp 7 setvar popuptime 0 } else
+							ifvarvarl cursory my setvar temp 7
+							addvar temp 1
+						}
+					}
+				}
+				setvarvar popup Qquests[questsel]			
+			}
+			setvarvar x winx
+			addvar x 51
+			setvarvar mx x
+			addvar mx 11
+			ifvarvarg cursorx x ifvarvarl cursorx mx
+			{
+				setvarvar y winy
+				subvar y 41
+				setvarvar my y
+				addvar my 20
+				ifvarvarg cursory y ifvarvarl cursory my // top arrow selected
+				ifvarg firstquest 0
+				{
+					ifvarand bits 4
+					{
+						addvar inputime 1
+						ifvarvarn inputime timer
+						{
+							subvar firstquest 1
+							sound BUTTONCLICK
+						}
+						setvarvar inputime timer
+					}
+				}
+				setvarvar y winy
+				addvar y 10
+				setvarvar my y
+				addvar my 20
+				ifvarvarg cursory y ifvarvarl cursory my // bottom arrow selected
+				{
+					ifvarand bits 4
+					{
+						addvar inputime 1
+						ifvarvarn inputime timer
+						{
+							setvarvar temp firstquest
+							addvar temp 8
+							ifvarn quests[temp] 0
+							{
+								addvar firstquest 1
+								sound BUTTONCLICK
+							}
+						}
+						setvarvar inputime timer
+					}
+				}
+			}
+			
+		}
+					
+	}
+*/
+
+	// ifvarn powchosen YES
+	// {
+		// ifvarg cursorx 80 ifvarl cursorx 240
+		// {
+			// ifvarg cursory 24 ifvarl cursory 35 setvar powselected 0 else
+			// ifvarg cursory 34 ifvarl cursory 45 setvar powselected 1 else
+			// ifvarg cursory 44 ifvarl cursory 55 setvar powselected 2 else
+			// ifvarg cursory 54 ifvarl cursory 65 setvar powselected 3 else
+			// ifvarg cursory 64 ifvarl cursory 75 setvar powselected 4
+			// else setvar powselected -1
+			
+			
+			// ifvarn powselected -1
+			// ifvarand bits 4
+			// {
+				// addvar inputime 1
+				// ifvarvarn inputime timer
+				// {
+					// setvar powchosen 2
+					// sound SWITCH_ON
+					// ifvare powselected 0 { ifvare powchoices[0] 1 setarray powchoices[0] 32 else ifvare powchoices[0] 32 setarray powchoices[0] 1024 else setarray powchoices[0] 1 }
+					// ifvare powselected 1 { ifvare powchoices[1] 2 setarray powchoices[1] 64  else ifvare powchoices[1] 64 setarray powchoices[1] 2048 else setarray powchoices[1] 2 }
+					// ifvare powselected 2 { ifvare powchoices[2] 4 setarray powchoices[2] 128  else ifvare powchoices[2] 128 setarray powchoices[2] 4096 else setarray powchoices[2] 4 }
+					// ifvare powselected 3 { ifvare powchoices[3] 8 setarray powchoices[3] 256  else ifvare powchoices[3] 256 setarray powchoices[3] 8192 else setarray powchoices[3] 8 }
+					// ifvare powselected 4 { ifvare powchoices[4] 16 setarray powchoices[4] 512  else ifvare powchoices[4] 512 setarray powchoices[4] 16384 else setarray powchoices[4] 16 }
+				// }
+				// setvarvar inputime timer
+			// }
+		// }
+		// else setvar powselected -1
+	// }
+	// else setvar powselected -1
+}
+else 
+{
+	ifvare powchosen 2 setvar powchosen YES
+/*
+	ife LEVEL 24 ifhitspace
+	ifg character -1
+	ife camerasprite -1
+	// ife crawlclock NO
+	{
+		screensound BIGCHEER
+		set crawlclock -1
+		set activator 1996
+		state activatorstate
+		set activator 0
+	}
+*/
+	ife LEVEL 24 
+	{
+		ife crawlclock NO
+		{
+			screensound BIGCHEER
+			set crawlclock -1
+			set activator 1996
+			state activatorstate
+			set activator 0
+			set CUTSCENE_STEP -90 // timer
+			set SCREENALPHA 0 // level shade
+		}
+		ife crawlclock -1
+		{
+			ife subtitle_time 0
+			ife camerasprite -1
+			{
+				add CUTSCENE_STEP 1
+				ifge CUTSCENE_STEP 12
+				ifl SCREENALPHA 27
+				{
+					set CUTSCENE_STEP 0
+					add SCREENALPHA 1
+					setvar sect 0
+					whilevarvarn sect NUMSECTORS
+					{
+						getsector[sect].ceilingshade shade
+						ifl shade 26 
+						{
+							ifvarand sector[sect].ceilingstat 1
+							add shade 1 else
+							ifl SCREENALPHA 14 add shade 1
+						}
+						setsector[sect].ceilingshade shade
+						ife SCREENALPHA 26 
+						{ 
+							set shade 0
+							ifvarand sector[sect].ceilingstat 1
+							{
+								sets[sect].ceilingpicnum 562 
+								sets[sect].ceilingshade 3 
+							}
+						}
+						getsector[sect].floorshade shade
+						ifl SCREENALPHA 14 ifl shade 24 add shade 1
+						setsector[sect].floorshade shade
+						getsector[sect].wallptr wallpoint // get the firstwall of the sector
+						getsector[sect].wallnum numwalls // get the number of walls in the sector
+						setvar currwall 0
+						whilevarvarn currwall numwalls
+						{
+							getw[currwall].shade shade
+							ifl SCREENALPHA 18 ifl shade 24 add shade 1
+							setw[currwall].shade shade
+							addvar wallpoint 1
+							addvar currwall 1
+						}
+						addvar sect 1
+					}
+				}
+			}
+		}
+	}
+}
+
+ifvarl character 0
+{
+	ife VOLUME 0 ife LEVEL 21 { set character 0 break }
+	
+	setplayer[THISACTOR].knuckle_incs 0
+	setplayer[THISACTOR].movement_lock 31
+	setactor[THISACTOR].htextra -1
+	setactor[THISACTOR].extra player[THISACTOR].max_player_health
+	setplayer[THISACTOR].kickback_pic 0
+	
+	getplayer[THISACTOR].ang temp
+	getplayer[THISACTOR].oang tempb
+	getincangle angvar temp tempb
+	divvar angvar 3
+	subvarvar cursorx angvar
+	ifvarl cursorx 0 setvar cursorx 0
+	ifvarg cursorx 320 setvar cursorx 320
+	
+	getplayer[THISACTOR].horiz temp
+	getplayer[THISACTOR].ohoriz tempb
+	subvarvar temp tempb
+	getuserdef[THISACTOR].mouseflip tempc
+	ifvare tempc 0
+	addvarvar cursory temp
+	else
+	subvarvar cursory temp
+	ifvarl cursory 0 setvar cursory 0
+	ifvarg cursory 200 setvar cursory 200
+	setplayer[THISACTOR].ang player[THISACTOR].oang
+	
+	ifn softwarning 2 ife rendmode 0 
+	{
+		set softwarning 1
+		setplayer[THISACTOR].weapon_pos -9
+		setplayer[THISACTOR].horiz 100
+		ifg cursorx 105 ifl cursorx 210
+		ifg cursory 155 ifl cursory 185
+		{
+			set temp NO
+			ifhitspace set temp YES
+			ifvarand bits 4 set temp YES
+			ife temp YES
+			{
+				sound SWITCH_ON
+				set softwarning 2
+			}
+		}
+		break
+	}
+	ifn rendmode 0 ife softwarning 1 set softwarning 0
+	
+	ifvarl character -8 { state selectpow break }
+	
+	ifvarg cursory 48 ifvarl cursory 130
+	{
+		ifvarg cursorx -1 ifvarl cursorx 90 
+		{
+			setvar charsel 1 // barbarian selected
+			ife powchosen NO
+			setvar powmode 1
+		}
+		else
+		ifvarg cursorx 240 ifvarl cursorx 321
+		{
+			setvar charsel 0 // duke selected
+			ife powchosen NO
+			setvar powmode 0
+		}
+		else
+		setvar charsel -1
+			
+		ifvarg charsel -1
+		{
+			ifvarand bits 4 { setvarvar character charsel subvar character 10 setvarvar inputime timer }
+			ifvarl character -8 break
+		}
+	}
+	else setvar charsel -1
+	
+	setplayer[THISACTOR].weapon_pos -9
+	setplayer[THISACTOR].horiz 100
+	ifp palive nullop else setvar character 0
+	break
+	
+}
+
+// code to periodically randomize pow choices
+// ifvare powcount 0
+// {
+	// addvar powcycle0 1
+	// ifvarg powcycle0 270
+	// {
+		// setvar powcycle0 0
+		// randvar temp 4
+		// ifvare temp 0 setarray powchoices[0] 1 else
+		// ifvare temp 1 setarray powchoices[0] 2 else
+		// ifvare temp 2 setarray powchoices[0] 1024 else
+		// ifvare temp 3 setarray powchoices[0] 64 else
+		// ifvare temp 4 setarray powchoices[0] 32
+	// }
+	// addvar powcycle1 1
+	// ifvarg powcycle1 270
+	// {
+		// setvar powcycle1 0
+		// randvar temp 4
+		// ifvare temp 0 setarray powchoices[1] 4096 else
+		// ifvare temp 1 setarray powchoices[1] 128 else
+		// ifvare temp 2 setarray powchoices[1] 32768 else
+		// ifvare temp 3 setarray powchoices[1] 131072 else
+		// ifvare temp 4 setarray powchoices[1] 2048
+	// }
+	// addvar powcycle2 1
+	// ifvarg powcycle2 270
+	// {
+		// setvar powcycle2 0
+		// randvar temp 4
+		// ifvare temp 0 setarray powchoices[2] 4 else
+		// ifvare temp 1 setarray powchoices[2] 256 else
+		// ifvare temp 2 setarray powchoices[2] 16 else
+		// ifvare temp 3 setarray powchoices[2] 262144 else
+		// ifvare temp 4 setarray powchoices[2] 16384
+	// }
+	// addvar powcycle3 1
+	// ifvarg powcycle3 270
+	// {
+		// setvar powcycle3 0
+		// randvar temp 4
+		// ifvare temp 0 setarray powchoices[3] 524288 else
+		// ifvare temp 1 setarray powchoices[3] 65536 else
+		// ifvare temp 2 setarray powchoices[3] 8 else
+		// ifvare temp 3 setarray powchoices[3] 512 else
+		// ifvare temp 4 setarray powchoices[3] 8192
+	// }
+// }
+
+headspritestat spriteid 1
+setvar livemon 0
+whilevarn spriteid -1
+{
+	ifvare actorvar[spriteid].monstatus 1 addvar livemon 1
+	nextspritestat spriteid spriteid
+}
+
+setuserdef[THISACTOR].fta_on YES
+
+ife cutscene 0 ifg character -1 add globaltime 1
+
+ifvarn sleeping 0 state sleepingcode
+
+ifvarn transition 0 state transitioncode // for use with fake door transports
+
+getactor[THISACTOR].mdflags temp
+orvar temp 16
+setactor[THISACTOR].mdflags temp
+
+ifg shipcam -1
+ife sector[].floorpicnum BLANKPROJECTION
+{
+	getflorzofslope player[].cursectnum player[].posx player[].posy z // z is the return var
+	sub z player[].posz
+	ifn sector[].lotag 1 sub z 4096
+	ifl z 6144
+	{
+		geta[shipcam].xvel xvel
+		ifg xvel 96
+		{
+			setav[shipcam].monstatus 2
+			setp[].falling_counter 1
+		}
+	}
+}
+
+ifvare replay YES { state wakereplays setvar replay NO }
+
+// ifvarvarg xp xpcaps[plevel]
+// {
+	// globalsound LEVELUP
+	
+	// addvar plevel 1
+	// addphealth 1000
+	// setvarvar mana manamax
+	// addvar statpoints 4
+	// palfrom 55 40 63 63
+	// //setvar upmsgtime 208
+	// ifvarand fintips 128 nullop else
+	// {
+		// setvar currtip2 0 setvar currtip 128
+		// orvar fintips 128
+		// state inithelp
+	// }
+	
+// }
+
+ifg player[].actors_killed enemieskilled[LEVEL] setarray enemieskilled[LEVEL] player[].actors_killed
+// ifg player[].secret_rooms secretsfound[LEVEL] setarray secretsfound[LEVEL] player[].secret_rooms
+ifg enemieskilled[LEVEL] player[].max_actors_killed setp[].max_actors_killed enemieskilled[LEVEL]
+
+ifg player[].max_actors_killed maxenemieskilled[LEVEL] setarray maxenemieskilled[LEVEL] player[].max_actors_killed
+
+ifvarg fpress 0 subvar fpress 1
+ifvarg bpress 0 subvar bpress 1
+ifvarg lpress 0 subvar lpress 1
+ifvarg rpress 0 subvar rpress 1
+ifvarg fakedoor 0 subvar fakedoor 1
+ifg hailcool 0 sub hailcool 1
+ifvarg switchchar 0 
+{
+	setvarvar temp timer
+	modvar temp 3
+	ife temp 0
+	{
+		espawn LSTRIKE
+		getp[].posx mx
+		add mx 512
+		rand x 512
+		add mx x
+		rand angvar 896
+		sub angvar 448
+		add angvar player[].ang
+		rotatepoint player[].posx player[].posy mx player[].posy angvar hitx hity
+		setsprite RETURN hitx hity sprite[].z
+		seta[RETURN].pal 117
+	}
+	sub switchchar 1
+	ife switchchar 20 
+	{
+		state switchcharacter
+		ife character 0 action PSTAND
+		
+	}
+	ifp palive nullop else set switchchar 0
+	ifg switchchar 0 ifn endlevel 0 set switchchar 0
+}
+ifvarg popuptime 0 subvar popuptime 1
+ifvarl popuptime 0 { ifhitspace setvar popuptime 0 }
+ifvarl onladder 0 addvar onladder 1
+ifvarg onladder 0 state laddercode
+ifg subtitle_time 0 
+{
+	sub subtitle_time 1
+	setp[].knuckle_incs 0
+	setp[].crack_time 0
+}
+ifg damagefade 0
+{
+	ifl damagefade 4 add damagefade 1 else
+	add damagefade 8
+	ifg damagefade 255 set damagefade 0
+}
+
+ifvarg player[THISACTOR].falling_counter 0
+{
+	getplayer[THISACTOR].falling_counter temp
+	ifvarl temp 7
+	{
+		ifvarand timer 1 subvar temp 1
+	}
+	else 
+	{
+		ifvarand timer 1 addvar temp 1
+	}
+	setplayer[THISACTOR].falling_counter temp
+	ifvarg temp 7
+	ifvare upside 0 ifvare sector[THISACTOR].hitag 5 setplayer[THISACTOR].falling_counter 7
+}
+
+ifvarg leech 0
+{
+	ifvarand pow 2 nullop else { addphealth 1 setvar leech 0 ifvarg bleeding 1 subvar bleeding 2 }
+	getplayer[THISACTOR].max_player_health temp
+	getactor[THISACTOR].extra tempb
+	ifvarvarl tempb temp
+	{
+		ifvarg leech 8
+		{
+			subvar leech 9
+			addphealth 1
+			ifvarg bleeding 1 subvar bleeding 2
+		}
+	}
+	else
+	{
+		setvar tempc 8
+		subvarvar tempb temp
+		addvarvar tempc tempb
+		ifvarvarg leech tempc
+		{
+			subvarvar leech tempc
+			getactor[THISACTOR].extra tempb
+			addvar tempb 1
+			setactor[THISACTOR].extra tempb
+			ifvarg bleeding 1 subvar bleeding 2
+		}
+	}
+	
+}
+
+ifvare cachetest YES
+ifhitspace
+{
+	setvar cachetest NO
+	setvar loadcached YES
+	startlevel VOLUME testlevel
+}
+
+// ifvare player[THISACTOR].transporter_hold 0
+// ifvarand bits 1073741824
+// ifvare invicon 0
+// {
+	// setvar temp 0
+	// ifvarg LEVEL 0 ifvarl LEVEL 4 ifvarand scroll 1 setvar temp 1 else
+	// ifvarg LEVEL 3 ifvarl LEVEL 7 ifvarand scroll 2 setvar temp 1 else
+	// ifvarg LEVEL 6 ifvarl LEVEL 10 ifvarand scroll 4 setvar temp 1
+	// ifvare temp 1
+	// {
+		// spawn TRANSPORTERSTAR
+		// sound TELEPORTER
+		// lockplayer 30
+		// setvar hubcount 30
+	// }
+// }
+	
+ifvarg hubcount 0
+{
+	subvar hubcount 1
+	ifvare hubcount 0
+	{
+		ifmultiplayer nullop else ifvare VOLUME 0 savemapstate
+		setvar loadcached YES
+		startlevel VOLUME 0
+		break
+	}
+}
+
+ifn camroll 0
+{
+	setp[].rotscrnang camroll
+	ifge camroll 0 ifl camroll 32 { setp[].rotscrnang 0 set camroll 0 }
+	else
+	{
+		add camroll 32	
+		ifge camroll 1024
+		mul camroll -1
+	}
+}
+
+ifvarg endlevel 0
+{
+	stopsound DUKE_LAND
+	stopsound DUKE_ONWATER
+	stopsound DUKE_LAND_HURT
+
+	ifvarg endlevel 1 ifvare sprite[THISACTOR].yvel 0 subvar endlevel 1
+	setplayer[THISACTOR].movement_lock 31
+	ifvare waypoint[0] -1
+	{
+		getplayer[THISACTOR].oang angvar
+		setplayer[THISACTOR].ang angvar
+		getplayer[THISACTOR].ohoriz angvar
+		setplayer[THISACTOR].horiz angvar
+		setplayer[THISACTOR].poszv -256
+	}
+	else ifvarn sector[THISACTOR].lotag -1
+	{
+		setuserdef[THISACTOR].clipping YES
+		ife target -1
+		{
+			set shipang sprite[waypoint[0]].ang
+			setp[].ang sprite[waypoint[0]].ang
+			seta[].ang sprite[waypoint[0]].ang
+		}
+		setvarvar target waypoint[pathnode]
+		getactor[target].x mx
+		getactor[target].y my
+		getactor[THISACTOR].x x
+		getactor[THISACTOR].y y
+		subvarvar mx x
+		subvarvar my y
+		getangle angvar mx my
+		getactor[THISACTOR].ang tempb
+		getincangle tempd angvar tempb	
+		setvarvar tempe tempd
+		set tempc tempd, abs tempc
+		
+		ifvarl tempe 0 mulvar tempe -1
+		ifvarl tempd 17 ifvarg tempd -17
+		setvarvar tempb angvar
+		else
+		{
+			shiftvarr tempd 3
+			ifvarg tempd 0 subvarvar tempb tempd else
+			ifvarl tempd 0 { mulvar tempd -1 addvarvar tempb tempd }
+		}
+
+		ifg tempc 4
+		{
+			setplayer[THISACTOR].ang tempb
+			// set shipang tempb
+		}
+
+		ife VOLUME 0 ife LEVEL 21
+		{
+			// setplayer[THISACTOR].oang tempb
+			setplayer[THISACTOR].ohoriz 100
+			setplayer[THISACTOR].horiz 100
+			// set shipang tempb
+			set shiphoriz 100
+			ifg player[].player_par 30
+			{
+				set temp NO
+				ifvarand bits 4 set temp YES
+				ifvarand extbits 64 set temp YES
+				ifhitspace set temp YES
+				ife temp YES
+				{
+					setsector[THISACTOR].lotag -1
+					setuserdef[THISACTOR].display_bonus_screen NO
+					setuserdef[THISACTOR].clipping NO
+					endofgame 1
+					// set LOGO_FLAGS 253
+				}
+				
+			}
+		}
+		
+		cos xvel tempb
+		sin yvel tempb		
+		shiftvarl xvel 12
+		shiftvarl yvel 12
+		abs tempe
+		shiftvarr tempe 1
+		ifvarl tempe 8 setvar tempe 8
+		
+		divvarvar xvel tempe
+		divvarvar yvel tempe
+			
+		getplayer[THISACTOR].posxv x
+		getplayer[THISACTOR].posyv y
+		shiftvarr xvel 3
+		shiftvarr yvel 3
+		addvarvar x xvel
+		addvarvar y yvel
+	  	setplayer[THISACTOR].posxv x
+ 		setplayer[THISACTOR].posyv y	
+		getactor[target].z mz
+		getactor[THISACTOR].z z
+				
+		ldist xydist THISACTOR target
+		subvarvar mz z
+		shiftvarl mz 9 // 8
+		divvarvar mz xydist
+		subvar mz 256
+		setplayer[THISACTOR].poszv mz
+		ifp ponground
+		{
+			getplayer[THISACTOR].posz z
+			subvar z 1024
+			setplayer[THISACTOR].posz z
+			addvar z 8192
+			setactor[THISACTOR].z z
+		}		
+		ifvarl xydist 1280
+		{
+			ife actorvar[target].monstflags 1 set camroll 32
+			
+			ifvare sprite[target].pal 4 setvar pathnode 0
+			else addvar pathnode 1
+		}
+		
+	}
+	setplayer[THISACTOR].knuckle_incs 0
+	setactor[THISACTOR].htextra -1
+	setvar fta 0
+	setplayer[THISACTOR].fta 0
+	setplayer[THISACTOR].airleft 390
+	setplayer[THISACTOR].falling_counter 0
+	
+	setvarvar mapname LEVEL
+	ife VOLUME 0
+	{
+		// blacksmith is level 25
+		addvar mapname 700
+		ifge LEVEL 25 add mapname 35
+	}
+	else
+	ife VOLUME 1 addvar mapname 840
+	
+	// enemies killed
+	// enemies left
+	// secrets found
+	// secrets missed
+	// applies found/missed
+	// ammo expansions found/missed
+	// gold %
+	
+	// AND NEW FOR 2020:
+	// gems found, keys found, quests completed
+	// press space to start next level
+	// play music
+	// show background tile if no trail, else make player fly along it
+	
+	ifp ponsteroids
+	{
+		setplayer[THISACTOR].steroids_amount 0
+		// setgamepalette 0
+	}
+	ifvare endlevel 1
+	ifhitspace
+	ife player[].timebeforeexit 0
+	{
+		divvar pgold 100
+		addvarvar stash pgold
+		setvar pgold 0
+		// change replay sprites to regular sprites
+		state wakereplays
+		
+		ifvare VOLUME 0
+		{
+			setarray completed1[LEVEL] YES
+			savemapstate		
+		}
+		ifn secretlevel -1
+		{
+			set temp secretlevel
+			set secretlevel -1
+			setvar loadcached YES
+			setuserdef[THISACTOR].clipping NO
+			startlevel VOLUME temp
+		}
+		else
+		ifvarn pdestination 0
+		{
+			setvar loadcached YES
+			setuserdef[THISACTOR].clipping NO
+			startlevel VOLUME 0
+		}
+		else
+		ifvarn returnlevel -1
+		{
+			setvar loadcached YES
+			setuserdef[THISACTOR].clipping NO
+			startlevel VOLUME 0
+		}
+		else
+		{
+			// setsector[THISACTOR].lotag -1
+			setp[].timebeforeexit 3
+			setvar loadcached YES
+			setuserdef[THISACTOR].display_bonus_screen NO
+			setuserdef[THISACTOR].clipping NO
+			setplayer[THISACTOR].posxv 0
+			setplayer[THISACTOR].posyv 0
+			setplayer[THISACTOR].poszv 0
+		}
+	}
+	ifvarn raining 0 state raincode
+	break
+}
+
+setvar tempb 0
+getplayer[THISACTOR].cursectnum temp
+ifg temp -1
+{
+	ife VOLUME 0 ife LEVEL 21
+	{
+		setvar tempb 1
+		setuserdef[].show_level_text 0
+	}
+	ifvare sector[temp].lotag 6969 setvar tempb 1
+	ifvare testnodes 1 setvar tempb 1
+	ifvare tempb 1
+	{
+		setvar pow 0
+		setvar testnodes 0
+		// calculate gold found/left
+		// and saved heroes
+		// and gems
+		setvar spriteid 0
+		setvar tempb 0 // gold count
+		whilevarn spriteid 16384
+		{
+			ifle sprite[spriteid].statnum 2
+			{
+				switch sprite[spriteid].picnum
+				// case HERO ifvare actorvar[spriteid].monstatus 3 ifvarn actorvar[spriteid].countvar -1 {
+				//
+					// // heroes must be gone when player returns
+					// setvarvar temp savedheroes[LEVEL]
+					// addvar temp 1
+					// setarray savedheroes[LEVEL] temp
+					// setactorvar[spriteid].monstatus -1
+					// setactor[spriteid].cstat 32768 }
+				// break
+				case TCHEST
+				case TCHEST2
+					ifg actorvar[spriteid].peractor1 0 add tempb peractor1
+				break
+				case GUNPOWDERBARREL
+					ife actorvar[spriteid].droptile SMALLGOLD add tempb 5
+					ife actorvar[spriteid].droptile MEDIUMGOLD add tempb 5
+					ife actorvar[spriteid].droptile BIGGOLD add tempb 5
+				break
+				default
+					ifg actorvar[spriteid].gold 0
+					add tempb actorvar[spriteid].gold
+				break
+				endswitch
+			}
+			addvar spriteid 1
+		}
+		addvarvar tempb foundgold[LEVEL]
+		setarray maxgold[LEVEL] tempb
+		
+		setvar endlevel 52
+		setvar helpmenu 0
+		stopallsounds
+		cstat 32768
+
+		ifn LEVEL 21
+		{
+			starttrackslot 1 7
+			set musictrack 7
+			set musicepisode 1
+			set music2 0
+		}
+		
+		ifvarn waypoint[0] -1
+		{
+			setvar pathnode 1
+			setvarvar spriteid waypoint[0]
+			getactor[spriteid].x x
+			getactor[spriteid].y y
+			getactor[spriteid].z z
+			updatesectorz x y z mysector
+			ifvare mysector -1
+			{
+				setvar temp 0
+				whilevarn temp 200
+				{
+					setarray waypoint[temp] -1
+					addvar temp 1
+				}
+				setvar hubcount 0
+				break
+			}
+			setsprite THISACTOR x y z
+			changespritesect THISACTOR mysector
+
+			setplayer[THISACTOR].posx x
+			setplayer[THISACTOR].posy y
+			subvar z 8192
+			setplayer[THISACTOR].posz z
+			setplayer[THISACTOR].cursectnum mysector
+			
+			setvarvar spriteid waypoint[pathnode]
+			getactor[spriteid].x mx
+			getactor[spriteid].y my
+			subvarvar mx x
+			subvarvar my y
+			getangle angvar mx my
+			setplayer[THISACTOR].ang angvar
+		}
+			
+		setvar hubcount 0
+
+		break
+	}
+}
+
+setplayer[THISACTOR].inven_icon invicon
+
+ifvare player[THISACTOR].jumping_counter 1081 
+{
+	setplayer[THISACTOR].jumping_counter 0
+	getplayer[THISACTOR].poszv temp
+	ifvarl temp 0
+	{
+		shiftvarr temp 1
+		setplayer[THISACTOR].poszv temp
+	}
+}
+
+// ifonwater nullop else
+// ifvare player[THISACTOR].jumping_counter 721
+// {
+// 	setplayer[THISACTOR].jumping_counter 0
+// 	setplayer[THISACTOR].poszv -2560
+// }
+
+ifvarvarl totalclock lastclock
+{
+	ifvare endlevel 0
+	setuserdef[THISACTOR].clipping NO
+	ifvare slowtime 0 inittimer gamespeed
+}
+
+setvarvar lastclock totalclock
+
+ife music2 0 // no boss music playing
+{
+	// make sure correct music is playing
+	getuserdef[].music_episode temp
+	getuserdef[].music_level tempb
+	ife temp musicepisode ife tempb musictrack nullop else
+	starttrackslot musicepisode musictrack
+}
+
+
+
+ifvarg combosize 24576 subvar combosize 1024
+// getplayer[THISACTOR].actors_killed temp
+ifg globalkills killcount
+{
+	ifvarg powcount 0 { set killcount globalkills } else
+	{
+		ifvare powmode 0
+		setvar combosize 40960
+		set temp globalkills
+		sub temp killcount
+		ifvare powmode 0
+		ifl combo combomax
+		{
+			addvarvar combo temp
+			ife LEVEL 0 ife VOLUME 0 nullop else
+			ifg combo combomax set combo combomax
+			ifvarand fintips 128 nullop else
+			ifvarg combo 9
+			{
+				setvar currtip2 0 setvar currtip 128
+				orvar fintips 128
+				state inithelp
+			}
+		}
+		set killcount globalkills
+	}
+}
+
+
+ifvarand pow 16
+ifrnd 80
+{
+	getactor[THISACTOR].ang angvar
+	set countvar 0
+	headspritestat spriteid 1
+	whilevarn spriteid -1
+	{
+		setvar RETURN -1
+		ifvare actorvar[spriteid].monstatus 1
+		ifvare actorvar[spriteid].cursed 0
+		{
+			dist xydist THISACTOR spriteid
+			ifvarl xydist 8192
+			{
+				espawn LSTRIKE
+				seta[RETURN].pal 12
+				getactor[spriteid].htextra tempb
+				ifvarl tempb 0 setvar tempb 0
+				addvar tempb 10
+				ifp ponsteroids addvar tempb 20
+				ifvarvare spriteid bossid ifvarn sprite[spriteid].picnum CYBERDEMON
+				ifvarn sprite[spriteid].picnum DRAGON { subvar tempb 2 shiftvarr tempb 1 }
+				setactor[spriteid].htextra tempb
+				setactor[spriteid].htpicnum RADIUSEXPLOSION
+				setactor[spriteid].htowner player[THISACTOR].i
+				setactor[spriteid].htang angvar
+				getactor[spriteid].x mx
+				getactor[spriteid].y my
+				getactor[spriteid].z mz
+				setsprite RETURN mx my mz
+				updatesectorz mx my mz tempc
+				ifvarn tempc -1 changespritesect RETURN tempc
+				espawn LIGHTNINGAURA
+				setsprite RETURN mx my mz
+				ifvarn tempc -1 changespritesect RETURN tempc	
+			}
+		}
+		nextspritestat spriteid spriteid
+		ifvarn RETURN -1 add countvar 1 ifg countvar 1 setvar spriteid -1
+	}
+}
+ifvarand pow 8
+{
+	addvar weap 1
+	ifge weap 90
+	{
+		set weap 0
+		headspritestat spriteid 1
+		set tempd 0
+		whilevarn spriteid -1
+		{
+			ife sprite[spriteid].picnum MINOTAUR
+			ife actorvar[spriteid].peractor1 1
+			set tempd 1
+			nextspritestat spriteid spriteid
+		}
+		ife tempd 0
+		{
+			espawn MINOTAUR
+			setactor[RETURN].pal 3
+			// getplayer[THISACTOR].i spriteid
+			// getactor[spriteid].yvel temp
+			setav[RETURN].myspawner THISACTOR
+			setav[RETURN].peractor1 1
+			
+		}
+	}
+}
+
+ifvarand pow 1024 spawn FORCERING
+
+ifvarand pow 4096 // hyper armor
+{
+	ifl player[THISACTOR].shield_amount maxarmor setplayer[THISACTOR].shield_amount maxarmor
+	ife shieldupgrade NO set temp 200 else set temp BOOT_AMOUNT
+	ifl player[THISACTOR].boot_amount temp setplayer[THISACTOR].boot_amount temp
+}
+
+ifvarand pow 16384 // meteor storm
+ifrnd 16
+{
+	setvar countvar 0
+	headspritestat spriteid 1
+	whilevarn spriteid -1
+	{
+		ifvare actorvar[spriteid].monstatus 1
+		ifvare actorvar[spriteid].cursed 0
+		{
+			dist temp THISACTOR spriteid
+			ifvarl temp 16384
+			{	
+				// sound RIFTATTACK
+				espawn SOUNDMAKER
+				setactorvar[RETURN].peractor1 RIFTATTACK
+				addvar countvar 1
+				espawn HAILSPAWNER
+				ifvarand pow 128 nullop else
+				setactor[RETURN].pal 2
+				setactorvar[RETURN].mtype 1
+				getceilzofslope sprite[spriteid].sectnum sprite[spriteid].x sprite[spriteid].y mz
+				getplayer[THISACTOR].posz z
+				subvar z 49152
+				ifvarvarl mz z setvarvar mz z
+				setsprite RETURN sprite[spriteid].x sprite[spriteid].y mz
+				setactorvar[RETURN].myspawner sprite[THISACTOR].yvel
+			}
+		}
+		nextspritestat spriteid spriteid
+		ifvarg countvar 3 setvar spriteid -1
+	}
+	ifvare countvar 0 ifrnd 128
+	{
+		randvar x 16384
+		subvar x 8192
+		randvar y 16384
+		subvar y 8192
+		setvarvar mx player[THISACTOR].posx
+		setvarvar my player[THISACTOR].posy
+		addvarvar mx x
+		addvarvar my y
+		updatesector mx my tempe
+		ifvarn tempe -1
+		{
+			// sound RIFTATTACK
+			espawn SOUNDMAKER
+			setactorvar[RETURN].peractor1 RIFTATTACK
+			espawn HAILSPAWNER
+			ifvarand pow 128 nullop else
+			setactor[RETURN].pal 2
+			getceilzofslope tempe mx my mz
+			setsprite RETURN mx my mz
+			setactorvar[RETURN].myspawner sprite[THISACTOR].yvel
+		}
+	}
+}
+
+ifvarand pow 8192 // barbarian horde
+ifvare healthcount 1
+{
+	espawn BARBNPC
+	setactorvar[RETURN].mtype 1
+	randvar pal 14
+	addvar pal 10
+	setactor[RETURN].pal pal
+}
+
+ifvarand pow 131072 // thorny grasp
+{
+	// spawn VINES on monsters if their htg4 is -1 and they are not frozen
+	headspritestat spriteid 1
+	whilevarn spriteid -1
+	{
+		ife actorvar[spriteid].monstatus 1
+		ife actorvar[spriteid].cursed 0
+		ifg actorvar[spriteid].burning -1
+		ife actorvar[spriteid].htg4 -1
+		ifn sprite[spriteid].sectnum -1
+		ifn sprite[spriteid].pal 25
+		{
+			getflorzofslope sprite[spriteid].sectnum sprite[spriteid].x sprite[spriteid].y z
+			set saveit z
+			sub z sprite[spriteid].z
+			ifvarand sprite[spriteid].cstat 8 set z 0
+			ifl z 8192
+			{
+				ldist temp THISACTOR spriteid
+				ifl temp 10240
+				{
+					espawn VINES
+					setav[RETURN].myspawner spriteid
+					setav[RETURN].initz sprite[spriteid].z
+					setav[spriteid].htg4 RETURN
+					setsprite RETURN sprite[spriteid].x sprite[spriteid].y saveit
+				}
+			}
+		}
+		nextspritestat spriteid spriteid
+	}
+}
+
+ifvarand pow 524288 // smite evil
+{
+	ife godfistcount 0
+	{
+		set saveit2 0 // inithp of targeted monster
+		set tempe -1 // saved ID of targeted monster
+		headspritestat spriteid 1
+		whilevarn spriteid -1
+		{
+			ife actorvar[spriteid].monstatus 1
+			ife actorvar[spriteid].cursed 0
+			ifn sprite[spriteid].sectnum -1
+			{
+				ifg actorvar[spriteid].inithp saveit2
+				{
+					ldist temp THISACTOR spriteid
+					ifl temp 20480
+					{
+						set godfistcount 120
+						ifvarand sprite[spriteid].cstat 8
+						getflorzofslope sprite[spriteid].sectnum sprite[spriteid].x sprite[spriteid].y z
+						else
+						getceilzofslope sprite[spriteid].sectnum sprite[spriteid].x sprite[spriteid].y z
+						set saveit z, ife upside YES sub saveit 512 else add saveit 512
+						set tempe spriteid
+					}
+				}
+				
+			}
+			nextspritestat spriteid spriteid
+		}
+		
+		ife godfistcount 120
+		{
+			espawn FISTRIFT
+			setsprite RETURN sprite[tempe].x sprite[tempe].y saveit
+			ifvarand sprite[tempe].cstat 8 seta[RETURN].cstat 42
+			else seta[RETURN].cstat 34
+		}
+		
+		
+	}
+	else
+	sub godfistcount 1
+}
+else set godfistcount 0
+	
+ifvarand pow 65536 // infinite ammo
+{
+	set sawammo maxsaw
+	set eyeballammo 400
+	
+	// set temp 1
+	// whilevarn temp 12
+	// {
+		// ifn temp 10
+			// setp[].ammo_amount temp 99
+		// add temp 1
+	// }
+	set temp timer
+	modvar temp 15
+	ife temp 0 // ammo increases once per second
+	{
+		set tempb 1
+		whilevarn tempb 12
+		{
+			ifn tempb 10
+			ifl player[].ammo_amount tempb player[].max_ammo_amount tempb
+			{
+				set tempc player[].max_ammo_amount tempb
+				div tempc 80
+				ife tempc 0 
+				{
+					set tempd timer
+					modvar tempd 30
+					ife tempd 0
+					set tempc 1
+				}
+				set tempd player[].ammo_amount tempb
+				add tempd tempc
+				ifg tempd player[].max_ammo_amount tempb set tempd player[].max_ammo_amount tempb
+				setp[].ammo_amount tempb tempd
+				
+				ife tempb 3
+				{
+					ifl grenades MAXGRENADES add grenades 1
+				}
+			}
+			add tempb 1
+		}
+	}
+}
+else ife tempammo[14] YES // restore ammo
+{
+	set sawammo tempammo[0]
+	set grenades tempammo[12]
+	set eyeballammo tempammo[13]
+	set temp 1
+	whilevarn temp 12
+	{
+		ifn temp 10
+		setp[].ammo_amount temp tempammo[temp]
+		add temp 1
+	}
+	setarray tempammo[14] NO
+}
+
+ifmultiplayer nullop else
+{
+	getuserdef[THISACTOR].god temp
+	ifvare temp YES setactor[THISACTOR].htextra -1
+}
+
+
+ifp palive
+{
+	ifg player[].secret_rooms secretsfound[LEVEL]
+	{
+		ifsound SECRETSND nullop else
+		screensound SECRETSND
+		add globalsecrets 1
+		setarray secretsfound[LEVEL] player[].secret_rooms
+	}
+	else
+	ifg secretsfound[LEVEL] player[].secret_rooms setp[].secret_rooms secretsfound[LEVEL]
+	
+	ifg invulntime 0 
+	{
+		seta[].htextra -1
+		setp[].extra_extra8 0
+		setp[].falling_counter 0
+		set cursed 0
+		set burning 0
+		set ppoison 0
+		palfrom 25 30 63 30
+	}
+	ifn camerasprite -1
+	{
+		seta[].htextra -1
+		setp[].extra_extra8 0
+		setp[].falling_counter 0
+		setp[].poszv 0
+		setp[].jumping_counter 0
+		set padmove 0
+		set cursed 0
+		set burning 0
+		set ppoison 0
+		ife character 0 { ifaction PDUCKING nullop else action PSTAND } else
+		{ ifaction BARBDUCKING nullop else action BARBSTAND }
+		
+	}
+	ifn retaliate -1
+	{
+		ife shieldupgrade YES
+		ifg player[].boot_amount 0
+		{
+			ifg cursed 0 set pal 4 else
+			ifl burning 0 set pal 1 else
+			ifg burning 0 set pal 2 else
+			ifg ppoison 0 set pal 8 else
+			set pal 12
+			state darkproj_retaliate
+		}
+		set retaliate -1
+	}
+	getactor[THISACTOR].htextra temp
+	ifvarg temp 0
+	{
+		ifg sawammo 0
+		ife CURRWEAP 0
+		ifn player[].kickback_pic 0
+		ife character 0
+		{
+			shiftvarr temp 1
+			ifvarl temp 1 setvar temp 1
+			setactor[THISACTOR].htextra temp
+		}
+		ifvare SKILL 1 // enemies do 50% of normal damage
+		{
+			divvar temp 2
+			ifvarl temp 1 setvar temp 1
+			setactor[THISACTOR].htextra temp
+		}
+		ife SKILL 2 // enemies do 75% of normal damage
+		{
+			mulvar temp 3
+			divvar temp 4
+			ifvarl temp 1 setvar temp 1
+			setactor[THISACTOR].htextra temp
+		}
+	// 	ifvare SKILL 3 // enemies do 100% of normal damage
+	// 	nullop
+		ifvare SKILL 5 // enemies do 125% of normal damage
+		{
+			mulvar temp 5
+			shiftvarr temp 2
+			setactor[THISACTOR].htextra temp
+		}
+		
+		getactor[THISACTOR].htowner spriteid
+		ifvarn spriteid -1
+		{
+			ifvarand pow 32 // damage reflection
+			ifvarn sprite[spriteid].picnum APLAYER
+			ifvare actorvar[spriteid].monstatus 1
+			{
+				setvarvar tempb temp
+				shiftvarl tempb 3
+				getactor[spriteid].htextra tempc
+				addvarvar tempc tempb
+				setactor[spriteid].htextra tempc
+				setactor[spriteid].htpicnum sprite[THISACTOR].htpicnum
+				setactor[spriteid].htowner THISACTOR
+				setactor[spriteid].htang sprite[THISACTOR].ang
+			}
+					
+			ifvarn actorvar[spriteid].cursed 0 // no damage from cursed enemies
+			{
+				setactor[THISACTOR].htextra -1
+				setvar temp 0
+			}
+			
+			ife spriteid THISACTOR
+			{
+				ife barrelupgrade YES
+				{
+					setactor[THISACTOR].htextra -1
+					setvar temp 0
+				}
+				else
+				ifp ponsteroids
+				{
+					setactor[THISACTOR].htextra -1
+					setvar temp 0
+				}
+			}
+			ifvare actorvar[spriteid].monstatus 3 // no damage from allies
+			{
+				setactor[THISACTOR].htextra -1
+				setvar temp 0
+			}
+			
+			// getactorvar[spriteid].mlevel tempb
+			// ifvarg tempb 0 // calculate damage adjustment based on monster level
+			// {
+				// mulvar tempb 5
+				// addvar tempb 100
+				// mulvarvar temp tempb
+				// divvar temp 100
+				// setactor[THISACTOR].htextra temp
+			// }
+			
+			
+			getactor[spriteid].picnum picnum
+			switch picnum
+			case APLAYER
+			
+				getactor[spriteid].yvel tempb
+				getplayer[tempb].steroids_amount tempc
+				ifvarg tempc 0 ifvarl tempc 400
+				ifg temp 0
+				{
+					shiftvarl temp 2
+					setactor[THISACTOR].htextra temp
+				}
+			break
+			case SKELKNIGHT
+			case DETHNITE
+				ifvarn sprite[THISACTOR].htpicnum PUSHPROJ
+				ifvarn sprite[THISACTOR].htpicnum RADIUSEXPLOSION
+				ifvarn sprite[spriteid].pal 24
+				ifg temp 0
+				{
+					setvarvar tempb temp
+					shiftvarl tempb 4
+					ifvarg tempb 90 setvar tempb 90
+					addvarvar cursed tempb
+					set pal 4
+					state darkproj_retaliate
+				}
+			break
+			case DEMON
+				ifvarn sprite[THISACTOR].htpicnum DEMONSPIT
+				ifg temp 0
+				{
+					setvarvar tempb temp
+					// shiftvarl tempb 3
+					mul tempb 6
+					addvarvar ppoison tempb
+					set pal 8
+					state darkproj_retaliate
+				}
+			break
+			case SPIDER2
+			ifg temp 0
+			{
+				setvarvar tempb temp
+				// shiftvarl tempb 3
+				mul tempb 6
+				set pal 8
+				state darkproj_retaliate
+				addvarvar ppoison tempb
+			}
+			break
+			
+			endswitch
+			
+			ifg sprite[].htextra 0
+			{
+				geta[].htextra temp
+				getactorvar[spriteid].aura tempc
+				ifvarl tempc 0 mulvar tempc -1
+				ifvarand tempc 2 // might aura
+				{
+					shiftvarl temp 3
+					divvar temp 5 // 160% damage
+					setactor[THISACTOR].htextra temp
+				}
+				ifvarand tempc 4 // cursed, invis aura
+				{
+					setvarvar tempb temp
+					shiftvarl tempb 3
+					addvarvar cursed tempb
+					set pal 4
+					state darkproj_retaliate
+				}
+				ifvarand tempc 16 // poison aura
+				{
+					setvarvar tempb temp
+					// shiftvarl tempb 3
+					mul tempb 6
+					addvarvar ppoison tempb
+					set pal 8
+					state darkproj_retaliate
+				}
+				ifvarand tempc 32 // freeze aura
+				{
+					setvarvar tempb temp
+					ifvarn sprite[THISACTOR].htpicnum PUSHPROJ
+					shiftvarl tempb 4
+					subvarvar burning tempb
+					set pal 1
+					state darkproj_retaliate
+				}
+				ifvarand tempc 64 // fire aura
+				{
+					setvarvar tempb temp
+					shiftl tempb 2
+					addvarvar burning tempb
+					set pal 2
+					state darkproj_retaliate
+				}
+				ifvarand tempc 128 // vampire aura
+				ifvare actorvar[spriteid].monstatus 1
+				ifvare sprite[spriteid].statnum 1
+				{
+					getactor[spriteid].extra tempb
+					addvarvar tempb temp
+					addvarvar tempb temp // monster gets back double damage it inflicted
+					set tempc actorvar[spriteid].inithp
+					mul tempc 2
+					ifg tempb tempc set tempb tempc
+					ifg tempb 32000 set tempb 32000
+					setactor[spriteid].extra tempb
+					espawn BIGSMOKE
+					setactor[RETURN].pal 4
+					getactor[spriteid].x mx
+					getactor[spriteid].y my
+					getactor[spriteid].z mz
+					setsprite RETURN mx my mz
+				}
+				getactorvar[spriteid].myspawner tempb
+				ifvarn tempb -1 // attacking monster is possessed
+				{
+					mulvar temp 3
+					divvar temp 2  // 150% damage
+					setactor[THISACTOR].htextra temp
+				}
+			}
+			
+			ifg sprite[].htextra 0
+			{
+				set damagefade 1
+				
+				geta[spriteid].x mx
+				geta[spriteid].y my
+				sub mx sprite[].x
+				sub my sprite[].y
+				getangle angvar mx my
+				
+				getincangle tempd player[].ang angvar
+				
+				ifg tempd 0 set damagesprite 8817 else set damagesprite 8818
+				abs tempd
+				ifg tempd 640 set damagesprite 8816 else
+				ifl tempd 128 set damagesprite 8819
+			}
+			
+		}
+		
+		ifvare powmode 1
+		ifvare powcount 0
+		ifg sprite[].htextra 0
+		{
+			// setvar tempd NO
+			// ifvarn spriteid -1
+			// {
+				// getactorvar[spriteid].inithp tempc
+				// ifvarg tempc -1 setvar tempd YES
+				// subvarvar tempc temp
+				// subvarvar tempc temp
+				// setactorvar[spriteid].inithp tempc
+			// }
+			// else setvar tempd YES
+				
+			// ifvare tempd YES
+			// {
+				geta[].htextra temp
+				setvar combosize 40960
+				setvarvar tempb temp
+				
+				ifvarvarg sprite[THISACTOR].extra player[THISACTOR].max_player_health shiftvarr tempb 3 else
+				shiftvarr tempb 2
+				ifg tempb 15 set tempb 15
+				ifvarl sprite[THISACTOR].extra 50 addvar tempb 1
+				ifl combo combomax
+				{
+					addvarvar combo tempb
+					ifg combo combomax set combo combomax
+				}
+				
+				ifvarand fintips 128 nullop else
+				ifvarg combo 9
+				{
+					setvar currtip2 0 setvar currtip 128
+					orvar fintips 128
+					state inithelp
+				}
+			// }
+		}
+		ifvarg player[THISACTOR].shield_amount 0
+		ifvarg sprite[].htextra 0
+		ifvarn sprite[THISACTOR].htpicnum BURNING
+		ifvarn sprite[THISACTOR].htpicnum COLDGUST
+		ifvarn sprite[THISACTOR].htpicnum WEBPROJ
+		{
+			geta[].htextra temp
+			ifrnd 128 sound HELMHIT1 else sound HELMHIT2
+			setvar helmflash 26
+			// absorb more damage
+			shiftvarr temp 1
+			setactor[THISACTOR].htextra temp
+			getplayer[THISACTOR].shield_amount tempb
+			subvarvar tempb temp
+			ifvarl tempb 0 setvar tempb 0
+			setplayer[THISACTOR].shield_amount tempb
+			debris SCRAP6 1
+			debris SCRAP1 2
+			debris SCRAP2 1
+		}
+		
+		ifp palive
+		ifvarn sprite[THISACTOR].htpicnum SLOWBULLET
+		ifvarg temp 14 state headhitstate
+	    
+	     
+		ifvare sprite[THISACTOR].htpicnum SHOTSPARK1
+		ifg sprite[].htextra 0
+		{
+			geta[].htextra temp
+			setvarvar tempb temp
+			shiftvarr tempb 2 // 25% bleeding
+			addvarvar bleeding tempb // bleeding wounds
+			ifvarg bleeding 99 setvar bleeding 99
+			ifvarvarg bleeding sprite[THISACTOR].extra getactor[THISACTOR].extra bleeding
+			getplayer[THISACTOR].shield_amount tempb
+			ifvarg tempb 0 
+			{
+				subvarvar bleeding tempb
+				ifvarl bleeding 0 setvar bleeding 0	
+			}
+		}
+		ifvare powgrace 0
+		ifvare powmode 0
+		ifg sprite[].htextra 0
+		{
+			geta[].htextra temp
+			subvar combo 1
+			div temp 16
+			ifvarg temp 4 setvar temp 4
+			subvarvar combo temp
+			ifvarl combo 0 setvar combo 0
+		}
+		setvar powgrace 20
+	}
+	getplayer[THISACTOR].ang angvar
+	getplayer[THISACTOR].horiz mz
+	subvar mz 100
+	mulvar mz -2048
+	cos mycos angvar
+	sin mysin angvar
+	// horiz at 0 z angle is 100; pos for up, neg for down
+	hitscan player[THISACTOR].posx player[THISACTOR].posy player[THISACTOR].posz player[THISACTOR].cursectnum mycos mysin mz hitsector hitwall hitsprite hitx hity hitz clipmask
+	
+	ifvarn scannedsprite -1
+	ifvarn hitsprite -1
+	ifvare actorvar[scannedsprite].monstatus 1
+	ifvare actorvar[hitsprite].monstatus 0
+	nullop
+	else
+	setvarvar scannedsprite hitsprite
+	
+	ifvarn scannedsprite -1
+		ifvare actorvar[scannedsprite].monstatus 1
+			ifvarg actorvar[scannedsprite].inithp 849
+	setvarvar monid scannedsprite
+	
+	ifvare monid -1 ifvarn bossid -1 
+	{
+		setvarvar monid bossid
+		set monidcount 0
+	}
+}
+
+ifvarn monid -1
+{
+	ifvarn sprite[monid].statnum 1 setvar monid -1 else
+	ifvarn actorvar[monid].monstatus 1 setvar monid -1
+	ifvarn monid -1
+	ifvarl sprite[monid].extra 1 setvar monid -1
+}
+
+set tempe YES
+ifinwater set tempe NO else
+ife player[].spritebridge NO ife sector[].lotag 1 set tempe NO
+
+ifvare sjumpcharge -1 // superjumping
+{
+	spawn FRAMEEFFECT1
+	ifp ponground
+	ifvare upside 0
+	 ifvarg player[THISACTOR].poszv -1
+		setvar sjumpcharge 0 
+		
+// 	ifvare sjumpcharge -1
+// 	ifvarg ftap 1
+// 	ifvarg player[THISACTOR].jetpack_amount 15
+// 	{
+// 		getplayer[THISACTOR].jetpack_amount temp
+// 		subvar temp 16
+// 		setplayer[THISACTOR].jetpack_amount temp
+// 		setvar ftap 0
+// 		getplayer[THISACTOR].ang dodgeang
+// 		setvar boost 20
+// 		sound BOOSTSND
+// 	}
+} else
+ifvare superjump YES
+ife tempe YES
+ifp palive
+{
+	ifvarand bits 1
+	{
+		getplayer[THISACTOR].jetpack_amount temp
+		ifvarg temp 0
+		ifvarl sjumpcharge 130
+		{
+			ifvare sjumpcharge 0 soundonce CHARGEBOOTS
+			addvar sjumpcharge 1
+			subvar temp 1
+			setplayer[THISACTOR].jetpack_amount temp
+		}
+	}
+	else
+	ifvarg sjumpcharge 0
+	{
+		iffloordistl 16
+		{
+			// blast off
+			getplayer[THISACTOR].posz z
+			subvar z 1024
+			setplayer[THISACTOR].posz z
+			mulvar sjumpcharge -128
+			subvar sjumpcharge 2048
+			setplayer[THISACTOR].poszv sjumpcharge
+			 stopactorsound THISACTOR CHARGEBOOTS
+			sound SJUMP
+			setvar sjumpcharge -1 // in the air
+		}
+		else
+		{
+			ifvarn upside 0
+			{
+				getceilzofslope player[].cursectnum player[].posx player[].posy mz
+				addvar mz 10240
+				ifvarvarg player[THISACTOR].posz mz
+				{
+					setvar sjumpcharge 0
+				 	stopactorsound THISACTOR CHARGEBOOTS
+				 	sound SJUMP
+				}
+				else // blast off in reverse gravity
+				{
+					mulvar sjumpcharge 128
+					addvar sjumpcharge 2048
+					setvarvar zveloverride sjumpcharge
+					setplayer[THISACTOR].poszv sjumpcharge
+					 stopactorsound THISACTOR CHARGEBOOTS
+					sound SJUMP
+					setvar sjumpcharge -1 // in the air
+				}
+			}
+			else
+			{
+				setvar sjumpcharge 0
+				 stopactorsound THISACTOR CHARGEBOOTS
+				sound SJUMP
+			}
+		}
+	}
+}
+else
+{
+	ifvarn sjumpcharge -1
+	setvar sjumpcharge 0
+	ifmultiplayer nullop else  stopactorsound THISACTOR CHARGEBOOTS
+}
+ifvare player[THISACTOR].jetpack_amount 0 setvar superjump 0
+ifvare superjump YES setplayer[THISACTOR].falling_counter 0 else
+ifvare sjumpcharge -1 setplayer[THISACTOR].falling_counter 0
+
+ifvarn upside 0 // reversed gravity
+{
+	setvar saveit 0 // hard landing flag
+	ifvare rendmode 4
+	{
+		ifvarl rotang 656 { addvar rotang 32 ifvarg rotang 656 setvar rotang 656 }
+	}
+	else
+	ifvarl rotang 1024 { addvar rotang 64 ifvarg rotang 1024 setvar rotang 1024 }
+	setplayer[THISACTOR].rotscrnang rotang
+	
+
+	setvar tempd NO // floor detection flag
+	getflorzofslope player[].cursectnum player[].posx player[].posy mz
+	subvar mz 1024
+	ifvarvarg sprite[THISACTOR].z mz
+	setvar tempd YES
+	else
+	{
+		getflorzofslope player[THISACTOR].cursectnum player[THISACTOR].posx player[THISACTOR].posy mz
+		subvar mz 1024
+		ifvarvarg sprite[THISACTOR].z mz
+		setvar tempd YES
+	}
+	// ifvarand sector[THISACTOR].floorstat 1024 ifvarg zveloverride 0 setvar tempd NO
+	ifvarg sector[THISACTOR].floorbunch -1 ifvarg zveloverride 0 setvar tempd NO
+	
+	ifvare tempd YES
+	{
+		getplayer[THISACTOR].posz z
+		subvar z 1024
+		setplayer[THISACTOR].posz z
+		addvar z 8192
+		setactor[THISACTOR].z z
+		ifvarg zveloverride 0 setvar zveloverride 0
+		subvar zveloverride -256
+	}
+	
+	getceilzofslope player[].cursectnum player[].posx player[].posy digz
+	
+	addvar digz 8192
+	ifvarand bits 2 // crouching
+	subvar digz 4096
+	
+	ifvare player[THISACTOR].jetpack_on YES ifvare jet YES setvar zveloverride 0
+
+	ifvarvarg player[THISACTOR].posz digz
+	{
+		set onceiling NO
+		subvar zveloverride 256
+		ife player[].posz player[].oposz { ifl zveloverride -1024 set zveloverride -1024 }
+	}
+	else // on the ceiling
+	{
+		ifl ceilingland 0 { add ceilingland 512 ifg ceilingland 0 set ceilingland 0 }
+		ife ceilingland 0 
+		{
+			ife onceiling NO ifl zveloverride -2304
+			{ set ceilingland zveloverride ifl ceilingland -4096 set ceilingland -4096 }
+		}
+		set onceiling YES
+		// ife zveloverride -256 set ceilingland 0
+		getplayer[THISACTOR].cursectnum mysector
+		ifvarand sector[mysector].ceilingstat 1 // DEATH!
+		{
+			getceilzofslope mysector player[THISACTOR].posx player[THISACTOR].posy temp
+			addvar temp 8704
+			ifvarand bits 2 subvar temp 4096
+			ifvarvarl player[THISACTOR].posz temp
+			{
+				addphealth -1000
+				sound SQUISHED
+				setvar upside 0
+			}
+		}
+		getsector[THISACTOR].ceilingpicnum picnum
+		switch picnum
+		case 4820
+		case 4085
+		ifvarand timer 1
+		ife invulntime 0
+		ife player[].on_crane -1
+		{
+			ifvarg player[THISACTOR].boot_amount 0
+			{
+				soundonce ENVSUIT
+				getplayer[THISACTOR].boot_amount tempb
+				subvar tempb 1
+				setplayer[THISACTOR].boot_amount tempb
+			}
+			else
+			{
+				addphealth -1
+				palfrom 36 50 15 15
+				state dukepainsounds
+				addvar burning 2
+			}
+		}
+		break
+		endswitch
+		ifvarl zveloverride -2304 // -1024
+		{
+			ifvarl zveloverride -3072
+			{
+				// hard landing
+				ifvarl zveloverride -5120
+				ifvarn sjumpcharge -1
+				ifvarn sector[THISACTOR].hitag 5
+				{
+					ife nofalldamage 0
+					{
+						ifvare character 0 sound DUKE_LAND_HURT else
+						ifvare character 1
+						sound BARBPAIN2
+						palfrom 31 48
+						setvarvar tempd zveloverride
+						shiftvarr tempd 9
+						addvar tempd 1
+						getplayer[THISACTOR].i spriteid
+						getactor[spriteid].htextra tempe
+						subvarvar tempe tempd
+						setactor[spriteid].htextra tempe
+						setactor[spriteid].htpicnum RPG
+						setactor[spriteid].htowner THISACTOR
+					}
+	 			}
+	 			setvar saveit 1
+	 			setvarvar fakelanding zveloverride
+				div fakelanding 2
+	 			mulvar fakelanding -1
+	 			getplayer[THISACTOR].horiz tempb
+	 			divvar fakelanding 96
+	 			subvarvar tempb fakelanding
+	 			ifvarl tempb -98 
+	 			{
+		 			setvar tempc -98
+		 			subvarvar tempc tempb
+		 			addvarvar fakelanding tempc
+	 			}
+	 			// setplayer[THISACTOR].horiz tempb
+				
+				
+ 
+			}
+			getsector[THISACTOR].ceilingpicnum picnum
+
+			state surfacetype
+			switch tempb
+			case 1 // GRASS OR FOLIAGE
+			sound GRASS1
+			break
+			
+			case 2 // SNOW
+			sound SNOW1
+			break
+			
+			case 3 // DIRT OR GRAVEL
+			sound DIRT4
+			break
+			
+			case 4 // WOOD
+			sound WOOD3
+			break
+			
+			default // generic hard surface
+			sound LAND_NORMAL
+			break
+		
+			endswitch
+		}
+		
+		ifvare sjumpcharge -1 // using jump boots
+			{ ifvarl zveloverride 0 { setvar sjumpcharge 0 setvar zveloverride -256 }  }
+		else setvar zveloverride -256
+	
+		ifvarvarl player[THISACTOR].posz digz
+		setplayer[THISACTOR].posz digz
+		
+		ifvarl fakejump 0 
+		{
+			ife fakejump -1 ifvarand bits 1 nullop else
+			addvar fakejump 1
+		}
+		ifvarand bits 2 nullop else
+		ifvarand bits 1 ifvare fakejump 0
+		ifvare sjumpcharge 0
+		{
+			setvar fakejump 1
+			state jumpsounds
+		}
+		
+		
+ 		ifvare character 1
+ 		{
+			ifvare boost 0
+			ifvare swordattk 0
+			ifvare helpmenu NO
+			{
+				ifvarg ftap 1
+				ifvarg sprint 9
+				ifvarl boost 20 { ifinwater nullop else addvar boost 2 }
+				else ifvarl sprint 208 addvar sprint 1
+			}
+			ifvarg boost 0
+			ifvarn sjumpcharge -1 
+			ifvarg fhold 0
+				ifvarl boost 20 addvar boost 2
+ 		}
+	}
+	ifvarl fakejump 1
+	ifvare onladder 0
+	setplayer[THISACTOR].poszv zveloverride
+	ifvarg fakejump 0
+	{
+		ife character 1 set zveloverride 1480 else
+		setvar zveloverride 1280 // 1024
+		addvar fakejump 1
+		ifvarg fakejump 9 setvar fakejump -2 // -5
+	}
+/*	
+	ifvare helpmenu NO
+	{
+		// upside angle code
+
+		getplayer[THISACTOR].oang temp
+		getplayer[THISACTOR].ang angvar
+		getincangle tempd angvar temp
+		addvarvar temp tempd
+		set upsideang temp
+		set upsidecamang temp
+		setplayer[THISACTOR].ang temp
+
+
+		getplayer[THISACTOR].ohoriz temp
+		getplayer[THISACTOR].horiz tempb
+		subvarvar tempb temp
+		subvarvar temp tempb
+		ifvarn fakelanding 0
+		ifvare saveit 0
+		{
+			ifvarl fakelanding 8 { setvarvar tempb fakelanding setvar fakelanding 0 }
+			else { setvar tempb 8 subvar fakelanding 8 }
+			subvarvar temp tempb
+		}
+		ifvarl temp -98 setvar temp -98
+		ifvarg temp 298 setvar temp 298
+		set upsidehoriz temp
+		set upsidecamhoriz temp
+		setplayer[THISACTOR].horiz temp
+	
+
+	}
+*/
+
+	ifvare player[THISACTOR].movement_lock 0
+	setplayer[THISACTOR].movement_lock 12
+	
+	ifvarand extbits 4 // strafe left
+	{
+		getplayer[THISACTOR].posxv xvel
+		getplayer[THISACTOR].posyv yvel
+		getplayer[THISACTOR].ang angvar
+		addvar angvar 512
+		
+		cos mx angvar
+		sin my angvar
+		ifvare character 0 setvar tempc 38 else setvar tempc 32
+		mulvarvar mx tempc
+		mulvarvar my tempc
+
+		addvarvar xvel mx
+		addvarvar yvel my
+	
+		setplayer[THISACTOR].posxv xvel
+		setplayer[THISACTOR].posyv yvel
+	}
+	
+	ifvarand extbits 8 // strafe right
+	{
+		getplayer[THISACTOR].posxv xvel
+		getplayer[THISACTOR].posyv yvel
+		getplayer[THISACTOR].ang angvar
+		subvar angvar 512
+		
+		cos mx angvar
+		sin my angvar
+		ifvare character 0 setvar tempc 40 else setvar tempc 34
+		mulvarvar mx tempc
+		mulvarvar my tempc
+
+		addvarvar xvel mx
+		addvarvar yvel my
+	
+		setplayer[THISACTOR].posxv xvel
+		setplayer[THISACTOR].posyv yvel
+	}
+
+	ifvarn onladder 0 setvar zveloverride -256
+}
+else
+{
+	set onceiling NO
+	set ceilingland 0
+	getplayer[THISACTOR].weapon_sway temp
+	ifvare temp 1024 setvar swayhack 1024
+	ifvare player[THISACTOR].movement_lock 12
+	setplayer[THISACTOR].movement_lock 0
+	ifvarg rotang 0 
+	{
+		subvar rotang 64 ifvarl rotang 0 setvar rotang 0
+		setplayer[THISACTOR].rotscrnang rotang
+	}
+	
+}
+ifvarg goldnear 0 subvar goldnear 1
+ifvarg keynear 0 subvar keynear 1
+ifvarg podnear 0 subvar podnear 1
+ifvarg doornear 0 subvar doornear 1
+ifvarg headshotcount 0 subvar headshotcount 1
+ifvarg doorinmap 0 
+{
+	subvar doorinmap 1
+	ifvare doorinmap 0 
+	{
+		ife bigmsgcount 0
+		{
+		setvar bigmsg 140 setvar bigmsgcount 104
+		}
+		globalsound GETATOMICHEALTH
+	}
+}
+getplayer[THISACTOR].boot_amount temp
+setvarvar lastbootamount temp
+addvar targframe 1 ifvarg targframe 4863 setvar targframe 4856
+ifvare sprite[THISACTOR].yvel 0
+{
+	ifvarg slowtime 0 subvar slowtime 1
+	ifvarg invulntime 0 subvar invulntime 1
+	ifvarg helpcount 0 subvar helpcount 1
+	ifvarg powcount 0
+	{
+		subvar powcount 1
+		ifvare powcount 0 
+		{
+			setvar pow 0 setvar combo 0 
+			add tierslot 1
+			ifg tierslot 4 { set tierslot 0 state shufflepowchoices }
+			setarray powchoices[0] tier1order[tierslot]
+			setarray powchoices[1] tier2order[tierslot]
+			setarray powchoices[2] tier3order[tierslot]
+			setarray powchoices[3] tier4order[tierslot]
+		}
+	}
+	ifvarg bigmsgcount 0 
+	{
+		subvar bigmsgcount 1
+		ifvare bigmsg 128 // game over
+		ifvarl bigmsgcount 27 setvar bigmsgcount 27
+	}
+}
+ifvarg portalview 0
+{
+	subvar portalview 1
+	ifvare portalview 0 setvar portalcam -1
+}
+
+ifvarg fta 0 subvar fta 1
+ifvarl fta 0 addvar fta 1
+ifvarg powgrace 0 subvar powgrace 1
+ifvarg shieldup 0 subvar shieldup 1
+ifvarg helmflash 0 subvar helmflash 1
+ifvarg invmsg 0 subvar invmsg 1
+ifvarg playerstuck 0	
+	subvar playerstuck 1
+
+ifvarg dashcool1 0 subvar dashcool1 1
+ifvarg dashcool2 0 subvar dashcool2 1
+ifvarg burning 0 
+{
+	// ifvarn player[THISACTOR].palette 5
+	//ifvare swordattk 0 setgamepalette 5
+	palfrom 36 52 26 13
+	state imonfire 
+}
+// else ifvare player[THISACTOR].palette 5
+// {
+// 	ifp ponsteroids
+// 	ifvarn player[THISACTOR].steroids_amount 1
+// 		setgamepalette 4
+// 	else
+// 	ifinwater
+// 	{ 
+// 		ifvarn player[THISACTOR].palette 1 setgamepalette 1 
+// 	 } 
+// 	 else
+// 	ifvare player[THISACTOR].heat_on YES setgamepalette 2 else
+// 		setgamepalette 0 
+// }
+
+ifvarl burning 0 state imcold
+ifvarg cursed 0 state imcursed
+
+// sector gamepal check
+/*
+ifvare sector[THISACTOR].hitag 6
+{
+	ifinwater nullop else
+	ifvarn player[THISACTOR].palette 1 setgamepalette 1
+}
+else
+ifvare sector[THISACTOR].hitag 7
+{
+	ifvarn player[THISACTOR].palette 5 setgamepalette 5
+}
+else
+{
+	ifvare player[THISACTOR].palette 1
+	{
+		ifinwater nullop else
+			setgamepalette 0
+	}
+	else ifvare player[THISACTOR].palette 5 setgamepalette 0 
+}
+*/
+ifvarg slowtime 0
+{
+	
+	ifvare slowtime 1 
+	{
+		inittimer gamespeed
+		setplayer[THISACTOR].sound_pitch 0
+		ifvare character 1 
+		setplayer[THISACTOR].runspeed RUNNINGSPEED2
+		else
+		setplayer[THISACTOR].runspeed RUNNINGSPEED
+		
+	}
+	else 
+	{
+		inittimer 60
+		setplayer[THISACTOR].sound_pitch -1024
+		setplayer[THISACTOR].runspeed SPRINTSPEED
+		getinput[THISACTOR].extbits temp
+		ifvare temp 0
+		{
+			getplayer[THISACTOR].posxv xvel
+			shiftvarr xvel 1
+			setplayer[THISACTOR].posxv xvel
+			getplayer[THISACTOR].posyv xvel
+			shiftvarr xvel 1
+			setplayer[THISACTOR].posyv xvel
+		}
+	}
+}
+else
+{
+	setvarvar temp framerate
+	ifvarg temp 60 setvar temp 60
+	shiftvarl temp 1
+	ifvare temp 119 setvar temp 120
+	
+	inittimer gamespeed
+}
+
+ifp palive
+{
+	addvar healthcount 1
+	ifvarg healthcount 25
+	{
+		ifvarand pow 64
+		ifvarvarl sprite[THISACTOR].extra player[THISACTOR].max_player_health
+		{
+			sound DUKE_HARTBEAT
+			ifvarg bleeding 0
+			{
+				subvar bleeding 6
+				ifvarl bleeding 0 setvar bleeding 0
+			}
+			// addphealth 3
+			set temp player[].max_player_health
+			div temp 30
+			set tempb sprite[].extra
+			add tempb temp
+			seta[].extra tempb
+		}
+		ifvarg bleeding 0
+		{
+			sound DUKE_HARTBEAT
+			// palfrom 30 48
+			
+			getactor[THISACTOR].extra temp
+			getplayer[THISACTOR].max_player_health tempb
+			shiftvarl tempb 3
+			divvarvar tempb temp
+			ifvarg tempb 50 setvar tempb 50
+			ifvarg tempb 10
+			{
+				setplayer[THISACTOR].pals 0 42
+				setplayer[THISACTOR].pals_time tempb
+			}
+			
+			addphealth -1
+			subvar bleeding 1
+		} else
+		ifvarvarl sprite[THISACTOR].extra REGEN
+		{
+			set temp REGEN
+			ifg temp 50 set temp 50
+			ifg temp 10
+			{
+				set tempb 10
+				sub temp 10
+				div temp 2
+				add tempb temp
+				set temp tempb
+			}
+			ifl sprite[].extra temp
+			{
+				sound DUKE_HARTBEAT
+				addphealth 1
+			}
+		}
+		getplayer[THISACTOR].max_player_health tempb
+		addvar tempb 100
+		ifvarvarg sprite[THISACTOR].extra tempb
+		{
+			sound DUKE_HARTBEAT
+			addphealth -1
+			
+		}
+		setvar healthcount 0
+		// wake up sleeping monsters in line of sight
+		headspritestat spriteid 2
+		whilevarn spriteid -1
+		{
+			// ifvare actorvar[spriteid].monstatus 1
+			getactor[spriteid].picnum picnum
+			switch picnum
+			case CYBERDEMON
+			case CYBERFLOAT
+			case CYBERDEMONSTAYPUT
+			case CYBERFLOATPUT
+			case PIGCOP
+			case PIGCOPSTAYPUT
+			case LIZMAN
+			case LIZMANSTAYPUT
+			case ETTIN
+			case ETTINSTAYPUT
+			case DEMON
+			case DEMONSTAYPUT
+			case WIZARD
+			case WRAITH
+			case WRAITHSTAYPUT
+			case GHOST
+			case DRONE
+			case GOLEM
+			case GOLEMSTAYPUT
+			case SKELKNIGHT
+			case SKELKNIGHTSTAYPUT
+			case DETHNITE
+			case DETHNITESTAYPUT
+			case LIZTROOP
+			case LIZTROOPSTAYPUT
+			case DRAGON
+			case EVILDUKE
+			case EVILDUKESTAYPUT
+			case KAMIKAZE
+			case HELLHOUND
+			
+				getactor[THISACTOR].z z
+				subvar z 8192
+				setactor[THISACTOR].z z
+				getactor[spriteid].z mz
+				subvar mz 8192
+				setactor[spriteid].z mz
+				canseespr THISACTOR spriteid temp
+				ifvare temp YES
+				{
+					changespritestat spriteid 1
+					setactor[spriteid].httimetosleep 0
+				}
+				addvar z 8192
+				setactor[THISACTOR].z z
+				addvar mz 8192
+				setactor[spriteid].z mz
+				
+			break
+			endswitch
+			nextspritestat spriteid spriteid
+		}
+	}
+	
+	ifvarg ppoison 0 state poisoned
+	
+	ifg player[].cursectnum -1 ifl player[].cursectnum 4096
+	{
+		switch sector[player[].cursectnum].floorpicnum // check floor type
+		case 4820
+		case 4085
+			ifvarand player[].player_par 1
+			ife subtitle_time 0
+			ife player[].spritebridge 0
+			{
+				getflorzofslope player[].cursectnum player[].posx player[].posy z
+				subvarvar z player[].posz
+				ifvarl z 10240
+				ife invulntime 0
+				ife player[].on_crane -1
+				{
+					ifvarg player[THISACTOR].boot_amount 0
+					{
+						soundonce ENVSUIT
+						getp[].boot_amount temp
+						subvar temp 1
+						setp[].boot_amount temp
+					}
+					else
+					{
+						addphealth -1
+						palfrom 36 50 15 15
+						state dukepainsounds
+						addvar burning 2
+					}
+				}
+			}	
+		break
+		endswitch
+	}
+}
+else setvar ppoison 0
+ifvarg pictime 0 
+{
+	subvar pictime 1
+	ifvare pictime 0 setvar treasurepic -1
+}
+
+ifp ponsteroids 
+{
+	ifvare slowtime 0
+	{
+		ifp pjetpack setplayer[THISACTOR].runspeed RUNNINGSPEED else
+		setplayer[THISACTOR].runspeed 44200
+	}
+/*
+	ifvarn player[THISACTOR].palette 4
+	{
+		ifvarg player[THISACTOR].steroids_amount 25
+		setgamepalette 4
+		setvar temp 0
+		whilevarvarn temp NUMSECTORS
+		{
+			getsector[temp].floorpicnum picnum
+			ifvarg picnum 226 ifvarl picnum 243
+			setsector[temp].floorpal 33
+			
+			getsector[temp].ceilingpicnum picnum
+			ifvarg picnum 226 ifvarl picnum 243
+			setsector[temp].ceilingpal 33
+			
+			addvar temp 1
+		}
+	}
+	
+	ifvarl player[THISACTOR].steroids_amount 2
+	{
+		ifinwater
+		{
+			ifvarn player[THISACTOR].palette 1
+				setgamepalette 1
+		 } 
+		 else
+		ifvare player[THISACTOR].heat_on YES 
+		{
+			ifvarn player[THISACTOR].palette 2
+				setgamepalette 2 
+		}
+		else ifvarn player[THISACTOR].palette 0
+			setgamepalette 0
+		
+		setvar temp 0
+		whilevarvarn temp NUMSECTORS
+		{
+			getsector[temp].ceilingpal pal
+			ifvare pal 33
+			setsector[temp].ceilingpal 0
+			getsector[temp].floorpal pal
+			ifvare pal 33
+			setsector[temp].floorpal 0
+			addvar temp 1
+		}
+	}
+*/
+}
+else
+ifvarg burning -1 // not freezing
+ifvarn sjumpcharge -1
+ifvare slowtime 0
+ifn sector[].lotag 1
+ifn sector[].lotag 2
+{
+	ife phookswing YES setp[].runspeed SPRINTSPEED
+	else
+	ifg padmove 0
+	setplayer[THISACTOR].runspeed RUNNINGSPEED
+	else
+	ifvare character 1 
+	setplayer[THISACTOR].runspeed RUNNINGSPEED2 
+	else
+	setplayer[THISACTOR].runspeed RUNNINGSPEED
+}
+
+ifn cagesbs -1
+{
+	getp[].posx x
+	sub x cagex
+	setp[].posx x
+	getp[].posy y
+	sub y cagey
+	setp[].posy y
+	set cagesbs -1
+}
+
+ifp ponground { setvar nofalldamage 0 setvar jumpadxvel 0 }
+ifg padmove 0
+{
+	cos xvel jumpadang
+    sin yvel jumpadang
+     
+	mul xvel jumpadxvel
+	mul yvel jumpadxvel
+    setplayer[THISACTOR].posxv xvel
+	setplayer[THISACTOR].posyv yvel
+	
+	setplayer[THISACTOR].falling_counter 0
+	ife character 0
+	{
+		ifaction PJUMPING nullop else action PJUMPING
+	}
+	ife character 1
+	{
+		ifaction BARBJUMPING nullop else action BARBJUMPING
+	}
+	
+	sub padmove 1
+	ife padmove 0 setp[].movement_lock 0
+}
+else
+ifvarg dodge 0
+{
+	set dashtime 0
+	cos xvel dodgeang
+	sin yvel dodgeang
+	setvarvar temp dodge
+	// ifvarg temp 1024 setvar temp 1024
+	mulvarvar xvel temp
+	mulvarvar yvel temp
+	shiftvarr xvel 5
+	shiftvarr yvel 5
+
+	add xvel player[].posxv
+	setp[].posxv xvel
+	add yvel player[].posyv
+	setp[].posyv yvel
+	// setplayer[THISACTOR].posxv xvel
+	// setplayer[THISACTOR].posyv yvel
+	
+	shiftvarr dodge 1
+	ifvarl dodge 4 setvar dodge 0
+}
+else
+ifvarg boost 0
+{
+	cos xvel dodgeang
+	sin yvel dodgeang
+	// ifvare character 1 
+	ifvarn sjumpcharge 0
+	{
+		// amount should depend on boost >0 <11
+		setvarvar temp boost
+		mulvar temp 12
+		addvar temp 272
+		mulvarvar xvel temp
+		mulvarvar yvel temp
+		//shiftvarl xvel 9
+		//shiftvarl yvel 9
+	}
+	else
+	{
+		ifg dashtime 0
+		{
+			shiftl xvel 10
+			shiftl yvel 10
+			sub dashtime 1
+		}
+		else
+		{
+			ifp ponground
+			{
+				
+				mulvar xvel 320
+				mulvar yvel 320
+			}
+			else
+			ife upside YES
+			// ife onceiling YES
+			{
+				mulvar xvel 320
+				mulvar yvel 320
+			}
+			else
+			{
+				mulvar xvel 288
+				mulvar yvel 288
+			}
+		}
+	}
+
+	setplayer[THISACTOR].posxv xvel
+	setplayer[THISACTOR].posyv yvel
+
+	subvar boost 1
+}
+else
+ifvarg dashtime 0
+{
+	cos xvel dashang
+	sin yvel dashang
+	shiftl xvel 10
+	shiftl yvel 10
+	setp[].posxv xvel
+	setp[].posyv yvel
+	sub dashtime 1
+}
+
+// DASHSCREEN code
+
+getp[].posxv xvel
+getp[].posyv yvel
+getangle angvar xvel yvel // direction
+getincangle temp angvar player[].ang
+abs temp
+ifl temp 64
+{
+	abs xvel
+	abs yvel
+	add xvel yvel
+	ifg xvel 5000000
+	{
+		set x oldx
+		sub x player[].posx
+		
+		mul x x
+		abs x
+		
+		set y oldy
+		sub y player[].posy
+		
+		mul y y
+		abs y
+		
+		add x y
+		sqrt x x
+		ifg x 260 
+		{
+			ife dashscreen -1 set dashscreen DASHSCREEN1 else
+			add dashscreen 1
+			
+			ifg dashscreen DASHSCREEN4 
+			{ 
+				set dashscreen DASHSCREEN1
+				add dashcycle 1
+				ifg dashcycle 3 set dashcycle 0
+			}
+		}
+		else set dashscreen -1
+	}
+	else set dashscreen -1
+}
+else set dashscreen -1
+
+getp[].posx oldx
+getp[].posy oldy
+
+
+
+ifvare player[THISACTOR].heat_on YES soundonce GHOSTLOOP else
+ stopactorsound THISACTOR GHOSTLOOP
+	
+
+ifvare pshrunk 1 
+{
+	sizeto 7 6
+	espawn SMALLSMOKE
+	setav[RETURN].peractor1 1
+	seta[RETURN].cstat 32768
+}
+// else ifvare CURRWEAP 1 ifvarand bits 268435456 ifvare character 0 nullop
+else sizeto 42 36
+
+ife jedtip NO
+ife character 1
+ife helpmenu NO
+ife subtitle_time 0
+ifvarand axquotes 1024
+ifp ponground
+ifp palive
+{
+	setvar currtip2 0 setvar currtip 134217728
+	orvar fintips 134217728
+	state inithelp
+	set helpmenu YES
+	set jedtip YES
+	savegamevar jedtip
+}
+
+
+
+ifp palive
+ifvarn raining 0 state raincode
+
+setvar spriteid 0
+whilevarn spriteid 5
+{
+	ifvarn playertarg[spriteid] -1
+	{
+		setvarvar temp playertarg[spriteid]
+		ifvarn sprite[temp].statnum 1 setarray playertarg[spriteid] -1 else
+		ifvarn actorvar[temp].monstatus 1 setarray playertarg[spriteid] -1 
+	}
+	addvar spriteid 1
+}
+
+ifp pkicking nullop else
+ifaction PAKICKING state check_pstandard
+
+
+ends
+
+state flytotarg
+
+ife character 0 // Duke
+{
+	getactor[swordtarg].x mx
+	getactor[swordtarg].y my
+	
+	sub mx player[].posx
+	sub my player[].posy
+	getangle angvar mx my
+	ife upside NO setp[].ang angvar
+	
+	ldist xydist THISACTOR swordtarg
+
+	ifvarl xydist 1024
+	{
+		// first test to make sure we are not teleporting through a barrier
+		getp[].posx saveit
+		getp[].posy saveit2
+		
+		cos xvel angvar
+		sin yvel angvar
+		shiftvarr xvel 4
+		shiftvarr yvel 4
+		movesprite THISACTOR xvel yvel 0 CLIPMASK0 RETURN
+		ifn RETURN 0
+		ifn RETURN swordtarg
+		{
+			seta[].x saveit
+			seta[].y saveit2
+			setp[].posx saveit
+			setp[].posy saveit2
+		}
+		else
+		{
+			// place player directly in front of monster
+			// aim down if the monster is short
+			ife upside NO
+			{
+				set temp tiledata[sprite[swordtarg].picnum].ysize
+				mul temp sprite[swordtarg].yrepeat
+				ifl temp 2048 // short enemy
+				{
+					set tempb 100
+					div temp 20
+					sub tempb temp
+					setp[].horiz tempb
+				}
+				else
+				setplayer[THISACTOR].horiz 100
+			}
+			setplayer[THISACTOR].hard_landing 0
+			getactor[swordtarg].x x
+			getactor[swordtarg].y y
+			getactor[swordtarg].z mz
+			setvarvar mx x
+			addvar mx 512
+			setvarvar temp angvar
+			addvar temp 1024
+			rotatepoint x y mx y temp mx my
+			updatesectorz mx my mz mysector
+			ifvarn mysector -1 
+			{
+				setplayer[THISACTOR].cursectnum mysector
+				setsprite THISACTOR mx my mz
+				setplayer[THISACTOR].posx mx
+				setplayer[THISACTOR].posy my
+				setplayer[THISACTOR].posxv 0
+				setplayer[THISACTOR].posyv 0
+				setplayer[THISACTOR].poszv -256
+				subvar mz 8192
+				setplayer[THISACTOR].posz mz
+			}
+			
+			
+		}
+	}
+}
+
+setplayer[THISACTOR].falling_counter 0
+setplayer[THISACTOR].hard_landing 0
+cos xvel angvar
+sin yvel angvar
+
+shiftvarl xvel 8
+shiftvarl yvel 8
+ifn slowtime 0 { shiftl xvel 1 shiftl yvel 1 }
+ife character 0 ifl xydist 1024 { shiftvarr xvel 1 shiftvarr yvel 1 }
+
+
+getplayer[THISACTOR].posxv x
+getplayer[THISACTOR].posyv y
+addvarvar x xvel
+addvarvar y yvel
+
+
+setplayer[THISACTOR].posxv x
+setplayer[THISACTOR].posyv y
+
+// getactor[swordtarg].z mz
+// ifvarand actorvar[swordtarg].monstflags 4 // super boss
+// subvar mz 40960 else
+// ifvare sprite[swordtarg].picnum CYBERDEMON subvar mz 4096 else
+// ifvare sprite[swordtarg].picnum CYBERFLOAT subvar mz 4096
+
+	geta[swordtarg].picnum picnum
+	set z tiledata[picnum].ysize
+	mul z sprite[swordtarg].yrepeat
+	shiftl z 1
+	sub z 8192
+	ifl z 0 set z 0
+	
+	getactor[swordtarg].z mz
+	sub mz z
+
+ifvarvarl mz sprite[THISACTOR].z
+{
+	getplayer[THISACTOR].posz z
+	subvar z 1024
+	setplayer[THISACTOR].posz z
+	addvar z 8192
+	setactor[THISACTOR].z z
+}
+		
+getactor[THISACTOR].z z
+ldist xydist THISACTOR swordtarg
+subvarvar mz z
+// shiftvarl mz 8
+mul mz 384
+divvarvar mz xydist
+
+subvar mz 256
+setplayer[THISACTOR].poszv mz
+ends
+
+state flyback
+
+setplayer[THISACTOR].falling_counter 0
+setplayer[THISACTOR].hard_landing 0
+
+setvarvar mx savex
+setvarvar my savey
+getplayer[THISACTOR].posx x
+getplayer[THISACTOR].posy y
+subvarvar mx x
+subvarvar my y
+getangle angvar mx my
+
+cos xvel angvar
+sin yvel angvar
+
+shiftvarl xvel 8
+shiftvarl yvel 8
+ifn slowtime 0 { shiftl xvel 1 shiftl yvel 1 }
+getplayer[THISACTOR].posxv x
+getplayer[THISACTOR].posyv y
+addvarvar x xvel
+addvarvar y yvel
+
+
+setplayer[THISACTOR].posxv x
+setplayer[THISACTOR].posyv y
+
+ifp ponground ifvarvarl savez sprite[THISACTOR].z // get player off ground
+{
+	getplayer[THISACTOR].posz z
+	subvar z 1024
+	setplayer[THISACTOR].posz z
+	addvar z 8192
+	setactor[THISACTOR].z z
+}
+
+setvarvar mz savez		
+getactor[THISACTOR].z z
+
+getactor[THISACTOR].x xydist
+getactor[THISACTOR].y y
+subvarvar xydist savex
+mulvarvar xydist xydist
+subvarvar y savey
+mulvarvar y y
+addvarvar xydist y
+sqrt xydist xydist
+
+subvarvar mz z
+// shiftvarl mz 8
+mul mz 384
+ifvare xydist 0 setvar xydist 1
+divvarvar mz xydist
+
+subvar mz 256
+setplayer[THISACTOR].poszv mz
+
+addvar angvar 1024
+ife upside NO setplayer[THISACTOR].ang angvar
+
+ends
+
+state dukeweaponcode
+
+ifvare shootflames YES
+{
+	ifvare ALTFIRING 1 // 0
+	{
+		getplayer[THISACTOR].ammo_amount 7 temp
+		subvar temp 2
+		ifvarl temp 0 setvar temp 0
+		setplayer[THISACTOR].ammo_amount 7 temp
+	}
+	setvar shootflames NO
+	
+	eshoot FTPROJ
+	setactorvar[saveit].myspawner THISACTOR
+	
+	eshoot FTPROJ
+	setactorvar[saveit].peractor1 1
+	setactorvar[saveit].myspawner THISACTOR
+
+}
+
+ifvare KICKBACKPIC 0 setvar ALTFIRING 0
+
+ifvare CURRWEAP 0 ifvare gotsaw 1
+{
+	set temp NO
+	ifvarg slowtime 0 set temp YES
+	else ifvarand pow 32768 set temp YES
+	ife temp YES
+	setvar WEAPON0_SHOTSPERBURST 6
+	else 
+	setvar WEAPON0_SHOTSPERBURST 3
+	
+	ifn swordtarg -1
+	{
+		ifn actorvar[swordtarg].monstatus 1 set swordtarg -1 else
+		ifn sprite[swordtarg].statnum 1 set swordtarg -1 else
+		ifn actorvar[swordtarg].cursed 0 set swordtarg -1
+	}
+	ifvare KICKBACKPIC 0 
+	{
+		stopactorsound THISACTOR SAWATTACK
+		ifp palive
+		{
+			addvar sawidle 1
+			ifvarl sawidle 130
+			soundonce SAWIDLE
+			else  stopactorsound THISACTOR SAWIDLE
+		}
+	}
+	else 
+	{ 
+		setvar sawidle 0
+		 stopactorsound THISACTOR SAWIDLE 
+		ifp palive soundonce SAWATTACK 
+		ifn swordtarg -1 { spawn FRAMEEFFECT1 state flytotarg }
+	}
+	ifvarg sawscrape 0 soundonce SCRAPE else
+	 stopactorsound THISACTOR SCRAPE
+}
+else 
+{
+	 set swordtarg -1
+	 setvar sawidle 0
+	 stopactorsound THISACTOR SAWIDLE
+	 stopactorsound THISACTOR SAWATTACK
+	 stopactorsound THISACTOR SCRAPE
+}
+ifvarg sawscrape 0 subvar sawscrape 1
+
+ifvare CURRWEAP 1 
+{
+	set temp NO
+	ifvarg slowtime 0 set temp YES
+	else ifvarand pow 32768 set temp YES
+	ife temp YES
+	{
+		ifvarg KICKBACKPIC 0 ifvarn KICKBACKPIC 33 ifvarn KICKBACKPIC 3 
+		{
+			addvar KICKBACKPIC 1
+			setplayer[THISACTOR].kickback_pic KICKBACKPIC
+		}
+	}
+	ifvare player[].kickback_pic 7 
+	{
+		espawn SMALLSMOKE 
+		
+		getp[].posx mx
+		add mx 160
+		getp[].ang angvar, ifvare vr -1 add angvar 64
+		getp[].posz z add z 1024
+		getp[].horiz mz
+		sub mz 100
+		shiftl mz 5
+		sub z mz
+		rotatepoint player[].posx player[].posy mx player[].posy angvar x y
+		setsprite RETURN x y z
+		seta[RETURN].xrepeat 10
+		seta[RETURN].yrepeat 10
+	}
+	ife player[].ammo_amount 1 0
+	ife WEAPON1_SHOOTS SLUGPROJ
+	{
+		setplayer[THISACTOR].auto_aim autoaim
+		setvar WEAPON1_SHOOTS SHOTGUN
+		setvar WEAPON1_FIRESOUND SHOTGUN_FIRE
+		setvar WEAPON1_SHOTSPERBURST 7
+		setvar WEAPON1_TOTALTIME 30
+	}
+	ifvare KICKBACKPIC 33
+	{
+		setplayer[THISACTOR].auto_aim autoaim
+		setvar WEAPON1_SHOOTS SHOTGUN
+		setvar WEAPON1_FIRESOUND SHOTGUN_FIRE
+		setvar WEAPON1_SHOTSPERBURST 7
+		setvar WEAPON1_TOTALTIME 30
+	}
+	ifvare pshrunk NO
+	{
+		// ifvarand bits 268435456
+		ifvarand extbits 64
+		ifvare player[THISACTOR].weapon_pos 0
+		ifvare player[THISACTOR].over_shoulder_on NO
+		ife switchchar 0
+		ifl shipcam 0
+		{
+			ifvare vr -1
+			{
+				setvarvar vrhi viewingrange
+				setvarvar vrlo vrhi, divvar vrlo 2
+				setvarvar vr vrhi
+			}
+
+//			setuserdef[THISACTOR].const_visibility 96
+			ifvarvarg vr vrlo subvar vr 3072 // 2048
+
+			setvarvar temp MAPVISIBILITY, subvar temp 96  // vis range
+			setvarvar tempc vrhi, subvarvar tempc vrlo  // vr range, we could just take vrlo...
+
+			setvarvar tempb vr, subvarvar tempb vrlo  // vr-vrlo
+			mulvarvar tempb temp, divvarvar tempb tempc  // ((vr-vrlo)*(hivis-lovis))/(vrhi-vrlo)
+			addvarvar tempb 96
+
+			setuserdef[THISACTOR].const_visibility tempb
+
+
+			getplayer[THISACTOR].ohoriz temp
+			getplayer[THISACTOR].horiz tempb
+			subvarvar tempb temp
+			ifvarn tempb 1 ifvarn tempb -1
+			{
+				shiftvarr tempb 1
+				addvarvar temp tempb
+				setplayer[THISACTOR].horiz temp
+			}
+			
+			getplayer[THISACTOR].oang temp
+			getplayer[THISACTOR].ang tempb
+			getincangle tempb temp tempb
+			ifvarn tempb 1 ifvarn tempb -1
+			{
+				shiftvarr tempb 1
+				addvarvar temp tempb
+				setplayer[THISACTOR].ang temp
+			}
+		}
+		else
+		{
+			setuserdef[THISACTOR].const_visibility MAPVISIBILITY
+			// ifvarg vr 0 setvarvar vr vrhi else
+			// ifvarvare vr vrhi 
+			setvar vr -1
+		}
+	}
+}
+else 
+{
+	setuserdef[THISACTOR].const_visibility MAPVISIBILITY
+	// ifvarg vr 0 setvarvar vr vrhi else
+	// ifvarvare vr vrhi 
+	setvar vr -1
+}
+
+ifvare CURRWEAP 2
+{
+	set temp NO
+	ifvarg slowtime 0 set temp YES
+	else ifvarand pow 32768 set temp YES
+	ife temp YES
+	{
+		ifvarg KICKBACKPIC 0 ifvarn KICKBACKPIC 3 
+		{
+			addvar KICKBACKPIC 1
+			setplayer[THISACTOR].kickback_pic KICKBACKPIC
+		}
+	}
+	ifvare player[].kickback_pic 7 
+	{ 
+		espawn SMALLSMOKE 
+		
+		getp[].posx mx
+		add mx 160
+		getp[].ang angvar, add angvar 64
+		getp[].posz z add z 1024
+		getp[].horiz mz
+		sub mz 100
+		shiftl mz 5
+		sub z mz
+		rotatepoint player[].posx player[].posy mx player[].posy angvar x y
+		setsprite RETURN x y z
+		seta[RETURN].xrepeat 14
+		seta[RETURN].yrepeat 10
+	}
+	ifvarand player[THISACTOR].ammo_amount 2 1
+		setvar DBLOADED 1
+	else
+		ifvarg KICKBACKPIC 3 setvar DBLOADED 0
+	else 
+		ifvare player[THISACTOR].ammo_amount 2 0
+		setvar DBLOADED 0
+	else
+	setvar DBLOADED 2
+	
+	ifvare KICKBACKPIC 6 ifvare WEAPON2_SHOTSPERBURST 30
+	{
+		sound DB_FIRE2
+		setvar WEAPON2_SHOTSPERBURST 15
+	}
+		
+	ifvare KICKBACKPIC 19 sound DBOPEN
+	ifvare KICKBACKPIC 25 spawn SHOTGUNSHELL // the second shell
+	ifvare KICKBACKPIC 30 sound DBLOAD
+	ifvare KICKBACKPIC 40 sound DBLOAD
+	ifvare KICKBACKPIC 47 
+		sound DBCLOSE
+		
+}
+
+ifvare miniguncount 0 
+{
+	setvar gunframe 2537 
+	 stopactorsound THISACTOR MINISPINSLOW
+	 stopactorsound THISACTOR MINISPINFAST
+}
+
+
+ifvare CURRWEAP 4
+{
+	set temp NO
+	ifvarg slowtime 0 set temp YES
+	else ifvarand pow 32768 set temp YES
+	ife temp YES
+	{
+		ifvarg KICKBACKPIC 4 ifvarn KICKBACKPIC 19 
+		{
+			addvar KICKBACKPIC 1
+			setplayer[THISACTOR].kickback_pic KICKBACKPIC
+		}
+	}
+	ifvare WEAPON4_FIRESOUND SHOOTROX
+	{
+		ifvare KICKBACKPIC 2
+		{
+			getplayer[THISACTOR].weaponswitch weapswitch
+			setvarvar temp weapswitch
+			ifvarand temp 2 xorvar temp 2
+			setplayer[THISACTOR].weaponswitch temp
+		}
+		ifvare KICKBACKPIC 4
+		{
+			ifvare ammohack 0
+			{
+				getplayer[THISACTOR].ammo_amount 4 temp
+				addvar temp 1
+				setplayer[THISACTOR].ammo_amount 4 temp
+			}
+			setvar ammohack 0
+			
+		} else ifvarg KICKBACKPIC 4 ifvarg roxq 0
+		{
+			ifvarg roxq 1
+			shoot RPG
+			subvar roxq 1
+		}
+		ifvare KICKBACKPIC 19
+		{
+			setplayer[THISACTOR].weaponswitch weapswitch
+			setvar WEAPON4_FIRESOUND RPG_SHOOT
+			setarray playertarg[0] -1
+			setarray playertarg[1] -1
+			setarray playertarg[2] -1
+			setarray playertarg[3] -1
+			setarray playertarg[4] -1
+		}
+	}
+}
+
+ifvarn CURRWEAP 4
+{
+	ifvarg roxq 0
+	{
+		getplayer[THISACTOR].ammo_amount 4 temp
+		addvarvar temp roxq
+		setplayer[THISACTOR].ammo_amount 4 temp
+		setvar roxq 0
+	}
+	setvar WEAPON4_FIRESOUND RPG_SHOOT
+	setarray playertarg[0] -1
+	setarray playertarg[1] -1
+	setarray playertarg[2] -1
+	setarray playertarg[3] -1
+	setarray playertarg[4] -1
+}
+
+ifvare CURRWEAP 5
+{
+	set temp NO
+	ifvarg slowtime 0 set temp YES
+	else ifvarand pow 32768 set temp YES
+	ife temp YES
+	{
+	      set temp NO
+		  ifg KICKBACKPIC 0 ifl KICKBACKPIC 4 set temp YES
+		  ifg KICKBACKPIC 7 set temp YES
+		  ife temp YES { add KICKBACKPIC 1 setp[].kickback_pic KICKBACKPIC }
+	}
+	ifvarand bits 4 set PIPEBOMB_CONTROL 1
+	ife player[].rapid_fire_hold YES // pipebomb ready to be thrown
+	{
+		ifl pipehold 192 add pipehold 8
+		ifp pducking nullop else
+		set pipecount 0
+		set xvel 192
+		add xvel pipehold
+		getp[].horiz zdist
+		sub zdist 100
+		mul zdist -2048
+		div zdist 56
+		getp[].posx x
+		getp[].posy y
+		getp[].posz z
+		getp[].ang angvar
+		whilevarn pipecount 130
+		{
+			set mx x
+			add mx xvel
+			sub xvel 5
+			ifl xvel 0 set xvel 0
+			rotatepoint x y mx y angvar x y
+			espawn LOBTRAIL
+			set temp player[].cursectnum
+			updatesectorz x y z temp
+			ife temp -1 set pipecount 129 else
+			changespritesect RETURN temp
+			seta[RETURN].x x
+			seta[RETURN].y y
+			seta[RETURN].z z
+			seta[RETURN].htbposx x
+			seta[RETURN].htbposy y
+			seta[RETURN].htbposz z
+			setav[RETURN].countvar pipecount
+			add z zdist
+			add zdist 264
+			add pipecount 1
+		}
+		
+	}
+	else ife player[].kickback_pic 0 set pipehold 0
+	ifn player[].curr_weapon HANDBOMB_WEAPON set pipehold 0
+	
+}
+
+ifvare CURRWEAP 6
+{
+	ifvare KICKBACKPIC 16
+	{
+		getplayer[THISACTOR].ammo_amount 6 temp
+		subvar temp 99
+		ifvarl temp 0 setvar temp 0
+		setplayer[THISACTOR].ammo_amount 6 temp
+	}
+	else ifvare ALTFIRING 1 
+	{
+		soundonce BEAMLOOP
+		shoot BFGBEAMPROJ
+		setplayer[THISACTOR].kickback_pic 36
+		setvar KICKBACKPIC 36
+	}
+	else 
+	{
+		set temp NO
+		ifvarg slowtime 0 set temp YES
+		else ifvarand pow 32768 set temp YES
+		ife temp YES
+		ifvarg KICKBACKPIC 0 ifvarn KICKBACKPIC 15
+		{
+			addvar KICKBACKPIC 1
+			setplayer[THISACTOR].kickback_pic KICKBACKPIC
+		}
+		 stopactorsound THISACTOR BEAMLOOP
+	}
+}
+else  stopactorsound THISACTOR BEAMLOOP
+
+ifp palive
+ifvare CURRWEAP 7 
+{
+	set temp NO
+	ifvarg slowtime 0 set temp YES
+	else ifvarand pow 32768 set temp YES
+	ife temp YES
+	{
+		ife KICKBACKPIC 3 { add KICKBACKPIC 1 setp[].kickback_pic KICKBACKPIC }
+	}
+	
+	ifvare ALTFIRING 0
+	{
+		setvar WEAPON7_FIRESOUND -1
+		ifn player[].kickback_pic 0
+		{	
+			ife WEAP7MODE 0 soundonce FIREBEAM_SHOOT
+			ife WEAP7MODE 1 soundonce ICEBEAM_SHOOT
+		}
+		else
+		{
+			stopactorsound THISACTOR FIREBEAM_SHOOT
+			stopactorsound THISACTOR ICEBEAM_SHOOT
+		}
+		
+		ifvarand bits 4 //  extbits 64
+		ifvare KICKBACKPIC 5 ifvarg player[THISACTOR].ammo_amount 7 0
+		{
+			setvar KICKBACKPIC 2
+			setplayer[THISACTOR].kickback_pic 2
+		}
+	} else
+	{
+		 setvar WEAPON7_FIRESOUND FTSHOOT
+		 stopactorsound THISACTOR FLAMER
+	}
+}
+else 
+{
+	 stopactorsound THISACTOR FIREBEAM_SHOOT
+	 stopactorsound THISACTOR ICEBEAM_SHOOT
+	 // stopactorsound THISACTOR STEAMLOOP
+}
+
+// ifvare CURRWEAP 11
+// {
+	// ifvarg slowtime 0
+	// setvar WEAPON11_SHOTSPERBURST 2 else
+	// setvar WEAPON11_SHOTSPERBURST 0
+			
+	
+	// ifvare WEAPON11_SHOOTS FEARBULLET
+	// ifvare KICKBACKPIC 4
+	// {
+		// setvar WEAPON11_SHOOTS SHOTGUN
+		// setvar WEAPON11_TOTALTIME 3
+		// setvar WEAPON11_FIRESOUND CHAINGUN_FIRE
+	// }
+	// ifvare KICKBACKPIC 5 soundonce EJECT_CLIP
+// }
+
+ifvare CURRWEAP 8
+{
+	ife eyeballammo 0 ife player[].weapon_pos 0
+	ife KICKBACKPIC 0
+	{
+		setp[].ammo_amount 8 0
+		setp[].weapon_pos -1
+		setp[].last_weapon 8
+		setp[].wantweaponfire 0
+		setp[].curr_weapon 0
+	}
+	
+	// eyeballframe 2705 facing, 2506-2507 moving, 2508 face away
+	// eyeframecount 5 tics per frame advance
+	set temp NO // default eyeball facing bias
+	
+	ife KICKBACKPIC 0
+	ife player[].weapon_pos 0
+	ifg player[].ammo_amount 8 0
+	ifl shipcam 0
+	{
+		ifn scannedsprite -1 ife actorvar[scannedsprite].monstatus 1
+			set temp YES // eyeball face away bias
+		else ifvarand bits 4
+			set temp YES
+	}
+	set tempb NO
+	ifvarg slowtime 0 set tempb YES
+	else ifvarand pow 32768 set tempb YES
+	ife tempb YES 
+	add eyeframecount 1
+	add eyeframecount 1
+	ifg eyeframecount 4
+	{
+		set eyeframecount 0
+		ife temp NO
+		{
+			ifg eyeballframe 2705 sub eyeballframe 1
+		}
+		else
+		{
+			ifl eyeballframe 2708 add eyeballframe 1
+		}
+		ifp palive
+		ifvare endlevel 0
+		ifvare cutscene 0
+		ife camerasprite -1
+		ifl shipcam 0
+		ifvarand bits 4
+		ifg player[].ammo_amount 8 0
+		ifge eyeballammo 10
+		ife player[].weapon_pos 0
+		ife player[].kickback_pic 0
+		ife eyeballframe 2708
+		{
+			sub eyeballammo 10
+			ifg player[].ammo_amount 8 1
+			{
+				set tempb eyeballammo
+				modvar tempb 100
+				ife tempb 0
+				{
+					getp[].ammo_amount 8 temp
+					sub temp 1
+					setp[].ammo_amount 8 temp
+				}
+			}
+			screensound SHOCKFIRE
+			set eyeframecount -15
+			shoot SHOCKBEAM
+		}
+	}
+}
+set temp player[].ammo_amount 8
+mul temp 100
+ifg eyeballammo temp set eyeballammo temp
+
+
+ifvare CURRWEAP 9
+{
+	set temp NO
+	ifvarg slowtime 0 set temp YES
+	else ifvarand pow 32768 set temp YES
+	ife temp YES
+	{
+		ifn KICKBACKPIC 0 { add KICKBACKPIC 1 setp[].kickback_pic KICKBACKPIC }
+	}
+}
+
+ifvare CURRWEAP 11
+{
+	
+	ifvarand extbits 64
+	ifl revolver_clip REVOLVERCLIP
+	ifg revolver_clip -1
+	ife player[].kickback_pic 0
+	ife player[].weapon_pos 0
+	ifg player[].ammo_amount 11 revolver_clip
+			set revolver_clip -40
+	
+	ifl revolver_clip -1
+	{
+		ifl player[].kickback_pic 2
+		ife player[].weapon_pos 0
+		{
+			setp[].kickback_pic 0
+			set temp NO
+			ifvarg slowtime 0 set temp YES
+			else ifvarand pow 32768 set temp YES
+			ife temp YES add revolver_clip 1
+			add revolver_clip 1
+			ifge revolver_clip -1
+			{
+				ifge player[].ammo_amount 11 REVOLVERCLIP
+				set revolver_clip REVOLVERCLIP
+				else set revolver_clip player[].ammo_amount 11
+			} 
+			ife revolver_clip -30
+			{
+				sound DUMPCYLINDER
+				spawn NEWSHELL spawn NEWSHELL spawn NEWSHELL spawn NEWSHELL
+				spawn NEWSHELL spawn NEWSHELL spawn NEWSHELL spawn NEWSHELL
+			}
+		}
+	}
+	else
+	{
+		ifvare player[].kickback_pic 4 
+		{ 
+			sub revolver_clip 1 
+			espawn SMALLSMOKE 
+			
+			getp[].posx mx
+			add mx 256
+			getp[].ang angvar
+			add angvar 90
+			getp[].posz z add z 1024
+			getp[].horiz mz
+			sub mz 100
+			shiftl mz 5
+			sub z mz
+			rotatepoint player[].posx player[].posy mx player[].posy angvar x y
+			setsprite RETURN x y z
+			seta[RETURN].xrepeat 10
+			seta[RETURN].yrepeat 10
+		}
+		ifvare player[].kickback_pic 8
+		{
+			sound REVOLVER_FIRE
+			shoot REVOLVERBULLET
+			getp[].ammo_amount 11 temp
+			ifg temp 0 sub temp 1
+			setp[].ammo_amount 11 temp
+			sub revolver_clip 1
+			
+			espawn SMALLSMOKE 
+			
+			getp[].posx mx
+			add mx 256
+			getp[].ang angvar
+			sub angvar 90
+			getp[].posz z add z 1024
+			getp[].horiz mz
+			sub mz 100
+			shiftl mz 5
+			sub z mz
+			rotatepoint player[].posx player[].posy mx player[].posy angvar x y
+			setsprite RETURN x y z
+			seta[RETURN].xrepeat 10
+			seta[RETURN].yrepeat 10
+		}
+		ifle revolver_clip 0 ifg player[].ammo_amount 11 0
+			set revolver_clip -40
+		
+	}
+	
+	set temp NO
+	ifvarg slowtime 0 set temp YES
+	else ifvarand pow 32768 set temp YES
+	ife temp YES
+	ifn KICKBACKPIC 0
+	{
+		ifvarand KICKBACKPIC 2
+		{
+			addvar KICKBACKPIC 1
+			setplayer[THISACTOR].kickback_pic KICKBACKPIC
+		}
+	}
+	
+	
+}
+else ifl revolver_clip -1 set revolver_clip -40
+
+
+ifp palive
+ifvare CURRWEAP 3
+{
+	set temp NO
+	ifvarg slowtime 0 set temp YES
+	else ifvarand pow 32768 set temp YES
+	ife temp YES
+	setvar WEAPON3_SHOTSPERBURST 2 
+	else setvar WEAPON3_SHOTSPERBURST 0
+	ifvare player[THISACTOR].ammo_amount 3 0 ifvarg grenades 0
+	{
+		setplayer[THISACTOR].ammo_amount 3 1
+		ifvarn KICKBACKPIC 0
+		{
+			setvar KICKBACKPIC 0
+			setplayer[THISACTOR].kickback_pic 0
+		}
+	}
+	
+	ifvarn grenadecounter 0
+	{
+		ifvare grenadecounter 3
+		{
+			subvar grenades 1
+			shoot GRENADEPROJ
+			sound GRENSHOOT
+			ifvare player[THISACTOR].ammo_amount 3 1 setplayer[THISACTOR].ammo_amount 3 0
+			
+		}
+		addvar grenadecounter 1
+		set temp NO
+		ifvarg slowtime 0 set temp YES
+		else ifvarand pow 32768 set temp YES
+		ife temp YES
+		add grenadecounter 1
+		ifvarg grenadecounter 25 setvar grenadecounter 0
+	}
+	ifvare miniguncount 0 
+	{
+		setvar gunframe 2537 
+		 stopactorsound THISACTOR MINISPINSLOW
+		 stopactorsound THISACTOR MINISPINFAST
+	}
+	else
+	{
+		ifvare gunframe 2537 setvar gunframe 2538 else
+		ifvare gunframe 2538 setvar gunframe 2539 else
+		ifvare gunframe 2539 setvar gunframe 2540 else
+		ifvare gunframe 2540 setvar gunframe 2538 else
+		setvar gunframe 2537
+		
+		ifvarl miniguncount MAXSPIN
+		{
+			 stopactorsound THISACTOR MINISPINFAST
+			soundonce MINISPINSLOW
+		} else
+		{
+			 stopactorsound THISACTOR MINISPINSLOW
+			soundonce MINISPINFAST
+		}
+	}
+	
+    ifvarand bits 4
+    ifvare endlevel 0
+	ifl shipcam 0
+	ife helpmenu 0
+    {
+       addvar miniguncount 1
+       set temp NO
+		ifvarg slowtime 0 set temp YES
+		else ifvarand pow 32768 set temp YES
+		ife temp YES 
+	   addvar miniguncount 1
+    }
+    else
+    {
+	   ifvarg miniguncount MINIFIRECOUNT setvar miniguncount MINIFIRECOUNT
+	   ifvarg miniguncount 0 subvar miniguncount 1
+    }
+	   
+	ifvarn KICKBACKPIC 0
+	{
+		ifvarl miniguncount MINIFIRECOUNT 
+			setplayer[THISACTOR].kickback_pic 0
+		else ifvare KICKBACKPIC 11
+		{
+			setvar KICKBACKPIC 2
+			getplayer[THISACTOR].ammo_amount 3 temp
+			ifvare temp 0 setvar KICKBACKPIC 0
+			setplayer[THISACTOR].kickback_pic KICKBACKPIC
+		}
+	}
+	ifvarg miniguncount MINISPEEDCOUNT 
+	{
+		setvar WEAPON3_FLAGS 76
+		ifvarg miniguncount MAXSPIN setvar miniguncount MAXSPIN
+	} else
+	setvar WEAPON3_FLAGS 84 
+}
+else  
+{
+	setvar miniguncount 0 
+	setvar grenadecounter 0 
+}
+ends
+
+state switcharrows
+
+ifvarn KICKBACKPIC 0 break
+
+getplayer[THISACTOR].ammo_amount 4 temp
+subvar temp 1 // because you can't fire your "last" arrow
+addvarvar temp burnarrows
+addvarvar temp explarrows
+addvarvar temp multiarrows
+addvarvar temp freezearrows
+addvarvar temp spyarrows
+ifvarg temp 0
+{
+	setvar tempb 0
+	whilevarn tempb 1
+	{
+		addvar arrowtype 1
+		ifvarg arrowtype 5 setvar arrowtype 0
+		ifvare arrowtype 0 ifvarg player[THISACTOR].ammo_amount 4 1 setvar tempb 1
+		ifvare arrowtype 1 ifvarg burnarrows 0 setvar tempb 1
+		ifvare arrowtype 2 ifvarg explarrows 0 setvar tempb 1
+		ifvare arrowtype 3 ifvarg multiarrows 0 
+		{
+			setvar tempb 1
+			setvar WEAPON4_SHOTSPERBURST 5
+		}
+		else setvar WEAPON4_SHOTSPERBURST 0
+		ifvare arrowtype 4 ifvarg freezearrows 0 setvar tempb 1
+		ifvare arrowtype 5 ifvarg spyarrows 0 setvar tempb 1
+	}
+}
+ends
+
+
+state barbweaponcode
+
+ifvarand player[THISACTOR].weaponswitch 2
+{
+	getplayer[THISACTOR].weaponswitch temp
+	xorvar temp 2
+	setplayer[THISACTOR].weaponswitch temp
+}
+
+ifge barbshield 2
+ifg sprite[].htextra 1
+{
+	set temp sprite[].htextra
+	div temp 2
+	seta[].htextra temp
+}
+
+ifvare ARROWHACK YES
+{
+	getplayer[THISACTOR].posx htg0
+	getplayer[THISACTOR].posy htg1
+	getplayer[THISACTOR].posz htg2
+	getplayer[THISACTOR].cursectnum mysector
+	
+	setvarvar mx arrhackx
+	addvar mx 384
+	setvarvar angvar arrhackang
+	subvar angvar 1024
+	rotatepoint arrhackx arrhacky mx arrhacky angvar x y
+	updatesector x y temp
+	ifvarn temp -1
+	{
+		setplayer[THISACTOR].posx x
+		setplayer[THISACTOR].posy y
+		
+		subvar arrhackz 2048
+		setplayer[THISACTOR].posz arrhackz
+		
+		addvar arrhackz 8192
+		getplayer[THISACTOR].i htg3
+		changespritesect htg3 temp
+		setsprite htg3 x y arrhackz
+		setplayer[THISACTOR].cursectnum temp
+		
+		shoot KNEE
+		
+		setplayer[THISACTOR].posx htg0
+		setplayer[THISACTOR].posy htg1
+		setplayer[THISACTOR].posz htg2
+		setplayer[THISACTOR].cursectnum mysector
+		addvar htg2 8192
+		setsprite htg3 htg0 htg1 htg2
+		changespritesect htg3 mysector
+	}
+	setvar ARROWHACK 0
+}
+
+ifvare CURRWEAP 0 
+{
+	set temp NO
+	ifvarg slowtime 0 set temp YES
+	else ifvarand pow 32768 set temp YES
+	ife temp YES
+	ifvarn KICKBACKPIC 0 ifvarn KICKBACKPIC 5
+	{
+		addvar KICKBACKPIC 1
+		setplayer[THISACTOR].kickback_pic KICKBACKPIC
+	}
+}
+
+ifvare CURRWEAP 1 // NECROSWORD
+{
+	set temp NO
+	ifvarg slowtime 0 set temp YES
+	else ifvarand pow 32768 set temp YES
+	ife temp YES
+	{
+		switch KICKBACKPIC
+		case 0 break
+		case 16 break
+		case 3 screensound HUGESWISH  addvar KICKBACKPIC 1 break
+		case 5 shoot SWORDPROJ break
+		case 6 shoot SWORDPROJ addvar KICKBACKPIC 1 break
+		case 8 shoot SWORDPROJ ifg player[].ammo_amount 1 1 shoot SLASHPROJ shoot SLASHPROJ addvar KICKBACKPIC 1 break
+		default addvar KICKBACKPIC 1 break
+		endswitch
+		setplayer[THISACTOR].kickback_pic KICKBACKPIC
+	}
+	getplayer[THISACTOR].ammo_amount 1 temp
+	ifvare temp 0
+	ifvare KICKBACKPIC 0
+	{
+		addvar temp 1
+		setplayer[THISACTOR].ammo_amount 1 1
+	}
+	
+	ifge KICKBACKPIC 4 ifle KICKBACKPIC 9
+	ifg sprite[].htextra 1
+	{
+		set temp sprite[].htextra
+		div temp 2
+		seta[].htextra temp
+	}
+	
+	ifvare KICKBACKPIC 3 screensound HUGESWISH 
+	// ifvare KICKBACKPIC 5
+	// {
+		// addvar temp 1
+		// setplayer[THISACTOR].ammo_amount 1 temp
+	// }
+	ifvare KICKBACKPIC 6 shoot SWORDPROJ
+	ifvare KICKBACKPIC 7 shoot SWORDPROJ
+	ifvare KICKBACKPIC 8 { shoot SWORDPROJ ifg player[].ammo_amount 1 1 shoot SLASHPROJ }
+	
+	ifvarn barbshield 0
+	ifvarg btap 2
+	ifvarg temp 5
+	{
+		findnearactor GOODHEAD 2048 spriteid
+		ifn spriteid -1
+			quote 694
+		else
+		{
+			globalsound RIFTATTACK
+			subvar temp 5
+			setplayer[THISACTOR].ammo_amount 1 temp
+			setvar btap 0
+			randvar angvar 2047
+			setvar countvar 0
+			whilevarn countvar 4
+			{
+				espawn GOODHEAD
+				setactor[RETURN].pal 7
+				setactorvar[RETURN].peractor1 angvar
+				setactorvar[RETURN].myspawner sprite[THISACTOR].yvel
+				addvar angvar 512
+				addvar countvar 1
+			}
+		}
+	}
+	
+}
+else
+ifvare CURRWEAP 2 // HAMMER
+{
+	ifvarg KICKBACKPIC 0 ifvarl KICKBACKPIC 7
+	// ifvarand bits 268435456
+	ifvarand extbits 64
+	ifvarg player[THISACTOR].ammo_amount 2 1
+	ifl hammercount 3
+		setvar WEAPON2_FIRESOUND RPG_EXPLODE // used only as a flag
+	
+	set temp NO
+	ifvarg slowtime 0 set temp YES
+	else ifvarand pow 32768 set temp YES
+	ife temp YES
+	{
+		ifvarg KICKBACKPIC 0 ifvarn KICKBACKPIC 6 ifvarn KICKBACKPIC 12
+		{
+			ifvarg KICKBACKPIC 6 ifvarl KICKBACKPIC 12 shoot KNEE
+			ife KICKBACKPIC 7
+			{
+				getp[].ammo_amount 2 temp
+				sub temp 1, ifl temp 1 set temp 1
+				setp[].ammo_amount 2 temp
+			}
+			addvar KICKBACKPIC 1
+			setplayer[THISACTOR].kickback_pic KICKBACKPIC
+		}
+	}
+	
+	ifvare KICKBACKPIC 6
+	{
+		ifvare WEAPON2_FIRESOUND RPG_EXPLODE
+		{
+			setvar WEAPON2_FIRESOUND -1
+			espawn HAMMERPROJ
+			ifvarn hammertarg -1 setactorvar[RETURN].target hammertarg
+			setactorvar[RETURN].myspawner sprite[THISACTOR].yvel
+			
+			getplayer[THISACTOR].posz mz
+			addvar mz 2048
+			setactor[RETURN].z mz
+			setp[].weapon_pos -8
+			setp[].kickback_pic 14
+			// setplayer[THISACTOR].gotweapon 2 0
+			// getp[].ammo_amount 2 temp
+			// add temp 1
+			// setp[].ammo_amount 2 temp
+			// setplayer[THISACTOR].curr_weapon 0
+			add hammercount 1
+		}
+		sound BIGSWISH
+		
+	}
+	
+	ifge KICKBACKPIC 6 ifle KICKBACKPIC 12
+	ifg sprite[].htextra 1
+	{
+		set temp sprite[].htextra
+		div temp 2
+		seta[].htextra temp
+	}
+	
+	
+	ifvare KICKBACKPIC 7 { shoot KNEE shoot KNEE }
+	ifvare KICKBACKPIC 8 { shoot KNEE shoot KNEE }
+	ifvare KICKBACKPIC 9 { shoot KNEE shoot KNEE }
+	ifvare KICKBACKPIC 10 { shoot KNEE shoot KNEE }
+	ifvare KICKBACKPIC 11 { shoot KNEE shoot KNEE }
+	
+	ifvare KICKBACKPIC 12
+	ifp ponground
+	ifvarg player[THISACTOR].ammo_amount 2 0
+	{
+		globalsound BIGTHUD
+		quake 20
+		setvar barbquake 128 // to get quake counter started
+	}
+
+	ifvare player[THISACTOR].ammo_amount 2 0
+	ifvare KICKBACKPIC 0
+	setplayer[THISACTOR].ammo_amount 2 1
+		
+}
+else
+ifvare CURRWEAP 3 // AXE
+{
+	
+	set temp NO
+	ifvarg slowtime 0 set temp YES
+	else ifvarand pow 32768 set temp YES
+	ife temp YES
+	{
+		ifvarg KICKBACKPIC 0 ifvarn KICKBACKPIC 8
+		{
+			ifvarg KICKBACKPIC 9 ifvarl KICKBACKPIC 14 shoot SWORDPROJ
+			ife KICKBACKPIC 9
+			{
+				getp[].ammo_amount 3 temp
+				sub temp 1, ifl temp 1 set temp 1
+				setp[].ammo_amount 3 temp
+			}
+			addvar KICKBACKPIC 1
+			setplayer[THISACTOR].kickback_pic KICKBACKPIC
+		}
+	}
+	
+	ifge KICKBACKPIC 6 ifle KICKBACKPIC 13
+	ifg sprite[].htextra 1
+	{
+		set temp sprite[].htextra
+		div temp 2
+		seta[].htextra temp
+	}
+	
+	ifvare KICKBACKPIC 6 screensound HUGESWISH
+	ifvare KICKBACKPIC 9 shoot SWORDPROJ
+	ifvare KICKBACKPIC 10 shoot SWORDPROJ
+	ifvare KICKBACKPIC 11 shoot SWORDPROJ
+	ifvare KICKBACKPIC 12 shoot SWORDPROJ
+	ifvare KICKBACKPIC 13 
+	ifg player[].ammo_amount 3 0
+	{
+		shoot SWORDPROJ
+		espawn TIDALWAVE
+		setav[RETURN].mtype 1
+	}
+	
+	
+	ifvare player[THISACTOR].ammo_amount 3 0
+	ifvare KICKBACKPIC 0
+	setplayer[THISACTOR].ammo_amount 3 1
+	
+	ifvarg player[THISACTOR].ammo_amount 3 0
+	ifvare KICKBACKPIC 8
+	{
+		sound SOMETHINGFROZE
+		headspritestat temp 1
+		whilevarn temp -1
+		{
+			ifvare actorvar[temp].monstatus 1
+			ifvarg actorvar[temp].cursed -1
+			{
+				dist tempb THISACTOR temp
+				ifvarl tempb 4096
+				{
+					ifvarand pow 128 setvar tempd 32768 else
+					setvar tempd 16384
+					getactor[temp].extra tempb
+					ifvarl tempb 1 setvar tempb 1
+					divvarvar tempd tempb
+					ifvarg tempd 130 setvar tempd 130
+					getactorvar[temp].burning tempc
+					subvarvar tempc tempd
+					setactorvar[temp].burning tempc
+				}
+				
+			}
+			nextspritestat temp temp
+		}
+	}
+	
+	ifvarn barbshield 0
+	ifvarg btap 2
+	ifvarg player[THISACTOR].ammo_amount 3 2
+	ife hailcool 0
+	{
+		getplayer[THISACTOR].ammo_amount 3 saveit
+		randvar angvar 2047
+		setvar countvar 0
+		headspritestat spriteid 1
+		whilevarn spriteid -1
+		{
+			ifvare actorvar[spriteid].monstatus 1
+			ifvare actorvar[spriteid].cursed 0
+			{
+				dist temp THISACTOR spriteid
+				ifvarl temp 20480
+				{
+					getplayer[THISACTOR].ammo_amount 3 temp
+					ifvarvare temp saveit
+					{
+						setvar btap 0
+						sound RIFTATTACK
+						subvar temp 2
+						setplayer[THISACTOR].ammo_amount 3 temp
+						set hailcool 150
+					}
+					else
+					{
+						subvar temp 1
+						setplayer[THISACTOR].ammo_amount 3 temp
+					}
+					addvar countvar 1
+					espawn HAILSPAWNER
+					getceilzofslope sprite[spriteid].sectnum sprite[spriteid].x sprite[spriteid].y mz
+					getplayer[THISACTOR].posz z
+					subvar z 49152
+					ifvarvarl mz z setvarvar mz z
+					setsprite RETURN sprite[spriteid].x sprite[spriteid].y mz
+					setactorvar[RETURN].myspawner sprite[THISACTOR].yvel
+				}
+			}
+			nextspritestat spriteid spriteid
+			ifvarg countvar 3 setvar spriteid -1
+		}
+	}
+	
+	
+}
+else
+ifvare CURRWEAP 4 // bow
+{
+	ifrnd 128 setvar WEAPON4_FIRESOUND BOWSHOOT2 else
+	setvar WEAPON4_FIRESOUND BOWSHOOT
+	setvar barbshield 0
+
+	set temp NO
+	ifvarg slowtime 0 set temp YES
+	else ifvarand pow 32768 set temp YES
+	ife temp YES
+	{
+		ifvarg KICKBACKPIC 1 ifvarn KICKBACKPIC 14 ifvarn KICKBACKPIC 15 ifvarn KICKBACKPIC 16
+		{
+			addvar KICKBACKPIC 1
+			setplayer[THISACTOR].kickback_pic KICKBACKPIC
+		}
+	}
+	
+	ifvare KICKBACKPIC 1 sound BOWDRAW
+	ifvarg KICKBACKPIC 12 ifvarl KICKBACKPIC 16 ifvarand bits 4
+	{
+		setplayer[THISACTOR].kickback_pic 14
+		setvar KICKBACKPIC 14
+	}
+	
+	ifvare KICKBACKPIC 16
+	ifvarn arrowtype 0
+	{
+		 getplayer[THISACTOR].ammo_amount 4 temp
+		 addvar temp 1
+		 setplayer[THISACTOR].ammo_amount 4 temp 
+		 ifvarand pow 65536 nullop else
+		 {
+			 ifvare arrowtype 1 subvar burnarrows 1 else
+			 ifvare arrowtype 2 subvar explarrows 1 else
+			 ifvare arrowtype 3 subvar multiarrows 1 else
+			 ifvare arrowtype 4 subvar freezearrows 1 else
+			 ifvare arrowtype 5 subvar spyarrows 1
+		 }
+	}
+	ifvare KICKBACKPIC 1 setvar arrowview -1
+	
+	// ifvarand bits 268435456
+	switch arrowtype
+		case 0
+			ifvarl player[THISACTOR].ammo_amount 4 2
+			{
+				ifg explarrows 0 set arrowtype 2 else
+				ifg multiarrows 0 set arrowtype 3 else
+				ifg freezearrows 0 set arrowtype 4 else
+				ifg burnarrows 0 set arrowtype 1 else
+				ifg spyarrows 0 set arrowtype 5
+			}
+		break
+		case 1
+			ifl burnarrows 1
+			{
+				ifg explarrows 0 set arrowtype 2 else
+				ifg multiarrows 0 set arrowtype 3 else
+				ifg freezearrows 0 set arrowtype 4 else
+				// ifg burnarrows 0 set arrowtype 1 else
+				ifg spyarrows 0 set arrowtype 5 else
+				ifg player[THISACTOR].ammo_amount 4 1 set arrowtype 0
+			}
+		break
+		case 2
+			ifl explarrows 1
+			{
+				// ifg explarrows 0 set arrowtype 2 else
+				ifg multiarrows 0 set arrowtype 3 else
+				ifg freezearrows 0 set arrowtype 4 else
+				ifg burnarrows 0 set arrowtype 1 else
+				ifg spyarrows 0 set arrowtype 5 else
+				ifg player[THISACTOR].ammo_amount 4 1 set arrowtype 0
+			}
+		break
+		case 3
+			ifl multiarrows 1
+			{
+				ifg explarrows 0 set arrowtype 2 else
+			    // ifg multiarrows 0 set arrowtype 3 else
+				ifg freezearrows 0 set arrowtype 4 else
+				ifg burnarrows 0 set arrowtype 1 else
+				ifg spyarrows 0 set arrowtype 5 else
+				ifg player[THISACTOR].ammo_amount 4 1 set arrowtype 0
+			}
+		break
+		case 4
+			ifl freezearrows 1
+			{
+				ifg explarrows 0 set arrowtype 2 else
+				ifg multiarrows 0 set arrowtype 3 else
+				// ifg freezearrows 0 set arrowtype 4 else
+				ifg burnarrows 0 set arrowtype 1 else
+				ifg spyarrows 0 set arrowtype 5 else
+				ifg player[THISACTOR].ammo_amount 4 1 set arrowtype 0
+			}
+		break
+		case 5
+			ifl spyarrows 1
+			{
+				ifg explarrows 0 set arrowtype 2 else
+				ifg multiarrows 0 set arrowtype 3 else
+				ifg freezearrows 0 set arrowtype 4 else
+				ifg burnarrows 0 set arrowtype 1 else
+				// ifg spyarrows 0 set arrowtype 5 else
+				ifg player[THISACTOR].ammo_amount 4 1 set arrowtype 0
+			}
+		break
+	endswitch
+	
+	ifvarand extbits 64 // switch arrow type
+	{
+		setvarvar temp inputime
+		addvar temp 1
+		ifvarvarn temp timer
+			state switcharrows
+		setvarvar inputime timer
+	} else
+	{
+		setvar tempb 0
+		ifvare arrowtype 0 ifvarl player[THISACTOR].ammo_amount 4 2 setvar tempb 1 else
+		ifvare arrowtype 1 ifvare burnarrows 0 setvar tempb 1 else
+		ifvare arrowtype 2 ifvare explarrows 0 setvar tempb 1 else
+		ifvare arrowtype 3 ifvare multiarrows 0 setvar tempb 1 else
+		ifvare arrowtype 4 ifvare freezearrows 0 setvar tempb 1 else
+		ifvare arrowtype 5 ifvare spyarrows 0 setvar tempb 1
+		ifvare tempb 1
+		state switcharrows
+	}
+}
+else
+ifvare CURRWEAP 5
+{
+	set temp NO
+	ifvarg slowtime 0 set temp YES
+	else ifvarand pow 32768 set temp YES
+	ife temp YES
+	{
+	      set temp NO
+		  ifg KICKBACKPIC 0 ifl KICKBACKPIC 4 set temp YES
+		  ifg KICKBACKPIC 7 set temp YES
+		  ife temp YES { add KICKBACKPIC 1 setp[].kickback_pic KICKBACKPIC }
+	}
+	set PIPEBOMB_CONTROL 0
+	ife player[].rapid_fire_hold YES // pipebomb ready to be thrown
+	{
+		ifl pipehold 192 add pipehold 16
+		ifp pducking nullop else
+		set pipecount 0
+		set xvel 192
+		add xvel pipehold
+		getp[].horiz zdist
+		sub zdist 100
+		mul zdist -2048
+		div zdist 56
+		getp[].posx x
+		getp[].posy y
+		getp[].posz z
+		getp[].ang angvar
+		// whilevarn pipecount 130
+		// {
+			// set mx x
+			// add mx xvel
+			// sub xvel 5
+			// ifl xvel 0 set xvel 0
+			// rotatepoint x y mx y angvar x y
+			// espawn LOBTRAIL
+			// set temp player[].cursectnum
+			// updatesectorz x y z temp
+			// ife temp -1 set pipecount 129 else
+			// changespritesect RETURN temp
+			// seta[RETURN].x x
+			// seta[RETURN].y y
+			// seta[RETURN].z z
+			// seta[RETURN].htbposx x
+			// seta[RETURN].htbposy y
+			// seta[RETURN].htbposz z
+			// setav[RETURN].countvar pipecount
+			// add z zdist
+			// add zdist 264
+			// add pipecount 1
+		// }
+		
+	}
+	else ife player[].kickback_pic 0 set pipehold 0
+	
+	ife player[].kickback_pic 7
+	{
+		screensound HUGESWISH
+		getprojectile[SPEARPROJ].extra temp
+		set saveit temp
+		set tempb pipehold
+		ifn dashscreen -1 add tempb 128
+		div tempb 3
+		add temp tempb
+		
+		setprojectile[SPEARPROJ].extra temp
+		
+		getprojectile[SPEARPROJ].vel xvel
+		set saveit2 xvel
+		set temp pipehold
+		ifn dashscreen -1 add temp 128
+		mul temp 2
+		add xvel temp
+		setprojectile[SPEARPROJ].vel xvel
+		
+		getp[].posz savez
+		sub savez 1792
+		setp[].posz savez
+		
+		shoot SPEARPROJ
+		
+		add savez 1792
+		setp[].posz savez
+		
+		setprojectile[SPEARPROJ].extra saveit
+		setprojectile[SPEARPROJ].vel saveit2
+		
+		
+	}
+	ife player[].kickback_pic 0
+	ife player[].ammo_amount 5 0
+		setp[].curr_weapon 0
+	
+}
+ifn player[].curr_weapon HANDBOMB_WEAPON set pipehold 0
+
+ifvare CURRWEAP 6 // ARMAGEDDON SWORD
+{
+	ifg ARMCOOLDOWN 0 sub ARMCOOLDOWN 1
+	ifn swordtarg -1 ldist xydist3 THISACTOR swordtarg
+	ifvare KICKBACKPIC 4 
+	{ 
+		screensound HUGESWISH 
+		sound SHRINKER_FIRE 
+	}
+	
+	ifvare KICKBACKPIC 8
+	ifvare swordtarg -1
+	ifvarg player[THISACTOR].ammo_amount 6 0
+	{
+		getplayer[THISACTOR].ammo_amount 6 temp
+		addvar temp 1
+		setplayer[THISACTOR].ammo_amount 6 temp
+	}
+	
+	ifvare KICKBACKPIC 9 
+	{ 
+		shoot SWORDPROJ shoot SWORDPROJ shoot SWORDPROJ 
+		ifn swordtarg -1
+		ifl sprite[swordtarg].htextra 60
+		ifl xydist3 1536
+		{
+			ifsound SWORDHIT nullop else screensound SWORDHIT
+			seta[swordtarg].htextra 60
+			seta[swordtarg].htpicnum SHOTSPARK1
+			seta[swordtarg].htowner player[].i
+			seta[swordtarg].htang player[].ang
+			getav[swordtarg].burning temp
+			add temp 20
+			setav[swordtarg].burning temp
+		}
+	}
+	ifvare KICKBACKPIC 10 
+	{ 
+		shoot SWORDPROJ shoot SWORDPROJ shoot SWORDPROJ shoot SWORDPROJ shoot SWORDPROJ 
+		ifn swordtarg -1
+		ifl sprite[swordtarg].htextra 90
+		ifl xydist3 1536
+		{
+			ifsound SWORDHIT nullop else screensound SWORDHIT
+			seta[swordtarg].htextra 90
+			seta[swordtarg].htpicnum SHOTSPARK1
+			seta[swordtarg].htowner player[].i
+			seta[swordtarg].htang player[].ang
+			getav[swordtarg].burning temp
+			add temp 40
+			setav[swordtarg].burning temp
+		}
+		ifn swordtarg -1 set ARMCOOLDOWN 20
+	}
+	ifvare KICKBACKPIC 11 
+	{ 
+		shoot SWORDPROJ shoot SWORDPROJ shoot SWORDPROJ  shoot SWORDPROJ shoot SWORDPROJ 
+		ifn swordtarg -1
+		ifl sprite[swordtarg].htextra 90
+		ifl xydist3 1536
+		{
+			ifsound SWORDHIT nullop else screensound SWORDHIT
+			seta[swordtarg].htextra 90
+			seta[swordtarg].htpicnum SHOTSPARK1
+			seta[swordtarg].htowner player[].i
+			seta[swordtarg].htang player[].ang
+			getav[swordtarg].burning temp
+			add temp 40
+			setav[swordtarg].burning temp
+		}
+		ifn swordtarg -1 set ARMCOOLDOWN 20
+	}
+	ifvare KICKBACKPIC 0 setvar swordattk 0 else
+	ifvarg swordattk 0 
+	{
+		setvar dodge 0
+		addvar swordattk 1
+		ifge KICKBACKPIC 6 ifle KICKBACKPIC 12
+		setactor[THISACTOR].htextra -1
+	}
+	ifvarn swordtarg -1
+	{
+		ifvarn actorvar[swordtarg].monstatus 1 setvar swordtarg -1 else
+		ifvarn sprite[swordtarg].statnum 1 setvar swordtarg -1
+		ifvarn swordtarg -1
+		{
+			ifvarn KICKBACKPIC 0
+			{
+				ifg sprite[].htextra 1
+				{
+					set temp sprite[].htextra
+					div temp 2
+					seta[].htextra temp
+				}
+				ifvare swordattk 0
+				{
+					getplayer[THISACTOR].posx savex
+					getplayer[THISACTOR].posy savey
+					getplayer[THISACTOR].posz savez
+					setvar swordattk 1
+				}
+				ifvarg swordattk 2
+				ifvarl KICKBACKPIC 3
+				{
+					getplayer[THISACTOR].posx x
+					getplayer[THISACTOR].oposx mx
+					subvarvar x mx
+					ifvarl x 0 mulvar x -1
+					
+					getplayer[THISACTOR].posy y
+					getplayer[THISACTOR].oposy my
+					subvarvar y my
+					ifvarl y 0 mulvar y -1
+					
+					addvarvar x y
+					ifvarl x 256 // not moving
+					{
+						setvar KICKBACKPIC 3
+						setplayer[THISACTOR].kickback_pic 3
+						setvar swordattk 1
+						
+					}
+				}
+				ifvarl KICKBACKPIC 15
+				{
+					getactor[swordtarg].x mx
+					getactor[swordtarg].y my
+					getplayer[THISACTOR].posx x
+					getplayer[THISACTOR].posy y
+					subvarvar mx x
+					subvarvar my y
+					getangle angvar mx my
+					ife upside NO setplayer[THISACTOR].ang angvar
+					
+				
+					ifvarl xydist3 1536 // 2048
+					{
+					
+						// first test to make sure we are not teleporting through a barrier
+						getp[].posx saveit
+						getp[].posy saveit2
+						
+						cos xvel angvar
+						sin yvel angvar
+						shiftvarr xvel 4
+						shiftvarr yvel 4
+						movesprite THISACTOR xvel yvel 0 CLIPMASK0 RETURN
+						ifn RETURN 0
+						ifn RETURN swordtarg
+						{
+							seta[].x saveit
+							seta[].y saveit2
+							setp[].posx saveit
+							setp[].posy saveit2
+						}
+						else
+						{
+							// place player directly in front of monster
+							ife upside NO setplayer[THISACTOR].horiz 100
+							setplayer[THISACTOR].hard_landing 0
+							getactor[swordtarg].x x
+							getactor[swordtarg].y y
+							getactor[swordtarg].z mz
+							setvarvar mx x
+							addvar mx 512
+							setvarvar temp angvar
+							addvar temp 1024
+							rotatepoint x y mx y temp mx my
+							updatesectorz mx my mz mysector
+							ifvarn mysector -1 
+							{
+								setplayer[THISACTOR].cursectnum mysector
+								geta[swordtarg].picnum picnum
+								set z tiledata[picnum].ysize
+								mul z sprite[swordtarg].yrepeat
+								shiftl z 1
+								sub mz z
+								// ifg mz sprite[].z set mz sprite[].z
+								setp[].posz mz
+								add mz 8192
+								setsprite THISACTOR mx my mz					
+								
+								setplayer[THISACTOR].posx mx
+								setplayer[THISACTOR].posy my
+								setplayer[THISACTOR].posxv 0
+								setplayer[THISACTOR].posyv 0
+								setplayer[THISACTOR].poszv -256
+							}
+							
+							
+						}
+					}
+				}
+					
+			}
+			
+			ifvarg KICKBACKPIC 0 ifvarl KICKBACKPIC 3
+			{
+				
+				spawn FRAMEEFFECT1
+				
+				setvar KICKBACKPIC 1
+				setplayer[THISACTOR].kickback_pic 1
+					
+				ifvarl xydist3 2048
+				{
+					// setuserdef[THISACTOR].clipping NO
+					setplayer[THISACTOR].kickback_pic 3
+					setvar KICKBACKPIC 3
+					setvar swordattk 1
+				}
+				else state flytotarg
+			}
+		}
+	}
+	ifvare KICKBACKPIC 15
+	ifvarn swordattk 0
+	{
+		setvar swordtarg -1
+		setplayer[THISACTOR].kickback_pic 14
+		state flyback
+		
+		getplayer[THISACTOR].posx x
+		subvarvar x savex
+		ifvarl x 0 mulvar x -1
+		getplayer[THISACTOR].posy y
+		subvarvar y savey
+		ifvarl y 0 mulvar y -1
+		
+		addvarvar x y
+		ifvarl x 2048
+		{
+			setvar swordattk 0
+			setplayer[THISACTOR].hard_landing 0
+			setplayer[THISACTOR].posx savex
+			setplayer[THISACTOR].posy savey
+			setplayer[THISACTOR].posz savez
+			setplayer[THISACTOR].posxv 0
+			setplayer[THISACTOR].posyv 0
+			setplayer[THISACTOR].poszv -256
+			setsprite THISACTOR savex savey savez
+			updatesectorz savex savey savez mysector
+			ifvarn mysector -1
+			setplayer[THISACTOR].cursectnum mysector
+		}
+		else
+		ifvarg swordattk 20
+		{
+			getplayer[THISACTOR].posx x
+			getplayer[THISACTOR].oposx mx
+			subvarvar x mx
+			ifvarl x 0 mulvar x -1
+			
+			getplayer[THISACTOR].posy y
+			getplayer[THISACTOR].oposy my
+			subvarvar y my
+			ifvarl y 0 mulvar y -1
+			
+			addvarvar x y
+			ifvarl x 512 // not moving
+			{
+				setvar swordattk 0
+				setplayer[THISACTOR].hard_landing 0
+				setplayer[THISACTOR].posx savex
+				setplayer[THISACTOR].posy savey
+				setplayer[THISACTOR].posz savez
+				setplayer[THISACTOR].posxv 0
+				setplayer[THISACTOR].posyv 0
+				setplayer[THISACTOR].poszv -256
+				setsprite THISACTOR savex savey savez
+				updatesectorz savex savey savez mysector
+				ifvarn mysector -1
+				setplayer[THISACTOR].cursectnum mysector
+			}
+		}
+	}
+
+	ifvarn barbshield 0
+	ifvarg btap 2
+	{
+		getplayer[THISACTOR].ammo_amount 6 saveit
+		ifvarg saveit 1
+		{
+			setvar countvar 0
+			headspritestat spriteid 1
+			whilevarn spriteid -1
+			{
+				ifvare actorvar[spriteid].monstatus 1
+				ifvare actorvar[spriteid].cursed 0
+				{
+					dist temp THISACTOR spriteid
+					ifvarl temp 16384
+					{
+						ifvarl countvar 5
+						{
+							setvar btap 0
+							getplayer[THISACTOR].ammo_amount 6 temp
+							subvar temp 1
+							ifvarl temp 1 { setvar temp 0 setvar countvar 20 }
+							setplayer[THISACTOR].ammo_amount 6 temp
+						}
+						addvar countvar 1
+						espawn DAMOSWORD
+						getactor[spriteid].z z
+						subvar z 24576
+						setsprite RETURN sprite[spriteid].x sprite[spriteid].y z
+						setactorvar[RETURN].myspawner spriteid
+						ifvarg livemon 50 setactorvar[spriteid].initcstat 666
+					}
+				}
+				nextspritestat spriteid spriteid
+				ifvarg countvar 19 setvar spriteid -1
+			}
+		}
+	}
+
+}
+else ifvare CURRWEAP 7 // lightning gauntlets
+{
+
+	set temp NO
+	ifvarg slowtime 0 set temp YES
+	else ifvarand pow 32768 set temp YES
+	ife temp YES
+	{
+	      setvar WEAPON7_SHOTSPERBURST 5
+	}
+	else setvar WEAPON7_SHOTSPERBURST 3
+	
+	set temp NO
+	ifvarand bits 4
+	{
+		set ALTFIRING NO
+		set temp YES
+	}
+	ifvarand extbits 64
+		set temp YES
+	
+	ife temp YES
+	ifvarg player[THISACTOR].ammo_amount 7 0
+	ifvare KICKBACKPIC 9
+	{
+		setvar KICKBACKPIC 5
+		setplayer[THISACTOR].kickback_pic 5
+		ifvarand extbits 64 set ALTFIRING YES
+	}
+	ifvare KICKBACKPIC 5
+	ifrnd 64
+	{
+		randvar temp 3
+		ifvare temp 0 { ifactorsound THISACTOR LIGHTN1 nullop else sound LIGHTN1 } else
+		ifvare temp 1 { ifactorsound THISACTOR LIGHTN2 nullop else sound LIGHTN2 } else
+		ifvare temp 2 { ifactorsound THISACTOR LIGHTN3 nullop else sound LIGHTN3 } else
+		{ ifactorsound THISACTOR LIGHTN4 nullop else sound LIGHTN4 }
+	}
+	ifvarg KICKBACKPIC 4 soundonce SHOCKLOOP else
+	ifvare KICKBACKPIC 0 ifactorsound THISACTOR SHOCKLOOP stopactorsound THISACTOR SHOCKLOOP
+}
+else ifactorsound THISACTOR SHOCKLOOP stopactorsound THISACTOR SHOCKLOOP
+
+ifvare CURRWEAP 8
+{
+	// eyeballframe 2705 facing, 2506-2507 moving, 2508 face away
+	// eyeframecount 5 tics per frame advance
+	set temp NO // default eyeball facing bias
+	
+	ife KICKBACKPIC 0
+	ife player[].weapon_pos 0
+	ifg player[].ammo_amount 8 0
+	ifl shipcam 0
+	{
+		ifn scannedsprite -1 ife actorvar[scannedsprite].monstatus 1
+			set temp YES // eyeball face away bias
+		else ifvarand bits 4
+			set temp YES
+	}
+	set tempb NO
+	ifvarg slowtime 0 set tempb YES
+	else ifvarand pow 32768 set tempb YES
+	ife tempb YES 
+	add eyeframecount 1
+	add eyeframecount 1
+	ifg eyeframecount 4
+	{
+		set eyeframecount 0
+		ife temp NO
+		{
+			ifg eyeballframe 2705 sub eyeballframe 1
+		}
+		else
+		{
+			ifl eyeballframe 2708 add eyeballframe 1
+		}
+		ifp palive
+		ifvare endlevel 0
+		ifvare cutscene 0
+		ife camerasprite -1
+		ifl shipcam 0
+		ifvarand bits 4
+		ifg player[].ammo_amount 8 0
+		ifge eyeballammo 10
+		ife player[].weapon_pos 0
+		ife player[].kickback_pic 0
+		ife eyeballframe 2708
+		{
+			sub eyeballammo 10
+			ifg player[].ammo_amount 8 1
+			{
+				set tempb eyeballammo
+				modvar tempb 100
+				ife tempb 0
+				{
+					getp[].ammo_amount 8 temp
+					sub temp 1
+					setp[].ammo_amount 8 temp
+				}
+			}
+			screensound SHOCKFIRE
+			set eyeframecount -15
+			shoot SHOCKBEAM
+		}
+	}
+}
+set temp player[].ammo_amount 8
+mul temp 100
+ifg eyeballammo temp set eyeballammo temp
+
+ifvarn CURRWEAP 4 setvar arrowview -1
+
+ifvare CURRWEAP 9
+{
+	set temp NO
+	ifvarg slowtime 0 set temp YES
+	else ifvarand pow 32768 set temp YES
+	ife KICKBACKPIC 0 set temp NO
+	ife temp YES
+	{
+	      set temp NO
+		  // ifn KICKBACKPIC 27 ifn KICKBACKPIC 40 ifn KICKBACKPIC 41 set temp YES
+		  ifn KICKBACKPIC 17 ifn KICKBACKPIC 30 ifn KICKBACKPIC 31 set temp YES
+		  ife temp YES { add KICKBACKPIC 1 setp[].kickback_pic KICKBACKPIC }
+	}
+	
+	ife KICKBACKPIC 0
+	ife player[].weapon_pos 0
+	ifp palive
+	ifvarand extbits 64
+	{
+		set ALTFIRING YES
+		setp[].kickback_pic 3
+		set KICKBACKPIC 3
+	}
+	ife ALTFIRING YES
+	{
+		// 14-24 hits, 18 is centered
+		ifge KICKBACKPIC 14 ifle KICKBACKPIC 24
+		{
+			ife KICKBACKPIC 14 screensound BIGSWISH
+			getp[].ang saveit
+			set angvar saveit
+			add angvar 256
+			set temp KICKBACKPIC
+			sub temp 14
+			mul temp 64
+			sub angvar temp
+			setp[].ang angvar
+			shoot PUNCHPROJ shoot PUNCHPROJ
+			ifvarand pow 32768 shoot PUNCHPROJ else
+			ifvarg slowtime 0 shoot PUNCHPROJ
+			setp[].ang saveit	
+		}
+		ife KICKBACKPIC 27
+		{
+			setp[].kickback_pic 0
+			setp[].weapon_pos -9
+			set ALTFIRING NO
+		}
+	}
+	else
+	{
+		ife KICKBACKPIC 31 // 41
+		{
+			stopsound FUSE
+			getp[].ang dodgeang
+			add dodgeang 1024
+			set dodge 16384
+			
+			ifl player[].horiz 100
+			{
+				getp[].poszv z
+				getp[].horiz mz
+				sub mz 100
+				mul mz 32
+				add z mz
+				setp[].poszv z
+			}
+		}
+		else ifg KICKBACKPIC 0 ifl KICKBACKPIC 30 { ifsound FUSE nullop else screensound FUSE }
+	}
+	
+}
+
+
+// moving this to general code for all chars
+// ifvare dodge 0 setvarvar dodgeang player[THISACTOR].ang
+// ifinwater nullop else
+// ifp ponground
+// ifvare boost 0
+// ifvare swordattk 0
+// ifvarn helpmenu YES
+// {
+// 	ifvarg ftap 1
+// 	ifvarg sprint 9
+// 	ifvarl boost 20 addvar boost 2
+// 	else ifvarl sprint 208 addvar sprint 1
+// }
+// 
+// ifvarg boost 0
+// ifvarn sjumpcharge -1 
+// {
+// 	spawn FRAMEEFFECT1
+// 	ifvarg fhold 0
+// 	{
+// 		ifvarl boost 20 ifp ponground addvar boost 2
+// 	}
+// 	else ifvarg boost 2 setvar boost 2
+// 	subvar sprint 2
+// 	ifvarl sprint 1 setvar boost 0
+// 	ifinwater setvar boost 0
+// }
+
+ifvarg barbquake 0
+{
+	addvar barbquake 768
+	ifvarg barbquake 15360 setvar barbquake 0
+}
+
+// ifvarn hammercount 0
+// {
+	// addvar hammercount 1
+	// ifvare player[THISACTOR].gotweapon 2 YES setvar hammercount 0 else
+	// {
+		// ifvarg hammercount 300
+		// {
+			// sound CATCH
+			// setplayer[THISACTOR].gotweapon 2 YES
+			// ifvare CURRWEAP 0
+			// {
+				// setplayer[THISACTOR].weapon_pos 5
+				// setplayer[THISACTOR].curr_weapon 2
+				// setvar CURRWEAP 2
+			// }
+		// }
+	// }
+// }
+
+ifsound DUKE_GOTHEALTHATLOW
+{
+	stopsound DUKE_GOTHEALTHATLOW
+	sound BARBHUNGER
+}
+
+ifsound DUKE_USEMEDKIT
+{
+	stopsound DUKE_USEMEDKIT
+	sound BARBHUNGER
+}
+
+ifactorsound THISACTOR DUKE_SCREAM stopactorsound THISACTOR DUKE_SCREAM
+ifactorsound THISACTOR DUKE_SEARCH
+{
+  stopactorsound THISACTOR DUKE_SEARCH
+  ifrnd 128 sound BARBEXERT else sound BARBEXERT2
+}
+ifactorsound THISACTOR DUKE_SEARCH2
+{
+  stopactorsound THISACTOR DUKE_SEARCH2
+  ifrnd 128 sound BARBEXERT else sound BARBEXERT2
+}
+ifactorsound THISACTOR DUKE_LAND_HURT
+{
+ stopactorsound THISACTOR DUKE_LAND_HURT
+ sound BARBPAIN2
+}
+
+ifvare KICKBACKPIC 0 setvar ALTFIRING 0
+
+ends
+
+move PGROWINGPOP        // Used only as a variable
+
+
+actor APLAYER MAXPLAYERHEALTH PSTAND 0 0
+
+// orvar WEAPON1_FLAGS 256
+// orvar WEAPON2_FLAGS 256
+// orvar WEAPON3_FLAGS 256
+// orvar WEAPON4_FLAGS 256
+// orvar WEAPON5_FLAGS 256
+// orvar WEAPON6_FLAGS 256
+// orvar WEAPON7_FLAGS 256
+// orvar WEAPON8_FLAGS 256
+// orvar WEAPON9_FLAGS 256
+// orvar WEAPON10_FLAGS 256
+// orvar WEAPON11_FLAGS 256
+
+
+getp[].palette pal
+// al pal
+switch pal
+	case 0 // normal game palette
+		ifp ponsteroids setp[].palette 4 else
+		ife player[].heat_on YES setp[].palette 2 else
+		ife sector[].hitag 6 setp[].palette 1 else
+		ife sector[].hitag 7 setp[].palette 5 else
+		ifinwater setp[].palette 1 else
+		ifn camerasprite -1
+		ife sector[sprite[camerasprite].sectnum].lotag 2 setp[].palette 1
+	break
+	case 1 // under water palette
+		ifn camerasprite -1
+		ife sector[sprite[camerasprite].sectnum].lotag 2 nullop else
+		ifp ponsteroids setp[].palette 4 else
+		ife player[].heat_on YES setp[].palette 2 else
+		ife sector[].hitag 7 setp[].palette 5 else
+		ifn sector[].lotag 2 ifn sector[].hitag 6 setp[].palette 0
+	break
+	case 2 // nightvision palette
+		ifp ponsteroids setp[].palette 4 else
+		ife player[].heat_on NO
+		{
+			ife sector[].hitag 6 setp[].palette 1 else
+			ife sector[].hitag 7 setp[].palette 5 else
+			ifinwater setp[].palette 1 else
+			setp[].palette 0
+		}
+	break
+	case 4 // quad damage and death palette
+		ifp ponsteroids nullop else
+		ife bigmsg 128 ifn bigmsgcount 0 nullop else
+		{
+			ife player[].heat_on YES setp[].palette 2 else
+			ife sector[].hitag 6 setp[].palette 1 else
+			ife sector[].hitag 7 setp[].palette 5 else
+			ifinwater setp[].palette 1 else
+			setp[].palette 0
+		}
+	break
+	case 5 // burning and special sector palette
+		ifp ponsteroids setp[].palette 4 else
+		ife player[].heat_on YES setp[].palette 2 else
+		ifn sector[].hitag 7
+		{
+			ife sector[].hitag 6 setp[].palette 1 else
+			ifinwater setp[].palette 1 else
+			setp[].palette 0
+		}
+	break
+endswitch
+
+ifg cheatscreen 0
+{
+	sub cheatscreen 1
+	ife cheatscreen 3 endofgame 5
+	seta[].htextra -1
+	setp[].movement_lock 31
+	setp[].knuckle_incs 0
+	setp[].kickback_pic 0
+	setp[].jumping_counter 0
+	starttrackslot 0 19
+	set character 0
+	ife cheatscreen 1 palfrom 63 0 0 0
+	break
+}
+
+ifg fhold 4 set ftap 0
+ifg bhold 4 set btap 0
+ifg lhold 4 set ltap 0
+ifg rhold 4 set rtap 0
+
+ifn timer fpresstime set fhold 0
+ifn timer bpresstime set bhold 0
+ifn timer lpresstime set lhold 0
+ifn timer rpresstime set rhold 0
+
+ifvarn ftap 0
+{
+	set tempb timer
+	sub tempb fpresstime
+	ifvarg tempb 4 set ftap 0
+}
+ifvarn btap 0
+{
+	set tempb timer
+	sub tempb bpresstime
+	ifg tempb 4 set btap 0
+}
+ifvarn ltap 0
+{
+	set tempb timer
+	sub tempb lpresstime
+	ifg tempb 4 set ltap 0
+}
+ifvarn rtap 0
+{
+	set tempb timer
+	sub tempb rpresstime
+	ifg tempb 4 set rtap 0
+}
+
+getplayer[THISACTOR].player_par timer
+
+
+getplayer[THISACTOR].curr_weapon CURRWEAP
+ifg shipcam -1 ifg player[].curr_weapon 0 setp[].kickback_pic 0
+getplayer[THISACTOR].kickback_pic KICKBACKPIC
+
+ifvare character 0 state dukeweaponcode else
+ifvare character 1 state barbweaponcode
+
+state kludges
+
+ifvare dodge 0 setvarvar dodgeang player[THISACTOR].ang
+
+ifvare character 1
+{
+	ifp palive
+	ife helpmenu NO
+	ife swordattk 0
+	ife endlevel 0
+	ife upside 0
+	ife camerasprite -1
+	{
+		ifinwater nullop else
+		ife slam 0
+		ifvarand bits 2
+		ifg player[].cursectnum -1 ifl player[].cursectnum 4096
+		ife phookswing NO
+		ife ptether NO
+		{
+			// getflorzofslope player[].cursectnum player[].posx player[].posy z
+			getzrange player[].posx player[].posy player[].posz player[].cursectnum temp temp z spriteid 192 CLIPMASK0
+
+			sub z player[].posz
+			ifg z 26624 
+			{
+				set slam 1
+				ifl player[].poszv 4096 setp[].poszv 4096
+				setp[].falling_counter 0
+			}
+		}
+		ifinwater nullop else
+		// ifonwater nullop else
+		ifp ponground
+		ifvare boost 0
+		{
+			ifvarg ftap 1
+			ifvarg sprint 30
+			ifvarl boost 20 
+			// ifvarand bits 268435456 // shield must be raised
+			addvar boost 2
+			else ifvarl sprint 208 addvar sprint 1
+		}
+	}
+}
+else
+{
+	setvar slam 0
+	setvar boost 0
+	ifvarl sprint 208 addvar sprint 1
+}
+ifn endlevel 0 set slam 0
+ifn upside 0 set slam 0
+ifn slam 0
+{
+	add slam 1
+	setvar boost 0
+	ifg player[].falling_counter 7 setp[].falling_counter 7
+	ifg slam 90 set slam 90
+	// set seevar player[].sbs // default 0
+	set seevar 0
+	ifl player[].cursectnum 0 set seevar -1 else ifg player[].cursectnum 4095 set seevar -1
+	
+	ife seevar 0
+	{
+		// getflorzofslope player[].cursectnum player[].posx player[].posy z
+		// getzrange <x> <y> <z> <sector> <ceilingz> <ceilinghit> <floorz> <floorhit> <walldist> <clipmask>
+		getzrange player[].posx player[].posy player[].posz player[].cursectnum temp temp z spriteid 192 CLIPMASK0 
+		
+		set tempb z
+		sub z player[].posz
+		ifl z 10240 set seevar 1 
+		else ifp ponground
+		{
+			getp[].posz mz
+			set temp slam
+			mul temp 512
+			add mz temp
+			sub tempb 4096
+			ifg mz tempb set mz tempb
+			setp[].posz mz
+			getflorzofslope player[].cursectnum player[].posx player[].posy z
+			sub z player[].posz
+			ifl z 9216 set seevar 1 
+		}
+	}
+	
+	ifn seevar 0
+	{
+		globalsound BIGTHUD
+		quake 20
+		set countvar 0
+		whilevarn countvar 2048
+		{
+			set mx player[].posx
+			add mx 1024
+			rotatepoint player[].posx player[].posy mx player[].posy countvar saveit saveit2
+			updatesectorz saveit saveit2 player[].posz sect
+			ifn sect -1
+			{
+				espawn SMALLSMOKE
+			    setsprite RETURN saveit saveit2 player[].posz
+			}
+			add countvar 128
+		}
+		headspritestat spriteid 1
+		whilevarn spriteid -1
+		{
+			ife actorvar[spriteid].monstatus 1
+			{
+				ldist xydist THISACTOR spriteid
+				ifl xydist 4096 // 3072
+				{
+					geta[].z z, sub z sprite[spriteid].z
+					abs z
+					ifl z 32768 // 16384
+					{
+						set tempc slam
+						add tempc 15
+						shiftl tempc 12
+						div tempc xydist
+						
+						getav[spriteid].fear temp
+						set tempb tempc, shiftr tempb 2
+						ifg tempb 90 set tempb 90
+						sub temp tempb
+						setav[spriteid].fear temp
+						
+						ife actorvar[spriteid].dodge 0
+						ifn spriteid bossid
+						{
+							geta[spriteid].x mx
+							geta[spriteid].y my
+							sub mx sprite[].x
+							sub my sprite[].y
+							getangle angvar mx my
+							setav[spriteid].dodgeang angvar
+							set temp tempc, shiftl temp 6
+							setav[spriteid].dodge temp
+						}
+						
+						geta[spriteid].htextra tempb
+						add tempb tempc
+						seta[spriteid].htextra tempb
+						ifg tempb 100 set picnum RPG else set picnum KNEE
+						seta[spriteid].htpicnum picnum
+						seta[spriteid].htowner player[].i
+						seta[spriteid].htang angvar
+					}
+				}
+			}
+			nextspritestat spriteid spriteid
+		}
+		
+		ifn player[].cursectnum -1
+		{
+			getzrange player[].posx player[].posy player[].posz player[].cursectnum temp temp z spriteid 256 CLIPMASK0
+			ifge spriteid 49152
+			{
+				sub spriteid 49152
+				ifvarand sprite[spriteid].cstat 32 // sprite floor
+				{
+					set tempc slam
+					add tempc 15
+					shiftl tempc 3
+					seta[spriteid].htextra tempc
+					ifg tempc 100 set picnum RPG else set picnum KNEE
+					seta[spriteid].htpicnum picnum
+					seta[spriteid].htowner player[].i
+				}
+			}
+		}
+		
+		set slam 0
+	}
+	getp[].poszv z
+	add z 384, set mz slam, shiftl mz 5, add z mz
+	setp[].poszv z
+}
+
+ifvarg boost 0
+ifvarn sjumpcharge -1 
+{
+	spawn FRAMEEFFECT1
+	ifvarg fhold 0
+	{
+		ifvarl boost 20 
+		// ifp ponground 
+		addvar boost 2
+	}
+	else ifvarg boost 2 setvar boost 2
+	subvar sprint 2
+	ifvarl sprint 1 setvar boost 0
+	ifinwater setvar boost 0
+}
+
+ife player[].cursectnum -1 set z sprite[].z else
+getflorzofslope player[].cursectnum player[].posx player[].posy z // z is the return var
+sub z 2048
+
+ifinwater state underwatercode else
+ifonwater ifg sprite[].z z state underwatercode else
+ifvare player[THISACTOR].runspeed SWIMSPEED
+{
+	ifvare character 1 
+	setplayer[THISACTOR].runspeed RUNNINGSPEED2
+	else
+	setplayer[THISACTOR].runspeed RUNNINGSPEED
+}
+getplayer[THISACTOR].posxv oposxv
+getplayer[THISACTOR].posyv oposyv
+getplayer[THISACTOR].poszv oposzv
+
+
+ifp pducking pjetpack pfalling pstanding nullop else
+ifinwater nullop else
+ifp palive 
+ife endlevel 0
+{
+	ifp pwalking prunning state stepsounds
+}
+
+  ife monstatus 777 
+  { 
+	move 0 set monstatus 0 action 0 setp[].dead_flag 0 strength 50 
+	set bigmsgcount 0
+	setgamepalette 0
+  }
+  ifaction 0
+  {
+	ifvare character 1 action BARBSTAND else
+    action PSTAND
+  }
+  else ifaction PSTAND ifvare character 1 action BARBSTAND
+
+  ifaction PFROZEN
+  {
+    cstat 257
+
+    fall
+
+    palfrom 16 0 0 24
+
+    ifmove 0
+    {
+      ifhitweapon
+      {
+        ifwasweapon FREEZEBLAST
+          break
+        lotsofglass 60
+        ifrnd 84
+          spawn BLOODPOOL
+
+        sound GLASS_BREAKING
+        spawn ATOMICHEALTH
+
+        getlastpal
+
+        move 1
+        break
+      }
+    }
+    else
+    {
+      cstat 32768
+      ifmultiplayer
+      {
+	      quote 13, add countvarb 1
+	      ifhitspace
+		  ife player[].timebeforeexit 0 ifg countvarb 90
+	      {
+	        // action PSTAND
+	        set gameover YES, resetplayer
+	      }
+	      break
+      }
+      ifvarn bigmsg 128
+      {
+	    ifvarn player[THISACTOR].palette 4
+	   		setgamepalette 4
+	   		
+      	setvar bigmsg 128 
+      	setvar bigmsgcount 104
+      	setvar upside NO
+		starttrackslot 1 6
+		set musicepisode 1
+		set musictrack 6
+		set music2 0
+  	  }
+  	  quote 13, add countvarb 1
+  	  ifhitspace
+	  ife player[].timebeforeexit 0 ifg countvarb 90
+      {
+        // action PSTAND
+        set gameover YES
+      }
+      break
+    }
+
+    ifactioncount THAWTIME
+    {
+      getlastpal
+      strength 1
+      move 0
+      action PSTAND
+    }
+    else
+      ifactioncount FROZENDRIPTIME
+    {
+      ifrnd 32
+      spawn WATERDRIP
+    }
+
+    ifp pfacing   // assumes another other player  (multiplayer)
+      ifpdistl FROZENQUICKKICKDIST
+        pkick
+
+    break
+  }
+
+  ifdead
+  {
+    ifaction PGROWING
+    {
+      ifmove PGROWINGPOP
+      {
+	      ifmultiplayer
+	      {
+		      quote 13, add countvarb 1
+		      ifhitspace
+			  ife player[].timebeforeexit 0 ifg countvarb 90
+		      {
+		        // action 0
+		        set gameover YES
+		      }
+		      break
+	      }
+	      ifvarn bigmsg 128
+	      {
+		    ifvarn player[THISACTOR].palette 4
+		    	setgamepalette 4
+	    	
+	      	setvar bigmsg 128 
+	      	setvar bigmsgcount 104
+			setvar upside NO
+	      	starttrackslot 1 6
+			set musicepisode 1
+			set musictrack 6
+			set music2 0
+	  	  }
+	  	quote 13, add countvarb 1
+	    ifhitspace
+		ife player[].timebeforeexit 0 ifg countvarb 90
+        {
+          // action 0
+          set gameover YES
+        }
+        break
+      }
+      else
+      {
+        ifcount 32
+        {
+          sound SQUISHED
+          palfrom 48 64
+
+          state standard_pjibs
+
+          guts JIBS4 20
+          guts JIBS6 20
+          move PGROWINGPOP
+          cstat 32768
+          tossweapon
+
+          hitradius 2048 60 70 80 90
+
+        }
+        else
+          sizeto MAXXSTRETCH MAXYSTRETCH
+      }
+      break
+    }
+
+    ifsquished
+      palfrom 32 63 63 63
+    else
+      fall
+
+    ifactioncount 7
+      move 0
+    else
+      ifactioncount 6
+    {
+      ifmultiplayer nullop
+      else
+      {
+	    ifvare character 1 sound BARBNOTEND
+	    else
+	    {
+	        ifrnd 32
+	          sound DUKE_KILLED5
+	        else
+	          ifrnd 32
+	            sound DUKE_KILLED3
+	        else
+	          ifrnd 32
+	            sound DUKE_KILLED1
+	        else
+	          ifrnd 32
+	            sound DUKE_KILLED2
+         }
+      }
+    }
+
+    ifaction PLYINGDEAD
+    {
+      ifactioncount 3
+        move PSTOPED
+      ifmultiplayer
+      {
+	      quote 13, add countvarb 1
+	      ifhitspace
+		  ife player[].timebeforeexit 0 ifg countvarb 90
+	      {
+	        // action PSTAND
+	        spawn DUKELYINGDEAD
+	        set gameover YES
+	      }
+	      break
+      }
+      ifvarn bigmsg 128
+      {
+	    ifvarn player[THISACTOR].palette 4
+	    	setgamepalette 4
+    	
+      	setvar bigmsg 128 
+      	setvar bigmsgcount 104
+		setvar upside NO
+      	starttrackslot 1 6
+		set musicepisode 1
+		set musictrack 6
+		set music2 0
+  	  }
+  	  quote 13, add countvarb 1
+  	   ifhitspace
+	   ife player[].timebeforeexit 0 ifg countvarb 90
+	   {
+	        // action PSTAND
+	        spawn DUKELYINGDEAD
+	        set gameover YES, resetplayer
+	   }
+      break
+    }
+    
+    ifaction BARBLYINGDEAD
+    {
+      ifactioncount 3
+        move PSTOPED
+      ifmultiplayer
+      {
+	      quote 13, add countvarb 1
+	      ifhitspace
+		  ife player[].timebeforeexit 0 ifg countvarb 90
+	      {
+	        // action BARBSTAND
+	        spawn BARBDEADSPRITE
+	        set gameover YES, resetplayer
+	      }
+	      break
+      }
+      ifvarn bigmsg 128
+      {
+	    ifvarn player[THISACTOR].palette 4
+	    	setgamepalette 4
+    	
+      	setvar bigmsg 128 
+      	setvar bigmsgcount 104
+		setvar upside NO
+      	starttrackslot 1 6
+		set musicepisode 1
+		set musictrack 6
+		set music2 0
+  	  }
+  	  quote 13, add countvarb 1
+  	  ifhitspace
+	  ife player[].timebeforeexit 0 ifg countvarb 90
+	  {
+	        // action BARBSTAND
+	        spawn BARBDEADSPRITE
+	        set gameover YES, resetplayer
+	  }
+      break
+    }
+
+    ifaction PTHROWNBACK
+    {
+      ifactioncount 5
+      {
+        spawn BLOODPOOL
+        action PLYINGDEAD
+      }
+      else
+        ifactioncount 1
+          move 0
+      break
+    }
+    
+    ifaction BARBTHROWNBACK
+    {
+      ifactioncount 7
+      {
+        spawn BLOODPOOL
+        action BARBLYINGDEAD
+      }
+      else
+        ifactioncount 1
+          move 0
+      break
+    }
+
+    ifaction PEXPLODEAD
+    {
+      ifmultiplayer
+      {
+	      quote 13, add countvarb 1
+	      ifhitspace
+		  ife player[].timebeforeexit 0 ifg countvarb 90
+	      {
+	        // action PSTAND
+	        set gameover YES, resetplayer
+	      }
+	      break
+      }
+      ifvarn bigmsg 128
+      {
+	    ifvarn player[THISACTOR].palette 4
+	   		setgamepalette 4
+      	setvar bigmsg 128 
+      	setvar bigmsgcount 104
+		setvar upside NO
+      	starttrackslot 1 6
+		set musicepisode 1
+		set musictrack 6
+		set music2 0
+  	  }
+  	  quote 13, add countvarb 1
+  	  ifhitspace
+	  ife player[].timebeforeexit 0 ifg countvarb 90
+	  {
+	        // action PSTAND
+	        set gameover YES, resetplayer
+	  }
+      break
+    }
+    ifaction PEXPLODE
+    {
+      ifactioncount 5
+      {
+        action PEXPLODEAD
+        spawn BLOODPOOL
+      }
+      break
+    }
+    
+    ifaction BARBEXPLODEAD
+    {
+      ifmultiplayer
+      {
+	      quote 13, add countvarb 1
+	      ifhitspace
+		  ife player[].timebeforeexit 0 ifg countvarb 90
+	      {
+	        // action PSTAND
+	        set gameover YES, resetplayer
+	      }
+	      break
+      }
+      ifvarn bigmsg 128
+      {
+	      ifvarn player[THISACTOR].palette 4
+	    	  setgamepalette 4
+      	setvar bigmsg 128 
+      	setvar bigmsgcount 104
+		setvar upside NO
+      	starttrackslot 1 6
+		set musicepisode 1
+		set musictrack 6
+		set music2 0
+  	  }
+  	  quote 13, add countvarb 1
+  	  ifhitspace
+	  ife player[].timebeforeexit 0 ifg countvarb 90
+	   {
+	       // action PSTAND
+	       set gameover YES, resetplayer
+	   }
+      break
+    }
+    ifaction BARBEXPLODE
+    {
+      ifactioncount 9
+      {
+        action BARBEXPLODEAD
+        spawn BLOODPOOL
+      }
+      break
+    }
+
+    ifp pshrunk
+    {
+      state standard_pjibs
+      spawn BLOODPOOL
+
+      sound SQUISHED
+      sound DUKE_DEAD
+
+      cstat 32768         // Hide the sprite
+	  ifvare character 1 action BARBLYINGDEAD else
+      action PLYINGDEAD
+    }
+    else
+    {
+      ifinwater
+      {
+	    ifvare character 1 action BARBLYINGDEAD else
+        action PLYINGDEAD
+        spawn WATERBUBBLE
+        spawn WATERBUBBLE
+      }
+      else
+      {
+	    ifvare character 1 action BARBEXPLODE else
+        action PEXPLODE
+        state standard_pjibs
+        cstat 32768
+        sound SQUISHED
+        sound DUKE_DEAD
+      }
+    }
+
+    tossweapon
+
+    break
+  }
+
+  ifsquished
+  {
+    strength -1
+    sound SQUISHED
+    state random_ooz
+    break
+  }
+
+  ifp ponsteroids
+  {
+    ifp pstanding nullop
+    else
+      spawn FRAMEEFFECT1
+    getplayer[THISACTOR].steroids_amount temp
+    ifvarl player[THISACTOR].steroids_amount 399 ifvarand timer 1 addvar temp 1
+    setplayer[THISACTOR].steroids_amount temp
+    ifvare player[THISACTOR].steroids_amount 39 { soundonce QUADEND palfrom 30 63 63 63 }
+    ifinwater nullop else
+    {
+	    ifvare player[THISACTOR].steroids_amount 25 palfrom 30 63 63 63
+	    ifvare player[THISACTOR].steroids_amount 11 palfrom 30 63 63 63
+    }
+  }
+
+  ifmove PSHRINKING
+  {
+    ifcount 32
+    {
+      ifcount SHRUNKDONECOUNT
+      {
+        move 0
+        cstat 257
+      }
+      else
+        ifcount SHRUNKCOUNT
+      {
+        sizeto 42 36
+        ifgapzl 24
+        {
+          strength 0
+          sound SQUISHED
+          palfrom 48 64
+          break
+        }
+      }
+      else
+        ifp ponsteroids
+          count SHRUNKCOUNT
+    }
+    else
+    {
+      ifp ponsteroids
+        count SHRUNKCOUNT
+      else
+      {
+        sizeto 8 9
+        spawn FRAMEEFFECT1
+      }
+    }
+  }
+  else ifhitweapon
+  {
+    ifdead
+    {
+      ifmultiplayer
+        sound DUKE_KILLED4
+
+      ifwasweapon GROWSPARK
+      {
+        palfrom 48 48
+        action PGROWING
+        count 0
+        move 0
+        sound ACTOR_GROWING
+        cstat 0
+        break
+      }
+    }
+    else
+    {
+      ifmultiplayer
+      {
+	    state dukepainsounds
+      }
+      else
+      ifvare character 1 state painsounds
+      else
+      {
+        ifphealthl YELLHURTSOUNDSTRENGTH
+        {
+          ifrnd 74
+            sound DUKE_LONGTERM_PAIN2
+          else
+            ifrnd 8
+              sound DUKE_LONGTERM_PAIN3
+          else
+            sound DUKE_LONGTERM_PAIN4
+        }
+        ifrnd 128
+          sound DUKE_LONGTERM_PAIN
+      }
+    }
+
+      ifp pstanding
+      {
+	    ifvare character 1 action BARBFLINTCHING else
+        action PFLINTCHING
+      }
+
+    ifwasweapon BFGIMPACT
+	{
+	  ifrnd 32
+        spawn BLOOD
+      ifdead
+        state standard_pjibs
+      palfrom 40 52
+      break
+	}
+    ifwasweapon RPG
+    {
+      ifrnd 32
+        spawn BLOOD
+      ifdead
+        state standard_pjibs
+      palfrom 40 52
+      break
+    }
+    ifwasweapon RADIUSEXPLOSION
+    {
+      ifrnd 32
+        spawn BLOOD
+      ifdead
+        state standard_pjibs
+      palfrom 40 52
+      break
+    }
+    ifwasweapon FIREEXT
+    {
+      ifrnd 32
+        spawn BLOOD
+      ifdead
+        state standard_pjibs
+      palfrom 40 52
+      break
+    }
+    ifwasweapon GROWSPARK
+    {
+      palfrom 40 52
+      sound EXPANDERHIT
+      break
+    }
+    ifwasweapon SHOTSPARK1
+      palfrom 20 48
+    ifwasweapon SLOWBULLET
+      palfrom 28 48
+    ifwasweapon EVILBULLET
+      palfrom 22 48
+    ifwasweapon EXPLOSIVEBULLET
+      palfrom 32 48
+    
+    ifwasweapon LAVAROCK
+      palfrom 40 48
+     ifwasweapon ROCKPROJ
+      palfrom 40 48
+    ifwasweapon SKELAXE
+      palfrom 20 48
+    ifwasweapon DEMONSPIT
+      palfrom 28 48
+    ifwasweapon ETTINCLUB
+      palfrom 36 48
+    ifwasweapon MONSTERBITE
+      palfrom 28 48
+    ifwasweapon LIGHTNINGBOLT
+      palfrom 28 63 53 53
+    ifwasweapon KORAXPROJ
+      palfrom 40 36 0 32
+    ifwasweapon FTPROJ
+	   palfrom 36 48
+	ifwasweapon PLASMAPROJ
+	   palfrom 36 48
+	ifwasweapon BFGBEAMLITE
+	   palfrom 40 0 63 0
+	ifwasweapon DARKPROJ
+	   palfrom 36 0 63 0
+    
+    ifwasweapon FREEZEBLAST
+    {
+      palfrom 40 30 30 48
+      ifdead
+		   spawn BIGSMOKE
+    }
+    ifwasweapon COOLEXPLOSION1
+      palfrom 40 48 0 48
+    ifwasweapon KNEE
+      palfrom 16 32
+    ifwasweapon FIRELASER
+      palfrom 36 32
+    ifwasweapon WRAITHPROJ
+      palfrom 36 32
+    ifwasweapon NOVAPROJ
+      palfrom 36 32
+    ifwasweapon ENEMYSLUGPROJ
+      palfrom 36 48
+	ifwasweapon BARONBALL
+	  palfrom 32 32
+
+    ifdead
+    {
+	  getactor[THISACTOR].htowner spriteid
+	  ifvare sprite[spriteid].picnum EVILDUKE globalsound EWASTED
+	  ifvare character 1 action BARBTHROWNBACK else
+      action PTHROWNBACK
+      tossweapon
+    }
+
+    state random_wall_jibs
+
+    break
+  }
+
+  ifaction PFLINTCHING
+  {
+    ifactioncount 2
+      action PSTAND
+    break
+  }
+  
+   ifaction BARBFLINTCHING
+  {
+    ifactioncount 2
+      action BARBSTAND
+    break
+  }
+
+  ifinwater nullop else
+  ifvare character 1
+  {
+	ifaction BARBSWIMMINGGO action BARBSTAND else
+	ifaction BARBSWIMMING action BARBSTAND else
+	ifaction BARBSWIMMINGWAIT action BARBSTAND else
+	ifaction BARBTREDWATER action BARBSTAND
+  }
+  
+  ifinwater
+  {
+    ifaction PTREDWATER
+    {
+      ifp pwalking prunning
+	  {
+	    ife character 1 action BARBSWIMMINGGO else
+        action PSWIMMINGGO
+	  }
+    }
+	else
+	ifaction BARBTREDWATER
+	{
+	 ifp pwalking prunning
+        action BARBSWIMMINGGO
+	}
+    else
+      ifp pstanding pwalkingback prunningback
+	  {
+		ifvare character 1 action BARBTREDWATER else
+        action PTREDWATER
+	  }
+    else
+    {
+	  ife character 1
+	  {
+		  ifaction BARBSWIMMING
+		  {
+			ifrnd 4
+			  spawn WATERBUBBLE
+			ifactioncount 4
+			  action BARBSWIMMINGWAIT
+		  }
+		  else
+			ifaction BARBSWIMMINGWAIT
+		  {
+			ifactioncount 2
+			  action BARBSWIMMING
+		  }
+		  else
+			ifaction BARBSWIMMINGGO
+		  {
+			ifactioncount 2
+			  action BARBSWIMMING
+		  }
+		  else
+			action BARBTREDWATER
+	  }
+	  else
+	  {
+		  ifaction PSWIMMING
+		  {
+			ifrnd 4
+			  spawn WATERBUBBLE
+			ifactioncount 4
+			  action PSWIMMINGWAIT
+		  }
+		  else
+			ifaction PSWIMMINGWAIT
+		  {
+			ifactioncount 2
+			  action PSWIMMINGGO
+		  }
+		  else
+			ifaction PSWIMMINGGO
+		  {
+			ifactioncount 2
+			  action PSWIMMING
+		  }
+		  else
+			action PTREDWATER
+	  }
+    }
+
+    ifrnd 4
+      spawn WATERBUBBLE // For effect
+
+    break
+  }
+  else ifp pjetpack
+  {
+    ifaction PJPHOUVER
+    {
+      ifactioncount 4
+        resetactioncount
+    }
+    else
+      action PJPHOUVER
+    break
+  }
+  else
+  {
+    ifaction PTREDWATER
+    {
+	  ifvare character 1 action BARBSTAND else
+      action PSTAND
+      sound SURFACE
+    }
+    ifaction PSWIMMING
+    {
+	  ifvare character 1 action BARBSTAND else
+      action PSTAND
+      sound SURFACE
+    }
+    ifaction PSWIMMINGWAIT
+    {
+	  ifvare character 1 action BARBSTAND else
+      action PSTAND
+      sound SURFACE
+    }
+    ifaction PSWIMMINGGO
+    {
+	  ifvare character 1 action BARBSTAND else
+      action PSTAND
+      sound SURFACE
+    }
+    ifaction PJPHOUVER
+    {
+	  ifvare character 1 action BARBFALLING else
+      action PFALLING
+    }
+  }
+
+  ifaction PFALLING
+  {
+	ifvare character 1 action BARBFALLING
+    ifp ponground
+    {
+      action PSTAND
+      state landsounds
+    }
+    else
+    {
+      ifp pfalling
+        break
+      else
+        state check_pstandard
+    }
+  }
+  
+  ifaction BARBFALLING
+  {
+    ifp ponground
+    {
+      action BARBSTAND
+      state landsounds
+    }
+    else
+    {
+      ifp pfalling
+        break
+      else
+        state check_pstandard
+    }
+  }
+  
+  set temp 0
+  ifaction PDUCKING set tempb 1 else
+  ifaction BARBDUCKING set tempb 1 else
+  ifaction PCRAWLING set tempb 2 else
+  ifaction BARBCRAWLING set tempb 2
+
+
+  ife tempb 1
+  {
+    ifgapzl 48
+    {
+      ifp pwalking pwalkingback prunning prunningback
+	  {
+	    ifvare character 1 action BARBCRAWLING else
+        action PCRAWLING
+	  }
+    }
+    else ifp pducking
+    {
+      ifp pwalking pwalkingback prunning prunningback
+	  {
+	    ifvare character 1 action BARBCRAWLING else
+        action PCRAWLING
+	  }
+    }
+    else
+    {
+      ifp pstanding
+      {
+	    ifvare character 1 action BARBSTAND else
+        action PSTAND
+      }
+      else
+        state check_pstandard
+    }
+  }
+  else ife tempb 2
+  {
+    ifgapzl 48
+    {
+      ifp pstanding
+	  {
+	    ife character 1 action BARBCRAWLING else
+        action PCRAWLING
+	  }
+    }
+    else
+      ifp pducking
+    {
+      ifp pstanding
+	  {
+		ife character 1 action BARBDUCKING else
+        action PDUCKING
+      }
+    }
+    else
+    {
+      ifp pstanding
+      {
+	    ifvare character 1 action BARBSTAND else
+        action PSTAND
+      }
+      else
+        state check_pstandard
+    }
+  }
+  else
+    ifgapzl 48
+	{
+	  ife character 1 action BARBDUCKING else
+      action PDUCKING
+	}
+
+  else
+    ifaction PJUMPING
+  {
+	ifvare character 1 action BARBJUMPING
+    ifp ponground
+	{
+	  ife character 1 action BARBSTAND else
+      action PSTAND
+	}
+    else
+      ifactioncount 4
+        ifp pfalling
+		{
+		  ife character 1 action BARBFALLING
+		  else
+          action PFALLING
+		}
+  }
+  else
+    ifaction BARBJUMPING
+  {
+    ifp ponground
+      action BARBSTAND
+    else
+      ifactioncount 4
+        ifp pfalling
+          action BARBFALLING
+  }
+  
+ifvare character 0
+{
+  ifp pfalling
+    action PFALLING
+  else
+    ifaction PSTAND
+      state check_pstandard
+  else
+    ifaction PAKICKING
+  {
+    ifactioncount 2
+      action PSTAND
+    break
+  }
+  else
+    ifaction PWALK
+  {
+    ifp pfalling
+      action PFALLING
+    else
+      ifp pstanding
+        action PSTAND
+    else
+      ifp prunning
+        action PRUN
+    else
+      ifp pwalkingback
+        action PWALKBACK
+    else
+      ifp prunningback
+        action PRUNBACK
+    else
+      ifp pjumping
+        action PJUMPING
+    else
+      ifp pducking
+        action PDUCKING
+  }
+
+  else
+    ifaction PRUN
+  {
+    ifp pstanding
+      action PSTAND
+    else
+      ifp pwalking
+        action PWALK
+    else
+      ifp pwalkingback
+        action PWALKBACK
+    else
+      ifp prunningback
+        action PRUNBACK
+    else
+      ifp pjumping
+        action PJUMPING
+    else
+      ifp pducking
+        action PDUCKING
+  }
+
+  else
+    ifaction PWALKBACK
+  {
+    ifp pstanding
+      action PSTAND
+    else
+      ifp pwalking
+        action PWALK
+    else
+      ifp prunning
+        action PRUN
+    else
+      ifp prunningback
+        action PRUNBACK
+    else
+      ifp pjumping
+        action PJUMPING
+    else
+      ifp pducking
+        action PDUCKING
+  }
+
+  else
+    ifaction PRUNBACK
+  {
+    ifp pstanding
+      action PSTAND
+    else
+      ifp pwalking
+        action PWALK
+    else
+      ifp prunning
+        action PRUN
+    else
+      ifp pwalkingback
+        action PWALKBACK
+    else
+      ifp pjumping
+        action PJUMPING
+    else
+      ifp pducking
+        action PDUCKING
+  }
+}
+else ifvare character 1
+{
+	ifp pfalling
+    action BARBFALLING
+  else
+    ifaction BARBSTAND
+      state check_pstandard
+  else
+    ifaction BARBKICKING
+  {
+    ifactioncount 2
+      action BARBSTAND
+    break
+  }
+  else
+    ifaction BARBWALK
+  {
+    ifp pfalling
+      action BARBFALLING
+    else
+      ifp pstanding
+        action BARBSTAND
+    else
+      ifp prunning
+        action BARBRUN
+    else
+      ifp pwalkingback
+        action BARBWALKBACK
+    else
+      ifp prunningback
+        action BARBRUNBACK
+    else
+      ifp pjumping
+        action BARBJUMPING
+    else
+      ifp pducking
+        action BARBDUCKING
+  }
+
+  else
+    ifaction BARBRUN
+  {
+    ifp pstanding
+      action BARBSTAND
+    else
+      ifp pwalking
+        action BARBWALK
+    else
+      ifp pwalkingback
+        action BARBWALKBACK
+    else
+      ifp prunningback
+        action BARBRUNBACK
+    else
+      ifp pjumping
+        action BARBJUMPING
+    else
+      ifp pducking
+        action BARBDUCKING
+  }
+
+  else
+    ifaction BARBWALKBACK
+  {
+    ifp pstanding
+      action BARBSTAND
+    else
+      ifp pwalking
+        action BARBWALK
+    else
+      ifp prunning
+        action BARBRUN
+    else
+      ifp prunningback
+        action BARBRUNBACK
+    else
+      ifp pjumping
+        action BARBJUMPING
+    else
+      ifp pducking
+        action BARBDUCKING
+  }
+
+  else
+    ifaction PRUNBACK
+  {
+    ifp pstanding
+      action BARBSTAND
+    else
+      ifp pwalking
+        action BARBWALK
+    else
+      ifp prunning
+        action BARBRUN
+    else
+      ifp pwalkingback
+        action BARBWALKBACK
+    else
+      ifp pjumping
+        action BARBJUMPING
+    else
+      ifp pducking
+        action BARBDUCKING
+  }
+}
+enda

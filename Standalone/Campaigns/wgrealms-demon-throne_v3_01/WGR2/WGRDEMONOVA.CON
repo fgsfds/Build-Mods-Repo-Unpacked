@@ -1,0 +1,1550 @@
+// DEMONOVA
+
+action ADEASTAND  0   1  5  1  20
+action ADEAWALK   65   4  5  1  12
+action ADEACLOAK  85  1  5  1  20
+action ADEAREADY  5  1  5  1  50
+action ADEASHEATH 5  1  5  1  50
+action ADEAATTK1  10  6  5  1  10
+action ADEASTAB1  40  2  5  1  18
+action ADEASTAB2  50  1  5  1  30
+action ADEAJUMP   55  1  5  1  20
+action ADEALAND   60  1  5  1  20
+action ADEARUN    65  4  5  1  8
+action ADEABLOCK  85 1  5  1  20
+action ADEADIE    90 6  1  1  16
+action ADEADEAD	  96
+action ADEADOWN   93 2  1  1  48
+
+move DEAWALKVELS 160
+move DEARUNVELS 384
+move DEARUNATPLAYER 320
+move DEAJUMPVELS 288 -112
+move DEAFALLVELS 256
+move DEASTOPPED
+move DEABACK -64
+move DEACLOAK
+move DEAUNCLOAK
+move DEASLICEVEL 96
+move DEASTABVEL 192
+
+ai AIDEAWAIT ADEASTAND DEASTOPPED faceplayerslow
+ai AIDEAWALK ADEAWALK DEAWALKVELS geth
+ai AIDEAATTK ADEAATTK1 DEASLICEVEL geth
+ai AIDEASHOOT ADEAATTK1 DEASTOPPED geth
+ai AIDEASTAB ADEASTAB1 DEASTABVEL geth
+ai AIDEAJUMP ADEAJUMP DEAJUMPVELS geth getv
+ai AIDEACLOAK ADEACLOAK DEACLOAK geth
+ai AIDEAREADY ADEAREADY DEASTOPPED geth
+ai AIDEARUN ADEARUN DEARUNVELS geth
+ai AIDEABLOCK ADEABLOCK DEABACK geth
+ai AIDEADIE ADEADIE DEASTOPPED geth
+ai AIDEADOWN ADEADOWN DEASTOPPED geth
+ai AIDEAGOODBYE ADEAREADY DEASTOPPED faceplayer
+// ai AIDEAFLINTCH ADEADOWN DEASTOPPED geth
+
+// var notes
+// lotag stores last angle
+// target is enemy
+// target2 is "myvictim" from AA
+// ammo is botclip from AA
+
+state demonovaspeech
+
+ifvarand axquotes 32768 nullop else
+{
+	state targetsearch
+	ifvarn target -1
+	{
+		stopsound DEMONOVA_SPEECH1
+		screensound DEMONOVA_FIGHT
+		set subtitle_start 2038
+		set subtitle_numlines 1
+		set subtitle_time 90
+		state minodie
+		break
+	}
+	state playerturntome
+	setp[].jumping_counter 0
+	ifpdistg 1280
+	{
+		cos xvel angvar
+		sin yvel angvar
+		shiftl yvel 6
+		shiftl xvel 6
+		setp[].posyv yvel
+		setp[].posxv xvel
+		
+	}
+	ife mtype 0 // first batch of lines
+	{
+		set mtype 1
+		screensound DEMONOVA_SPEECH1
+		set subtitle_start 2039
+		set subtitle_numlines 5
+		set subtitle_time 60
+	}
+	else
+	ife mtype 1
+	{
+		ifle subtitle_time 30
+		{
+			set subtitle_time 30
+			quote 409
+			ifhitspace 
+			{
+				set subtitle_time 0
+				orvar axquotes 32768
+				setp[].fta 0
+			}
+		}
+	}
+}
+
+ends
+
+state demonovabyestate
+
+	ife weap 1
+	{
+		state playerturntome
+		setp[].jumping_counter 0
+		ifpdistg 1280
+		{
+			cos xvel angvar
+			sin yvel angvar
+			shiftl yvel 6
+			shiftl xvel 6
+			setp[].posyv yvel
+			setp[].posxv xvel
+			
+		}
+		ifcount 30
+		{
+			ifvarand axquotes 65536 nullop else
+			{
+				orvar axquotes 65536
+				screensound DEMONOVA_FINAL
+			}
+			set subtitle_time 30
+			set subtitle_numlines 6
+			set subtitle_start 2188
+			quote 409
+			ifhitspace 
+			{
+				set subtitle_time 0
+				setp[].fta 0
+				set demonova_boss NO
+				ifn activator 0 state activatorstate
+				set activator 0
+				stopsound DEMONOVA_FINAL
+				setp[].holoduke_amount HOLODUKE_AMOUNT
+				state minodie
+				
+			}
+		}
+		break
+	}
+	
+	ifai AIDEARUN break
+	cstat 0
+	set monstatus 20
+	state targetsearch
+	
+	
+	ifcount 3 nullop else ifcount 2
+	{
+		stopsound DEMONOVA_LEAVING1
+		stopsound DEMONOVA_LEAVING2
+		stopsound DEMONOVA_LEAVING3
+		stopsound DEMONOVA_LEAVING4
+		stopsound DEMONOVA_PRAISE1
+		stopsound DEMONOVA_PRAISE2
+		stopsound DEMONOVA_SUMMON1
+		stopsound DEMONOVA_SUMMON2
+		stopsound DEMONOVA_SUMMON3
+		stopsound DEMONOVA_SUMMON4
+		stopsound DEMONOVA_TAUNT1
+		stopsound DEMONOVA_TAUNT2
+		stopsound DEMONOVA_TAUNT3
+		stopsound DEMONOVA_TAUNT4
+		
+		
+		rand temp 3
+		
+		ifvarand axquotes 32768 nullop else
+		ifg player[].holoduke_amount 90
+		ife target -1
+		{
+			set tempb NO
+			ife player[].cursectnum sprite[].sectnum set tempb YES
+			ifge sprite[player[].i].z sprite[].z ifpdistl 10240 set tempb YES
+			ife tempb YES set temp -1
+		}
+		
+		ife temp 0 screensound DEMONOVA_LEAVING1 else
+		ife temp 1 screensound DEMONOVA_LEAVING2 else
+		ife temp 2 screensound DEMONOVA_LEAVING3 else
+		ife temp 3 screensound DEMONOVA_LEAVING4
+	}
+	ifcount 40
+	{
+		ifvarand axquotes 32768 nullop else
+		{
+			set tempb NO
+			ife player[].cursectnum sprite[].sectnum set tempb YES
+			ifge sprite[player[].i].z sprite[].z ifpdistl 10240 set tempb YES
+			ife tempb YES
+			ife target -1
+			{
+				count 50
+				ife subtitle_time 0
+				{
+					set mtype 0
+					state demonovaspeech
+				}
+				else state demonovaspeech
+				
+				break
+			}
+		}
+	}
+	ifcount 60 state minodie
+
+ends
+
+state shootsaberstate
+	state hitscan_targetprep
+	zshoot zdist SABERPROJ
+	ife myminotaur THISACTOR
+	ife truedemonova YES
+	zshoot zdist SABERPROJ
+	
+	ifn target -1
+	ife actorvar[target].monstatus 1
+	ife actorvar[target].target -1
+	ifrnd 32
+	{
+		setav[target].target THISACTOR
+		setav[target].targetlock 50
+		setav[target].countvarb 30
+	}
+ends
+
+state shootslashstate
+
+	geta[].x saveit
+	geta[].y saveit2
+	
+	set mx sprite[].x
+	add mx 512
+	rotatepoint sprite[].x sprite[].y mx sprite[].y sprite[].ang x y
+	setsprite THISACTOR x y sprite[].z
+
+	state calczdist
+	ldist tempe THISACTOR target
+	ifvare tempe 0 setvar temp 1
+	mul zdist 768
+	divvarvar zdist tempe
+	ezshoot zdist SLASHPROJ
+	ife shotpitch 1 setav[RETURN].mtype 1
+	
+	seta[].x saveit
+	seta[].y saveit2
+
+ends
+
+state demonovataunt
+	rand temp 3
+	ife temp 0 sound DEMONOVA_TAUNT1 else
+	ife temp 1 sound DEMONOVA_TAUNT2 else
+	ife temp 2 sound DEMONOVA_TAUNT3 else
+	sound DEMONOVA_TAUNT4
+
+ends
+
+state startcloak
+	ai AIDEACLOAK
+	cstat 0
+	sound TELEPORTER
+	set initz targetdist
+	shiftr initz 7 // time until uncloak
+	ife myminotaur THISACTOR ife truedemonova YES shiftr initz 1
+	else
+	ife weap 1  shiftr initz 1
+
+	ifl initz 2 set initz 2
+	geta[target].x initx
+	geta[target].y inity
+	set target2 target
+	ife countvar 0 
+	{ 
+		state demonovataunt
+		set countvar 90 
+	}
+ends
+
+state summon_sounds
+
+	rand temp 3
+	ife temp 0 sound DEMONOVA_SUMMON1 else
+	ife temp 1 sound DEMONOVA_SUMMON2 else
+	ife temp 2 sound DEMONOVA_SUMMON3 else
+	sound DEMONOVA_SUMMON4
+
+ends
+
+state deafollowplayer
+	
+	ifp ponground ifpdistg 16384
+	{
+		ai AIDEACLOAK
+		cstat 0
+		sound TELEPORTER
+		set initz 50 // time until uncloak
+		ife myminotaur THISACTOR ife truedemonova YES shiftr initz 1
+		ifl initz 2 set initz 2
+		getp[].posx initx
+		getp[].posy inity
+		set target2 player[].i
+		set countvar 40
+		break
+		
+	}
+	ifn target -1 break
+	
+	ifcount 20
+	{
+		ifai AIDEARUN ifpdistl 4096 ai AIDEAWALK else
+		ifai AIDEAWALK ifpdistg 7168 ai AIDEARUN
+		
+		ifp pfacing
+		{
+			ifpdistl 2048 ai AIDEAWAIT
+		}
+		else ifpdistl 1024 ai AIDEAWAIT
+		
+		ifpdistl 8192 ifcansee
+		{
+			set tempc target
+			state gradualturn
+			ife target -1 set target tempc
+		}
+	}
+	
+
+ends
+
+state deajumpstate
+
+	seta[].ang lotag
+	set ammo 0
+	ifmove DEAJUMPVELS
+	{
+		ifcount 8 
+		{
+			move DEAFALLVELS geth
+			action ADEALAND
+		}
+	}
+	ifaction ADEALAND
+	{
+		iffloordistl 4
+		{
+			ai AIDEARUN
+			count 50
+		}
+		
+	}
+
+ends
+
+state deajumpcheck
+
+	ifceilingdistl 128 break
+	
+	geta[].z z
+	sub z 4096
+	
+	cos mycos sprite[].ang
+	sin mysin sprite[].ang
+	hitscan sprite[].x sprite[].y z sprite[].sectnum mycos mysin 0 hitsector hitwall hitsprite hitx hity hitz 16777281
+	
+	ifn hitsprite -1 ifvarand sprite[hitsprite].cstat 16 set hitsprite -1
+	
+	ife hitsprite -1
+	{
+		set mx sprite[].x
+		sub mx hitx
+		mul mx mx
+		set my sprite[].y
+		sub my hity
+		mul my my
+		add mx my
+		sqrt mx mx
+		ifl mx 512
+		{
+			sub z 16384 // 10240
+			hitscan sprite[].x sprite[].y z sprite[].sectnum mycos mysin 0 hitsector hitwall hitsprite hitx hity hitz 16777281
+			
+			set mx sprite[].x
+			sub mx hitx
+			mul mx mx
+			set my sprite[].y
+			sub my hity
+			mul my my
+			add mx my
+			sqrt mx mx
+			
+			ifg mx 1560 
+			{ 
+				ai AIDEAJUMP 
+				geta[].ang lotag  
+			}
+		}
+	}
+
+
+ends
+
+state deapainsounds
+
+	ifn countvar 0 break
+	
+	rand temp 3
+	ife temp 0 sound DEMONOVA_HURT1 else
+	ife temp 1 sound DEMONOVA_HURT2 else
+	ife temp 2 sound DEMONOVA_HURT3 else
+	ife temp 3 sound DEMONOVA_HURT4
+	set countvar 30
+ends
+
+state deastabstate
+
+	ifn weap 1
+	ifg targetdist 2304
+	ifaction ADEASTAB2
+	{
+		ai AIDEARUN
+		break
+	}
+
+	ifn target -1 ifl sprite[target].z sprite[].z
+	{
+		set ammo 2
+		geta[target].z zdist
+		sub zdist sprite[].z
+		shiftr zdist 1
+		ifl zdist -4096 set zdist -4096
+		movesprite THISACTOR 0 0 zdist CLIPMASK0 RETURN
+	}
+	else
+	ife upside YES
+	ifn target -1 ifg sprite[target].z sprite[].z
+	{
+		set ammo 2
+		geta[target].z zdist
+		sub zdist sprite[].z
+		shiftr zdist 1
+		ifg zdist 4096 set zdist 4096
+		movesprite THISACTOR 0 0 zdist CLIPMASK0 RETURN
+	}
+
+	ifmove DEASTOPPED nullop else
+	ifn target -1
+	{
+		ldist xydist2 THISACTOR target
+		ifl xydist2 768
+		{
+			ifmove DEASLICEVEL nullop else move DEASLICEVEL geth
+			ifl xydist2 480 { ifmove DEASTOPPED nullop else move DEASTOPPED geth }
+		}
+	}
+
+	ifaction ADEASTAB1
+	ifactioncount 2
+	{
+		action ADEASTAB2
+	}
+	ifaction ADEASTAB2
+	{
+		espawn DEMONOVATRAIL
+		setav[RETURN].myspawner THISACTOR
+		
+		state shootsaberstate
+		ifn target -1
+		{
+			geta[].ang lotag
+			ifl targetdist 1500
+			{
+				soundonce DEMONOVA_STAB
+				ifl sprite[target].extra 1000
+					setav[target].fear -10
+			}
+		}
+		else seta[].ang lotag
+		
+		ifactioncount 2
+		{
+			ai AIDEARUN
+			ife weap 1 ifn target -1
+			ifrnd 128 ai AIDEASHOOT
+		}
+	}
+
+ends
+
+state deashootstate
+
+	ife target -1 { ai AIDEAWAIT set shotpitch 0 break }
+	
+	set tempc target
+	state facetarget
+	ife target -1 set target tempc
+	
+	ife shotpitch 0
+	ifactioncount 2
+	{
+		resetactioncount
+		sound DEMONOVA_SWING
+		state shootslashstate
+		set shotpitch 1
+	}
+	else
+	ife shotpitch 1
+	ifactioncount 3
+	{
+		resetactioncount
+		sound DEMONOVA_SWING
+		state shootslashstate
+		set shotpitch 2
+	}
+	else
+	ife shotpitch 2
+	ifactioncount 1
+	{
+		ai AIDEAWAIT set shotpitch 0
+	}
+	
+
+ends
+
+state deattkstate
+
+	ifn target -1
+	{
+		ldist xydist2 THISACTOR target
+		ifg xydist2 768 { ifmove DEASLICEVEL nullop else move DEASLICEVEL geth } else
+		ifg xydist2 640 { ifmove DEASTOPPED nullop else move DEASTOPPED geth } else
+		ifl xydist2 480 { ifmove DEABACK nullop else move DEABACK geth }
+		
+		ife sprite[target].picnum DETHNITE
+		ifactioncount 1 ifrnd 64
+		{
+			findnearactor SHIELDRING 512 spriteid
+			ifn spriteid -1
+			{
+				ai AIDEACLOAK
+				cstat 0
+				sound TELEPORTER
+				set initz targetdist
+				shiftr initz 8 // time until uncloak
+				geta[target].x initx
+				geta[target].y inity
+				set target2 target
+				break
+			}
+		}
+	}
+	
+	set tempc target
+	state gradualturn
+	ife target -1 set target tempc
+	
+	ifactioncount 2
+	{
+		resetactioncount
+		state shootsaberstate
+		state shootsaberstate
+		ife target -1
+			ai AIDEARUN
+		else
+			ifg targetdist 2048 ai AIDEARUN
+		else ifg targetdist 1536 
+		{ 
+			sound DEMONOVA_SWING 
+			sound DEMONOVA_ATTACK1 
+			ai AIDEASTAB 
+		}
+		else
+		{
+/*
+
+	// note this state does not yet support metal and the numbers are different!
+	
+			geta[target].picnum picnum
+			state surfacetype
+			switch tempb
+			case 2 case 3 case 10 // metal enemy
+				// ifrnd 192 sound DEAHITMETAL else
+				// 	sound DEAHITCONCRETE
+			break
+			default
+				// ifrnd 192 sound DEAHITFLESH else
+				// 	sound DEAHITCONCRETE
+			break
+			endswitch
+*/	
+			ifrnd 32 
+			{
+				sound DEMONOVA_ATTACK1 
+				sound DEMONOVA_SWING
+				ai AIDEASTAB 
+			}
+		}
+		espawn SABERSLASH
+		
+		seta[RETURN].pal 21
+		ife shotpitch 1 seta[RETURN].cstat 4
+		ife shotpitch 0 set shotpitch 1 else set shotpitch 0
+		geta[RETURN].z mz
+		sub mz 3072
+		seta[RETURN].z mz
+		ifn target -1
+		{
+			set mx sprite[].x
+			add mx 512
+			rotatepoint sprite[].x sprite[].y mx sprite[].y sprite[].ang x y
+			setsprite RETURN x y mz
+			
+			
+		}
+		
+	}
+	ifn target -1 geta[].ang lotag else
+	seta[].ang lotag
+
+ends
+
+state deablockstate
+
+	// set stun 0
+	ifn target -1
+	{
+		set tempc target
+		state facetarget
+		ife target -1 set target tempc
+		
+		ife actorvar[target].target -1
+		ife sprite[target].htactorstayput -1
+		ifn target bossid
+		{
+			spawn MAGNETAURA
+			seta[target].xvel 0
+			add angvar 1024
+			cos xvel angvar
+			sin yvel angvar
+			div xvel 48 div yvel 48
+			movesprite target xvel yvel 0 CLIPMASK0 RETURN
+			ifl targetdist 1280 count 10
+			
+			ife weap 1
+			ife target player[].i
+			{
+				set spriteid player[].i
+				geta[spriteid].x mx
+				geta[spriteid].y my
+				sub mx sprite[].x
+				sub my sprite[].y
+				getangle angvar mx my
+				add angvar 1024
+				cos xvel angvar
+				sin yvel angvar
+				shiftl xvel 5
+				shiftl yvel 5
+				
+				add xvel player[].posxv
+				add yvel player[].posyv
+				setplayer[].posxv xvel
+				setplayer[].posyv yvel
+				ifg targetdist 2048 ifrnd 16 resetcount
+			}
+		}
+	}
+	
+	set mtype 1
+	ifcount 10
+	{
+		set mtype 0
+		ifn target -1
+		{
+			ifg targetdist 2560 ai AIDEARUN else
+			ifg targetdist 1792 
+			{ 
+				ai AIDEASTAB 
+				sound DEMONOVA_SWING
+				sound DEMONOVA_ATTACK1 
+			} 
+			else
+			{ 
+				ifrnd 160
+				{
+					ai AIDEAATTK 
+					sound DEMONOVA_SWING
+					set shotpitch 0
+				}
+				else
+				{
+					ai AIDEASTAB 
+					sound DEMONOVA_SWING
+					sound DEMONOVA_ATTACK1
+				}
+			}
+		}
+		else
+			ai AIDEARUN
+	}
+	else
+	ifg sprite[].htextra 0
+	{
+		div burning 2
+		// ife sprite[].htpicnum SHOTSPARK1
+		// {
+			flash
+			seta[].htextra -1
+			ifactorsound THISACTOR DEMONOVA_BLOCK nullop else sound DEMONOVA_BLOCK
+			ai AIDEABLOCK
+			ife sprite[].htpicnum SHOTSPARK1 count 3
+		// }
+		getactor[THISACTOR].z z
+		subvar z 8192
+		setactor[THISACTOR].z z
+		spawn SHIELDRING
+		addvar z 8192
+		setactor[THISACTOR].z z
+	}
+
+	// ife sprite[].htpicnum KNEE seta[].htextra -1
+
+	// ifg sprite[].htextra 1
+	// {
+		// geta[].htextra temp
+		// shiftr temp 1
+		// seta[].htextra temp
+		// ifactorsound THISACTOR DEMONOVA_BLOCK nullop else sound DEMONOVA_BLOCK
+	// }
+
+ends
+
+state deastartcombat
+	iffloordistl 4
+	{
+		ifg targetdist 2560 ifl targetdist 10240
+		{
+			set temp NO
+			
+			geta[].z z
+			sub z sprite[target].z
+			ifg z 20480 set temp YES
+			else ifrnd 128 set temp YES
+			
+			ife temp YES
+			{
+				state startcloak
+				break
+			}
+		}
+		
+		ai AIDEAREADY
+		// sound POPCLAW
+		
+		ife countvar 0 ifrnd 64 state demonovataunt
+		
+	}
+	else ifinwater 
+	{ 
+		ai AIDEAREADY 
+		// sound POPCLAW 
+	}
+	else ifcount 60 
+	{ 
+		ai AIDEAREADY 
+		// sound POPCLAW 
+	}
+ends
+
+state deadiestate
+
+	ifspritepal 21
+	{
+		ifaction ADEADIE
+		{
+			ifactioncount 6 { action ADEADEAD cstat 0 ifrnd 128 cstator 4 strength 0 }
+		}
+		ifaction ADEADEAD
+		{
+			ifhitweapon
+			ifn weap 1
+			{
+			  ifwasweapon RPG
+			  {
+				sound SQUISHED
+				state standard_jibs
+				killit
+			  }
+			  else
+				ifwasweapon RADIUSEXPLOSION
+			  {
+				sound SQUISHED
+				state standard_jibs
+				killit
+			  }
+			  strength 0
+			}
+		}
+		break
+	}
+	ifactioncount 6 
+	{
+		ife myminotaur THISACTOR ai AIDEAGOODBYE else
+		ai AIDEADOWN
+	}
+
+ends
+
+state deadownstate
+	
+	set burning 0
+	ifhitweapon { } 
+	ifstrength 5 strength 5
+		
+	ifcount 150
+	{
+		addstrength 15
+		ifspritepal 33 getlastpal else spritepal 33
+	}
+
+	ifstrength 1000 nullop
+	else
+	{
+		strength 1000
+		ai AIDEAWAIT
+		set target -1
+		seta[].htowner THISACTOR
+		set monstatus 3
+		cstat 257
+		ifspritepal 33 getlastpal
+		
+		ife weap 1 ai AIDEAGOODBYE
+	}
+
+ends
+
+state deaflintchstate
+
+ifcount 10 // ife stun 0
+	ai AIDEAWAIT
+
+ends
+
+state deareadystate 
+
+	ifactioncount 2
+	{
+		ifaction ADEASHEATH
+		ai AIDEAWAIT
+		else
+		ai AIDEARUN
+	}
+
+ends
+
+state deacloakstate 
+
+// 28 26 normal size
+seta[].htextra -1
+ifmove DEACLOAK
+{
+	ifcount 3
+	{
+		ife myminotaur THISACTOR
+		ife truedemonova YES
+		{
+			sizeto 36 34
+			sizeto 36 34
+		}
+		else ife weap 1
+		{
+			sizeto 36 34
+			sizeto 36 34
+		}
+		else
+		{
+			sizeto 2 28
+			sizeto 2 28
+		}
+		ifcount 6
+		{
+			ifn weap 1
+			set monstatus 2
+			cstator 2
+			ifspritepal 33 getlastpal else spritepal 33
+			ifcount 10
+				cstator 512
+			ifcount 14
+			{
+				cstat 32768
+				ifspritepal 33 getlastpal
+				
+				ifl initz 1
+				{
+					set target target2
+					
+					ifn target2 player[].i
+					{
+						ifn actorvar[target].monstatus 1 set target -1 else
+						ife sprite[target].statnum 1024 set target -1
+					}
+					
+					ife target -1
+					{
+						updatesectorz initx inity sprite[].z sect
+						ifn sect -1 setsprite THISACTOR initx inity sprite[].z
+						move DEAUNCLOAK
+						cstat 514
+						sound TELEPORTER
+						set ammo 40
+					}
+					else
+					{
+						geta[target].ang angvar
+						add angvar 1024
+						
+						set x sprite[target].x
+						add x 644
+						
+						rotatepoint sprite[target].x sprite[target].y x sprite[target].y angvar mx my
+						updatesectorz mx my sprite[target].z sect
+						ife sect sprite[target].sectnum
+						{
+							geta[target].z mz
+							getflorzofslope sect mx my z
+							ifl z mz set mz z
+							setsprite THISACTOR mx my mz
+						}
+						else
+						{
+							geta[target].ang angvar
+							add angvar 512
+							
+							set x sprite[target].x
+							add x 644
+							
+							rotatepoint sprite[target].x sprite[target].y x sprite[target].y angvar mx my
+							updatesectorz mx my sprite[target].z sect
+							ife sect sprite[target].sectnum
+							{
+								geta[target].z mz
+								getflorzofslope sect mx my z
+								ifl z mz set mz z
+								setsprite THISACTOR mx my mz
+							}
+							else
+							{
+								geta[target].ang angvar
+								sub angvar 512
+								
+								set x sprite[target].x
+								add x 644
+								
+								rotatepoint sprite[target].x sprite[target].y x sprite[target].y angvar mx my
+								updatesectorz mx my sprite[target].z sect
+								ife sect sprite[target].sectnum
+								{
+									geta[target].z mz
+									getflorzofslope sect mx my z
+									ifl z mz set mz z
+									setsprite THISACTOR mx my mz
+								}
+								else setsprite THISACTOR sprite[target].x sprite[target].y sprite[target].z
+							}
+						}
+						move DEAUNCLOAK
+						cstat 514
+						sound TELEPORTER
+						set ammo 40
+					}
+				}
+			}
+		}
+		sub initz 1
+	}
+}
+else
+ifmove DEAUNCLOAK
+{
+	ife myminotaur THISACTOR
+	ife truedemonova YES
+	{
+		sizeto 36 34
+		sizeto 36 34
+		sizeto 36 34
+	}
+	else ife weap 1
+	{
+		sizeto 36 34
+		sizeto 36 34
+		sizeto 36 34
+	}
+	else
+	{
+		sizeto 30 28
+		sizeto 30 28
+		sizeto 30 28
+	}
+	ifcount 4 cstat 2
+	ifcount 8 cstat 257
+	ifcount 12
+	{
+		ifn sprite[].pal 21
+		ifn weap 1
+		ife target2 player[].i set target -1
+		
+		ifn target -1 
+		{
+			ifl targetdist 1432
+			{
+				ifn weap 1
+				set monstatus 3
+				ai AIDEAATTK
+				sound DEMONOVA_SWING
+			}
+			else ai AIDEARUN
+		}
+		else ai AIDEAWAIT
+	}
+	
+}
+	
+ends
+
+
+state dearunstate
+
+	ife target player[].i
+	{
+		ifmove DEARUNVELS move DEARUNATPLAYER seekplayer
+		state gradualturn
+		set target player[].i
+	}
+	
+	ifn target -1
+	{
+		ifg targetdist 2560
+		ifl targetdist 12288
+		ifrnd 4
+		{
+			ai AIDEASHOOT
+			break
+		}
+		ifl targetdist 2048
+		ifg targetdist 1792
+		ifrnd 96
+		{
+			ai AIDEASTAB
+			sound DEMONOVA_SWING
+			sound DEMONOVA_ATTACK2
+		}
+		ifl targetdist 1432
+		{
+			ai AIDEAATTK
+			sound DEMONOVA_SWING
+		}
+		
+		set temp NO
+		
+		ldist xydist2 THISACTOR target
+		ifl xydist2 512
+		ifcount 12
+		set temp YES
+		
+		ifg xydist2 8192 ifrnd 4 set temp YES
+		
+		ife temp YES
+		{
+			// sound SHEATHCLAW
+			ai AIDEACLOAK
+			cstat 0
+			sound TELEPORTER
+			set initz targetdist
+			shiftr initz 7 // time until uncloak
+			ife myminotaur THISACTOR ife truedemonova YES shiftr initz 1
+			else
+			ife weap 1 shiftr initz 1
+			
+			ifl initz 2 set initz 2
+			geta[target].x initx
+			geta[target].y inity
+			set target2 target
+			ife countvar 0 
+			{
+				ifcansee ifpdistl 6144 state demonovataunt
+				set countvar 40 
+			}
+			break
+		}
+		ifai AIDEARUN
+		ifl targetdist 4096
+		ifcount 8
+		{
+			ife actorvar[target].target -1
+			ife sector[].lotag sector[sprite[target].sectnum].lotag
+			ife sprite[target].htactorstayput -1
+			ifg sprite[target].xvel 0
+			ifn target bossid
+			{
+				ife weap 1 { ifrnd 8 ai AIDEABLOCK }
+				else
+				ai AIDEABLOCK
+			}
+		}
+	}
+	else
+	{
+		state deajumpcheck
+		ifai AIDEAJUMP break
+		ifnotmoving ifrnd 16 operate
+		
+		ifcount 150
+		ifpdistl 8192
+		{
+			ai AIDEAREADY
+			action ADEASHEATH
+			// sound SHEATHCLAW
+		}
+	}
+	state deafollowplayer
+
+ends
+
+state deawalkstate 
+
+	ifcount 6
+	{
+		ifn target -1
+			state deastartcombat
+		ife target -1
+		{
+			state deajumpcheck
+			ifai AIDEAJUMP break
+		}
+		ifnotmoving { operate ai AIDEAWAIT }
+	}
+	state deafollowplayer
+
+ends
+
+state deawaitstate
+
+	ife target -1
+	{
+		ifhitspace
+		ifp pfacing
+		ifpdistl 1280
+		ifn sprite[].pal 21
+		ifn weap 1
+		{
+			resetcount
+			ife countvar 0 
+			{ 
+				state summon_sounds 
+				set countvar 150 
+			}
+		}
+		ifcount 30
+		ifpdistg 2560
+			ai AIDEAWALK
+	}
+	else
+		state deastartcombat
+	
+ends
+
+state deabattlecode
+
+	ife countvar 0
+	ifn target -1
+	ife actorvar[target].monstatus 2
+	ifrnd 64
+	{
+		// rand temp 3
+		// ife temp 0 sound DEA_PAWNTAKEN else
+		// ife temp 1 sound DEA_SUFFENDS else
+		// ife temp 2 sound DEA_VOID else
+		// sound DEA_TACTICAL
+		set countvar 90
+	}
+	ifonwater ifnotmoving state getoutofwater
+	
+	ife weap 1 // boss enemy
+	{
+		ifp palive nullop else
+		ife target player[].i 
+		{
+			set target -1
+			ai AIDEAWAIT
+		}
+		
+		set cursed 0
+		state monsterai
+		ifcansee ifp palive set target player[].i
+		else 
+		{
+			state targetsearch
+			ifn target -1
+			ifvare actorvar[target].monstatus 2 setvar target -1 else
+			ifn target -1
+			ifvarn sprite[target].statnum 1 
+			setvar target -1 
+		}
+		ifn target -1 
+		{
+			dist targetdist THISACTOR target
+			set temp NO
+			ifai AIDEAATTK
+			ifl targetdist 1792
+			set temp YES
+			else
+			ifg sprite[].htextra 0
+			set temp YES
+			else
+			ifl targetdist 1280
+			ife target player[].i
+			ife character 0
+			ife player[].curr_weapon 0
+			set temp YES
+			
+			ife temp YES
+			{
+				getactor[target].x mx
+				getactor[target].y my
+				getactor[THISACTOR].x x
+				getactor[THISACTOR].y y
+				subvarvar mx x
+				subvarvar my y
+				getangle angvar mx my
+				setactor[THISACTOR].ang angvar
+			}
+		}
+		else set targetdist 99999
+		
+		ifai AIDEAATTK set aura -128 else
+		ifai AIDEASHOOT set aura -128 else
+		ifai AIDEASHOOT set aura -128 else
+		set aura 0
+	}
+	else
+	{
+		state targetsearch
+		ife target -1
+		ifg sprite[].htextra 0
+		ifn sprite[].htowner -1
+		{
+			set target sprite[].htowner
+			ifn actorvar[target].monstatus 1 set target -1
+			ifn target -1
+			{
+				canseespr THISACTOR target temp
+				ife temp 0
+				ifg sprite[].extra 10 state startcloak
+			}
+		}
+		ifvarn target -1
+		{
+			ifvare actorvar[target].monstatus 2 setvar target -1 else
+			ifvarn sprite[target].statnum 1 
+			setvar target -1 
+			else
+			{
+				dist targetdist THISACTOR target
+				ifl targetdist 2048
+				{
+					getactor[target].x mx
+					getactor[target].y my
+					getactor[THISACTOR].x x
+					getactor[THISACTOR].y y
+					subvarvar mx x
+					subvarvar my y
+					getangle angvar mx my
+					setactor[THISACTOR].ang angvar
+				}
+				else 
+					state gradualturn
+			}
+		}
+		else set targetdist 99999
+	}
+	
+	ifai AIDEADIE { state deadiestate break }
+	ifai AIDEADOWN { state deadownstate break }
+	ifai AIDEAWAIT state deawaitstate else
+	// ifai AIDEAFLINTCH state deaflintchstate else
+	ifai AIDEAREADY state deareadystate else
+	ifai AIDEACLOAK state deacloakstate else
+	ifai AIDEAWALK state deawalkstate else
+	ifai AIDEARUN state dearunstate else
+	ifai AIDEAATTK state deattkstate else
+	ifai AIDEASHOOT state deashootstate else
+	ifai AIDEASTAB state deastabstate else
+	ifai AIDEABLOCK state deablockstate else
+	ifai AIDEAJUMP state deajumpstate
+	
+	ifg sprite[].htextra 0
+	ifn target -1
+	ife sprite[].htowner target
+	{
+		set temp NO
+		ifai AIDEARUN set temp YES
+		ifai AIDEAATTK set temp YES
+		ifai AIDEASHOOT set temp YES
+		ife temp YES
+		{
+			ai AIDEABLOCK
+			// ifrnd 192 set stun 0
+			state deablockstate
+			set shotpitch 0
+			
+			// ifpdistl 3072 ife countvar 0
+			// {
+				// ifrnd 128
+				// sound DEA_TAKECOVER
+				// else
+				// sound DEA_WATCHOUT
+				// set countvar 50
+			// }
+		}
+	}
+	
+	ife THISACTOR myminotaur
+	{
+		geta[].htextra temp
+		ifg temp 0
+		{
+			ife truedemonova YES div temp 2
+			getp[].holoduke_amount tempb
+			ifg tempb 1
+			{
+				sub tempb temp
+				ifl tempb 1 set tempb 1
+				setp[].holoduke_amount tempb
+			}
+		}
+		ifhitweapon state deapainsounds
+		strength 1000
+	}
+	else
+	ifhitweapon
+	{
+		ifdead
+		{
+			set monstatus 2
+			set shotpitch 0
+			ifwasweapon FREEZEBLAST
+				spawn BIGSMOKE
+			
+			guts JIBS6 4
+			set mtype 0
+			cstat 0
+			strength 0
+			ai AIDEADIE
+			ifspritepal 21
+			{
+				state specialdeath
+				addkills 1
+			}
+			else
+			ife weap 1
+			{
+				// state specialdeath
+				addkills 1
+				setvar bossid -1
+				addphealth 200
+				setp[].firstaid_amount flaskmax
+				ifvarn music2 0
+				{
+					set music2 0
+					starttrackslot musicepisode musictrack
+				}
+			}
+			state deapainsounds
+		}
+		else 
+		{
+			state deapainsounds
+			// ifg stun 0
+			// {
+				// ai AIDEAFLINTCH
+				// set mtype 0
+				// set target2 -1
+			// }
+			
+		}
+	}
+
+	ifg countvar 0 sub countvar 1 // talking counter
+
+ends
+
+eventloadactor DEMONOVA
+
+	geta[].yvel activator
+	seta[].yvel 0
+	geta[].extra demonova_boss
+	ifn demonova_boss 1 set demonova_boss 0
+	spritepal 10
+	sizeat 36 34
+	ife demonova_boss 1 set weap 1
+enda
+
+useractor enemy DEMONOVA 1000
+
+	ifmove 0
+	{
+		ifl character 0 break
+		ife weap 0
+		{
+			ifg player[].max_actors_killed maxenemieskilled[LEVEL]
+			{
+				set temp maxenemieskilled[LEVEL]
+				sub temp 1
+				setarray maxenemieskilled[LEVEL] temp
+			}
+			getp[].max_actors_killed temp
+			sub temp 1
+			setp[].max_actors_killed temp
+		}
+		
+		set ammo 0
+		set monstatus 3
+		cstat 257
+		sizeat 30 28
+		clipdist 32
+		ife weap 1 // boss fight
+		{
+			palfrom 63 0 0 0
+			spritepal 10
+			sizeat 36 34
+			clipdist 60
+			set monstatus 1
+			strength 6000
+			set inithp 6000
+			set bossid THISACTOR
+			set myminotaur -1
+			setp[].holoduke_amount 0
+			ai AIDEAWAIT
+			starttrackslot 1 8
+			set music2 1
+			addphealth 200
+			ifl player[].shield_amount maxarmor setp[].shield_amount maxarmor
+		}
+		else
+		ife myminotaur THISACTOR
+		{
+			ife truedemonova YES
+			{
+				spritepal 10
+				sizeat 36 34
+				clipdist 40
+			}
+			ifcount 20
+			{
+				ai AIDEAWAIT
+				state summon_sounds
+			}
+			break
+		}
+		else 
+			ai AIDEAWAIT
+
+	}
+	
+	ife myminotaur THISACTOR
+	ife truedemonova YES
+	ifn target -1
+	{
+		geta[].xvel xvel
+		ifg xvel 0
+		{
+			mul xvel 3, div xvel 2
+			seta[].xvel xvel
+		}
+			
+	}
+	else
+	ife weap 1
+	{
+		ifn target -1
+		{
+			geta[].xvel xvel
+			ifg xvel 0
+			{
+				mul xvel 5, div xvel 4
+				seta[].xvel xvel
+			}
+				
+		}
+	}
+	
+	ife upside YES
+	{
+		seta[].mdflags 16
+		cstator 8
+		ife ammo 0
+		{
+			seta[].zvel -256
+			movesprite THISACTOR 0 0 -1536 CLIPMASK0 RETURN
+		}
+	}
+	else 
+	{
+		ifvarand sprite[].cstat 8
+		cstat 257
+		ife ammo 0 fall
+	}
+
+	ifg ammo 0 sub ammo 1
+	ife target -1 set ammo 0
+
+	ifai AIDEAGOODBYE { state demonovabyestate break }
+	state deabattlecode
+	ife myminotaur THISACTOR
+	{
+		getplayer[myspawner].holoduke_amount temp
+		ifvarl temp 1 { ai AIDEAGOODBYE break }
+		subvar temp 1
+		ifai AIDEADOWN add temp 1 else
+		ife target -1 add temp 1
+		setplayer[myspawner].holoduke_amount temp
+	}
+	else ife peractor1 1 ife myminotaur -1
+	ai AIDEAGOODBYE
+	ife monstatus 20 ai AIDEAGOODBYE // turned off by player
+
+
+enda
+
+action ADENTRAILFRAME  0  1  5  1  1
+useractor notenemy DEMONOVATRAIL 0 ADENTRAILFRAME
+
+ifmove 0
+{
+	move STOPPED
+	seta[].xrepeat sprite[myspawner].xrepeat
+	seta[].yrepeat sprite[myspawner].yrepeat
+	cstat 514
+	seta[].ang sprite[myspawner].ang
+	seta[].pal sprite[myspawner].pal
+}
+ifcount 3 killit
+
+enda

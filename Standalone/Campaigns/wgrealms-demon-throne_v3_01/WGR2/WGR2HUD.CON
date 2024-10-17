@@ -1,0 +1,6038 @@
+state shadepulse
+	set temp player[].player_par
+	// shiftvarl temp 6
+	mul temp 96
+	sin tempb temp
+	shiftr tempb 10
+	add tempb 1
+	set shade tempb
+ends
+
+state display_textcrawl
+
+	ifle crawlclock YES break
+	ifl crawlnumlines 1 break
+	
+	ifg totalclock crawlclock
+	{
+		sub crawltopy 10240
+		// ifhitspace sub crawltopy 20480
+		set zdist LINESPACING
+		mul zdist crawlnumlines
+		set temp crawltopy
+		add temp zdist
+		
+		ifl temp -65536 
+		{
+			set crawlclock NO 
+			set crawlfirstline 3000
+			set crawltopy 13434880
+			break 
+		}
+		
+		set crawlclock totalclock
+	}
+	set temp crawlfirstline
+	set tempb crawlfirstline
+	add tempb crawlnumlines
+	set y crawltopy
+	set x 10485760
+	whilevarvarn temp tempb
+	{
+	
+//		screentext tilenum x y zoom <block angle> <character angle> quote shade pal orientation alpha 8 32 16 32 162 0 0 xdim ydim 
+		
+		ife temp crawlfirstline set z 40960 else set z 32768
+		
+		set mx x
+		add mx 65536
+		set my y
+		add my 65536
+		
+		screentext NEWFONT mx my z 0 0 temp 0 4 3073 0 8 32 16 32 32930 0 0 xdim ydim
+		
+		screentext NEWFONT x y z 0 0 temp 0 0 3072 0 8 32 16 32 162 0 0 xdim ydim
+		
+		// gametextz NEWFONT 20971520‬ y temp 0 0 3072 0 0 xdim ydim 32768
+		add temp 1 
+		add y LINESPACING
+	}
+ends
+
+onevent EVENT_DISPLAYCROSSHAIR
+
+ifg crawlclock 1 { set RETURN -1 break }
+ife nohud 2 { set RETURN -1 break }
+ifg popuptime 0 { setvar RETURN -1 break }
+ifg subtitle_time 0 { set RETURN -1 break }
+ifvarn camerasprite -1 setvar RETURN -1
+ifvarn helpmenu 0 { setvar RETURN -1 break }
+ifvarn cutscene 0 { setvar RETURN -1 break }
+ifvarg endlevel 0 { setvar RETURN -1 break }
+// ifvare CURRWEAP 0 { setvar RETURN -1 break }
+// ifvare character 1 { setvar RETURN -1 break }
+ifvare CURRWEAP 1 
+{
+	ifn headshotcount 0 gametextz 2908 320 88 636 0 2 1024 0 0 xdim ydim 28672 // headshot!
+	// ifvarand bits 268435456 { setvar RETURN -1 break }
+	ifvarand extbits 64 { setvar RETURN -1 break }
+	ifvare WEAPON1_SHOOTS SLUGPROJ { setvar RETURN -1 break }
+}
+
+// setvar RETURN -1
+
+// ifvare helpmenu YES break
+// ifvarn cutscene 0 break
+// ifvarg endlevel 0 break
+// ifvare CURRWEAP 0 break
+// ifvare CURRWEAP 1 
+// {
+// 	ifvarand bits 268435456 break
+// 	ifvare WEAPON1_SHOOTS SLUGPROJ break
+// }
+
+// setvar pal 6
+// ifvare currentweapon 1
+// rotatesprite 160 100 16384 0 422 0 10 1 0 0 xdim ydim
+// else
+// ifvare currentweapon 2
+// rotatesprite 160 100 12288 0 427 0 10 1 0 0 xdim ydim
+// else
+// ifvare currentweapon 3
+// rotatesprite 160 100 16384 0 423 0 10 1 0 0 xdim ydim
+// else
+// ifvare currentweapon 4
+// rotatesprite 160 100 8192 0 421 0 6 1 0 0 xdim ydim
+// else
+// ifvare currentweapon 5
+// rotatesprite 160 100 8192 0 424 0 6 1 0 0 xdim ydim
+// else
+// ifvare currentweapon 6
+// rotatesprite 160 100 8192 0 425 0 23 1 0 0 xdim ydim
+// else
+// ifvare currentweapon 7
+// rotatesprite 160 100 8192 0 420 0 23 1 0 0 xdim ydim
+// else
+// ifvare currentweapon 9
+// rotatesprite 160 100 16384 0 426 0 16 1 0 0 xdim ydim
+
+
+endevent
+
+
+gamevar logo_on 0 0
+onevent EVENT_LOGO
+
+// 2502
+// rotatesprite 160 100 65536 0 2506 0 pal 0 0 0 xdim ydim
+setgamepalette 0
+set logo_on YES
+
+endevent
+
+onevent EVENT_GETMENUTILE
+
+ife logo_on NO
+{
+	set logo_on YES
+}
+set RETURN 2507
+rotatesprite 160 100 32768 0 2506 0 0 1024 0 0 xdim ydim
+endevent
+
+
+define CHARXMAX 23592960 //  22937600
+define CHARXMIN -2621440 // 1966080
+gamevar m_char -1 0
+gamevar m_charframe 9448 0
+gamevar m_startframe 9448 0
+gamevar m_charcount 0 0
+gamevar m_charx CHARXMAX 0
+gamevar m_charspeed 32768 0
+gamevar m_chartime 0 0
+gamevar m_charsize 24576 0
+gamevar m_charpal 0 0
+gamevar m_chardir 0 0
+
+state char_settings
+	set m_charsize 24576
+	set m_charspeed 32768
+	set m_chardir 0
+	rand m_charpal 13, add m_charpal 10
+	ife m_charpal 20 set m_charpal 0
+	ife m_charpal 17 set m_charpal 0
+	ife m_char 0 set m_charframe 9448 else
+	ife m_char 1 { set m_charframe 9452 set m_charsize 26624 } else
+	ife m_char 2 { set m_charframe 9456 set m_charsize 22528 } else
+	ife m_char 3 { set m_charframe 9460 set m_charspeed 40960 } else
+	ife m_char 4 { set m_charframe 9464 set m_charsize 20480 set m_charspeed 65536 } else
+	ife m_char 5 { set m_charframe 9468 } else
+	ife m_char 6 { set m_charframe 9125 set m_charsize 13312 set m_charspeed 24576 } else
+	ife m_char 7 { set m_charframe 9130 set m_charspeed -65536 set m_chardir 1 set m_charx CHARXMIN set m_charsize 40960 }
+	set m_startframe m_charframe
+ends
+
+onevent EVENT_DISPLAYMENUREST
+
+ife RETURN 110 // skill menu
+{
+	getuserdef[].m_player_skill temp
+	switch temp
+	case 1 // PIECE OF CAKE
+		set tempb 537
+	break
+	case 2 // LET'S ROCK
+		set tempb 352
+	break
+	case 3 // COME GET SOME
+		set tempb 357
+	break
+	case 4 // NO GUTS NO GLORY
+		set tempb 362
+	break
+	case 5 // IT'S A GOOD DIE TO DIE
+		set tempb 367
+	break
+	endswitch
+	
+	setvar tempc 0
+	setvar y 170
+	whilevarn tempc 3
+	{
+		gametextz NEWFONT 320 y tempb 0 0 0 0 0 xdim ydim 32768
+		addvar y 10
+		addvar tempc 1
+		addvar tempb 1
+	}
+	
+}
+	ife RETURN 0
+	{
+		ife m_char -1
+		{
+			gettimedate m_char tempb tempb tempb tempb tempb tempb tempb
+			div m_char 9
+			state char_settings
+		}
+		ifn totalclock m_chartime
+		{
+			set m_chartime totalclock
+			sub m_charx m_charspeed
+			set temp NO
+			ife m_chardir 0 { ifle m_charx CHARXMIN set temp YES }
+			else ifge m_charx CHARXMAX set temp YES
+			ife temp YES
+			{
+				add m_char 1
+				ife m_char 8 set m_char 0
+				set m_charx CHARXMAX
+				set m_charcount 0
+				state char_settings
+				
+			}
+			else
+			{
+				add m_charcount 1
+				ife m_char 7 // wyvern
+				ifge m_charcount 10
+				{
+					add m_charframe 1
+					set m_charcount 0
+					set temp m_charframe
+					sub temp m_startframe
+					ifge temp 6 set m_charframe m_startframe
+				}
+				else
+				ifge m_charcount 15
+				{
+					add m_charframe 1
+					set m_charcount 0
+					set temp m_charframe
+					sub temp m_startframe
+					ifge temp 4 set m_charframe m_startframe
+				}
+			}
+		}
+		set orientation 0
+		set angvar 0
+		ife m_chardir 1 { orvar orientation 4 setvar angvar 1024 }
+		rotatesprite16 m_charx 11468800 m_charsize angvar m_charframe 0 m_charpal orientation 0 0 xdim ydim
+		
+		rotatesprite 160 100 65536 0 9129 0 0 0 0 0 xdim ydim
+	}
+
+
+endevent
+
+/*
+onevent EVENT_MENUCURSORLEFT
+
+// RETURN is the tile number
+
+endevent
+
+onevent EVENT_DISPLAYCURSOR
+
+// seems to do nothing
+
+endevent
+*/
+
+
+onevent EVENT_DISPLAYSBAR
+
+setvar RETURN -1
+endevent
+
+state jumphud
+
+ifvarg sjumpcharge 0
+{
+	setvar x 6
+	setvar z 16384
+	ifvarg sjumpcharge 129 
+	{
+		ifvarand timer 1 setvar pal 6 else setvar pal 8
+	}
+	else setvar pal 23
+	setvarvar tempb sjumpcharge
+	divvar tempb 2
+	setvarvar tempc x
+	addvarvar tempc tempb
+	setvar temp 0
+	rotatesprite 5 169 z 0 349 0 pal 256 0 0 xdim ydim
+	whilevarn temp 1
+	{
+		 ifvarvarg x tempc setvar temp 1
+		 else
+		 rotatesprite x 169 z 0 347 0 pal 256 0 0 xdim ydim
+		 addvar x 1
+		 break
+	}
+	subvar x 1
+	rotatesprite x 169 z 0 348 0 pal 256 0 0 xdim ydim
+	
+}
+
+ifvarg sjumpcharge 0
+{
+	ifvarand timer 1 setvar pal 6 else setvar pal 8
+}
+gametextz STARTALPHANUM 12 175 142 0 pal 256 0 0 xdim ydim 32768
+
+ends
+
+state sprinthud
+
+setvar x 266
+setvar z 16384
+setvarvar tempb sprint
+shiftvarr tempb 2
+setvarvar tempc x
+addvarvar tempc tempb
+setvar temp 0
+setvar pal 8
+rotatesprite 265 196 z 0 349 0 pal 513 0 0 xdim ydim
+whilevarn temp 1
+{
+	 ifvarvarg x tempc setvar temp 1
+	 else
+	 rotatesprite x 196 z 0 347 0 pal 513 0 0 xdim ydim
+	 addvar x 1
+	 break
+}
+subvar x 1
+rotatesprite x 196 z 0 348 0 pal 513 0 0 xdim ydim
+gametextz STARTALPHANUM 540 197 423 0 8 512 0 0 xdim ydim 32768
+
+ends
+
+state bosshud
+
+getactor[bossid].extra tempb // boss strength
+ifvarand actorvar[bossid].monstflags 4 // super boss
+{
+	ifvarl sprite[bossid].extra 10000
+	{
+		shiftvarr tempb 6
+		setvar pal 23
+	}
+	else
+	ifvarl sprite[bossid].extra 20000
+	{
+		shiftvarr tempb 7
+		setvar pal 21
+	}
+	else
+	{
+		shiftvarr tempb 8
+		setvar pal 10
+	}
+}
+else
+ifvare sprite[bossid].picnum KORAX
+{
+	shiftvarr tempb 7
+	setvar pal 21
+}
+else
+ifvare sprite[bossid].picnum CYBERDEMON
+{
+	shiftvarr tempb 6
+	setvar pal 0
+}
+else
+{
+	shiftvarr tempb 5
+	setvar pal 10
+}
+setvar x 175 // 145
+setvar z 16384
+
+
+setvarvar tempc x
+addvarvar tempc tempb
+setvar temp 0
+rotatesprite 174 194 z 0 349 0 pal 0 0 0 xdim ydim
+whilevarn temp 1
+{
+	 ifvarvarg x tempc setvar temp 1
+	 else
+	 rotatesprite x 194 z 0 347 0 pal 0 0 0 xdim ydim
+	 addvar x 1
+	 break
+}
+subvar x 1
+rotatesprite x 194 z 0 348 0 pal 0 0 0 xdim ydim
+
+gametext STARTALPHANUM 360 188 147 0 50 0 0 0 xdim ydim
+
+ends
+
+state monhud
+
+	setvar pal 2
+	getactorvar[monid].inithp tempb
+	getactor[monid].extra tempc // actual hit point amount
+	mulvar tempc 100
+	ifvare tempb 0 break
+	divvarvar tempc tempb
+
+	setvar z 16384 // 32768
+	setvar x 111
+	setvar mx 210
+	addvarvar tempc x
+
+	setvar tempd 0
+	ifvarvarg tempc x setvar orientation 0 else setvar orientation 33
+	rotatesprite 110 162 z 0 349 0 pal orientation 0 0 xdim ydim
+	whilevarn tempd 1
+	{
+		ifvarvarg x tempc { setvar orientation 33 setvar pal 12 }
+		ifvarvarg x mx setvar tempd 1
+		else
+		rotatesprite x 162 z 0 347 0 pal orientation 0 0 xdim ydim
+		addvar x 1 // 2
+		break
+	}
+	subvar x 1
+	rotatesprite x 162 z 0 348 0 pal orientation 0 0 xdim ydim
+	switch sprite[monid].picnum
+	case CYBERDEMON set temp 680 break
+	case WRAITH set temp 681 break
+	case ARCHON set temp 682 break
+	case DETHNITE set temp 683 break
+	case LUGLORD set temp 684 break
+	case BARON set temp 685 break
+	case KORAX set temp 686 break
+	case BATGUNNER set temp 687 break
+	case CYCLORD set temp 688 break
+	case WIZARD set temp 689 break
+	case KHANNAFIGHT set temp 690 break
+	case EVILKNIGHT set temp 691 break
+	case CYBERFLOAT set temp 692 break
+	case CHICKEN set temp 697 break
+	case DRAGON set temp 698 break
+	case DEMONOVA set temp 808 break
+	case SLIMEBOSS set temp 836 break
+	case SIDEGUN set temp 774 break
+	case LIZTROOP set temp 773 break
+	default set temp 147 break
+	endswitch
+	gametext 2822 320 172 temp 0 2 0 0 0 xdim ydim
+
+// gametext STARTALPHANUM 250 174 614 0 50 0 0 0 xdim ydim
+// getactorvar[scannedsprite].mlevel temp
+// digitalnumber 2837 200 174 temp 0 50 0 0 0 xdim ydim
+
+ends
+
+state combohud
+
+
+ifvarg powcount 0
+{
+	setvar x 530
+	setvar y 5
+	gametextz STARTALPHANUM x y 155 0 7 528 0 0 xdim ydim 40960
+	setvar x 300 // 310
+	setvarvar temp powcount
+	divvar temp 30
+	addvar temp 1
+	digitalnumberz 2837 x y temp 0 7 528 0 0 xdim ydim 40960
+}
+
+
+// if POW is on, only show the active ones
+// otherwise, show only the ones that would be active, but transparent
+
+/*
+	setvar y 25 // 30
+	ifvarn pow 0
+	{
+		ifvarand pow 1 gametextz STARTALPHANUM 528 y 156 0 8 528 0 0 xdim ydim 32768 // slow missiles
+		ifvarand pow 2 gametextz STARTALPHANUM 528 y 157 0 8 528 0 0 xdim ydim 32768 // leach life
+		ifvarand pow 32 gametextz STARTALPHANUM 528 y 457 0 8 528 0 0 xdim ydim 32768 // reflect damage
+		ifvarand pow 64 gametextz STARTALPHANUM 528 y 458 0 8 528 0 0 xdim ydim 32768 // regeneration
+		ifvarand pow 1024 gametextz STARTALPHANUM 528 y 466 0 8 528 0 0 xdim ydim 32768 // force radius
+		
+		addvar y 5
+		
+		ifvarand pow 128 gametextz STARTALPHANUM 528 y 459 0 110 528 0 0 xdim ydim 32768 // freezing shots
+		ifvarand pow 2048 gametextz STARTALPHANUM 528 y 467 0 110 528 0 0 xdim ydim 32768 // convert enemies
+		ifvarand pow 4096 gametextz STARTALPHANUM 528 y 468 0 110 528 0 0 xdim ydim 32768 // super armor
+		ifvarand pow 32768 gametextz STARTALPHANUM 528 y 647 0 110 528 0 0 xdim ydim 32768 // double ROF
+		ifvarand pow 131072  gametextz STARTALPHANUM 528 y 648 0 110 528 0 0 xdim ydim 32768 // thorny grasp
+		
+		addvar y 5
+		ifvarand pow 4 gametextz STARTALPHANUM 528 y 158 0 7 528 0 0 xdim ydim 32768 // enhanced shots
+		ifvarand pow 16 gametextz STARTALPHANUM 528 y 160 0 7 528 0 0 xdim ydim 32768 // lightning
+		ifvarand pow 256 gametextz STARTALPHANUM 528 y 460 0 7 528 0 0 xdim ydim 32768 // blade vortex
+		ifvarand pow 16384 gametextz STARTALPHANUM 528 y 470 0 7 528 0 0 xdim ydim 32768 // meteor storm
+		ifvarand pow 262144 gametextz STARTALPHANUM 528 y 649 0 7 528 0 0 xdim ydim 32768 // gem farmer
+		
+		addvar y 5
+		ifvarand pow 8 gametextz STARTALPHANUM 528 y 159 0 0 528 0 0 xdim ydim 32768 // minotaur swarm
+		ifvarand pow 512 gametextz STARTALPHANUM 528 y 461 0 0 528 0 0 xdim ydim 32768 // summon axon
+		ifvarand pow 8192 gametextz STARTALPHANUM 528 y 469 0 0 528 0 0 xdim ydim 32768 // barbarian horde
+		ifvarand pow 65536 gametextz STARTALPHANUM 528 y 646 0 0 528 0 0 xdim ydim 32768 // infinite ammo
+		ifvarand pow 524288 gametextz STARTALPHANUM 528 y 650 0 0 528 0 0 xdim ydim 32768 // smite evil
+		
+	}
+	else
+	{
+		setvar orientation 529 // 513
+		ifvarg combo 9 
+		{
+			setvarvar tempb powchoices[0]
+			ifvarand tempb 1 gametextz STARTALPHANUM 528 y 156 0 8 orientation 0 0 xdim ydim 32768
+			ifvarand tempb 2 gametextz STARTALPHANUM 528 y 157 0 8 orientation 0 0 xdim ydim 32768
+			ifvarand tempb 32 gametextz STARTALPHANUM 528 y 457 0 8 orientation 0 0 xdim ydim 32768
+			ifvarand tempb 64 gametextz STARTALPHANUM 528 y 458 0 8 orientation 0 0 xdim ydim 32768
+			ifvarand tempb 1024 gametextz STARTALPHANUM 528 y 466 0 8 orientation 0 0 xdim ydim 32768
+			ifvarg combo 19
+			{
+				addvar y 5
+				setvarvar tempb powchoices[1]
+				
+				ifvarand tempb 128 gametextz STARTALPHANUM 528 y 459 0 110 orientation 0 0 xdim ydim 32768
+				ifvarand tempb 2048 gametextz STARTALPHANUM 528 y 467 0 110 orientation 0 0 xdim ydim 32768
+				ifvarand tempb 4096 gametextz STARTALPHANUM 528 y 468 0 110 orientation 0 0 xdim ydim 32768
+				ifvarand tempb 32768 gametextz STARTALPHANUM 528 y 647 0 110 orientation 0 0 xdim ydim 32768 // double ROF
+				ifvarand tempb 131072 gametextz STARTALPHANUM 528 y 648 0 110 orientation 0 0 xdim ydim 32768
+				
+				ifvarg combo 29
+				{
+					addvar y 5
+					setvarvar tempb powchoices[2]
+					ifvarand tempb 4 gametextz STARTALPHANUM 528 y 158 0 7 orientation 0 0 xdim ydim 32768 // enhanced shots
+					ifvarand tempb 16 gametextz STARTALPHANUM 528 y 160 0 7 orientation 0 0 xdim ydim 32768
+					ifvarand tempb 256 gametextz STARTALPHANUM 528 y 460 0 7 orientation 0 0 xdim ydim 32768
+					ifvarand tempb 16384 gametextz STARTALPHANUM 528 y 470 0 7 orientation 0 0 xdim ydim 32768
+					ifvarand tempb 262144 gametextz STARTALPHANUM 528 y 649 0 7 orientation 0 0 xdim ydim 32768
+					ifvarg combo 39
+					{
+						addvar y 5
+						setvarvar tempb powchoices[3]
+						ifvarand tempb 8 gametextz STARTALPHANUM 528 y 159 0 0 orientation 0 0 xdim ydim 32768
+						ifvarand tempb 512 gametextz STARTALPHANUM 528 y 461 0 0 orientation 0 0 xdim ydim 32768
+						ifvarand tempb 8192 gametextz STARTALPHANUM 528 y 469 0 0 orientation 0 0 xdim ydim 32768
+						ifvarand tempb 65536 gametextz STARTALPHANUM 528 y 646 0 0 orientation 0 0 xdim ydim 32768
+						ifvarand tempb 524288 gametextz STARTALPHANUM 528 y 650 0 0 orientation 0 0 xdim ydim 32768
+					}
+				}
+			}
+		}
+	}
+*/
+
+	setvar y 25 // 30
+	ifvarn pow 0
+	{
+		set x 512
+		displayrandvar temp 1, sub temp 1, add x temp
+		displayrandvar temp 1, sub temp 1, add y temp
+		ifvarand pow 1 gametextz NEWFONT x y 156 0 1 528 0 0 xdim ydim 16384 // slow missiles
+		ifvarand pow 2 gametextz NEWFONT x y 157 0 1 528 0 0 xdim ydim 16384 // leach life
+		ifvarand pow 32 gametextz NEWFONT x y 457 0 1 528 0 0 xdim ydim 16384 // reflect damage
+		ifvarand pow 64 gametextz NEWFONT x y 458 0 1 528 0 0 xdim ydim 16384 // regeneration
+		ifvarand pow 1024 gametextz NEWFONT x y 466 0 1 528 0 0 xdim ydim 16384 // force radius
+		
+		addvar y 5
+		
+		ifvarand pow 128 gametextz NEWFONT x y 459 0 8 528 0 0 xdim ydim 16384 // freezing shots
+		ifvarand pow 2048 gametextz NEWFONT x y 467 0 8 528 0 0 xdim ydim 16384 // convert enemies
+		ifvarand pow 4096 gametextz NEWFONT x y 468 0 8 528 0 0 xdim ydim 16384 // super armor
+		ifvarand pow 32768 gametextz NEWFONT x y 647 0 8 528 0 0 xdim ydim 16384 // double ROF
+		ifvarand pow 131072  gametextz NEWFONT x y 648 0 8 528 0 0 xdim ydim 16384 // thorny grasp
+		
+		addvar y 5
+		ifvarand pow 4 gametextz NEWFONT x y 158 0 21 528 0 0 xdim ydim 16384 // enhanced shots
+		ifvarand pow 16 gametextz NEWFONT x y 160 0 21 528 0 0 xdim ydim 16384 // lightning
+		ifvarand pow 256 gametextz NEWFONT x y 460 0 21 528 0 0 xdim ydim 16384 // blade vortex
+		ifvarand pow 16384 gametextz NEWFONT x y 470 0 21 528 0 0 xdim ydim 16384 // meteor storm
+		ifvarand pow 262144 gametextz NEWFONT x y 649 0 21 528 0 0 xdim ydim 16384 // gem farmer
+		
+		addvar y 5
+		ifvarand pow 8 gametextz NEWFONT x y 159 0 23 528 0 0 xdim ydim 16384 // minotaur swarm
+		ifvarand pow 512 gametextz NEWFONT x y 461 0 23 528 0 0 xdim ydim 16384 // summon axon
+		ifvarand pow 8192 gametextz NEWFONT x y 469 0 23 528 0 0 xdim ydim 16384 // barbarian horde
+		ifvarand pow 65536 gametextz NEWFONT x y 646 0 23 528 0 0 xdim ydim 16384 // infinite ammo
+		ifvarand pow 524288 gametextz NEWFONT x y 650 0 23 528 0 0 xdim ydim 16384 // smite evil
+		
+	}
+	else
+	{
+		setvar orientation 528 // 529
+		ifvarg combo 9 
+		{
+			setvarvar tempb powchoices[0]
+			set x 512
+			ifvarand tempb 1 gametextz NEWFONT x y 156 0 1 orientation 0 0 xdim ydim 16384
+			ifvarand tempb 2 gametextz NEWFONT x y 157 0 1 orientation 0 0 xdim ydim 16384
+			ifvarand tempb 32 gametextz NEWFONT x y 457 0 1 orientation 0 0 xdim ydim 16384
+			ifvarand tempb 64 gametextz NEWFONT x y 458 0 1 orientation 0 0 xdim ydim 16384
+			ifvarand tempb 1024 gametextz NEWFONT x y 466 0 1 orientation 0 0 xdim ydim 16384
+			ifvarg combo 19
+			{
+				addvar y 5
+				setvarvar tempb powchoices[1]
+				
+				ifvarand tempb 128 gametextz NEWFONT x y 459 0 8 orientation 0 0 xdim ydim 16384
+				ifvarand tempb 2048 gametextz NEWFONT x y 467 0 8 orientation 0 0 xdim ydim 16384
+				ifvarand tempb 4096 gametextz NEWFONT x y 468 0 8 orientation 0 0 xdim ydim 16384
+				ifvarand tempb 32768 gametextz NEWFONT x y 647 0 8 orientation 0 0 xdim ydim 16384 // double ROF
+				ifvarand tempb 131072 gametextz NEWFONT x y 648 0 8 orientation 0 0 xdim ydim 16384
+				
+				ifvarg combo 29
+				{
+					addvar y 5
+					setvarvar tempb powchoices[2]
+					ifvarand tempb 4 gametextz NEWFONT x y 158 0 21 orientation 0 0 xdim ydim 16384 // enhanced shots
+					ifvarand tempb 16 gametextz NEWFONT x y 160 0 21 orientation 0 0 xdim ydim 16384
+					ifvarand tempb 256 gametextz NEWFONT x y 460 0 21 orientation 0 0 xdim ydim 16384
+					ifvarand tempb 16384 gametextz NEWFONT x y 470 0 21 orientation 0 0 xdim ydim 16384
+					ifvarand tempb 262144 gametextz NEWFONT x y 649 0 21 orientation 0 0 xdim ydim 16384
+					ifvarg combo 39
+					{
+						addvar y 5
+						setvarvar tempb powchoices[3]
+						ifvarand tempb 8 gametextz NEWFONT x y 159 0 23 orientation 0 0 xdim ydim 16384
+						ifvarand tempb 512 gametextz NEWFONT x y 461 0 23 orientation 0 0 xdim ydim 16384
+						ifvarand tempb 8192 gametextz NEWFONT x y 469 0 23 orientation 0 0 xdim ydim 16384
+						ifvarand tempb 65536 gametextz NEWFONT x y 646 0 23 orientation 0 0 xdim ydim 16384
+						ifvarand tempb 524288 gametextz NEWFONT x y 650 0 23 orientation 0 0 xdim ydim 16384
+					}
+				}
+			}
+		}
+	}
+
+
+setvar shade 5
+ifvarg combo 9
+{
+	setvarvar temp timer
+	setvarvar tempb combo
+	shiftvarr tempb 2
+	addvar tempb 6
+	mulvarvar temp tempb
+	shiftvarl temp 3
+	sin shade temp
+	shiftvarr shade 9
+}
+
+/*
+setvar x 265
+setvar z 16384
+setvarvar tempc x
+addvar tempc 28
+
+setvar temp 0
+setvar tempd 1 // counts how many combo points have been drawn
+ifvarl combo 2 setvar pal 17 else
+setvar pal 8
+subvar x 1
+ifvare combo 0
+rotatesprite x 14 z 0 349 shade pal 545 0 0 xdim ydim
+else
+rotatesprite x 14 z 0 349 shade pal 512 0 0 xdim ydim
+addvar x 1
+whilevarn temp 1
+{
+	ifvarg combo 29 { setvarvar zdist shade setvar orientation 512 }
+	else
+	{
+		setvar zdist 5
+		ifvarvarg tempd combo 
+			setvar orientation 545
+		else 
+		{
+			setvar orientation 512
+			ifvarg combo 9
+			{
+				setvarvar tempe combo
+			 	modvar tempe 10
+			 	setvarvar mx combo
+			 	subvarvar mx tempe
+			 	ifvarvarl tempd mx
+			 	setvarvar zdist shade
+		 	}
+		 }
+     }
+	 setvarvar tempe tempd
+	 modvar tempe 10
+	 // ifvarg tempd 9 ifvarl tempd 50
+	 // ifvare tempe 0 setvar pal 4 else
+	 // ifvarg tempd 40 setvar pal 23 else
+	 // ifvarg tempd 30 setvar pal 2 else
+	 // ifvarg tempd 20 setvar pal 10 else
+	 // ifvarg tempd 10 setvar pal 1 else
+	 // setvar pal 8
+	 // ifvarvarg x tempc setvar temp 1
+	 // else
+	 // rotatesprite x 14 z 0 347 zdist pal orientation 0 0 xdim ydim
+	 // addvar x 1
+	 // addvar tempd 1
+	 
+	 ifvarg tempd 9 ifvarl tempd 30
+	 ifvare tempe 0 setvar pal 4 else
+	 ifvarg tempd 20 setvar pal 23 else
+	 ifvarg tempd 10 setvar pal 2 else
+	 setvar pal 8
+	 ifvarvarg x tempc setvar temp 1
+	 else
+	 rotatesprite x 14 z 0 347 zdist pal orientation 0 0 xdim ydim
+	 addvar x 1
+	 addvar tempd 1
+}
+subvar x 1
+ifvarg combo 29 { setvar orientation 512 setvar pal 23 }
+rotatesprite x 14 z 0 348 zdist pal orientation 0 0 xdim ydim
+*/
+
+setvar x 265
+setvar z 16384
+setvarvar tempc x
+addvar tempc 38 // 28
+
+setvar temp 0
+setvar tempd 1 // counts how many combo points have been drawn
+// ifvarl combo 2 setvar pal 17 else
+setvar pal 1
+subvar x 1
+ifvare combo 0
+rotatesprite x 14 z 0 349 shade pal 545 0 0 xdim ydim
+else
+rotatesprite x 14 z 0 349 shade pal 512 0 0 xdim ydim
+addvar x 1
+whilevarn temp 1
+{
+	ifvarg combo 39 { setvarvar zdist shade setvar orientation 512 }
+	else
+	{
+		setvar zdist 5
+		ifvarvarg tempd combo 
+			setvar orientation 545
+		else 
+		{
+			setvar orientation 512
+			ifvarg combo 9
+			{
+				setvarvar tempe combo
+			 	modvar tempe 10
+			 	setvarvar mx combo
+			 	subvarvar mx tempe
+			 	ifvarvarl tempd mx
+			 	setvarvar zdist shade
+		 	}
+		 }
+     }
+	 setvarvar tempe tempd
+	 modvar tempe 10
+	 // ifvarg tempd 9 ifvarl tempd 50
+	 // ifvare tempe 0 setvar pal 4 else
+	 // ifvarg tempd 40 setvar pal 23 else
+	 // ifvarg tempd 30 setvar pal 2 else
+	 // ifvarg tempd 20 setvar pal 10 else
+	 // ifvarg tempd 10 setvar pal 1 else
+	 // setvar pal 8
+	 // ifvarvarg x tempc setvar temp 1
+	 // else
+	 // rotatesprite x 14 z 0 347 zdist pal orientation 0 0 xdim ydim
+	 // addvar x 1
+	 // addvar tempd 1
+	 
+	 ifvarg tempd 9 ifvarl tempd 40
+	 ifvare tempe 0 setvar pal 4 else
+	 ifvarg tempd 30 setvar pal 23 else
+	 ifvarg tempd 20 setvar pal 21 else
+	 ifvarg tempd 10 setvar pal 8 else
+	 setvar pal 1
+	 ifvarvarg x tempc setvar temp 1
+	 else
+	 rotatesprite x 14 z 0 347 zdist pal orientation 0 0 xdim ydim
+	 addvar x 1
+	 addvar tempd 1
+}
+subvar x 1
+ifvarg combo 39 { setvar orientation 512 setvar pal 23 }
+rotatesprite x 14 z 0 348 zdist pal orientation 0 0 xdim ydim
+
+ifvare powcount 0
+{
+	ifvarg combo 39 setvar pal 23 else
+	ifvarg combo 29 setvar pal 21 else
+	ifvarg combo 19 setvar pal 8 else
+	ifvarg combo 9 setvar pal 1 else
+	setvar pal 12
+	
+	qsprintf 211 153 combo
+	setvar x 520 // 528
+	setvar y 5 // 9
+	setvarvar temp combosize
+	subvar temp 40960
+	shiftvarr temp 11
+	subvarvar x temp
+	gametextz NEWFONT x y 211 0 pal 528 0 0 xdim ydim combosize
+}
+ifvarg combo 9 // ifvare powtip YES
+{
+	setvar x 528
+	addvar y 13
+	// qsprintf <target quote> <first quote> <second quote to append to first>
+	qsprintf 413 411 412
+	// qstrlen mx 412
+	// shiftvarl mx 3
+	// subvarvar x mx
+	shiftvarr shade 1
+	gametextz STARTALPHANUM x y 413 shade pal 528 0 0 xdim ydim 32768
+}
+
+ends
+
+/*
+state xphud
+
+gametextz STARTALPHANUM 540 20 613 0 0 512 0 0 xdim ydim 32768
+// temp is the starting xp for current level
+// tempb is the ending xp for current level
+
+ifvare plevel 0 setvar temp 0 else
+{
+	setvarvar tempb plevel
+	subvar tempb 1
+	setvarvar temp xpcaps[tempb]
+}
+setvarvar tempb xpcaps[plevel]
+setvarvar tempc xp
+
+subvarvar tempb temp // xp range
+subvarvar tempc temp // distance from start xp
+mulvar tempc 50
+divvarvar tempc tempb // percentage of range completed divided by two
+
+setvar z 16384
+// bar is 50 pixels across
+setvar x 266
+setvar mx 316
+addvarvar tempc x
+
+setvar tempd 0
+ifvarvarg tempc x setvar orientation 512 else setvar orientation 545
+setvar pal 1
+rotatesprite 265 25 z 0 5439 0 pal orientation 0 0 xdim ydim
+whilevarn tempd 1
+{
+	ifvarvarg x tempc setvar orientation 545
+	ifvarvarg x mx setvar tempd 1
+	else
+	rotatesprite x 25 z 0 5440 0 pal orientation 0 0 xdim ydim
+	addvar x 1
+	break
+}
+subvar x 1
+rotatesprite x 25 z 0 5441 0 pal orientation 0 0 xdim ydim
+digitalnumberz 2930 262 27 plevel 0 0 512 0 0 xdim ydim 24576
+
+gametextz STARTALPHANUM 540 35 630 0 0 512 0 0 xdim ydim 32768
+// temp is the starting xp for current level
+// tempb is the ending xp for current level
+
+ifvare weaplevels[CURRWEAP] 0 setvar temp 0 else
+{
+	setvarvar tempb weaplevels[CURRWEAP]
+	subvar tempb 1
+	setvarvar temp weapcap[tempb]
+}
+setvarvar tempb weapcap[CURRWEAP]
+setvarvar tempc weapscore[CURRWEAP]
+
+subvarvar tempb temp // xp range
+subvarvar tempc temp // distance from start xp
+mulvar tempc 50
+divvarvar tempc tempb // percentage of range completed divided by two
+
+setvar z 16384
+// bar is 50 pixels across
+setvar x 266
+setvar mx 316
+addvarvar tempc x
+
+setvar tempd 0
+ifvarvarg tempc x setvar orientation 512 else setvar orientation 545
+setvar pal 2
+rotatesprite 265 40 z 0 5439 0 pal orientation 0 0 xdim ydim
+whilevarn tempd 1
+{
+	ifvarvarg x tempc setvar orientation 545
+	ifvarvarg x mx setvar tempd 1
+	else
+	rotatesprite x 40 z 0 5440 0 pal orientation 0 0 xdim ydim
+	addvar x 1
+	break
+}
+subvar x 1
+rotatesprite x 40 z 0 5441 0 pal orientation 0 0 xdim ydim
+digitalnumberz 2930 262 42 weaplevels[CURRWEAP] 0 0 512 0 0 xdim ydim 24576
+
+ends
+*/
+
+onevent EVENT_DISPLAYROOMS
+
+// make it point at a wall with a cool animation
+// wherever a texture is missing, it will show the wall
+// showview <x> <y> <z> <angle> <horiz> <sector> <scrn_x1> <scrn_y1> <scrn_x2> <scrn_y2>
+
+ifn endlevel 0
+// ife VOLUME 0 ife LEVEL 21
+ifvarn waypoint[0] -1
+{
+	getactor[waypoint[pathnode]].x mx
+	getactor[waypoint[pathnode]].y my
+	set x camerax
+	set y cameray
+	subvarvar mx x
+	subvarvar my y
+	getangle angvar mx my
+	set tempb shipang
+	getincangle tempd angvar tempb
+
+	// ifvarl tempd 17 ifvarg tempd -17
+	// setvarvar tempb angvar
+	
+	ifle tempd 8 ifge tempd -8
+	set tempb angvar
+	else
+	{
+		// shiftvarr tempd 3
+		ifg tempd 0 set temp 1 else set temp 0
+		
+		mul tempd 8
+		set mx framerate
+		ifl mx 30 set mx 30
+		div tempd mx
+		
+		ifge tempd -1 ifle tempd 1
+		{
+			ife temp 1 set tempd 2 else set tempd -2
+		}
+		
+		ifvarg tempd 0 subvarvar tempb tempd else
+		ifvarl tempd 0 { mulvar tempd -1 addvarvar tempb tempd }
+	}
+	set shipang tempb
+		
+	set cameraang shipang
+	setp[].ang shipang
+	set camerahoriz shiphoriz
+	break
+}
+ifvarn arrowview -1
+{
+	getactor[arrowview].x camerax
+	getactor[arrowview].y cameray
+	getactor[arrowview].z cameraz
+	getactor[arrowview].ang cameraang
+	getactor[arrowview].sectnum camerasect
+	setvar camerahoriz 100
+	getactor[arrowview].zvel zvel
+	divvar zvel 96
+	subvarvar camerahoriz zvel
+	
+	setactor[arrowview].ang player[].ang
+	getplayer[].ohoriz temp
+	getplayer[].horiz tempb
+	subvarvar tempb temp
+	shiftvarl tempb 4
+	// ife upside YES mul tempb -1
+	getactor[arrowview].zvel zvel
+	subvarvar zvel tempb
+	setactor[arrowview].zvel zvel
+}
+else
+ifg shipcam -1
+{
+	getactor[shipcam].z z
+	
+	getav[shipcam].initz mz
+	sub mz player[].posz
+	sub z mz
+	
+	getp[].posx mx
+	getp[].posy my
+	getav[shipcam].initx x
+	getav[shipcam].inity y
+
+	subvarvar mx x
+	subvarvar my y
+	getangle angvar mx my // angvar is now the displacement angle
+	
+	set xydist x
+	sub xydist player[].posx
+	mul xydist xydist
+	sub y player[].posy
+	mul y y
+	add xydist y
+	sqrt xydist xydist
+	
+	set xvel sprite[shipcam].x
+	add xvel xydist
+	
+	add angvar shipang // sprite[shipcam].ang
+	
+	rotatepoint sprite[shipcam].x sprite[shipcam].y xvel sprite[shipcam].y angvar mx my
+
+	updatesector mx my sect
+	ife sect -1 set sect sprite[shipcam].sectnum
+
+	getav[shipcam].mtype angvar
+	
+	ifn angvar shipang
+	{
+		getincangle tempd angvar shipang
+		shiftr tempd 1
+		sub shipang tempd
+	}
+	set angvar shipang
+	
+	add angvar player[].ang
+	ifn shipangstart 999999
+	sub angvar shipangstart
+	
+	subvar z 2048		
+	setvarvar temp timer
+	
+	// shiftvarl temp 5
+	mul temp 24
+	sin tempb temp
+	shiftvarr tempb 2 // 4	
+	subvarvar z tempb
+/*
+	getav[shipcam].shotpitch temp
+	shiftr temp 6 // temp is now goal for shiphoriz
+	ifg temp 64 set temp 64, ifl temp -64 set temp -64
+	ifg temp shiphoriz add shiphoriz 1 else
+	ifl temp shiphoriz sub shiphoriz 1
+
+	getincangle temp sprite[shipcam].ang angvar
+	abs temp
+	ifg temp 512
+		sub temp 1024
+	
+	
+	set tempb shiphoriz
+	shiftr temp 6
+	div tempb temp
+	
+	add tempb camerahoriz
+	ifg tempb 299 set tempb 299
+	ifl tempb -99 set tempb -99
+*/	
+	
+	// showview mx my z angvar tempb sect 0 0 319 199
+
+	showview mx my z angvar camerahoriz sect 0 0 319 199
+	
+}
+else
+ifvarg portalview 0
+ifvarn portalcam -1
+ifl shipcam 0
+{
+	getactor[portalcam].x x
+	getactor[portalcam].y y
+	getactor[portalcam].z z
+	getactor[portalcam].ang angvar
+	
+	getactorvar[portalcam].myspawner spriteid
+	getactor[spriteid].ang tempc
+	
+	ife sprite[portalcam].pal 6
+	{
+		set mx sprite[spriteid].x
+		sub mx camerax
+		set my sprite[spriteid].y
+		sub my cameray
+		set mz sprite[spriteid].z
+		sub mz cameraz, add mz 6144
+		
+		add x mx
+		add y my
+		sub z mz
+	}
+	
+	
+	getplayer[screenpeek].ang tempb
+	
+	getincangle tempd tempc tempb
+	addvarvar angvar tempd
+	addvar angvar 1024
+	
+	getactor[portalcam].sectnum sect
+	getactorvar[portalcam].countvar temp
+	ifvare temp -1 getplayer[screenpeek].horiz temp
+	showview x y z angvar temp sect 0 0 319 199
+}
+
+// ifvare arrowview -1
+// ifvare CURRWEAP 1
+// ifvarand bits 268435456
+// ifvare player[screenpeek].weapon_pos 0
+// ifvarn rendmode 4
+// ifvare player[screenpeek].over_shoulder_on 0
+// ifvarn vr -1
+// {
+// // 	getplayer[screenpeek].i spriteid
+// // 	getactor[spriteid].yrepeat y
+// // 	setvarvar temp camerahoriz
+// // 	subvar temp 100	
+// // 	mulvarvar temp y
+// // 	divvar temp 100
+// // 	addvarvar camerahoriz temp
+// 
+// 	setvar tempb 65536
+// 	subvarvar tempb vr
+// 	divvar tempb 296
+// 	setvarvar temp camerahoriz
+// 	subvar temp 100
+// 	mulvarvar temp tempb
+// 	divvar temp 100
+// 	addvarvar camerahoriz temp
+// }
+
+ifvarn vr -1
+{
+	setaspect vr yxaspect
+	// ifvarn upside 0 nullop else
+	// {
+		ifn cameraang oang
+		{
+			getincangle angvar cameraang oang
+			shiftr angvar 1
+			add cameraang angvar
+		}
+		set camerahoriz ohoriz
+	// }
+}
+
+ifvarn helpmenu 0
+{
+	set cameraang oang
+	set camerahoriz 100
+}
+else
+ifvarn upside 0 // upside down camera hacks
+ife arrowview -1
+{
+	// setp[].rotscrnang rotang
+	add cameraz ceilingland
+	set temp NO
+	ife character 0 ife CURRWEAP 0 set temp YES else
+	ife character 1 ife CURRWEAP 6 set temp YES
+	
+	ifn player[].kickback_pic 0 ife temp YES
+	ifn swordtarg -1
+	{
+		getactor[swordtarg].x mx
+		getactor[swordtarg].y my
+		
+		sub mx player[].posx
+		sub my player[].posy
+		getangle angvar mx my
+		setp[].ang angvar
+		set cameraang angvar
+		set lastpang angvar
+	}
+	// else
+	// ifn cameraang lastpang
+	// {
+		// getincangle angvar cameraang lastpang
+		// ifvarn vr -1 div angvar 2
+		// add lastpang angvar
+		// set cameraang lastpang
+		// setp[].ang cameraang
+	// }
+	
+	// ifn camerahoriz lastphoriz
+	// {
+		// set temp lastphoriz
+		// set tempb camerahoriz
+		// subvarvar tempb temp
+		// ifvarn vr -1 
+			// div tempb 2 
+		
+
+		// subvarvar temp tempb
+		
+		// ifvarl temp -98 setvar temp -98
+		// ifvarg temp 298 setvar temp 298
+		// set lastphoriz temp
+		// set camerahoriz temp
+
+		// setp[].horiz temp
+	// }
+	ifn ceilingland 0
+	{ 
+		set horizadjust ceilingland 
+		div horizadjust 96 
+		ifl horizadjust -50 set horizadjust -50 
+	}
+	else set horizadjust 0
+	sub camerahoriz horizadjust	
+}
+
+getp[].ang lastpang
+getp[].horiz lastphoriz
+
+
+ifvarn camerasprite -1
+{
+	getactorvar[camerasprite].countvarb tempb
+	ifvarand actorvar[camerasprite].monstflags 2 nullop else
+	ifvarand actorvar[camerasprite].monstflags 16 ifvarl tempb 13 nullop else
+	{
+		getactor[camerasprite].x camerax
+		getactor[camerasprite].y cameray
+		getactor[camerasprite].z cameraz
+		getactor[camerasprite].sectnum camerasect
+		getactor[camerasprite].ang cameraang
+		getactor[camerasprite].shade camerahoriz
+		shiftvarl camerahoriz 1
+		addvar camerahoriz 100
+		setp[].horiz camerahoriz
+		break
+	}
+}
+
+
+
+endevent
+
+onevent EVENT_PREUPDATEANGLES
+
+	ifn upside 0
+	{
+		getinput[].q16avel angvar
+		mul angvar -1
+		setinput[].q16avel angvar
+		getinput[].q16horz angvar
+		mul angvar -1
+		setinput[].q16horz angvar
+		
+		setp[].rotscrnang rotang
+	}
+	ifn arrowview -1
+	{
+		getinput[].q16avel angvar
+		shiftr angvar 1
+		setinput[].q16avel angvar
+		getinput[].q16horz angvar
+		shiftr angvar 1
+		setinput[].q16horz angvar
+	}
+
+endevent
+
+	state powchoicehud
+	gametextz NEWFONT 320 12 462 0 0 0 0 0 xdim ydim 40960
+	gametextz NEWFONT 320 22 465 0 13 0 0 0 xdim ydim 24576
+	
+	gametextz NEWFONT 320 40 510 0 0 0 0 0 xdim ydim 32768
+	ifvare powmode 0 setvar tempd 508 else setvar tempd 509
+	state shadepulse
+	gametextz NEWFONT 320 60 tempd shade 0 0 0 0 xdim ydim 57344
+	// gametextz STARTALPHANUM 320 65 617 0 0 0 0 0 xdim ydim 65536
+	rotatesprite -20 175 65536 0 LASERLINE 0 0 0 0 0 xdim ydim
+	rotatesprite 100 175 65536 0 LASERLINE 0 0 0 0 0 xdim ydim
+	rotatesprite 220 175 65536 0 LASERLINE 0 0 0 0 0 xdim ydim
+	ifvarg cursory 170 ifvarg cursorx 120 ifvarl cursorx 200 setvar temp 2 else setvar temp 0
+	gametextz STARTALPHANUM 320 190 464 0 temp 0 0 0 xdim ydim 131072
+	
+	// powmode 0 regular, powmode 1 revenge
+	
+		set y 80
+		set orientation 0
+		
+		set my y
+		rotatesprite 160 my 65536 0 BLACKBAR 0 0 0 0 0 xdim ydim
+		add my 7
+		rotatesprite 160 my 65536 0 BLACKBAR 0 0 0 0 0 xdim ydim
+		
+		gametextz NEWFONT 320 y 653 0 0 orientation 0 0 xdim ydim 16384
+		add y 7
+		gametextz NEWFONT 320 y 654 0 0 orientation 0 0 xdim ydim 16384
+		add y 35
+		ife powmode 0 set tempb 658
+		else set tempb 655	
+		add tempb 2
+		set temp 3
+		
+		set my y
+		set tempc temp
+		whilevarn tempc 0
+		{
+			rotatesprite 160 my 65536 0 BLACKBAR 0 0 0 0 0 xdim ydim
+			sub my 7
+			sub tempc 1
+		}
+		
+		whilevarn temp 0
+		{
+			gametextz NEWFONT 320 y tempb 0 0 orientation 0 0 xdim ydim 16384
+			sub y 7
+			sub tempb 1
+			sub temp 1
+		}
+	
+	ends
+	
+	state powchoicehud2
+	ifvare powchosen YES setvar orientation 33 else setvar orientation 0
+	ifvare powchosen YES setvar temp 507 else setvar temp 471
+	gametextz STARTALPHANUM 320 25 temp 0 0 0 0 0 xdim ydim 40960
+	// powchoices
+	setvar temp 0
+	setvar y 40
+	whilevarn temp 3 // 5
+	{
+		ifvare powchoices[temp] 1 setvar tempb 156 else
+		ifvare  powchoices[temp] 2 setvar tempb 157 else
+		ifvare  powchoices[temp] 4 setvar tempb 158 else
+		ifvare  powchoices[temp] 8 setvar tempb 159 else
+		ifvare  powchoices[temp] 16 setvar tempb 160 else
+		ifvare  powchoices[temp] 32 setvar tempb 457 else
+		ifvare  powchoices[temp] 64 setvar tempb 458 else
+		ifvare  powchoices[temp] 128 setvar tempb 459 else
+		ifvare  powchoices[temp] 256 setvar tempb 460 else
+		ifvare  powchoices[temp] 512 setvar tempb 461 else
+		ifvare  powchoices[temp] 1024 setvar tempb 466 else
+		ifvare  powchoices[temp] 2048 setvar tempb 467 else
+		ifvare  powchoices[temp] 4096 setvar tempb 468 else
+		ifvare  powchoices[temp] 8192 setvar tempb 469 else
+		ifvare  powchoices[temp] 16384 setvar tempb 470 else
+		ifvare  powchoices[temp] 32768 setvar tempb 647 else
+		ifvare  powchoices[temp] 65536 setvar tempb 646 else
+		ifvare  powchoices[temp] 131072 setvar tempb 648 else
+		ifvare  powchoices[temp] 262144 setvar tempb 649 else
+		ifvare  powchoices[temp] 524288 setvar tempb 650 else
+		setvar tempb 463
+		ifvarvare temp powselected setvar pal 2 else setvar pal 8
+		gametextz STARTALPHANUM 320 y tempb 0 pal orientation 0 0 xdim ydim 40960
+		addvar temp 1
+		addvar y 10
+	}
+	ends
+	
+state displayclock
+	// ************CLOCK DISPLAY****************
+	set temp globaltime
+	div temp 108000
+	ifg temp 9 set x 145 else set x 147
+	digitalnumberz DIGITALNUM x 194 temp 0  118 16 0 0 xdim ydim 32768
+	rotatesprite 151 195 65536 0 3020 0  118 16 0 0 xdim ydim
+	
+	set tempb globaltime
+	mul temp 108000
+	sub tempb temp
+	
+	set temp tempb
+	div temp 1800
+	ifl temp 10
+	{
+		rotatesprite 155 194 32768 0 2472 0  118 16 0 0 xdim ydim
+		digitalnumberz DIGITALNUM 161 194 temp 0  118 16 0 0 xdim ydim 32768
+	}
+	else
+	digitalnumberz DIGITALNUM 158 194 temp 0  118 16 0 0 xdim ydim 32768
+	rotatesprite 165 195 65536 0 3020 0  118 16 0 0 xdim ydim
+
+	set tempc tempb
+	mul temp 1800
+	sub tempc temp // remainder
+	div tempc 30
+	ifl tempc 10
+	{
+		rotatesprite 168 194 32768 0 2472 0  118 16 0 0 xdim ydim
+		digitalnumberz DIGITALNUM 174 194 tempc 0  118 16 0 0 xdim ydim 32768
+	}
+	else
+	digitalnumberz DIGITALNUM 171 194 tempc 0  118 16 0 0 xdim ydim 32768
+	
+	getuserdef[].userbyteversion temp
+	digitalnumberz DIGITALNUM 239 195 temp 0 117 16 0 0 xdim ydim 24576
+	
+ends
+
+onevent EVENT_DISPLAYREST
+
+ifg cheatscreen 0
+{
+	ifl cheatscreen 40
+	{
+		set shade 40
+		sub shade cheatscreen
+	}
+	else set shade 0
+	rotatesprite 160 100 20480 0 8884 shade 0 0 0 0 xdim ydim
+	break
+}
+
+ifvarl character 0 // character selection screen
+ifn LEVEL 21
+{
+		
+	ife softwarning YES
+	ife rendmode 0
+	{
+		ifand player[].gm 1 set pal 4 else set pal 0
+		rotatesprite 160 100 65536 0 9435 0 pal 1024 0 0 xdim ydim
+		rotatesprite cursorx cursory 32768 0 2805 0 0 0 0 0 xdim ydim
+		setvar RETURN -1
+		break
+	}
+	 rotatesprite 160 100 16384 0 BACKDROP 0 4 1024 0 0 xdim ydim
+	 rotatesprite 160 100 16384 0 BACKDROP 0 0 0 0 0 xdim ydim
+	// select a character
+	ifvarl character -8 // pow selection
+	{
+		state powchoicehud
+		ifvare charsel 0 rotatesprite 260 110 16384 0 4473 0 0 1024 0 0 xdim ydim
+		ifvare charsel 1 rotatesprite 60 110 16384 0 4472 0 0 1024 0 0 xdim ydim
+	}
+	else
+	{
+		gametext STARTALPHANUM 320 193 435 0 0 0 0 0 xdim ydim
+		// duke is tile 4473 and charsel 0
+		// jedrik is tile 4472 and charsel 1
+		set z 14336
+		set shade 10
+		ife charsel 0 { set z 16384 set shade 0 }
+		rotatesprite 260 110 z 0 4473 shade 0 1024 0 0 xdim ydim
+		set z 14336
+		set shade 10
+		ife charsel 1 { set z 16384 set shade 0 }
+		rotatesprite 60 110 z 0 4472 shade 0 1024 0 0 xdim ydim
+		
+		gametextz STARTALPHANUM 55 30 441 0 0 1024 0 0 xdim ydim 40960 
+		
+		gametextz STARTALPHANUM 480 30 440 0 0 1024 0 0 xdim ydim 40960
+	}
+	
+	// selection box
+	setvar pal 0
+
+	// ifvare charsel 0 rotatesprite 262 95 32768 0 2501 0 pal 1024 0 0 xdim ydim else // DUKE
+	// ifvare charsel 1 rotatesprite 65 95 32768 0 2501 0 pal 1024 0 0 xdim ydim // BARBARIAN
+
+	// cursor
+	rotatesprite cursorx cursory 32768 0 2805 0 0 0 0 0 xdim ydim
+	setvar RETURN -1
+	break 
+}
+
+ife player[].fta 0
+ifvarg fta 0
+{
+	setvar orientation 0
+	setvar y 10
+	ifmultiplayer ifvarn COOP YES addvar y 10
+	ifvarg player[screenpeek].fta 0 addvar y 10
+
+    set temp player[].player_par
+	mul temp 192
+	sin tempb temp
+	shiftr tempb 10
+	add tempb 1
+	set shade tempb
+	set x 10485760
+	set y 524288
+	set orientation 3072
+	set tempc 0
+	ifl fta 64
+	{
+		set tempc 64
+		sub tempc fta
+		shiftl tempc 2
+	}
+	screentext NEWFONT x y 32768 0 0 ftq shade 0 orientation tempc -524288 32 16 32 162 0 0 xdim ydim 
+}
+
+ifvarn camerasprite -1
+{
+	getactorvar[camerasprite].countvarb tempb
+	ifvarand actorvar[camerasprite].monstflags 2
+	{
+		getactor[camerasprite].shade temp
+		shiftvarl temp 1
+		addvar temp 100
+		showview sprite[camerasprite].x sprite[camerasprite].y sprite[camerasprite].z sprite[camerasprite].ang temp sprite[camerasprite].sectnum 206 108 310 175
+		// 206 118 310 185
+		// 206 108 310 175
+	}
+	else
+	{
+		ifvarand actorvar[camerasprite].monstflags 16
+		ifvarl tempb 13
+		{
+			getactor[camerasprite].shade temp
+			shiftvarl temp 1
+			addvar temp 100
+			getactorvar[camerasprite].countvarb x
+			ifvare x 0 setvar x 1
+			mulvar x 26 // total view width
+			getactorvar[camerasprite].countvarb y
+			ifvare y 0 setvar y 1
+			mulvar y 16 // total view height
+			setvar mx 320
+			subvarvar mx x
+			shiftvarr mx 1 // left x
+			setvarvar xvel mx
+			addvarvar xvel x // right x
+			setvar my 200
+			subvarvar my y
+			shiftvarr my 1 // upper y
+			setvarvar yvel my
+			addvarvar yvel y // lower y
+			showview sprite[camerasprite].x sprite[camerasprite].y sprite[camerasprite].z sprite[camerasprite].ang temp sprite[camerasprite].sectnum mx my xvel yvel
+		}
+		setvar RETURN -1
+		
+		ifn subtitle_time 0
+		{
+			set y 180
+			set orientation 0
+			set temp subtitle_numlines
+			whilevarn temp 0
+			{
+				rotatesprite 160 y 65536 0 BLACKBAR 0 0 0 0 0 xdim ydim
+				sub y 7
+				sub temp 1
+			}
+			// set temp subtitle_numlines
+			// set y 180
+			// set tempb subtitle_start
+			// add tempb subtitle_numlines
+			// sub tempb 1
+			// set temp subtitle_numlines
+			// whilevarn temp 0
+			// {
+				// gametextz NEWFONT 320 y tempb 0 0 orientation 0 0 xdim ydim 16384
+				// sub y 7
+				// sub tempb 1
+				// sub temp 1
+			// }
+			
+				set orientation 2048
+				set temp subtitle_numlines
+				set y 11862016
+				set x 10485760
+				set tempb subtitle_start
+				add tempb subtitle_numlines
+				sub tempb 1
+				set temp subtitle_numlines
+				whilevarn temp 0
+				{
+					screentext NEWFONT x y 16384 0 0 tempb 0 0 orientation 0 8 32 16 32 162 0 0 xdim ydim
+					sub y 458752
+					sub tempb 1
+					sub temp 1
+				}
+		}
+		
+		break
+	}
+}
+else
+ifvarg endlevel 0
+{
+	ife VOLUME 0 ife LEVEL 21
+	{
+		// rotatesprite 160 30 16384 0 8805 0 0 0 0 0 xdim ydim
+		rotatesprite 160 100 10240 0 8805 0 0 1024 0 0 xdim ydim
+		state shadepulse
+		add shade 5
+		gametextz NEWFONT 320 190 651 shade 21 0 0 0 xdim ydim 32768
+		set RETURN -1
+		break
+	}
+	// level completed message
+	ifvare waypoint[0] -1
+	rotatesprite 160 100 65536 0 3240 0 0 1024 0 0 xdim ydim
+	gametextz 2908 320 20 mapname 0 50 0 0 0 xdim ydim 53248
+	
+	// getplayer[screenpeek].actors_killed temp
+	set temp enemieskilled[LEVEL]
+	// getplayer[screenpeek].max_actors_killed tempb
+	set tempb maxenemieskilled[LEVEL]
+	qsprintf 211 161 temp tempb
+	ifvarvare temp tempb setvar pal 7 else setvar pal 0
+	gametext STARTALPHANUM 40 45 211 0 pal 0 0 0 xdim ydim
+	// getplayer[screenpeek].secret_rooms temp
+	set temp secretsfound[LEVEL]
+	getplayer[screenpeek].max_secret_rooms tempb
+	qsprintf 211 162 temp tempb
+	ifvarvare temp tempb setvar pal 7 else setvar pal 0
+	gametext STARTALPHANUM 40 62 211 0 pal 0 0 0 xdim ydim
+	
+	rotatesprite 20 78 16384 0 APPLE 0 7 0 0 0 xdim ydim
+	setvarvar temp foundapples[LEVEL]
+	setvarvar tempb maxapples[LEVEL]
+	qsprintf 211 164 temp tempb
+	ifvarvare temp tempb setvar pal 7 else setvar pal 0
+	gametext STARTALPHANUM 100 82 211 0 pal 0 0 0 xdim ydim
+	
+	// replace this with something else
+	
+	// rotatesprite 20 95 32768 0 AMMOPACK 0 0 0 0 0 xdim ydim
+	// setvarvar temp foundpacks[LEVEL]
+	// setvarvar tempb maxpacks[LEVEL]
+	// qsprintf 211 164 temp tempb
+	// ifvarvare temp tempb setvar pal 7 else setvar pal 0
+	// gametext STARTALPHANUM 100 96 211 0 pal 0 0 0 xdim ydim
+	
+	rotatesprite 20 93 14336 0 336 0 0 0 0 0 xdim ydim
+	setvarvar temp foundgold[LEVEL]
+	setvarvar tempb maxgold[LEVEL]
+	qsprintf 211 164 temp tempb
+	ifvarvare temp tempb setvar pal 7 else setvar pal 0
+	gametext STARTALPHANUM 100 98 211 0 pal 0 0 0 xdim ydim
+	
+	rotatesprite 20 111 7168 0 HEROREADY 0 0 0 0 0 xdim ydim
+	setvarvar temp savedheroes[LEVEL]
+	setvarvar tempb maxheroes[LEVEL]
+	qsprintf 211 164 temp tempb
+	ifvarvare temp tempb setvar pal 7 else setvar pal 0
+	gametext STARTALPHANUM 100 115 211 0 pal 0 0 0 xdim ydim
+	
+	rotatesprite 20 131 14436 0 717 0 0 0 0 0 xdim ydim
+	setvarvar temp foundgems[LEVEL]
+	setvarvar tempb maxgems[LEVEL]
+	qsprintf 211 164 temp tempb
+	ifvarvare temp tempb setvar pal 7 else setvar pal 0
+	gametext STARTALPHANUM 100 132 211 0 pal 0 0 0 xdim ydim
+	
+	rotatesprite 20 150 10240 -256 KEY 0 0 0 0 0 xdim ydim
+	setvarvar temp foundkeys[LEVEL]
+	setvarvar tempb maxkeys[LEVEL]
+	qsprintf 211 164 temp tempb
+	ifvarvare temp tempb setvar pal 7 else setvar pal 0
+	gametext STARTALPHANUM 100 150 211 0 pal 0 0 0 xdim ydim
+	
+	ifvare endlevel 1 gametext STARTALPHANUM 320 180 163 0 0 0 0 0 xdim ydim
+	setvar RETURN -1 
+	break
+}
+
+// dash screen display
+ifn dashscreen -1
+{
+	set orientation 1025
+	set angvar 0
+	ife dashcycle 1 orvar orientation 4 else
+	ife dashcycle 2 set angvar 1024 else
+	ife dashcycle 3 { orvar orientation 4 set angvar 1024 }
+	set z 34816
+	rotatesprite 160 100 z angvar dashscreen 0 0 orientation 0 0 xdim ydim
+}
+
+ifvarn transition 0
+{
+	setvarvar z transition
+	ifvarg z 30 { setvar tempb 60 subvarvar tempb z setvarvar z tempb }
+	shiftvarl z 14
+	getactor[myspawner].pal pal
+	ifvare pal 0 setvar pal 4
+	rotatesprite 160 100 z 0 TRANSITION 0 pal 0 0 0 xdim ydim
+}
+
+ifvarg bigmsgcount 0
+{
+	setvar orientation 0
+	setvar y 60
+	ifvarn pictime 0 addvar y 60
+	//ifvarl bigmsgcount 13 orvar orientation 1
+	//ifvarl bigmsgcount 6 orvar orientation 32
+	setvar temp 65536
+	ifvarg bigmsgcount 78
+	{
+		setvar temp 104
+		subvarvar temp bigmsgcount
+		ifl temp 1 setvar temp 1
+		mulvar temp 2520
+	}
+	else ifvarl bigmsgcount 27
+	{
+		setvarvar temp bigmsgcount
+		mulvar temp 2520
+	}
+	
+	ifvare bigmsg 128 
+	{ 
+		shiftvarl temp 1
+		setvar picnum 2908
+		addvar y 20
+	}
+	else setvar picnum STARTALPHANUM
+	gametextz picnum 320 y bigmsg 0 0 orientation 0 0 xdim ydim temp
+}
+
+
+ifvarn fakedoor 0 rotatesprite 160 87 32768 0 118 0 0 0 0 0 xdim ydim
+
+// state xphud
+
+// ifvarn player[THISACTOR].got_access 0
+// {
+// 	ifvarand player[THISACTOR].got_access 1 rotatesprite 150 182 20480 0 ACCESSCARD 0 0 256 0 0 xdim ydim
+// 	ifvarand player[THISACTOR].got_access 2 rotatesprite 153 184 20480 0 ACCESSCARD 0 21 256 0 0 xdim ydim
+// 	ifvarand player[THISACTOR].got_access 4 rotatesprite 156 186 20480 0 ACCESSCARD 0 23 256 0 0 xdim ydim
+// }
+
+ifg crawlclock YES
+{
+	state display_textcrawl
+	set RETURN -1
+	break
+}
+
+ifn nohud 0 { set RETURN -1 break }
+ife userdef[].overhead_on 2 break
+
+ifvare superjump YES state jumphud
+
+ifvarn monid -1 state monhud
+state combohud
+
+ifvare character 1
+ifvarl sprint 208
+ifvarg sprint 1
+state sprinthud
+
+setuserdef[THISACTOR].screen_size 0
+// HEALTH DISPLAY
+
+ifvarg bleeding 0
+{
+	rotatesprite 67 181 16384 0 412 0 0 256 0 0 xdim ydim
+	rotatesprite 55 180 32768 0 2929 0 0 256 0 0 xdim ydim
+	digitalnumberz 2930 69 183 bleeding 0 2 256 0 0 xdim ydim 32768
+}
+
+// rotatesprite 11 186 49152 0 COLA 0 4 289 0 0 xdim ydim
+// rotatesprite 10 185 49152 0 COLA 0 0 256 0 0 xdim ydim
+rotatesprite 10 185 8192 0 HEARTHUD 0 0 256 0 0 xdim ydim
+getplayer[screenpeek].i temp
+getactor[temp].extra tempb
+
+digitalnumber 2930 35 179 tempb 0 4 305 0 0 xdim ydim
+digitalnumber 2930 34 178 tempb 0 2 272 0 0 xdim ydim
+
+rotatesprite 55 188 32768 0 3008 0 2 256 0 0 xdim ydim
+
+getplayer[screenpeek].max_player_health tempb
+digitalnumberz 2930 67 184 tempb 0 2 272 0 0 xdim ydim 32768
+
+
+// ARMOR DISPLAY
+getplayer[screenpeek].shield_amount temp
+ifvarg temp 0
+{
+	ifvarg helmflash 0 ifvarand timer 1 setvar pal 6
+	else
+	{
+		ifvarg temp 100 setvar pal 23 else
+		ifvarg temp 50 setvar pal 10 else
+		setvar pal 12
+	}
+	ifvarg temp 100 setvar picnum ARMOR3 else
+	ifvarg temp 50 setvar picnum ARMOR2 else
+	setvar picnum ARMOR1
+	// x values with mana hud: 151, 150, 175, 174
+	rotatesprite 94 185 16384 0 picnum 0 4 289 0 0 xdim ydim
+	rotatesprite 93 184 16384 0 picnum 0 pal 256 0 0 xdim ydim
+	
+	digitalnumberz 2930 115 181 temp 0 4 305 0 0 xdim ydim 49152
+	ifvare pal 23 setvar pal 110 // 63
+	ifvare pal 10 setvar pal 23 // 50
+	digitalnumberz 2930 114 180 temp 0 pal 272 0 0 xdim ydim 49152
+}
+// enviro armor display
+getplayer[screenpeek].boot_amount temp
+ifvarg temp 0
+{
+	rotatesprite 146 185 12288 0 SHIELDICON 0 4 289 0 0 xdim ydim
+	ifvarvarn lastbootamount player[screenpeek].boot_amount
+	{
+		// ifvarand timer 1 setvar pal 6 else setvar pal 0
+		ifg ppoison 0 set pal 11 else
+		ifg cursed 0 set pal 4 else
+		ifg burning 0 set pal 2 else
+		ifl burning 0 set pal 0 else
+		set pal 12
+		rotatesprite 145 184 12288 0 SHIELDGLOW 0 pal 256 0 0 xdim ydim
+	}
+	setvar pal 0
+	rotatesprite 145 184 12288 0 SHIELDICON 0 pal 256 0 0 xdim ydim
+	shiftvarr temp 2
+	digitalnumberz 2930 164 180 temp 0 8 272 0 0 xdim ydim 49152
+}
+
+ifn dashupgrade 0
+{
+	set orientation 256
+	ife dashcool1 0 set picnum DASHREADY else { set picnum DASHCOOLING orvar orientation 1 }
+	rotatesprite 190 184 10480 0 picnum 0 0 orientation 0 0 xdim ydim
+	set orientation 256
+	ifg dashupgrade 1
+	{
+		ife dashcool2 0 set picnum DASHREADY else { set picnum DASHCOOLING orvar orientation 1 }
+		rotatesprite 201 184 10480 0 picnum 0 0 orientation 0 0 xdim ydim
+	}
+}
+
+// MANA DISPLAY
+
+// rotatesprite 85 185 49152 0 MANAHUD 0 0 256 0 0 xdim ydim
+// setvarvar temp mana
+// divvar temp 100
+	// digitalnumberz 2930 110 191 temp 0 4 289 0 0 xdim ydim 49152
+	// digitalnumberz 2930 109 190 temp 0 1 256 0 0 xdim ydim 49152
+// rotatesprite 121 188 32768 0 3008 0 1 256 0 0 xdim ydim
+// setvarvar temp manamax
+// divvar temp 100
+// digitalnumberz 2930 135 191 temp 0 1 256 0 0 xdim ydim 32768
+
+// AMMO DISPLAY FOR CURRENT WEAPON
+
+ife rendmode 0 set pal 0 else set pal 110
+getplayer[screenpeek].curr_weapon temp
+ife temp 0 
+{
+	ife character 0 ife gotsaw NO set temp -1
+	ife character 1 ife sawammo 0 set temp -1
+}
+ifvare temp 10 setvar temp 5
+ifge temp 0
+{
+	setvar x 241
+	setvar z 24576
+	switch temp
+	
+	case 0 // buzzsaw
+	setvar picnum SAWFUEL
+	set tempb sawammo
+	ife character 1 { set picnum -1 div tempb 5 ifg sawammo 0 ifl sawammo maxsaw add tempb 1 }
+	// addvar x 10
+	subvar z 4096
+	break
+	
+	case 1 // headshooter or necrosword
+	getplayer[screenpeek].ammo_amount 1 tempb
+	ifvare character 1 
+	{
+		ifvarg tempb 0 subvar tempb 1
+		setvar picnum NECROSWORD
+		subvar z 16384
+		addvar x 13
+	}
+	else
+	{
+		addvar x 5
+		addvar z 8192
+		setvar picnum AMMO
+	}
+	break
+	case 2 // DB shotgun or hammer
+	getplayer[screenpeek].ammo_amount 2 tempb
+	ifvare character 1 
+	{
+		ifvarg tempb 0 subvar tempb 1
+		setvar picnum HAMMERSPRITE
+		subvar z 16384
+		addvar x 13
+	}
+	else
+	{
+		setvar picnum SHOTGUNAMMO
+		addvar x 5
+	}
+	
+	break
+	case 3 	// minigun or axe
+	getplayer[screenpeek].ammo_amount 3 tempb
+	ifvare character 1
+	{
+		ifvarg tempb 0 subvar tempb 1
+		setvar picnum AXESPRITE
+		subvar z 16384
+		addvar x 13
+	} else
+	ifvare character 0
+	{
+		setvar picnum BATTERYAMMO
+		subvar z 4096
+		ifvare tempb 1 subvar tempb 1
+	}
+	
+	break
+	case 4 // rpg or bow
+	getplayer[screenpeek].ammo_amount 4 tempb
+	ifvare character 0 
+	setvar picnum RPGAMMO	
+	else
+	{
+		setvar picnum 6780 subvar z 20480 addvar x 10
+		ifvare arrowtype 0 { setvar pal 0 subvar tempb 1 }
+		else
+		ifvare arrowtype 1 
+		{ 
+			setvarvar tempb burnarrows setvar pal 2
+			gametextz STARTALPHANUM 540 176 426 0 pal 512 0 0 xdim ydim 32768
+		} else
+		ifvare arrowtype 2 
+		{ 
+			setvarvar tempb explarrows setvar pal 7 
+			gametextz STARTALPHANUM 540 176 427 0 pal 512 0 0 xdim ydim 32768
+		} else
+		ifvare arrowtype 3 
+		{ 
+			setvarvar tempb multiarrows setvar pal 0 
+			gametextz STARTALPHANUM 540 176 428 0 pal 512 0 0 xdim ydim 32768
+		} else
+		ifvare arrowtype 4 
+		{ 
+			setvarvar tempb freezearrows setvar pal 1 
+			gametextz STARTALPHANUM 540 176 429 0 pal 512 0 0 xdim ydim 32768
+		} else
+		ifvare arrowtype 5 
+		{ 
+			setvarvar tempb spyarrows setvar pal 0 // 63 
+			gametextz STARTALPHANUM 540 176 430 0 pal 512 0 0 xdim ydim 32768
+		}
+	}
+	
+	addvar x 5
+	break
+	case 5 // pipebombs
+	ife character 0 { set picnum HBOMBAMMO sub z 4096 } else
+	{
+		setvar picnum 9137 subvar z 16384
+	}
+	getplayer[screenpeek].ammo_amount 5 tempb
+	// addvar x 5
+	break
+	case 6 // bfg or armageddon sword
+	getplayer[screenpeek].ammo_amount 6 tempb
+	ifvare character 1 
+	{
+		setvar picnum SWORDSPRITE
+		subvar z 16384
+		addvar x 10
+	}
+	else
+	{
+		setvar picnum BFGAMMO
+		//addvar x 5
+	}
+	break
+	case 7 // therminator or gauntlets
+	ifvare character 0 setvar picnum FLAMEAMMO
+	else setvar picnum GAUNTSPRITE 
+	addvar x 5
+	getplayer[screenpeek].ammo_amount 7 tempb
+	subvar z 8192
+	break
+	case 8 setvar picnum TRIPBOMBSPRITE
+	// getplayer[screenpeek].ammo_amount 8 tempb
+	set tempb eyeballammo
+
+	break
+	case 9 
+	ife character 0 setvar picnum PLASMAAMMO else
+	setvar picnum CANNONAMMO
+	getplayer[screenpeek].ammo_amount 9 tempb
+	subvar z 4096
+	addvar x 10
+	break
+	case 11 setvar picnum REVOLVERAMMO
+	getplayer[screenpeek].ammo_amount 11 tempb
+	// addvar x 5
+	break
+	endswitch
+	
+	ifg picnum -1
+	{
+		rotatesprite x 186 z 0 picnum 0 4 545 0 0 xdim ydim
+		subvar x 1
+		rotatesprite x 185 z 0 picnum 0 0 512 0 0 xdim ydim
+	}
+	digitalnumber 2930 273 179 tempb 0 4 561 0 0 xdim ydim
+	digitalnumber 2930 272 178 tempb 0 pal 528 0 0 xdim ydim
+	
+	ife character 1
+	ife currentweapon 3
+	ifg hailcool 0
+	{
+		set tempd hailcool
+		div tempd 30
+		add tempd 1
+		digitalnumberz 2837 275 177 tempd 0 0 512 0 0 xdim ydim 40960
+		rotatesprite 265 175 14336 0 ICEMETEOR 0 1 512 0 0 xdim ydim
+		
+	}
+	
+	rotatesprite 295 188 32768 0 3008 0 pal 512 0 0 xdim ydim
+	ife temp 0 
+	{
+		set tempc maxsaw 
+		ife character 1 { div tempc 5 add tempc 1 }
+	}
+	else
+	getplayer[screenpeek].max_ammo_amount temp tempc
+	ife temp 8 mul tempc 100
+	ifvare character 1 ifvarl temp 5 ifvarg tempc 0 subvar tempc 1
+	digitalnumberz 2930 310 184 tempc 0 pal 528 0 0 xdim ydim 32768
+	
+	
+}
+// MINI AMMO DISPLAY FOR ALL WEAPONS
+// ifvare character 0
+// {
+	ifvare gotsaw YES
+	ife character 0
+	{
+		//getplayer[THISACTOR].ammo_amount 1 temp
+		//ifvare temp 0 setvar orientation 289 else 
+		setvar orientation 256
+		ifvare CURRWEAP 0 setvar pal 6 else setvar pal 0
+		rotatesprite 8 196 10240 0 CHAINSAWSPRITE 0 pal orientation 0 0 xdim ydim
+		digitalnumberz 3010 16 196 sawammo 0 17 orientation 0 0 xdim ydim 40960
+	}
+	ifvare player[screenpeek].gotweapon 1 YES
+	{
+		getplayer[THISACTOR].ammo_amount 1 temp
+		ifvare temp 0 setvar orientation 289 else setvar orientation 256
+		ifvare CURRWEAP 1 setvar pal 6 else setvar pal 0
+		ife character 0 
+		{
+			set picnum FIRSTGUNSPRITE
+			set angvar 0
+			set z 8192
+		}
+		else 
+		{
+			set picnum NECROSWORD
+			set angvar 256
+			set z 7168
+		}
+		rotatesprite 28 195 z angvar picnum 0 pal orientation 0 0 xdim ydim
+		digitalnumberz 3010 36 196 temp 0 17 orientation 0 0 xdim ydim 40960
+	}
+	ifvare player[screenpeek].gotweapon 2 YES
+	{
+		getplayer[THISACTOR].ammo_amount 2 temp
+		ifvare temp 0 setvar orientation 289 else setvar orientation 256
+		ifvare CURRWEAP 2 setvar pal 6 else setvar pal 0
+		ife character 0 set picnum SHOTGUNSPRITE else set picnum HAMMERSPRITE
+		rotatesprite 48 196 8192 0 picnum 0 pal orientation 0 0 xdim ydim
+		digitalnumberz 3010 56 196 temp 0 17 orientation 0 0 xdim ydim 40960
+	}
+	ifvare player[screenpeek].gotweapon 3 YES
+	{
+		getplayer[screenpeek].ammo_amount 3 temp
+		ifvare temp 1 subvar temp 1
+		ifvarl temp 1 setvar orientation 289 else setvar orientation 256
+		ifvare CURRWEAP 3 setvar pal 6 else setvar pal 0
+		ife character 0 set picnum CHAINGUNSPRITE else set picnum AXESPRITE
+		rotatesprite 68 195 6144 0 picnum 0 pal orientation 0 0 xdim ydim
+		digitalnumberz 3010 76 196 temp 0 17 orientation 0 0 xdim ydim 40960
+	}
+	ifvare player[THISACTOR].gotweapon 4 YES
+	{
+		getplayer[screenpeek].ammo_amount 4 temp
+		ifvare temp 0 setvar orientation 289 else setvar orientation 256
+		ifvare CURRWEAP 4 setvar pal 6 else setvar pal 0
+		ife character 0 set picnum RPGSPRITE else set picnum BOWSPRITE
+		rotatesprite 88 195 6144 0 picnum 0 pal orientation 0 0 xdim ydim
+		digitalnumberz 3010 96 196 temp 0 17 orientation 0 0 xdim ydim 40960
+	}
+	ifvare player[screenpeek].gotweapon 5 YES
+	{
+		getplayer[THISACTOR].ammo_amount 5 temp
+		ifvare temp 0 setvar orientation 289 else setvar orientation 256
+		ifvare CURRWEAP 5 setvar pal 6 else setvar pal 0
+		rotatesprite 106 195 7168 0 HEAVYHBOMB 0 pal orientation 0 0 xdim ydim
+		digitalnumberz 3010 112 196 temp 0 17 orientation 0 0 xdim ydim 40960
+	}
+	ifvare player[screenpeek].gotweapon 6 YES
+	{
+		getplayer[THISACTOR].ammo_amount 6 temp
+		ifvare temp 0 setvar orientation 289 else setvar orientation 256
+		ifvare CURRWEAP 6 setvar pal 6 else setvar pal 0
+		ife character 0 
+		{
+			set picnum BFGSPRITE 
+			set angvar 0
+		}
+		else 
+		{
+			set picnum SWORDSPRITE
+			set angvar 256
+		}
+		rotatesprite 124 195 6144 angvar picnum 0 pal orientation 0 0 xdim ydim
+		digitalnumberz 3010 134 196 temp 0 17 orientation 0 0 xdim ydim 40960
+	}
+	ifvare player[screenpeek].gotweapon 11 YES
+	ife character 0
+	{
+		getplayer[screenpeek].ammo_amount 11 temp
+		ifvare temp 0 setvar orientation 289 else setvar orientation 256
+		ifvare CURRWEAP 11 setvar pal 6 else setvar pal 0
+		rotatesprite 144 195 6144 0 REVOLVERSPRITE 0 pal orientation 0 0 xdim ydim
+		digitalnumberz 3010 152 196 temp 0 17 orientation 0 0 xdim ydim 40960
+	}
+	ifvare player[screenpeek].gotweapon 7 YES
+	{
+		getplayer[screenpeek].ammo_amount 7 temp
+		ifvare temp 0 setvar orientation 289 else setvar orientation 256
+		ifvare CURRWEAP 7 setvar pal 6 else setvar pal 0
+		ife character 0 
+		{
+			set picnum FLAMETHROWERSPRITE 
+			set z 6144
+		}
+		else 
+		{
+			set picnum GAUNTSPRITE
+			set z 6144
+			
+		}
+		rotatesprite 164 195 z 0 picnum 0 pal orientation 0 0 xdim ydim
+		digitalnumberz 3010 172 196 temp 0 17 orientation 0 0 xdim ydim 40960
+	}
+	ifvare player[screenpeek].gotweapon 8 YES
+	{
+		// getplayer[screenpeek].ammo_amount 8 temp
+		set temp eyeballammo
+		ifvare temp 0 setvar orientation 289 else setvar orientation 256
+		ifvare CURRWEAP 8 setvar pal 6 else setvar pal 0
+		rotatesprite 181 195 10240 0 TRIPBOMBSPRITE 0 pal orientation 0 0 xdim ydim
+		digitalnumberz 3010 189 196 temp 0 17 orientation 0 0 xdim ydim 40960
+	}
+	ifvare player[screenpeek].gotweapon 9 YES
+	{
+		getplayer[screenpeek].ammo_amount 9 temp
+		ifvare temp 0 setvar orientation 289 else setvar orientation 256
+		ifvare CURRWEAP 9 setvar pal 6 else setvar pal 0
+		ife character 0 
+		{
+			set picnum PLASMASPRITE
+			set z 8192
+		}
+		else 
+		{
+			set picnum CANNONSPRITE
+			set z 5120
+		}
+		rotatesprite 200 195 z 0 picnum 0 pal orientation 0 0 xdim ydim
+		digitalnumberz 3010 208 196 temp 0 17 orientation 0 0 xdim ydim 40960
+	}
+// }
+
+// INVENTORY DISPLAY
+getplayer[screenpeek].firstaid_amount temp
+
+	rotatesprite 12 79 5120 0 FIRSTAID 0 4 289 0 0 xdim ydim
+	ifvare invicon 1
+	rotatesprite 12 80 49152 0 20 0 0 256 0 0 xdim ydim
+	setvar tempb 140
+	subvarvar tempb temp
+	divvar tempb 4
+	setvar picnum 8227
+	addvarvar picnum tempb, ifg picnum 8261 set picnum 8261
+	rotatesprite 10 78 5120 0 picnum 0 0 256 0 0 xdim ydim
+	digitalnumberz 2837 10 84 player[THISACTOR].firstaid_amount 0 0 272 0 0 xdim ydim 32768
+	ifvare invicon 1 ifvarg invmsg 0 gametextz STARTALPHANUM 40 80 3 0 23 256 0 0 xdim ydim 32768
+
+
+getplayer[screenpeek].holoduke_amount temp
+ifvarg temp 0
+{
+	rotatesprite 12 97 12288 0 HOLODUKE 0 4 289 0 0 xdim ydim
+	ifvare invicon 3
+	rotatesprite 12 97 49152 0 20 0 0 256 0 0 xdim ydim
+	ife truedemonova YES set pal 10 else set pal 0
+	rotatesprite 11 96 12288 0 HOLODUKE 0 pal 256 0 0 xdim ydim
+	divvar temp 24
+	digitalnumberz 2837 10 102 temp 0 0 272 0 0 xdim ydim 32768
+	ifvare invicon 3 ifvarg invmsg 0 gametextz STARTALPHANUM 40 99 91 0 23 256 0 0 xdim ydim 32768
+	
+}
+getplayer[screenpeek].jetpack_amount temp
+ifvarg temp 0
+{
+	rotatesprite 12 114 16384 0 JETPACK 0 4 289 0 0 xdim ydim
+	ifvare invicon 4
+	rotatesprite 12 114 49152 0 20 0 0 256 0 0 xdim ydim
+	rotatesprite 11 113 24576 0 JETPACK 0 0 256 0 0 xdim ydim
+	shiftvarr temp 4
+	digitalnumberz 2837 10 118 temp 0 0 272 0 0 xdim ydim 32768
+	ifvare invicon 4 ifvarg invmsg 0 gametextz STARTALPHANUM 40 116 290 0 23 256 0 0 xdim ydim 32768
+}
+getplayer[screenpeek].heat_amount temp
+ifvarg temp 0
+{
+	rotatesprite 12 131 16384 0 HEATSENSOR 0 4 289 0 0 xdim ydim
+	ifvare invicon 5
+	rotatesprite 12 131 49152 0 20 0 0 256 0 0 xdim ydim
+	rotatesprite 11 130 16384 0 HEATSENSOR 0 0 256 0 0 xdim ydim
+	divvar temp 12
+	digitalnumberz 2837 10 135 temp 0 0 272 0 0 xdim ydim 32768
+	ifvare invicon 5 ifvarg invmsg 0 gametextz STARTALPHANUM 40 131 101 0 23 256 0 0 xdim ydim 32768
+}
+
+// setvar temp 0
+// ifvarg LEVEL 0 ifvarl LEVEL 4 ifvarand scroll 1 { setvar temp 1 setvar pal 0 } else
+// ifvarg LEVEL 3 ifvarl LEVEL 7 ifvarand scroll 2 { setvar temp 1 setvar pal 2 } else
+// ifvarg LEVEL 6 ifvarl LEVEL 10 ifvarand scroll 4 { setvar temp 1 setvar pal 7 }
+// ifvare temp 1
+// {
+	// ifvare invicon 0 
+	// rotatesprite 12 155 49152 0 20 0 0 256 0 0 xdim ydim
+	// rotatesprite 12 171 28672 0 RETURNSCROLL 0 4 289 0 0 xdim ydim
+	// rotatesprite 12 170 28672 0 RETURNSCROLL 0 pal 256 0 0 xdim ydim
+	// ifvare invicon 0 ifvarg invmsg 0 gametextz STARTALPHANUM 40 158 150 0 50 256 0 0 xdim ydim 32768
+
+// }
+
+ifvare character 0
+{
+	ifvare CURRWEAP 2
+	ifvarg DBLOADED 0
+	{
+		// DB SHELL DISPLAY
+		rotatesprite 245 195 10240 0 5432 5 0 512 0 0 xdim ydim
+		ifvare DBLOADED 2
+		rotatesprite 250 195 10240 0 5432 5 0 512 0 0 xdim ydim
+		
+	}
+	ifvare CURRWEAP 3
+	{
+		// GRENADE AMMO DISPLAY
+		rotatesprite 245 196 12288 0 GRENADEAMMO 5 0 512 0 0 xdim ydim
+		setvar mx 260
+		// ifvarg grenades 9 addvar mx 4
+		digitalnumberz 2930 mx 192 grenades 0 110 528 0 0 xdim ydim 32768
+	}
+	// LOADED ROX DISPLAY
+	ifvarg roxq 0
+	{
+		setvarvar temp roxq
+		setvar x 310
+		setvar y 170
+		whilevarn temp 0
+		{
+			rotatesprite x y 32768 0 2605 0 0 512 0 0 xdim ydim
+			subvar temp 1
+			subvar y 10
+		}
+	}
+}
+
+// CONDITION DISPLAY
+ifvarg cursed 0
+{
+	displayrandvar angvar 2047
+	rotatesprite 307 84 16384 angvar CURSEAURA 0 0 512 0 0 xdim ydim
+	digitalnumberz 2837 308 84 cursed 0 0 512 0 0 xdim ydim 32768
+	gametextz STARTALPHANUM 540 84 422 0 17 512 0 0 xdim ydim 32768
+}
+ifvarn burning 0
+{
+	ifvarl burning 0 { setvar picnum FREEZEAURA setvar z 16384 setvar tempb 420 }
+	ifvarg burning 0 { setvar picnum 2512 setvar z 10240 setvar tempb 419 }
+	displayrandvar angvar 2047
+	rotatesprite 307 60 z angvar picnum 0 0 512 0 0 xdim ydim
+	setvarvar temp burning
+	ifvarl temp 0 { mulvar temp -1 setvar pal 1 }
+	else setvar pal 2
+	digitalnumberz 2837 308 60 temp 0 pal 512 0 0 xdim ydim 32768
+	gametextz STARTALPHANUM 540 60 tempb 0 0 512 0 0 xdim ydim 32768
+
+}
+ifvarg ppoison 0
+{
+	displayrandvar angvar 2047
+	rotatesprite 307 72 20480 angvar POISONAURA 0 0 545 0 0 xdim ydim
+	digitalnumberz 2837 308 72 ppoison 0 0 512 0 0 xdim ydim 32768
+	gametextz STARTALPHANUM 540 72 421 0 7 512 0 0 xdim ydim 32768
+}
+ifp ponsteroids
+{
+	getplayer[screenpeek].steroids_amount temp
+	divvar temp 15
+	rotatesprite 306 96 16384 0 QUADDAMAGE 0 0 512 0 0 xdim ydim
+	digitalnumberz 2837 308 104 temp 0 0 512 0 0 xdim ydim 32768
+}
+ifvarg slowtime 0
+{
+	setvarvar temp slowtime
+	divvar temp 30
+	rotatesprite 306 124 32768 0 TIMERUNE 0 0 512 0 0 xdim ydim
+	digitalnumberz 2837 308 122 temp 0 0 512 0 0 xdim ydim 32768
+}
+ifvarg invulntime 0
+{
+	setvarvar temp invulntime
+	divvar temp 30
+	rotatesprite 306 132 12288 0 INVULN 0 0 512 0 0 xdim ydim
+	digitalnumberz 2837 308 140 temp 0 0 512 0 0 xdim ydim 32768
+}
+
+// GOLD DISPLAY
+
+// ifvarg goldnear 0
+// {
+	ifvarg goldnear 0 gametextz STARTALPHANUM 45 14 133 0 23 256 0 0 xdim ydim 32768
+	rotatesprite 10 9 10240 0 336 0 0 256 0 0 xdim ydim
+	setvar x 10
+	digitalnumberz 2837 x 17 pgold 0 0 272 0 0 xdim ydim 32768
+// }
+
+ifvarg goldnear 0 gametextz 2822 45 28 220 0 23 256 0 0 xdim ydim 32768
+rotatesprite 10 28 12288 0 8806 0 11 256 0 0 xdim ydim
+setvar x 10
+
+digitalnumberz 2837 x 34 stash 0 0 272 0 0 xdim ydim 32768
+
+// key and powerpod display
+
+// ifvarg keynear 0
+// {
+	ifvarg keynear 0 gametextz STARTALPHANUM 45 45 134 0 23 256 0 0 xdim ydim 32768
+	rotatesprite 10 45 12288 -384 KEY 0 12 256 0 0 xdim ydim
+	setvar x 10
+	digitalnumberz 2837 x 50 keys 0 12 272 0 0 xdim ydim 32768
+// }
+
+ifvarg ppods 0 //podnear 0
+{
+	rotatesprite 11 63 16384 0 105 0 4 289 0 0 xdim ydim // POWER PODS
+	rotatesprite 10 62 16384 0 105 0 0 256 0 0 xdim ydim // POWER PODS
+	digitalnumberz 2837 10 66 ppods 0 0 272 0 0 xdim ydim 32768
+	ifvarg podnear 0 gametextz STARTALPHANUM 40 62 215 0 1 256 0 0 xdim ydim 32768
+}
+
+
+
+ifvarn treasurepic -1
+{
+	gametext STARTALPHANUM 320 30 130 0 7 0 0 0 xdim ydim
+	ifvare treasurepic ATOMICHEALTH setvar y 68 else 
+	ifvare treasurepic QUIVERSPRITE setvar y 80 else
+	ifvare treasurepic ARMOR1 setvar y 68 else
+	ifvare treasurepic ARMOR2 setvar y 68 else
+	ifvare treasurepic ARMOR3 setvar y 68
+	else setvar y 50
+	rotatesprite 160 y 65536 0 treasurepic 0 treasurepal 0 0 0 xdim ydim
+}
+
+// quest picture display of carried quest items
+
+ifn quests[0] 0 // at least one quest has been started
+{
+	set temp 0
+	set tempb 0
+	set x 275
+	set y 152
+	whilevarn temp -1
+	{
+		set picnum Pquests[temp]
+		ifn picnum 0
+		ife LEVEL Lquests[temp]
+		{
+			ife tempb 0
+				gametextz STARTALPHANUM 550 145 643 0 0 528 0 0 xdim ydim 32768
+			add tempb 1
+			ife tempb 4 { add y 10 set x 275 }
+			set z 699050 // 1048576
+			div z tiledata[picnum].xsize
+			set orientation 528
+			set pal 0
+			ife Cquests[temp] 0 { set pal 121 orvar orientation 33 }
+			rotatesprite x y z 0 picnum 0 pal orientation 0 0 xdim ydim
+			add x 14
+			
+		}
+		add temp 1
+		ife quests[temp] 0 set temp -1
+		ife temp MAXQUESTS set temp -1
+		ife tempb 6 set temp -1
+	}
+}
+
+
+
+// oxygen display
+getplayer[screenpeek].airleft tempb
+ife player[screenpeek].scuba_on YES { getp[screenpeek].scuba_amount tempb shiftr tempb 4 }
+ifvarl tempb 390 ifvarg tempb 0
+{
+	setvar y 15
+	setvar x 75
+	setvar z 16384
+	setvar orientation 256
+	ife player[screenpeek].scuba_on YES set pal 23 else
+	setvar pal 1
+	
+	
+	divvar tempb 4
+	setvarvar tempc x
+	addvarvar tempc tempb
+	setvar temp 0
+	whilevarn temp 1
+	{
+		  ifvarvarg x tempc setvar temp 1
+		  rotatesprite x y z 0 199 0 pal orientation 0 0 xdim ydim
+		  addvar x 1
+		  break
+	}
+	ife player[screenpeek].scuba_on YES set picnum AIRTANK else
+	set picnum WATERBUBBLE
+	rotatesprite 70 y 12288 0 picnum 0 13 orientation 0 0 xdim ydim
+
+}
+
+ifvare newtip YES
+ife subtitle_time 0
+// ifvare fta 0
+// ifvare player[].fta 0
+{
+	// qsprintf <target quote> <first quote> <second quote to append to first>
+	qsprintf 403 401 402
+	set z 28672 // 32768
+	ifvarg helpcount 0 
+	{
+		// setvar z 40960 
+		ifvarand timer 1 setvar pal 33 else setvar pal 23 // 63
+	}
+	else 
+	{
+		setvar z 32768
+		setvar pal 0 // 63
+	}
+	gametextz STARTALPHANUM 10 5 403 0 pal 256 0 0 xdim ydim z // y 195
+	
+}
+
+ifvare helpmenu YES
+{
+	
+	rotatesprite 160 142 65536 0 8810 0 0 0 0 0 xdim ydim // tip box
+	rotatesprite 160 50 32768 0 8809 0 21 0 0 0 xdim ydim // stats button
+	
+	ifvarn currtip 0
+	{
+	switch currtip
+	
+	case 1 // difficulty level
+	ifvare SKILL 1 setvar temp 535 else
+	ifvare SKILL 2 setvar temp 350 else
+	ifvare SKILL 3 setvar temp 355 else
+	ifvare SKILL 4 setvar temp 360 else
+	setvar temp 365
+	break
+	
+	case 2 // GEMS
+	rotatesprite 160 155 20480 0 717 0 0 0 0 0 xdim ydim
+	setvar temp 230 
+	break
+	
+	case 4 // soul door
+	rotatesprite 160 155 16384 0 SOULDOOR 0 0 0 0 0 xdim ydim
+	rotatesprite 177 125 12288 0 5033 0 0 0 0 0 xdim ydim
+	setvar temp 235
+	break
+	
+	case 8 // treasure chests
+	rotatesprite 160 160 16384 0 TCHEST 0 0 0 0 0 xdim ydim
+	setvar temp 240
+	break
+	
+	case 16 // life apples
+	rotatesprite 160 155 16384 0 APPLE 0 7 0 0 0 xdim ydim
+	setvar temp 245
+	break
+	
+	case 32 // ammo pack
+	rotatesprite 160 155 32768 0 AMMOPACK 0 0 0 0 0 xdim ydim
+	setvar temp 250
+	break
+	
+	case 64 // ARMAGEDDON SWORD
+	rotatesprite 160 155 20480 512 SWORDSPRITE 0 0 0 0 0 xdim ydim
+	setvar temp 445
+	break
+	
+	case 128 // POW EXPLANATION
+	setvar temp 260
+	break
+	
+	case 256 // SPIRIT GOGGLES
+	rotatesprite 160 163 32768 0 HEATSENSOR 0 0 0 0 0 xdim ydim
+	setvar temp 265
+	break
+	
+	case 512 // QUARTZ FLASK
+	rotatesprite 160 155 16384 0 FIRSTAID 0 0 0 0 0 xdim ydim
+	setvar temp 270
+	break
+	
+	case 1024 // POWER PODS
+	rotatesprite 160 158 32768 0 POWERPOD 0 0 0 0 0 xdim ydim
+	setvar temp 275
+	break
+	
+	case 2048 // HELMET
+	rotatesprite 140 152 20480 0 SHIELD 0 12 0 0 0 xdim ydim
+	rotatesprite 180 160 40960 0 ARMOR1 0 0 0 0 0 xdim ydim
+	setvar temp 280
+	break
+	
+	case 4096 // MINOTAUR
+	ife truedemonova YES set pal 10 else set pal 0
+	rotatesprite 160 155 16384 0 HOLODUKE 0 pal 0 0 0 xdim ydim
+	setvar temp 285
+	break
+	
+	case 8192 // JUMP BOOTS
+	rotatesprite 160 158 32768 0 JETPACK 0 0 0 0 0 xdim ydim
+	setvar temp 290
+	break
+	
+	case 16384 // ENVIRO ARMO
+	rotatesprite 160 152 32768 0 SHIELDICON 0 0 0 0 0 xdim ydim
+	setvar temp 295
+	break
+	
+	case 32768 // SHOTGUN
+	rotatesprite 160 158 32768 0 FIRSTGUNSPRITE 0 0 0 0 0 xdim ydim
+	setvar temp 300
+	break
+	
+	case 65536 // DOUBLE BARRELED SHOTGUN
+	rotatesprite 160 163 32768 0 SHOTGUNSPRITE 0 0 0 0 0 xdim ydim
+	setvar temp 305
+	break
+	
+	case 131072 // GATLING CANNON
+	rotatesprite 160 155 32768 0 CHAINGUNSPRITE 0 0 0 0 0 xdim ydim
+	setvar temp 310
+	break
+	
+	case 262144 // ROCKET LAUNCHER
+	rotatesprite 160 155 32768 0 RPGSPRITE 0 0 0 0 0 xdim ydim
+	setvar temp 315
+	break
+	
+	case 524288 // CLUSTER PIPE BOMBS and throwing spears
+	ife character 0 set picnum HBOMBAMMO else set picnum STUCKSPEAR
+	rotatesprite 160 158 24576 0 picnum 0 0 0 0 0 xdim ydim
+	ife character 0
+	setvar temp 320 else set temp 480
+	break
+	
+	case 1048576 // BFG 6666
+	rotatesprite 160 157 32768 0 BFGSPRITE 0 0 0 0 0 xdim ydim
+	setvar temp 325
+	break
+	
+	case 2097152 // FLAMETHROWER
+	rotatesprite 160 158 32768 0 FLAMETHROWERSPRITE 0 0 0 0 0 xdim ydim
+	setvar temp 330
+	break
+	
+	case 4194304 // WATCHER SENTRY
+	rotatesprite 160 158 32768 0 TRIPBOMBSPRITE 0 0 0 0 0 xdim ydim
+	setvar temp 335
+	break
+	
+	case 8388608 // PLASMA GUN
+	rotatesprite 160 155 32768 0 PLASMASPRITE 0 0 0 0 0 xdim ydim
+	setvar temp 340
+	break
+	
+	case 16777216 // INTRODUCING JEDRIK
+	rotatesprite 160 161 16384 0 9216 0 0 0 0 0 xdim ydim
+	setvar temp 345
+	break
+	
+	case 33554432 // PLAYER CONDITIONS
+	setvar temp 370
+	rotatesprite 120 158 10240 0 2512 0 0 0 0 0 xdim ydim // burning
+	rotatesprite 145 158 16384 0 FREEZEAURA 0 0 0 0 0 xdim ydim
+	rotatesprite 170 158 16384 0 POISONAURA 0 0 0 0 0 xdim ydim
+	rotatesprite 195 158 16384 0 CURSEAURA 0 0 0 0 0 xdim ydim
+	break
+	
+	case 67108864 // COMPLETED EPISODE 1
+	setvar temp 375
+	
+	break
+	
+	case 134217728 // JEDRIK BASICS
+	setvar temp 380
+	rotatesprite 160 160 16384 0 9271 0 0 0 0 0 xdim ydim
+	break
+	
+	case 268435456 // WARBOW
+	rotatesprite 160 155 24576 256 BOWSPRITE 0 0 0 0 0 xdim ydim
+	setvar temp 385
+	break
+	
+	case 536870912 // CORRUPTER BLADE
+	setvar temp 390
+	rotatesprite 160 155 20480 512 NECROSWORD 0 0 0 0 0 xdim ydim
+	break
+	
+	case 1073741824 // THUNDERSTRIKE HAMMER
+	rotatesprite 160 155 20480 512 HAMMERSPRITE 0 0 0 0 0 xdim ydim
+	setvar temp 395
+	break
+	
+	default setvar temp 225 break
+	
+	endswitch
+	}
+	ifvarn currtip2 0
+	{
+		switch currtip2
+		case 1  // BOREAN AXE
+		rotatesprite 160 155 20480 512 AXESPRITE 0 0 0 0 0 xdim ydim
+		setvar temp 450
+		break
+		case 2 // ARC WIELDER GAUNTLETS
+		setvar temp 475
+		rotatesprite 160 155 20480 0 GAUNTSPRITE 0 0 0 0 0 xdim ydim
+		break
+		case 4 // Moveable statues
+		setvar temp 255
+		break
+		case 8 // chainsaw
+		setvar temp 520
+		rotatesprite 160 155 40960 0 CHAINSAWSPRITE 0 0 0 0 0 xdim ydim
+		break
+		case 16 // monsoul
+		setvar temp 525
+		rotatesprite 160 165 65536 0 5035 0 0 0 0 0 xdim ydim
+		break
+		case 32 // groups
+		setvar temp 530
+		rotatesprite 160 155 16384 0 GROUPAURA 0 2 0 0 0 xdim ydim
+		break
+		case 64 // revolvers
+			setvar temp 662
+			rotatesprite 160 155 32768 0 REVOLVERSPRITE 0 0 0 0 0 xdim ydim
+		break
+		case 128 // pow upgrade
+			setvar temp 725
+			rotatesprite 160 160 28672 0 POWUPGRADE 0 0 0 0 0 xdim ydim
+		break
+		case 256 // magical treasure chests
+		rotatesprite 160 155 16384 0 TCHEST 0 0 0 0 0 xdim ydim
+		setvar temp 730
+		break
+		case 512 // HULLBREACHER cannon
+		rotatesprite 160 155 16384 0 CANNONSPRITE 0 0 0 0 0 xdim ydim
+		setvar temp 735
+		break
+		case 1024 // DASH UPGRADE
+		rotatesprite 160 155 16384 0 DASHUPGRADE 0 0 0 0 0 xdim ydim
+		setvar temp 750
+		break
+		case 2048 // ITEM BARRELS
+		rotatesprite 160 155 16384 0 NEWBARREL 0 0 0 0 0 xdim ydim
+		setvar temp 825
+		break
+		case 4096 // SWITCH CHARACTERS
+		rotatesprite 130 158 16384 0 9325 0 0 0 0 0 xdim ydim
+		rotatesprite 190 158 15360 0 9216 0 0 0 0 0 xdim ydim
+		setvar temp 830
+		break
+		
+		default setvar temp 225 break
+		
+		endswitch
+	}
+	setvar tempb 0
+	setvar y 107
+	whilevarn tempb 5
+	{
+		gametextz STARTALPHANUM 320 y temp 0 0 0 0 0 xdim ydim 32768
+		addvar y 8
+		addvar tempb 1
+		addvar temp 1
+	}
+	gametextz STARTALPHANUM 320 177 406 0 0 0 0 0 xdim ydim 24576
+	
+	state displayclock
+	
+	state shadepulse
+	gametextz STARTALPHANUM 320 186 405 shade 0 0 0 0 xdim ydim 24576
+	
+	// rotatesprite cursorx cursory 16384 0 CURSOR 0 0 0 0 0 xdim ydim
+	rotatesprite cursorx cursory 32768 0 2805 0 0 0 0 0 xdim ydim
+}
+else ife helpmenu 2 // stats
+{
+	rotatesprite 160 142 65536 0 8810 0 0 0 0 0 xdim ydim // stats box
+	rotatesprite 160 50 32768 0 8815 0 21 0 0 0 xdim ydim // tips button
+	
+	state shadepulse
+	
+	ife SKILL 1 set temp 535 else
+	ife SKILL 2 set temp 350 else
+	ife SKILL 3 set temp 355 else
+	ife SKILL 4 set temp 360 else
+	set temp 365
+
+	gametextz NEWFONT 320 86 temp 18 2 0 0 0 xdim ydim 16384
+	
+	// set up left column of main stats
+	set x 160, set y 108
+	set mx x, sub mx 20
+	
+	gametextz NEWFONT x 100 804 0 12 0 0 0 xdim ydim 16384
+	
+	gametextz NEWFONT x y 800 0 23 0 0 0 xdim ydim 16384
+	digitalnumberz 8725 mx y pdamage 0 12 0 0 0 xdim ydim 16384
+	
+	add y 8
+	gametextz NEWFONT x y 801 0 23 0 0 0 xdim ydim 16384
+	digitalnumberz 8725 mx y player[].max_player_health 0 12 0 0 0 xdim ydim 16384
+	
+	add y 8
+	gametextz NEWFONT x y 802 0 23 0 0 0 xdim ydim 16384
+	digitalnumberz 8725 mx y maxarmor 0 12 0 0 0 xdim ydim 16384
+	
+	add y 8
+	gametextz NEWFONT x y 803 0 23 0 0 0 xdim ydim 16384
+	digitalnumberz 8725 mx y combomax 0 12 0 0 0 xdim ydim 16384
+	
+	add y 8
+	gametextz NEWFONT x y 744 0 23 0 0 0 xdim ydim 16384
+	ife powmode 0 set tempb 508 else set tempb 509
+	set mx x, add mx 80
+
+	gametextz NEWFONT mx y tempb shade 0 0 0 0 xdim ydim 16384
+	
+	// set up right column of main stats
+	add x 180
+	set mx x, add mx 130
+	gametextz NEWFONT x 100 805 0 12 0 0 0 xdim ydim 16384
+	set y 108
+	
+	gametextz NEWFONT x y 806 0 23 0 0 0 xdim ydim 16384
+	ife ammoupgrade YES set tempb 811 else set tempb 810
+	gametextz NEWFONT mx y tempb 0 12 0 0 0 xdim ydim 16384
+	add y 8
+	gametextz NEWFONT x y 807 0 23 0 0 0 xdim ydim 16384
+	ife shieldupgrade YES set tempb 811 else set tempb 810
+	gametextz NEWFONT mx y tempb 0 12 0 0 0 xdim ydim 16384
+	
+	add y 8
+	gametextz NEWFONT x y 808 0 23 0 0 0 xdim ydim 16384
+	ife truedemonova YES set tempb 811 else set tempb 810
+	gametextz NEWFONT mx y tempb 0 12 0 0 0 xdim ydim 16384
+	
+	add y 8
+	gametextz NEWFONT x y 809 0 23 0 0 0 xdim ydim 16384
+	digitalnumberz 8725 240 y flaskmax 0 12 0 0 0 xdim ydim 16384
+	
+	add y 8
+	gametextz NEWFONT x y 745 0 23 0 0 0 xdim ydim 16384
+	ife goldmagnet YES set tempb 811 else set tempb 810
+	gametextz NEWFONT mx y tempb 0 12 0 0 0 xdim ydim 16384
+	
+	// bottom half stat display
+	gametextz NEWFONT 320 150 812 0 12 0 0 0 xdim ydim 16384
+	set y 157
+	set x 155, set mx x, sub mx 10
+	gametextz NEWFONT x y 813 0 23 16 0 0 xdim ydim 16384
+	digitalnumberz 8725 mx y globalgold 0 12 16 0 0 xdim ydim 16384
+	add y 8
+	gametextz NEWFONT x y 814 0 23 16 0 0 xdim ydim 16384
+	digitalnumberz 8725 mx y globalkills 0 12 16 0 0 xdim ydim 16384
+	add y 8
+	gametextz NEWFONT x y 815 0 23 16 0 0 xdim ydim 16384
+	digitalnumberz 8725 mx y globalquestc 0 12 16 0 0 xdim ydim 16384
+	
+	add x 180, set y 157
+	set mx x, add mx 125
+	gametextz NEWFONT x y 816 0 23 16 0 0 xdim ydim 16384
+	digitalnumberz 8725 240 y globalkeys 0 12 16 0 0 xdim ydim 16384
+	add y 8
+	gametextz NEWFONT x y 817 0 23 16 0 0 xdim ydim 16384
+	digitalnumberz 8725 240 y globalsecrets 0 12 16 0 0 xdim ydim 16384
+	add y 8
+	gametextz NEWFONT x y 818 0 23 16 0 0 xdim ydim 16384
+	digitalnumberz 8725 240 y globalpieces 0 12 16 0 0 xdim ydim 16384
+	
+	state displayclock
+	
+	// state shadepulse
+	gametextz STARTALPHANUM 320 186 405 shade 0 0 0 0 xdim ydim 24576
+	
+	rotatesprite cursorx cursory 32768 0 2805 0 0 0 0 0 xdim ydim
+}
+/*
+ifvarg helpmenu 1
+{
+	ifvare helpmenu 2 // player stats
+	{
+		rotatesprite winx winy 32768 0 STATBACK 3 0 0 0 0 xdim ydim
+		setvarvar x winx setvarvar y winy
+		addvar x 33 subvar y 47 // 44
+		digitalnumberz 3087 x y plevel 0 7 0 0 0 xdim ydim 65536
+		subvar x 1 addvar y 12
+		digitalnumberz 3087 x y xp 0 0 0 0 0 xdim ydim 65536
+		addvar y 11
+		digitalnumberz 3087 x y xpcaps[plevel] 0 0 0 0 0 xdim ydim 65536
+		addvar y 12 
+ 		digitalnumberz 3087 x y weaptotal 0 0 0 0 0 xdim ydim 65536
+
+		addvar y 11
+		addvar y 23
+		
+		digitalnumberz 3087 x y pdamage 0 2 0 0 0 xdim ydim 65536
+		ifvarg statpoints 0 
+		{ 
+			ifvare statsel 1 setvar pal 6 else setvar pal 0
+			subvar x 85 subvar y 3 rotatesprite x y 24576 0 STATPLUS 0 pal 0 0 0 xdim ydim addvar x 85 addvar y 3 
+		}
+		addvar y 11
+		digitalnumberz 3087 x y player[screenpeek].max_player_health 0 50 0 0 0 xdim ydim 65536
+		ifvarg statpoints 0 
+		{ 
+			ifvare statsel 2 setvar pal 6 else setvar pal 0
+			subvar x 85 subvar y 2 rotatesprite x y 24576 0 STATPLUS 0 pal 0 0 0 xdim ydim addvar x 85 addvar y 2 
+		}
+		addvar y 12
+		setvarvar tempb manamax divvar tempb 100
+		digitalnumberz 3087 x y tempb 0 1 0 0 0 xdim ydim 65536
+		ifvarg statpoints 0 
+		{ 
+			ifvare statsel 3 setvar pal 6 else setvar pal 0
+			subvar x 85 subvar y 2 rotatesprite x y 24576 0 STATPLUS 0 pal 0 0 0 xdim ydim addvar x 85 addvar y 2 
+		}
+		addvar y 11
+		digitalnumberz 3087 x y statpoints 0 8 0 0 0 xdim ydim 65536
+	}
+	else
+	ifvare helpmenu 3 // arms
+	{
+		rotatesprite winx winy 32768 0 ARMSBACK 3 0 0 0 0 xdim ydim
+		// CURRENT WEAPON PROFICIENCY
+		setvarvar x winx setvarvar y winy
+		subvar y 31
+		setvarvar mx winx // mx will be for gametext
+		mulvar mx 2
+		subvar mx 102
+		setvarvar temp weaplevels[CURRWEAP]
+		addvar temp 617
+		setvar pal 0
+		ifvare mx 320 setvar mx 319 // no centered
+		gametextz MINIFONT mx y temp 0 pal 0 0 0 xdim ydim 65536
+		addvar x 2
+		digitalnumberz 3087 x y weapscore[CURRWEAP] 0 0 0 0 0 xdim ydim 65536
+		addvar x 40
+		digitalnumberz 3087 x y weapcap[CURRWEAP] 0 0 0 0 0 xdim ydim 65536
+		
+	}
+	ifvare helpmenu 4 // items
+	{
+		rotatesprite winx winy 32768 0 ITEMBACK 3 0 0 0 0 xdim ydim
+	}
+	else
+	ifvare helpmenu 5 // quests
+	{
+		rotatesprite winx winy 32768 0 QUESTBACK 3 0 0 0 0 xdim ydim
+		ifvarn quests[0] 0 // the player has at least one quest
+		{
+			setvarvar x winx setvarvar y winy
+			mulvar x 2
+			subvar x 105
+			ifvare x 320 setvar x 319 // no centered
+			subvar y 38 // 40
+			setvarvar temp firstquest
+			setvarvar tempb temp
+			addvar tempb 8
+			whilevarvarn temp tempb // lists up to 8 quests at a time
+			{
+				ifvare quests[temp] 0 setvar temp 7 else
+				{
+					// display the quest name
+					ifvarvare questsel temp setvar pal 7 else setvar pal 1
+					// gametextz MINIFONT x y Qquests[temp] 0 pal 0 0 0 xdim ydim 65536
+					gametextz STARTALPHANUM x y Qquests[temp] 0 pal 0 0 0 xdim ydim 32768
+					ifvare Cquests[temp] 2
+					{
+						setvarvar mx winx
+						addvar mx 35
+						setvarvar tempc y
+						subvar tempc 2
+						rotatesprite mx tempc 16384 0 CHECKMARK 3 0 0 0 0 xdim ydim
+					}
+					addvar y 8
+				}
+				addvar temp 1
+				
+			}
+		}
+	}
+// 	setvarvar x winx setvarvar y winy
+// 	subvar x 69 subvar y 74
+}
+else
+ifvarg statpoints 0
+{
+	setvar x 485
+	qsprintf 413 411 412
+	qstrlen mx 412
+	shiftvarl mx 3
+	subvarvar x mx
+	shiftvarr shade 1
+	gametextz STARTALPHANUM x 15 413 shade pal 512 0 0 xdim ydim 32768
+}
+*/
+
+ifvarn popuptime 0
+{
+	// rotatesprite win2x win2y 49152 0 POPWINDOW 0 0 0 0 0 xdim ydim
+	rotatesprite win2x win2y 65536 0 8810 0 0 0 0 0 xdim ydim
+	ifvarg popuptime 10 // triggered by Quest tab
+	{
+		ifvarl winx 160 setvar win2x 240 else setvar win2x 80
+		setvarvar win2y winy
+	}
+	else { setvar win2x 160 setvar win2y 115 }
+	setvarvar x win2x setvarvar y win2y
+	subvar y 35
+	mulvar x 2
+	subvar x 110
+	ifvare x 320 setvar x 319 // no centered
+	
+	set x 320
+	
+	setvarvar temp popup
+	setvarvar tempb popup
+	add tempb numlines
+	ifle numlines 5 { set z 32768 set tempd 8 } else { set z 20480 set tempd 6 sub y 4 }
+	whilevarvarn temp tempb
+	{
+		gametextz STARTALPHANUM x y temp 0 23 0 0 0 xdim ydim z
+		add y tempd
+		
+		addvar temp 1
+	}
+	add y 9
+	ifn questpic -1
+	{
+		set z 1572864
+		div z tiledata[questpic].ysize
+		
+		rotatesprite 160 y z 0 questpic 0 0 0 0 0 xdim ydim
+	}
+}
+else
+{
+	ifn subtitle_time 0
+	{
+		set y 160
+		set orientation 0
+		set temp subtitle_numlines
+		whilevarn temp 0
+		{
+			rotatesprite 160 y 65536 0 BLACKBAR 0 0 0 0 0 xdim ydim
+			sub y 7
+			sub temp 1
+		}
+		// set temp subtitle_numlines
+		// set y 160
+		// set tempb subtitle_start
+		// add tempb subtitle_numlines
+		// sub tempb 1
+		// set temp subtitle_numlines
+		// whilevarn temp 0
+		// {
+			// gametextz NEWFONT 320 y tempb 0 0 orientation 0 0 xdim ydim 16384
+			// sub y 7
+			// sub tempb 1
+			// sub temp 1
+		// }
+			
+		set orientation 2048
+		set temp subtitle_numlines
+		set y 10485760
+		set x 10485760
+		set tempb subtitle_start
+		add tempb subtitle_numlines
+		sub tempb 1
+		set temp subtitle_numlines
+		whilevarn temp 0
+		{
+			screentext NEWFONT x y 16384 0 0 tempb 0 0 orientation 0 8 32 16 32 162 0 0 xdim ydim
+			sub y 458752
+			sub tempb 1
+			sub temp 1
+		}
+	}
+}
+
+ifn damagefade 0
+{
+	ife damagesprite 8818 // left side
+	{
+		set orientation 256
+		set x 0
+		set y 100
+	}
+	else
+	ife damagesprite 8817 // right side
+	{
+		set orientation 512
+		set x 320
+		set y 100
+	}
+	else ife damagesprite 8816 // behind
+	{
+		set orientation 1024
+		set x 160
+		set y 190
+	}
+	else // in front
+	{
+		set orientation 1024
+		set x 160
+		set y 10
+	}
+	ife rendmode 0 { orvar orientation 1 ifg damagefade 128 orvar orientation 32 }
+	rotatespritea x y 65536 0 damagesprite 0 0 orientation damagefade 0 0 xdim ydim
+}
+
+// ifvarg helpmenu 1 rotatesprite cursorx cursory 16384 0 CURSOR 0 0 0 0 0 xdim ydim
+
+endevent
+
+state initweapondisplay
+ setvar x 138
+ setvar y 205
+ setvar z 65536
+ setvar angvar 0
+ setvar orientation 0
+ ifvare currentweapon 2 
+ {
+	 setvar x 250
+	 setvar y 202
+ }
+ ifvare currentweapon 3
+ {
+	setvar x 190
+ 	setvar y 235
+ }
+ ifvare currentweapon 5 // HBOMB_WEAPON
+ {
+	set x 200
+	set y 225
+ }
+ ifvare currentweapon 7
+ {
+	set x 215
+	set y 244
+	set z 49152
+ }
+ ifvare currentweapon 8
+ {
+	setvar x 200
+	setvar y 255
+ }
+ ifvare currentweapon 11
+ {
+	set x 180
+	set y 192
+	set z 32768
+ }
+
+subvarvar x looking_angSR1
+addvarvar y looking_arc
+subvarvar y gun_pos
+addvarvar x weapon_xoffset
+
+// ifoutside getsector[THISACTOR].ceilingshade shade else
+// getsector[THISACTOR].floorshade shade
+geta[player[].i].shade shade
+getsector[THISACTOR].floorpal pal
+ifvarg pal 13 setvar pal 0
+
+ifg invulntime 0 set pal 121
+
+ends
+
+state initflashdisplay
+ setvar x 167
+ setvar y 204
+ setvar z 65536
+ setvar angvar 0
+ setvar orientation 1
+ 
+subvarvar x looking_angSR1
+addvarvar y looking_arc
+subvarvar y gun_pos
+addvarvar x weapon_xoffset
+setvar shade -127
+setvar pal 0
+ends
+
+state grenadeadjust
+setvarvar temp grenadecounter
+ifvarg temp 2 ifvarl temp 11
+{
+	ifvarl temp 7
+	{
+		mulvar temp 5144
+		addvarvar z temp
+	} else
+	{
+		addvar z 20576
+		subvar temp 5
+		mulvar temp 5144
+		subvarvar z temp
+	}
+}
+ends
+
+state wiggleweap
+
+displayrandvar temp 4
+subvar temp 2
+addvarvar x temp
+displayrandvar temp 4
+subvar temp 2
+addvarvar y temp
+
+ends
+
+state wiggleweap2
+
+displayrandvar temp 2
+subvar temp 1
+addvarvar x temp
+displayrandvar temp 2
+subvar temp 1
+addvarvar y temp
+
+ends
+
+state draw_duke_kicks
+
+	set temp 0
+	ifn player[].quick_kick 0 set temp player[].quick_kick
+	ifn temp 0
+	{
+		set x 180
+		set y 200
+		set orientation 4
+		set z 65536
+		geta[player[].i].shade shade
+		getsector[THISACTOR].floorpal pal
+		ifvare pal 4 { addvar shade 10 set pal 0 }
+		ifvarg shade 30 set shade 30
+		ifvarg pal 13 set pal 0
+		
+		ifn switchchar 0
+		{
+			set pal 117
+			state shadepulse
+		}
+		set temp player[].quick_kick
+		switch temp
+		case 15 case 14 case 13 case 12
+		case 11 case 1 case 2 case 3 case 4
+			sub x 50
+			add y 20
+			
+			set picnum 9422
+			break
+			
+		case 5 case 6 case 7 case 8 case 9 case 10
+			sub x 50
+			set picnum 9423
+			break
+		endswitch
+		ifg invulntime 0 set pal 121
+		rotatesprite x y z 1024 picnum shade pal orientation 0 0 xdim ydim
+	}
+
+ends
+
+state draw_barb_kicks
+
+	set temp 0
+	ifn player[].quick_kick 0 set temp player[].quick_kick
+	ifn temp 0
+	{
+		set x 180
+		set y 200
+		set orientation 4
+		set z 65536
+		geta[player[].i].shade shade
+		getsector[THISACTOR].floorpal pal
+		ifvare pal 4 { addvar shade 10 set pal 0 }
+		ifvarg shade 30 set shade 30
+		ifvarg pal 13 set pal 0
+		
+		ifn switchchar 0
+		{
+			set pal 117
+			state shadepulse
+		}
+		set temp player[].quick_kick
+		switch temp
+		case 15 case 14 case 13 case 12
+		case 11 case 1 case 2 case 3 case 4
+			sub x 40
+			sub y 20
+			
+			set picnum 9323
+			break
+			
+		case 5 case 6 case 7 case 8 case 9 case 10
+			sub x 20
+			set picnum 9324
+			break
+		endswitch
+		ifg invulntime 0 set pal 121
+		rotatesprite x y z 1024 picnum shade pal orientation 0 0 xdim ydim
+	}
+ends
+
+state dukeweapdisplay
+
+state draw_duke_kicks
+
+ifvare currentweapon 0
+ifvare gotsaw YES
+{
+	setvar RETURN -1
+	state initweapondisplay
+	ifn switchchar 0
+	{
+		set pal 117
+		state shadepulse
+	}
+	addvar x 19
+	ifvare weaponcount 0
+	{
+		ifvarl sawidle 130
+		setvar picnum 277
+		else
+		{
+			setvarvar temp sawidle
+			subvar temp 130
+			ifvarg temp 30 setvar temp 30
+			addvarvar y temp
+			setvar picnum 278
+		}
+	}
+	else
+	{
+		ife sawammo 0
+		setvar picnum 275
+		else setvar picnum 272
+	}
+	ife weaponcount 0
+	orvar orientation 512
+	else
+	{
+		set angvar 128
+		sub x 20
+		sub y 10
+	}
+	guniqhudid 114
+	rotatesprite x y z angvar picnum shade pal orientation 0 0 xdim ydim
+	guniqhudid 0
+}
+ifvare currentweapon 1
+{
+	setvar RETURN -1
+	state initweapondisplay
+	ifn switchchar 0
+	{
+		set pal 117
+		state shadepulse
+	}
+	ifvarn weaponcount 0 setvar y 141
+	setvar picnum 5458
+	setvar orientation 0
+	ifvarg weaponcount 3 ifvarl weaponcount 8 // muzzleflash
+	{
+		ifvarg weaponcount 5 setvar orientation 33 else setvar orientation 1
+		setvarvar temp x
+		addvar temp 42
+		setvarvar tempb y
+		subvar tempb 16
+		// displayrandvar tempc 2047
+		set tempc timer
+		ifvare WEAPON1_SHOOTS SLUGPROJ 
+		{
+			subvar temp 32
+			subvar tempb 20
+		}
+		rotatesprite temp tempb z tempc 351 0 0 orientation 0 0 xdim ydim
+		setvar shade 0
+		setvar orientation 0
+	}
+	switch weaponcount
+	case 0
+	ifvarg altfirehold 0
+	{
+		ifvarl altfirehold 4 setvar picnum 5453 else
+		ifvarl altfirehold 7 setvar picnum 5454 else
+		setvar picnum 5455
+		setvarvar temp altfirehold
+		add temp 2
+		ifvarg temp 8 setvar temp 8
+		addvarvar x temp
+		subvar x 2
+		subvarvar y temp
+		subvar y 2
+		shiftvarl temp 11
+		addvarvar z temp
+		ifp prunning nullop else ifvarg altfirehold 7
+		{
+			setvar x 152
+			setvar y 125
+		}
+		ifp pducking
+		{
+			setvar x 152
+			setvar y 125
+		}
+	}
+	break
+	case 1 case 2 case 3 case 9
+	ifvare WEAPON1_SHOOTS SLUGPROJ 
+	{
+		setvar picnum 5455
+		addvar x 8
+		subvar y 14 // 12
+		addvar z 20480
+	}
+	break
+	
+	case 4 case 8
+	ifvare WEAPON1_SHOOTS SLUGPROJ 
+	{
+		setvar picnum 5455
+		addvar x 8
+		subvar y 20 // 18
+		addvar z 20480
+	}
+	else
+	{
+		subvar y 8
+		addvar x 3
+	}
+	break
+	
+	case 5 case 7
+	ifvare WEAPON1_SHOOTS SLUGPROJ 
+	{
+		setvar picnum 5455
+		addvar x 8
+		subvar y 24 // 22
+		addvar z 20480
+	}
+	else
+	{
+		subvar y 14
+		addvar x 4
+	}
+	break
+	
+	case 6
+	ifvare WEAPON1_SHOOTS SLUGPROJ 
+	{
+		setvar picnum 5455
+		addvar x 8
+		subvar y 26 // 24
+		addvar z 20480
+	}
+	else
+	{
+		subvar y 16
+		addvar x 5
+	}
+	break
+	
+	case 10 case 11 case 12
+	ifvare WEAPON1_SHOOTS SLUGPROJ
+	{
+		setvar picnum 5454
+		setvar temp 17
+		subvarvar temp weaponcount
+		addvarvar x temp
+		subvar x 2
+		subvarvar y temp
+		shiftvarl temp 11
+		addvarvar z temp
+	}
+	else setvar picnum 5460
+	break
+	
+	case 22 case 23 case 24
+	ifvare WEAPON1_SHOOTS SLUGPROJ setvar picnum 5461 else
+	setvar picnum 5460
+	break
+	
+	case 13 case 14 case 15
+	ifvare WEAPON1_SHOOTS SLUGPROJ
+	{
+		setvar picnum 5453
+		setvar temp 14
+		subvarvar temp weaponcount
+		addvarvar x temp
+		subvar x 2
+		subvarvar y temp
+		shiftvarl temp 11
+		addvarvar z temp
+	}
+	else
+	setvar picnum 5461
+	break
+	
+	case 16 case 17 case 18
+	ifvare WEAPON1_SHOOTS SLUGPROJ
+	{
+		setvar picnum 5458
+		setvar temp 14
+		subvarvar temp weaponcount
+		addvarvar x temp
+		subvar x 2
+		subvarvar y temp
+		shiftvarl temp 11
+		addvarvar z temp
+	}
+	else
+	setvar picnum 5462
+	break
+	
+	case 19 case 20 case 21
+	ifvare WEAPON1_SHOOTS SLUGPROJ setvar picnum 5460 else
+	setvar picnum 5463
+	break
+	
+	case 25 case 26 case 27
+	ifvare WEAPON1_SHOOTS SLUGPROJ setvar picnum 5462
+	break
+	
+	case 28 case 29 case 30
+	ifvare WEAPON1_SHOOTS SLUGPROJ setvar picnum 5463
+	break
+	
+	case 31 case 32 case 33
+	ifvare WEAPON1_SHOOTS SLUGPROJ setvar picnum 5460
+	break
+	
+	endswitch
+	addvar x 120
+	addvar y 15
+	guniqhudid 114
+	rotatesprite x y z 0 picnum shade pal orientation 0 0 xdim ydim
+	guniqhudid 0
+} else
+ifvare currentweapon 2
+{
+	setvar RETURN -1
+	ifvarg weaponcount 3 ifvarl weaponcount 6
+	{
+		state initflashdisplay
+		addvar x 10
+		subvar y 5
+		displayrandvar angvar 2048
+		rotatesprite x y z angvar 351 shade pal orientation 0 0 xdim ydim
+		addvar angvar 1024
+		rotatesprite x y z angvar 351 shade pal orientation 0 0 xdim ydim
+	}
+		
+	state initweapondisplay
+	ifn switchchar 0
+	{
+		set pal 117
+		state shadepulse
+	}
+	getplayer[screenpeek].reloading temp
+	ifvare temp 0
+	{
+		switch weaponcount
+		case 0 case 1 case 2 case 3 case 4 case 5 
+		case 11 case 12 case 13 case 14 case 15 
+		subvar x 30
+		subvar y 6
+		setvar gunframe 352
+		break
+		
+		case 6 case 7 case 8 case 9 case 10
+		subvar x 50
+		subvar y 6
+		setvar gunframe 353 
+		break
+		default
+		subvar x 30
+		subvar y 6
+		setvar gunframe 352
+		break
+		endswitch
+	}
+	else 
+	{
+		// subvar x 100
+		// setvar y 130
+		// switch weaponcount
+		// case 15 case 16 case 17 case 18 case 19 case 20 
+		// case 63 case 64 case 65 case 66
+		// setvar y 140
+		// subvar x 30
+		// subvar y 6
+		// setvar gunframe 353
+		// break
+		// case 21 case 22 case 23
+		// setvar gunframe 354
+		// break
+		// case 24 case 25 case 26
+		// setvar gunframe 355
+		// break
+		// case 27 case 28 case 29
+		// setvar gunframe 356
+		// break
+		// case 30 case 31 case 32
+		// setvar gunframe 357
+		// break
+		// case 33 case 34 case 35
+		// setvar gunframe 358
+		// break
+		// case 36 case 37 case 38
+		// setvar gunframe 359
+		// break
+		// case 39 case 40 case 41
+		// setvar gunframe 360
+		// case 42 case 43 case 44
+		// setvar gunframe 361
+		// break
+		// case 45 case 46 case 47
+		// setvar gunframe 362
+		// break
+		// case 48 case 49 case 50
+		// setvar gunframe 363
+		// break
+		// case 51 case 52 case 53
+		// setvar gunframe 364
+		// break
+		// case 54 case 55 case 56
+		// setvar gunframe 365
+		// break
+		// case 57 case 58 case 59
+		// setvar gunframe 366
+		// break
+		// case 60 case 61 case 62
+		// setvar gunframe 367
+		// break
+		// default
+		// setvar gunframe 367
+		// break
+		// endswitch
+		
+		subvar x 100
+		setvar y 130
+		switch weaponcount
+		case 15 case 16 case 17 case 18
+		case 49 case 50
+		setvar y 140
+		subvar x 30
+		subvar y 6
+		setvar gunframe 353
+		break
+		case 19 case 20 
+		
+		setvar gunframe 354
+		break
+		case 21 case 22
+		setvar gunframe 355
+		break
+		case 23 case 24
+		setvar gunframe 356
+		break
+		case 25 case 26
+		setvar gunframe 357
+		break
+		case 27 case 28
+		setvar gunframe 358
+		break
+		case 29 case 30
+		setvar gunframe 359
+		break
+		case 31 case 32
+		setvar gunframe 360
+		case 33 case 34
+		setvar gunframe 361
+		break
+		case 35 case 36
+		setvar gunframe 362
+		break
+		case 37 case 38
+		setvar gunframe 363
+		break
+		case 39 case 40
+		setvar gunframe 364
+		break
+		case 41 case 42
+		setvar gunframe 365
+		break
+		case 43 case 44
+		setvar gunframe 366
+		break
+		case 45 case 46
+		setvar gunframe 367
+		break
+		case 47 case 48
+		setvar gunframe 368
+		break
+		
+		default
+		setvar gunframe 352
+		break
+		endswitch
+		
+	}
+	guniqhudid 115
+	rotatesprite x y z angvar gunframe shade pal orientation 0 0 xdim ydim
+	guniqhudid 0
+	
+}
+else
+ifvare currentweapon 3
+{
+	setvar RETURN -1
+	
+	getplayer[screenpeek].ammo_amount 3 temp
+	ifvarg miniguncount MINIFIRECOUNT ifvarg temp 1
+	{
+		state initflashdisplay
+		state grenadeadjust
+		displayrandvar angvar 2048
+		addvar x 10
+		rotatesprite x y z angvar 351 shade pal 33 0 0 xdim ydim
+		addvar angvar 1024
+		rotatesprite x y z angvar 351 shade pal 33 0 0 xdim ydim
+	}
+	state initweapondisplay
+	ifn switchchar 0
+	{
+		set pal 117
+		state shadepulse
+	}
+	state grenadeadjust
+	getplayer[screenpeek].ammo_amount 3 temp
+	ifvarg miniguncount MINIFIRECOUNT ifvarg temp 0
+	{
+		setvar temp 0
+		displayrandvar temp 3
+		ifvarl temp 6 mulvar temp -1
+		addvarvar x temp
+		displayrandvar temp 2
+		ifvarl temp 4 mulvar temp -1
+		addvarvar y temp
+	}
+	guniqhudid 116
+	ifvare miniguncount MAXSPIN
+	{
+		ifvare lastdispframe 2537 setvar lastdispframe 2538 else
+		ifvare lastdispframe 2538 setvar lastdispframe 2539 else
+		ifvare lastdispframe 2539 setvar lastdispframe 2540 else
+		ifvare lastdispframe 2540 setvar lastdispframe 2538
+		rotatesprite x y z angvar lastdispframe shade pal orientation 0 0 xdim ydim
+	}
+	else
+	{
+		rotatesprite x y z angvar gunframe shade pal orientation 0 0 xdim ydim
+		setvarvar lastdispframe gunframe
+	}
+	guniqhudid 0
+	
+}
+else
+ifvare currentweapon 4
+{
+	setvar RETURN -1
+	state initweapondisplay
+	ifn switchchar 0
+	{
+		set pal 117
+		state shadepulse
+	}
+	subvar y 34
+	addvar x 22
+	ifvare weaponcount 0 setvar gunframe 2544 else
+	{
+		ifvarl weaponcount 3 setvar gunframe 2545 else
+		ifvarl weaponcount 6 setvar gunframe 2546 else 
+		ifvarl weaponcount 9 setvar gunframe 2547 else
+		setvar gunframe 2544
+		switch weaponcount
+		case 1 addvar x 3 addvar y 3 break
+		case 2 addvar x 6 addvar y 6 break
+		case 3 addvar x 9 addvar y 9 break
+		case 4 addvar x 12 addvar y 12 break
+		case 5 addvar x 15 addvar y 15 break
+		case 6 addvar x 17 addvar y 17 break
+		case 7 addvar x 18 addvar y 18 break
+		case 8 addvar x 17 addvar y 17 break
+		case 9 addvar x 15 addvar y 15 break
+		case 10 addvar x 13 addvar y 13 break
+		case 11 addvar x 11 addvar y 11 break
+		case 12 addvar x 9 addvar y 9 break
+		case 13 addvar x 7 addvar y 7 break
+		case 14 addvar x 5 addvar y 5 break
+		case 15 addvar x 4 addvar y 4 break
+		case 16 addvar x 3 addvar y 3 break
+		case 17 addvar x 2 addvar y 2 break
+		case 18 addvar x 1 addvar y 1 break
+		endswitch
+		
+		ifvarl weaponcount 9 setvar shade 0
+	}
+	ifvare altfirehold 20 state wiggleweap
+	ifvare altfirehold 40 state wiggleweap
+	ifvare altfirehold 60 state wiggleweap
+	ifvare altfirehold 80 state wiggleweap
+	ifvare altfirehold 100 state wiggleweap
+	orvar orientation 512
+	guniqhudid 117
+	rotatesprite x y z 0 gunframe shade pal orientation 0 0 xdim ydim
+	guniqhudid 0
+}
+else
+ifvare currentweapon 5 // HANDBOMB_WEAPON
+{
+	set RETURN -1
+	state initweapondisplay
+	ifn switchchar 0
+	{
+		set pal 117
+		state shadepulse
+	}
+	ife weaponcount 0
+	{
+		set z 65536
+		set picnum 2573
+		add y 2
+	}
+	else
+	ifl weaponcount 7
+	{
+		set z 65536
+		set picnum 2574
+		set my weaponcount
+		mul my 12
+		add y my
+	}
+	else
+	{
+		// weaponcount 7 to 19 is the hand
+		
+		add y 20
+		set picnum 2575
+		switch weaponcount
+		case 7 set picnum 2574 add y 50 break
+		case 8 set picnum 2574 add y 40 break
+		case 9 set picnum 2574 add y 30 break
+		case 10 set picnum 2574 add y 20 break
+		
+		case 11 case 16 sub x 10 add y 10 break
+		case 12 case 15 sub x 10 add y 5 break
+		case 13 case 14 sub x 10 break
+		case 17 add y 20 break
+		case 18 add y 30 break
+		case 19 add y 40 break
+		case 20 add y 50 break
+		endswitch
+	}
+	guniqhudid 118
+	rotatesprite x y z 0 picnum shade pal orientation 0 0 xdim ydim
+	guniqhudid 0
+	
+}
+else
+ifvare currentweapon 6
+{
+	setvar RETURN -1
+	state initweapondisplay
+	ifn switchchar 0
+	{
+		set pal 117
+		state shadepulse
+	}
+	addvar y 1
+	ifvarn weaponcount 0 
+	{
+		setvar y 141
+		setvar x 205
+	}
+	else addvar x 60
+	addvar y 23
+    guniqhudid 119
+	ifvarg weaponcount 0
+	{
+		// muzzleflash check
+		set temp NO
+		
+		ifvarg weaponcount 11 ifvarl weaponcount 21 set temp YES
+		
+		ifvare weaponcount 36 ifvare ALTFIRING YES 
+		{
+			displayrandvar temp 4
+			subvar temp 2
+			addvarvar x temp
+			displayrandvar temp 4
+			subvar temp 2
+			addvarvar y temp
+			set temp YES
+		}
+		
+		ife temp YES
+		{
+			ifvarl weaponcount 15 setvar picnum 5384 else
+			ifvarl weaponcount 18 setvar picnum 5385 else
+			ife ALTFIRING YES set picnum 5387 else
+			setvar picnum 5386
+			rotatesprite x y z 0 picnum 0 0 orientation 0 0 xdim ydim
+			subvar x 30
+			rotatesprite x y 98304 0 picnum 0 0 1 0 0 xdim ydim
+			addvar x 30
+		}
+		ifvarg weaponcount 16
+		{
+			ifvare weaponcount 36 ifvare ALTFIRING YES
+			{
+				rotatesprite x y z 0 5383 0 0 orientation 0 0 xdim ydim
+			}
+			else
+			{
+				setvar gunframe 5376
+				rotatesprite x y z 0 gunframe shade pal orientation 0 0 xdim ydim
+				setvar gunframe 5378
+				rotatesprite x y z 0 gunframe 0 0 orientation 0 0 xdim ydim
+			}
+		}
+		else
+		{
+			ifvarg weaponcount 11 setvar gunframe 5383 else
+			ifvarg weaponcount 5 setvar gunframe 5382 else
+			setvar gunframe 5381
+			rotatesprite x y z 0 gunframe 0 0 orientation 0 0 xdim ydim
+		}
+	}
+	else
+	{
+		setvar gunframe 5376
+		rotatesprite x y z 0 gunframe shade pal orientation 0 0 xdim ydim
+		setvar gunframe 5377
+		set temp 0, ifg invulntime 0 set temp 121
+		rotatesprite x y z 0 gunframe 0 temp orientation 0 0 xdim ydim
+	}
+	guniqhudid 0
+}
+else
+ifvare currentweapon 7
+{
+	setvar RETURN -1
+	state initweapondisplay
+	ifn switchchar 0
+	{
+		set pal 117
+		state shadepulse
+	}
+/*
+	// old flamethrower code
+	//
+	//
+	ifvarg weaponcount 3 ifvarl weaponcount 9 setvar gunframe 2511 else
+	setvar gunframe 2510
+	addvar x 80
+	addvar y 30
+	// pilot light
+	ifvarl weaponcount 3
+	{
+		setvarvar temp x
+		setvarvar tempb y
+		subvar temp 68
+		subvar tempb 23
+		setvar tempc 20480
+		displayrandvar tempd 6144
+		addvarvar tempc tempd
+		rotatesprite temp tempb tempc 128 2513 pal 0 1 0 0 xdim ydim
+	} else
+	ifvarl weaponcount 8 // muzzleflash
+	{
+		setvarvar temp x
+		setvarvar tempb y
+		subvar temp 40
+		subvar tempb 30
+		displayrandvar tempc 2047
+		ifvarand pow 128 setvar pal 1 else ife WEAP7MODE 1 setvar pal 1 else setvar pal 0
+		rotatesprite temp tempb z tempc 2512 0 pal 1 0 0 xdim ydim
+	}
+	ifn weaponcount 0
+		ifvare ALTFIRING 0 state wiggleweap2
+	setvarvar temp x
+	setvarvar tempb y
+	subvar temp 140
+	addvar tempb 22
+	ifvarg weaponcount 3 ifvarl weaponcount 9 addvar tempb 5 else ifvare ALTFIRING 0 addvar tempb 5
+	rotatesprite temp tempb z 64 2617 shade pal orientation 0 0 xdim ydim
+	rotatesprite x y z 0 gunframe shade pal orientation 0 0 xdim ydim
+	// 
+	//
+	
+*/
+		
+		set picnum 2676
+		ifg weaponcount 0 
+		{
+			ifge weaponcount WEAPON9_FIREDELAY
+			{
+				add picnum 1
+				ifvarand player[].player_par 1
+				{
+					add x 2
+					add y 1
+				}
+			}
+			
+			// set mx x sub mx 18
+			// set my y sub my 30
+			// displayrandvar angvar 2048
+			
+			// ifvarand shellyupgrades[FREEZE_WEAPON] 1 
+				// rotatesprite mx my 98304 angvar 10419 -100 pal orientation 0 0 xdim ydim
+			// else
+			// ifge weaponcount WEAPON9_FIREDELAY
+			// rotatesprite mx my 98304 angvar 7794 -100 pal orientation 0 0 xdim ydim
+		}
+		ifg weaponcount 0 // muzzleflash
+		{
+			ifn WEAP7MODE 0 set tempc 1 else set tempc pal
+			set tempd orientation
+			orvar tempd 1
+			set mx x
+			sub mx 33
+			set my y
+			sub my 38
+			rotatesprite mx my z 0 2675 0 tempc tempd 0 0 xdim ydim
+		}
+		ife WEAP7MODE 0 set pal 21 else set pal 0
+		rotatesprite x y z 0 picnum shade pal orientation 0 0 xdim ydim
+		guniqhudid 120
+		ife weaponcount 0
+		{
+			state shadepulse
+			rotatesprite x y z 0 2678 shade pal orientation 0 0 xdim ydim
+		}
+		ifg weaponcount 0 // muzzleflash
+		{
+			set tempd orientation
+			orvar tempd 33
+			rotatesprite mx my z 0 2675 0 pal tempd 0 0 xdim ydim
+		}
+		guniqhudid 0
+}
+else
+ifvare currentweapon 8
+{
+	set RETURN -1
+
+	state initweapondisplay
+	ifn switchchar 0
+	{
+		set pal 117
+		state shadepulse
+	}
+	set gunframe eyeballframe // 2705
+	subvar y 10
+	subvar x 50
+	ifvarg player[THISACTOR].ammo_amount 8 0
+		ifvarl weaponcount 4 
+	{
+		guniqhudid 121
+		ifl eyeframecount -3
+		{
+			state wiggleweap
+			ifvarand timer 1 { set pal 33 set shade -100 }
+			rotatesprite x y z 0 gunframe shade pal orientation 0 0 xdim ydim
+			
+			displayrandvar angvar 1024
+			rotatesprite x y 32768 angvar 2584 -100 tempb orientation 0 0 xdim ydim
+		}
+		else
+		rotatesprite x y z 0 gunframe shade pal orientation 0 0 xdim ydim
+		guniqhudid 0
+	}
+	
+	addvar y 10
+	
+	setvar gunframe 2563
+	
+	switch weaponcount
+	case 1 subvar y 10 break
+	case 2 subvar y 20 break
+	case 3 subvar y 30 break
+	case 4 case 5 set gunframe 2564 subvar y 30 break
+	case 6 set gunframe 2564 sub y 20 break
+	case 7 set gunframe 2564 sub y 10 break
+	case 8 set gunframe 2564 break
+	case 9 set gunframe 2565 break
+	case 10 set gunframe 2565 add y 10 break
+	case 11 set gunframe 2565 add y 20 break
+	case 12 set gunframe 2565 add y 30 break
+	case 13 set gunframe 2565 add y 40 break
+	case 14 set gunframe 2565 add y 50 break
+	case 15 set gunframe 2565 add y 60 break
+	case 16 set gunframe 2565 add y 70 break
+	default set gunframe 2563 break
+	endswitch
+	
+	sub x 20
+	rotatesprite x y z 0 gunframe shade pal orientation 0 0 xdim ydim
+	
+	addvar x 30
+	guniqhudid 122
+	rotatesprite x y z 1024 gunframe shade pal 4 0 0 xdim ydim
+	
+	ife eyeballframe 2708
+	ife player[screenpeek].weapon_pos 0
+	ife player[screenpeek].kickback_pic 0
+	ifg eyeframecount 0
+	{
+		sub x 10
+		set tempb timer
+		modvar tempb 4
+		set picnum 2585, add picnum tempb
+		displayrandvar angvar 1024
+		rotatesprite x y z angvar picnum 0 12 0 0 0 xdim ydim
+	}
+	guniqhudid 0
+}
+else
+ifvare currentweapon 9
+{
+	setvar RETURN -1
+	state initweapondisplay
+	ifn switchchar 0
+	{
+		set pal 117
+		state shadepulse
+	}
+	addvar y 34
+	addvar x 20
+	ifvare weaponcount 0 
+	setvar gunframe 3547
+	else
+	{
+		switch weaponcount
+		// case 1 setvar gunframe 3550 break
+		// case 2 setvar gunframe 3551 break
+		// case 3 setvar gunframe 3552 break
+		// case 4 setvar gunframe 3553 break
+		case 1 case 2 setvar gunframe 3550 break
+		case 3 case 4 setvar gunframe 3551 break
+		case 5 case 6 setvar gunframe 3552 break
+		case 7 case 8 setvar gunframe 3553 break
+		endswitch
+		setvar shade 0
+		addvar z 8192
+	}
+	setvarvar temp x
+	setvarvar tempb y
+	subvar temp 84
+	addvar tempb 19
+	ifvare pal 0
+	getplayer[screenpeek].palookup pal
+	guniqhudid 123
+	rotatesprite x y z 0 gunframe shade pal orientation 0 0 xdim ydim
+	guniqhudid 0
+}
+else
+ifvare currentweapon 11
+{
+	setvar RETURN -1
+	state initweapondisplay
+	ifn switchchar 0
+	{
+		set pal 117
+		state shadepulse
+	}
+	/*
+	// Fear gun display
+	
+	addvar x 70
+	ifvarg weaponcount 3 
+	{
+		setvar gunframe 5434 
+		setvarvar temp weaponcount
+		subvar temp 3
+		ifvarg temp 27 { setvar tempb 37 subvarvar tempb temp setvarvar temp tempb }
+		shiftvarl temp 4
+		addvarvar angvar temp
+		shiftvarr temp 1
+		ifvarg temp 40 setvar temp 40
+		addvarvar x temp
+		shiftvarr temp 1
+		addvarvar y temp
+		ifvarg angvar 128 setvar angvar 128
+	}
+	else
+	ifvare weaponcount 0
+	setvar gunframe 5434
+	else setvar gunframe 5435
+	ifvare weaponcount 2 { subvar y 5 addvar x 2 }
+	rotatesprite x y z angvar gunframe shade pal orientation 0 0 xdim ydim
+	*/
+	
+	orvar orientation 16
+	
+	 ifn weaponcount 0
+	 {
+		set x 193
+		set y 125
+	 }
+	 ifl revolver_clip 0
+	 {
+		set x 193
+		set y 113
+	 }
+	 
+	 set gunframe 2680
+	 set picnum 2680		// picnum is left pistol gunframe
+	 set mx x, sub mx 65 	// mx is left pistol x
+	 set my y				// my is left pistol y
+	 set tempd shade 		// tempd is left pistol shade
+	 set mz z				// mz is left pistol zoom
+	 
+	ifl revolver_clip 0
+	{
+		switch revolver_clip
+		case -40 case -39 case -38 // default frame
+		case -4 case -3 case -2
+		break
+		
+		case -37 case -36 case -35
+		case -7 case -6 case -5
+		set gunframe 2683
+		break
+		
+		case -34 case -33 case -32
+		case -10 case -9 case -8
+		set gunframe 2684
+		break
+		
+		case -31 case -30 case -29
+		case -13 case -12 case -11
+		set gunframe 2685
+		break
+		
+		default set gunframe 2686
+		break
+		
+		endswitch
+		guniqhudid 123
+		// right pistol
+		rotatesprite x y z angvar gunframe shade pal orientation 0 0 xdim ydim
+		// left pistol
+		orvar orientation 4
+		set angvar 1024
+		rotatesprite mx y z angvar gunframe shade pal orientation 0 0 xdim ydim
+		
+		break
+		guniqhudid 0
+	}
+	
+	// right pistol
+	switch weaponcount
+	case 2
+	case 3
+		add gunframe 1 // hammer going back
+	break
+	case 4
+		add gunframe 2 // firing 1st frame
+		add z 5120
+		add x 4
+		set shade -100
+	break
+	case 5
+		add gunframe 2
+		add z 2560
+		add x 2
+		set shade -100
+	break
+	case 6
+		add z 1280
+		add x 1
+	break
+	case 7
+		add z 640
+	break
+	endswitch
+	guniqhudid 124
+	ifge weaponcount 4 ifle weaponcount 5
+	{
+		set temp orientation
+		ife weaponcount 5 orvar temp 33
+		set tempb 24576
+		
+		set xvel 197, sub xvel 20
+		set yvel y, sub yvel 15
+		rotatesprite xvel yvel tempb angvar REVFLASH -100 0 temp 0 0 xdim ydim
+	}
+	rotatesprite x y z angvar gunframe shade pal orientation 0 0 xdim ydim
+	guniqhudid 0
+	
+	// left pistol
+	orvar orientation 4
+	set angvar 1024
+	switch weaponcount
+	case 5
+	case 6
+		add picnum 1 // hammer going back
+	break
+	case 7
+		add picnum 2 // firing 1st frame
+		add mz 5120
+		sub mx 4
+		set tempd -100
+	break
+	case 8
+		add picnum 2
+		add mz 2560
+		sub mx 2
+		set tempd -100
+	break
+	case 9
+		add mz 1280
+		sub mx 1
+	break
+	case 10
+		add mz 640
+	break
+	endswitch
+	guniqhudid 125
+	ifge weaponcount 7 ifle weaponcount 8
+	{
+		set temp orientation
+		ife weaponcount 8 orvar temp 33
+		set tempb 24576
+		
+		set xvel 124, add xvel 20
+		set yvel my, sub yvel 15
+		rotatesprite xvel yvel tempb angvar REVFLASH -100 0 temp 0 0 xdim ydim
+	}
+	rotatesprite mx my mz angvar picnum tempd pal orientation 0 0 xdim ydim
+	guniqhudid 0
+}
+ends
+
+state barbinitcoords
+
+ifvare currentweapon 4
+{
+	setvar x 220
+ 	setvar y 100
+ 	setvar z 61440
+}
+else
+{
+	setvar x 200
+	setvar y 255
+	setvar z 65536
+}
+setvar angvar 0
+setvar orientation 0
+
+subvarvar x looking_angSR1
+addvarvar y looking_arc
+subvarvar y gun_pos
+addvarvar x weapon_xoffset
+
+ends
+
+state barbinitcoords2
+
+setvar x 200
+setvar y 255
+setvar z 65536
+setvar angvar 0
+setvar orientation 0
+
+addvarvar x looking_angSR1
+addvarvar y looking_arc
+subvarvar y gun_pos
+subvarvar x weapon_xoffset
+
+ends
+
+state shadowblade
+
+	switch tempc
+	
+		case 1
+		subvar y 20
+		addvar x 40
+		break
+		
+		case 2
+		subvar y 20
+		addvar x 25
+		break
+		
+		case 3
+		setvar gunframe 6738
+		setvar barbshield_disp -1
+		subvar y 25
+		subvar x 10
+		break
+		
+		case 4
+		setvar gunframe 6739
+		setvar barbshield_disp -3
+		subvar y 35
+		subvar x 30
+		break
+		
+		case 5
+		setvar gunframe 6739
+		setvar barbshield_disp -4
+		subvar y 25
+		subvar x 45
+		break
+		
+		case 6
+		setvar gunframe 6740
+		setvar barbshield_disp -5
+		subvar x 50
+		subvar y 20
+		break
+		case 7
+		setvar barbshield_disp -5
+		setvar gunframe 6740
+		subvar x 80
+		break
+		case 8
+		setvar barbshield_disp -6
+		setvar gunframe 6741
+		subvar x 150
+		addvar y 10
+		break
+		case 9
+		setvar barbshield_disp -6
+		setvar gunframe 6741
+		subvar x 155
+		addvar y 15
+		break
+		case 10
+		setvar barbshield_disp -6
+		setvar gunframe 6742
+		subvar x 160
+		addvar y 2
+		break
+		case 11
+		setvar barbshield_disp -5
+		setvar gunframe 6742 // not visible
+		addvar y 30
+		break
+		case 12
+		setvar barbshield_disp -4
+		setvar gunframe 6743
+		addvar y 35
+		break
+		case 13
+		setvar barbshield_disp -3
+		setvar gunframe 6743
+		addvar y 20
+		break
+		case 14
+		setvar barbshield_disp -2
+		setvar gunframe 6743
+		break
+		case 15
+		setvar barbshield_disp -1
+		setvar gunframe 6743
+		break
+		case 16
+		setvar barbshield_disp 0
+		setvar gunframe 6743
+		break
+	
+	endswitch
+	setvarvar tempb shade
+	addvar tempb 20
+	setvar orientation 33
+	orvar orientation 512
+	rotatesprite x y z angvar gunframe tempb pal 33 0 0 xdim ydim
+	
+ends
+
+state shadowhammer
+
+switch tempc
+
+	case 4
+	setvar gunframe 6731
+	addvar x 45
+	subvar y 80
+	break
+			
+	case 5
+	setvar gunframe 6732
+	subvar y 58
+	addvar x 30
+	break
+	
+	case 6
+	setvar gunframe 6732
+	subvar y 28
+	break
+	
+	case 7
+	setvar gunframe 6733
+	subvar y 10
+	subvar x 55
+	break
+	
+	case 8
+	setvar gunframe 6733
+	subvar x 65
+	addvar y 20
+	break
+	
+	case 9
+	setvar gunframe 6734
+	subvar x 75
+	addvar y 15
+	break
+	
+	case 10
+	setvar gunframe 6734
+	subvar x 80
+	addvar y 35
+	break
+	
+	case 11
+	setvar gunframe 6734
+	subvar x 80
+	addvar y 55
+	break
+
+endswitch
+setvar orientation 33
+orvar orientation 512
+rotatesprite x y z angvar gunframe shade pal orientation 0 0 xdim ydim
+
+ends
+
+state shadowaxe
+
+switch tempc
+
+case 5
+setvar gunframe 6785
+addvar x 45
+subvar y 80
+break
+	
+case 6
+setvar gunframe 6786
+subvar y 60
+addvar x 60
+break
+
+case 7
+setvar gunframe 6786
+subvar y 40
+addvar x 30
+break
+
+case 8
+setvar gunframe 6786
+subvar y 10
+addvar x 15
+break
+
+case 9
+setvar gunframe 6787
+subvar x 35
+break
+
+case 10
+setvar gunframe 6787
+subvar x 55
+addvar y 20
+break
+
+case 11
+setvar gunframe 6788
+subvar x 125
+addvar y 15
+break
+
+case 12
+setvar gunframe 6788
+subvar x 130
+addvar y 35
+break
+
+case 13
+setvar gunframe 6788
+subvar x 130
+addvar y 55
+break
+
+endswitch
+
+addvar gunframe 6
+setvar orientation 33
+orvar orientation 512
+ifg player[].ammo_amount 3 1 set shade 0
+rotatesprite x y z angvar gunframe shade 1 orientation 0 0 xdim ydim
+
+ends
+
+state shadowsword
+
+switch tempc
+case 4
+case 5
+setvar gunframe 6752
+subvar y 55
+addvar x 25
+break
+
+case 6
+case 7
+setvar gunframe 6753
+subvar y 70
+break
+
+case 8
+setvar gunframe 6754
+subvar x 65
+subvar y 55
+break
+case 9
+setvar gunframe 6754
+subvar x 120
+subvar y 30
+break
+case 10
+setvar gunframe 6755
+subvar y 30
+subvar x 170
+break
+case 11
+setvar gunframe 6755
+subvar x 190
+subvar y 20
+break
+case 12
+setvar gunframe 6756
+subvar x 170
+subvar y 20
+break
+
+case 13
+setvar gunframe 6757
+addvar y 15
+subvar x 50
+break
+endswitch
+setvar orientation 33
+orvar orientation 512
+rotatesprite x y z angvar gunframe 0 pal orientation 0 0 xdim ydim
+
+ends
+
+defstate barbweapdisplay
+
+state draw_barb_kicks
+
+geta[player[].i].shade shade
+getsector[THISACTOR].floorpal pal
+ifvarg pal 13 setvar pal 0
+
+ifn switchchar 0
+{
+	set pal 117
+	state shadepulse
+}
+
+
+ifvarn currentweapon 4
+ifvarn currentweapon 7
+ifvarn currentweapon 8
+ifvarn currentweapon 9
+{
+	state barbinitcoords2
+	ifn switchchar 0
+	{
+		set pal 117
+		state shadepulse
+	}
+	subvar x 190
+	setvar angvar -64
+	
+	switch barbshield_disp // display shield in correct position
+	case -1 subvar x 12 addvar y 6 break
+	case -2 subvar x 24 addvar y 12 break
+	case -3 subvar x 36 addvar y 18 break
+	case -4 subvar x 48 addvar y 24 break
+	case -5 subvar x 60 addvar y 30 break
+	case -6 subvar x 100 addvar y 60 break // not visible
+	case 0
+	break
+	case 1
+	setvar angvar -48
+	addvar x 25
+	break
+	case 2
+	setvar angvar -32
+	addvar x 50
+	subvar y 8
+	break
+	case 3
+	setvar angvar -16
+	addvar x 75
+	subvar y 16
+	addvar z 4096
+	break
+	
+	case 4
+	setvar angvar 0
+	addvar x 100
+	subvar y 24
+	addvar z 8192
+	break
+	
+	case 5
+	setvar angvar 0
+	addvar x 125
+	subvar y 32
+	addvar z 12288
+	break
+	
+	case 6
+	setvar angvar 0
+	addvar x 140
+	subvar y 40
+	addvar z 16384
+	break
+	
+	default 
+	break
+	endswitch
+	ifvare barbshield_disp 6 setvar orientation 1
+	ifg invulntime 0 set pal 121
+	guniqhudid 100
+	rotatesprite x y z angvar 6736 shade pal orientation 0 0 xdim ydim // shield
+	guniqhudid 0
+}
+
+state barbinitcoords
+
+ifvare currentweapon 0
+{
+	addvar x 80
+	addvar y 20
+	ifvare weaponcount 0
+	{
+		ifg sawammo 0 { setvar gunframe 6898 set shade 0 } else
+		setvar gunframe 6746
+		setvar angvar 256
+		addvar y 20
+		setvarvar barbshield_disp barbshield
+	}
+	else
+	{
+		ifg sawammo 0 { setvar gunframe 6898 set shade 0 } else
+		setvar gunframe 6746
+		setvar barbshield_disp 0
+		
+		switch weaponcount
+		case 1
+		case 12
+		case 13
+			setvar angvar 128
+		break
+		
+		case 2
+		case 10
+		case 11
+			setvar barbshield_disp -1
+			setvar angvar 96
+			subvar y 15
+			subvar x 5
+		break
+		
+		case 3
+		case 9
+			setvar barbshield_disp -2
+			ifg sawammo 0 { setvar gunframe 6900 set shade 0 } else
+			setvar gunframe 6747
+			subvar y 25
+			subvar x 15
+			setvar angvar 64
+			setvar z 61440
+		break
+		
+		case 4
+		case 8
+			setvar barbshield_disp -3
+			ifg sawammo 0 { setvar gunframe 6900 set shade 0 } else
+			setvar gunframe 6747
+			subvar y 35
+			subvar x 30
+			setvar angvar 32
+			setvar z 57344
+		break
+		
+		case 7
+		
+			setvar barbshield_disp -4
+			ifg sawammo 0 { setvar gunframe 6901 set shade 0 } else
+			setvar gunframe 6748
+			subvar y 55
+			subvar x 25
+			setvar angvar 0
+			setvar z 53248
+		break
+		
+		case 5
+		case 6
+			setvar barbshield_disp -5
+			ifg sawammo 0 { setvar gunframe 6901 set shade 0 } else
+			setvar gunframe 6748
+			subvar y 70
+			subvar x 45
+			setvar angvar 0
+			setvar z 49152
+		break
+		
+		endswitch
+		
+	}
+	ifvarg barbshield_disp 0 { addvar y 10 addvar x 10 }
+	orvar orientation 512
+	ifg invulntime 0 set pal 121
+	guniqhudid 101
+	rotatesprite x y z angvar gunframe shade pal orientation 0 0 xdim ydim
+	guniqhudid 0
+} else
+ifvare currentweapon 1
+{
+	addvar x 40
+	subvar y 17
+	setvar angvar 0
+	ifvare weaponcount 0
+	{
+		setvar gunframe 6743
+		setvarvar barbshield_disp barbshield
+	}
+	else
+	{
+		ifvarg player[THISACTOR].ammo_amount 1 1
+		ifvarg weaponcount 3 ifvarl weaponcount 14
+		{
+			setvar gunframe 6737
+			setvar x 240
+			setvar y 160
+			setvarvar tempc weaponcount
+			subvar tempc 1
+			state shadowblade
+			setvar x 240
+			setvar y 160
+			subvar tempc 1
+			state shadowblade
+		}
+		setvar x 240
+		setvar y 160
+		setvar gunframe 6737
+		setvar barbshield_disp 0
+		switch weaponcount
+
+		case 1
+		subvar y 20
+		addvar x 40
+		break
+		
+		case 2
+		subvar y 20
+		addvar x 25
+		break
+		
+		case 3
+		setvar gunframe 6738
+		setvar barbshield_disp -1
+		subvar y 25
+		subvar x 10
+		break
+		
+		case 4
+		setvar gunframe 6739
+		setvar barbshield_disp -3
+		subvar y 35
+		subvar x 30
+		break
+		
+		case 5
+		setvar gunframe 6739
+		setvar barbshield_disp -4
+		subvar y 25
+		subvar x 45
+		break
+		
+		case 6
+		setvar gunframe 6740
+		setvar barbshield_disp -5
+		subvar x 50
+		subvar y 20
+		break
+		
+		case 7
+		setvar barbshield_disp -5
+		setvar gunframe 6740
+		subvar x 80
+		break
+		
+		case 8
+		setvar barbshield_disp -6
+		setvar gunframe 6741
+		subvar x 150
+		addvar y 10
+		break
+		case 9
+		setvar barbshield_disp -6
+		setvar gunframe 6741
+		subvar x 155
+		addvar y 15
+		break
+		case 10
+		setvar barbshield_disp -6
+		setvar gunframe 6742
+		subvar x 160
+		addvar y 2
+		break
+		case 11
+		setvar barbshield_disp -5
+		setvar gunframe 6742 // not visible
+		addvar y 30
+		break
+		case 12
+		setvar barbshield_disp -4
+		setvar gunframe 6743
+		addvar y 35
+		break
+		case 13
+		setvar barbshield_disp -3
+		setvar gunframe 6743
+		addvar y 20
+		break
+		case 14
+		setvar barbshield_disp -2
+		setvar gunframe 6743
+		break
+		case 15
+		setvar barbshield_disp -1
+		setvar gunframe 6743
+		break
+		case 16
+		setvar barbshield_disp 0
+		setvar gunframe 6743
+		break
+		default 
+		break
+		endswitch
+	}
+	ifvarg barbshield_disp 0 
+	{
+		setvarvar temp barbshield_disp
+		shiftvarl temp 2
+		addvarvar y temp
+		shiftvarl temp 1
+		addvarvar x temp
+	}
+	set orientation 0
+	orvar orientation 512
+	ifg invulntime 0 set pal 121
+	guniqhudid 102
+	rotatesprite x y z angvar gunframe shade pal orientation 0 0 xdim ydim
+	guniqhudid 0
+}
+else
+ifvare currentweapon 2
+{
+	setvar angvar 0
+	ifvare weaponcount 0
+	{
+		addvar x 40
+		subvar y 20
+		setvar gunframe 6735
+		setvarvar barbshield_disp barbshield
+	}
+	else
+	{
+		ifvarg player[THISACTOR].ammo_amount 2 1
+		ifvarg weaponcount 5 ifvarl weaponcount 13
+		{
+			setvar x 240
+			setvar y 160
+			setvarvar tempc weaponcount
+			subvar tempc 1
+			state shadowhammer
+			setvar x 240
+			setvar y 160
+			subvar tempc 1
+			state shadowhammer
+		}
+		
+		setvar x 240
+		setvar y 160
+		setvar gunframe 6732
+		setvar barbshield_disp 0
+		switch weaponcount
+		
+		case 1
+		subvar y 10
+		addvar x 45
+		break
+		
+		case 2
+		subvar y 20
+		addvar x 55
+		break
+		
+		case 3
+		case 4
+		setvar gunframe 6731
+		addvar x 45
+		subvar y 80
+		break
+				
+		case 5
+		setvar gunframe 6732
+		setvar barbshield_disp -1
+		subvar y 58
+		addvar x 30
+		break
+		
+		case 6
+		setvar gunframe 6732
+		setvar barbshield_disp -2
+		subvar y 28
+		break
+		
+		case 7
+		setvar gunframe 6733
+		setvar barbshield_disp -3
+		subvar y 10
+		subvar x 55
+		break
+		
+		case 8
+		setvar gunframe 6733
+		setvar barbshield_disp -4
+		subvar x 65
+		addvar y 20
+		break
+		
+		case 9
+		setvar gunframe 6734
+		setvar barbshield_disp -5
+		subvar x 75
+		addvar y 15
+		break
+		
+		case 10
+		setvar gunframe 6734
+		setvar barbshield_disp -5
+		subvar x 80
+		addvar y 35
+		break
+		
+		case 11
+		setvar gunframe 6734
+		setvar barbshield_disp -5
+		subvar x 80
+		addvar y 55
+		break
+		
+		// not visible
+		case 12
+		case 13
+		case 14
+		case 15
+		case 16
+		case 17
+		case 18
+		setvar barbshield_disp -5
+		setvar gunframe 6734
+		addvar y 80
+		break
+		
+		case 19
+		setvar barbshield_disp -4
+		setvar gunframe 6735
+		addvar y 35
+		break
+		case 20
+		setvar barbshield_disp -3
+		setvar gunframe 6735
+		addvar y 20
+		break
+		case 21
+		setvar barbshield_disp -2
+		setvar gunframe 6735
+		break
+		case 22
+		setvar barbshield_disp -1
+		setvar gunframe 6735
+		break
+		case 23
+		case 24
+		setvar barbshield_disp 0
+		setvar gunframe 6735
+		break
+		default break
+		endswitch
+	}
+	ifvarg barbshield_disp 0 
+	{
+		setvarvar temp barbshield_disp
+		shiftvarl temp 2
+		addvarvar y temp
+		shiftvarl temp 1
+		addvarvar x temp
+	}
+	setvar orientation 0
+	orvar orientation 512
+	ifg invulntime 0 set pal 121
+	guniqhudid 103
+	rotatesprite x y z angvar gunframe shade pal orientation 0 0 xdim ydim
+	guniqhudid 0
+	ifn barbshield 0
+	ifn hammertarg -1
+	ifg actorvar[hammertarg].inithp 400
+	ifg player[].ammo_amount 2 1
+	{
+		guniqhudid 104
+		rotatespritea x y 32768 0 8919 0 0 orientation -1 0 0 xdim ydim
+		guniqhudid 0
+	}
+
+}
+else
+ifvare currentweapon 3
+{
+	addvar x 40
+	subvar y 17
+	setvar angvar 0
+	setvar gunframe 6783
+	ifvare weaponcount 0
+	{
+		setvarvar barbshield_disp barbshield
+		addvar y 5
+	}
+	else
+	{
+		setvar barbshield_disp 0
+		
+		ifvarg player[THISACTOR].ammo_amount 3 1
+		ifvarg weaponcount 6 ifvarl weaponcount 15
+		{
+			
+			setvarvar tempc weaponcount
+			subvar tempc 1
+			state shadowaxe
+			state barbinitcoords
+			addvar x 40
+			subvar y 20
+			subvar tempc 1
+			state shadowaxe
+			state barbinitcoords
+			addvar x 40
+			subvar y 20
+		}
+		
+		switch weaponcount
+		
+		case 1
+		setvar gunframe 6786
+		subvar y 10
+		addvar x 45
+		break
+		
+		case 2
+		setvar gunframe 6786
+		subvar y 30
+		addvar x 55
+		break
+			
+		case 3
+		case 4
+		case 5
+		setvar gunframe 6785
+		addvar x 45
+		subvar y 80
+		break
+			
+		case 6
+		setvar gunframe 6786
+		setvar barbshield_disp -1
+		subvar y 60
+		addvar x 60
+		break
+		
+		case 7
+		setvar gunframe 6786
+		setvar barbshield_disp -2
+		subvar y 40
+		addvar x 30
+		break
+		
+		case 8
+		setvar gunframe 6786
+		setvar barbshield_disp -3
+		subvar y 10
+		addvar x 15
+		break
+		
+		case 9
+		setvar gunframe 6787
+		setvar barbshield_disp -4
+		subvar x 35
+		break
+		
+		case 10
+		setvar gunframe 6787
+		setvar barbshield_disp -5
+		subvar x 55
+		addvar y 20
+		break
+		
+		case 11
+		setvar gunframe 6788
+		setvar barbshield_disp -5
+		subvar x 125
+		addvar y 15
+		break
+		
+		case 12
+		setvar gunframe 6788
+		setvar barbshield_disp -5
+		subvar x 130
+		addvar y 35
+		break
+		
+		case 13
+		setvar gunframe 6788
+		setvar barbshield_disp -5
+		subvar x 130
+		addvar y 55
+		break
+		
+		// not visible
+		case 14
+		case 15
+		case 16
+		setvar barbshield_disp -5
+		setvar gunframe 6788
+		addvar y 80
+		break
+		
+		case 17
+		setvar barbshield_disp -4
+		addvar y 35
+		break
+		
+		case 18
+		setvar barbshield_disp -3
+		addvar y 25
+		break
+		
+		case 19
+		setvar barbshield_disp -2
+		addvar y 15
+		break
+		
+		case 20
+		setvar barbshield_disp -1
+		addvar y 10
+		break
+		
+		case 21
+		case 22
+		setvar barbshield_disp -1
+		addvar y 5
+		break
+		
+		endswitch
+	}
+	ifvarg barbshield_disp 0 
+	{
+		setvarvar temp barbshield_disp
+		shiftvarl temp 2
+		addvarvar y temp
+		shiftvarl temp 1
+		addvarvar x temp
+	}
+	ifvarg player[THISACTOR].ammo_amount 3 1 addvar gunframe 6
+	setvar orientation 0
+	orvar orientation 512
+	ifg player[].ammo_amount 3 1 set shade 0
+	ifg invulntime 0 set pal 121
+	guniqhudid 105
+	rotatesprite x y z angvar gunframe shade pal orientation 0 0 xdim ydim
+	guniqhudid 0
+
+}
+else
+ifvare currentweapon 4
+{
+	switch weaponcount
+	case 0
+	case 1
+	case 2
+	setvar gunframe 6760 break
+	case 3
+	case 4
+	setvar gunframe 6761 break
+	case 5
+	case 6
+	setvar gunframe 6762 break
+	case 7
+	case 8
+	setvar gunframe 6763 break
+	case 9
+	case 10
+	setvar gunframe 6764 break
+	case 11
+	case 12
+	setvar gunframe 6765 break
+	case 13
+	case 14
+	case 15
+	setvar gunframe 6766 break
+	case 16
+	case 17
+	case 18
+	case 19
+	case 20
+	setvar gunframe 6767 break
+	endswitch
+	ifg invulntime 0 set pal 121
+	guniqhudid 106
+	rotatesprite x y z 0 gunframe shade pal orientation 0 0 xdim ydim
+	guniqhudid 0
+}
+else
+ifvare currentweapon 5
+{
+	set RETURN -1
+	state initweapondisplay
+	ifn switchchar 0
+	{
+		set pal 117
+		state shadepulse
+	}
+	ifvare weaponcount 0
+		setvarvar barbshield_disp barbshield
+	else
+		setvar barbshield_disp 0
+	
+	ife weaponcount 0
+	{
+		set z 40960
+		// set picnum 2715
+		set picnum 9141
+		add x 18
+	}
+	else
+	ifl weaponcount 7
+	{
+		set z 40960
+		// set picnum 2716
+		set picnum 9142
+		add x 8
+		
+		set my weaponcount
+		set temp pipehold
+		div temp 16
+		add my temp
+		
+		mul my 3
+		add x my
+		add y my
+		mul my 24
+		add z my
+	}
+	else
+	{
+		set z 40960
+		add x 26
+		add y 18
+		set angvar 0
+		// weaponcount 7 to 19 is the hand
+
+		switch weaponcount
+		case 7
+			rotatesprite 250 120 40960 0 9143 0 pal orientation 0 0 xdim ydim
+			set picnum 9142 add y 9 add x 17 
+		break
+		case 8 
+			rotatesprite 250 120 39936 0 9143 0 pal orientation 0 0 xdim ydim
+			set picnum 9142 add x 8 
+		break
+		
+		case 9 
+			rotatesprite 220 120 35840 0 9143 0 pal orientation 0 0 xdim ydim
+			set picnum 9141 add x 16 
+		break
+		
+		case 10 set picnum 9144 sub y 20 break
+		case 11 sub y 10 set picnum 9144  break
+		case 12  set picnum 9144  break
+		case 13  add y 10 set picnum 9144  break
+		case 14  add y 20 set picnum 9144  break
+		case 15  add y 30  set picnum 9144  break
+		case 16 add y 40 set picnum 9144  break
+		case 17 add y 50 set picnum 9144  break
+		case 18 add y 60 set picnum 9144  break
+		case 19 add y 70 set picnum 9144  break
+		case 20 add y 80 set picnum 9144  break
+		endswitch
+	}
+	
+	ifvarg barbshield_disp 0 
+	{
+		setvarvar temp barbshield_disp
+		shiftvarl temp 2
+		addvarvar y temp
+		shiftvarl temp 1
+		addvarvar x temp
+	}
+	ifg invulntime 0 set pal 121
+	orvar orientation 512
+	guniqhudid 107
+	rotatesprite x y z angvar picnum shade pal orientation 0 0 xdim ydim
+	guniqhudid 0
+}
+else
+ifvare currentweapon 6
+{
+
+	setvar angvar 0
+	setvar z 65536
+	ifvare weaponcount 0
+	{
+		addvar x 40
+		subvar y 18
+		setvar gunframe 6757
+		setvarvar barbshield_disp barbshield
+	}
+	else
+	{
+		ifvarg weaponcount 6 ifvarl weaponcount 15
+		{
+			setvar x 240
+			setvar y 190
+			setvarvar tempc weaponcount
+			subvar tempc 1
+			state shadowsword
+			setvar x 240
+			setvar y 190
+			subvar tempc 1
+			state shadowsword
+		}
+
+		setvar x 240
+		setvar y 190
+		setvar barbshield_disp 0
+		switch weaponcount
+		
+		case 1
+		setvar gunframe 6753
+		addvar x 30
+		subvar y 35
+		break
+		
+		case 2
+		case 3
+		setvar gunframe 6751
+		addvar x 60
+		subvar y 60
+		break
+		
+		case 4
+		case 5
+		setvar gunframe 6752
+		setvar barbshield_disp -3
+		subvar y 55
+		addvar x 25
+		break
+		
+		case 6
+		case 7
+		setvar gunframe 6753
+		setvar barbshield_disp -5
+		subvar y 70
+		break
+		
+		case 8
+		setvar gunframe 6754
+		setvar barbshield_disp -6
+		subvar x 65
+		subvar y 55
+		break
+		case 9
+		setvar barbshield_disp -6
+		setvar gunframe 6754
+		subvar x 120
+		subvar y 30
+		break
+		case 10
+		setvar barbshield_disp -6
+		setvar gunframe 6755
+		subvar y 30
+		subvar x 170
+		break
+		case 11
+		setvar barbshield_disp -6
+		setvar gunframe 6755
+		subvar x 190
+		subvar y 20
+		break
+		case 12
+		setvar barbshield_disp -6
+		setvar gunframe 6756
+		subvar x 170
+		subvar y 20
+		break
+		
+		case 13
+		setvar barbshield_disp -4
+		setvar gunframe 6757
+		addvar y 15
+		subvar x 50
+		break
+		case 14
+		setvar barbshield_disp -3
+		setvar gunframe 6757
+		subvar x 30
+		break
+		case 15
+		setvar barbshield_disp -2
+		setvar gunframe 6757
+		subvar x 10
+		subvar y 20
+		break
+		case 16
+		setvar barbshield_disp -1
+		setvar gunframe 6757
+		subvar y 20
+		break
+		
+		endswitch
+	}
+	ifvarg barbshield_disp 0 
+	{
+		setvarvar temp barbshield_disp
+		shiftvarl temp 2
+		addvarvar y temp
+		shiftvarl temp 1
+		addvarvar x temp
+	}
+	setvar orientation 0
+	ifvare player[THISACTOR].ammo_amount 6 0 setvar orientation 1
+	orvar orientation 512
+	ifg invulntime 0 set pal 121
+	guniqhudid 108
+	rotatesprite x y z angvar gunframe 0 pal orientation 0 0 xdim ydim
+	guniqhudid 0
+}
+else
+ifvare currentweapon 7
+{
+	setvar z 65536
+	ifvare weaponcount 0
+	{
+		// IDLE
+		setvar gunframe 6870
+		subvar x 150
+		addvar y 5
+	}
+	else
+	ifvarl weaponcount 3
+	{
+		setvar gunframe 6873
+		setvar x 160
+		setvar y 179
+	}
+	else
+	ifvarl weaponcount 5
+	{
+		setvar gunframe 6874
+		setvar x 160
+		setvar y 164
+	}
+	else
+	{
+		setvar gunframe 6875
+		setvar x 160
+		setvar y 155
+	}
+	ifg invulntime 0 set pal 121
+	guniqhudid 109
+	rotatesprite x y z 0 gunframe shade pal orientation 0 0 xdim ydim
+	guniqhudid 0
+}
+else
+ifvare currentweapon 8
+{
+	set RETURN -1
+
+	state initweapondisplay
+	ifn switchchar 0
+	{
+		set pal 117
+		state shadepulse
+	}
+	set gunframe eyeballframe // 2705
+	subvar y 10
+	subvar x 50
+	ifvarg player[THISACTOR].ammo_amount 8 0
+		ifvarl weaponcount 4 
+	{
+		guniqhudid 110
+		ifl eyeframecount -3
+		{
+			state wiggleweap
+			ifvarand timer 1 { set pal 33 set shade -100 }
+			rotatesprite x y z 0 gunframe shade pal orientation 0 0 xdim ydim
+			
+			displayrandvar angvar 1024
+			rotatesprite x y 32768 angvar 2584 -100 tempb orientation 0 0 xdim ydim
+		}
+		else
+		rotatesprite x y z 0 gunframe shade pal orientation 0 0 xdim ydim
+		guniqhudid 0
+	}
+	
+	addvar y 10
+	
+	setvar gunframe 6782
+	
+	switch weaponcount
+	case 1 subvar y 10 break
+	case 2 subvar y 20 break
+	case 3 subvar y 30 break
+	case 4 case 5 set gunframe 6782 subvar y 30 break
+	case 6 set gunframe 6782 sub y 20 break
+	case 7 set gunframe 6782 sub y 10 break
+	case 8 set gunframe 6782 break
+	case 9 set gunframe 6782 break
+	case 10 set gunframe 6782 add y 10 break
+	case 11 set gunframe 6782 add y 20 break
+	case 12 set gunframe 6782 add y 30 break
+	case 13 set gunframe 6782 add y 40 break
+	case 14 set gunframe 6782 add y 50 break
+	case 15 set gunframe 6782 add y 60 break
+	case 16 set gunframe 6782 add y 70 break
+	default set gunframe 6782 break
+	endswitch
+	
+	sub x 20
+	ifg invulntime 0 set pal 121
+	guniqhudid 111
+	rotatesprite x y z 0 gunframe shade pal orientation 0 0 xdim ydim
+	addvar x 30
+	ifg invulntime 0 set pal 121
+	rotatesprite x y z 1024 gunframe shade pal 4 0 0 xdim ydim
+	guniqhudid 0
+	ife eyeballframe 2708
+	ife player[screenpeek].weapon_pos 0
+	ife player[screenpeek].kickback_pic 0
+	ifg eyeframecount 0
+	{
+		sub x 10
+		set tempb timer
+		modvar tempb 4
+		set picnum 2585, add picnum tempb
+		displayrandvar angvar 1024
+		rotatesprite x y z angvar picnum 0 12 0 0 0 xdim ydim
+	}	
+}
+else ifvare currentweapon 9 // cannon
+{
+	set z 40960
+	add x 25
+	sub y 30
+	ife ALTFIRING YES
+	{
+		set x 200
+		set y 160
+	}
+	switch weaponcount
+	
+	case 3
+	case 4
+	case 5
+		ife ALTFIRING YES
+		{
+			set gunframe 6891
+			add y 10
+		}
+		else
+		set gunframe 6883
+	break
+	
+	case 6
+	case 7
+	case 8
+	case 9
+		ife ALTFIRING YES
+		{
+			set gunframe 6892
+			set my weaponcount
+			sub my 5
+			mul my 10
+			add my 10
+			add y my
+			add x 15
+			set mx weaponcount
+			sub mx 5
+			mul mx 5
+			add x mx
+		}
+		else
+		set gunframe 6883
+	break
+	
+	case 10
+	case 11
+	case 12
+	case 13
+		ife ALTFIRING YES
+		{
+			set gunframe 6897 // off screen
+		}
+		else
+		set gunframe 6883
+	break
+	
+	case 14
+	case 15
+	case 16
+	case 17
+		ife ALTFIRING YES
+		{
+			orvar orientation 1024
+			set gunframe 6894
+			set mx weaponcount
+			sub mx 13
+			mul mx 30
+			add x 200
+			sub x mx
+			sub y 10
+		}
+		else
+		set gunframe 6883
+	break
+	case 18
+	case 19
+	case 20
+	case 21
+	case 22
+	case 23
+		ife ALTFIRING YES
+		{
+			orvar orientation 1024
+			set gunframe 6895
+			set mx weaponcount
+			sub mx 17
+			mul mx 45
+			add x 95
+			sub x mx
+			sub y 15
+			
+			set my weaponcount
+			sub my 17
+			mul my 10
+			add y my
+		}
+		else
+		set gunframe 6883
+	break
+	case 24
+	case 25
+	case 26
+	case 27
+		ife ALTFIRING YES
+		{
+			orvar orientation 1024
+			set gunframe 6896
+			set mx weaponcount
+			sub mx 23
+			mul mx 40
+			sub x mx
+			sub x 95
+			add y 30
+			set my weaponcount
+			sub my 23
+			mul my 10
+			add y my
+		}
+		else
+		set gunframe 6883
+	break
+	// case 42 case 43
+	case 32 case 33
+	add z 6144
+	add x 10, add y 8
+	setvar shade 0
+	setvar gunframe 6882 break
+	
+	// case 41 case 44
+	case 31 case 34
+	add z 5120
+	add x 8, add y 6
+	setvar shade 0
+	setvar gunframe 6881 break
+	
+	// case 40 case 45
+	case 30 case 35
+	add x 6, add y 4
+	add z 4096
+	setvar shade 0
+	setvar gunframe 6881 break
+	
+	default
+	ifg weaponcount 35 setvar gunframe 6880 else // 45
+	setvar gunframe 6883
+	break
+	endswitch
+	
+	// ifge weaponcount 41 ifle weaponcount 43
+	ifge weaponcount 31 ifle weaponcount 33
+	{
+		set mx x, sub mx 45
+		set my y, sub my 35
+		ife weaponcount 31 set mz 94208 else // 41
+		ife weaponcount 32 set mz 83968 else // 42
+		set mz 73728
+		set temp orientation, orvar temp 1
+		rotatesprite mx my mz 0 2703 0 0 temp 0 0 xdim ydim
+	}
+	ifg invulntime 0 set pal 121
+	guniqhudid 112
+	rotatesprite x y z 0 gunframe shade pal orientation 0 0 xdim ydim
+	guniqhudid 0
+	// draw fuse burning for frames 3-49
+	ifge weaponcount 3 ifle weaponcount 29 // 39
+	ife ALTFIRING NO
+	{
+		add x 36
+		sub y 18
+		set z 16384
+		guniqhudid 112
+		rotatesprite x y z 0 fuseframe 0 0 orientation 0 0 xdim ydim
+		guniqhudid 0
+	}
+	
+	// ifge weaponcount 41 ifle weaponcount 43
+	ifge weaponcount 31 ifle weaponcount 33
+	{
+		guniqhudid 113
+		orvar temp 32
+		rotatesprite mx my mz 0 2703 0 0 temp 0 0 xdim ydim
+		guniqhudid 0
+	}
+
+}
+
+setvar RETURN -1
+
+ends
+
+
+onevent EVENT_DRAWWEAPON
+
+ife nohud 2 { set RETURN -1 break }
+
+ifvarn camerasprite -1 
+{ 
+	ifvarand actorvar[camerasprite].monstflags 2 nullop 
+	else
+	{
+		setvar RETURN -1 
+		break 
+	}
+}
+ifvarn arrowview -1 { setvar RETURN -1 break }
+ifvarg endlevel 0 { setvar RETURN -1 break }
+// ifvarl character 0 { setvar RETURN -1 break }
+ifvarn cutscene 0 { setvar RETURN -1 break }
+
+ifvarn playerstuck 0
+	rotatesprite 160 100 81920 0 STICKYWEB sprite[player[].i].shade 0 1024 0 0 xdim ydim
+
+
+ifvare character 0 state dukeweapdisplay else
+ifvare character 1 state barbweapdisplay
+
+endevent
+
+onevent EVENT_DISPLAYWEAPON
+
+ife pshrunk 1 { set RETURN -1 break }
+
+endevent
+
+state cutscene_cleanup
+	stopallmusic
+	ifvarn SCREENALPHA 255
+			setvar SCREENALPHA 255
+	ifvarn CUTSCENE_STEP 0
+			setvar CUTSCENE_STEP 0
+ends
+
+onevent EVENT_PRELEVEL
+
+	state cutscene_cleanup
+	ifvare VOLUME 0
+	{
+		ifvare LEVEL 20
+		{
+			ife CUTSCENE_STEP 0 { stopallsounds screensound BOSS3CUT1 set lastclock totalclock }
+			// ADD SOME MUSIC TRACK IF NEEDED
+			// starttrackslot 7 5
+			startscreen    // FIRST SCREEN OF CUTSCENE
+			stopsound BOSS3CUT1
+			screensound BOSS3CUT2
+			screensound LIGHTN4
+			startscreen    // SECOND SCREEN
+			stopsound BOSS3CUT2
+			screensound BOSS3CUT3
+			startscreen
+			stopsound BOSS3CUT3
+			screensound BOSS3CUT4
+			startscreen
+			stopsound BOSS3CUT4
+			screensound BOSS3CUT5
+			sound TELEPORTER
+			startscreen
+			stopsound BOSS3CUT5
+			screensound BOSS3CUT6
+			startscreen
+			stopsound BOSS3CUT6
+			screensound BOSS3CUT7
+			startscreen
+			stopsound BOSS3CUT7
+			screensound BOSS3CUT8
+			startscreen
+			stopsound BOSS3CUT8
+		}
+	}
+endevent
+
+onevent EVENT_SCREEN
+
+	set subtitle_numlines -1
+	ifvare RETURN 0
+	{
+		ifvarg SCREENALPHA 0    // QUICK FADEOUT
+		{
+			screenpal 0 0 0 SCREENALPHA
+			subvar SCREENALPHA 5
+		}
+	}
+	else ifvare RETURN 1
+			setvar SCREENALPHA 255
+			
+	ifvare VOLUME 0
+	{
+		ifvare LEVEL 20
+		{
+			ifvare CUTSCENE_STEP 0
+			{
+				setvar CUTSCENE_SCREEN 9425
+				set subtitle_start 2194
+				set subtitle_numlines 1
+				set temp totalclock
+				sub temp lastclock
+				ifl temp 480 set RETURN 0
+				ifvare RETURN 1    
+						setvar CUTSCENE_STEP 1
+			}
+			else
+			ifvare CUTSCENE_STEP 1
+			{
+				setvar CUTSCENE_SCREEN 9426
+				set subtitle_start 2195
+				set subtitle_numlines 1
+				ifvare RETURN 1     
+						setvar CUTSCENE_STEP 2
+			}
+			else ifvare CUTSCENE_STEP 2
+			{
+				setvar CUTSCENE_SCREEN 9427
+				set subtitle_start 2196
+				set subtitle_numlines 3
+				ife RETURN 1
+						setvar CUTSCENE_STEP 3
+
+			}
+			else ifvare CUTSCENE_STEP 3
+			{
+				setvar CUTSCENE_SCREEN 9428
+				set subtitle_start 2199
+				set subtitle_numlines 2
+				ife RETURN 1
+						setvar CUTSCENE_STEP 4
+			}
+			else ifvare CUTSCENE_STEP 4
+			{
+				setvar CUTSCENE_SCREEN 9429
+				set subtitle_start 2201
+				set subtitle_numlines 3
+				ife RETURN 1
+						setvar CUTSCENE_STEP 5
+			}
+			else ifvare CUTSCENE_STEP 5
+			{
+				setvar CUTSCENE_SCREEN 9430
+				set subtitle_start 2204
+				set subtitle_numlines 5
+				ife RETURN 1
+						setvar CUTSCENE_STEP 6
+			}
+			else ifvare CUTSCENE_STEP 6
+			{
+				set subtitle_start 2209
+				set subtitle_numlines 2
+				setvar CUTSCENE_SCREEN 9431
+				ife RETURN 1
+						setvar CUTSCENE_STEP 7
+			}
+			else ifvare CUTSCENE_STEP 7
+			{
+				set subtitle_start 2245
+				set subtitle_numlines 4
+				setvar CUTSCENE_SCREEN 9432
+			}
+			
+		}
+	}
+	rotatesprite 160 100 32768 0 CUTSCENE_SCREEN 0 0 0 0 0 xdim ydim
+	ifn subtitle_numlines -1
+	{
+		set temp subtitle_numlines
+		set y 194
+		set orientation 0
+		set temp subtitle_numlines
+		whilevarn temp 0
+		{
+			rotatesprite 160 y 65536 0 BLACKBAR 0 0 0 0 0 xdim ydim
+			sub y 7
+			sub temp 1
+		}
+		// set temp subtitle_numlines
+		// set y 192
+		// set tempb subtitle_start
+		// add tempb subtitle_numlines
+		// sub tempb 1
+		// set temp subtitle_numlines
+		// whilevarn temp 0
+		// {
+			// gametextz NEWFONT 320 y tempb 0 0 orientation 0 0 xdim ydim 16384
+			// sub y 7
+			// sub tempb 1
+			// sub temp 1
+		// }
+		
+		set orientation 2048 // 3072
+		set temp subtitle_numlines
+		set y 12713984
+		set x 10485760
+		set tempb subtitle_start
+		add tempb subtitle_numlines
+		sub tempb 1
+		set temp subtitle_numlines
+		whilevarn temp 0
+		{
+			screentext NEWFONT x y 16384 0 0 tempb 0 0 orientation 0 4 32 16 32 162 0 0 xdim ydim
+			sub y 458752
+			sub tempb 1
+			sub temp 1
+		}
+	}
+	set subtitle_numlines 1
+
+endevent

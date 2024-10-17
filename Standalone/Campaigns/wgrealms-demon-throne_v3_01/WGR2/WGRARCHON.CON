@@ -1,0 +1,1409 @@
+// THE ARCHONITRON
+
+action AARCHONSTAND  0  1  8  1  10
+action AARCHONDEPART  0  1  8  1  10
+action AARCHONWALK  8  4  8  1  14
+action AARCHONAIM1  40  1  8  1  70
+action AARCHONFIRE1 48  1  8  1  30
+action AARCHONAIM2 64  1  8  1  6
+action AARCHONFIRE2 56  1  8  1  6
+action AARCHONJUMP 72  1  8  1  20
+action AARCHONLAND 80  1  8  1  20
+action AARCHONCHARGE 88  4  8  1  8
+action AARCHONCHARGED 112  1  8  1  20
+action AARCHONHURT 120  1  8  1  10
+action AARCHONDYING 128 8  1  1  20
+action AARCHONDEAD 135 1  1  1  10
+action AARCHONDEAD2 135 1  1  1  10
+action AARCHONREVIVE 135 8 1 -1 30
+action AARCHONRAPID1 48  3  8  1  10 // like fire1
+action AARCHONRAPID2 56  3  8  1  10 // like fire2
+action AARCHONRAPID3 64  3  8  1  10 // pause
+
+move ARCHONWALKVEL 320
+move ARCHONRUNVEL 512
+move ARCHONCHARGEVEL 704
+move ARCHONLEAPVEL 700 -208
+move ARCHONFALLVEL 600
+
+move ARCHONWALKVEL2 416
+move ARCHONRUNVEL2 666
+move ARCHONCHARGEVEL2 916
+move ARCHONLEAPVEL2 908 -208
+move ARCHONFALLVEL2 780
+
+move ARCHONTURNSLOW
+
+ai AIARCHONHURT AARCHONHURT STOPPED faceplayer
+ai AIARCHONDYING AARCHONDYING STOPPED geth
+ai AIARCHONSTAND AARCHONSTAND STOPPED geth
+ai AIARCHONCHARGE AARCHONLAND STOPPED faceplayer
+ai AIARCHONWALK AARCHONWALK ARCHONWALKVEL seekplayer
+ai AIARCHONFIRE2 AARCHONAIM2 STOPPED faceplayer
+ai AIARCHONFIRE1 AARCHONAIM1 STOPPED faceplayer
+ai AIARCHONJUMP AARCHONJUMP ARCHONLEAPVEL geth getv
+ai AIARCHONRAPID AARCHONAIM1 STOPPED faceplayerslow
+
+state archonrpg
+
+	espawn SOUNDMAKER
+	setactorvar[RETURN].peractor1 SHOOTROX
+
+	geta[].x saveit
+	geta[].y saveit2
+	set mx sprite[].x
+	set angvar sprite[].ang
+	sub angvar 416 add mx 1280
+
+	rotatepoint sprite[].x sprite[].y mx sprite[].y angvar x y
+	seta[].x x seta[].y y
+
+	ife target -1 set target player[].i
+	state calczdist
+	ldist temp THISACTOR target
+	ifvare temp 0 setvar temp 1
+	geta[].yrepeat initz
+	sub initz 8
+	seta[].yrepeat initz
+	mul zdist 644
+	divvarvar zdist temp	
+	ezshoot zdist RPG
+	add initz 8
+	seta[].yrepeat initz
+	setav[RETURN].mtype 2
+	setav[RETURN].target player[].i
+	ife target player[].i set target -1
+	seta[].x saveit
+	seta[].y saveit2
+ends
+
+state archonnovas
+	espawn SOUNDMAKER
+	setactorvar[RETURN].peractor1 ARCHONSHOOT2
+	
+	geta[].x saveit
+	geta[].y saveit2
+	set mx sprite[].x
+	set angvar sprite[].ang
+	add angvar 384 add mx 1024
+
+	rotatepoint sprite[].x sprite[].y mx sprite[].y angvar x y
+	seta[].x x seta[].y y
+
+	ife target -1 set target player[].i
+	state calczdist
+	ldist tempe THISACTOR target
+	ifvare tempe 0 setvar tempe 1
+			
+	setprojectile[NOVAPROJ].vel 1024
+	mulvar zdist 1024
+	divvarvar zdist tempe
+	ezshoot zdist NOVAPROJ
+	state projzveltotarg
+	
+	ezshoot zdist NOVAPROJ
+	state projzveltotarg
+	geta[RETURN].ang angvar
+	
+	set tempd 1048576
+	div tempd tempe
+	sub angvar tempd
+	
+	seta[RETURN].ang angvar
+	
+	ezshoot zdist NOVAPROJ
+	state projzveltotarg
+	geta[RETURN].ang angvar
+	
+	set tempd 1048576
+	div tempd tempe
+	add angvar tempd
+	
+	seta[RETURN].ang angvar
+	
+	setprojectile[NOVAPROJ].vel 644
+	
+	ife target player[].i set target -1
+	
+	
+	seta[].x saveit
+	seta[].y saveit2
+ends
+
+state archonrapidstate
+
+	// countvar should be 0 when this ai begins
+	
+	ifaction AARCHONAIM1
+	{
+		ifcount 30 
+		{
+			action AARCHONRAPID1
+			state archonrpg
+			set countvar 0
+			add ammo 1
+			ife ammo 3 set ammo 0
+		}
+	}
+	
+	ifaction AARCHONRAPID1
+	{
+		ifactioncount 1 
+		{
+			action AARCHONRAPID2
+			state archonnovas
+			
+		}
+	}
+	ifaction AARCHONRAPID2
+	{
+		ifactioncount 1
+		{
+			action AARCHONRAPID3
+			add countvar 1
+		}
+	}
+	ifaction AARCHONRAPID3
+	{
+		ifactioncount 1
+		{
+			ifg countvar 30 { ai AIARCHONSTAND set countvar 0 } else
+			{
+				action AARCHONRAPID1
+				state archonrpg
+			}
+		}
+	}
+	geta[].ang dodgeang
+
+ends
+
+state archon_fastmoves
+
+	ifmove ARCHONWALKVEL move ARCHONWALKVEL2 seekplayer
+	ifmove ARCHONRUNVEL move ARCHONRUNVEL2 geth
+	ifmove ARCHONCHARGEVEL move ARCHONCHARGEVEL2 geth
+	ifmove ARCHONLEAPVEL move ARCHONLEAPVEL2 geth getv
+	ifmove ARCHONFALLVEL move ARCHONFALLVEL2 geth
+
+ends
+
+state archonglare
+	geta[].z z
+	set zdist sprite[].yrepeat
+	mul zdist 404
+	sub z zdist
+
+	espawn GLARESPRITE
+	seta[RETURN].pal 98
+	set mx sprite[].x
+	set angvar sprite[].ang
+	sub angvar 384 ifspritepal 25 add mx 1280 else
+	add mx 1024
+	rotatepoint sprite[].x sprite[].y mx sprite[].y angvar x y
+	setsprite RETURN x y z
+	seta[RETURN].alpha 128
+ends
+			
+state archonwalkstate
+
+	ife seevar NO ifg targetdist 8192
+	ifrnd 1
+	{
+		ifsound ARCHROAM1 nullop else
+		ifsound ARCHROAM2 nullop else
+		{
+			ifrnd 128 globalsound ARCHROAM1 else
+			globalsound ARCHROAM2
+		}
+	}
+	else ifrnd 1 
+	{
+		ifsound ARCHROAM1 nullop else
+		ifsound ARCHROAM2 nullop else
+		soundonce ARCHLAUGH
+	}
+	state strafechecklong
+	ifactioncount 2 { sound BIGSTEP resetactioncount }
+	
+	ife mtype 2 // final phase
+	{
+		ifcount 40
+		{
+			ifrnd 7
+			iffloordistl 8
+			{
+				ife seevar YES 
+				{
+					ai AIARCHONCHARGE
+					sound ARCHSTARTCHARGE
+					break
+				}
+			}
+			else
+			ifrnd 6
+			iffloordistl 8
+			{
+				set temp NO
+				ifg zveloverride 0 set temp YES
+				ife zveloverride 0 ifp phigher
+				ife mymonpath -1
+				{
+					
+					set z sprite[].z
+					sub z player[].posz
+					ifg z 65536 set temp YES
+					
+				}
+				ife seevar YES set temp YES
+				ife temp YES
+				{
+					ai AIARCHONJUMP
+					sound ARCHSTARTCHARGE
+					geta[].ang weap
+					ifn target -1
+					{
+						geta[target].x initx
+						geta[target].y inity
+						ldist countvar THISACTOR target
+					}
+					else
+					{
+						getp[].posx initx
+						getp[].posy inity
+						ldist countvar THISACTOR player[].i
+					}
+					break
+				}
+			}
+
+			ife seevar YES
+			ifrnd 5
+			{
+				ifrnd 96
+				{
+					globalsound SHRINKER_FIRE
+					set countvar 0
+					ai AIARCHONFIRE1
+				}
+				else
+				{
+					sound ARCHSTARTSHOOT
+					set countvar 0
+					ai AIARCHONFIRE2
+				}
+				break
+			}
+		}
+	}
+	else
+	ife mtype 1
+	{
+		ifcount 40
+		ifrnd 10
+		iffloordistl 8
+		{
+			set temp NO
+			ifg zveloverride 0 set temp YES
+			ife seevar YES set temp YES
+			ife temp YES
+			{
+				ai AIARCHONJUMP
+				sound ARCHSTARTCHARGE
+				geta[].ang weap
+				ifn target -1
+				{
+					geta[target].x initx
+					geta[target].y inity
+					ldist countvar THISACTOR target
+				}
+				else
+				{
+					getp[].posx initx
+					getp[].posy inity
+					ldist countvar THISACTOR player[].i
+				}
+			}
+		}
+		else
+		ife seevar YES
+		ifrnd 2
+		{
+			globalsound SHRINKER_FIRE
+			set countvar 0
+			ai AIARCHONFIRE1
+			
+			break
+		}
+	
+	}
+	else
+	{
+		ifcount 40
+		ifrnd 10
+		{
+			ife seevar YES 
+			{
+				ai AIARCHONCHARGE
+				sound ARCHSTARTCHARGE
+			}
+		}
+		else
+		ife seevar YES
+		ifrnd 4
+		{
+			sound ARCHSTARTSHOOT
+			set countvar 0
+			ai AIARCHONFIRE2
+			break
+		}
+	}
+	
+	state monpathnotag
+
+ends
+
+state archonfallcode
+	iffloordistl 128 nullop else
+	ife seevar YES
+	{
+		ifvarand timer 1 state gradualturn
+	}
+	
+	iffloordistl 8
+	{
+		action AARCHONLAND
+		move STOPPED geth
+		globalsound BIGTHUD
+		quake 30
+		
+		ifspritepal 25
+		hitradius 5120 35 60 110 200
+		else
+		hitradius 4096 35 60 100 200
+		ifl xydist2 7168
+		{
+			ifn target -1
+			{
+				geta[target].z z
+				sub z 2048
+				seta[target].z z
+				seta[target].zvel -3072
+			}
+		}
+		ifpdistl 7168
+		{
+			setp[].poszv -4096
+			getp[].posz z
+			sub z 1024
+			setp[].posz z
+		}
+			
+		set countvar 0
+		geta[].x initx
+		geta[].y inity
+		geta[].z initz
+		sub initz 20480
+		 
+		getactor[THISACTOR].x x
+
+		whilevarn countvar 2048
+		{
+			set mx initx
+			add mx 2048
+			rotatepoint initx inity mx inity countvar temp tempb
+			updatesectorz temp tempb sprite[].z sect
+			ifn sect -1 setsprite THISACTOR temp tempb sprite[].z
+			spawn BIGSMOKE
+			debris SCRAP1 4
+			debris SCRAP2 4
+			debris SCRAP3 4
+			debris SCRAP4 4
+			debris SCRAP5 4
+			debris SCRAP6 4
+			ifrnd 64 { espawn EXPLOSION2 seta[RETURN].z initz soundonce EXPL3 }
+			add countvar 128
+		}
+		setsprite THISACTOR initx inity sprite[].z
+		
+		
+		set saveit 0
+		whilevarn saveit 48
+		{
+			add saveit 1
+			espawn SMALLSMOKE
+			rand x 12288
+			sub x 6144
+			add x sprite[].x
+			seta[RETURN].x x
+			rand x 12288
+			sub x 6144
+			add x sprite[].y
+			seta[RETURN].y x
+		}
+
+	}
+	else ifcount 150
+	{
+		action AARCHONLAND
+		move STOPPED geth
+	}
+ends
+
+state archonjumpstate
+	
+	seta[].ang weap
+	set temp NO
+	ifmove ARCHONLEAPVEL set temp YES
+	ifmove ARCHONLEAPVEL2 set temp YES
+	ife temp YES
+	{
+		set x initx
+		set y inity
+		sub x sprite[].x
+		sub y sprite[].y
+		getangle angvar x y
+		seta[].ang angvar
+		
+		set x sprite[].x
+		sub x initx
+		mul x x
+		
+		set y sprite[].y
+		sub y inity
+		mul y y
+		
+		add x y
+		sqrt x x
+		
+		set temp countvar
+		div temp 2
+		ifl x temp // more than halfway to destination
+			move ARCHONFALLVEL geth
+		else
+		ifcount 90 
+		{
+			ifceilingdistl 64 nullop else
+			ifp phigher count 70
+			
+			ifcount 90
+				move ARCHONFALLVEL geth
+		}
+	}
+	else
+	ifmove ARCHONFALLVEL
+		state archonfallcode
+	else
+	ifmove ARCHONFALLVEL2
+		state archonfallcode
+	else
+	ifaction AARCHONLAND
+	{
+		ifcount 30 ai AIARCHONSTAND
+	}
+	geta[].ang weap
+
+ends
+
+state archonchargecode
+	seta[].ang dodgeang
+	ifactioncount 4 resetactioncount
+	ifactioncount 3 espawn ARCHONTRAIL4 else
+	ifactioncount 2 espawn ARCHONTRAIL3 else
+	ifactioncount 1 espawn ARCHONTRAIL2 else
+	espawn ARCHONTRAIL1
+	setav[RETURN].myspawner THISACTOR
+	ifnotmoving 
+	{
+		quake 40
+		globalsound GIANTSTEP
+		globalsound BIGTHUD
+		ifspritepal 25
+		hitradius 5120 40 70 100 130
+		else
+		hitradius 4096 40 70 100 130
+		// other stuff to nearby targets, debris, etc
+		
+		set countvar 0
+		geta[].x initx
+		geta[].y inity
+		geta[].z initz
+		sub initz 20480
+		 
+		getactor[THISACTOR].x x
+
+		whilevarn countvar 2048
+		{
+			set mx initx
+			add mx 2048
+			rotatepoint initx inity mx inity countvar temp tempb
+			updatesectorz temp tempb sprite[].z sect
+			ifn sect -1 setsprite THISACTOR temp tempb sprite[].z
+			spawn BIGSMOKE
+			debris SCRAP1 4
+			debris SCRAP2 4
+			debris SCRAP3 4
+			debris SCRAP4 4
+			debris SCRAP5 4
+			debris SCRAP6 4
+			ifrnd 64 { espawn EXPLOSION2 seta[RETURN].z initz soundonce EXPL3 }
+			add countvar 128
+		}
+		setsprite THISACTOR initx inity sprite[].z
+		
+		
+		action AARCHONCHARGED
+		move STOPPED geth
+	}
+	else ifcount 90
+		ai AIARCHONWALK
+ends
+
+state archonchargestate
+
+	state strafechecklong
+	ifaction AARCHONLAND
+	{
+		ife target -1
+		state facetarget
+		
+		ifactioncount 2
+		{
+			action AARCHONCHARGE
+			move ARCHONRUNVEL geth
+		}
+	}
+	else
+	ifaction AARCHONCHARGE
+	{
+		state monpathnotag
+		ifactioncount 2 { sound GIANTSTEP resetactioncount }
+		ifmove ARCHONRUNVEL
+		{
+			ife seevar YES state gradualturn
+			ifcount 30
+			{
+				// sound ??
+				move ARCHONCHARGEVEL geth
+				geta[].ang dodgeang
+			}
+		}
+		else
+		ifmove ARCHONRUNVEL2
+		{
+			ife seevar YES state gradualturn
+			ifcount 30
+			{
+				// sound ??
+				move ARCHONCHARGEVEL2 geth
+				geta[].ang dodgeang
+			}
+		}
+		ifmove ARCHONCHARGEVEL
+			state archonchargecode
+		else
+		ifmove ARCHONCHARGEVEL2
+			state archonchargecode
+	}
+	else
+	ifaction AARCHONCHARGED
+	{
+		seta[].ang dodgeang
+		ifactioncount 3
+			ai AIARCHONSTAND
+	}
+
+ends
+
+state archonstandstate
+
+	ifcount 12 
+	{
+		ife seevar YES ifrnd 84
+		{
+			ife mtype 2
+			{
+				ife ammo 2
+				{
+					globalsound ARCHASHES
+					ai AIARCHONRAPID
+					break
+				}
+				ifrnd 96
+				{
+					globalsound SHRINKER_FIRE
+					set countvar 0
+					ai AIARCHONFIRE1
+				}
+				else
+				{
+					sound ARCHSTARTSHOOT
+					set countvar 0
+					ai AIARCHONFIRE2
+				}
+			}
+			else
+			ife mtype 1
+			{
+				globalsound SHRINKER_FIRE
+				set countvar 0
+				ai AIARCHONFIRE1
+			}
+			else
+			{
+				sound ARCHSTARTSHOOT
+				set countvar 0
+				ai AIARCHONFIRE2
+			}
+			break
+		}
+		ai AIARCHONWALK
+	}
+
+ends
+
+state archonhurtstate
+
+	set countvar 0
+	ifactioncount 2 
+	{
+		ife seevar YES
+		ifrnd 96
+		{
+			ife mtype 2
+			{
+				ifg targetdist 8192 ifrnd 84
+				{
+					ai AIARCHONJUMP
+					sound ARCHSTARTCHARGE
+					geta[].ang weap
+					ifn target -1
+					{
+						geta[target].x initx
+						geta[target].y inity
+						ldist countvar THISACTOR target
+					}
+					else
+					{
+						getp[].posx initx
+						getp[].posy inity
+						ldist countvar THISACTOR player[].i
+					}
+					break
+				}
+				ifrnd 84
+				{
+					ai AIARCHONCHARGE
+					sound ARCHSTARTCHARGE
+					break
+				}
+				ife ammo 2
+				{
+					globalsound ARCHASHES
+					ai AIARCHONRAPID
+					break
+				}
+				ifrnd 128
+				{
+					globalsound SHRINKER_FIRE
+					set countvar 0
+					ai AIARCHONFIRE1
+				}
+				else
+				{
+					ai AIARCHONFIRE2
+					sound ARCHSTARTSHOOT
+				}
+			}
+			else
+			ife mtype 1
+			{
+				ifg targetdist 8192 ifrnd 128
+				{
+					ai AIARCHONJUMP
+					sound ARCHSTARTCHARGE
+					geta[].ang weap
+					ifn target -1
+					{
+						geta[target].x initx
+						geta[target].y inity
+						ldist countvar THISACTOR target
+					}
+					else
+					{
+						getp[].posx initx
+						getp[].posy inity
+						ldist countvar THISACTOR player[].i
+					}
+				}
+				else
+				{
+					globalsound SHRINKER_FIRE
+					set countvar 0
+					ai AIARCHONFIRE1
+				}
+			}
+			else
+			{
+				ifrnd 128
+				{
+					ai AIARCHONFIRE2
+					sound ARCHSTARTSHOOT
+				}
+				else
+				{
+					ai AIARCHONCHARGE
+					sound ARCHSTARTCHARGE
+				}
+			}
+			break
+		}
+		ai AIARCHONSTAND
+		
+	}
+
+ends
+
+state archonfire1state
+
+	ifaction AARCHONAIM1
+	{
+		ifcount 25 nullop else
+		ifcount 6
+		{
+			set temp player[].player_par
+			modvar temp 6
+			ife temp 0 
+			{
+				state archonglare
+				ife ammo NO
+				ifn sprite[].pal 25
+				{
+					changespritestat RETURN 1
+					seta[RETURN].picnum MINICACO
+				}
+			}
+		}
+		
+		ifactioncount 1 
+		{
+			ife countvar 99 // stop shooting
+			{
+				set countvar 0
+				ai AIARCHONSTAND
+				add ammo 1
+				ife ammo 3 set ammo 0
+			}
+			else
+			{
+				
+				action AARCHONFIRE1
+				move STOPPED geth
+				
+				geta[].x saveit
+				geta[].y saveit2
+				set mx sprite[].x
+				set angvar sprite[].ang
+				sub angvar 416 ifspritepal 25 add mx 1280 else
+				add mx 1024
+
+				rotatepoint sprite[].x sprite[].y mx sprite[].y angvar x y
+				seta[].x x seta[].y y
+
+				ife target -1 set target player[].i
+				state calczdist
+				ldist temp THISACTOR target
+				ifvare temp 0 setvar temp 1
+				geta[].yrepeat initz
+				sub initz 8
+				seta[].yrepeat initz
+				mul zdist 768
+				divvarvar zdist temp	
+				ezshoot zdist ARCHONPROJ
+				add initz 8
+				seta[].yrepeat initz
+				setav[RETURN].target target
+				ifspritepal 25 { seta[RETURN].pal 113 setthisprojectile[RETURN].pal 113 }
+				state projzveltotarg
+				ife target player[].i set target -1
+				
+				seta[].x saveit
+				seta[].y saveit2
+			}
+		}
+	}
+	ifaction AARCHONFIRE1
+	{
+		ifactioncount 1
+		{
+			set countvar 99
+			action AARCHONAIM1
+		}
+	}
+	geta[].ang dodgeang
+ends
+
+state archonfire2state
+
+	ifmove STOPPED ifcount 6
+	move ARCHONTURNSLOW faceplayerslow
+	
+	ifaction AARCHONAIM2
+	{
+		ifactioncount 1 
+		{
+			ife countvar 99 // stop shooting
+			{
+				set countvar 0
+				add ammo 1
+				ife ammo 3 set ammo 0
+				ai AIARCHONSTAND
+			}
+			else
+			{
+				add countvar 1
+				action AARCHONFIRE2
+				espawn SOUNDMAKER
+				setactorvar[RETURN].peractor1 ARCHONSHOOT2
+				
+				geta[].x saveit
+				geta[].y saveit2
+				set mx sprite[].x
+				set angvar sprite[].ang
+				add angvar 384 ifspritepal 25 add mx 1024 else
+				add mx 768
+
+				rotatepoint sprite[].x sprite[].y mx sprite[].y angvar x y
+				seta[].x x seta[].y y
+
+				ife target -1 set target player[].i
+				state calczdist
+				ldist temp THISACTOR target
+				ifvare temp 0 setvar temp 1
+				
+				ife mtype 2
+				{
+					shiftvarl zdist 10
+					divvarvar zdist temp
+
+					ezshoot zdist SLOWBULLET
+					ezshoot zdist SLOWBULLET
+					ezshoot zdist SLOWBULLET
+					ezshoot zdist SLOWBULLET, state projzveltotarg
+					ezshoot zdist SLOWBULLET, state projzveltotarg
+					ezshoot zdist SLOWBULLET, state projzveltotarg
+					ezshoot zdist EXPLOSIVEBULLET, state projzveltotarg
+					ezshoot zdist EXPLOSIVEBULLET, state projzveltotarg
+					
+					ife target player[].i set target -1
+					
+					ife ammo NO
+					ifn sprite[].pal 25
+					{
+						changespritestat RETURN 1
+						seta[RETURN].picnum MINICACO
+					}
+					
+					seta[].x saveit
+					seta[].y saveit2
+				}
+				else
+				{
+					mul zdist 1024
+					divvarvar zdist temp	
+					ezshoot zdist DARKPROJ
+					setav[RETURN].target target
+					state projzveltotarg
+					ife target player[].i set target -1
+					
+					ife ammo NO
+					ifg mtype 0
+					ifn sprite[].pal 25
+					{
+						changespritestat RETURN 1
+						seta[RETURN].picnum MINICACO
+					}
+					
+					seta[].x saveit
+					seta[].y saveit2
+				}
+			}
+		}
+	}
+	ifaction AARCHONFIRE2
+	{
+		ifactioncount 1
+		{
+			ife seevar NO set countvar 99 else
+			ifg countvar 9 set countvar 99
+			action AARCHONAIM2
+		}
+	}
+	geta[].ang dodgeang
+ends
+
+state archondyingstate
+
+	set burning 0
+	ifg mtype 0
+	ife savedpicnum 666
+		set savedpicnum 0
+		
+	ifaction AARCHONDYING
+	{
+		ifactioncount 7
+		{
+			// globalsound 
+			action AARCHONDEAD
+			cstat 0
+			seta[].alpha 0
+			move STOPPED faceplayer
+			set countvarb 0
+		}
+	}
+	else
+	ifaction AARCHONDEAD
+	{
+		ifhitweapon { }
+		set bleeding 0
+		strength 0
+		ife mtype 1
+		{
+			geta[].htflags temp, orvar temp 4, seta[].htflags temp
+			geta[].alpha temp
+			add temp 1
+			seta[].alpha temp
+			state shadepulse
+			seta[].shade shade
+		}
+		ifcount 180
+		{
+			ife mtype 1
+			{
+				seta[].alpha 0
+				seta[].shade 0
+				updatesector lotag hitag sect
+				setsprite THISACTOR lotag hitag sector[sect].floorz
+				action AARCHONDEAD2
+				state specialdeath
+			}
+			else
+			ife mtype 2 // final death
+			{
+				add countvarb 1
+				setp[].pals_time countvarb
+				setp[].pals 0 63
+				setp[].pals 1 63
+				setp[].pals 2 63
+				ifg countvarb 62
+				startlevel 0 23
+			}
+			else
+			ifspritepal 0
+			{
+				sound RESURRECT
+				action AARCHONREVIVE
+				move STOPPED faceplayer
+				geta[].htflags temp, orvar temp 4, seta[].htflags temp
+				findnearactor KHANNAFIGHT 32768 spriteid
+				ifn spriteid -1
+				{
+					screensound K_SANCTUM
+					screensound K_SANCTUM
+					set subtitle_start 2250
+					set subtitle_numlines 2
+					set subtitle_time 210
+				}
+			}
+		}
+	}
+	else
+	ifaction AARCHONREVIVE
+	{
+		ife peractor1 1
+			sizeto 120 112
+		espawn STARUP
+		rand x 3072
+		sub x 1536
+		add x sprite[].x
+		seta[RETURN].x x
+		rand y 3072
+		sub y 1536
+		add y sprite[].y
+		seta[RETURN].y y
+		ifactioncount 8 
+		{
+			ife peractor1 1
+			{
+				cstat 257
+				action AARCHONFIRE1
+				resetcount
+				findnearsprite KHANNASIPHON 16384 target
+				ifn target -1
+				{
+					geta[target].x mx
+					geta[target].y my
+					sub mx sprite[].x
+					sub my sprite[].y
+					getangle angvar mx my
+					setactor[THISACTOR].ang angvar
+					set subtitle_start 2085
+					set subtitle_numlines 3
+					set subtitle_time 510
+					screensound ARCH_IDIOTS
+					screensound ARCH_IDIOTS
+				}
+			}
+			else
+			action AARCHONDEPART
+		}
+	}
+	else
+	ifaction AARCHONDEPART
+	{
+		state shadepulse
+		seta[].shade shade
+		geta[].alpha temp
+		add temp 4
+		seta[].alpha temp
+		ifg temp 224 killit
+	}
+	else
+	ifaction AARCHONDEAD2
+	{
+		ifg peractor1 1
+		{
+			sub peractor1 1
+			ife peractor1 1
+			{
+				spritepal 25
+				sound RESURRECT
+				action AARCHONREVIVE
+				move STOPPED faceplayer
+			}
+		}
+	}
+	else
+	ifaction AARCHONFIRE1
+	{
+		ifcount 510
+		{
+			action AARCHONSTAND
+			ifn target -1
+			ifl actorvar[target].mtype 4
+			setav[target].mtype 4
+		}
+		else
+		ifn target -1
+		{	
+			// soundonce FIREBEAM_SHOOT
+			
+			geta[].x saveit
+			geta[].y saveit2
+			set mx sprite[].x
+			set angvar sprite[].ang
+			sub angvar 416 add mx 1280
+
+			rotatepoint sprite[].x sprite[].y mx sprite[].y angvar x y
+			seta[].x x seta[].y y
+			
+			geta[target].x mx
+			geta[target].y my
+			sub mx sprite[].x
+			sub my sprite[].y
+			getangle angvar mx my
+			setactor[THISACTOR].ang angvar
+			
+			state calczdist
+			ldist xydist THISACTOR target
+			ifvare xydist 0 setvar xydist 1
+			setprojectile[NOVAPROJ].vel 844
+			setprojectile[NOVAPROJ].workslike 36866
+			setprojectile[NOVAPROJ].xrepeat 64
+			setprojectile[NOVAPROJ].yrepeat 64
+			setprojectile[NOVAPROJ].spawns LASERHIT
+			mulvar zdist 844
+			divvarvar zdist xydist
+			ezshoot zdist NOVAPROJ
+			state projzveltotarg
+			seta[].x saveit
+			seta[].y saveit2
+			setprojectile[NOVAPROJ].vel 644
+			setprojectile[NOVAPROJ].workslike 32770
+			setprojectile[NOVAPROJ].xrepeat 40
+			setprojectile[NOVAPROJ].yrepeat 40
+			setprojectile[NOVAPROJ].spawns WRAITHIMPACT
+		}
+	}
+
+ends
+
+eventloadactor ARCHON
+sizeat 80 76
+ifspritepal 25 sizeat 120 112
+cstator 257
+enda
+
+useractor enemy ARCHON 24000
+
+ifmove 0
+{
+	sizeat 80 76
+	cstator 257
+	ai AIARCHONSTAND
+	clipdist 120
+	geta[].htflags temp
+	orvar temp 1048576
+	seta[].htflags temp
+	set gold GOLD6
+	set ammo 0
+	ifspritepal 3 
+	{
+		set mtype 1 // phase 2 version
+		geta[].x lotag
+		geta[].y hitag
+		
+		ai AIARCHONJUMP
+		sound ARCHSTARTCHARGE
+		geta[].ang weap
+		getp[].posx initx
+		getp[].posy inity
+		ldist countvar THISACTOR player[].i
+	}
+	ifspritepal 25 
+	{
+		strength 28000
+		sizeat 120 112
+		set mtype 2 // final phase version
+		ai AIARCHONRAPID
+	}
+}
+fall
+
+ife savedpicnum 666
+	state archon_fastmoves
+
+ifai AIARCHONDYING { state archondyingstate break }
+
+state monsterai
+ife target -1 set targetdist xydist else
+set targetdist xydist2
+
+geta[].z initz
+sub initz 20480
+seta[].z initz
+ifp palive
+ifcansee set seevar YES 
+else
+ifn target -1 set seevar YES else
+set seevar NO
+
+add initz 20480
+seta[].z initz
+
+ifg zveloverride 0 sub zveloverride 1
+
+ife monstatus 1 
+{
+	ifn bossid THISACTOR 
+	{
+		set bossid THISACTOR
+		starttrackslot 1 10
+		set music2 1
+	}
+	getuserdef[].music_episode temp
+	getuserdef[].music_level tempb
+	ife temp 1 ife tempb 10 nullop else
+	ifp palive
+	{
+		starttrackslot 1 10
+		set music2 1
+	}
+}
+
+ifai AIARCHONHURT state archonhurtstate else
+ifai AIARCHONSTAND state archonstandstate else
+ifai AIARCHONCHARGE state archonchargestate else
+ifai AIARCHONJUMP state archonjumpstate else
+ifai AIARCHONWALK state archonwalkstate else
+ifai AIARCHONFIRE1 state archonfire1state else
+ifai AIARCHONFIRE2 state archonfire2state else
+ifai AIARCHONRAPID state archonrapidstate
+
+ifg bleeding 0
+{
+	geta[].htowner spriteid
+	ifn spriteid -1
+	{
+		ife actorvar[spriteid].monstatus 1
+		ife actorvar[spriteid].cursed 0
+		{
+			set bleeding 0
+			seta[].htextra -1
+		}
+	}
+}
+ifhitweapon
+{
+	ifwasweapon BURNING nullop else
+		state random_wall_jibs
+	ifdead
+	{
+		ifl burning 0
+		state unfreeze
+		setvar burning 0
+		
+		ifwasweapon FREEZEBLAST
+		    spawn BIGSMOKE
+
+		ife mtype 0 // delayed activation for 2nd and 3rd encounters
+		state specialdeath
+		else set monstatus 2
+		
+		ifvarn music2 0
+		{
+			set music2 0
+			starttrackslot musicepisode musictrack
+		}
+		
+		addkills 1 add globalkills 1
+		ai AIARCHONDYING 
+		ifp palive
+		{
+			addphealth 200
+			save 9
+		}
+		ife mtype 2 // final form
+		{
+			screensound ARCHDEATH2
+			screensound ARCHDEATH2
+			headspritestat spriteid 1
+			whilevarn spriteid -1
+			{
+				ife sprite[spriteid].picnum KHANNAFIGHT
+				{
+					seta[spriteid].pal 14
+					ife actorvar[spriteid].monstatus 1
+					setav[spriteid].monstatus 3
+				}
+				nextspritestat spriteid spriteid
+			}
+			setp[].holoduke_amount 0
+		}
+		else 
+			globalsound ARCHDEATH
+		
+	}
+	else
+	{
+		
+		ife savedpicnum -1
+		{
+			set temp inithp
+			div temp 3
+			ifl sprite[].extra temp
+			{
+				set savedpicnum 666
+				seta[].mdflags 16
+				ifg SKILL 3 set aura -4096
+				spawn FIRERING
+				screensound GIANTSTEP
+				screensound ARCHASHES
+				screensound ARCHASHES
+				ifpdistl 16384 quake 30
+				 spawn MININUKE
+				 spawn MININUKE
+				 spawn MININUKE
+				 spawn MININUKE
+				 spawn MININUKE
+				 spawn MININUKE
+				 spawn MININUKE
+				 spawn MININUKE
+				 spawn MININUKE
+				 spawn MININUKE
+				 addstrength 8000
+				 ifspritepal 25 
+				 {
+					addstrength 4000
+					iffloordistl 16
+					ai AIARCHONRAPID
+				 }
+				 else
+				 iffloordistl 16
+				 {
+					ai AIARCHONJUMP
+					action AARCHONLAND
+					move STOPPED geth
+				 }
+			}
+			else
+			{
+				ifg bleeding 100 soundonce ARCHPAINBIG
+				else ifsound ARCHPAINBIG nullop else
+				soundonce ARCHPAIN
+			}
+		}
+		
+		// ifrnd 128 soundonce ARCHONPAIN1 else soundonce ARCHONPAIN2
+		
+		ifai AIARCHONWALK
+		{
+			ifvarl fear 0 ai AIARCHONHURT else
+			ifvarg bleeding 100 
+			{ 
+				ifrnd 128 ai AIARCHONHURT
+			} 
+			else
+			ifrnd 8 ai AIARCHONHURT
+		}
+		
+	}
+
+}
+
+  ifp palive
+  ifpdistl 1536
+  ifn swordtarg THISACTOR
+  {
+	ife invulntime 0
+	{
+	  setvar tempd -1000 
+	  state directdamage 
+	  palfrom 63 63
+	}
+  }
+  ifn target -1
+  ifl targetdist 6144
+  {
+    ldist temp THISACTOR target
+	ifl temp 2048
+	{
+		setactor[target].htextra 100
+		setactor[target].htpicnum SHOTSPARK1
+		setactor[target].htowner THISACTOR
+	}
+  }
+
+
+enda
+
+action AARCHONTRAIL  0  1  8  1  10
+
+state archontrailstate
+ifmove 0
+{
+	move STOPPED
+	seta[].xrepeat sprite[myspawner].xrepeat
+	seta[].yrepeat sprite[myspawner].yrepeat
+	cstat 514
+	seta[].ang sprite[myspawner].ang
+	seta[].pal sprite[myspawner].pal
+	seta[].mdflags 16
+}
+ifcount 3 killit
+
+ends
+useractor notenemy ARCHONTRAIL1 0 AARCHONTRAIL state archontrailstate enda
+useractor notenemy ARCHONTRAIL2 0 AARCHONTRAIL state archontrailstate enda
+useractor notenemy ARCHONTRAIL3 0 AARCHONTRAIL state archontrailstate enda
+useractor notenemy ARCHONTRAIL4 0 AARCHONTRAIL state archontrailstate enda

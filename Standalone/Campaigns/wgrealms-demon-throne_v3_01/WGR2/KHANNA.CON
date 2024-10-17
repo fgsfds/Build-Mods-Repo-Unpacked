@@ -1,0 +1,948 @@
+// KHANNA THE SORCERESS
+
+action AKSTAND		-5  1  5  1  10
+action AKHANNAWALK		0   4  5  1  10
+action AKHANNACASTA1	20  1  5  1  30
+action AKHANNACASTA2	25  1  5  1  30
+action AKHANNACASTB1	30  1  5  1  30
+action AKHANNACASTB2	35  1  5  1  60
+action AKHANNAHURT		40  1  5  1  30
+action AKHANNADIE		45  5  1  1  18
+action AKHANNADEAD		49  1  1  1  10
+action AKHANNAREVIVE	49  5  1  -1 24
+
+move KHANNAWALKVEL 148
+move KFLOATUPVEL 208 -48
+move KFLOATDOWNVEL 208 8
+move KFLOATBACKVEL -192 8
+
+ai AIKHANNAWALK AKHANNAWALK KHANNAWALKVEL geth
+ai AIKHANNADODGE AKHANNAWALK STOPPED geth
+ai AIKHANNAWAIT AKSTAND STOPPED faceplayerslow
+ai AIKHANNAFLOAT AKSTAND KFLOATUPVEL geth getv
+ai AIKHANNACASTA AKHANNACASTA1 STOPPED geth
+ai AIKHANNACASTB AKHANNACASTB1 STOPPED geth
+ai AIKHANNAHURT AKHANNAHURT STOPPED geth
+ai AIKHANNADYING AKHANNADIE STOPPED faceplayer
+
+eventloadactor KHANNAFIGHT
+sizeat 22 20
+cstat 257
+geta[].yvel activator
+seta[].yvel 0
+enda
+
+state kstartcombat
+
+	ifn target -1
+	{
+		ldist temp THISACTOR target
+		ifl temp 2048
+		{
+			geta[target].x mx
+			geta[target].y my
+			sub mx sprite[].x
+			sub my sprite[].y
+			getangle angvar mx my
+			setactor[THISACTOR].ang angvar
+			state portbackward
+		}
+	}
+
+	ifspritepal 21
+	{
+		ifrnd 136 ai AIKHANNACASTA
+		else 
+		{
+			ai AIKHANNACASTB
+			ifrnd 96 sound DK_LOL
+		}
+	}
+	else
+	{
+		ifrnd 172 ai AIKHANNACASTA
+		else ai AIKHANNACASTB
+	}
+
+ends
+
+state startkdodge
+
+	geta[target].x mx
+	geta[target].y my
+	sub mx sprite[].x
+	sub my sprite[].y
+	getangle dodgeang mx my
+	add dodgeang 384
+	rand temp 1280
+	add dodgeang temp
+	ai AIKHANNADODGE
+
+ends
+
+state khannacasta
+
+	iffloordistl 16 nullop else spawn SPEEDAURA
+
+	state gradturn2
+	ifaction AKHANNACASTA1
+	{
+		ifactioncount 1
+		{
+			action AKHANNACASTA2
+		}
+	}
+	ifaction AKHANNACASTA2
+	{
+		ife monstatus 3 ife target -1
+		{
+			iffloordistl 8 ai AIKHANNAWAIT else
+			ai AIKHANNAFLOAT
+			break
+		}
+		
+		ifcount 2
+		{
+			resetcount
+			espawn SOUNDMAKER
+			setactorvar[RETURN].peractor1 ARCHONSHOOT2
+			
+			geta[].x saveit
+			geta[].y saveit2
+			set mx sprite[].x
+			set angvar sprite[].ang
+			add mx 384
+
+			rotatepoint sprite[].x sprite[].y mx sprite[].y angvar x y
+			seta[].x x seta[].y y
+			
+			ife target -1 set target player[].i
+			state calczdist
+			ldist temp THISACTOR target
+			ifvare temp 0 setvar xydist 1
+			mul zdist 1024
+			divvarvar zdist xydist	
+			ezshoot zdist DARKPROJ
+			setav[RETURN].target target
+			ife target player[].i seta[RETURN].extra 8
+			state projzveltotarg
+			
+			seta[RETURN].xrepeat 24
+			seta[RETURN].yrepeat 24
+			seta[RETURN].pal 23
+			
+			ife target player[].i set target -1
+			
+			seta[].x saveit
+			seta[].y saveit2
+		}
+	
+		ifactioncount 1
+		{
+			ifn target -1 state startkdodge
+			else
+			iffloordistl 8 
+				ai AIKHANNAWAIT 
+			else
+			{
+				ai AIKHANNAFLOAT
+				ifn target -1
+				move KFLOATDOWNVEL geth getv
+			}
+		}
+	}
+
+ends
+
+state bad_khanna_aoe
+
+	set spriteid 0
+	set ammo 0
+	whilevarn spriteid 16384
+	{
+		set temp NO
+		
+		ife sprite[spriteid].statnum 1
+		ifn actorvar[spriteid].cursed 0
+			set temp YES
+			
+		ife target spriteid set temp YES
+		
+		ife actorvar[spriteid].monstatus 3
+		ife sprite[spriteid].statnum 1
+			set temp YES
+			
+		ife temp YES
+		ifn sprite[spriteid].sectnum -1
+		ifn spriteid THISACTOR
+		ifn sprite[spriteid].picnum CHICKEN
+		ifn sprite[spriteid].picnum PIGGY
+		{
+			ldist temp THISACTOR spriteid
+			ifl temp 20480
+			{
+				espawn GLARESPRITE
+				set z sprite[spriteid].z, sub z 8192
+				setsprite RETURN sprite[spriteid].x sprite[spriteid].y z
+				
+				ife peractor1 0
+				{
+					ife spriteid player[].i
+					{
+						// jumpad lift?
+						// espawn JUMPAD
+						// setav[RETURN].mtype 1
+						// setav[RETURN].inity 30
+						// setav[RETURN].shotpitch -6752
+						// setav[spriteid].initx 128
+						// geta[spriteid].z mz
+						// rand angvar 2047
+						// seta[spriteid].ang angvar
+						
+						setvar countvar 0
+						getactor[THISACTOR].x mx
+						addvar mx 640
+						getactor[THISACTOR].z mz
+						subvar mz 6144
+						whilevarn countvar 2048
+						{
+							espawn DRONE
+							rotatepoint sprite[THISACTOR].x sprite[THISACTOR].y mx sprite[THISACTOR].y countvar hitx hity
+							setsprite RETURN hitx hity mz
+							seta[RETURN].pal 2
+							setav[RETURN].droptile 1
+							seta[RETURN].htpicnum LUGLORD
+							addvar countvar 512
+						}
+						
+						
+					}
+					else
+					{
+						espawn EXPLOSION2
+						geta[spriteid].z mz, sub mz 4096
+						rand temp 40, add temp, 60, add temp sprite[spriteid].htextra
+						seta[spriteid].htextra temp
+						seta[spriteid].htpicnum RPG
+						seta[spriteid].htang sprite[].ang
+						ifspritepal 21 seta[spriteid].htowner THISACTOR else
+						seta[spriteid].htowner player[].i
+					}
+					setsprite RETURN sprite[spriteid].x sprite[spriteid].y mz
+					
+				}
+				else
+				ife peractor1 1
+				{
+					add ammo 1
+					espawn SOUNDMAKER
+					setactorvar[RETURN].peractor1 RIFTATTACK
+					espawn HAILSPAWNER
+					setactor[RETURN].pal 2
+					// setactorvar[RETURN].mtype 1
+					ife spriteid player[].i setav[RETURN].target player[].i
+					getceilzofslope sprite[spriteid].sectnum sprite[spriteid].x sprite[spriteid].y mz
+					geta[spriteid].z z
+					subvar z 81920
+					ifvarvarl mz z setvarvar mz z
+					setactorvar[RETURN].myspawner sprite[player[].i].yvel
+					setsprite RETURN sprite[spriteid].x sprite[spriteid].y mz
+				}
+				else
+				ife peractor1 2
+				{
+					ife spriteid target
+					{
+						setvar countvar 0
+						getactor[THISACTOR].x mx
+						addvar mx 640
+						getactor[THISACTOR].z mz
+						subvar mz 6144
+						whilevarn countvar 2048
+						{
+							espawn DRONE
+							rotatepoint sprite[THISACTOR].x sprite[THISACTOR].y mx sprite[THISACTOR].y countvar hitx hity
+							setsprite RETURN hitx hity mz
+							seta[RETURN].pal 2
+							setav[RETURN].droptile 1
+							seta[RETURN].htpicnum LUGLORD
+							addvar countvar 512
+						}
+					}
+				}
+				else
+				ife peractor1 3
+				{
+					add ammo 1
+					espawn SOUNDMAKER
+					setactorvar[RETURN].peractor1 RIFTATTACK
+					espawn HAILSPAWNER
+					// setactorvar[RETURN].mtype 1
+					ife spriteid player[].i setav[RETURN].target player[].i
+					getceilzofslope sprite[spriteid].sectnum sprite[spriteid].x sprite[spriteid].y mz
+					geta[spriteid].z z
+					subvar z 81920
+					ifvarvarl mz z setvarvar mz z
+					setactorvar[RETURN].myspawner sprite[player[].i].yvel
+					setsprite RETURN sprite[spriteid].x sprite[spriteid].y mz
+				}
+				
+			}
+			
+		}
+		add spriteid 1
+		ifg ammo 3 set spriteid 16384
+	}
+
+ends
+
+state good_khanna_aoe
+	
+	set ammo 0
+	headspritestat spriteid 1
+	whilevarn spriteid -1
+	{
+		ife actorvar[spriteid].monstatus 1
+		ife actorvar[spriteid].cursed 0
+		ifn sprite[spriteid].sectnum -1
+		ifn spriteid THISACTOR
+		{
+			ldist temp THISACTOR spriteid
+			ifl temp 20480
+			{
+				espawn GLARESPRITE
+				set z sprite[spriteid].z, sub z 8192
+				setsprite RETURN sprite[spriteid].x sprite[spriteid].y z
+				
+				ife peractor1 0
+				{
+					getflorzofslope sprite[spriteid].sectnum sprite[spriteid].x sprite[spriteid].y z
+					set saveit z
+					sub z sprite[spriteid].z
+					ifvarand sprite[spriteid].cstat 8 { set z 0 set saveit sprite[spriteid].z }
+					ifl z 8192
+					{
+						ifg actorvar[spriteid].burning -1
+						ife actorvar[spriteid].htg4 -1
+						{
+							espawn VINES
+							setav[RETURN].myspawner spriteid
+							setav[RETURN].countvar 1
+							setav[RETURN].initz sprite[spriteid].z
+							setav[spriteid].htg4 RETURN
+							setsprite RETURN sprite[spriteid].x sprite[spriteid].y saveit
+						}
+						else
+						{
+							espawn EXPLOSION2
+							geta[spriteid].z mz, sub mz 4096
+							rand temp 40, add temp, 60, add temp sprite[spriteid].htextra
+							seta[spriteid].htextra temp
+							seta[spriteid].htpicnum RPG
+							seta[spriteid].htang sprite[].ang
+							seta[spriteid].htowner player[].i
+							setsprite RETURN sprite[spriteid].x sprite[spriteid].y mz
+						}
+					}
+				}
+				else
+				ife peractor1 1
+				{
+					add ammo 1
+					espawn SOUNDMAKER
+					setactorvar[RETURN].peractor1 RIFTATTACK
+					espawn HAILSPAWNER
+					setactor[RETURN].pal 2
+					setactorvar[RETURN].mtype 1
+					getceilzofslope sprite[spriteid].sectnum sprite[spriteid].x sprite[spriteid].y mz
+					geta[spriteid].z z
+					subvar z 98304
+					ifvarvarl mz z setvarvar mz z
+					setactorvar[RETURN].myspawner sprite[player[].i].yvel
+					setsprite RETURN sprite[spriteid].x sprite[spriteid].y mz
+				}
+				else
+				ife peractor1 2
+				{
+					espawn EXPLOSION2
+					geta[spriteid].z mz, sub mz 4096
+					rand temp 40, add temp, 60, add temp sprite[spriteid].htextra
+					seta[spriteid].htextra temp
+					seta[spriteid].htpicnum RPG
+					seta[spriteid].htang sprite[].ang
+					seta[spriteid].htowner player[].i
+					setsprite RETURN sprite[spriteid].x sprite[spriteid].y mz
+				}
+				else
+				ife peractor1 3
+				{
+					add ammo 1
+					espawn SOUNDMAKER
+					setactorvar[RETURN].peractor1 RIFTATTACK
+					espawn HAILSPAWNER
+					setactorvar[RETURN].mtype 1
+					getceilzofslope sprite[spriteid].sectnum sprite[spriteid].x sprite[spriteid].y mz
+					geta[spriteid].z z
+					subvar z 98304
+					ifvarvarl mz z setvarvar mz z
+					setactorvar[RETURN].myspawner sprite[player[].i].yvel
+					setsprite RETURN sprite[spriteid].x sprite[spriteid].y mz
+				}
+				
+			}
+			
+		}
+		nextspritestat spriteid spriteid
+		ifg ammo 3 set spriteid -1
+	}
+
+ends
+
+state khannacastb
+
+	iffloordistl 16 nullop else spawn SPEEDAURA
+	
+	state gradturn2
+	ifaction AKHANNACASTB1
+	{
+		ifvarand player[].player_par 1
+		{
+			espawn GLARESPRITE
+			geta[RETURN].z z, sub z 8192, seta[RETURN].z z
+		}
+		ifactioncount 1
+		{
+			action AKHANNACASTB2
+
+			add peractor1 1
+			ifge peractor1 4 set peractor1 0
+			ifspritepal 21 state bad_khanna_aoe
+			else
+			state good_khanna_aoe
+
+		}
+	}
+	else
+	ifaction AKHANNACASTB2
+	{
+		ifspritepal 21
+		{
+			set temp player[].player_par
+			modvar temp 5
+			ife temp 0
+			{
+				ife peractor1 1 state bad_khanna_aoe
+				else
+				ife peractor1 3 state bad_khanna_aoe
+			}
+		}
+		else
+		{
+			set temp player[].player_par
+			modvar temp 5
+			ife temp 0
+			{
+				ife peractor1 1 state good_khanna_aoe
+				else
+				ife peractor1 3 state good_khanna_aoe
+			}
+		}
+		
+		ifactioncount 1
+		{
+			ifn target -1 state startkdodge
+			else
+			iffloordistl 8 
+				ai AIKHANNAWAIT 
+			else
+			{
+				ai AIKHANNAFLOAT
+				ifn target -1
+				move KFLOATDOWNVEL geth getv
+			}
+		}
+	}
+
+ends
+
+state khannafloat
+
+	spawn SPEEDAURA
+	
+	ifn target -1 
+	{
+		ifmove KFLOATBACKVEL nullop else
+		ifl targetdist 3072 move KFLOATBACKVEL geth getv
+		
+		ifcount 80 { state kstartcombat break }
+		ifg targetdist 3072 ifcount 30 ifrnd 8 { state kstartcombat break }
+	}
+	
+	ifmove KFLOATBACKVEL
+	ifcount 30
+		move KFLOATDOWNVEL faceplayerslow getv
+	
+
+	ifmove KFLOATUPVEL
+	{
+		ifp phigher resetcount else 
+			ifg sprite[player[].i].z sprite[].z 
+		ifcount 20 
+				move KFLOATDOWNVEL faceplayerslow getv
+		ifceilingdistl 48 move KFLOATDOWNVEL faceplayerslow getv
+		ifcount 260 move KFLOATDOWNVEL faceplayerslow getv
+	}
+	else 
+	{
+		iffloordistl 4 { ai AIKHANNAWALK break }
+		ifcount 32
+		{
+			ifvarand sector[].floorstat 1
+			{
+				ifp phigher move KFLOATUPVEL faceplayerslow getv
+			}
+			else
+			iffloordistl 16 
+			{
+				ifpdistl 8192
+					ai AIKHANNAWALK 
+				else move KFLOATUPVEL faceplayerslow getv
+			}
+			else
+			ifp phigher move KFLOATUPVEL faceplayerslow getv
+		}
+		ifg sprite[player[].i].z sprite[].z movesprite THISACTOR 0 0 512 CLIPMASK0 RETURN
+	}
+
+ends
+
+state kdodgestate
+
+	iffloordistl 8 { ifaction AKSTAND action AKHANNAWALK } else
+	{
+		spawn SPEEDAURA
+		ifaction AKSTAND nullop else action AKSTAND
+		ifrnd 16 fall
+	}
+	cos xvel dodgeang
+	sin yvel dodgeang
+	shiftvarr xvel 7
+	shiftvarr yvel 7
+	movesprite THISACTOR xvel yvel 0 CLIPMASK0 RETURN 
+	ifn RETURN 0 
+	{
+		ifcount 15 ai AIKHANNAWAIT 
+		else ifn target -1 state portforward
+	}
+	else
+	ifcount 30 ai AIKHANNAWAIT
+	
+	ifai AIKHANNAWAIT state kstartcombat
+
+ends
+
+state kfollowplayer
+	
+	ifn target -1 { state kstartcombat break }
+	
+	ifpdistg 10240
+	{
+		ai AIKHANNAFLOAT
+		break
+	}
+	
+	ifcount 20
+	{
+		ifp pfacing
+		{
+			ifpdistl 2048 ai AIKHANNAWAIT
+		}
+		else ifpdistl 1024 ai AIKHANNAWAIT
+		
+		ifai AIKHANNAWAIT break
+		
+		ifpdistl 8192 ifcansee
+			state gradualturn
+			
+		ifp phigher ai AIKHANNAFLOAT
+		
+		ifnotmoving
+		{
+			state facetarget
+			state portforward
+		}
+	}
+	
+ends
+
+state khannawait
+
+	ifn target -1
+	{
+		ifcount 10 state kstartcombat
+	}
+	else
+	{
+/*
+		ifhitspace
+		ifp pfacing
+		ifpdistl 1280
+		ife monstatus 3
+		{
+			resetcount
+			ife countvar 0 
+			{ 
+				state summon_sounds 
+				set countvar 150 
+			}
+		}
+*/
+		ifcount 30
+		ifpdistg 2560
+			ai AIKHANNAWALK
+	}
+
+ends
+
+state khannawalk
+
+	ifn target -1
+	ifcount 30
+	ifrnd 10
+	{
+		state kstartcombat
+		break
+	}
+	
+	// ife monstatus 3
+	ife target -1
+	state kfollowplayer
+	
+	ifnotmoving ifrnd 64 { operate ai AIKHANNAWAIT break }
+
+ends
+
+useractor enemy KHANNAFIGHT KHANNASTRENGTH
+
+	ifai 0
+	{
+		geta[].htflags temp
+		orvar temp 64
+		orvar temp 8192 // smooth move
+		orvar temp 134217728 // avoid water
+		ifspritepal 21 orvar temp 4
+		seta[].htflags temp
+		ai AIKHANNAWAIT
+		sizeat 22 20
+		cstat 257
+		clipdist 36
+		ifspritepal 0 set monstatus 3 
+		else 
+		{
+			strength 2000
+			seta[].shade -32
+			set bigmsg 837
+			set bigmsgcount 104
+		}
+		set inithp sprite[].extra
+		
+		setvar htg5 0
+		getactor[THISACTOR].x mx
+		addvar mx 640
+		getactor[THISACTOR].z mz
+		subvar mz 6144
+		whilevarn htg5 2048
+		{
+			espawn AXONAURA
+			rotatepoint sprite[THISACTOR].x sprite[THISACTOR].y mx sprite[THISACTOR].y htg5 hitx hity
+			setsprite RETURN hitx hity mz
+			setactorvar[RETURN].peractor1 1
+			setactorvar[RETURN].countvar htg5
+			setactorvar[RETURN].myspawner THISACTOR
+			addvar htg5 512
+			ifspritepal 21 { seta[RETURN].pal 2 seta[RETURN].cstat 8 }
+		}
+		set htg5 -1
+		
+	}
+	
+	ife monstatus 666 
+	{	
+		ifn myspawner -1 setav[myspawner].myspawner -1
+		killit // used with a cutscene
+	}
+	
+	ifai AIKHANNACASTA nullop else
+	ifai AIKHANNACASTB nullop else
+	ifai AIKHANNADODGE nullop else
+	fall
+	
+	ifai AIKHANNADYING
+	{
+		ifhitweapon { }
+		ifaction AKHANNADIE
+		{
+			ifactioncount 4
+			{
+				spawn BLOODPOOL
+				action AKHANNADEAD
+				espawn KHANNAGHOST
+				setav[RETURN].myspawner THISACTOR
+				seta[RETURN].pal sprite[].pal
+				set myspawner RETURN
+			}
+		}
+		ifaction AKHANNADEAD
+		{
+			ifspritepal 21
+			{
+				ifcount 600
+				ifn camerasprite -1 count 600
+				ifcount 1200
+				{
+					sound RESURRECT
+					action AKHANNAREVIVE
+					cstat 257
+					set burning 0
+					set monstatus 1
+				}
+			}
+			else
+			{
+				ifcount 500
+				{
+					sound RESURRECT
+					action AKHANNAREVIVE
+					cstat 257
+					set burning 0
+					set monstatus 3
+				}
+			}
+		}
+		ifaction AKHANNAREVIVE
+		{
+			espawn STARUP
+			rand x 3072
+			sub x 1536
+			add x sprite[].x
+			seta[RETURN].x x
+			rand y 3072
+			sub y 1536
+			add y sprite[].y
+			seta[RETURN].y y
+			ifactioncount 4
+			{
+				ai AIKHANNAHURT	
+				ifhitweapon { }
+				strength KHANNASTRENGTH
+				ifspritepal 21 
+				{
+					strength 1200
+					set bigmsg 838
+					set bigmsgcount 104
+				}
+			}
+		}
+		break
+	}
+	
+	ifn monstatus 3 // DARKHANNA
+	{
+		state monsterai
+		ife target -1
+		{
+			ifp palive ifcansee 
+			{
+				set seevar YES 
+				set target player[].i
+			}
+			else set seevar NO
+			set targetdist xydist
+		}
+		else
+		{
+			set seevar YES
+			set targetdist xydist2
+		}
+		findnearsprite FREEZEBLAST 2560 saveit
+		ifn saveit -1
+		ife actorvar[saveit].target THISACTOR
+		{
+			set ftq 822 set fta 90
+			screensound PUFFSND
+			ifsound K_DEFLECTION nullop else screensound K_DEFLECTION
+			seta[saveit].pal 21
+			setav[saveit].target player[].i
+			espawn WRAITHIMPACT
+			setsprite RETURN sprite[saveit].x sprite[saveit].y sprite[saveit].z
+			geta[saveit].ang angvar
+			add angvar 1024
+			seta[saveit].ang angvar
+		}
+		findnearsprite RPG 2560 saveit
+		ifn saveit -1
+		ife actorvar[saveit].target THISACTOR
+		{
+			ife bigmsgcount 0 { setvar bigmsg 821 setvar bigmsgcount 104 }
+			screensound PUFFSND
+			ifsound K_DEFLECTION nullop else screensound K_DEFLECTION
+			seta[saveit].pal 21
+			setav[saveit].target player[].i
+			espawn WRAITHIMPACT
+			setsprite RETURN sprite[saveit].x sprite[saveit].y sprite[saveit].z
+			geta[saveit].ang angvar
+			add angvar 1024
+			seta[saveit].ang angvar
+			seta[saveit].extra 60
+		}
+		// findnearsprite HAMMERPROJ 2560 saveit
+		// ifn saveit -1
+		// ife actorvar[saveit].target THISACTOR
+		// ife actorvar[saveit].mtype 0
+		// {
+			// set ftq 823 set fta 90
+			// screensound PUFFSND
+			// ifsound K_DEFLECTION nullop else screensound K_DEFLECTION
+			// seta[saveit].pal 21
+			// setav[saveit].target player[].i
+			// espawn WRAITHIMPACT
+			// setsprite RETURN sprite[saveit].x sprite[saveit].y sprite[saveit].z
+			// geta[saveit].ang angvar
+			// add angvar 1024
+			// seta[saveit].ang angvar
+			// seta[saveit].extra 60
+		// }
+		// findnearsprite DAMOSWORD 2560 saveit
+		// ifn saveit -1
+		// ife actorvar[saveit].myspawner THISACTOR
+		// {
+			// screensound PUFFSND
+			// ifsound K_DEFLECTION nullop else screensound K_DEFLECTION
+			// ife bigmsgcount 0 { setvar bigmsg 820 setvar bigmsgcount 104 }
+			// setav[saveit].myspawner player[].i
+			// espawn WRAITHIMPACT
+			// setsprite RETURN sprite[saveit].x sprite[saveit].y sprite[saveit].z
+		// }
+	}
+	else // GOOD KHANNA
+	{
+		ifonwater ifnotmoving state getoutofwater
+		set countvarb 30
+		state targetsearch
+		ifvarn target -1
+		{
+			ifvare actorvar[target].monstatus 2 setvar target -1 else
+			ifvarn sprite[target].statnum 1 
+				setvar target -1 
+			else
+			{
+				dist targetdist THISACTOR target
+				ifl targetdist 2048
+				{
+					getactor[target].x mx
+					getactor[target].y my
+					getactor[THISACTOR].x x
+					getactor[THISACTOR].y y
+					subvarvar mx x
+					subvarvar my y
+					getangle angvar mx my
+					setactor[THISACTOR].ang angvar
+				}
+				else state gradualturn		
+			}
+			ifn target -1 set seevar YES
+			else set seevar NO
+		}
+		else 
+		{
+			set targetdist 99999
+			set seevar NO
+		}
+	}
+	
+	ifg sprite[].extra 0
+	ife target -1 
+	ife camerasprite -1
+	ifg character -1
+	ifg player[].player_par 60
+	ife endlevel 0
+	{
+		set temp NO
+		ife monstatus 3 ifpdistg 16384 set temp YES
+		else ifpdistg 20480 set temp YES
+		ife temp YES
+		{
+			state targetport	
+		}
+	}
+	
+	ifai AIKHANNAHURT { ifcount 14 ai AIKHANNAWAIT } else
+	ifai AIKHANNAWAIT state khannawait else
+	ifai AIKHANNAWALK state khannawalk else
+	ifai AIKHANNADODGE state kdodgestate else
+	ifai AIKHANNAFLOAT state khannafloat else
+	ifai AIKHANNACASTA state khannacasta else
+	ifai AIKHANNACASTB state khannacastb
+	
+	ifhitweapon 
+	{
+		ifdead
+		{
+			sound K_DIE
+			ai AIKHANNADYING
+			cstat 0
+			ifspritepal 21
+			{
+				ifvarn activator 0	
+					state activatorstate
+				setvar activator 0
+			}
+			
+			set monstatus 2
+			break
+		}
+		else
+		ifai AIKHANNAHURT nullop else
+		{
+			ifrnd 16 ai AIKHANNAHURT
+			else
+			ifg bleeding 100 ifrnd 64 ai AIKHANNAHURT
+		}
+		// sound
+	}
+	
+
+enda
+
+action KGHOSTFRAME 0  1  5  1  10
+useractor notenemy KHANNAGHOST 0 KGHOSTFRAME
+
+ife myspawner -1 killit
+ifmove 0
+{
+	sound BUFF1
+	move INIT faceplayerslow
+	seta[].xrepeat sprite[myspawner].xrepeat
+	seta[].yrepeat sprite[myspawner].yrepeat
+	seta[].mdflags 16
+	setvar command 32768 // float flag
+	cstator 2
+	seta[].alpha 255
+	// seta[].blend 1
+	
+	
+}
+ifg sprite[].alpha 0
+{
+	ifvarand player[].player_par 1
+	{
+		geta[].alpha temp
+		sub temp 1
+		ife temp 127 { sound BUFF4 seta[].blend 1 }
+		seta[].alpha temp
+	}
+}
+ife actorvar[myspawner].monstatus 3 killit
+ife actorvar[myspawner].monstatus 1 killit
+
+enda

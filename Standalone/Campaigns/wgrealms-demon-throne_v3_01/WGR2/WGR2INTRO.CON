@@ -1,0 +1,51 @@
+
+// vars used to keep track of intro state
+var wgr2_intro 1 GAMEVAR_NODEFAULT GAMEVAR_NORESET
+var intro_counter 0 GAMEVAR_NODEFAULT GAMEVAR_NORESET
+
+// disable NITEVISION_ONOFF and, 3D Realms screen and Atomic Edition title
+// disables help and credits options. keeps menu music and intro FMV active
+gamevar LOGO_FLAGS 0x6200807 0 // 2303
+
+// immediately close the menu and disable the intro animation
+onevent EVENT_MAINMENUSCREEN
+    ife wgr2_intro 1
+    {
+        cmenu -2
+        set LOGO_FLAGS 0x6200805
+        set wgr2_intro 2
+    }
+endevent
+
+// ensure that the flyby music plays
+onevent EVENT_WORLD
+    ife wgr2_intro 2
+        add intro_counter 1
+
+    ife VOLUME 0 ife LEVEL 21
+        ifg intro_counter 30 // after 1 second
+        {
+            set wgr2_intro 0
+            set intro_counter 0
+            starttrack 21
+        }
+endevent
+
+// disable level stats display
+onevent EVENT_DISPLAYLEVELSTATS
+    ife VOLUME 0 ife LEVEL 21
+        set RETURN -1
+endevent
+
+// disable ESCAPE key to open menu
+appendevent EVENT_CHANGEMENU
+    ife VOLUME 0 ife LEVEL 21
+        set RETURN -2
+endevent
+
+
+// disable automap
+appendevent EVENT_DISPLAYROOMS
+    ife VOLUME 0 ife LEVEL 21
+        setu[].overhead_on 0
+endevent

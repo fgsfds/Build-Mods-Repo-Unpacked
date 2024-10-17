@@ -1,0 +1,296 @@
+
+useractor notenemy SKYHOOK 0
+
+	ife hookid THISACTOR
+	ife monstatus 2
+	{
+		add countvar 1
+		ifg countvar 10
+		{
+			set hookid -1
+			set tailsprite -1
+			set hookattached NO
+			killit
+		}
+	}
+
+enda
+
+useractor notenemy STRINGNODE 0
+
+// myhead will be set if this actor was spawned by another STRINGNODE
+ifmove 0
+{
+	sizeat 26 26
+	clipdist 0
+	cstat 0
+	move INIT
+	seta[].mdflags 16
+	
+		
+	ife countvar 0
+	{
+		set myspawner THISACTOR
+		set ammo 0
+		whilevarvarn ammo STRINGLENGTH
+		{
+			espawn STRINGNODE
+			setav[RETURN].myhead myspawner
+			// ife ammo 0 set myhead RETURN
+			set myspawner RETURN
+			add ammo 1
+			ife ammo STRINGLENGTH set tailsprite RETURN
+			setav[RETURN].countvar ammo
+		}
+	}
+}
+
+ife ptether NO
+{
+	fall
+	geta[].alpha temp
+	add temp 8
+	ifg temp 254 set temp 254
+	seta[].alpha temp
+	add countvarb 1
+	ife countvarb 1
+	{
+		set monstatus 2 
+		ifn tether -1
+		ifn hookid -1 
+			setav[hookid].monstatus 2 
+	}
+	ifcount 60 killit
+}
+
+ife monstatus 2 break
+
+ife ptether YES
+{
+	ldist xydist player[].i hookid
+	set z player[].posz
+	add z 3072 // 1024
+
+	geta[hookid].z zdist
+	sub z zdist 
+	
+	set mz z
+	shiftr mz 4
+	getangle shotpitch xydist mz
+	abs shotpitch
+	shiftr shotpitch 1
+	
+	set temp xydist
+	set tempb STRINGPLAY
+	ifg sprite[hookid].z player[].posz
+	{
+		// al shotpitch
+		set tempc 1024
+		sub tempc shotpitch
+		// al tempb
+		sub tempb tempc
+	}
+	else
+		sub tempb shotpitch
+		
+	
+	ifl tempb 1 set tempb 1
+	div temp tempb // how many segments it takes to reach player
+	ife temp 0 set temp 1
+	ifg countvar temp 
+		cstat 32768
+	else
+		cstat 0
+		
+	div z temp // how many z units to travel each countvar
+	mul z countvar // how much z this particular segment should move
+	
+	add zdist z
+	seta[].z zdist
+
+
+	
+	ifn tether -1
+	{
+		getp[].posx x
+		getp[].posy y
+		subvarvar x sprite[].x
+		subvarvar y sprite[].y
+		getangle angvar x y
+		seta[].ang angvar
+		
+		set z player[].posz
+		add z 1024
+		geta[hookid].z zdist
+		sub z zdist
+
+		set mz zdist
+		shiftr mz 4
+		getangle ropepitch xydist mz
+		// al ropepitch
+		// add tempb 512
+		// seta[].pitch tempb
+		
+		cstat 32768
+		
+		
+		ifvarand bits 16
+		ife ptether YES
+		ifn hookid -1
+		ife sprite[hookid].statnum 1
+		ife actorvar[hookid].monstatus 0
+		ife countvarb 0
+		{
+			ife phookswing YES
+			ife hooktype 0
+			{
+				getp[].poszv zdist
+				sub zdist 3072
+				setp[].poszv zdist
+			}
+			set ptether NO
+			set phookswing NO
+			set temp NO
+			
+			
+			
+		}
+	}
+	else
+	ifpdistl 1024
+	{
+		geta[hookid].x x
+		geta[hookid].y y
+		subvarvar x sprite[].x
+		subvarvar y sprite[].y
+		getangle angvar x y
+		seta[].ang angvar
+		
+		// ldist xydist THISACTOR myhead
+		// geta[].z z
+		// geta[myhead].z zdist
+		// sub zdist z
+		// shiftr zdist 4
+		// getangle tempb xydist zdist	
+		// add tempb 512
+		// seta[].pitch tempb
+	}
+	else
+	{
+		geta[myhead].x x
+		geta[myhead].y y
+		subvarvar x sprite[].x
+		subvarvar y sprite[].y
+		getangle angvar x y
+		seta[].ang angvar
+		
+		// ldist xydist THISACTOR myhead
+		// geta[].z z
+		// geta[myhead].z zdist
+		// sub zdist z
+		// shiftr zdist 4
+		// getangle tempb xydist zdist	
+		// add tempb 512
+		// seta[].pitch tempb
+	}
+	
+}
+else ifn myhead -1
+{
+	geta[myhead].x x
+	geta[myhead].y y
+	subvarvar x sprite[].x
+	subvarvar y sprite[].y
+	getangle angvar x y
+	seta[].ang angvar
+	
+	ldist xydist THISACTOR myhead
+	geta[].z z
+	geta[myhead].z zdist
+	sub zdist z
+	shiftr zdist 4
+	getangle tempb xydist zdist	
+	add tempb 512
+	seta[].pitch tempb
+}
+
+ifn tether -1
+{
+	setsprite THISACTOR sprite[tether].x sprite[tether].y sprite[tether].z
+	
+	ife ptether YES
+	{
+		ife phookswing NO dist ropelength hookid player[].i
+		headspritestat spriteid 1
+		whilevarn spriteid -1
+		{
+			ife sprite[spriteid].picnum STRINGNODE
+			ife actorvar[spriteid].tether -1
+			{
+				set BIGX sprite[].x
+				set temp STRINGPLAY // xydist2
+				ifg sprite[hookid].z player[].posz
+				{
+					// al shotpitch
+					set tempc 1024
+					sub tempc shotpitch
+					// al tempb
+					sub temp tempc	
+				}
+				else
+				
+					sub temp shotpitch
+					
+				
+				
+				ifl temp 1 set temp 1
+				mul temp actorvar[spriteid].countvar
+				
+				add BIGX temp
+				rotatepoint sprite[].x sprite[].y BIGX sprite[].y sprite[].ang mx my
+				setsprite spriteid mx my sprite[spriteid].z
+			}
+			nextspritestat spriteid spriteid
+		}
+	}
+
+}
+
+enda
+
+onevent EVENT_CHECKTOUCHDAMAGE
+
+	ife phookswing YES
+	{
+		setp[].posxv 0
+		setp[].posyv 0
+		set phookvx 0
+		set phookvy 0
+		ife hooktype 0
+			set hooktype 3
+		
+	}
+
+endevent
+
+appendevent EVENT_ANIMATESPRITES
+
+ifn hookid -1
+ifn tailsprite -1
+{
+	gettspr[].tsprowner spriteid
+	getav[spriteid].myhead temp
+	ifn temp -1
+	{
+		ldist xydist spriteid temp
+		geta[spriteid].z z
+		geta[temp].z zdist
+		sub zdist z
+		shiftr zdist 4
+		getangle tempb xydist zdist	
+		add tempb 512
+		seta[spriteid].pitch tempb
+	}
+}
+
+endevent

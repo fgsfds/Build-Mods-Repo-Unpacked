@@ -1,0 +1,597 @@
+// CYCLORD BOSS	
+
+action ACYCLORDSTAND		0  1  5  1  10
+action ACYCLORDWALK        5  4  5  1  14
+action ACYCLORDFROZEN      0  1  5  1  10
+action ACYCLORDRUN         5  4  5  1  8
+action ACYCLORDSHOOT         20 2  5  1  4
+action ACYCLORDLOB         30 2  5  1  35
+action ACYCLORDJUMP			45  1  5  1  20
+action ACYCLORDFALL			50  1  5  1  20
+action ACYCLORDLAND			40  1  5  1  30
+action ACYCLORDDYING        65 5  1  1  35
+action CYCLORDFLINTCH       60 1  5  1  8
+action ACYCLORDDEAD         70
+
+move PALCYCLORDSHRUNKRUNVELS 32
+
+move CYCLORDJUMPVELS 480 -96
+move CYCLORDFALLVELS 480
+move CYCLORDWALKVELS 224
+move CYCLORDRUNVELS 312
+
+ai AICYCLORDSEEKENEMY ACYCLORDWALK CYCLORDWALKVELS seekplayer // seekplayer
+ai AICYCLORDRUNENEMY ACYCLORDRUN CYCLORDRUNVELS geth // faceplayer
+ai AICYCLORDSHOOTENEMY ACYCLORDSHOOT STOPPED geth // faceplayer
+ai AICYCLORDLOBBED ACYCLORDLOB STOPPED geth // faceplayer
+ai AICYCLORDDYING ACYCLORDDYING STOPPED geth
+ai AICYCLORDJUMP ACYCLORDJUMP CYCLORDJUMPVELS jumptoplayer
+
+eventloadactor CYCLORD 
+
+ifspritepal 0 
+	sizeat 96 80 
+else
+	sizeat 48 40
+
+cstator 257
+
+ifspritepal 17 
+{
+	action ACYCLORDSTAND
+	getactor[THISACTOR].lotag lotag
+	setactor[THISACTOR].lotag 0
+	getactor[THISACTOR].ang command
+}
+enda
+
+eventloadactor CYCLORDSTAYPUT
+
+ifspritepal 0 
+	sizeat 96 80 
+else
+	sizeat 48 40
+
+cstator 257
+
+ifspritepal 17 
+{
+	action ACYCLORDSTAND
+	getactor[THISACTOR].lotag lotag
+	setactor[THISACTOR].lotag 0
+	getactor[THISACTOR].ang command
+}
+enda
+
+state cyclordjumpstate
+
+	set target2 -1
+	state gradualturn
+	ifaction ACYCLORDJUMP 
+	{
+		ifactioncount 2
+		{
+			action ACYCLORDFALL
+			move CYCLORDFALLVELS geth
+		}
+	} 
+	else
+	ifaction ACYCLORDFALL
+	{
+		iffloordistl 4
+		{
+			action ACYCLORDLAND
+			sound GIANTSTEP
+			move STOPPED geth
+			debris SCRAP2 4
+			debris SCRAP3 4
+			debris SCRAP4 4
+			debris SCRAP5 4
+			spawn BIGSMOKE
+			ifpdistl 8192 quake 30
+			ifcansee
+			ifpdistl 3072 wackplayer
+			ifspritepal 0
+				hitradius 5120  40 80 120 160 
+			else
+				hitradius 3500  30 60 90 120
+
+		}
+	} else
+	ifaction ACYCLORDLAND
+	{
+		ifactioncount 1
+		{
+		    ife peractor1 YES
+			ife weap YES
+			ifl targetdist 5120 ai AICYCLORDSHOOTENEMY
+			else ai AICYCLORDSEEKENEMY
+		}
+	}
+
+ends
+
+state cyclordrunenemystate
+
+  set target2 -1
+  // state strafechecklong
+  state facetarget
+  ifl targetdist 4096
+  ife peractor1 YES
+  ifrnd 8
+  ife weap YES
+  { 
+    ai AICYCLORDSHOOTENEMY
+    break
+  }
+  else
+  {
+    ifactioncount 4
+    {
+        resetactioncount
+        sound BOS1_WALK
+    }
+  }
+  ifcount 150
+    ai AICYCLORDSEEKENEMY
+	
+   ifnotmoving ifrnd 32 ai AICYCLORDJUMP
+ends
+
+state cyclordseekenemystate
+
+  // state strafechecklong
+  ifrnd 1
+    soundonce BOS1_ROAM
+  
+
+  ifactioncount 4
+  {
+    resetactioncount
+    sound BOS1_WALK
+  }
+  
+  ifl targetdist 3072
+    ife weap YES
+	ife peractor1 YES
+  {
+    set target2 -1
+    ai AICYCLORDSHOOTENEMY
+    break
+  }
+  
+  ifn target2 -1
+  {
+	ife target -1
+	ifrnd 128
+	{
+		ai AICYCLORDJUMP
+		move CYCLORDJUMPVELS geth getv
+		geta[target2].x mx
+		geta[target2].y my
+		sub mx sprite[].x
+		sub my sprite[].y
+		getangle angvar mx my
+		ifrnd 128 add angvar 512 else sub angvar 512
+		seta[].ang angvar
+		set target2 -1
+		break
+	}
+	else ife weap YES
+	ife peractor1 YES
+	ifl targetdist 10240
+	{
+		set target2 -1
+		ai AICYCLORDSHOOTENEMY
+		break
+	}
+	set target2 -1
+  }
+
+  ife peractor1 YES
+  ife weap YES
+    ifcount 40
+  {
+    ifrnd 32
+    {
+	  ifg targetdist 4096 ifl targetdist 8192
+	  ifrnd 32 ai AICYCLORDJUMP else
+	  ai AICYCLORDSHOOTENEMY	
+    }
+    else
+      ifg targetdist 3072
+        ifrnd 192
+    {
+      ifrnd 64
+	  ifactornotstayput
+	  {
+	    ifrnd 64 ifl targetdist 8192 ai AICYCLORDJUMP else
+        ai AICYCLORDRUNENEMY
+	  }
+      else
+        ai AICYCLORDLOBBED
+    }
+  }
+  ifai AICYCLORDSEEKENEMY ifnotmoving ifrnd 32 ai AICYCLORDJUMP
+
+ends
+
+state cyclorddyingstate
+  ifaction ACYCLORDDEAD
+  {
+	  set burning 0
+      strength 0
+      ifhitweapon
+        ifwasweapon RADIUSEXPLOSION
+      {
+        state randsquishsound
+        state standard_jibs
+		ifspritepal 0 state standard_jibs
+        killit
+      }
+      break
+  }
+  ifactioncount 5
+  {
+    iffloordistl 8
+      sound THUD
+    action ACYCLORDDEAD
+    cstat 0
+  }
+ends
+
+state cyclordlobbedstate
+  ifn cursed 0 ife target -1 { ai AICYCLORDSEEKENEMY break }
+  state facetarget
+  set target2 -1
+  ife peractor1 YES
+  {
+    ifactioncount 2
+    {
+		set mx sprite[].x
+		ifspritepal 0 add mx 768 else add mx 384
+		set angvar sprite[].ang
+
+		geta[].x saveit 
+		geta[].y saveit2
+		geta[].z countvar
+		set mz countvar
+		sub mz 4096
+		
+		rotatepoint sprite[].x sprite[].y mx sprite[].y angvar x y
+		seta[].x x 
+		seta[].y y
+		seta[].z mz
+		
+		ife target -1 set target player[].i
+		state calczdist
+		ldist temp THISACTOR target
+		ifvare temp 0 setvar temp 1
+		mulvar zdist 1024
+		sub zdist 2048
+		divvarvar zdist temp
+		ifn sprite[].pal 0 
+		{ 
+			setprojectile[BIGGRENADEPROJ].extra 50
+			setprojectile[BIGGRENADEPROJ].xrepeat 32
+			setprojectile[BIGGRENADEPROJ].yrepeat 32
+		}
+		ezshoot zdist BIGGRENADEPROJ
+		ifn sprite[].pal 0 
+		{ 
+			setprojectile[BIGGRENADEPROJ].extra 100
+			setprojectile[BIGGRENADEPROJ].xrepeat 48
+			setprojectile[BIGGRENADEPROJ].yrepeat 48
+		}
+		setav[RETURN].target target
+		ife target player[].i set target -1
+
+		seta[].x saveit
+		seta[].y saveit2
+		seta[].z countvar
+        resetactioncount
+        sound GRENSHOOT  
+    }
+    else
+      ifcount 64
+        ifrnd 16
+         ai AICYCLORDSEEKENEMY
+  }
+  else
+    ai AICYCLORDSEEKENEMY
+ends
+
+state cyclordshootenemy
+  set target2 -1
+  ifn cursed 0 ife target -1 { ai AICYCLORDSEEKENEMY break }
+  state facetarget
+  ife weap NO count 80
+  ifcount 72
+    ai AICYCLORDSEEKENEMY
+  else
+    ifaction ACYCLORDSHOOT
+      ifactioncount 2
+  {
+	espawn SOUNDMAKER
+	setactorvar[RETURN].peractor1 BOS1_ATTACK1
+
+	geta[].xrepeat initx
+	geta[].yrepeat inity
+	set x initx, div x 2, seta[].xrepeat x
+	set y inity, div y 2, add y 8, seta[].yrepeat y
+
+	geta[].x saveit
+	geta[].y saveit2
+	set mx sprite[].x
+	set angvar sprite[].ang
+	add angvar 384 ifspritepal 0 add mx 512 else add mx 320
+
+	rotatepoint sprite[].x sprite[].y mx sprite[].y angvar x y
+	seta[].x x seta[].y y
+	
+	ifn target -1
+	{
+		setprojectile[SLOWBULLET].workslike 36866
+		setprojectile[EXPLOSIVEBULLET].workslike 36866
+	}
+	
+	shoot SLOWBULLET
+	shoot SLOWBULLET
+	shoot SLOWBULLET
+	shoot SLOWBULLET
+	ifspritepal 0
+	{
+		shoot EXPLOSIVEBULLET
+		shoot EXPLOSIVEBULLET
+		shoot EXPLOSIVEBULLET
+	}
+	
+	ifn target -1
+	{
+		setprojectile[SLOWBULLET].workslike 32770
+		setprojectile[EXPLOSIVEBULLET].workslike 32770
+	}
+
+	seta[].x saveit
+	seta[].y saveit2
+
+	seta[].xrepeat initx
+	seta[].yrepeat inity
+
+    resetactioncount
+	
+  }
+ends
+
+state checkcyclordhitstate
+ 
+  ifrnd 2
+    spawn BLOODPOOL
+  ifdead
+  {
+    ifspritepal 0
+	{
+	  ife character 0
+      globalsound DUKE_TALKTOBOSSFALL
+	}
+    else
+    {
+	  ife character 0
+      ifrnd 64
+        globalsound DUKE_TALKTOBOSSFALL
+    }
+    
+    sound BOS1_DYING
+
+    addkills 1 add globalkills 1
+	state specialdeath
+    ai AICYCLORDDYING
+  }
+  else
+  ife htg5 -1
+  {
+    ifrnd 32
+    {
+      action CYCLORDFLINTCH
+      move 0
+    }
+	else
+	ifl fear 0
+	{
+	  action CYCLORDFLINTCH
+      move 0
+	}
+	else
+	ifrnd 16
+	ife peractor1 YES
+	{
+		ifrnd 48 ifl targetdist 8192 ai AICYCLORDJUMP else
+		ifg targetdist 4096 ifrnd 128
+		ai AICYCLORDLOBBED else
+		ai AICYCLORDSHOOTENEMY
+	}
+
+    soundonce BOS1_PAIN
+
+    debris SCRAP1 1
+    guts JIBS6 1
+  }
+ends
+
+state cyclordcode
+
+ifspritepal 17
+{
+	setactor[THISACTOR].ang command
+	action ACYCLORDSTAND
+	cstator 257
+	ifvarn lotag 0 
+	{
+		resetcount 
+		checkactivatormotion lotag
+		ifvare RETURN 1 setvar lotag 0
+	    fall 
+		break
+	}
+	fall
+	soundonce CRUMBLE
+	debris SCRAP2 1
+	debris SCRAP3 1
+	debris SCRAP4 1
+	debris SCRAP5 1
+	strength 3000
+	setactor[THISACTOR].htextra -1
+	ifcount 26
+	{
+		setvar command 0
+		spritepal 21
+		action 0
+	}
+	else break
+}
+
+  ifai 0
+  {
+	globalsound BOS1_RECOG
+    cstator 257
+    ifspritepal 0
+	{
+      ai AICYCLORDRUNENEMY
+	  sizeat 96 80
+	  clipdist 160
+	  geta[].htflags temp
+	  orvar temp 1048576
+	  seta[].htflags temp
+	  set gold GOLD6
+	}
+    else
+    {
+      strength 3000
+	  sizeat 48 40
+      ai AICYCLORDSHOOTENEMY
+	  clipdist 80
+	  set gold GOLD5
+    }
+  }
+  
+  ifai AICYCLORDDYING
+  {
+    state cyclorddyingstate break
+  }
+  
+  state monsterai 
+  ifn target -1 
+  {
+	set targetdist xydist2
+	set peractor1 1
+	set weap 1 // target is alive
+  }	
+  else
+  {
+    ife cursed 0
+	findplayer targetdist
+	else set targetdist 99999
+	
+	ife cursed 0
+	ifcansee set peractor1 YES else set peractor1 NO
+	ifp palive set weap YES else set weap NO
+  }
+  
+  ifspritepal 0
+	ife bossid -1 
+	ifpdistl 16384
+	{
+		set bossid THISACTOR
+		starttrackslot 1 1
+		set music2 1
+	}
+  
+  ifaction CYCLORDFLINTCH
+  {
+    ifl fear 0 resetactioncount
+    ifactioncount 3
+	{
+		ife weap YES
+		ife peractor1 YES
+		ai AICYCLORDSHOOTENEMY
+		else
+		ai AICYCLORDSEEKENEMY
+	}
+  }
+  else
+    ifai AICYCLORDSEEKENEMY
+      state cyclordseekenemystate
+  else
+    ifai AICYCLORDRUNENEMY
+      state cyclordrunenemystate
+  else
+    ifai AICYCLORDJUMP
+	  state cyclordjumpstate
+  else
+    ifai AICYCLORDSHOOTENEMY
+      state cyclordshootenemy
+  else
+    ifai AICYCLORDLOBBED
+      state cyclordlobbedstate
+
+
+  
+ 
+    ifhitweapon
+      state checkcyclordhitstate
+    else
+      ife weap YES
+        ifspritepal 0
+          ifl targetdist 1280
+    {
+	  ife target -1
+	  {
+		  ife invulntime 0
+		  ife cursed 0
+		  ifn swordtarg THISACTOR
+		  {
+			  setvar tempd -1000 
+			  state directdamage 
+			  palfrom 63 63
+		  }
+	  }
+	  else
+	  {
+		setactor[target].htextra 20
+		setactor[target].htpicnum SHOTSPARK1
+		setactor[target].htowner THISACTOR
+	  }
+    }
+  
+ends
+
+useractor enemy CYCLORD 8000 fall state cyclordcode enda
+useractor enemystayput CYCLORDSTAYPUT 8000
+
+ cactor CYCLORD
+ ifai 0
+  {
+	globalsound BOS1_RECOG
+    cstator 257
+	ifg SKILL 3 state randomaura
+    ifspritepal 0
+	{
+      ai AICYCLORDSHOOTENEMY
+	  sizeat 96 80
+	  clipdist 160
+	  geta[].htflags temp
+	  orvar temp 1048576
+	  seta[].htflags temp
+	  set gold GOLD6
+	}
+    else
+    {
+      strength 3000
+	  sizeat 48 40
+      ai AICYCLORDSHOOTENEMY
+	  clipdist 80
+	  set gold GOLD5
+    }
+  }
+
+enda
