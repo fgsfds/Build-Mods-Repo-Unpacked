@@ -1,0 +1,522 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+
+--------------------------------------------------------------------------------
+*/
+
+damageeventtile MAARTEN
+
+// Cutscene maartn
+spriteshadow 26281
+
+useractor notenemy 26281
+	sizeat 24 24
+	action LESANGD
+	state hide_cutscene
+enda
+
+// Actual maartn
+action A_MAARTEN_IDLE 0 1 5 1 8
+action A_MAARTEN_SEEK 5 4 5 1 12
+action A_MAARTEN_SEEK_R 5 4 5 -1 12
+action A_MAARTEN_MELEE 25 3 5 1 12
+action A_MAARTEN_SPELLPREP 40 1 5 1 12
+action A_MAARTEN_SPELLFIRE_A 45 1 5 1 12 // priest blast
+action A_MAARTEN_SPELLFIRE_B 45 1 5 1 12 // frost
+action A_MAARTEN_SPELLFIRE_C 45 1 5 1 12 // paper tornado
+//action A_MAARTEN_DASH 55 1 5 1 4 // Maybe
+action A_MAARTEN_KICK 60 2 5 1 24
+action A_MAARTEN_PAIN 115
+action A_MAARTEN_DYING 115 6 1 1 12 // not actually dying but whatever
+action A_MAARTEN_DEAD 120
+action A_MAARTEN_TELEPORT 40 1 5 1 8 // Go awayyyy
+
+move M_MAARTEN_WALK 160
+move M_MAARTEN_WALK_R -160
+//move M_MAARTEN_DASH 280
+
+defstate maarten_selectattack
+	set INTERNALCOUNT 0
+	set INTERNALCOUNT_2 0
+
+	ldist xydist THISACTOR my_target
+
+	ifl xydist 1024
+		action A_MAARTEN_MELEE
+	else ifg xydist 2048
+	{
+		ifrnd 16
+		  ife enemy_cooldown1 0
+			action A_MAARTEN_SPELLPREP
+	}
+ends
+
+defstate maarten_seek
+	state checkfortarget
+
+	add INTERNALCOUNT 1
+
+	ifge INTERNALCOUNT 9
+	{
+		state npc_footsteps
+		set INTERNALCOUNT 0
+	}
+
+	ifn my_target -1
+		state maarten_selectattack
+ends
+
+defstate maarten_meleeattack
+	move STOP
+
+	state fronttowardstarget
+
+	ifactioncount 3
+	{
+		state checkfortarget
+
+		set INTERNALCOUNT 0
+		ife my_target -1
+			action A_MAARTEN_SEEK
+		else
+		{
+			ldist temp THISACTOR my_target
+			ifg temp 1024
+				action A_MAARTEN_SEEK
+		}
+
+		resetactioncount
+	}
+	else ifactioncount 2
+	{
+		ife INTERNALCOUNT 0
+		{
+			// player is parrying
+			ifn SWORD_BLOCK 0
+			  ifp pfacing
+			{
+				shoot SPARK shoot SPARK shoot SPARK shoot SPARK shoot SPARK
+				sub p_stamina 40
+				wackplayer
+				sound SWORD_CLASH
+			}
+			else
+			{
+				setprojectile[11742].extra 70
+				set PROJECTILE_TO_SHOOT 11742
+				set PROJECTILE_FIRING_SOUND BERSERK_SWING
+				state sang_enemyShootProjectile
+				setprojectile[11742].extra 35
+			}
+		}
+
+		add INTERNALCOUNT 1
+	}
+ends
+
+useractor enemy MAARTEN
+	fall
+
+	ifaction A_MAARTEN_SPELLFIRE_A nullop
+	else ifaction A_MAARTEN_SPELLFIRE_B nullop
+	else ifaction A_MAARTEN_SPELLFIRE_C nullop
+	else ifaction A_MAARTEN_SPELLPREP nullop
+	else ifaction A_MAARTEN_IDLE nullop
+	else
+	{
+		ifg enemy_cooldown1 0
+			sub enemy_cooldown1 1
+
+		ifg enemy_cooldown2 0
+			sub enemy_cooldown2 1
+	}
+
+	ifaction 0
+	{
+		// be invincible while not yet activated (prevent sniping from afar)
+		seta[].htextra -1
+
+		geta[].pal PALSAVED
+
+		cstat 257
+		sizeat 24 24
+
+		state monst_glow
+		set boss_stage 1
+
+		set enemy_cooldown1 150 // cooldown 1 = spell attack priest blast or frost
+		set enemy_cooldown2 300 // cooldown 2 = spell attack paper tornado
+
+		action A_MAARTEN_IDLE
+	}
+	else ifaction A_MAARTEN_IDLE
+	{
+		// be invincible while not yet activated (prevent sniping from afar)
+		seta[].htextra -1
+		ifn HITAGSAVED 0
+		{
+			checkactivatormotion HITAGSAVED
+			ife RETURN 1 set HITAGSAVED 0
+		}
+		else ife HITAGSAVED 0
+		{
+			state checkfortarget
+			ifn my_target -1
+			{
+				ife PALSAVED 3
+					strength 3000
+				else
+					strength 5000
+
+				set CURBOSS THISACTOR
+				action A_MAARTEN_SEEK
+			}
+		}
+	}
+	else ifaction A_MAARTEN_SEEK
+	{
+		set dazed_count 0
+		ifmove M_MAARTEN_WALK nullop
+		else move M_MAARTEN_WALK geth
+
+		state maarten_seek
+	}
+	else ifaction A_MAARTEN_SEEK_R
+	{
+		set dazed_count 0
+		ifmove M_MAARTEN_WALK_R nullop
+		else move M_MAARTEN_WALK_R geth
+
+		state maarten_seek
+	}
+	else ifaction A_MAARTEN_MELEE
+	{
+		state maarten_meleeattack
+	}
+	else ifaction A_MAARTEN_KICK
+	{
+	ifactioncount 2 action A_MAARTEN_SEEK
+	else
+	ifactioncount 1
+		{
+		ifpdistl 768
+			{
+			state setknockback
+			wackplayer
+			sound BOSS_WHACK
+			palfrom 20 30 0 0
+			addphealth -5
+			}
+		}
+	}
+	else ifaction A_MAARTEN_SPELLPREP
+	{
+		move STOP
+
+		state fronttowardstarget
+
+		add INTERNALCOUNT 1
+
+		ife INTERNALCOUNT 10
+		{
+			set INTERNALCOUNT 0
+
+			set temp 0
+
+			ife boss_stage 2
+			{
+				ifrnd 32
+				  ife enemy_cooldown2 0
+					  set temp 3
+				else ifrnd 128
+					set temp 2
+				else ifrnd 128
+					set temp 1
+			}
+			else ife boss_stage 1
+			{
+				ifrnd 64
+					set temp 2
+				else ifrnd 128
+					set temp 1
+			}
+
+			ife temp 0
+				set temp 1
+
+			ife temp 3
+				action A_MAARTEN_SPELLFIRE_C
+			else ife temp 2
+				action A_MAARTEN_SPELLFIRE_B
+			else ife temp 1
+				action A_MAARTEN_SPELLFIRE_A
+
+		}
+	}
+	else ifaction A_MAARTEN_SPELLFIRE_A
+	{
+		set enemy_cooldown1 50
+
+		move STOP
+
+		state fronttowardstarget
+
+		// Shoot some priest blasts
+		set temp INTERNALCOUNT
+		mod temp 4
+
+		ife temp 0
+		{
+			setprojectile[PRIEST_BLAST].offset -50
+			set PROJECTILE_TO_SHOOT PRIEST_BLAST
+			set PROJECTILE_FIRING_SOUND -1
+			set PROJECTILE_DISABLEAUTOAIM 1
+			state sang_enemyShootProjectile
+
+			// set invisible while we correct height
+			seta[RETURN].cstat 32768
+
+			geta[RETURN].z z
+			sub z 2048
+			seta[RETURN].z z
+
+			seta[RETURN].cstat 130
+
+			setprojectile[PRIEST_BLAST].offset 14354
+
+			// play sounds correctly
+			espawn SOUND_SPRITE setav[RETURN].temp SUNSTAFF_FIRE
+		}
+
+		add INTERNALCOUNT 1
+
+		ife INTERNALCOUNT 80
+			action A_MAARTEN_SEEK
+	}
+	else ifaction A_MAARTEN_SPELLFIRE_B
+	{
+		set enemy_cooldown1 50
+
+		move STOP
+
+		state fronttowardstarget
+
+		// shoot 7160
+		ife INTERNALCOUNT 0
+		{
+			setprojectile[7160].offset -50
+			setprojectile[7160].extra 50
+			set PROJECTILE_TO_SHOOT 7160
+			set PROJECTILE_FIRING_SOUND SVD_ICE
+			set PROJECTILE_DISABLEAUTOAIM 1
+			state sang_enemyShootProjectile
+
+			// set invisible while we correct height
+			seta[RETURN].cstat 32768
+
+			geta[RETURN].z z
+			sub z 2048
+			seta[RETURN].z z
+
+			seta[RETURN].cstat 130
+
+			setprojectile[7160].offset 14354
+			setprojectile[7160].extra 250
+		}
+
+		add INTERNALCOUNT 1
+
+		ife INTERNALCOUNT 40
+			action A_MAARTEN_SEEK
+	}
+	else ifaction A_MAARTEN_SPELLFIRE_C
+	{
+		set enemy_cooldown1 70
+		ife SKILL_LEVEL 1 set enemy_cooldown2 350
+		else ife SKILL_LEVEL 2 set enemy_cooldown2 300
+		else ife SKILL_LEVEL 3 set enemy_cooldown2 200
+		else ife SKILL_LEVEL 4 set enemy_cooldown2 150
+		else ife SKILL_LEVEL 5 set enemy_cooldown2 50
+
+
+		move STOP
+
+		state fronttowardstarget
+
+		// shoot paper tornado
+		ife INTERNALCOUNT 0
+		{
+			state getxycoords_infront_player
+
+			ife RETURN 0
+			{
+				espawn 29298
+				seta[RETURN].x FRONT_PLAYER_X
+				seta[RETURN].y FRONT_PLAYER_Y
+				setav[RETURN].CALCZ_TARGET_OFFSET -2500
+				set FLOORZ_ACTOR RETURN
+				state setfloorzforactor
+			}
+		}
+
+		add INTERNALCOUNT 1
+
+		ife INTERNALCOUNT 40
+			action A_MAARTEN_SEEK
+	}
+	else ifaction A_MAARTEN_PAIN
+	{
+		sub PAIN_AMOUNT 1
+		move STOP
+		ife PAIN_AMOUNT 0
+		{
+			set dazed_count 0
+			ifdead action A_MAARTEN_DYING
+			else ifpdistl 768 { sound KICK_SWING action A_MAARTEN_KICK } else action A_MAARTEN_SEEK
+		}
+	}
+	else ifaction A_MAARTEN_DYING
+	{
+		move STOP
+
+		strength 0
+
+		ifactioncount 6
+		{
+			state BODY_FALL_NOISES
+			set INTERNALCOUNT 0
+			set music_fade 1
+			set music_vol 100
+			action A_MAARTEN_DEAD
+		}
+	}
+	else ifaction A_MAARTEN_DEAD
+	{
+		move STOP
+		add INTERNALCOUNT 1
+
+		ifge INTERNALCOUNT 150
+		ifge EXTRASAVED 0
+		{
+			set music_fade 0
+			set music_vol 100
+			state fade_out_white
+			operateactivators EXTRASAVED THISACTOR
+			set EXTRASAVED -1
+		}
+	}
+	else ifaction A_MAARTEN_TELEPORT
+	{
+		set dazed_count 0
+		move STOP
+
+		set temp INTERNALCOUNT
+		mod temp 2
+
+		ife temp 0
+			sizeto 1 24
+
+		ife sprite[].xrepeat 1
+		{
+
+			operateactivators EXTRASAVED THISACTOR
+			set EXTRASAVED -1
+			killit
+		}
+
+		add INTERNALCOUNT 1
+	}
+
+	// don't get killed by own projectile pls
+	ife sprite[].htpicnum 29076
+		seta[].htextra -1
+
+	ifaction A_MAARTEN_TELEPORT
+	  ifg sprite[].htextra -1
+		seta[].htextra -1
+
+	ifhitweapon
+	{
+		guts JIBS6 1
+		state bullet_data
+		state melee_hit_effects
+		state random_wall_jibs
+
+
+		ifaction A_MAARTEN_MELEE
+		 ifactioncount 1
+		  ifwasweapon 4964 // shield bash?
+			{
+			state spawn_dazed
+			sound DAZED
+			ife SKILL_LEVEL 1 set dazed_count 120
+			ife SKILL_LEVEL 2 set dazed_count 90
+			ife SKILL_LEVEL 3 set dazed_count 75
+			ife SKILL_LEVEL 4 set dazed_count 60
+			ife SKILL_LEVEL 5 set dazed_count 45
+			set PAIN_AMOUNT dazed_count
+			}
+
+		ifdead
+		{
+			addkills 1
+			state rf
+
+			action A_MAARTEN_DYING
+		}
+		else
+		{
+			geta[].extra temp
+
+			ife PALSAVED 3
+			{
+				ifle temp 500
+				{
+					cstat 0
+					set INTERNALCOUNT 0
+					set CURBOSS -1
+					globalsound DEMON_TELEPORT
+					espawn PENTAGRAM
+					spawn BURNING2
+					seta[RETURN].z sector[].floorz
+					action A_MAARTEN_TELEPORT
+				}
+			}
+			else ifle temp 3000
+				set boss_stage 2
+
+			ifaction A_MAARTEN_TELEPORT nullop
+			// don't go to pain during spellfire animation
+			else ifaction A_MAARTEN_SPELLFIRE_A nullop
+			else ifaction A_MAARTEN_SPELLFIRE_B nullop
+			else ifaction A_MAARTEN_SPELLFIRE_C nullop
+			else ifrnd 32 action A_MAARTEN_SPELLPREP
+			else ifg PAIN_AMOUNT 0 action A_MAARTEN_PAIN
+			else ifrnd 32 { state PAIN_SKILL_LEVELADJUST action A_MAARTEN_PAIN }
+			else ifaction A_MAARTEN_IDLE { state PAIN_SKILL_LEVELADJUST action A_MAARTEN_PAIN }
+		}
+	}
+enda

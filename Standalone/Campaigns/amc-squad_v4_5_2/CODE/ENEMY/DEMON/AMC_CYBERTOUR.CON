@@ -1,0 +1,293 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+
+--------------------------------------------------------------------------------
+*/
+
+damageeventtile CYBERTOUR
+
+action A_CYBERT_IDLE 0 1 5 1 20
+action A_CYBERT_DEAD 49 1 1 1 10
+action A_CYBERT_DYING 45 5 1 1 20
+action A_CYBERT_FREEZE 45 1 5 1 10
+action A_CYBERT_PAIN 45 1 1 1 10
+action A_CYBERT_SEEK 0 4 5 1 16
+action A_CYBERT_FIRE 40 1 5 1 4
+action A_CYBERT_PREPARE 35 1 5 1 12
+action A_CYBERT_SCRATCH 20 3 5 1 15
+
+move M_CYBERT_WALK 120
+
+useractor enemystayput CYBERTOURSTAYPUT 700
+	state monst_glow
+	cactor CYBERTOUR
+enda
+
+useractor enemy CYBERTOUR 700
+	fall
+
+	ifaction 0
+	{
+		cstator 257
+		set actor_type TYPE_ARMOURED
+		ife actor_pal 0 geta[].pal actor_pal
+		ife actor_pal 24 { spritepal 0 sizeat 34 34 strength 1000 }
+		else { sizeat 28 28 strength 700 }
+		state monst_glow
+		espawn SHOOTME seta[RETURN].pal 1
+		spriteflags NORMAL_ENEMY
+		action A_CYBERT_IDLE
+	}
+
+	// ignore damage from self
+	ifg sprite[].htextra 0
+	  ife sprite[].htowner THISACTOR
+		seta[].htextra -1
+
+	ifaction A_CYBERT_IDLE
+	{
+		move STOP
+		state checkfortarget
+
+		ifn my_target -1
+		{
+			globalsound CYBERT_ALERT
+			action A_CYBERT_SEEK
+		}
+	}
+	else ifaction A_CYBERT_DEAD
+	{
+		move STOP
+		ifhitweapon
+		{
+		  ifwasweapon RADIUSEXPLOSION
+		  {
+		    shoot TERMLEGPART1
+			shoot TERMLEGPART2
+			state squish_sounds
+			state monst_body_jibs
+			killit
+		  }
+		  break
+		}
+	}
+	else ifaction A_CYBERT_DYING
+	{
+		move STOP
+		strength 0
+
+		add INTERNALCOUNT 1
+		ifactioncount 5 action A_CYBERT_DEAD
+		ife INTERNALCOUNT 1 sound CYBERT_DIE
+		ife INTERNALCOUNT 15
+		{
+			state random_wall_jibs
+			flash
+			sound HUGE_GIB
+			shoot SPARK
+			shoot SPARK
+			shoot SPARK
+			spawn BIG_EXPLOSION
+			sound RPG_EXPLODE
+			spawn BIG_BLOOD_EXE
+			spritepal 27
+			ife INVASION 1 nullop
+			else
+			{
+				state standard_jibs
+				state monst_body_jibs
+				state monst_body_jibs
+				shoot TERMLEGPART1
+				shoot TERMLEGPART2
+				shoot TERMLEGPART3
+				shoot TERMLEGPART3
+			}
+			debris SCRAP1 6
+			guts JIBS6 2
+			getlastpal
+		}
+	}
+	else ifaction A_CYBERT_FREEZE
+		state frozen_code
+	else ifaction A_CYBERT_PAIN
+	{
+		move STOP
+		sub PAIN_AMOUNT 2
+		ifl PAIN_AMOUNT 1
+			action A_CYBERT_SEEK
+	}
+	else ifaction A_CYBERT_SEEK
+	{
+		ifmove M_CYBERT_WALK nullop
+		else move M_CYBERT_WALK geth
+
+		ifcount 13 { sound CYBERT_WALK resetcount }
+
+		state checkfortarget
+		ifn my_target -1
+		{
+			dist temp THISACTOR my_target
+			ifl temp 1536
+				action A_CYBERT_SCRATCH
+			else
+			{
+				state SKILL_SHOOT_LEVELADJUST
+				ifl RANDOM_CHANCE SKILLCHANCE
+					{
+					// decide whether or not to shoot a homing missile
+					state SKILL_SHOOT_LEVELADJUST
+					set enemy_attack 0
+					ifl RANDOM_CHANCE SKILLCHANCE { espawn WARN_GLINT geta[RETURN].z temp2 sub temp2 4096 seta[RETURN].z temp2 state SPAWN_IN_FRONT sound CYBERT_ALERT set enemy_attack 1 }
+
+					ifstrength 100 { set enemy_attack 1 espawn WARN_GLINT geta[RETURN].z temp2 sub temp2 4096 seta[RETURN].z temp2 state SPAWN_IN_FRONT }
+					ife actor_pal 24 { set enemy_attack 1 espawn WARN_GLINT geta[RETURN].z temp2 sub temp2 4096 seta[RETURN].z temp2 state SPAWN_IN_FRONT }
+					action A_CYBERT_PREPARE
+					}
+			}
+		}
+	}
+	else ifaction A_CYBERT_FIRE
+	{
+		move STOP
+
+		state checkfortarget
+
+		ife my_target -1
+			action A_CYBERT_SEEK
+		else
+		{
+			state fronttowardstarget
+
+			ifactioncount 1 action A_CYBERT_SEEK else
+			ifactioncount 0
+			{
+				ife enemy_attack 1
+				  ife my_target PLAYER_IDENTITY
+			    {
+					sound CYBERT_FIRE
+					shoot HOMING_MISSILE
+				}
+				else
+				{
+					set PROJECTILE_FIRING_SOUND CYBERT_FIRE
+					set PROJECTILE_TO_SHOOT MICRO_MISSILE
+					state sang_enemyShootProjectile
+
+					ifn my_target PLAYER_IDENTITY
+						setthisprojectile[RETURN].offset -512
+				}
+				flash
+
+				ife PERFMODE 1
+				 ifcansee
+				{
+					set gunsmoke_z 8192
+					set gunsmoke_angle 356
+					state spawn_gunsmoke_z
+					set gunsmoke_z 8192
+					espawn 16114
+					seta[RETURN].pal 2
+					state spawn_muzzleflash
+				}
+
+				set enemy_attack 0
+			}
+		}
+	}
+	else ifaction A_CYBERT_PREPARE
+	{
+		move STOP
+		state checkfortarget
+		ife my_target -1
+			action A_CYBERT_SEEK
+		else
+		{
+			state fronttowardstarget
+			ldist temp THISACTOR my_target
+			ifl temp 1536
+				action A_CYBERT_SCRATCH
+			else ifactioncount 8
+				action A_CYBERT_FIRE
+		}
+	}
+	else ifaction A_CYBERT_SCRATCH
+	{
+		move STOP
+
+		state checkfortarget
+
+		ife my_target -1
+			action A_CYBERT_SEEK
+		else
+		{
+			ldist temp THISACTOR my_target
+			ifg temp 1536
+				action A_CYBERT_SEEK
+			else
+			{
+				state fronttowardstarget
+
+				ifactioncount 3
+				{
+					soundonce SCRATCHS
+
+					// if not aiming at player, manipulate noaim
+					ifn my_target PLAYER_IDENTITY
+						setprojectile[17849].WORKSLIKE 2134082
+					else
+						setprojectile[17849].WORKSLIKE 2129986
+
+					shoot 17849
+					setprojectile[17849].WORKSLIKE 2129986
+
+					resetactioncount
+				}
+			}
+		}
+	}
+
+	ifhitweapon
+	{
+		state NEWGUNEFFECTS
+		guts JIBS6 1
+		state random_wall_jibs
+		ifdead
+		{
+			ifg ice_damage 0 { spritepal 1 strength 1 sound SOMETHINGFROZE action A_CYBERT_FREEZE }
+			else
+			{
+				state rf
+
+				addkills 1
+				action A_CYBERT_DYING
+			}
+		}
+		else ifwasweapon RPG  seta[].xvel 5
+		else ifg PAIN_AMOUNT 0 ifand PROJ_UDATA 32 action A_CYBERT_PAIN
+		else ifrnd 4 { state PAIN_SKILL_LEVELADJUST action A_CYBERT_PAIN }
+		else ifaction A_CYBERT_IDLE { state PAIN_SKILL_LEVELADJUST action A_CYBERT_PAIN }
+	}
+enda

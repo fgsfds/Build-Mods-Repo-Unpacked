@@ -1,0 +1,772 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Based on the Duke3D CON files by 3DRealms, released under the GPL2 at:
+https://github.com/videogamepreservation/dukenukem3d/blob/ef609159bd352985a0c63734a11241d86c873fe5/testdata/GAME.CON
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+
+--------------------------------------------------------------------------------
+*/
+
+
+// ##############################################################################################################################################################
+// SPECIAL FORCES PIG
+// ##############################################################################################################################################################
+
+damageeventtile PIG_SF
+damageeventtile PIG_SF_DIVE
+damageeventtile PIG_SF_STAYPUT
+
+action APIG_SF_WALK     0  4 5 1 20
+action APIG_SF_RUN      0  4 5 1 11
+action APIG_SF_SHOOT    30 2 5 1 22
+action APIG_SF_SHOOT2    30 2 5 1 22
+action APIG_SF_COCK     20 2 5 1 20
+
+action APIG_SF_IDLE	    30 1 5 1 1
+action APIG_SF_STAND    30 1 5 1 1
+action APIG_SF_DIVE     40 2 5 1 40
+action APIG_SF_DIVESHOOT  45 2 5 1 58
+action APIG_SF_DIVESHOOT2  45 2 5 1 22
+
+action APIG_SF_HIT      61 1 1 1 10
+
+action APIG_SF_DYING    55 5 1 1 15
+action APIG_SF_DEAD     60 1 1 1 1
+action APIG_SF_DEAD2    93 1 1 1 1
+action APIG_SF_DEAD2_FL 94 1 1 1 10
+action APIG_SF_FROZEN    62 1 1
+action APIG_SF_GROW      0
+
+action APIG_SF_HEADDIE      65 5 1 1 15
+action APIG_SF_HEADDEAD      69 1 1 1 1
+action APIG_SF_BUTT  63 2 1 1 40
+
+ai AIPIG_SF_SEEKENEMY APIG_SF_WALK PIGWALKVELS seekplayer
+ai AIPIG_SF_SHOOTENEMY APIG_SF_SHOOT STOP faceplayer
+ai AIPIG_SF_FLEEENEMY APIG_SF_WALK PIGWALKVELS fleeenemy
+ai AIPIG_SF_SHOOT APIG_SF_SHOOT STOP faceplayer
+ai AIPIG_SF_SHOOT2 APIG_SF_SHOOT2 STOP faceplayer
+ai AIPIG_SF_DODGE APIG_SF_RUN PIGRUNVELS dodgebullet
+ai AIPIG_SF_CHARGE APIG_SF_RUN PIGRUNVELS seekplayer
+ai AIPIG_SF_DIVING APIG_SF_DIVE STOP faceplayer
+ai AIPIG_SF_DYING APIG_SF_DYING STOP faceplayer
+ai AIPIG_SF_SHRINK APIG_SF_WALK SHRUNKVELS fleeenemy
+ai AIPIG_SF_GROW APIG_SF_GROW STOP faceplayerslow
+ai AIPIG_SF_HIT APIG_SF_HIT STOP faceplayer
+
+ai AIPIG_SF_HDYING APIG_SF_HEADDIE STOP faceplayer
+ai AIPIG_SF_BUTT APIG_SF_BUTT STOP faceplayer
+ai AIPIG_SF_DEADBUTT APIG_SF_BUTT STOP faceplayer
+
+defstate pigcop_sf_buttstate
+ifcount 10
+{
+state setknockback
+wackplayer
+sound PIGBUTT
+palfrom 20 30 0 0
+addphealth -15
+resetcount
+}
+ifrnd 32 { sound PIG_ROAM3 }
+ifpdistg 1024 { ai AIPIG_SF_SHOOTENEMY } else
+ifp pdead { ifp palive { ai AIPIG_SF_SEEKENEMY } }
+ends
+
+defstate pigcop_sf_deadbuttstate
+ifcount 20
+{
+wackplayer
+sound PIGBUTT
+palfrom 20 30 0 0
+resetcount
+}
+ifrnd 32 sound PIG_ROAM3
+ifp pdead { ifp palive { ai AIPIG_SF_SEEKENEMY } }
+ends
+
+defstate pig_sf_seekenemystate
+  ifp pdead
+   ifpdistl 812
+    {
+	ai AIPIG_SF_DEADBUTT
+   }
+  else
+  ifai AIPIG_SF_CHARGE
+  {
+  state correctcansee
+    ife sightvar YES
+	{
+		ifpdistl 3084
+		{
+		  ifnotmoving
+			ai AIPIG_SF_SEEKENEMY
+		  else
+			ai AIPIG_SF_DIVING
+		}
+		else
+		{
+		state SKILL_SHOOT_LEVELADJUST
+		ifl RANDOM_CHANCE SKILLCHANCE ai AIPIG_SF_SHOOTENEMY
+		}
+	}
+  }
+  else iffloordistl 32
+  {
+    ifpdistg 4096
+    {
+	state SKILL_SHOOT_LEVELADJUST
+      ifl RANDOM_CHANCE SKILLCHANCE ai AIPIG_SF_SHOOTENEMY else ai AIPIG_SF_CHARGE
+    }
+    ifrnd 8
+    {
+      ifbulletnear
+        ai AIPIG_SF_DODGE
+    }
+  }
+state correctcansee
+  ifrnd 128
+    ife sightvar YES
+  {
+    ifai AIPIG_SF_DODGE
+    {
+      ifcount 32
+        ifrnd 128 ai AIPIG_SF_CHARGE else ai AIPIG_SF_SHOOTENEMY
+          break
+    }
+    iffloordistl 32
+    {
+      ifpdistl 1024
+        ifp palive
+		  {
+		  state check_actor_hitscan
+			ife hitsprite PLAYER_IDENTITY
+	      ai AIPIG_SF_BUTT
+		  }
+      ifcount 24
+      {
+        ifrnd 32
+          ifp palive
+        {
+		state SKILL_SHOOT_LEVELADJUST
+		  ifl RANDOM_CHANCE SKILLCHANCE ai AIPIG_SF_SHOOTENEMY
+          else
+            ai AIPIG_SF_DIVING
+          break
+        }
+      }
+    }
+  }
+ends
+
+defstate pigcop_sf_shoot_stuff
+		 ifspritepal 13
+			{
+			sound EXPL_SHELL_FIRE
+			shoot 9359
+			shoot 9359
+			shoot 9359
+			shoot 9359
+			shoot 9359
+			}
+			else
+			{
+			sound AA12_FIRE
+			set PROJECTILE_TO_SHOOT ENEMY_SHOTGUN
+			set PROJECTILE_FIRING_SOUND 4
+			state sang_enemyShootProjectile
+			state sang_enemyShootProjectile
+			state sang_enemyShootProjectile
+			state sang_enemyShootProjectile
+			state sang_enemyShootProjectile
+			}
+			ife PERFMODE 1
+		     	ifcansee
+				{
+				set gunsmoke_z 7844
+				set gunsmoke_angle 350
+				state spawn_gunsmoke_z
+				ifaction APIG_SF_DIVESHOOT set gunsmoke_z 512
+				else set gunsmoke_z 4644
+				espawn 16114
+				state spawn_muzzleflash
+				}
+ends
+
+
+
+defstate pig_sf_shootenemystate
+state checkfortarget
+
+ifn my_target -1
+  {
+  ifrnd 8 state pigcop_attack_voice
+  state fronttowardstarget
+      ifcount 6 nullop
+      else
+        ifcount 5
+	    state pigcop_sf_shoot_stuff
+      ifcount 12 nullop
+      else
+        ifcount 11
+	      shoot 3761
+      ifcount 18 nullop
+      else
+        ifcount 17
+		state pigcop_sf_shoot_stuff
+      ifcount 24 nullop
+      else
+        ifcount 23
+			shoot 3761
+      ifcount 30 nullop
+      else
+        ifcount 29
+		state pigcop_sf_shoot_stuff
+      ifcount 36 nullop
+      else
+        ifcount 35
+			shoot 3761
+      ifcount 42 nullop
+      else
+        ifcount 41
+		state pigcop_sf_shoot_stuff
+      ifcount 48 nullop
+      else
+        ifcount 47
+      {
+	  	shoot 3761
+      ifrnd 64
+        resetcount
+      else
+		  {
+			ifpdistl 768
+			  ai AIPIG_SF_FLEEENEMY
+			else
+			  ai AIPIG_SF_SEEKENEMY
+		  }
+      }
+
+    ifaction APIG_SF_COCK
+      ifactioncount 2
+        action APIG_SF_SHOOT
+  }
+  else
+    ai AIPIG_SF_SEEKENEMY
+ends
+
+defstate pig_sf_fleeenemystate
+  ifactioncount 8
+    ai AIPIG_SF_SEEKENEMY
+  else
+    ifnotmoving
+      ai AIPIG_SF_SEEKENEMY
+ends
+
+defstate pig_sf_divestate
+  ifaction APIG_SF_DIVESHOOT
+  {
+  state checkfortarget
+  sizeat 28 16
+    ifn my_target -1
+    {
+      ifcount 12 nullop
+      else
+        ifcount 11
+      {
+	    state pigcop_sf_shoot_stuff
+      }
+      ifcount 25 nullop
+      else
+        ifcount 24
+	   {
+	      ifspritepal 13 shoot EXSHELL else shoot 3761
+          sound SHOTGUN_COCK2
+		}
+      ifcount 48 nullop
+      else
+        ifcount 47
+      {
+		state pigcop_sf_shoot_stuff
+      }
+      ifcount 60 nullop
+      else
+        ifcount 59
+      {
+        sound SHOTGUN_COCK2
+	  	   ifspritepal 13 shoot EXSHELL else shoot 3761
+        ifgapzl 32
+          ai AIPIG_SF_DIVING
+        else
+        {
+		sizeat 28 28
+          ifpdistl 4096
+            ai AIPIG_SF_FLEEENEMY
+          else
+            ai AIPIG_SF_SEEKENEMY
+        }
+      }
+    }
+    else
+	 {
+      ifgapzl 32
+        ai AIPIG_SF_DIVING
+      else
+        ai AIPIG_SF_SEEKENEMY
+	 sizeat 28 28
+	}
+  }
+  else
+    ifactioncount 2
+    ifp palive
+    {
+	sizeat 28 16
+      resetcount
+      action APIG_SF_DIVESHOOT
+    }
+ends
+
+defstate pig_sf_divestate
+  ifaction APIGDIVESHOOT2
+  {
+  sizeat 28 16
+  state correctcansee
+    ife sightvar YES
+    {
+      ifcount 6 nullop
+      else
+        ifcount 5
+	    state pigcop_sf_shoot_stuff
+      ifcount 12 nullop
+      else
+        ifcount 11
+	      shoot 3761
+      ifcount 18 nullop
+      else
+        ifcount 17
+		state pigcop_sf_shoot_stuff
+      ifcount 24 nullop
+      else
+        ifcount 23
+			shoot 3761
+      ifcount 30 nullop
+      else
+        ifcount 29
+		state pigcop_sf_shoot_stuff
+      ifcount 36 nullop
+      else
+        ifcount 35
+			shoot 3761
+      ifcount 42 nullop
+      else
+        ifcount 41
+		state pigcop_sf_shoot_stuff
+      ifcount 48 nullop
+      else
+        ifcount 47
+      {
+	  	   shoot 3761
+        ifgapzl 32
+          ai AIPIG_SF_DIVING
+        else
+        {
+		sizeat 28 28
+          ifpdistl 4096
+            ai AIPIG_SF_FLEEENEMY
+          else
+            ai AIPIG_SF_SEEKENEMY
+        }
+      }
+    }
+    else
+	 {
+      ifgapzl 32
+        ai AIPIG_SF_DIVING
+      else
+        ai AIPIG_SF_SEEKENEMY
+	 sizeat 28 28
+	}
+  }
+  else
+    ifactioncount 2
+    ifp palive
+    {
+	sizeat 28 16
+      resetcount
+      action APIG_SF_DIVESHOOT2
+    }
+ends
+
+defstate checkpig_sf_hitstate
+sizeat 28 28
+state NEWGUNEFFECTS
+  ifdead
+  {
+  ifn npc_sound 0 stopactorsound THISACTOR npc_sound
+  ifand npc_killed 256 nullop else xorvar npc_killed 256
+    state random_wall_jibs
+    ifrnd 96
+		 {
+		 ifspritepal 13
+			spawn EXPL_SHELLS
+		  else
+		  ifspritepal 14
+		   spawn RIOTGUNSPRITE
+		   else state drop_shotgun
+		}
+	else state drop_shotgun
+	addkills 1
+    ifwasweapon GROWSPARK
+		{
+		  sound ACTOR_GROWING
+		  ai AIPIG_SF_GROW
+		  break
+		}
+	else
+    ifg ice_damage 0
+		{
+		ifaction APIG_SF_DIVESHOOT sizeat 28 28
+		ifaction APIG_SF_DIVESHOOT2 sizeat 28 28
+		  sound SOMETHINGFROZE
+		  spritepal 1
+		  move 0
+		  action APIG_SF_FROZEN
+		  strength 0
+		  break
+		}
+	else
+		ifand PROJ_UDATA 8192
+			 {
+			 spawn ELECTROCUTE_PIGCOP
+			 shoot SPARK2 shoot SPARK2 shoot SPARK2
+			 killit
+			 }
+	else
+    ifwasweapon RADIUSEXPLOSION
+		{
+		  state squish_sounds
+		  state standard_jibs
+		  killit
+		}
+    else
+      ifwasweapon RPG
+		{
+		  state squish_sounds
+		  state standard_jibs
+		  killit
+		}
+    else
+      ifand PROJ_UDATA PROJ_GIB
+		{
+		  state squish_sounds
+		  state standard_jibs
+		  killit
+		}
+	else
+      ife HEADSHOT 2
+	   ifstrength -25
+     {
+	  state random_trigger_showoff
+      ifrnd 128 sound HEL_HS1 else sound HEL_HS2
+      state jib_sounds
+      guts JIBS6 4
+      guts JIBS2 2
+      guts JIBS5 1
+	  ifaction APIG_SF_DIVESHOOT sizeat 28 28
+	  ifaction APIG_SF_DIVESHOOT2 sizeat 28 28
+      ai AIPIG_SF_HDYING
+     }
+	 else
+	ifg energy_damage 0
+		{
+		shoot SPARK2 shoot SPARK2 shoot SPARK2
+		spritepal 4
+		guts JIBS3 6
+		spawn DISINTIGRATE_PIGCOP
+		killit
+		}
+	 else
+	ifg fire_damage 0
+		{
+		sound ENGULF_FIRE
+		sound PIG_DYING
+		set PLAYER_VOICEOVER 21
+		spawn ONFIREGUY
+		killit
+		}
+      else
+	  {
+	 ifaction APIG_SF_DIVESHOOT sizeat 28 28
+	 ifaction APIG_SF_DIVESHOOT2 sizeat 28 28
+      ai AIPIG_SF_DYING
+        sound PIG_DYING
+		}
+  }
+  else
+  {
+    sound PIG_PAIN
+    state random_wall_jibs
+
+    ifwasweapon SHRINKSPARK
+    {
+      sound ACTOR_SHRINKING
+      ai AIPIG_SF_SHRINK
+    }
+    else
+      ifwasweapon GROWSPARK
+        sound EXPANDERHIT
+	else
+	 ifg PAIN_AMOUNT 0
+		{
+		ifaction APIG_SF_DIVE nullop else
+		ifaction APIG_SF_DIVESHOOT nullop else
+		ifaction APIG_SF_DIVESHOOT2 nullop else
+        ai AIPIG_SF_HIT
+		}
+    else
+      ifrnd 64
+       { sizeat 28 28 ai AIPIG_SF_SHOOTENEMY }
+    else
+      ifrnd 64
+      {
+        ai AIPIG_SF_DIVING
+		sizeat 28 16
+		action APIGDIVESHOOT2
+      }
+  }
+ends
+
+defstate pig_sf_shrinkstate
+	ifrnd 4
+		{
+		soundonce PIG_DYING
+		setactorsoundpitch THISACTOR PIG_DYING 512
+		}
+
+  ifcount SHRUNKDONECOUNT
+    ai AIPIG_SF_SEEKENEMY
+  else
+    ifcount SHRUNKCOUNT
+	  {
+	  sound ACTOR_UNSHRINK
+      sizeto 28 28
+	  }
+  else
+    state genericshrunkcode
+ends
+
+defstate pig_sf_dyingstate
+cstat 0
+
+ifspritepal 27
+	{
+	ifrnd 8 { shoot SPARK espawn BIG_SMOKE seta[RETURN].pal 17 }
+	seta[].shade 20
+	}
+
+  ifactioncount 5
+  {
+      spawn BLOODPOOL
+    state rf
+    iffloordistl 8
+      state BODY_FALL_NOISES
+	  action APIG_SF_DEAD
+    move STOP
+  }
+ends
+
+defstate pig_sf_hdyingstate
+  ifactioncount 5
+  {
+      spawn BLOODPOOL
+      state rf
+    iffloordistl 8
+      state BODY_FALL_NOISES
+   action APIG_SF_HEADDEAD
+    move STOP
+  }
+ends
+
+defstate PIG_SF_DEADSTATE
+
+ifaction APIG_SF_DEAD2 ifrnd 8 ifl INTERNALCOUNT 10 action APIG_SF_DEAD2_FL
+ifaction APIG_SF_DEAD2_FL
+	{
+	add INTERNALCOUNT 1
+	ifrnd 32 action APIG_SF_DEAD2
+	}
+
+ifspritepal 27
+	{
+	ifrnd 8 { espawn BIG_SMOKE seta[RETURN].pal 17 }
+	seta[].shade 20
+	}
+
+      strength 0
+      ifhitweapon
+        ifwasweapon RADIUSEXPLOSION
+      {
+        state squish_sounds
+        state standard_jibs
+        killit
+      }
+      break
+ends
+
+defstate pigcop_sf_maincode
+state enemyfloordamage
+state enemy_fire_damage
+state enemy_ice_damage
+state enemy_spirit_damage
+
+state pigcop_grenade_voice
+
+ifand npc_killed 256
+ ife npc_talking 0
+  ifrnd 96
+	{
+	state pigcop_angry_voice
+	set npc_killed 0
+	set npc_talking 90
+	}
+
+  state checksquished
+  ifaction APIG_SF_DEAD state PIG_SF_DEADSTATE
+  else ifaction APIG_SF_DEAD2 state PIG_SF_DEADSTATE
+  else ifaction APIG_SF_HEADDEAD state PIG_SF_DEADSTATE
+  else ifaction APIG_SF_DEAD2_FL state PIG_SF_DEADSTATE
+  else
+    ifaction APIG_SF_FROZEN
+	  {
+		state frozen_code
+		break
+	  }
+  else
+    ifai AIPIG_SF_DYING
+      state pig_sf_dyingstate
+  else
+    ifai AIPIG_SF_HDYING
+      state pig_sf_hdyingstate
+  else
+    ifai AIPIG_SF_HIT
+    {
+	sizeat 28 28
+	sub PAIN_AMOUNT 1
+      ife PAIN_AMOUNT 0
+	  {
+	  ifrnd 32 state pigcop_angry_voice
+      ai AIPIG_SF_SEEKENEMY
+	  }
+    }
+  else
+    ifai AIPIG_SF_SHRINK
+      state pig_sf_shrinkstate
+  else
+  {
+ifaction APIG_SF_STAND
+    {
+	state pigcop_attack_voice
+    ai AIPIG_SF_SEEKENEMY
+	}
+  else
+    ifai AIPIG_SF_BUTT
+state pigcop_sf_buttstate
+   else
+    ifai AIPIG_SF_DEADBUTT
+state pigcop_sf_deadbuttstate
+  else
+    ifai AIPIG_SF_SEEKENEMY
+      state pig_sf_seekenemystate
+    else
+      ifai AIPIG_SF_DODGE
+        state pig_sf_seekenemystate
+    else
+      ifai AIPIG_SF_SHOOTENEMY
+        state pig_sf_shootenemystate
+    else
+      ifai AIPIG_SF_SHOOT2
+		state pig_sf_shootenemystate
+    else
+      ifai AIPIG_SF_GROW
+        state genericgrowcode
+    else
+      ifai AIPIG_SF_FLEEENEMY
+        state pig_sf_fleeenemystate
+    else
+      ifai AIPIG_SF_DIVING
+        state pig_sf_divestate
+    else
+      ifai AIPIG_SF_CHARGE
+        state pig_sf_seekenemystate
+    ifhitweapon
+      state checkpig_sf_hitstate
+    ifrnd 1
+    {
+	randvar temp 3
+		ife temp 0 soundonce PIG_ROAM else
+		ife temp 1 soundonce PIG_ROAM2 else
+		ife temp 2 soundonce PIG_ROAM3 else
+		ife temp 3 soundonce PIG_ROAM4
+    }
+  }
+ends
+
+defstate PIG_SF_PREP
+	  state monst_glow
+	  cstator 257
+	  sizeat 28 28
+	  strength 200
+	  espawn SHOOTME
+	  seta[RETURN].pal 1
+	  spriteflags NORMAL_ENEMY
+ends
+
+useractor enemy PIG_SF 200 APIG_SF_IDLE
+  fall
+  ifai 0 { set actor_type TYPE_FULL_BODY_ARMOUR state PIG_SF_PREP ai AIPIG_SF_SEEKENEMY }
+  state pigcop_sf_maincode
+enda
+
+useractor enemy PIG_SF_DIVE 200
+fall
+  ifai 0
+	  {
+	  state PIG_SF_PREP
+	  ai AIPIGDIVING
+	  action APIGDIVESHOOT2
+	  cactor PIG_SF
+	  }
+enda
+
+
+useractor enemystayput PIG_SF_STAYPUT 200 APIG_SF_IDLE
+  ifai 0
+  {
+  state PIG_SF_PREP
+  ai AIPIGSEEKENEMY
+  cactor PIG_SF
+  state pigcop_sf_maincode
+  }
+enda

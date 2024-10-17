@@ -1,0 +1,172 @@
+
+
+defstate tw_zmissile_gunammotypes
+    setarray GUN_AMMO_TYPES_ARR[0] 512
+ends
+
+defstate tw_zmissile_code
+    setarray WEAPON_TILE[0] ZMISSILELSPRITE
+    setarray weap_special[0] 16384
+
+    set WEAPON0_WORKSLIKE 0
+    set WEAPON0_TOTALTIME 18
+    set WEAPON0_HOLDDELAY 18
+    set WEAPON0_FIREDELAY 2
+    set WEAPON0_FIRESOUND Z_MISSILE_FIRE
+    set WEAPON0_SHOOTS 0
+    set WEAPON0_INITIALSOUND 4
+    set WEAPON0_SHOTSPERBURST 1
+    set WEAPON0_SELECTSOUND SELECT_HT_BIGGUN
+    set WEAPON0_FLAGS 4
+
+    set gun_mag -1
+    set GUN_VOLUME 60
+    set GUN_SIZE 2
+    set GUN_HANDS 2
+    set GUN_ACCURACY 32
+    set GUN_MAX_SPREAD 0
+    set GUN_AMMO_TYPES 512
+
+    ifand gun_firemode_two 2 set WEAPON0_FIRESOUND Z_MISSILE_FIRE
+    else ifand gun_firemode_two 4 set WEAPON0_FIRESOUND DUP_FIRE
+    else set WEAPON0_FIRESOUND Z_MISSILE_FIRE
+
+    ife kickbackpic 2
+    {
+        ife GEO_MEGA_SHOT[1] 1
+          ifand gun_firemode_two 2
+        {
+            globalsound Z_WARNING
+            shoot ATOM_BOMB
+            setarray GEO_MEGA_SHOT[1] 0
+        }
+        else ifand gun_firemode_two 1
+        {
+            // Run a hitscan from the player -> prioritize whatever's under the crosshairs
+            set temp2 -1
+
+            state hitscanToFromPlayer
+
+            ifn hitsprite -1
+            {
+                getav[hitsprite].faction_flag temp
+
+                ifand temp ALLIED_FACTION_FLAG
+                    nullop
+                else ifn temp 0
+                    set temp2 hitsprite
+            }
+
+            ifand gun_firemode_two 4
+            {
+                setprojectile[HOMING_MISSILE].userdata 32
+                setprojectile[HOMING_MISSILE].pal 10
+
+                eshoot HOMING_MISSILE // userdata has to be changed before firing
+
+                ifn temp2 -1
+                    setav[RETURN].my_target temp2
+
+                setprojectile[HOMING_MISSILE].userdata 64
+                setprojectile[HOMING_MISSILE].pal 21
+                sound HEAT_SEEK
+                setthisprojectile[RETURN].hitradius 4500
+                setthisprojectile[RETURN].workslike 65538
+                setthisprojectile[RETURN].vel 975
+                setthisprojectile[RETURN].xrepeat 20
+                setthisprojectile[RETURN].yrepeat 20
+                setthisprojectile[RETURN].extra 275
+                setthisprojectile[RETURN].extra_rand 275
+                setthisprojectile[RETURN].userdata 512
+                setthisprojectile[RETURN].isound EXPLOSION_BIG
+                setthisprojectile[RETURN].spawns BIG_EXPLOSION
+            }
+            else
+            {
+                eshoot HOMING_MISSILE
+
+                ifn temp2 -1
+                    setav[RETURN].my_target temp2
+
+                sound HEAT_SEEK
+                setthisprojectile[RETURN].hitradius 2250
+                setthisprojectile[RETURN].workslike 65538
+                setthisprojectile[RETURN].vel 775
+                setthisprojectile[RETURN].extra 125
+                setthisprojectile[RETURN].extra_rand 25
+            }
+        }
+        else
+        {
+            ifand gun_firemode_two 4
+            {
+                setprojectile[MICRO_MISSILE].userdata 32
+                setprojectile[MICRO_MISSILE].pal 14
+                eshoot MICRO_MISSILE  // userdata has to be changed before firing
+                setprojectile[MICRO_MISSILE].userdata 64
+                setprojectile[MICRO_MISSILE].pal 0
+                setthisprojectile[RETURN].hitradius 4500
+                setthisprojectile[RETURN].workslike 65538
+                setthisprojectile[RETURN].pal 14
+                setthisprojectile[RETURN].vel 975
+                setthisprojectile[RETURN].xrepeat 20
+                setthisprojectile[RETURN].yrepeat 20
+                setthisprojectile[RETURN].extra 275
+                setthisprojectile[RETURN].extra_rand 275
+                setthisprojectile[RETURN].isound EXPLOSION_BIG
+                setthisprojectile[RETURN].spawns BIG_EXPLOSION
+            }
+            else
+            {
+                eshoot MICRO_MISSILE
+                setthisprojectile[RETURN].hitradius 2250
+                setthisprojectile[RETURN].workslike 65538
+                setthisprojectile[RETURN].vel 675
+                setthisprojectile[RETURN].velmult 2
+                setthisprojectile[RETURN].extra 125
+                setthisprojectile[RETURN].extra_rand 25
+            }
+        }
+    }
+
+    set weapon_type 4
+    ifand gun_firemode_two 1 // heat
+    {
+        ifg nuke_countd 0 set nuke_countd 0
+    }
+    ifand gun_firemode_two 2 // nuke
+    {
+        set weapon_type 10
+        ifg atomic_bomb 1 set atomic_bomb 1 // fail safe to make sure they have a limit of 1
+    }
+    ifand gun_firemode_two 4 // DUP missiles
+    {
+        set weapon_type 9
+        ifand gun_firemode_two 2 set weapon_type 10 else ifg nuke_countd 0 set nuke_countd 0
+        ifg DUP_missile_ammo 10 set DUP_missile_ammo 10 // fail safe to make sure they have a limit of 10
+    }
+
+    ifand gun_firemode_two 2
+      ife kickbackpic 0
+    {
+        ife GEO_MEGA_SHOT[1] 1 set GUN_ACCURACY 0
+        ife GEO_MEGA_SHOT[1] 0
+        {
+            set GUN_ACCURACY nuke_countd
+            ife nuke_countd 0 set nuke_countd 221
+            ifg nuke_countd 0 sub nuke_countd 1
+            ife nuke_countd 220 soundonce Z_STANDBY
+            ife nuke_countd 180 soundonce Z_COUNTD
+            ife nuke_countd 95 soundonce Z_SYSREADY
+            ife nuke_countd 5 state NUKE_TAUNTS
+            ife nuke_countd 1 { setarray GEO_MEGA_SHOT[1] 1 set nuke_countd 0 }
+        }
+    }
+
+    ife kickbackpic 2
+    {
+		set gun_recoil 8
+        set gunsmoke_angle 64
+        state spawn_gunsmoke
+    }
+ends

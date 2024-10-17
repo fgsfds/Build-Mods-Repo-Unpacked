@@ -1,0 +1,4518 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+
+--------------------------------------------------------------------------------
+*/
+
+/*
+AMC SQUAD COMPUTER CON FILES----------------------------------------
+By James Stanfield (With Exercepts of code by DeeperThought and 3DR, as well as others)
+
+This CON file contains the code that controls all the computer displays and interfaces in this mod,
+as well as mission updates. Basically most text-heavy stuff.
+
+--------------------------------------------------------------------------------
+*/
+
+
+define TEXTX 106
+define TEXTXS 107
+
+define TEXTX2 86
+define TEXTXS2 87
+
+var MENU_TILE 1 0
+
+var SCROLL_POSITION 0 1
+var SCROLL_POS_MAX 0 1
+
+defstate SCROLL_POS_RESET
+	set SCROLL_POSITION 0
+ends
+
+defstate SCROLL_POS
+	set disp_temp SCROLL_POSITION
+	mulvar disp_temp 7
+	sub gui_pos_y disp_temp
+ends
+
+defstate SCROLL_WHEEL
+
+	// Handle scrolling via scroll wheel
+	getinput[].bits disp_temp2
+	shiftvarr disp_temp2 8
+	andvar disp_temp2 0xF // what's dis
+
+	switch disp_temp2
+		case 11
+			ifg SCROLL_POSITION 0
+				sub SCROLL_POSITION 1
+			break
+		case 12
+			ifl SCROLL_POSITION SCROLL_POS_MAX
+				add SCROLL_POSITION 1
+			break
+	endswitch
+
+	// update the y coordinate based on scroll position
+	set disp_temp3 SCROLL_POSITION
+
+	// someone better than me can rewrite this to be dynamic
+	ife SCROLL_POS_MAX 40 mulvar disp_temp3 3
+	else ife SCROLL_POS_MAX 30 mulvar disp_temp3 4
+	else mulvar disp_temp3 6
+
+	ife PCINTER 6 set disp_temp4 58 else
+	set disp_temp4 48
+
+	add disp_temp4 disp_temp3
+	guniqhudid 5
+
+	ife PCINTER 6 set gui_pos_x 125 else
+	set gui_pos_x 87
+	rotatesprite gui_pos_x disp_temp4 8192 0 13717 0 0 4096 0 0 xdim ydim
+	set gui_pos_y disp_temp4
+
+	state CURSOR_OVER_ITEM
+	ifl gui_pos_x_temp 10
+	 ifg gui_pos_x_temp -10
+	  ifl gui_pos_y_temp 13
+	   ifg gui_pos_y_temp -13
+	{
+		guniqhudid 6
+		rotatesprite gui_pos_x disp_temp4 8192 0 13717 disp_pulse 0 4096 0 0 xdim ydim
+		ifand BITS_PRESS 4 set gui_element_lock 1
+	}
+
+	// handle scrolling by physically dragging down the button
+	ife gui_element_lock 1
+	{
+		guniqhudid 7
+		rotatesprite gui_pos_x disp_temp4 7492 0 13717 0 16 4096 0 0 xdim ydim
+		ifg input[].horz 0
+		 ifg SCROLL_POSITION 0
+			{
+			ifcount 2
+				{
+				sub SCROLL_POSITION 1
+				resetcount
+				}
+			}
+		else
+		ifl input[].horz 0
+		 ifl SCROLL_POSITION SCROLL_POS_MAX
+			{
+			ifcount 2
+				{
+				add SCROLL_POSITION 1
+				resetcount
+				}
+			}
+		ifand BITS_PRESS 4 nullop else set gui_element_lock 0
+	}
+	guniqhudid 0
+ends
+
+onevent EVENT_GETMENUTILE
+set RETURN 1297
+endevent
+
+onevent EVENT_GETLOADTILE
+state load_tile_pic
+set RETURN loading_tile
+endevent
+
+defstate read_everything_arrays
+    readarrayfromfile WEAPONS_RESEARCH F_WEAPONS_AMCTC
+    readarrayfromfile EQUIPMENT_RESEARCH F_EQUIPMENT_AMCTC
+    readarrayfromfile PERSONNEL_RESEARCH F_PERSONNEL_AMCTC
+    readarrayfromfile BASE_RESEARCH F_BASE_AMCTC
+    readarrayfromfile MYSTICAL_RESEARCH F_MYSTIC_AMCTC
+    readarrayfromfile MELEE_RESEARCH F_DOJO_AMCTC
+    readarrayfromfile WEAPONS_FOUND F_WEAPON_FOUND_AMCTC
+//    readarrayfromfile MELEES_FOUND F_MELEE_FOUND_AMCTC // UNUSED
+    readarrayfromfile EQUIPMENT_FOUND F_EQUIPMENT_FOUND_AMCTC
+    readarrayfromfile SPECIALIST_EQUIPMENT F_SPECIAL_LOADOUT_AMCTC
+    readarrayfromfile ARTIFACTS_FOUND F_ARTIFACTS_FOUND_AMCTC
+    readarrayfromfile SKILL_MEDALS F_SKILL_MEDALS_AMCTC
+    readarrayfromfile FACILITIES_OWNED F_FACILITIES_AMCTC
+    readarrayfromfile RESOURCES_FOUND F_RESOURCES_AMCTC
+    readarrayfromfile EQUIPMENT_LOADOUT_COST F_EQUIPMENT_L_COST_AMCTC
+    readarrayfromfile CHEST_LOADOUT_COST F_CHEST_L_COST_AMCTC
+    readarrayfromfile BELT_LOADOUT_COST F_BELT_L_COST_AMCTC
+    readarrayfromfile HELMET_LOADOUT_COST F_HELMET_L_COST_AMCTC
+    readarrayfromfile MELEE_LOADOUT_COST F_MELEE_L_COST_AMCTC
+    readarrayfromfile temp_WEAPON_LOADOUT_COST F_TWEAP_L_COST_AMCTC
+    readarrayfromfile AMMO_LOADOUT_COST F_AMMO_L_COST_AMCTC
+    // readarrayfromfile SPECIALIST_LOADOUT_COST F_SPECIAL_L_COST_AMCTC // UNUSED
+    readarrayfromfile SPECIALIST_CUSTOM F_SPECIALIST_CUSTOM_AMCTC
+    readarrayfromfile PLOT_POINTS F_DATA_ARRAYS_AMCTC
+    readarrayfromfile HELP_HINT F_HELP_HINT_AMCTC
+	readarrayfromfile ENEMIES_BESTIARY F_ENEMIES_BESTIARY
+ends
+
+
+defstate scroll_char_keys
+		ifand EXTBITS_PRESS 4
+		 ifcount 13
+			{
+				ife ep4_new_char 1
+					{
+					ife INFO_SEL 17 set INFO_SEL 14 else
+					ife INFO_SEL 14 set INFO_SEL 13 else
+					ife INFO_SEL 13 set INFO_SEL 7 else
+					ife INFO_SEL 0
+					{
+							ifand allow_temp_characters 8 set INFO_SEL 12 else
+							ifand allow_temp_characters 4 set INFO_SEL 11 else
+							ifand allow_temp_characters 2 set INFO_SEL 10 else
+							ifand allow_temp_characters 1 set INFO_SEL 9 else
+							set INFO_SEL 17
+						}
+					else
+					ife INFO_SEL 12
+						{
+							ifand allow_temp_characters 4 set INFO_SEL 11 else
+							ifand allow_temp_characters 2 set INFO_SEL 10 else
+							ifand allow_temp_characters 1 set INFO_SEL 9 else
+							set INFO_SEL 17
+						}
+					else
+					ife INFO_SEL 11
+						{
+							ifand allow_temp_characters 2 set INFO_SEL 10 else
+							ifand allow_temp_characters 1 set INFO_SEL 9 else
+							set INFO_SEL 17
+						}
+					else
+					ife INFO_SEL 10
+						{
+							ifand allow_temp_characters 1 set INFO_SEL 9 else
+							set INFO_SEL 17
+						}
+					else
+					ife INFO_SEL 9 set INFO_SEL 17 else
+					ifg INFO_SEL 0 sub INFO_SEL 1 else set INFO_SEL 17
+					}
+				else
+				ife ep3_new_char 1
+					{
+					ife INFO_SEL 14 set INFO_SEL 13 else
+					ife INFO_SEL 13 set INFO_SEL 7 else
+					ife INFO_SEL 0
+					{
+							ifand allow_temp_characters 8 set INFO_SEL 12 else
+							ifand allow_temp_characters 2 set INFO_SEL 10 else
+							ifand allow_temp_characters 1 set INFO_SEL 9 else
+							set INFO_SEL 14
+						}
+					else
+					ife INFO_SEL 12
+						{
+							ifand allow_temp_characters 2 set INFO_SEL 10 else
+							ifand allow_temp_characters 1 set INFO_SEL 9 else
+							set INFO_SEL 14
+						}
+					else
+					ife INFO_SEL 10
+						{
+							ifand allow_temp_characters 1 set INFO_SEL 9 else
+							set INFO_SEL 14
+						}
+					else
+					ife INFO_SEL 9 set INFO_SEL 14 else
+					ifg INFO_SEL 0 sub INFO_SEL 1 else set INFO_SEL 14
+					}
+				else
+				ife ep2_new_char 1
+					{
+					ife INFO_SEL 13 set INFO_SEL 7 else
+					ife INFO_SEL 0 set INFO_SEL 13 else
+					ifg INFO_SEL 0 sub INFO_SEL 1 else set INFO_SEL 13
+					}
+				else
+					{
+					ifg INFO_SEL 0 sub INFO_SEL 1 else set INFO_SEL 7
+					}
+			soundonce COMP_SELECT
+			resetcount
+			}
+
+		ifand EXTBITS_PRESS 16
+		 ifcount 13
+			{
+				ife ep4_new_char 1
+					{
+					ife INFO_SEL 17 set INFO_SEL 14 else
+					ife INFO_SEL 14 set INFO_SEL 13 else
+					ife INFO_SEL 13 set INFO_SEL 7 else
+					ife INFO_SEL 0
+					{
+							ifand allow_temp_characters 8 set INFO_SEL 12 else
+							ifand allow_temp_characters 4 set INFO_SEL 11 else
+							ifand allow_temp_characters 2 set INFO_SEL 10 else
+							ifand allow_temp_characters 1 set INFO_SEL 9 else
+							set INFO_SEL 17
+						}
+					else
+					ife INFO_SEL 12
+						{
+							ifand allow_temp_characters 4 set INFO_SEL 11 else
+							ifand allow_temp_characters 2 set INFO_SEL 10 else
+							ifand allow_temp_characters 1 set INFO_SEL 9 else
+							set INFO_SEL 17
+						}
+					else
+					ife INFO_SEL 11
+						{
+							ifand allow_temp_characters 2 set INFO_SEL 10 else
+							ifand allow_temp_characters 1 set INFO_SEL 9 else
+							set INFO_SEL 17
+						}
+					else
+					ife INFO_SEL 10
+						{
+							ifand allow_temp_characters 1 set INFO_SEL 9 else
+							set INFO_SEL 17
+						}
+					else
+					ife INFO_SEL 9 set INFO_SEL 17 else
+					ifg INFO_SEL 0 sub INFO_SEL 1 else set INFO_SEL 17
+					}
+				else
+				ife ep3_new_char 1
+					{
+					ife INFO_SEL 14 set INFO_SEL 13 else
+					ife INFO_SEL 13 set INFO_SEL 7 else
+					ife INFO_SEL 0
+					{
+							ifand allow_temp_characters 8 set INFO_SEL 12 else
+							ifand allow_temp_characters 2 set INFO_SEL 10 else
+							ifand allow_temp_characters 1 set INFO_SEL 9 else
+							set INFO_SEL 14
+						}
+					else
+					ife INFO_SEL 12
+						{
+							ifand allow_temp_characters 2 set INFO_SEL 10 else
+							ifand allow_temp_characters 1 set INFO_SEL 9 else
+							set INFO_SEL 14
+						}
+					else
+					ife INFO_SEL 10
+						{
+							ifand allow_temp_characters 1 set INFO_SEL 9 else
+							set INFO_SEL 14
+						}
+					else
+					ife INFO_SEL 9 set INFO_SEL 14 else
+					ifg INFO_SEL 0 sub INFO_SEL 1 else set INFO_SEL 14
+					}
+				else
+				ife ep2_new_char 1
+					{
+					ife INFO_SEL 13 set INFO_SEL 7 else
+					ife INFO_SEL 0 set INFO_SEL 13 else
+					ifg INFO_SEL 0 sub INFO_SEL 1 else set INFO_SEL 13
+					}
+				else
+					{
+					ifg INFO_SEL 0 sub INFO_SEL 1 else set INFO_SEL 7
+					}
+			soundonce COMP_SELECT
+			resetcount
+			}
+
+		ifand EXTBITS_PRESS 8
+		 ifcount 13
+			{
+				ife ep4_new_char 1
+					{
+					ife INFO_SEL 17
+						{
+							ifand allow_temp_characters 1 set INFO_SEL 9 else
+							ifand allow_temp_characters 2 set INFO_SEL 10 else
+							ifand allow_temp_characters 4 set INFO_SEL 11 else
+							ifand allow_temp_characters 8 set INFO_SEL 12 else
+							set INFO_SEL 0
+						}
+					else
+					ife INFO_SEL 9
+						{
+							ifand allow_temp_characters 2 set INFO_SEL 10 else
+							ifand allow_temp_characters 4 set INFO_SEL 11 else
+							ifand allow_temp_characters 8 set INFO_SEL 12 else
+							set INFO_SEL 0
+						}
+					else
+					ife INFO_SEL 10
+						{
+							ifand allow_temp_characters 4 set INFO_SEL 11 else
+							ifand allow_temp_characters 8 set INFO_SEL 12 else
+							set INFO_SEL 0
+						}
+					else
+					ife INFO_SEL 11
+						{
+							ifand allow_temp_characters 8 set INFO_SEL 12 else
+							set INFO_SEL 0
+						}
+					else
+					ife INFO_SEL 12 set INFO_SEL 0 else
+					ife INFO_SEL 14 set INFO_SEL 17 else
+					ife INFO_SEL 13 set INFO_SEL 14 else
+					ife INFO_SEL 7 set INFO_SEL 13 else
+					ifl INFO_SEL 7 add INFO_SEL 1 else set INFO_SEL 0
+					}
+					else
+				ife ep3_new_char 1
+					{
+					ife INFO_SEL 14
+						{
+							ifand allow_temp_characters 1 set INFO_SEL 9 else
+							ifand allow_temp_characters 2 set INFO_SEL 10 else
+							ifand allow_temp_characters 8 set INFO_SEL 12 else
+							set INFO_SEL 0
+						}
+					else
+					ife INFO_SEL 9
+						{
+							ifand allow_temp_characters 2 set INFO_SEL 10 else
+							ifand allow_temp_characters 8 set INFO_SEL 12 else
+							set INFO_SEL 0
+						}
+					else
+					ife INFO_SEL 10
+						{
+							ifand allow_temp_characters 8 set INFO_SEL 12 else
+							set INFO_SEL 0
+						}
+					else
+					ife INFO_SEL 12 set INFO_SEL 0 else
+					ife INFO_SEL 13 set INFO_SEL 14 else
+					ife INFO_SEL 7 set INFO_SEL 13 else
+					ifl INFO_SEL 7 add INFO_SEL 1 else set INFO_SEL 0
+					}
+					else
+				ife ep2_new_char 1
+					{
+					ife INFO_SEL 7 set INFO_SEL 13 else
+					ife INFO_SEL 13 set INFO_SEL 0 else
+					ifl INFO_SEL 7 add INFO_SEL 1 else set INFO_SEL 0
+					}
+					else
+					{
+					ifl INFO_SEL 7 add INFO_SEL 1 else set INFO_SEL 0
+					}
+			soundonce COMP_SELECT
+			resetcount
+			}
+
+		ifand EXTBITS_PRESS 32
+		 ifcount 13
+			{
+				ife ep4_new_char 1
+					{
+					ife INFO_SEL 17
+						{
+							ifand allow_temp_characters 1 set INFO_SEL 9 else
+							ifand allow_temp_characters 2 set INFO_SEL 10 else
+							ifand allow_temp_characters 4 set INFO_SEL 11 else
+							ifand allow_temp_characters 8 set INFO_SEL 12 else
+							set INFO_SEL 0
+						}
+					else
+					ife INFO_SEL 9
+						{
+							ifand allow_temp_characters 2 set INFO_SEL 10 else
+							ifand allow_temp_characters 4 set INFO_SEL 11 else
+							ifand allow_temp_characters 8 set INFO_SEL 12 else
+							set INFO_SEL 0
+						}
+					else
+					ife INFO_SEL 10
+						{
+							ifand allow_temp_characters 4 set INFO_SEL 11 else
+							ifand allow_temp_characters 8 set INFO_SEL 12 else
+							set INFO_SEL 0
+						}
+					else
+					ife INFO_SEL 11
+						{
+							ifand allow_temp_characters 8 set INFO_SEL 12 else
+							set INFO_SEL 0
+						}
+					else
+					ife INFO_SEL 12 set INFO_SEL 0 else
+					ife INFO_SEL 14 set INFO_SEL 17 else
+					ife INFO_SEL 13 set INFO_SEL 14 else
+					ife INFO_SEL 7 set INFO_SEL 13 else
+					ifl INFO_SEL 7 add INFO_SEL 1 else set INFO_SEL 0
+					}
+					else
+				ife ep3_new_char 1
+					{
+					ife INFO_SEL 14
+						{
+							ifand allow_temp_characters 1 set INFO_SEL 9 else
+							ifand allow_temp_characters 2 set INFO_SEL 10 else
+							ifand allow_temp_characters 8 set INFO_SEL 12 else
+							set INFO_SEL 0
+						}
+					else
+					ife INFO_SEL 9
+						{
+							ifand allow_temp_characters 2 set INFO_SEL 10 else
+							ifand allow_temp_characters 8 set INFO_SEL 12 else
+							set INFO_SEL 0
+						}
+					else
+					ife INFO_SEL 10
+						{
+							ifand allow_temp_characters 8 set INFO_SEL 12 else
+							set INFO_SEL 0
+						}
+					else
+					ife INFO_SEL 12 set INFO_SEL 0 else
+					ife INFO_SEL 13 set INFO_SEL 14 else
+					ife INFO_SEL 7 set INFO_SEL 13 else
+					ifl INFO_SEL 7 add INFO_SEL 1 else set INFO_SEL 0
+					}
+					else
+				ife ep2_new_char 1
+					{
+					ife INFO_SEL 7 set INFO_SEL 13 else
+					ife INFO_SEL 13 set INFO_SEL 0 else
+					ifl INFO_SEL 7 add INFO_SEL 1 else set INFO_SEL 0
+					}
+					else
+					{
+					ifl INFO_SEL 7 add INFO_SEL 1 else set INFO_SEL 0
+					}
+			soundonce COMP_SELECT
+			resetcount
+			}
+ends
+
+eventloadactor 3792 state GETALLTAGS seta[].blend 255 enda
+
+useractor notenemy 3792 // Computer
+ife LOTAGSAVED 13 ife VOLUME 2 ife TRIGGER_BASE_SCENE 2 break
+ifp palive
+ ife player[].newowner -1 // prevent viewscreen bugs
+  ifpdistl 2048
+   ifp pfacing
+   ifcansee
+    ifp pstanding
+  {
+  ife MOUSEUP 0 set player_use 0
+   ifhitspace
+	{
+	ifp pjumping break
+		ife MOUSEUP 0
+		ifcount 13
+		{
+		getp[].horiz PHORIZ
+		getp[].ang PANG
+		set inter_id THISACTOR
+		set PCINTER LOTAGSAVED
+		ife PCINTER 3
+			{
+			readgamevar EVIDENCE // Read the evidence gamevar
+			readgamevar EVIDENCE_EP2 // read episode 2 evidence gamevar
+			readgamevar EVIDENCE_EP3 // read episode 3 evidence gamevar
+			}
+		ife PCINTER 8
+			 
+			   
+				
+				 
+			{
+			sound ENTMENUSOUND
+			set INFO_SEL CHAR
+			set INFO_SEL_2 0
+			resizearray temp_WEAPON_LOADOUT MAX_WEAPONS_LOADOUT
+			resizearray MELEE_WEAPON_LOADOUT MAX_MELEE_LOADOUT
+			resizearray ARTIFACTS_LOADOUT MAX_ARTIFACTS_LOADOUT
+			state read_everything_arrays
+			}
+		ife PCINTER 9 state read_everything_arrays
+		ife PCINTER 10
+			{
+			set INFO_SEL EXTRASAVED
+			ifaction 0
+				{
+				operateactivators XVELSAVED THISACTOR
+				action ZERO
+				}
+			}
+		ife PCINTER 13
+			{
+			sound OPEN_COMM
+			state fade_out_black
+			ife VOLUME 0 set COM_FILTER 289
+			else ife VOLUME 1 set COM_FILTER 290
+			else ife VOLUME 2 set COM_FILTER 292
+			else ife VOLUME 3 set COM_FILTER 296
+			else ife VOLUME 4 set COM_FILTER 296
+			else ife VOLUME 6 set COM_FILTER 1024
+			set DISP_STUFF 13
+			set INFO_SEL 0
+			set INFO_SEL_2 0
+			set INFO_SEL_3 0
+			readarrayfromfile BEAT_EPISODES F_BEAT_EPISODES_AMCTC
+//			readarrayfromfile CONFIG_DATA F_CONFIG_DATA_AMCTC // UNUSED
+			readgamevar AMC_BUDGET
+			readgamevar TECH_LEVEL
+			readgamevar SUPPLY_LEVEL
+			readgamevar EDF_MISSIONS
+			readgamevar next_mission_loc
+			readgamevar EVIDENCE // Read the evidence gamevar
+			readgamevar EVIDENCE_EP2 // read episode 2 evidence gamevar
+			readgamevar EVIDENCE_EP3 // read episode 3 evidence gamevar
+			readarrayfromfile SEEN_MAP F_SEEN_MAP_AMCTC
+			state read_everything_arrays
+			ife HELP_HINT[1] 0
+				{
+				xorvar COM_FILTER 128
+				setarray HELP_HINT[1] 1
+				writearraytofile HELP_HINT F_HELP_HINT_AMCTC
+				}
+			ifn new_research 0 soundonce C_NEWR else
+				{
+				gettimedate temp temp temp2 temp temp temp temp temp
+				ife P_GENDER FEMALE
+					{
+					ifg temp2 18 soundonce COMM_GEVENING_F else // Night
+					ifl temp2 12 soundonce COMM_GMORNING_F else // Morning
+					soundonce COMM_GAFTERNOON_F  // Daytime
+					}
+				else
+					{
+					ifg temp2 18 soundonce COMM_GEVENING_M else // Night
+					ifl temp2 12 soundonce COMM_GMORNING_M else // Morning
+					soundonce COMM_GAFTERNOON_M  // Daytime
+					}
+				}
+			}
+		ife PCINTER 14
+			{
+			 state fade_out_black
+			sound READ_DOCUMENT
+			set INFO_SEL 0
+			set INFO_SEL_2 0
+			set INFO_SEL_3 0
+			readarrayfromfile BEAT_EPISODES F_BEAT_EPISODES_AMCTC
+//			readarrayfromfile CONFIG_DATA F_CONFIG_DATA_AMCTC // UNUSED
+			readarrayfromfile SEEN_MAP F_SEEN_MAP_AMCTC
+			}
+		ife PCINTER 15 readgamevar base_fish
+		ifn HITAGSAVED 0 soundvar HITAGSAVED
+		set MOUSEUP 1
+		resetcount
+		}
+	}
+
+	ife PCINTER 8 // loadout terminal
+		{
+		ifand EXTBITS_PRESS 1
+		 ifcount 13
+			{
+			ifl INFO_SEL_2 6 add INFO_SEL_2 1 else set INFO_SEL_2 0
+			set INFO_SEL_3 0
+			soundonce COMP_SELECT
+			resetcount
+			}
+
+		ifand EXTBITS_PRESS 2
+		 ifcount 13
+			{
+			ifg INFO_SEL_2 0 sub INFO_SEL_2 1 else set INFO_SEL_2 6
+			set INFO_SEL_3 0
+			soundonce COMP_SELECT
+			resetcount
+			}
+		state scroll_char_keys
+		}
+
+   }
+
+ife PCINTER 13
+	{
+	readgamevar EVIDENCE
+	readgamevar EVIDENCE_EP2
+	readgamevar EVIDENCE_EP3
+	state COMMAND_INTERFACE
+	}
+
+ife inter_id THISACTOR
+	{
+	ife MOUSEUP 1
+	 ifcount 13
+	  ifhitspace
+		{
+		ife PCINTER 13 { sound CLOSE_COMM state fade_out_black set cus_fade_duration 5 stopsound COMMAND_AMB stopsound COMMAND_AMB2 stopsound COMMAND_AMB3 stopsound COMMAND_AMB4 stopsound COMMAND_AMB5 }
+		else ife PCINTER 14 { sound READ_DOCUMENT state fade_out_black }
+		else ife PCINTER 20 stopsound ELEV_MUZAK2
+		else sound EXITMENUSOUND
+		ife PCINTER 8
+			{
+			// COCKFLAPS
+			writearraytofile SPECIALIST_EQUIPMENT F_SPECIAL_LOADOUT_AMCTC
+			writearraytofile SPECIALIST_CUSTOM F_SPECIALIST_CUSTOM_AMCTC
+			writearraytofile ARTIFACTS_LOADOUT F_ARTIFACTS_LOADOUT_AMCTC
+			writearraytofile EQUIPMENT_LOADOUT F_EQUIP_LOADOUT_AMCTC
+			writearraytofile EQUIPMENT_LOADOUT_COST F_EQUIPMENT_L_COST_AMCTC
+			writearraytofile CHEST_LOADOUT F_CHEST_LOADOUT_AMCTC
+			writearraytofile CHEST_LOADOUT_COST F_CHEST_L_COST_AMCTC
+			writearraytofile BELT_LOADOUT F_BELT_LOADOUT_AMCTC
+			writearraytofile BELT_LOADOUT_COST F_BELT_L_COST_AMCTC
+			writearraytofile HELMET_LOADOUT F_HELMET_LOADOUT_AMCTC
+			writearraytofile HELMET_LOADOUT_COST F_HELMET_L_COST_AMCTC
+			writearraytofile BOOTS_LOADOUT F_BOOTS_LOADOUT_AMCTC
+			writearraytofile BOOT_LOADOUT_COST F_BOOT_LOADOUT_COST_AMCTC
+			writearraytofile temp_WEAPON_LOADOUT F_TEMPW_LOADOUT_AMCTC
+			writearraytofile temp_WEAPON_LOADOUT_COST F_TWEAP_L_COST_AMCTC
+			writearraytofile AMMO_LOADOUT F_AMMO_LOADOUT_AMCTC
+			writearraytofile AMMO_LOADOUT_COST F_AMMO_L_COST_AMCTC
+			writearraytofile MELEE_LOADOUT_COST F_MELEE_L_COST_AMCTC
+			writearraytofile MELEE_WEAPON_LOADOUT F_MELEE_LOADOUT_AMCTC
+		    // bandaid: update the knife for the current character
+            set GOT_KNIFE MELEE_WEAPON_LOADOUT[CHAR]
+			}
+		set PCINTER 0
+		set MOUSEUP 0
+		set inter_id -1
+		resetcount
+		}
+	}
+
+enda
+
+appendevent EVENT_CHANGEMENU // Escape key
+
+	ife RETURN 50
+		ife PCINTER 8
+			{
+			set RETURN -2
+			writearraytofile SPECIALIST_EQUIPMENT F_SPECIAL_LOADOUT_AMCTC
+			writearraytofile SPECIALIST_CUSTOM F_SPECIALIST_CUSTOM_AMCTC
+			writearraytofile ARTIFACTS_LOADOUT F_ARTIFACTS_LOADOUT_AMCTC
+			writearraytofile EQUIPMENT_LOADOUT F_EQUIP_LOADOUT_AMCTC
+			writearraytofile EQUIPMENT_LOADOUT_COST F_EQUIPMENT_L_COST_AMCTC
+			writearraytofile CHEST_LOADOUT F_CHEST_LOADOUT_AMCTC
+			writearraytofile CHEST_LOADOUT_COST F_CHEST_L_COST_AMCTC
+			writearraytofile BELT_LOADOUT F_BELT_LOADOUT_AMCTC
+			writearraytofile BELT_LOADOUT_COST F_BELT_L_COST_AMCTC
+			writearraytofile HELMET_LOADOUT F_HELMET_LOADOUT_AMCTC
+			writearraytofile HELMET_LOADOUT_COST F_HELMET_L_COST_AMCTC
+			writearraytofile BOOTS_LOADOUT F_BOOTS_LOADOUT_AMCTC
+			writearraytofile BOOT_LOADOUT_COST F_BOOT_LOADOUT_COST_AMCTC
+			writearraytofile temp_WEAPON_LOADOUT F_TEMPW_LOADOUT_AMCTC
+			writearraytofile temp_WEAPON_LOADOUT_COST F_TWEAP_L_COST_AMCTC
+			writearraytofile AMMO_LOADOUT F_AMMO_LOADOUT_AMCTC
+			writearraytofile AMMO_LOADOUT_COST F_AMMO_L_COST_AMCTC
+			writearraytofile MELEE_LOADOUT_COST F_MELEE_L_COST_AMCTC
+			writearraytofile MELEE_WEAPON_LOADOUT F_MELEE_LOADOUT_AMCTC
+		    // bandaid: update the knife for the current character
+            set GOT_KNIFE MELEE_WEAPON_LOADOUT[CHAR]
+			set PCINTER 0
+			set MOUSEUP 0
+			set inter_id -1
+			}
+
+endevent
+
+defstate PC_INTERFACE
+myospal 160 100 3281 15 1024 0
+
+rotatespritea 70 20 HALFSIZE 0 3826 0 0 0 -255 0 0 xdim ydim
+minitext 46 18 1012 0 4
+minitext 45 17 1012 0 0
+
+rotatespritea 140 20 HALFSIZE 0 3826 0 0 0 -255 0 0 xdim ydim
+minitext 116 18 1013 0 4
+minitext 115 17 1013 0 0
+
+rotatespritea 210 20 HALFSIZE 0 3826 0 0 0 -255 0 0 xdim ydim
+minitext 186 18 1014 0 4
+minitext 185 17 1014 0 0
+
+rotatespritea 280 20 HALFSIZE 0 3826 0 0 0 -255 0 0 xdim ydim
+minitext 256 18 1015 0 4
+minitext 255 17 1015 0 0
+
+		gettimedate disp_temp disp_temp2 disp_temp3 disp_temp4 disp_temp5 disp_temp6 disp_temp7 disp_temp7
+		digitalnumber 3087 198 195 disp_temp3 0 21 0 0 0 xdim ydim // Hours
+		myospal 201 195 3097 0 0 21
+		ifl disp_temp2 10 // Add the extra '0' in front of the number
+				{
+				myospal 204 195 3087 0 0 21
+				digitalnumber 3087 210 195 disp_temp2 0 21 0 0 0 xdim ydim // minutes
+				}
+				else
+			digitalnumber 3087 208 195 disp_temp2 0 21 0 0 0 xdim ydim // minutes
+		myospal 211 195 3097 0 0 21
+			ifl disp_temp 10 // Add the extra '0' in front of the number
+				{
+				myospal 214 195 3087 0 0 21
+				digitalnumber 3087 220 195 disp_temp 0 21 0 0 0 xdim ydim // minutes
+				}
+			else
+			digitalnumber 3087 218 195 disp_temp 0 21 0 0 0 xdim ydim // seconds
+
+		digitalnumber 3087 244 195 disp_temp4 0 21 0 0 0 xdim ydim // Day
+		myospal 248 195 3086 0 0 21
+		add disp_temp5 1
+		digitalnumber 3087 256 195 disp_temp5 0 21 0 0 0 xdim ydim // Month
+		myospal 260 195 3086 0 0 21
+		digitalnumber 3087 272 195 disp_temp6 0 21 0 0 0 xdim ydim // Year
+
+
+
+ife JPCMENU 0 // Characters menu
+{
+
+rotatespritea 40 44 HALFSIZE 0 3826 0 0 0 -255 0 0 xdim ydim
+minitext 13 41 1003 0 4 minitext 12 40 1003 0 0
+rotatespritea 40 60 HALFSIZE 0 3826 0 0 0 -255 0 0 xdim ydim
+minitext 13 57 1004 0 4 minitext 12 56 1004 0 0
+rotatespritea 40 76 HALFSIZE 0 3826 0 0 0 -255 0 0 xdim ydim
+minitext 13 73 1005 0 4 minitext 12 72 1005 0 0
+rotatespritea 40 92 HALFSIZE 0 3826 0 0 0 -255 0 0 xdim ydim
+minitext 13 89 1006 0 4 minitext 12 88 1006 0 0
+rotatespritea 40 108 HALFSIZE 0 3826 0 0 0 -255 0 0 xdim ydim
+minitext 13 105 1007 0 4 minitext 12 104 1007 0 0
+rotatespritea 40 124 HALFSIZE 0 3826 0 0 0 -255 0 0 xdim ydim
+minitext 13 121 1008 0 4 minitext 12 120 1008 0 0
+rotatespritea 40 140 HALFSIZE 0 3826 0 0 0 -255 0 0 xdim ydim
+minitext 13 137 1009 0 4 minitext 12 136 1009 0 0
+rotatespritea 40 156 HALFSIZE 0 3826 0 0 0 -255 0 0 xdim ydim
+minitext 13 153 1010 0 4 minitext 12 152 1010 0 0
+
+myospal 200 100 3827 0 1 0
+myospal 200 100 3137 0 0 0
+
+	ifg MOUSEX 162
+	 ifg MOUSEY 42
+	  ifl MOUSEX 274
+       ifl MOUSEY 48
+		{
+		ifand BITS_PRESS 4
+		ifn INFO_SEL_2 0
+			{
+			set INFO_SEL_2 0
+			soundonce COMP_SELECT
+			}
+		}
+
+	ifg MOUSEX 162
+	 ifg MOUSEY 48
+	  ifl MOUSEX 274
+       ifl MOUSEY 54
+		{
+		ifand BITS_PRESS 4
+		ifn INFO_SEL_2 1
+			{
+			set INFO_SEL_2 1
+			soundonce COMP_SELECT
+			}
+		}
+
+	ifg MOUSEX 162
+	 ifg MOUSEY 54
+	  ifl MOUSEX 274
+       ifl MOUSEY 60
+		{
+		ifand BITS_PRESS 4
+		ifn INFO_SEL_2 2
+			{
+			set INFO_SEL_2 2
+			soundonce COMP_SELECT
+			}
+		}
+
+	ifg MOUSEX 162
+	 ifg MOUSEY 60
+	  ifl MOUSEX 274
+       ifl MOUSEY 66
+		{
+		ifand BITS_PRESS 4
+		ifn INFO_SEL_2 3
+			{
+			set INFO_SEL_2 3
+			soundonce COMP_SELECT
+			}
+		}
+
+ife INFO_SEL 0 // James' Info
+	{
+	myospalx 130 56 3589 0 0 0
+	minitext 12 40 1003 0 21
+	qputs 1011 Name: James Stanfield
+	minitext 163 43 1011 0 4
+	ife INFO_SEL_2 0 minitext 162 42 1011 0 2 else minitext 162 42 1011 0 0
+
+	qputs 1011 Personal Battle level: A+
+	minitext 163 49 1011 0 4
+	ife INFO_SEL_2 1 minitext 162 48 1011 0 2 else minitext 162 48 1011 0 0
+
+	qputs 1011 Nationality: United Kingdom
+	minitext 163 55 1011 0 4
+	ife INFO_SEL_2 2 minitext 162 54 1011 0 2 else minitext 162 54 1011 0 0
+
+	qputs 1011 Paranormal level: Low
+	minitext 163 61 1011 0 4
+	ife INFO_SEL_2 3 minitext 162 60 1011 0 2 else minitext 162 60 1011 0 0
+
+	ife INFO_SEL_2 0
+		{
+		qputs 1011 Agent Stanfield has been with the AMC Squad
+		minitext TEXTXS 81 1011 0 4
+		minitext TEXTX 80 1011 0 0
+		qputs 1011 since its very inception. After defeating
+		minitext TEXTXS 87 1011 0 4
+		minitext TEXTX 86 1011 0 0
+		qputs 1011 the rogue World Government and averting a
+		minitext TEXTXS 93 1011 0 4
+		minitext TEXTX 92 1011 0 0
+		qputs 1011 potential apocalypse at the hands of a
+		minitext TEXTXS 99 1011 0 4
+		minitext TEXTX 98 1011 0 0
+		qputs 1011 covert paramilitary group, James began
+		minitext TEXTXS 105 1011 0 4
+		minitext TEXTX 104 1011 0 0
+		qputs 1011 recruiting more AMC field agents across
+		minitext TEXTXS 111 1011 0 4
+		minitext TEXTX 110 1011 0 0
+		qputs 1011 the globe to prevent any further disasters.
+		minitext 107 117 1011 0 4
+		minitext TEXTX 116 1011 0 0
+		qputs 1011 Since then, he and the AMC squad have kept a
+		minitext 107 123 1011 0 4
+		minitext TEXTX 122 1011 0 0
+		qputs 1011 tight lid on incidents the EDF can't handle.
+		minitext 107 129 1011 0 4
+		minitext TEXTX 128 1011 0 0
+		}
+
+	ife INFO_SEL_2 1
+		{
+		qputs 1011 James is considered one of the best of the
+		minitext TEXTXS 81 1011 0 4
+		minitext TEXTX 80 1011 0 0
+		qputs 1011 EDF, due to his fight against the World
+		minitext TEXTXS 87 1011 0 4
+		minitext TEXTX 86 1011 0 0
+		qputs 1011 Government and Majestic 12. He has never worked
+		minitext TEXTXS 93 1011 0 4
+		minitext TEXTX 92 1011 0 0
+		qputs 1011 with Duke Nukem, but is considered more than
+		minitext TEXTXS 99 1011 0 4
+		minitext TEXTX 98 1011 0 0
+		qputs 1011 a match for his skills. Shows excellent
+		minitext TEXTXS 105 1011 0 4
+		minitext TEXTX 104 1011 0 0
+		qputs 1011 skill when working in teams; but the extent
+		minitext TEXTXS 111 1011 0 4
+		minitext TEXTX 110 1011 0 0
+		qputs 1011 of his ability is never truly witnessed.
+		minitext 107 117 1011 0 4
+		minitext TEXTX 116 1011 0 0
+		}
+
+	ife INFO_SEL_2 2
+		{
+		qputs 1011 James comes from the United Kingdom, although
+		minitext TEXTXS 81 1011 0 4
+		minitext TEXTX 80 1011 0 0
+		qputs 1011 he rarely sets foot on its soil.
+		minitext TEXTXS 87 1011 0 4
+		minitext TEXTX 86 1011 0 0
+		qputs 1011 He mainly lives in Garmid, and owns assorted
+		minitext TEXTXS 93 1011 0 4
+		minitext TEXTX 92 1011 0 0
+		qputs 1011 homes throughout the world. Identifies little
+		minitext TEXTXS 99 1011 0 4
+		minitext TEXTX 98 1011 0 0
+		qputs 1011 with its culture, but will answer his
+		minitext TEXTXS 105 1011 0 4
+		minitext TEXTX 104 1011 0 0
+		qputs 1011 country's call if need be.
+		minitext TEXTXS 111 1011 0 4
+		minitext TEXTX 110 1011 0 0
+		}
+
+	ife INFO_SEL_2 3
+		{
+		qputs 1011 Due to an experiment forcefully performed
+		minitext TEXTXS 81 1011 0 4
+		minitext TEXTX 80 1011 0 0
+		qputs 1011 on him by Majestic 12, James can see and use
+		minitext TEXTXS 87 1011 0 4
+		minitext TEXTX 86 1011 0 0
+		qputs 1011 the so-called "Time Portals" left behind from
+		minitext TEXTXS 93 1011 0 4
+		minitext TEXTX 92 1011 0 0
+		qputs 1011 the Revelion incident. Their placement is
+		minitext TEXTXS 99 1011 0 4
+		minitext TEXTX 98 1011 0 0
+		qputs 1011 random, and always arbitrary and useful.
+		minitext TEXTXS 105 1011 0 4
+		minitext TEXTX 104 1011 0 0
+		qputs 1011 Any further side-effects of the surgery
+		minitext TEXTXS 111 1011 0 4
+		minitext TEXTX 110 1011 0 0
+		qputs 1011 are unknown as of now.
+		minitext 107 117 1011 0 4
+		minitext TEXTX 116 1011 0 0
+		}
+
+	}
+
+ife INFO_SEL 1 // Zaxtor's Info
+	{
+	myospalx 130 56 3590 0 0 0
+	minitext 12 56 1004 0 21
+	qputs 1011 Name: Zaxtor Znort
+	minitext 163 43 1011 0 4
+	ife INFO_SEL_2 0 minitext 162 42 1011 0 2 else minitext 162 42 1011 0 0
+
+	qputs 1011 Personal Battle level: A+
+	minitext 163 49 1011 0 4
+	ife INFO_SEL_2 1 minitext 162 48 1011 0 2 else minitext 162 48 1011 0 0
+
+	qputs 1011 Nationality: Madagascar
+	minitext 163 55 1011 0 4
+	ife INFO_SEL_2 2 minitext 162 54 1011 0 2 else minitext 162 54 1011 0 0
+
+	qputs 1011 Paranormal level: Medium
+	minitext 163 61 1011 0 4
+	ife INFO_SEL_2 3 minitext 162 60 1011 0 2 else minitext 162 60 1011 0 0
+
+	ife INFO_SEL_2 0
+		{
+		qputs 1011 Agent Znort joined the AMC Squad shortly
+		minitext TEXTXS 81 1011 0 4
+		minitext TEXTX 80 1011 0 0
+		qputs 1011 after winning the Oblivion wars with the
+		minitext TEXTXS 87 1011 0 4
+		minitext TEXTX 86 1011 0 0
+		qputs 1011 rampaging aliens that plagued Duke Nukem
+		minitext TEXTXS 93 1011 0 4
+		minitext TEXTX 92 1011 0 0
+		qputs 1011 and the Earth for so long. After gaining
+		minitext TEXTXS 99 1011 0 4
+		minitext TEXTX 98 1011 0 0
+		qputs 1011 revenge for the destruction dealt to his
+		minitext TEXTXS 105 1011 0 4
+		minitext TEXTX 104 1011 0 0
+		qputs 1011 home Madagascar, Zaxtor has since helped
+		minitext TEXTXS 111 1011 0 4
+		minitext TEXTX 110 1011 0 0
+		qputs 1011 the AMC Squad in many tough battles. He is
+		minitext TEXTXS 117 1011 0 4
+		minitext TEXTX 116 1011 0 0
+		qputs 1011 also a hero to the Fossapeople indigenous
+		minitext TEXTXS 123 1011 0 4
+		minitext TEXTX 122 1011 0 0
+		qputs 1011 to Madagascar.
+		minitext TEXTXS 129 1011 0 4
+		minitext TEXTX 128 1011 0 0
+		}
+
+	ife INFO_SEL_2 1
+		{
+		qputs 1011 Zaxtor fought literally hundreds of alien
+		minitext TEXTXS 81 1011 0 4
+		minitext TEXTX 80 1011 0 0
+		qputs 1011 creatures during the Oblivion Wars all by
+		minitext TEXTXS 87 1011 0 4
+		minitext TEXTX 86 1011 0 0
+		qputs 1011 himself. He also was forced to delve into
+		minitext TEXTXS 93 1011 0 4
+		minitext TEXTX 92 1011 0 0
+		qputs 1011 strange and bizarre worlds, and fight
+		minitext TEXTXS 99 1011 0 4
+		minitext TEXTX 98 1011 0 0
+		qputs 1011 mighty creatures. Due to this, his
+		minitext TEXTXS 105 1011 0 4
+		minitext TEXTX 104 1011 0 0
+		qputs 1011 fighting skill is incredible.
+		minitext TEXTXS 111 1011 0 4
+		minitext TEXTX 110 1011 0 0
+		}
+
+	ife INFO_SEL_2 2
+		{
+		qputs 1011 Zaxtor's home country is Madagascar.
+		minitext TEXTXS 81 1011 0 4
+		minitext TEXTX 80 1011 0 0
+		qputs 1011 During the Oblivion War it was hit by an
+		minitext TEXTXS 87 1011 0 4
+		minitext TEXTX 86 1011 0 0
+		qputs 1011 asteroid housing an alien base; this was a
+		minitext TEXTXS 93 1011 0 4
+		minitext TEXTX 92 1011 0 0
+		qputs 1011 deliberate counter-attack to strike Zaxtor.
+		minitext TEXTXS 99 1011 0 4
+		minitext TEXTX 98 1011 0 0
+		qputs 1011 The country is slowly rebuilding after the
+		minitext TEXTXS 105 1011 0 4
+		minitext TEXTX 104 1011 0 0
+		qputs 1011 disaster.
+		minitext TEXTXS 111 1011 0 4
+		minitext TEXTX 110 1011 0 0
+		}
+
+	ife INFO_SEL_2 3
+		{
+		qputs 1011 Although Zaxtor possesses no known
+		minitext TEXTXS 81 1011 0 4
+		minitext TEXTX 80 1011 0 0
+		qputs 1011 paranormal abilities, his extensive
+		minitext TEXTXS 87 1011 0 4
+		minitext TEXTX 86 1011 0 0
+		qputs 1011 journeys through bizarre dimensions
+		minitext TEXTXS 93 1011 0 4
+		minitext TEXTX 92 1011 0 0
+		qputs 1011 have slightly shifted his very being
+		minitext TEXTXS 99 1011 0 4
+		minitext TEXTX 98 1011 0 0
+		qputs 1011 from this dimension to the next. The
+		minitext TEXTXS 105 1011 0 4
+		minitext TEXTX 104 1011 0 0
+		qputs 1011 effects of this aren't fully known,
+		minitext TEXTXS 111 1011 0 4
+		minitext TEXTX 110 1011 0 0
+		qputs 1011 but Zaxtor is more resilient to
+		minitext TEXTXS 117 1011 0 4
+		minitext TEXTX 116 1011 0 0
+		qputs 1011 psychic attacks as a result.
+		minitext TEXTXS 123 1011 0 4
+		minitext TEXTX 122 1011 0 0
+		}
+
+	}
+
+ife INFO_SEL 2 // Merlijn's Info
+	{
+	myospalx 130 56 3591 0 0 0
+	minitext 12 72 1005 0 21
+	qputs 1011 Name: Merlijn Van Oostrum
+	minitext 163 43 1011 0 4
+	ife INFO_SEL_2 0 minitext 162 42 1011 0 2 else minitext 162 42 1011 0 0
+
+	qputs 1011 Personal Battle level: A
+	minitext 163 49 1011 0 4
+	ife INFO_SEL_2 1 minitext 162 48 1011 0 2 else minitext 162 48 1011 0 0
+
+	qputs 1011 Nationality: Netherlands
+	minitext 163 55 1011 0 4
+	ife INFO_SEL_2 2 minitext 162 54 1011 0 2 else minitext 162 54 1011 0 0
+
+	qputs 1011 Paranormal level: Low
+	minitext 163 61 1011 0 4
+	ife INFO_SEL_2 3 minitext 162 60 1011 0 2 else minitext 162 60 1011 0 0
+
+	ife INFO_SEL_2 0
+		{
+		qputs 1011 Merlijn is a hardened warrior who, alongside
+		minitext TEXTXS 81 1011 0 4
+		minitext TEXTX 80 1011 0 0
+		qputs 1011 his wizard brother, has kept peace throughout
+		minitext TEXTXS 87 1011 0 4
+		minitext TEXTX 86 1011 0 0
+		qputs 1011 the distance reaches of the Netherlands.
+		minitext TEXTXS 93 1011 0 4
+		minitext TEXTX 92 1011 0 0
+		qputs 1011 After defeating a Necromancer, he joined
+		minitext TEXTXS 99 1011 0 4
+		minitext TEXTX 98 1011 0 0
+		qputs 1011 the AMC Squad and with their combined efforts
+		minitext TEXTXS 105 1011 0 4
+		minitext TEXTX 104 1011 0 0
+		qputs 1011 drove its dark hordes out of the country.
+		minitext TEXTXS 111 1011 0 4
+		minitext TEXTX 110 1011 0 0
+		qputs 1011 The Necromancer still lives, but Merlijn
+		minitext TEXTXS 117 1011 0 4
+		minitext TEXTX 116 1011 0 0
+		qputs 1011 and his brother Maarten are honing their
+		minitext TEXTXS 123 1011 0 4
+		minitext TEXTX 122 1011 0 0
+		qputs 1011 skills so that one day they may defeat the
+		minitext TEXTXS 129 1011 0 4
+		minitext TEXTX 128 1011 0 0
+		qputs 1011 foul beast forever.
+		minitext TEXTXS 135 1011 0 4
+		minitext TEXTX 134 1011 0 0
+		}
+
+	ife INFO_SEL_2 1
+		{
+		qputs 1011 Merlijn is a close-quarters fighter; his
+		minitext TEXTXS 81 1011 0 4
+		minitext TEXTX 80 1011 0 0
+		qputs 1011 ranged weaponry skills are formidable but
+		minitext TEXTXS 87 1011 0 4
+		minitext TEXTX 86 1011 0 0
+		qputs 1011 limited to his armoury. Although this may
+		minitext TEXTXS 93 1011 0 4
+		minitext TEXTX 92 1011 0 0
+		qputs 1011 leave him at a big disadvantage at times,
+		minitext TEXTXS 99 1011 0 4
+		minitext TEXTX 98 1011 0 0
+		qputs 1011 Merlijn is the strongest and fastest on
+		minitext TEXTXS 105 1011 0 4
+		minitext TEXTX 104 1011 0 0
+		qputs 1011 the team.
+		minitext TEXTXS 111 1011 0 4
+		minitext TEXTX 110 1011 0 0
+		}
+
+	ife INFO_SEL_2 2
+		{
+		qputs 1011 The Netherlands is where the Oostrum brothers
+		minitext TEXTXS 81 1011 0 4
+		minitext TEXTX 80 1011 0 0
+		qputs 1011 live. It was hit hard by an evil Necromancer,
+		minitext TEXTXS 87 1011 0 4
+		minitext TEXTX 86 1011 0 0
+		qputs 1011 but is recovering fast. The attack itself was
+		minitext TEXTXS 93 1011 0 4
+		minitext TEXTX 92 1011 0 0
+		qputs 1011 bizarre as it's a modern First World country;
+		minitext TEXTXS 99 1011 0 4
+		minitext TEXTX 98 1011 0 0
+		qputs 1011 Merlijn is still investigating reasons as to
+		minitext TEXTXS 105 1011 0 4
+		minitext TEXTX 104 1011 0 0
+		qputs 1011 why the Necromancer appeared.
+		minitext TEXTXS 111 1011 0 4
+		minitext TEXTX 110 1011 0 0
+		}
+
+	ife INFO_SEL_2 3
+		{
+		qputs 1011 Merlijn's strength and health are far
+		minitext TEXTXS 81 1011 0 4
+		minitext TEXTX 80 1011 0 0
+		qputs 1011 above the vast majority of humans; although
+		minitext TEXTXS 87 1011 0 4
+		minitext TEXTX 86 1011 0 0
+		qputs 1011 he claims it is due to intense training, his
+		minitext TEXTXS 93 1011 0 4
+		minitext TEXTX 92 1011 0 0
+		qputs 1011 brother's magical talents suggest the two
+		minitext TEXTXS 99 1011 0 4
+		minitext TEXTX 98 1011 0 0
+		qputs 1011 have supernatural ancestry; this is merely
+		minitext TEXTXS 105 1011 0 4
+		minitext TEXTX 104 1011 0 0
+		qputs 1011 a theory however.
+		minitext TEXTXS 111 1011 0 4
+		minitext TEXTX 110 1011 0 0
+		}
+
+	}
+
+ife INFO_SEL 3 // Highwire's Info
+	{
+	myospalx 130 56 3593 0 0 0
+	minitext 12 88 1006 0 21
+	qputs 1011 Name: Highwire
+	minitext 163 43 1011 0 4
+	ife INFO_SEL_2 0 minitext 162 42 1011 0 2 else minitext 162 42 1011 0 0
+
+	qputs 1011 Personal Battle level: B
+	minitext 163 49 1011 0 4
+	ife INFO_SEL_2 1 minitext 162 48 1011 0 2 else minitext 162 48 1011 0 0
+
+	qputs 1011 Nationality: Unknown
+	minitext 163 55 1011 0 4
+	ife INFO_SEL_2 2 minitext 162 54 1011 0 2 else minitext 162 54 1011 0 0
+
+	qputs 1011 Paranormal level: Zero
+	minitext 163 61 1011 0 4
+	ife INFO_SEL_2 3 minitext 162 60 1011 0 2 else minitext 162 60 1011 0 0
+
+	ife INFO_SEL_2 0
+		{
+		qputs 1011 Agent Highwire, also head of the Europe
+		minitext TEXTXS 81 1011 0 4
+		minitext TEXTX 80 1011 0 0
+		qputs 1011 division of the EDF, is one of the AMC
+		minitext TEXTXS 87 1011 0 4
+		minitext TEXTX 86 1011 0 0
+		qputs 1011 Squad's more covert agents. Originating
+		minitext TEXTXS 93 1011 0 4
+		minitext TEXTX 92 1011 0 0
+		qputs 1011 from a commanding position in a
+		minitext TEXTXS 99 1011 0 4
+		minitext TEXTX 98 1011 0 0
+		qputs 1011 renegade USSR state, his experience gives
+		minitext TEXTXS 105 1011 0 4
+		minitext TEXTX 104 1011 0 0
+		qputs 1011 him a preference for Soviet weaponry.
+		minitext TEXTXS 111 1011 0 4
+		minitext TEXTX 110 1011 0 0
+		qputs 1011 Since helping James with the rogue World
+		minitext TEXTXS 117 1011 0 4
+		minitext TEXTX 116 1011 0 0
+		qputs 1011 Government, Highwire has joined the AMC Squad
+		minitext TEXTXS 123 1011 0 4
+		minitext TEXTX 122 1011 0 0
+		qputs 1011 and assists mostly in covert and strategic
+		minitext TEXTXS 129 1011 0 4
+		minitext TEXTX 128 1011 0 0
+		qputs 1011 operations.
+		minitext TEXTXS 135 1011 0 4
+		minitext TEXTX 134 1011 0 0
+		}
+
+	ife INFO_SEL_2 1
+		{
+		qputs 1011 Highwire originally had no need to use
+		minitext TEXTXS 81 1011 0 4
+		minitext TEXTX 80 1011 0 0
+		qputs 1011 weapons, due to his commanding position;
+		minitext TEXTXS 87 1011 0 4
+		minitext TEXTX 86 1011 0 0
+		qputs 1011 however he began to train himself with James'
+		minitext TEXTXS 93 1011 0 4
+		minitext TEXTX 92 1011 0 0
+		qputs 1011 assistance. After leaving the EDF for
+		minitext TEXTXS 99 1011 0 4
+		minitext TEXTX 98 1011 0 0
+		qputs 1011 various political reasons Highwire went on
+		minitext TEXTXS 105 1011 0 4
+		minitext TEXTX 104 1011 0 0
+		qputs 1011 to personally lead a rebellion, and smashed
+		minitext TEXTXS 111 1011 0 4
+		minitext TEXTX 110 1011 0 0
+		qputs 1011 a strong fascist government with his militia.
+		minitext TEXTXS 117 1011 0 4
+		minitext TEXTX 116 1011 0 0
+		qputs 1011 Best with other teammates, but, when given
+		minitext TEXTXS 123 1011 0 4
+		minitext TEXTX 122 1011 0 0
+		qputs 1011 the right weaponry, is a deadly fighter.
+		minitext TEXTXS 129 1011 0 4
+		minitext TEXTX 128 1011 0 0
+		}
+
+	ife INFO_SEL_2 2
+		{
+		qputs 1011 Highwire's true nationality is unknown;
+		minitext TEXTXS 81 1011 0 4
+		minitext TEXTX 80 1011 0 0
+		qputs 1011 although he claims that Russia is his
+		minitext TEXTXS 87 1011 0 4
+		minitext TEXTX 86 1011 0 0
+		qputs 1011 homeland, it is not his place of birth.
+		minitext TEXTXS 93 1011 0 4
+		minitext TEXTX 92 1011 0 0
+		}
+
+	ife INFO_SEL_2 3
+		{
+		qputs 1011 Highwire has no paranormal abilities or
+		minitext TEXTXS 81 1011 0 4
+		minitext TEXTX 80 1011 0 0
+		qputs 1011 traits.
+		minitext TEXTXS 87 1011 0 4
+		minitext TEXTX 86 1011 0 0
+		}
+
+	}
+
+ife INFO_SEL 4 // Sang's Info
+	{
+	ifand CHAR_APP 2 myospalx 130 56 23835 0 0 0 else
+	myospalx 130 56 3598 0 0 0
+	minitext 12 104 1007 0 21
+	qputs 1011 Name: Sangluss
+	minitext 163 43 1011 0 4
+	ife INFO_SEL_2 0 minitext 162 42 1011 0 2 else minitext 162 42 1011 0 0
+
+	qputs 1011 Personal Battle level: B+
+	minitext 163 49 1011 0 4
+	ife INFO_SEL_2 1 minitext 162 48 1011 0 2 else minitext 162 48 1011 0 0
+
+	qputs 1011 Nationality: Belgium
+	minitext 163 55 1011 0 4
+	ife INFO_SEL_2 2 minitext 162 54 1011 0 2 else minitext 162 54 1011 0 0
+
+	qputs 1011 Paranormal level: Ext. High
+	minitext 163 61 1011 0 4
+	ife INFO_SEL_2 3 minitext 162 60 1011 0 2 else minitext 162 60 1011 0 0
+
+	ife INFO_SEL_2 0
+		{
+		qputs 1011 Sangluss is a Warlock who hails from
+		minitext TEXTXS 81 1011 0 4
+		minitext TEXTX 80 1011 0 0
+		qputs 1011 Belgium. Although initially an evil being,
+		minitext TEXTXS 87 1011 0 4
+		minitext TEXTX 86 1011 0 0
+		qputs 1011 Sang fought the dark grip that becoming a
+		minitext TEXTXS 93 1011 0 4
+		minitext TEXTX 92 1011 0 0
+		qputs 1011 Warlock requires, and now uses his powers
+		minitext TEXTXS 99 1011 0 4
+		minitext TEXTX 98 1011 0 0
+		qputs 1011 for good (the Phantom Bat that hovers
+		minitext TEXTXS 105 1011 0 4
+		minitext TEXTX 104 1011 0 0
+		qputs 1011 around his head remains as a reminder of his
+		minitext TEXTXS 111 1011 0 4
+		minitext TEXTX 110 1011 0 0
+		qputs 1011 past days) However doing this created a evil
+		minitext TEXTXS 117 1011 0 4
+		minitext TEXTX 116 1011 0 0
+		qputs 1011 twin who dubbed himself 'Le Sang' and shortly
+		minitext TEXTXS 123 1011 0 4
+		minitext TEXTX 122 1011 0 0
+		qputs 1011 fled to Egypt. Only time will tell what
+		minitext TEXTXS 129 1011 0 4
+		minitext TEXTX 128 1011 0 0
+		qputs 1011 horrors the Warlock's twin may be conducting.
+		minitext TEXTXS 135 1011 0 4
+		minitext TEXTX 134 1011 0 0
+		}
+
+	ife INFO_SEL_2 1
+		{
+		qputs 1011 Although not as physically strong or as
+		minitext TEXTXS 81 1011 0 4
+		minitext TEXTX 80 1011 0 0
+		qputs 1011 skilled in contemporary weapons as most of
+		minitext TEXTXS 87 1011 0 4
+		minitext TEXTX 86 1011 0 0
+		qputs 1011 the other members of the squad, Sang's
+		minitext TEXTXS 93 1011 0 4
+		minitext TEXTX 92 1011 0 0
+		qputs 1011 magical abilities mean that he has a
+		minitext TEXTXS 99 1011 0 4
+		minitext TEXTX 98 1011 0 0
+		qputs 1011 potentially unlimited well of power to
+		minitext TEXTXS 105 1011 0 4
+		minitext TEXTX 104 1011 0 0
+		qputs 1011 tap into.
+		minitext TEXTXS 111 1011 0 4
+		minitext TEXTX 110 1011 0 0
+		}
+
+	ife INFO_SEL_2 2
+		{
+		qputs 1011 Sang grew up in Belgium; his parentage and
+		minitext TEXTXS 81 1011 0 4
+		minitext TEXTX 80 1011 0 0
+		qputs 1011 place of birth are unknown and he refuses to
+		minitext TEXTXS 87 1011 0 4
+		minitext TEXTX 86 1011 0 0
+		qputs 1011 elaborate. All we are aware of is that he
+		minitext TEXTXS 93 1011 0 4
+		minitext TEXTX 92 1011 0 0
+		qputs 1011 was taken in by a tutor and, with his help,
+		minitext TEXTXS 99 1011 0 4
+		minitext TEXTX 98 1011 0 0
+		qputs 1011 was able to free himself from his dark past.
+		minitext TEXTXS 105 1011 0 4
+		minitext TEXTX 104 1011 0 0
+		}
+
+	ife INFO_SEL_2 3
+		{
+		qputs 1011 Sang's supernatural level exceeds any other
+		minitext TEXTXS 81 1011 0 4
+		minitext TEXTX 80 1011 0 0
+		qputs 1011 member of the squad, past or present. With
+		minitext TEXTXS 87 1011 0 4
+		minitext TEXTX 86 1011 0 0
+		qputs 1011 training and study, it's believed he can
+		minitext TEXTXS 93 1011 0 4
+		minitext TEXTX 92 1011 0 0
+		qputs 1011 eventually reach the stage known as an
+		minitext TEXTXS 99 1011 0 4
+		minitext TEXTX 98 1011 0 0
+		qputs 1011 'Endless sorcerer' meaning his powers would
+		minitext TEXTXS 105 1011 0 4
+		minitext TEXTX 104 1011 0 0
+		qputs 1011 essentially make him a god.
+		minitext TEXTXS 111 1011 0 4
+		minitext TEXTX 110 1011 0 0
+		}
+
+
+
+	}
+
+ife INFO_SEL 5 // Rusty's Info
+	{
+	myospalx 130 56 3600 0 0 0
+	minitext 12 120 1008 0 21
+	qputs 1011 Name: Rusty Nails
+	minitext 163 43 1011 0 4
+	ife INFO_SEL_2 0 minitext 162 42 1011 0 2 else minitext 162 42 1011 0 0
+
+	qputs 1011 Personal Battle level: A+
+	minitext 163 49 1011 0 4
+	ife INFO_SEL_2 1 minitext 162 48 1011 0 2 else minitext 162 48 1011 0 0
+
+	qputs 1011 Nationality: Unknown
+	minitext 163 55 1011 0 4
+	ife INFO_SEL_2 2 minitext 162 54 1011 0 2 else minitext 162 54 1011 0 0
+
+	qputs 1011 Paranormal level: High
+	minitext 163 61 1011 0 4
+	ife INFO_SEL_2 3 minitext 162 60 1011 0 2 else minitext 162 60 1011 0 0
+
+	ife INFO_SEL_2 0
+		{
+		qputs 1011 A Gunslinger originating from Europe, no man
+		minitext TEXTXS 81 1011 0 4
+		minitext TEXTX 80 1011 0 0
+		qputs 1011 alive knows where he got his alias from.
+		minitext TEXTXS 87 1011 0 4
+		minitext TEXTX 86 1011 0 0
+		qputs 1011 Said to be the fastest person in the world
+		minitext TEXTXS 93 1011 0 4
+		minitext TEXTX 92 1011 0 0
+		qputs 1011 at reloading a revolver, Rusty traveled
+		minitext TEXTXS 99 1011 0 4
+		minitext TEXTX 98 1011 0 0
+		qputs 1011 across Earth and Mars as a vigilante,
+		minitext TEXTXS 105 1011 0 4
+		minitext TEXTX 104 1011 0 0
+		qputs 1011 defeating Outlaws and corruption where nobody
+		minitext TEXTXS 111 1011 0 4
+		minitext TEXTX 110 1011 0 0
+		qputs 1011 else could. It is believed that Rusty also
+		minitext TEXTXS 117 1011 0 4
+		minitext TEXTX 116 1011 0 0
+		qputs 1011 possesses a unique gift which allows him to
+		minitext TEXTXS 123 1011 0 4
+		minitext TEXTX 122 1011 0 0
+		qputs 1011 hear the dead, but no person to date has
+		minitext TEXTXS 129 1011 0 4
+		minitext TEXTX 128 1011 0 0
+		qputs 1011 witnessed this ability. Medical files also
+		minitext TEXTXS 135 1011 0 4
+		minitext TEXTX 134 1011 0 0
+		qputs 1011 indicate that Rusty has a augmented heart
+		minitext TEXTXS 141 1011 0 4
+		minitext TEXTX 140 1011 0 0
+		qputs 1011 which allows feats of insane concentration,
+		minitext TEXTXS 147 1011 0 4
+		minitext TEXTX 146 1011 0 0
+		qputs 1011 at the risk of it overheating and exploding.
+		minitext TEXTXS 153 1011 0 4
+		minitext TEXTX 152 1011 0 0
+		}
+
+	ife INFO_SEL_2 1
+		{
+		qputs 1011 Rusty's revolver skills are unmatched in
+		minitext TEXTXS 81 1011 0 4
+		minitext TEXTX 80 1011 0 0
+		qputs 1011 the squad, but he is equally proficient in
+		minitext TEXTXS 87 1011 0 4
+		minitext TEXTX 86 1011 0 0
+		qputs 1011 weapons such as swords and throwing stars.
+		minitext TEXTXS 93 1011 0 4
+		minitext TEXTX 92 1011 0 0
+		qputs 1011 His journeys across the planet have seen him
+		minitext TEXTXS 99 1011 0 4
+		minitext TEXTX 98 1011 0 0
+		qputs 1011 train in many different forms of combat;
+		minitext TEXTXS 105 1011 0 4
+		minitext TEXTX 104 1011 0 0
+		qputs 1011 so many in fact that it feels as if he has
+		minitext TEXTXS 111 1011 0 4
+		minitext TEXTX 110 1011 0 0
+		qputs 1011 lived for far longer than his age would
+		minitext TEXTXS 117 1011 0 4
+		minitext TEXTX 116 1011 0 0
+		qputs 1011 permit.
+		minitext TEXTXS 123 1011 0 4
+		minitext TEXTX 122 1011 0 0
+		}
+
+	ife INFO_SEL_2 2
+		{
+		qputs 1011 Rusty's nationality and place of birth are
+		minitext TEXTXS 81 1011 0 4
+		minitext TEXTX 80 1011 0 0
+		qputs 1011 unknown; however it is almost certainly
+		minitext TEXTXS 87 1011 0 4
+		minitext TEXTX 86 1011 0 0
+		qputs 1011 somewhere in Europe. Traces of his bloodline
+		minitext TEXTXS 93 1011 0 4
+		minitext TEXTX 92 1011 0 0
+		qputs 1011 run back to England and Sweden; it seems as
+		minitext TEXTXS 99 1011 0 4
+		minitext TEXTX 98 1011 0 0
+		qputs 1011 if his father was an Englishman of some sort.
+		minitext TEXTXS 105 1011 0 4
+		minitext TEXTX 104 1011 0 0
+		}
+
+	ife INFO_SEL_2 3
+		{
+		qputs 1011 Rusty's supernatural ability is to contact
+		minitext TEXTXS 81 1011 0 4
+		minitext TEXTX 80 1011 0 0
+		qputs 1011 the dead. His powers slowly developed over
+		minitext TEXTXS 87 1011 0 4
+		minitext TEXTX 86 1011 0 0
+		qputs 1011 his life; originally it was barely audible
+		minitext TEXTXS 93 1011 0 4
+		minitext TEXTX 92 1011 0 0
+		qputs 1011 whispering but eventually he could see, hear,
+		minitext TEXTXS 99 1011 0 4
+		minitext TEXTX 98 1011 0 0
+		qputs 1011 touch and even converse with spirits. It is
+		minitext TEXTXS 105 1011 0 4
+		minitext TEXTX 104 1011 0 0
+		qputs 1011 unknown what sort of belief system these
+		minitext TEXTXS 111 1011 0 4
+		minitext TEXTX 110 1011 0 0
+		qputs 1011 spirits belong to, as every single one
+		minitext TEXTXS 117 1011 0 4
+		minitext TEXTX 116 1011 0 0
+		qputs 1011 has refused to comment when asked about the
+		minitext TEXTXS 123 1011 0 4
+		minitext TEXTX 122 1011 0 0
+		qputs 1011 afterlife.
+		minitext TEXTXS 129 1011 0 4
+		minitext TEXTX 128 1011 0 0
+		}
+
+
+	}
+
+ife INFO_SEL 6 // Geoffrey's Info
+	{
+	myospalx 130 56 3603 0 0 0
+	minitext 12 136 1009 0 21
+	qputs 1011 Name: Geoffrey
+	minitext 163 43 1011 0 4
+	ife INFO_SEL_2 0 minitext 162 42 1011 0 2 else minitext 162 42 1011 0 0
+
+	qputs 1011 Personal Battle level: A
+	minitext 163 49 1011 0 4
+	ife INFO_SEL_2 1 minitext 162 48 1011 0 2 else minitext 162 48 1011 0 0
+
+	qputs 1011 Nationality: Netherlands
+	minitext 163 55 1011 0 4
+	ife INFO_SEL_2 2 minitext 162 54 1011 0 2 else minitext 162 54 1011 0 0
+
+	qputs 1011 Paranormal level: Zero
+	minitext 163 61 1011 0 4
+	ife INFO_SEL_2 3 minitext 162 60 1011 0 2 else minitext 162 60 1011 0 0
+
+	ife INFO_SEL_2 0
+		{
+		qputs 1011 Originally a Graphics designer, Geoffrey was
+		minitext TEXTXS 81 1011 0 4
+		minitext TEXTX 80 1011 0 0
+		qputs 1011 hired by a mysterious client to help create
+		minitext TEXTXS 87 1011 0 4
+		minitext TEXTX 86 1011 0 0
+		qputs 1011 a new logo - however this client turned out
+		minitext TEXTXS 93 1011 0 4
+		minitext TEXTX 92 1011 0 0
+		qputs 1011 to be a fascist state. After the war,
+		minitext TEXTXS 99 1011 0 4
+		minitext TEXTX 98 1011 0 0
+		qputs 1011 Geoffrey's name was discovered in documents
+		minitext TEXTXS 105 1011 0 4
+		minitext TEXTX 104 1011 0 0
+		qputs 1011 and he was accused of being a collaborator.
+		minitext TEXTXS 111 1011 0 4
+		minitext TEXTX 110 1011 0 0
+		qputs 1011 He was forced to flee and live as an outlaw
+		minitext TEXTXS 117 1011 0 4
+		minitext TEXTX 116 1011 0 0
+		qputs 1011 on Mars. Eventually he was approached by
+		minitext TEXTXS 123 1011 0 4
+		minitext TEXTX 122 1011 0 0
+		qputs 1011 James. He originally declined the offer to
+		minitext TEXTXS 129 1011 0 4
+		minitext TEXTX 128 1011 0 0
+		qputs 1011 join the AMC, until offered the chance to
+		minitext TEXTXS 135 1011 0 4
+		minitext TEXTX 134 1011 0 0
+		qputs 1011 clear his name from any association with the
+		minitext TEXTXS 141 1011 0 4
+		minitext TEXTX 140 1011 0 0
+		qputs 1011 fascist state.
+		minitext TEXTXS 147 1011 0 4
+		minitext TEXTXS 146 1011 0 0
+		}
+
+	ife INFO_SEL_2 1
+		{
+		qputs 1011 Geoffrey gained many new and deadly skills
+		minitext TEXTXS 81 1011 0 4
+		minitext TEXTX 80 1011 0 0
+		qputs 1011 whilst on the run; learning all he could from
+		minitext TEXTXS 87 1011 0 4
+		minitext TEXTX 86 1011 0 0
+		qputs 1011 the few friends he could trust, he became a
+		minitext TEXTXS 93 1011 0 4
+		minitext TEXTX 92 1011 0 0
+		qputs 1011 tough and ruthless fighter utilising the
+		minitext TEXTXS 99 1011 0 4
+		minitext TEXTX 98 1011 0 0
+		qputs 1011 weapons of the Mars Defence Force. The harsh
+		minitext TEXTXS 105 1011 0 4
+		minitext TEXTX 104 1011 0 0
+		qputs 1011 Martian atmosphere forced Geoffrey to visit
+		minitext TEXTXS 111 1011 0 4
+		minitext TEXTX 110 1011 0 0
+		qputs 1011 illegal aug clinics, giving him a slight
+		minitext TEXTXS 117 1011 0 4
+		minitext TEXTX 116 1011 0 0
+		qputs 1011 health boost over the majority of people.
+		minitext TEXTXS 123 1011 0 4
+		minitext TEXTX 122 1011 0 0
+		}
+
+	ife INFO_SEL_2 2
+		{
+		qputs 1011 Originally from Holland, when he had to leave
+		minitext TEXTXS 81 1011 0 4
+		minitext TEXTX 80 1011 0 0
+		qputs 1011 his peaceful life behind, Mars became his
+		minitext TEXTXS 87 1011 0 4
+		minitext TEXTX 86 1011 0 0
+		qputs 1011 symbolic birthplace; when the word home is
+		minitext TEXTXS 93 1011 0 4
+		minitext TEXTX 92 1011 0 0
+		qputs 1011 mentioned Geoffrey thinks not of Europe but
+		minitext TEXTXS 99 1011 0 4
+		minitext TEXTX 98 1011 0 0
+		qputs 1011 of Mars.
+		minitext TEXTXS 105 1011 0 4
+		minitext TEXTX 104 1011 0 0
+		}
+
+	ife INFO_SEL_2 3
+		{
+		qputs 1011 Geoffrey has no paranormal abilities or
+		minitext TEXTXS 81 1011 0 4
+		minitext TEXTX 80 1011 0 0
+		qputs 1011 traits.
+		minitext TEXTXS 87 1011 0 4
+		minitext TEXTX 86 1011 0 0
+		}
+
+	}
+
+ife INFO_SEL 7 // Mikko's Info
+	{
+	myospalx 130 56 3606 0 0 0
+	minitext 12 152 1010 0 21
+	qputs 1011 Name: Mikko Sandt
+	minitext 163 43 1011 0 4
+	ife INFO_SEL_2 0 minitext 162 42 1011 0 2 else minitext 162 42 1011 0 0
+
+	qputs 1011 Personal Battle level: A
+	minitext 163 49 1011 0 4
+	ife INFO_SEL_2 1 minitext 162 48 1011 0 2 else minitext 162 48 1011 0 0
+
+	qputs 1011 Nationality: Finland
+	minitext 163 55 1011 0 4
+	ife INFO_SEL_2 2 minitext 162 54 1011 0 2 else minitext 162 54 1011 0 0
+
+	qputs 1011 Paranormal level: Zero
+	minitext 163 61 1011 0 4
+	ife INFO_SEL_2 3 minitext 162 60 1011 0 2 else minitext 162 60 1011 0 0
+
+	ife INFO_SEL_2 0
+		{
+		qputs 1011 Mikko Sandt, leader of Sandt Industries, is
+		minitext TEXTXS 81 1011 0 4
+		minitext TEXTX 80 1011 0 0
+		qputs 1011 a powerful cyborg brought back from the dead
+		minitext TEXTXS 87 1011 0 4
+		minitext TEXTX 86 1011 0 0
+		qputs 1011 at the hands of Duke Nukem (as a hitman) by
+		minitext TEXTXS 93 1011 0 4
+		minitext TEXTX 92 1011 0 0
+		qputs 1011 his fanatical followers, who worship him as a
+		minitext TEXTXS 99 1011 0 4
+		minitext TEXTX 98 1011 0 0
+		qputs 1011 God. Pioneering interdimensional commerce and
+		minitext TEXTXS 105 1011 0 4
+		minitext TEXTX 104 1011 0 0
+		qputs 1011 travel, Mikko harvested Weapons and Armour
+		minitext TEXTXS 111 1011 0 4
+		minitext TEXTX 110 1011 0 0
+		qputs 1011 from across many Universes. Mikko joined the
+		minitext TEXTXS 117 1011 0 4
+		minitext TEXTX 116 1011 0 0
+		qputs 1011 AMC Squad not only to test his new almighty
+		minitext TEXTXS 123 1011 0 4
+		minitext TEXTX 122 1011 0 0
+		qputs 1011 body but to also explore and find new
+		minitext TEXTXS 129 1011 0 4
+		minitext TEXTX 128 1011 0 0
+		qputs 1011 technologies to use in his corporation.
+		minitext TEXTXS 135 1011 0 4
+		minitext TEXTX 134 1011 0 0
+		}
+
+	ife INFO_SEL_2 1
+		{
+		qputs 1011 Before his cybernetic rebirth, Mikko was
+		minitext TEXTXS 81 1011 0 4
+		minitext TEXTX 80 1011 0 0
+		qputs 1011 already well trained in the arts of war, but
+		minitext TEXTXS 87 1011 0 4
+		minitext TEXTX 86 1011 0 0
+		qputs 1011 had no need of dirtying his hands directly -
+		minitext TEXTXS 93 1011 0 4
+		minitext TEXTX 92 1011 0 0
+		qputs 1011 his cult would have gladly marched into hell
+		minitext TEXTXS 99 1011 0 4
+		minitext TEXTX 98 1011 0 0
+		qputs 1011 if he uttered the command. Now though,
+		minitext TEXTXS 105 1011 0 4
+		minitext TEXTX 104 1011 0 0
+		qputs 1011 he is nothing more than a killing machine.
+		minitext TEXTXS 111 1011 0 4
+		minitext TEXTX 110 1011 0 0
+		qputs 1011 Using nothing but MS Corp tech and weapons,
+		minitext TEXTXS 117 1011 0 4
+		minitext TEXTX 116 1011 0 0
+		qputs 1011 Mikko is nearly unstoppable in the field.
+		minitext TEXTXS 123 1011 0 4
+		minitext TEXTX 122 1011 0 0
+		}
+
+	ife INFO_SEL_2 2
+		{
+		qputs 1011 Like many other agents, Mikko's home is not
+		minitext TEXTXS 81 1011 0 4
+		minitext TEXTX 80 1011 0 0
+		qputs 1011 his birthplace. Born somewhere in Finland,
+		minitext TEXTXS 87 1011 0 4
+		minitext TEXTX 86 1011 0 0
+		qputs 1011 MS Corp itself lies mostly in America where
+		minitext TEXTXS 93 1011 0 4
+		minitext TEXTX 92 1011 0 0
+		qputs 1011 it was free to flourish.
+		minitext TEXTXS 99 1011 0 4
+		minitext TEXTX 98 1011 0 0
+		}
+
+	ife INFO_SEL_2 3
+		{
+		qputs 1011 Mikko has no paranormal abilities or
+		minitext TEXTXS 81 1011 0 4
+		minitext TEXTX 80 1011 0 0
+		qputs 1011 traits.
+		minitext TEXTXS 87 1011 0 4
+		minitext TEXTX 86 1011 0 0
+		}
+
+	}
+
+ifg MOUSEX 10
+ ifg MOUSEY 36
+  ifl MOUSEX 72
+   ifl MOUSEY 52
+	{
+	rotatespritea 40 44 HALFSIZE 0 3826 0 21 0 -255 0 0 xdim ydim
+	ifand BITS_PRESS 4
+	ifcount 13
+		{
+		sound INTERFACE_2
+		set INFO_SEL 0
+		resetcount
+		}
+	}
+else
+ifg MOUSEX 10
+ ifg MOUSEY 52
+  ifl MOUSEX 72
+   ifl MOUSEY 68
+	{
+	rotatespritea 40 60 HALFSIZE 0 3826 0 21 0 -255 0 0 xdim ydim
+	ifand BITS_PRESS 4
+	ifcount 13
+		{
+		sound INTERFACE_2
+		set INFO_SEL 1
+		resetcount
+		}
+	}
+else
+ifg MOUSEX 10
+ ifg MOUSEY 68
+  ifl MOUSEX 72
+   ifl MOUSEY 84
+	{
+	rotatespritea 40 76 HALFSIZE 0 3826 0 21 0 -255 0 0 xdim ydim
+	ifand BITS_PRESS 4
+	ifcount 13
+		{
+		sound INTERFACE_2
+		set INFO_SEL 2
+		resetcount
+		}
+	}
+else
+ifg MOUSEX 10
+ ifg MOUSEY 84
+  ifl MOUSEX 72
+   ifl MOUSEY 100
+	{
+	rotatespritea 40 92 HALFSIZE 0 3826 0 21 0 -255 0 0 xdim ydim
+	ifand BITS_PRESS 4
+	ifcount 13
+		{
+		sound INTERFACE_2
+		set INFO_SEL 3
+		resetcount
+		}
+	}
+else
+ifg MOUSEX 10
+ ifg MOUSEY 100
+  ifl MOUSEX 72
+   ifl MOUSEY 116
+	{
+	rotatespritea 40 108 HALFSIZE 0 3826 0 21 0 -255 0 0 xdim ydim
+	ifand BITS_PRESS 4
+	ifcount 13
+		{
+		sound INTERFACE_2
+		set INFO_SEL 4
+		resetcount
+		}
+	}
+else
+ifg MOUSEX 10
+ ifg MOUSEY 116
+  ifl MOUSEX 72
+   ifl MOUSEY 132
+	{
+	rotatespritea 40 124 HALFSIZE 0 3826 0 21 0 -255 0 0 xdim ydim
+	ifand BITS_PRESS 4
+	ifcount 13
+		{
+		sound INTERFACE_2
+		set INFO_SEL 5
+		resetcount
+		}
+	}
+else
+ifg MOUSEX 10
+ ifg MOUSEY 132
+  ifl MOUSEX 72
+   ifl MOUSEY 148
+	{
+	rotatespritea 40 140 HALFSIZE 0 3826 0 21 0 -255 0 0 xdim ydim
+	ifand BITS_PRESS 4
+	ifcount 13
+		{
+		sound INTERFACE_2
+		set INFO_SEL 6
+		resetcount
+		}
+	}
+else
+ifg MOUSEX 10
+ ifg MOUSEY 148
+  ifl MOUSEX 72
+   ifl MOUSEY 164
+	{
+	rotatespritea 40 156 HALFSIZE 0 3826 0 21 0 -255 0 0 xdim ydim
+	ifand BITS_PRESS 4
+	ifcount 13
+		{
+		sound INTERFACE_2
+		set INFO_SEL 7
+		resetcount
+		}
+	}
+}
+else // END OF JAMES PC MENU 1 PLAYER BIO ========================================================================================
+ife JPCMENU 1
+{
+rotatespritea 40 44 HALFSIZE 0 3826 0 0 0 -255 0 0 xdim ydim
+qputs 1011 Earth
+minitext 13 41 1011 0 4
+minitext 12 40 1011 0 0
+rotatespritea 40 60 HALFSIZE 0 3826 0 0 0 -255 0 0 xdim ydim
+qputs 1011 Moon
+minitext 13 57 1011 0 4
+minitext 12 56 1011 0 0
+rotatespritea 40 76 HALFSIZE 0 3826 0 0 0 -255 0 0 xdim ydim
+qputs 1011 Mars
+minitext 13 73 1011 0 4
+minitext 12 72 1011 0 0
+rotatespritea 40 92 HALFSIZE 0 3826 0 0 0 -255 0 0 xdim ydim
+qputs 1011 Ganymede
+minitext 13 89 1011 0 4
+minitext 12 88 1011 0 0
+rotatespritea 40 108 HALFSIZE 0 3826 0 0 0 -255 0 0 xdim ydim
+qputs 1011 Xuglop
+minitext 13 105 1011 0 4
+minitext 12 104 1011 0 0
+rotatespritea 40 124 HALFSIZE 0 3826 0 0 0 -255 0 0 xdim ydim
+qputs 1011 Ractonia
+minitext 13 121 1011 0 4
+minitext 12 120 1011 0 0
+rotatespritea 40 140 HALFSIZE 0 3826 0 0 0 -255 0 0 xdim ydim
+qputs 1011 X64-2
+minitext 13 137 1011 0 4
+minitext 12 136 1011 0 0
+rotatespritea 40 156 HALFSIZE 0 3826 0 0 0 -255 0 0 xdim ydim
+qputs 1011 Unknown
+minitext 13 153 1011 0 4
+minitext 12 152 1011 0 0
+
+myospal 200 100 3827 0 1 0
+
+ife INFO_SEL 0 // EARTH
+	{
+	myospalx 200 100 8448 10 0 0
+	qputs 1011 Earth
+	minitext 12 40 1011 0 21
+
+	qputs 1011 Earth is mankind's home, and has endured
+	minitext TEXTXS 41 1011 0 4
+	minitext TEXTX 40 1011 0 0
+	qputs 1011 many attacks from varying alien species and
+	minitext TEXTXS 47 1011 0 4
+	minitext TEXTX 46 1011 0 0
+	qputs 1011 other horrors. Earth and her many inhabitants
+	minitext TEXTXS 53 1011 0 4
+	minitext TEXTX 52 1011 0 0
+	qputs 1011 stand steadfast against whatever may hope to
+	minitext TEXTXS 59 1011 0 4
+	minitext TEXTX 58 1011 0 0
+	qputs 1011 harm  them, whether it be extraterrestrial
+	minitext TEXTXS 65 1011 0 4
+	minitext TEXTX 64 1011 0 0
+	qputs 1011 or even originating from Earth itself. Mankind
+	minitext TEXTXS 111 1011 0 4
+	minitext TEXTX 110 1011 0 0
+	qputs 1011 has spread to the stars, but defence of the
+	minitext TEXTXS 117 1011 0 4
+	minitext TEXTX 116 1011 0 0
+	qputs 1011 Earth is still a huge priority, hence the
+	minitext TEXTXS 123 1011 0 4
+	minitext TEXTX 122 1011 0 0
+	qputs 1011 existence of the EDF and EAF.
+	minitext TEXTXS 129 1011 0 4
+	minitext TEXTX 128 1011 0 0
+	}
+else
+ife INFO_SEL 1 // MOON
+	{
+	myospalx 200 100 8449 10 0 0
+	qputs 1011 Moon
+	minitext 12 56 1011 0 21
+
+	qputs 1011 The Moon has seen many visits, and had just
+	minitext TEXTXS 41 1011 0 4
+	minitext TEXTX 40 1011 0 0
+	qputs 1011 as many colonies installed as well. Serving
+	minitext TEXTXS 47 1011 0 4
+	minitext TEXTX 46 1011 0 0
+	qputs 1011 as a forward military outpost, as well as a
+	minitext TEXTXS 53 1011 0 4
+	minitext TEXTX 52 1011 0 0
+	qputs 1011 (comparatively) cheap tourist location and a
+	minitext TEXTXS 59 1011 0 4
+	minitext TEXTX 58 1011 0 0
+	qputs 1011 mining facility, the Moon plays an important
+	minitext TEXTXS 65 1011 0 4
+	minitext TEXTX 64 1011 0 0
+	qputs 1011 part in Earth's and the Solar System's
+	minitext TEXTXS 111 1011 0 4
+	minitext TEXTX 110 1011 0 0
+	qputs 1011 defence. The foremost colony on the
+	minitext TEXTXS 117 1011 0 4
+	minitext TEXTX 116 1011 0 0
+	qputs 1011 Moon is titled 'Polaris Outpost', built by
+	minitext TEXTXS 123 1011 0 4
+	minitext TEXTX 122 1011 0 0
+	qputs 1011 a joint effort of the EDF and the US Govt.
+	minitext TEXTXS 129 1011 0 4
+	minitext TEXTX 128 1011 0 0
+	}
+else
+ife INFO_SEL 2 // MARS
+	{
+	myospalx 200 100 8450 10 0 0
+	qputs 1011 Mars
+	minitext 12 72 1011 0 21
+
+	qputs 1011 Mars has forever fascinated many, and when
+	minitext TEXTXS 41 1011 0 4
+	minitext TEXTX 40 1011 0 0
+	qputs 1011 the first human set foot onto its dusty
+	minitext TEXTXS 47 1011 0 4
+	minitext TEXTX 46 1011 0 0
+	qputs 1011 surface, its position was forever immortalized.
+	minitext TEXTXS 53 1011 0 4
+	minitext TEXTX 52 1011 0 0
+	qputs 1011 Many colonies, outposts and mining facilities
+	minitext TEXTXS 59 1011 0 4
+	minitext TEXTX 58 1011 0 0
+	qputs 1011 were built around Mars, and it sees
+	minitext TEXTXS 65 1011 0 4
+	minitext TEXTX 64 1011 0 0
+	qputs 1011 considerable success as a tourist resort,
+	minitext TEXTXS 111 1011 0 4
+	minitext TEXTX 110 1011 0 0
+	qputs 1011 more so than the Moon despite costing more.
+	minitext TEXTXS 117 1011 0 4
+	minitext TEXTX 116 1011 0 0
+	qputs 1011 2 main colonies, entitled 'Arsia Mons' and
+	minitext TEXTXS 123 1011 0 4
+	minitext TEXTX 122 1011 0 0
+	qputs 1011 'Aelita', serve as the forefront of Mars.
+	minitext TEXTXS 129 1011 0 4
+	minitext TEXTX 128 1011 0 0
+	qputs 1011 Conditions in these colonies are poor for the
+	minitext TEXTXS 135 1011 0 4
+	minitext TEXTX 134 1011 0 0
+	qputs 1011 underclass, and many people turn to cults to
+	minitext TEXTXS 141 1011 0 4
+	minitext TEXTX 140 1011 0 0
+	qputs 1011 offer some form of coping strategies.
+	minitext TEXTXS 147 1011 0 4
+	minitext TEXTX 146 1011 0 0
+	}
+else
+ife INFO_SEL 3 // GANYMEDE
+	{
+	myospalx 200 100 8451 10 0 0
+	qputs 1011 Ganymede
+	minitext 12 88 1011 0 21
+
+	qputs 1011 Like many of the solar system's moons,
+	minitext TEXTXS 41 1011 0 4
+	minitext TEXTX 40 1011 0 0
+	qputs 1011 Ganymede has not been spared in the search
+	minitext TEXTXS 47 1011 0 4
+	minitext TEXTX 46 1011 0 0
+	qputs 1011 for materials to fuel Earth's growth. The
+	minitext TEXTXS 53 1011 0 4
+	minitext TEXTX 52 1011 0 0
+	qputs 1011 usual collection of facilities have been
+	minitext TEXTXS 59 1011 0 4
+	minitext TEXTX 58 1011 0 0
+	qputs 1011 erected around the surface by many different
+	minitext TEXTXS 65 1011 0 4
+	minitext TEXTX 64 1011 0 0
+	qputs 1011 countries and companies. Being further away
+	minitext TEXTXS 111 1011 0 4
+	minitext TEXTX 110 1011 0 0
+	qputs 1011 from Earth means many companies cut corners
+	minitext TEXTXS 117 1011 0 4
+	minitext TEXTX 116 1011 0 0
+	qputs 1011 with regards to safety and security, so a
+	minitext TEXTXS 123 1011 0 4
+	minitext TEXTX 122 1011 0 0
+	qputs 1011 law system consisting of Marshals similar to
+	minitext TEXTXS 129 1011 0 4
+	minitext TEXTX 128 1011 0 0
+	qputs 1011 the Wild West is in place. Although subject
+	minitext TEXTXS 135 1011 0 4
+	minitext TEXTX 134 1011 0 0
+	qputs 1011 to corruption, relative peace exists in
+	minitext TEXTXS 141 1011 0 4
+	minitext TEXTX 140 1011 0 0
+	qputs 1011 Ganymede and Jupiter's other moons.
+	minitext TEXTXS 147 1011 0 4
+	minitext TEXTX 146 1011 0 0
+	}
+else
+ife INFO_SEL 4 // XUGLOP
+	{
+	myospalx 200 100 8452 0 0 0
+	qputs 1011 Xuglop
+	minitext 12 104 1011 0 21
+
+	qputs 1011 Xuglop is a famous green planet well known
+	minitext TEXTXS 41 1011 0 4
+	minitext TEXTX 40 1011 0 0
+	qputs 1011 as a source of conflict between its residents
+	minitext TEXTXS 47 1011 0 4
+	minitext TEXTX 46 1011 0 0
+	qputs 1011 and the vile alien race known as the Pitfiends.
+	minitext TEXTXS 53 1011 0 4
+	minitext TEXTX 52 1011 0 0
+	qputs 1011 James has visited this planet many times, and
+	minitext TEXTXS 59 1011 0 4
+	minitext TEXTX 58 1011 0 0
+	qputs 1011 has helped the colonists defend themselves
+	minitext TEXTXS 65 1011 0 4
+	minitext TEXTX 64 1011 0 0
+	qputs 1011 against the Pitfiends and their minions.
+	minitext TEXTXS 111 1011 0 4
+	minitext TEXTX 110 1011 0 0
+	qputs 1011 During the events of Imagination World the
+	minitext TEXTXS 117 1011 0 4
+	minitext TEXTX 116 1011 0 0
+	qputs 1011 World Government set up many outposts on
+	minitext TEXTXS 123 1011 0 4
+	minitext TEXTX 122 1011 0 0
+	qputs 1011 Xuglop, and it's believed that they are still
+	minitext TEXTXS 129 1011 0 4
+	minitext TEXTX 128 1011 0 0
+	qputs 1011 operating despite the absence of Tom Exerfed,
+	minitext TEXTXS 135 1011 0 4
+	minitext TEXTX 134 1011 0 0
+	qputs 1011 the corrupt government's previous leader.
+	minitext TEXTXS 141 1011 0 4
+	minitext TEXTX 140 1011 0 0
+	}
+else
+ife INFO_SEL 5 // RACTONIA
+	{
+	myospalx 200 100 8453 0 0 0
+	qputs 1011 Ractonia
+	minitext 12 120 1011 0 21
+
+	qputs 1011 Ractonia is a harsh red planet that despite
+	minitext TEXTXS 41 1011 0 4
+	minitext TEXTX 40 1011 0 0
+	qputs 1011 having a breathable atmosphere, hosts little
+	minitext TEXTXS 47 1011 0 4
+	minitext TEXTX 46 1011 0 0
+	qputs 1011 life. From a glance it lacks many natural
+	minitext TEXTXS 53 1011 0 4
+	minitext TEXTX 52 1011 0 0
+	qputs 1011 resources, however, visits to the planet have
+	minitext TEXTXS 59 1011 0 4
+	minitext TEXTX 58 1011 0 0
+	qputs 1011 revealed vast number of strange metal claw-like
+	minitext TEXTXS 65 1011 0 4
+	minitext TEXTX 64 1011 0 0
+	qputs 1011 automatons, which suggests that there are
+	minitext TEXTXS 111 1011 0 4
+	minitext TEXTX 110 1011 0 0
+	qputs 1011 resources somewhere on the planet since they
+	minitext TEXTXS 117 1011 0 4
+	minitext TEXTX 116 1011 0 0
+	qputs 1011 appear to be produced on the planet itself.
+	minitext TEXTXS 123 1011 0 4
+	minitext TEXTX 122 1011 0 0
+	qputs 1011 Searches for what is constructing them have
+	minitext TEXTXS 129 1011 0 4
+	minitext TEXTX 128 1011 0 0
+	qputs 1011 proved fruitless, remaining one of this
+	minitext TEXTXS 135 1011 0 4
+	minitext TEXTX 134 1011 0 0
+	qputs 1011 strange planet's many mysteries.
+	minitext TEXTXS 141 1011 0 4
+	minitext TEXTX 140 1011 0 0
+	}
+else
+ife INFO_SEL 6 // X64-2
+	{
+	myospalx 200 100 8454 0 0 0
+	qputs 1011 X64-2
+	minitext 12 136 1011 0 21
+
+	qputs 1011 X64-2 is believed to be the homeworld of the
+	minitext TEXTXS 41 1011 0 4
+	minitext TEXTX 40 1011 0 0
+	qputs 1011 Cycloid race, although this is unverified
+	minitext TEXTXS 47 1011 0 4
+	minitext TEXTX 46 1011 0 0
+	qputs 1011 (many other planets have this claim placed
+	minitext TEXTXS 53 1011 0 4
+	minitext TEXTX 52 1011 0 0
+	qputs 1011 on them, such as Aliran). Nevertheless, it
+	minitext TEXTXS 59 1011 0 4
+	minitext TEXTX 58 1011 0 0
+	qputs 1011 holds vast numbers of their forces, and is one
+	minitext TEXTXS 65 1011 0 4
+	minitext TEXTX 64 1011 0 0
+	qputs 1011 of their major staging points. The planet is
+	minitext TEXTXS 111 1011 0 4
+	minitext TEXTX 110 1011 0 0
+	qputs 1011 rich in resources, meaning that the Cycloids
+	minitext TEXTXS 117 1011 0 4
+	minitext TEXTX 116 1011 0 0
+	qputs 1011 have been able to build a force large enough
+	minitext TEXTXS 123 1011 0 4
+	minitext TEXTX 122 1011 0 0
+	qputs 1011 to deter any attacks, and launch plenty of
+	minitext TEXTXS 129 1011 0 4
+	minitext TEXTX 128 1011 0 0
+	qputs 1011 their own. The Sol system's many militaries
+	minitext TEXTXS 135 1011 0 4
+	minitext TEXTX 134 1011 0 0
+	qputs 1011 have spent years debating on how to tackle
+	minitext TEXTXS 141 1011 0 4
+	minitext TEXTX 140 1011 0 0
+	qputs 1011 this planet's menacing inhabitants.
+	minitext TEXTXS 147 1011 0 4
+	minitext TEXTX 146 1011 0 0
+	}
+
+ifg MOUSEX 10
+ ifg MOUSEY 36
+  ifl MOUSEX 72
+   ifl MOUSEY 52
+	{
+	rotatespritea 40 44 HALFSIZE 0 3826 0 21 0 -255 0 0 xdim ydim
+	ifand BITS_PRESS 4
+	ifcount 13
+		{
+		sound INTERFACE_2
+		set INFO_SEL 0
+		resetcount
+		}
+	}
+else
+ifg MOUSEX 10
+ ifg MOUSEY 52
+  ifl MOUSEX 72
+   ifl MOUSEY 68
+	{
+	rotatespritea 40 60 HALFSIZE 0 3826 0 21 0 -255 0 0 xdim ydim
+	ifand BITS_PRESS 4
+	ifcount 13
+		{
+		sound INTERFACE_2
+		set INFO_SEL 1
+		resetcount
+		}
+	}
+else
+ifg MOUSEX 10
+ ifg MOUSEY 68
+  ifl MOUSEX 72
+   ifl MOUSEY 84
+	{
+	rotatespritea 40 76 HALFSIZE 0 3826 0 21 0 -255 0 0 xdim ydim
+	ifand BITS_PRESS 4
+	ifcount 13
+		{
+		sound INTERFACE_2
+		set INFO_SEL 2
+		resetcount
+		}
+	}
+else
+ifg MOUSEX 10
+ ifg MOUSEY 84
+  ifl MOUSEX 72
+   ifl MOUSEY 100
+	{
+	rotatespritea 40 92 HALFSIZE 0 3826 0 21 0 -255 0 0 xdim ydim
+	ifand BITS_PRESS 4
+	ifcount 13
+		{
+		sound INTERFACE_2
+		set INFO_SEL 3
+		resetcount
+		}
+	}
+else
+ifg MOUSEX 10
+ ifg MOUSEY 100
+  ifl MOUSEX 72
+   ifl MOUSEY 116
+	{
+	rotatespritea 40 108 HALFSIZE 0 3826 0 21 0 -255 0 0 xdim ydim
+	ifand BITS_PRESS 4
+	ifcount 13
+		{
+		sound INTERFACE_2
+		set INFO_SEL 4
+		resetcount
+		}
+	}
+else
+ifg MOUSEX 10
+ ifg MOUSEY 116
+  ifl MOUSEX 72
+   ifl MOUSEY 132
+	{
+	rotatespritea 40 124 HALFSIZE 0 3826 0 21 0 -255 0 0 xdim ydim
+	ifand BITS_PRESS 4
+	ifcount 13
+		{
+		sound INTERFACE_2
+		set INFO_SEL 5
+		resetcount
+		}
+	}
+else
+ifg MOUSEX 10
+ ifg MOUSEY 132
+  ifl MOUSEX 72
+   ifl MOUSEY 148
+	{
+	rotatespritea 40 140 HALFSIZE 0 3826 0 21 0 -255 0 0 xdim ydim
+	ifand BITS_PRESS 4
+	ifcount 13
+		{
+		sound INTERFACE_2
+		set INFO_SEL 6
+		resetcount
+		}
+	}
+else
+ifg MOUSEX 10
+ ifg MOUSEY 148
+  ifl MOUSEX 72
+   ifl MOUSEY 164
+	{
+	rotatespritea 40 156 HALFSIZE 0 3826 0 21 0 -255 0 0 xdim ydim
+	ifand BITS_PRESS 4
+	ifcount 13
+		{
+		sound INTERFACE_2
+		set INFO_SEL 7
+		resetcount
+		}
+	}
+
+
+}
+else // END OF JAMES PC MENU 2 WORLD INFO ========================================================================================
+ife JPCMENU 2
+{
+qputs 1011 Epsilon
+rotatespritea 40 44 HALFSIZE 0 3826 0 0 0 -255 0 0 xdim ydim
+minitext 13 41 1011 0 4
+minitext 12 40 1011 0 0
+qputs 1011 Jane Ashford
+rotatespritea 40 60 HALFSIZE 0 3826 0 0 0 -255 0 0 xdim ydim
+minitext 13 57 1011 0 4
+minitext 12 56 1011 0 0
+qputs 1011 -
+rotatespritea 40 76 HALFSIZE 0 3826 0 0 0 -255 0 0 xdim ydim
+minitext 13 73 1011 0 4
+minitext 12 72 1011 0 0
+qputs 1011 Maarten Oostrum
+rotatespritea 40 92 HALFSIZE 0 3826 0 0 0 -255 0 0 xdim ydim
+minitext 13 89 1011 0 4
+minitext 12 88 1011 0 0
+qputs 1011 MS Industries
+rotatespritea 40 108 HALFSIZE 0 3826 0 0 0 -255 0 0 xdim ydim
+minitext 13 105 1011 0 4
+minitext 12 104 1011 0 0
+qputs 1011 Fossapeople
+rotatespritea 40 124 HALFSIZE 0 3826 0 0 0 -255 0 0 xdim ydim
+minitext 13 121 1011 0 4
+minitext 12 120 1011 0 0
+qputs 1011 Vladmir Lebedev
+rotatespritea 40 140 HALFSIZE 0 3826 0 0 0 -255 0 0 xdim ydim
+minitext 13 137 1011 0 4
+minitext 12 136 1011 0 0
+qputs 1011 Minerva Armitage
+rotatespritea 40 156 HALFSIZE 0 3826 0 0 0 -255 0 0 xdim ydim
+minitext 13 153 1011 0 4
+minitext 12 152 1011 0 0
+
+myospal 200 100 3827 0 1 0
+myospal 200 100 3137 0 0 0
+
+
+ife INFO_SEL 0 // Epsilon's Info
+	{
+	myospalx 130 56 14462 0 0 0
+
+	qputs 1011 Epsilon
+	minitext 12 40 1011 0 21
+
+	qputs 1011 Name: Epsilon
+	minitext 163 43 1011 0 4
+	minitext 162 42 1011 0 0
+	qputs 1011 Personal Battle level: N/A
+	minitext 163 49 1011 0 4
+	minitext 162 48 1011 0 0
+	qputs 1011 Nationality: N/A
+	minitext 163 55 1011 0 4
+	minitext 162 54 1011 0 0
+	qputs 1011 Paranormal level: Zero
+	minitext 163 61 1011 0 4
+	minitext 162 60 1011 0 0
+
+	qputs 1011 Epsilon is an artificial intelligence created
+	minitext TEXTXS 81 1011 0 4
+	minitext TEXTX 80 1011 0 0
+	qputs 1011 by Majestic 12; he is one of the most
+	minitext TEXTXS 87 1011 0 4
+	minitext TEXTX 86 1011 0 0
+	qputs 1011 advanced AIs ever created as he has an actual
+	minitext TEXTXS 93 1011 0 4
+	minitext TEXTX 92 1011 0 0
+	qputs 1011 personality. James 'met' Epsilon in a remote
+	minitext TEXTXS 99 1011 0 4
+	minitext TEXTX 98 1011 0 0
+	qputs 1011 Alaskan facility, and the two of them joined
+	minitext TEXTXS 105 1011 0 4
+	minitext TEXTX 104 1011 0 0
+	qputs 1011 forces to stop MJ12's time-spanning plot to
+	minitext TEXTXS 111 1011 0 4
+	minitext TEXTX 110 1011 0 0
+	qputs 1011 seize control of the Earth by destroying it.
+	minitext 107 117 1011 0 4
+	minitext TEXTX 116 1011 0 0
+	qputs 1011 After the incident Epsilon joined the EDF and
+	minitext 107 123 1011 0 4
+	minitext TEXTX 122 1011 0 0
+	qputs 1011 has helped them and James in many missions.
+	minitext 107 129 1011 0 4
+	minitext TEXTX 128 1011 0 0
+	}
+
+ife INFO_SEL 1 // Jane's Info
+	{
+	myospalx 130 56 5366 0 0 0
+
+	qputs 1011 Jane Ashford
+	minitext 12 56 1011 0 21
+
+	qputs 1011 Name: Jane Ashford
+	minitext 163 43 1011 0 4
+	minitext 162 42 1011 0 0
+	qputs 1011 Personal Battle level: A+
+	minitext 163 49 1011 0 4
+	minitext 162 48 1011 0 0
+	qputs 1011 Nationality: United Kingdom
+	minitext 163 55 1011 0 4
+	minitext 162 54 1011 0 0
+	qputs 1011 Paranormal level: Zero
+	minitext 163 61 1011 0 4
+	minitext 162 60 1011 0 0
+
+	qputs 1011 Jane is an elite agent of the EDF, and has
+	minitext TEXTXS 81 1011 0 4
+	minitext TEXTX 80 1011 0 0
+	qputs 1011 fought alongside James in many missions.
+	minitext TEXTXS 87 1011 0 4
+	minitext TEXTX 86 1011 0 0
+	qputs 1011 She wears a high-tech armoured combat suit
+	minitext TEXTXS 93 1011 0 4
+	minitext TEXTX 92 1011 0 0
+	qputs 1011 which boosts her already respectable combat
+	minitext TEXTXS 99 1011 0 4
+	minitext TEXTX 98 1011 0 0
+	qputs 1011 skills to superhuman levels. Born in England,
+	minitext TEXTXS 105 1011 0 4
+	minitext TEXTX 104 1011 0 0
+	qputs 1011 Jane joined the EDF a few years after James
+	minitext TEXTXS 111 1011 0 4
+	minitext TEXTX 110 1011 0 0
+	qputs 1011 did and rose through the ranks at a rate
+	minitext TEXTXS 117 1011 0 4
+	minitext TEXTX 116 1011 0 0
+	qputs 1011 that surpassed him and many others. She is
+	minitext TEXTXS 123 1011 0 4
+	minitext TEXTX 122 1011 0 0
+	qputs 1011 seen as one of the EDF's most valued agents.
+	minitext TEXTXS 129 1011 0 4
+	minitext TEXTX 128 1011 0 0
+	}
+
+ife INFO_SEL 3 // Maarten's Info
+	{
+	myospalx 130 56 5488 0 0 0
+
+	qputs 1011 Maarten Oostrum
+	minitext 12 88 1011 0 21
+
+	qputs 1011 Name: Maarten Van Oostrum
+	minitext 163 43 1011 0 4
+	minitext 162 42 1011 0 0
+	qputs 1011 Personal Battle level: B+
+	minitext 163 49 1011 0 4
+	minitext 162 48 1011 0 0
+	qputs 1011 Nationality: Netherlands
+	minitext 163 55 1011 0 4
+	minitext 162 54 1011 0 0
+	qputs 1011 Paranormal level: High
+	minitext 163 61 1011 0 4
+	minitext 162 60 1011 0 0
+
+	qputs 1011 Brother to Merlijn, Maarten has helped him
+	minitext TEXTXS 81 1011 0 4
+	minitext TEXTX 80 1011 0 0
+	qputs 1011 protect the Netherlands as well as Europe.
+	minitext TEXTXS 87 1011 0 4
+	minitext TEXTX 86 1011 0 0
+	qputs 1011 Although specializing in spells he is still
+	minitext TEXTXS 93 1011 0 4
+	minitext TEXTX 92 1011 0 0
+	qputs 1011 skilled at close combat; not to the degree
+	minitext TEXTXS 99 1011 0 4
+	minitext TEXTX 98 1011 0 0
+	qputs 1011 that his brother is, but enough to pose a
+	minitext TEXTXS 105 1011 0 4
+	minitext TEXTX 104 1011 0 0
+	qputs 1011 serious threat to any potential attackers.
+	minitext TEXTXS 111 1011 0 4
+	minitext TEXTX 110 1011 0 0
+	qputs 1011 Together they defeated a Necromancer who
+	minitext TEXTXS 117 1011 0 4
+	minitext TEXTX 116 1011 0 0
+	qputs 1011 plagued the Netherlands; he shares his grudge
+	minitext TEXTXS 123 1011 0 4
+	minitext TEXTX 122 1011 0 0
+	qputs 1011 against the beast with his brother.
+	minitext TEXTXS 129 1011 0 4
+	minitext TEXTX 128 1011 0 0
+	}
+
+ife INFO_SEL 4 // Ms Corps's Info
+	{
+
+	qputs 1011 MS Industries
+	minitext 12 104 1011 0 21
+
+	rotatesprite 130 56 QUARTERSIZE 0 8540 0 0 0 0 0 xdim ydim
+	qputs 1011 Name: Mikko Sandt Industries
+	minitext 163 43 1011 0 4
+	minitext 162 42 1011 0 0
+	qputs 1011 Personal Battle level: N/A
+	minitext 163 49 1011 0 4
+	minitext 162 48 1011 0 0
+	qputs 1011 Nationality: N/A
+	minitext 163 55 1011 0 4
+	minitext 162 54 1011 0 0
+	qputs 1011 Paranormal level: N/A
+	minitext 163 61 1011 0 4
+	minitext 162 60 1011 0 0
+
+	qputs 1011 MS Industries Inc. is a gargantuan megacorp
+	minitext TEXTXS 81 1011 0 4
+	minitext TEXTX 80 1011 0 0
+	qputs 1011 run and owned by Mikko Sandt. His company has
+	minitext TEXTXS 87 1011 0 4
+	minitext TEXTX 86 1011 0 0
+	qputs 1011 a hand in almost every single product
+	minitext TEXTXS 93 1011 0 4
+	minitext TEXTX 92 1011 0 0
+	qputs 1011 imaginable, although it's most known for its
+	minitext TEXTXS 99 1011 0 4
+	minitext TEXTX 98 1011 0 0
+	qputs 1011 fanatical cult that worships Sandt as its
+	minitext TEXTXS 105 1011 0 4
+	minitext TEXTX 104 1011 0 0
+	qputs 1011 god, and its dimensional technology. Despite
+	minitext TEXTXS 111 1011 0 4
+	minitext TEXTX 110 1011 0 0
+	qputs 1011 his 'death' the company still thrived whilst
+	minitext TEXTXS 117 1011 0 4
+	minitext TEXTX 116 1011 0 0
+	qputs 1011 he underwent his rejuvenation, under the rule
+	minitext TEXTXS 123 1011 0 4
+	minitext TEXTX 122 1011 0 0
+	qputs 1011 of a cabinet of intellectuals handpicked by
+	minitext TEXTXS 129 1011 0 4
+	minitext TEXTX 128 1011 0 0
+	qputs 1011 Mikko himself. Sandt prefers to keep his
+	minitext TEXTXS 135 1011 0 4
+	minitext TEXTX 134 1011 0 0
+	qputs 1011 business separate from the AMC Squad; its
+	minitext TEXTXS 141 1011 0 4
+	minitext TEXTX 140 1011 0 0
+	qputs 1011 vast resources are unfortunately not at our
+	minitext TEXTXS 147 1011 0 4
+	minitext TEXTX 146 1011 0 0
+	qputs 1011 disposal.
+	minitext TEXTXS 153 1011 0 4
+	minitext TEXTX 152 1011 0 0
+	}
+
+ife INFO_SEL 5 // Fossa people's Info
+	{
+	myospalx 130 56 5485 0 0 0
+
+	qputs 1011 Fossapeople
+	minitext 12 120 1011 0 21
+
+	qputs 1011 Name: Cryptoprocta Ferox
+	minitext 163 43 1011 0 4
+	minitext 162 42 1011 0 0
+	qputs 1011 Personal Battle level: B+ (Avg.)
+	minitext 163 49 1011 0 4
+	minitext 162 48 1011 0 0
+	qputs 1011 Nationality: Madagascar
+	minitext 163 55 1011 0 4
+	minitext 162 54 1011 0 0
+	qputs 1011 Paranormal level: Zero
+	minitext 163 61 1011 0 4
+	minitext 162 60 1011 0 0
+
+	qputs 1011 The Cryptoprocta Ferox, or Fossapeople as
+	minitext TEXTXS 81 1011 0 4
+	minitext TEXTX 80 1011 0 0
+	qputs 1011 more commonly known, are a reclusive race
+	minitext TEXTXS 87 1011 0 4
+	minitext TEXTX 86 1011 0 0
+	qputs 1011 of creatures coming from Madagascar. An
+	minitext TEXTXS 93 1011 0 4
+	minitext TEXTX 92 1011 0 0
+	qputs 1011 average Fossaman is roughly 6.5ft and
+	minitext TEXTXS 99 1011 0 4
+	minitext TEXTX 98 1011 0 0
+	qputs 1011 has considerable strength. Despite some
+	minitext TEXTXS 105 1011 0 4
+	minitext TEXTX 104 1011 0 0
+	qputs 1011 subjugation at the hands of people because
+	minitext TEXTXS 111 1011 0 4
+	minitext TEXTX 110 1011 0 0
+	qputs 1011 of their appearance and poor language skills,
+	minitext TEXTXS 117 1011 0 4
+	minitext TEXTX 116 1011 0 0
+	qputs 1011 the Cryptoprocta Ferox are fierce and hardy
+	minitext TEXTXS 123 1011 0 4
+	minitext TEXTX 122 1011 0 0
+	qputs 1011 fighters. Zaxtor is the most famous of all,
+	minitext TEXTXS 129 1011 0 4
+	minitext TEXTX 128 1011 0 0
+	qputs 1011 as he single-handedly annihilated an entire
+	minitext TEXTXS 135 1011 0 4
+	minitext TEXTX 134 1011 0 0
+	qputs 1011 army of alien invaders by himself, much like
+	minitext TEXTXS 141 1011 0 4
+	minitext TEXTX 140 1011 0 0
+	qputs 1011 Duke Nukem.
+	minitext TEXTXS 147 1011 0 4
+	minitext TEXTX 146 1011 0 0
+	}
+
+ife INFO_SEL 6 // Vladmir's Info
+	{
+	myospalx 130 56 11817 0 0 0
+
+	qputs 1011 Vladmir Lebedev
+	minitext 12 136 1011 0 21
+
+	qputs 1011 Name: Vladmir Lebedev
+	minitext 163 43 1011 0 4
+	minitext 162 42 1011 0 0
+	qputs 1011 Personal Battle level: C
+	minitext 163 49 1011 0 4
+	minitext 162 48 1011 0 0
+	qputs 1011 Nationality: Russian
+	minitext 163 55 1011 0 4
+	minitext 162 54 1011 0 0
+	qputs 1011 Paranormal level: Zero
+	minitext 163 61 1011 0 4
+	minitext 162 60 1011 0 0
+
+
+	qputs 1011 Vladmir is a Russian soldier who fought with
+	minitext TEXTXS 81 1011 0 4
+	minitext TEXTX 80 1011 0 0
+	qputs 1011 Highwire against the fascist state. Together
+	minitext TEXTXS 87 1011 0 4
+	minitext TEXTX 86 1011 0 0
+	qputs 1011 they and a small team of rebels headed into
+	minitext TEXTXS 93 1011 0 4
+	minitext TEXTX 92 1011 0 0
+	qputs 1011 the dictator's palace and toppled his command.
+	minitext TEXTXS 99 1011 0 4
+	minitext TEXTX 98 1011 0 0
+	qputs 1011 He is a strong fighter and a capable leader,
+	minitext TEXTXS 105 1011 0 4
+	minitext TEXTX 104 1011 0 0
+	qputs 1011 making him a natural partner to Highwire.
+	minitext TEXTXS 111 1011 0 4
+	minitext TEXTX 110 1011 0 0
+	qputs 1011 It is believed that their past extends back
+	minitext TEXTXS 117 1011 0 4
+	minitext TEXTX 116 1011 0 0
+	qputs 1011 when Highwire first joined the EDF; Vladmir
+	minitext TEXTXS 123 1011 0 4
+	minitext TEXTX 122 1011 0 0
+	qputs 1011 tipped his Comrade off about the coup d'etat
+	minitext TEXTXS 129 1011 0 4
+	minitext TEXTX 128 1011 0 0
+	qputs 1011 that was being planned in Russia. With the
+	minitext TEXTXS 135 1011 0 4
+	minitext TEXTX 134 1011 0 0
+	qputs 1011 dictatorship gone, Vladmir leads the
+	minitext TEXTXS 141 1011 0 4
+	minitext TEXTX 140 1011 0 0
+	qputs 1011 restoration of the country after the war.
+	minitext TEXTXS 147 1011 0 4
+	minitext TEXTX 146 1011 0 0
+	}
+
+ife INFO_SEL 7 // Minerva's Info
+	{
+	myospalx 130 56 5483 0 0 0
+
+	minitext 12 152 1011 0 21
+
+	qputs 1011 Name: Minerva Armitage
+	minitext 163 43 1011 0 4
+	minitext 162 42 1011 0 0
+	qputs 1011 Personal Battle level: D
+	minitext 163 49 1011 0 4
+	minitext 162 48 1011 0 0
+	qputs 1011 Nationality: Unknown
+	minitext 163 55 1011 0 4
+	minitext 162 54 1011 0 0
+	qputs 1011 Paranormal level: Ext. High
+	minitext 163 61 1011 0 4
+	minitext 162 60 1011 0 0
+
+
+	qputs 1011 Minerva is a sorceress who James met in a
+	minitext TEXTXS 81 1011 0 4
+	minitext TEXTX 80 1011 0 0
+	qputs 1011 Siberian research facility belonging to a
+	minitext TEXTXS 87 1011 0 4
+	minitext TEXTX 86 1011 0 0
+	qputs 1011 company called Tartarus. Although working for
+	minitext TEXTXS 93 1011 0 4
+	minitext TEXTX 92 1011 0 0
+	qputs 1011 the company, Minerva assisted James in his
+	minitext TEXTXS 99 1011 0 4
+	minitext TEXTX 98 1011 0 0
+	qputs 1011 mission. Afterwards she taught him of the
+	minitext TEXTXS 105 1011 0 4
+	minitext TEXTX 104 1011 0 0
+	qputs 1011 paranormal world, and through her learned of
+	minitext TEXTXS 111 1011 0 4
+	minitext TEXTX 110 1011 0 0
+	qputs 1011 Sang's whereabouts. Although very powerful,
+	minitext TEXTXS 117 1011 0 4
+	minitext TEXTX 116 1011 0 0
+	qputs 1011 Minerva does not actually take part in
+	minitext TEXTXS 123 1011 0 4
+	minitext TEXTX 122 1011 0 0
+	qputs 1011 combat; her protection wards and healing
+	minitext TEXTXS 129 1011 0 4
+	minitext TEXTX 128 1011 0 0
+	qputs 1011 spells are second to none however.
+	minitext TEXTXS 135 1011 0 4
+	minitext TEXTX 134 1011 0 0
+	}
+
+ifg MOUSEX 10
+ ifg MOUSEY 36
+  ifl MOUSEX 72
+   ifl MOUSEY 52
+	{
+	rotatespritea 40 44 HALFSIZE 0 3826 0 21 0 -255 0 0 xdim ydim
+	ifand BITS_PRESS 4
+	ifcount 13
+		{
+		sound INTERFACE_2
+		set INFO_SEL 0
+		resetcount
+		}
+	}
+else
+ifg MOUSEX 10
+ ifg MOUSEY 52
+  ifl MOUSEX 72
+   ifl MOUSEY 68
+	{
+	rotatespritea 40 60 HALFSIZE 0 3826 0 21 0 -255 0 0 xdim ydim
+	ifand BITS_PRESS 4
+	ifcount 13
+		{
+		sound INTERFACE_2
+		set INFO_SEL 1
+		resetcount
+		}
+	}
+else
+ifg MOUSEX 10
+ ifg MOUSEY 68
+  ifl MOUSEX 72
+   ifl MOUSEY 84
+	{
+	rotatespritea 40 76 HALFSIZE 0 3826 0 21 0 -255 0 0 xdim ydim
+	ifand BITS_PRESS 4
+	ifcount 13
+		{
+		sound INTERFACE_2
+		set INFO_SEL 2
+		resetcount
+		}
+	}
+else
+ifg MOUSEX 10
+ ifg MOUSEY 84
+  ifl MOUSEX 72
+   ifl MOUSEY 100
+	{
+	rotatespritea 40 92 HALFSIZE 0 3826 0 21 0 -255 0 0 xdim ydim
+	ifand BITS_PRESS 4
+	ifcount 13
+		{
+		sound INTERFACE_2
+		set INFO_SEL 3
+		resetcount
+		}
+	}
+else
+ifg MOUSEX 10
+ ifg MOUSEY 100
+  ifl MOUSEX 72
+   ifl MOUSEY 116
+	{
+	rotatespritea 40 108 HALFSIZE 0 3826 0 21 0 -255 0 0 xdim ydim
+	ifand BITS_PRESS 4
+	ifcount 13
+		{
+		sound INTERFACE_2
+		set INFO_SEL 4
+		resetcount
+		}
+	}
+else
+ifg MOUSEX 10
+ ifg MOUSEY 116
+  ifl MOUSEX 72
+   ifl MOUSEY 132
+	{
+	rotatespritea 40 124 HALFSIZE 0 3826 0 21 0 -255 0 0 xdim ydim
+	ifand BITS_PRESS 4
+	ifcount 13
+		{
+		sound INTERFACE_2
+		set INFO_SEL 5
+		resetcount
+		}
+	}
+else
+ifg MOUSEX 10
+ ifg MOUSEY 132
+  ifl MOUSEX 72
+   ifl MOUSEY 148
+	{
+	rotatespritea 40 140 HALFSIZE 0 3826 0 21 0 -255 0 0 xdim ydim
+	ifand BITS_PRESS 4
+	ifcount 13
+		{
+		sound INTERFACE_2
+		set INFO_SEL 6
+		resetcount
+		}
+	}
+else
+ifg MOUSEX 10
+ ifg MOUSEY 148
+  ifl MOUSEX 72
+   ifl MOUSEY 164
+	{
+	rotatespritea 40 156 HALFSIZE 0 3826 0 21 0 -255 0 0 xdim ydim
+	ifand BITS_PRESS 4
+	ifcount 13
+		{
+		sound INTERFACE_2
+		set INFO_SEL 7
+		resetcount
+		}
+	}
+
+}
+else // END OF JAMES PC MENU 3 ALLY INFO ========================================================================================
+ife JPCMENU 3
+{
+myospal 160 110 3830 0 1 0
+
+
+
+ifg MOUSEX 8
+ ifg MOUSEY 36
+  ifl MOUSEX 22
+   ifl MOUSEY 52
+	{
+	rotatespritea 15 45 QUARTERSIZE 0 3607 0 21 0 -255 0 0 xdim ydim
+	ifand BITS_PRESS 4
+	ifcount 13
+		{
+		sound INTERFACE_2
+		set INFO_SEL 0
+		resetcount
+		}
+	}
+else
+ifg MOUSEX 8
+ ifg MOUSEY 64
+  ifl MOUSEX 22
+   ifl MOUSEY 78
+	{
+	rotatespritea 15 70 QUARTERSIZE 0 3607 0 21 0 -255 0 0 xdim ydim
+	ifand BITS_PRESS 4
+	ifcount 13
+		{
+		sound INTERFACE_2
+		set INFO_SEL 1
+		resetcount
+		}
+	}
+else
+ifg MOUSEX 8
+ ifg MOUSEY 89
+  ifl MOUSEX 22
+   ifl MOUSEY 103
+	{
+	rotatespritea 15 95 QUARTERSIZE 0 3607 0 21 0 -255 0 0 xdim ydim
+	ifand BITS_PRESS 4
+	ifcount 13
+		{
+		sound INTERFACE_2
+		set INFO_SEL 2
+		resetcount
+		}
+	}
+
+}
+// END OF JAMES PC MENU 4 STATS ========================================================================================
+
+
+// CHARACTER BIO BUTTON
+ifg MOUSEX 40
+ ifg MOUSEY 12
+  ifl MOUSEX 100
+   ifl MOUSEY 28
+	{
+
+	set mouse_hint 3011 // refers to quote in user.con
+	sub mouse_hint_timer 2
+
+	rotatespritea 70 20 HALFSIZE 0 3826 0 21 0 -255 0 0 xdim ydim
+	ifand BITS_PRESS 4
+	ifcount 13
+		{
+		sound INTERFACE_1
+		set JPCMENU 0
+		resetcount
+		}
+	}
+else
+// WORLD INFO BUTTON
+ifg MOUSEX 106
+ ifg MOUSEY 12
+  ifl MOUSEX 170
+   ifl MOUSEY 28
+	{
+
+	set mouse_hint 3012 // refers to quote in user.con
+	sub mouse_hint_timer 2
+
+	rotatespritea 140 20 HALFSIZE 0 3826 0 21 0 -255 0 0 xdim ydim
+	ifand BITS_PRESS 4
+	ifcount 13
+		{
+		sound INTERFACE_1
+		set JPCMENU 1
+		resetcount
+		}
+	}
+else
+// ALLY INFO BUTTON
+ifg MOUSEX 176
+ ifg MOUSEY 12
+  ifl MOUSEX 240
+   ifl MOUSEY 28
+	{
+
+	set mouse_hint 3013 // refers to quote in user.con
+	sub mouse_hint_timer 2
+
+	rotatespritea 210 20 HALFSIZE 0 3826 0 21 0 -255 0 0 xdim ydim
+	ifand BITS_PRESS 4
+	ifcount 13
+		{
+		sound INTERFACE_1
+		set JPCMENU 2
+		resetcount
+		}
+	}
+else
+// STATISTICS BUTTON
+ifg MOUSEX 250
+ ifg MOUSEY 12
+  ifl MOUSEX 310
+   ifl MOUSEY 28
+	{
+
+	set mouse_hint 3014 // refers to quote in user.con
+	sub mouse_hint_timer 2
+
+	rotatespritea 280 20 HALFSIZE 0 3826 0 21 0 -255 0 0 xdim ydim
+	ifand BITS_PRESS 4
+	ifcount 13
+		{
+		sound INTERFACE_1
+		set JPCMENU 3
+		resetcount
+		}
+	}
+ends
+
+
+// EVIDENCE ROOM COMPUTER
+include CODE/GUI/EVIDENCE_COMPUTER.CON
+
+// PERSONAL DATABASE
+
+defstate PERSONAL_INTERFACE
+myospal 160 100 4816 0 0 0
+
+qputs 1011 PERSONAL DATABASE
+gametext 2908 320 14 1011 0 125 0 0 0 xdim ydim
+
+ends
+
+// *************************************************
+// MISSION OBJECTIVES
+// *************************************************
+
+useractor notenemy MISSION_OBJECTIVES
+cstat 32768
+
+// Spritepal 2 used in AMCB2 for some player guidance
+ifspritepal 2
+{
+	// Trigger base scene 2 is set when the player beats the <redacted for spoilers> mission and gets to AMCB2 for the first time in Episode 3.
+	ife TRIGGER_BASE_SCENE 2
+	{
+		set mission_update 300
+	    ifaction 0 { screensound MISSION_UPD action ZERO }
+		qputs 330 Welcome to the new AMC HQ! Take a look around and get used to
+		set MISSIONLINE1 330
+		qputs 331 everything; once you're ready, head to the ^32briefing room ^0in the
+		set MISSIONLINE2 331
+		qputs 332 main underground base for a briefing on the next missions.
+		set MISSIONLINE3 332
+		set MISSIONLINE4 0
+		set MISSIONLINE5 0
+		set MISSIONLINE6 0
+		killit
+	}
+	// This one shows up when the player is in Episode 4 and hasn't played any of the missions, so we can assume this is the first time a player starts up the episode
+	else ife VOLUME 3
+		ife ELYSION_QUEST 0
+	{
+		set mission_update 300
+	    ifaction 0 { screensound MISSION_UPD action ZERO }
+		qputs 330 Welcome back to the AMC HQ. When you're ready to go to Elysion,
+		set MISSIONLINE1 330
+		qputs 331 head to ^0mission command^2. Use the map to ^32zoom all the way out^2
+		set MISSIONLINE2 331
+		qputs 332 to the galaxy. The order to start the journey can be given there.
+		set MISSIONLINE3 332
+		set MISSIONLINE4 0
+		set MISSIONLINE5 0
+		set MISSIONLINE6 0
+		killit
+	}
+}
+
+// Initial objectives in episode 4
+ifspritepal 3
+ ife VOLUME 3
+ ife ELYSION_QUEST 0
+{
+	set mission_update 300
+	ifaction 0 { screensound MISSION_UPD action ZERO }
+	qputs 330 Rough landing. This will have to be our camp for now. We've
+	set MISSIONLINE1 330
+	qputs 331 salvaged some minimal equipment from the ship and our scouts
+	set MISSIONLINE2 331
+	qputs 332 have brought back some interesting items. Feel free to take
+	set MISSIONLINE3 332
+	qputs 333 a look around, and when you're ready, ^32use the map^2
+	set MISSIONLINE4 333
+	qputs 334 to move out.
+	set MISSIONLINE5 334
+	set MISSIONLINE6 0
+	killit
+}
+ifn YVELSAVED 0
+	{
+	checkactivatormotion YVELSAVED
+	ife RETURN 1 killit
+	}
+
+ifn HITAGSAVED 0
+	{
+	checkactivatormotion HITAGSAVED
+	ife RETURN 1 state MISSION_OBS
+	}
+else
+ifpdistl 1024 state MISSION_OBS
+enda
+
+// *************************************************
+// TRANSLATOR
+// *************************************************
+
+useractor notenemy TRANSLATOR
+cstat 32768
+
+ifaction ZERO { ifpdistg 1536 { set tl_pic -1 action ONE } }
+else
+ifpdistl 1536 ife mission_update 0 ife MISSION_UP 0
+	{
+	ifaction 0 sound TRANSL_BEEP // will only beep when unread
+	state TRANSLATOR_TEXT
+	action ZERO
+	}
+enda
+
+
+
+//
+// ------------------------------------------------------------
+// AMMO CABINET/DISPENSER/SHOPKEEPER/VENDING
+// GUNS MACHINE
+// ------------------------------------------------------------
+//
+
+useractor notenemy GUNS_MACHINE
+
+// don't allow use just before AMC Base invasion
+ife VOLUME 2 ife LEVEL 14 break
+
+ifaction 0
+	{
+	set temp 0
+	action ZERO
+	}
+
+ife player[].newowner -1 // prevent viewscreen bugs
+ ifp pfacing
+  ifpdistl 1024
+   ifp palive
+    ifcansee
+	 {
+	 set player_use 0
+	 ifhitspace
+	 ifcount 13
+		{
+		set hit_key 30
+			ifspritepal 0
+			{
+			sound AMMO_PICK
+			ife CHAR 4 sound GET_MAGIC else sound BIG_AMMO
+			state give_assigned_weapon
+			whilevarn temp 12
+				{
+				// skip the expander if they don't have that slot
+				ife temp 11 ifand weap_special[6] 512 nullop else
+					{
+					setp[].gotweapon temp 1
+					setp[].ammo_amount temp 999
+					}
+				add temp 1
+				}
+			resetcount
+			}
+		}
+	 }
+
+enda
+
+// UPGRADES MACHINE ========================================================================================================================================================================================
+// WEAPON MACHINE
+
+defstate FORGE_BUY
+ife POLYMERS 0 sound FG_ZERO
+else ifrnd 32 sound FG_BUY1
+else ifrnd 32 sound FG_BUY2
+else ifrnd 32 sound FG_BUY3
+else ifrnd 32 sound FG_BUY4
+else ifrnd 32 sound FG_BUY5
+else ifrnd 32 sound FG_BUY6
+else ifrnd 32 sound FG_BUY7
+ends
+
+defstate FORGE_CANT
+soundonce COMP_INVALID
+ifsound FG_NCASH1 nullop else ifsound FG_NCASH2 nullop else
+	{
+	ifrnd 48 sound FG_NCASH2
+	else sound FG_NCASH1
+	}
+ends
+
+useractor notenemy 10570
+ifaction 0
+	{
+	set INTERNALCOUNT 0
+	ife LOTAGSAVED 1 { ifmultiplayer nullop else killit }
+	ifspritepal 20 readgamevar SAVED_LIZ
+	action ZERO
+	}
+
+ifaction ZERO
+ ife player[].newowner -1 // prevent viewscreen bugs
+  ifp pfacing
+   ifpdistl 1024
+    ifp palive
+     ifcansee
+	 {
+	 set player_use 0
+	 ifhitspace
+	 ifcount 13
+		{
+		set hit_key 30
+			ifspritepal 0
+			{
+			sound AMMO_PICK
+			ife CHAR 4 sound GET_MAGIC else sound BIG_AMMO
+			spawn FIRSTGUNSPRITE
+			spawn SHOTGUNSPRITE
+			spawn SHOTGUNAMMO
+			spawn CHAINGUNSPRITE
+			spawn BATTERYAMMO
+			spawn FIRSTAID
+			addphealth 25
+			spawn RPGAMMO
+			spawn HBOMBAMMO
+			spawn TRIPBOMBSPRITE
+			spawn TRIPBOMBSPRITE
+			spawn TRIPBOMBSPRITE
+			spawn SHIELD
+			ife SKILL_LEVEL 1 set INTERNALCOUNT 400
+			else ife SKILL_LEVEL 2 set INTERNALCOUNT 600
+			else ife SKILL_LEVEL 3 set INTERNALCOUNT 800
+			else ife SKILL_LEVEL 4 set INTERNALCOUNT 1000
+			else ife SKILL_LEVEL 5 set INTERNALCOUNT 1400
+			action ONE
+			resetcount
+			}
+			ifspritepal 25
+			{
+			sound AMMO_PICK
+			ife CHAR 4 sound GET_MAGIC else sound BIG_AMMO
+			addphealth 50
+			spawn HEAVYARMOUR
+			spawn RPGAMMO
+			spawn RPGSPRITE
+			spawn CRYSTALAMMO
+			spawn SHRINKERSPRITE
+			spawn GROWAMMO
+			spawn FREEZESPRITE
+			spawn FREEZEAMMO
+			spawn DEVISTATORSPRITE
+			spawn DEVISTATORAMMO
+			ife SKILL_LEVEL 1 set INTERNALCOUNT 800
+			else ife SKILL_LEVEL 2 set INTERNALCOUNT 1200
+			else ife SKILL_LEVEL 3 set INTERNALCOUNT 1600
+			else ife SKILL_LEVEL 4 set INTERNALCOUNT 2000
+			else ife SKILL_LEVEL 5 set INTERNALCOUNT 2500
+			action ONE
+			resetcount
+			}
+			ifspritepal 20
+			{
+			set inter_id THISACTOR
+			set INFO_SEL CHAR
+			set INFO_SEL_2 0
+			getp[].horiz PHORIZ
+			getp[].ang PANG
+			set PCINTER 6
+			set MOUSEUP 1
+			ifl POLYMERS 50
+				{
+				ife POLYMERS 0 ifrnd 64 sound FG_BROKE
+				else ifrnd 32 sound FG_POOR1
+				else ifrnd 32 sound FG_POOR2
+				else ifrnd 32 sound FG_POOR3
+				else ifrnd 32 sound FG_POOR4
+				else set PLAYER_VOICEOVER 10
+				}
+			else
+				{
+				ifrnd 32 sound FG_HELLO1
+				else ifrnd 32 sound FG_HELLO2
+				else ifrnd 32 sound FG_HELLO3
+				else ifrnd 32 sound FG_HELLO4
+				else ifrnd 32 sound FG_HELLO5
+				else ifrnd 32 sound FG_HELLO6
+				else set PLAYER_VOICEOVER 10
+				}
+			action ONE
+			resetcount
+			}
+		}
+	 }
+
+ifaction ONE
+{
+
+ifspritepal 20
+	{
+	ifn PCINTER 6 action ZERO
+
+	ifhitspace
+	 ife MOUSEUP 1
+	  ifcount 13
+	   ife inter_id THISACTOR
+		{
+		savegamevar SUPPLY_LEVEL
+		savegamevar POLYMERS
+		ifn JAMES_UPGRADE 0 savegamevar JAMES_UPGRADE
+		ifn ZAXTOR_UPGRADE 0 savegamevar ZAXTOR_UPGRADE
+		ifn MERLIJN_UPGRADE 0 savegamevar MERLIJN_UPGRADE
+		ifn HIGHWIRE_UPGRADE 0 savegamevar HIGHWIRE_UPGRADE
+		ifn SANG_UPGRADE 0 savegamevar SANG_UPGRADE
+		ifn RUSTY_UPGRADE 0 savegamevar RUSTY_UPGRADE
+		ifn GEOFFREY_UPGRADE 0 savegamevar GEOFFREY_UPGRADE
+		ifn MIKKO_UPGRADE 0 savegamevar MIKKO_UPGRADE
+		ifn MICKY_UPGRADE 0 savegamevar MICKY_UPGRADE
+		ifn SNOWFALL_UPGRADE 0 savegamevar SNOWFALL_UPGRADE
+		ifn KAGURA_UPGRADE 0 savegamevar KAGURA_UPGRADE
+		ifn AGENT_UPGRADE 0 savegamevar AGENT_UPGRADE
+		set PCINTER 0
+		set MOUSEUP 0
+		ifrnd 48 sound FG_BYE1
+		else ifrnd 48 sound FG_BYE2
+		else ifrnd 48 sound FG_BYE3
+		set inter_id -1
+		action ZERO
+		resetcount
+		}
+
+		ifand EXTBITS_PRESS 1
+		 ifcount 13
+			{
+			ifg INFO_SEL_2 0 sub INFO_SEL_2 1 else set INFO_SEL_2 2
+			soundonce COMP_SELECT
+			resetcount
+			}
+
+		ifand EXTBITS_PRESS 2
+		 ifcount 13
+			{
+			ifl INFO_SEL_2 2 add INFO_SEL_2 1 else set INFO_SEL_2 0
+			soundonce COMP_SELECT
+			resetcount
+			}
+
+	state scroll_char_keys
+	}
+else
+	{
+	sub INTERNALCOUNT 1
+	ife INTERNALCOUNT 0 { sound CABINET_RECHARGE action ZERO }
+	}
+}
+enda
+
+
+// ======================================================================================================================
+// CONVERSATION INTERFACE
+// ======================================================================================================================
+
+// *************************************************
+// AMC BASE PHONE
+// *************************************************
+
+useractor notenemy DESKPHONE WEAK
+
+ifspritepal 3
+{
+ife CHAR 1 break
+ife CHAR 2 break
+ife CHAR 4 break
+ife CHAR 5 break
+ife CHAR 6 break
+ife CHAR 3 ifg VOLUME 0 break
+ife CHAR 7 ifg VOLUME 0 break
+ife CHAR 9 break
+ife CHAR 11 break
+ife CHAR 12 break
+ife CHAR 14 break
+ife CHAR 16 break
+ife CHAR 17 break
+ifp palive
+ ifp pfacing
+  ife player[].newowner -1 // prevent viewscreen bugs
+   ifpdistl 1526
+  {
+  ife MOUSEUP 0 set player_use 0
+   ifhitspace
+	{
+		ife MOUSEUP 0
+		ifcount 13
+			{
+			soundonce PICKUP_PHONE
+			getp[].horiz PHORIZ
+			getp[].ang PANG
+			set PCINTER 11
+			ife CHAR 0 set INFO_SEL 4000
+			else ife CHAR 3 set INFO_SEL 4100
+			else ife CHAR 7 set INFO_SEL 4200
+			else ife CHAR 13 set INFO_SEL 4300
+			else break
+			action ZERO
+			set MOUSEUP 1
+			resetcount
+			}
+		else
+		ife MOUSEUP 1
+		ifcount 13
+			{
+			soundonce PDOWN_PHONE
+			set PCINTER 0
+			set MOUSEUP 0
+			resetcount
+			}
+	}
+  }
+
+	ife PCINTER 11
+	 ifpdistl 4096
+		{
+		ifcount 13
+			{
+			getinput[].bits temp
+			shiftvarr temp 8
+			andvar temp 0xF
+			switch temp
+				case 1:
+					soundonce CONVERSATION
+					ifn CONV_CHOICE_1 -1
+					{
+					set INFO_SEL CONV_CHOICE_1
+					set CONV_CHOICE_1 -1
+					resetcount
+					}
+					ife CHAR 0
+					{
+					ife VOLUME 0 // episode one
+						{
+						ife LEVEL 1
+							{
+							ife INFO_SEL 4000 set INFO_SEL 4004
+							}
+						ife LEVEL 8
+							{
+							ife INFO_SEL 4000 set INFO_SEL 4014
+							}
+						}
+					ife VOLUME 1 // episode two
+						{
+						ife LEVEL 1
+							{
+							ife INFO_SEL 4000 set INFO_SEL 4025
+							}
+						ife LEVEL 4
+							{
+							ife INFO_SEL 4000 set INFO_SEL 4022
+							}
+						ife LEVEL 50
+							{
+							ife INFO_SEL 4000 set INFO_SEL 4025
+							}
+						}
+					ife VOLUME 2 // episode three
+						{
+						ife LEVEL 1
+							{
+							ife INFO_SEL 4000 set INFO_SEL 4042
+							}
+						ife LEVEL 4
+							{
+							ife INFO_SEL 4000 set INFO_SEL 4048
+							}
+						ife LEVEL 26
+							{
+							ife INFO_SEL 4000 set INFO_SEL 4052
+							}
+						}
+					}
+					else
+					ife CHAR 3 // Highwire
+					{
+					ife VOLUME 0
+						{
+						ife LEVEL 1
+							{
+							ife INFO_SEL 4100 set INFO_SEL 4101
+							}
+						ife LEVEL 8
+							{
+							ife INFO_SEL 4100 set INFO_SEL 4104
+							}
+						}
+					}
+					else
+					ife CHAR 7 // Mikko
+					{
+					ife VOLUME 0
+						{
+						ife LEVEL 1
+							{
+							ife INFO_SEL 4200 set INFO_SEL 4201
+							}
+						ife LEVEL 8
+							{
+							ife INFO_SEL 4200 set INFO_SEL 4204
+							}
+						}
+					}
+					else
+					ife CHAR 13 // Micky
+					{
+					ife VOLUME 1
+						{
+						ife LEVEL 4
+							{
+							ife INFO_SEL 4300 set INFO_SEL 4301
+							}
+						}
+					}
+					resetcount
+					break
+				case 2:
+				soundonce CONVERSATION
+					ifn CONV_CHOICE_2 -1
+						{
+						set INFO_SEL CONV_CHOICE_2
+						set CONV_CHOICE_2 -1
+						resetcount
+						}
+					ife CHAR 0 // James
+					{
+					ife VOLUME 0 // Ep 1
+						{
+						ife LEVEL 1
+							{
+							ife INFO_SEL 4000 set INFO_SEL 4010 // Minerva convo 1
+							}
+						ife LEVEL 8
+							{
+							ife INFO_SEL 4000 set INFO_SEL 4018 // Minerva convo 2
+							}
+						}
+					ife VOLUME 1 // Ep 2
+						{
+						ife LEVEL 1
+							{
+							ife INFO_SEL 4000 set INFO_SEL 4026 // Minerva convo 3
+							}
+						ife LEVEL 4
+							{
+							ife INFO_SEL 4000 set INFO_SEL 4030 // Minerva convo 4
+							}
+						ife LEVEL 50
+							{
+							ife INFO_SEL 4000 set INFO_SEL 4039 // Minerva convo 5
+							}
+						}
+					ife VOLUME 2 // Ep 3
+						{
+						ife LEVEL 1
+							{
+							ife INFO_SEL 4000 set INFO_SEL 4045 // Minerva convo 6
+							}
+						ife LEVEL 4
+							{
+							ife INFO_SEL 4000 set INFO_SEL 4051 // Minerva convo 7 (not home)
+							}
+						ife LEVEL 26
+							{
+							ife INFO_SEL 4000 set INFO_SEL 4051 // Minerva convo 7 (not home)
+							}
+						}
+					}
+					resetcount
+					break
+				case 3:
+					ifn CONV_CHOICE_3 -1
+					{
+					soundonce CONVERSATION
+					set INFO_SEL CONV_CHOICE_3
+					set CONV_CHOICE_3 -1
+					resetcount
+					}
+					break
+				case 4:
+					ifn CONV_CHOICE_4 -1
+					{
+					soundonce CONVERSATION
+					set INFO_SEL CONV_CHOICE_4
+					set CONV_CHOICE_4 -1
+					resetcount
+					}
+					break
+				//etc.
+				case 10:
+					soundonce PDOWN_PHONE
+					set PCINTER 0
+					set MOUSEUP 0
+					resetcount
+					break
+			endswitch
+			}
+		}
+}
+else
+{
+ifpdistl 1024
+ ife player[].newowner -1 // prevent viewscreen bugs
+ ifp palive
+  ifp pfacing
+   ifcansee
+    ifhitspace
+	{
+	soundonce DIAL_TONE
+	}
+}
+
+enda
+
+// *************************************************
+// SPIRITS - only rusty can see/interact with them
+// *************************************************
+
+action RELEASED_SP 6
+
+spritenoshade 12261
+spritenopal 12261
+
+spritenoshade 12267
+spritenopal 12267
+
+move SPIRIT_FREED 0 -80
+
+useractor notenemy 12267 // Freed spirit
+
+
+  ifaction ZERO move SPIRIT_FREED getv
+
+ifaction 0
+	{
+	seta[].blend 255
+	geta[].mdflags temp
+	cstat 2
+	orvar temp 16
+	seta[].mdflags temp
+	seta[].shade -127
+	sleeptime 0
+	sizeat 32 32
+	ifceilingdistl 16 { spawn 8433 killit }
+	action ZERO
+	}
+
+enda
+
+eventloadactor 12261 state GETALLTAGS spawn 10340 enda
+
+useractor notenemy 12261
+	sizeat 32 32
+	seta[].shade -127
+	cstat 2
+	seta[].blend 255
+  geta[].mdflags temp
+  orvar temp 16
+  seta[].mdflags temp
+  sleeptime 0
+
+     ifmove 0
+	 {
+	 strength 100
+	  checkactivatormotion HITAGSAVED
+
+	  ife RETURN 1
+		{
+		spawn 8433
+		globalsound SPIRIT_RELEASE
+		sound SPIRIT_RELEASE
+		action RELEASED_SP
+		}
+	}
+
+	ifaction RELEASED_SP
+		{
+		move SPIRIT_FREED getv
+		ifceilingdistl 16 { spawn 8433 killit }
+		}
+
+
+ife CHAR 5
+ifp palive
+ ife player[].newowner -1 // prevent viewscreen bugs
+ ifp pfacing
+  ifpdistl 1526
+  {
+  ife MOUSEUP 0 set player_use 0
+   ifhitspace
+		{
+			ife MOUSEUP 0
+			ifcount 13
+				{
+				soundonce CONVERSATION
+				soundonce SPOOKY1
+				getp[].horiz PHORIZ
+				getp[].ang PANG
+				set PCINTER 11
+					set INFO_SEL EXTRASAVED
+						action ZERO
+
+				set MOUSEUP 1
+				resetcount
+				}
+			else
+			ife MOUSEUP 1
+			ifcount 13
+				{
+				set PCINTER 0
+				set MOUSEUP 0
+				resetcount
+				}
+		}
+  }
+
+	ife PCINTER 11
+	 ifpdistl 4096
+		{
+		ifcount 13
+			{
+			getinput[].bits temp
+			shiftvarr temp 8
+			andvar temp 0xF
+			switch temp
+				case 1:
+					soundonce CONVERSATION
+					ife INFO_SEL 30 set INFO_SEL 31
+					else ife INFO_SEL 31 set INFO_SEL 32
+					else ife INFO_SEL 50 set INFO_SEL 51
+					else ife INFO_SEL 51 set INFO_SEL 52
+					else ife INFO_SEL 60 set INFO_SEL 61
+					else ife INFO_SEL 61 set INFO_SEL 62
+					resetcount
+					break
+				//etc.
+				case 10:
+					soundonce CONVERSATION
+					set PCINTER 0
+					set MOUSEUP 0
+					resetcount
+					break
+			endswitch
+			}
+		}
+
+enda
+
+
+defstate PICKUP_DISPLAY
+			ifn picked_up 0
+				{
+				ifn picked_up_two 0
+					{
+					set picked_up_three picked_up_two
+					set picked_up_tile_three picked_up_tile_two
+					set item_amount_three item_amount_two
+					set pu3_pal pu2_pal
+					}
+					set picked_up_two picked_up
+					set picked_up_tile_two picked_up_tile
+					set item_amount_two item_amount
+					set pu2_pal pu1_pal
+				}
+			set picked_up 125
+			state getfactornormalizedframerate
+			mul picked_up NORMALIZED_FACTOR
+			geta[].pal pu1_pal
+ends
+
+defstate conv_give_item
+ifg GIVE_ITEM 0
+				{
+				ife GIVE_ITEM KEY_CARD
+					{
+					addinventory GET_ACCESS 1
+					state PICKUP_DISPLAY
+					globalsound GET_KEYCARD
+					set picked_up_tile KEY_CARD
+					setarray picked_up_inven[1] 60
+					set item_amount -1
+					}
+					else
+				ife GIVE_ITEM C4_EXPLOSIVE
+					{
+					add GOT_EXPLOSIVE 1
+					state PICKUP_DISPLAY
+					set picked_up_tile C4_EXPLOSIVE
+					setarray picked_up_inven[1] 60
+					set item_amount -1
+					}
+					else
+					{
+					espawnvar GIVE_ITEM
+						set temp3 sprite[].x
+						add temp3 512
+
+						rotatepoint sprite[].x sprite[].y temp3 sprite[].y sprite[].ang temp5 temp6
+						geta[].sectnum upd_sect
+						updatesectorz temp5 temp6 sprite[].z upd_sect
+						ife upd_sect -1 nullop else
+						{
+						setsprite RETURN temp5 temp6 sprite[].z
+						}
+					}
+				set GIVE_ITEM -1
+				}
+ends
+
+eventloadactor 3601 state GETALLTAGS enda
+
+useractor notenemy 3601 // conversation controller
+
+ifaction 0
+{
+sleeptime 0
+cstat 32768
+set GIVE_ITEM 0
+strength 100
+ifspritepal 3
+	{
+	ifand ELYSION_QUEST 32
+		{
+		ifn LOTAGSAVED 0
+			{
+			espawn 12263
+			seta[RETURN].owner THISACTOR
+			geta[RETURN].z temp
+			sub temp 16384
+			seta[RETURN].z temp
+			}
+		action ZERO
+		}
+	}
+else
+	{
+	ifn LOTAGSAVED 0
+		{
+		espawn 12263
+		seta[RETURN].owner THISACTOR
+		geta[RETURN].z temp
+		sub temp 16384
+		seta[RETURN].z temp
+		}
+	action ZERO
+	}
+}
+
+ifaction ZERO
+{
+sleeptime 0
+ifn HITAGSAVED 0
+ ifn EXTRASAVED 0
+	{
+	checkactivatormotion HITAGSAVED
+	ife RETURN 1 { set LOTAGSAVED EXTRASAVED set EXTRASAVED 0 }
+	}
+ifn XVELSAVED 0
+ ifn YVELSAVED 0
+	{
+	checkactivatormotion XVELSAVED
+	ife RETURN 1 { set LOTAGSAVED YVELSAVED set XVELSAVED 0 }
+	}
+ifn ZVELSAVED 0
+	{
+	checkactivatormotion ZVELSAVED
+	ife RETURN 1 killit
+	}
+
+ifp palive
+ ifp pfacing
+ ife player[].newowner -1 // prevent viewscreen bugs
+  ifpdistl 1536
+  {
+  ife MOUSEUP 0 set player_use 0
+   ifhitspace
+	{
+		ife MOUSEUP 0
+		ifcount 13
+			{
+			set inter_id THISACTOR
+			soundonce CONVERSATION
+			getp[].horiz PHORIZ
+			getp[].ang PANG
+			set PCINTER 11
+			set INFO_SEL LOTAGSAVED
+			set MOUSEUP 1
+			resetcount
+			}
+	}
+  }
+
+  ife inter_id THISACTOR
+	{
+	 ife MOUSEUP 1
+		ifcount 13
+		 ifhitspace
+			{
+			ifn CONV_CHOICE_1 -1
+				{
+				soundonce CONVERSATION
+				set INFO_SEL CONV_CHOICE_1
+				set CONV_CHOICE_1 -1
+				}
+			else
+				{
+				set inter_id -1
+				state conv_give_item
+				soundonce CONVERSATION
+				set PCINTER 0
+				set MOUSEUP 0
+				ife INFO_SEL 251 killit
+				ife INFO_SEL 252 killit
+				ife INFO_SEL 186 killit
+				ife INFO_SEL 187 killit
+				ife INFO_SEL 197 killit
+				}
+			resetcount
+			}
+	}
+
+	ife PCINTER 11
+	 ife inter_id THISACTOR
+		{
+		ifcount 13
+			{
+			getinput[].bits temp
+			shiftvarr temp 8
+			andvar temp 0xF
+			switch temp
+				case 1:
+					ifn CONV_CHOICE_1 -1
+					{
+					soundonce CONVERSATION
+					set INFO_SEL CONV_CHOICE_1
+					set CONV_CHOICE_1 -1
+					resetcount
+					}
+					break
+				case 2:
+					ifn CONV_CHOICE_2 -1
+					{
+					soundonce CONVERSATION
+					set INFO_SEL CONV_CHOICE_2
+					set CONV_CHOICE_2 -1
+					resetcount
+					}
+					break
+				case 3:
+					ifn CONV_CHOICE_3 -1
+					{
+					soundonce CONVERSATION
+					set INFO_SEL CONV_CHOICE_3
+					set CONV_CHOICE_3 -1
+					resetcount
+					}
+					break
+				case 4:
+					ifn CONV_CHOICE_4 -1
+					{
+					soundonce CONVERSATION
+					set INFO_SEL CONV_CHOICE_4
+					set CONV_CHOICE_4 -1
+					resetcount
+					}
+					break
+				case 10:
+					state conv_give_item
+					soundonce CONVERSATION
+					set PCINTER 0
+					set MOUSEUP 0
+					set inter_id -1
+					ife INFO_SEL 251 killit
+					ife INFO_SEL 252 killit
+					ife INFO_SEL 186 killit
+					ife INFO_SEL 187 killit
+					ife INFO_SEL 197 killit
+					resetcount
+					break
+			endswitch
+			}
+		}
+}
+enda
+
+action ALSTAND -1 1 5
+
+useractor notenemy 22957 // grey/sectoid
+fall
+clipdist 8
+
+ifaction 0
+{
+strength 100
+espawn 12263
+seta[RETURN].owner THISACTOR
+geta[RETURN].z temp
+sub temp 14384
+seta[RETURN].z temp
+action ALSTAND
+}
+
+ifaction ALSTAND
+{
+ifp palive
+ ifp pfacing
+ ife player[].newowner -1 // prevent viewscreen bugs
+  ifpdistl 1526
+  {
+  ife MOUSEUP 0 set player_use 0
+   ifhitspace
+	{
+		ife MOUSEUP 0
+		ifcount 13
+			{
+			soundonce CONVERSATION
+			getp[].horiz PHORIZ
+			getp[].ang PANG
+			set PCINTER 11
+			set INFO_SEL HITAGSAVED
+			set MOUSEUP 1
+			resetcount
+			}
+		else
+		ife MOUSEUP 1
+		ifcount 13
+			{
+			soundonce CONVERSATION
+			set PCINTER 0
+			set MOUSEUP 0
+			resetcount
+			}
+	}
+ }
+
+   ifpdistl 4096
+	ife PCINTER 11
+	{
+		ifcount 13
+			{
+			getinput[].bits temp
+			shiftvarr temp 8
+			andvar temp 0xF
+			switch temp
+				case 1:
+					// soundonce CONVERSATION
+					// ife INFO_SEL 13 set INFO_SEL 14
+					resetcount
+					break
+				// etc.
+				case 10:
+					set PCINTER 0
+					set MOUSEUP 0
+					soundonce CONVERSATION
+					ifspritepal 3
+					{
+					ifn LOTAGSAVED 0 operateactivators LOTAGSAVED THISACTOR
+					state civilian_rescued
+					killit
+					}
+					break
+			endswitch
+			}
+	}
+
+}
+
+enda
+
+spriteshadow 22963
+
+useractor notenemy 22963 // injured GI
+fall
+clipdist 8
+
+ifaction 0
+{
+strength 100
+espawn 12263
+seta[RETURN].owner THISACTOR
+geta[RETURN].z temp
+sub temp 14384
+seta[RETURN].z temp
+action ZERO
+}
+
+
+ifp palive
+ ifp pfacing
+ ife player[].newowner -1 // prevent viewscreen bugs
+  ifpdistl 1526
+  {
+  ife MOUSEUP 0 set player_use 0
+   ifhitspace
+	{
+		ife MOUSEUP 0
+		ifcount 13
+			{
+			soundonce CONVERSATION
+			getp[].horiz PHORIZ
+			getp[].ang PANG
+			set PCINTER 11
+			set INFO_SEL HITAGSAVED
+			set MOUSEUP 1
+			resetcount
+			}
+		else
+		ife MOUSEUP 1
+		ifcount 13
+			{
+			soundonce CONVERSATION
+			set PCINTER 0
+			set MOUSEUP 0
+			resetcount
+			}
+	}
+ }
+
+   ifpdistl 4096
+	ife PCINTER 11
+	{
+		ifcount 13
+			{
+			getinput[].bits temp
+			shiftvarr temp 8
+			andvar temp 0xF
+			switch temp
+				case 1:
+					soundonce CONVERSATION
+					ife INFO_SEL 77 set INFO_SEL 78
+					resetcount
+					break
+				// etc.
+				case 10:
+					set PCINTER 0
+					set MOUSEUP 0
+					soundonce CONVERSATION
+					action ONE
+					break
+			endswitch
+			}
+	}
+
+enda
+
+
+spritenvg 12252
+
+useractor notenemy 12252 // SCIENTIST
+
+ifaction 0
+{
+sizeat 24 24
+strength 100
+espawn 12263
+seta[RETURN].owner THISACTOR
+geta[RETURN].z temp
+sub temp 16384
+seta[RETURN].z temp
+action ZERO
+}
+
+ifaction ZERO
+{
+
+ifp palive
+ ifp pfacing
+  ifpdistl 1526
+  {
+  ife MOUSEUP 0 set player_use 0
+   ifhitspace
+	{
+		ife MOUSEUP 0
+		ifcount 13
+			{
+			soundonce CONVERSATION
+			getp[].horiz PHORIZ
+			getp[].ang PANG
+			set inter_id THISACTOR
+			set PCINTER 11
+			set INFO_SEL HITAGSAVED
+			set MOUSEUP 1
+			resetcount
+			}
+	}
+  }
+ 
+  ife inter_id THISACTOR
+	{
+	 ifhitspace
+ 		ife MOUSEUP 1
+		ifcount 13
+			{
+			ifn CONV_CHOICE_1 -1
+				{
+				soundonce CONVERSATION
+				set INFO_SEL CONV_CHOICE_1
+				set CONV_CHOICE_1 -1
+				}
+			else
+				{
+				soundonce CONVERSATION
+				set inter_id -1
+				set PCINTER 0
+				set MOUSEUP 0
+				ifspritepal 3
+					{
+					ifn LOTAGSAVED 0 operateactivators LOTAGSAVED THISACTOR
+					state civilian_rescued
+					killit
+					}
+				}
+			resetcount
+			}
+	}
+
+   ifpdistl 4096
+	ife PCINTER 11
+	{
+		ifcount 13
+			{
+			getinput[].bits temp
+			shiftvarr temp 8
+			andvar temp 0xF
+			switch temp
+				case 1:
+					ifn CONV_CHOICE_1 -1
+					{
+					soundonce CONVERSATION
+					set INFO_SEL CONV_CHOICE_1
+					set CONV_CHOICE_1 -1
+					resetcount
+					}
+					break
+				case 2:
+					ifn CONV_CHOICE_2 -1
+					{
+					soundonce CONVERSATION
+					set INFO_SEL CONV_CHOICE_2
+					set CONV_CHOICE_2 -1
+					resetcount
+					}
+					break
+				case 3:
+					ifn CONV_CHOICE_3 -1
+					{
+					soundonce CONVERSATION
+					set INFO_SEL CONV_CHOICE_3
+					set CONV_CHOICE_3 -1
+					resetcount
+					}
+					break
+				case 4:
+					ifn CONV_CHOICE_4 -1
+					{
+					soundonce CONVERSATION
+					set INFO_SEL CONV_CHOICE_4
+					set CONV_CHOICE_4 -1
+					resetcount
+					}
+					break
+				case 10:
+					set PCINTER 0
+					set MOUSEUP 0
+					soundonce CONVERSATION
+					ifspritepal 3
+					{
+					ifn LOTAGSAVED 0 operateactivators LOTAGSAVED THISACTOR
+					state civilian_rescued
+					killit
+					}
+					break
+			endswitch
+			}
+	}
+
+}
+
+enda
+
+eventloadactor 20081 state GETALLTAGS enda
+
+useractor notenemy 20081 // scientist 2
+
+ifaction 0
+{
+strength 100
+ifn LOTAGSAVED 0
+	{
+	espawn 12263
+	seta[RETURN].owner THISACTOR
+	geta[RETURN].z temp
+	sub temp 16384
+	seta[RETURN].z temp
+	}
+action ZERO
+}
+
+ifaction ZERO
+{
+sleeptime 0
+
+ifn HITAGSAVED 0
+ ifn EXTRASAVED 0
+	{
+	checkactivatormotion HITAGSAVED
+	ife RETURN 1 { set LOTAGSAVED EXTRASAVED set EXTRASAVED 0 }
+	}
+ifn XVELSAVED 0
+ ifn YVELSAVED 0
+	{
+	checkactivatormotion XVELSAVED
+	ife RETURN 1 { set LOTAGSAVED YVELSAVED set XVELSAVED 0 }
+	}
+ifn ZVELSAVED 0
+	{
+	checkactivatormotion ZVELSAVED
+	ife RETURN 1 killit
+	}
+
+ifp palive
+ ifp pfacing
+ ife player[].newowner -1 // prevent viewscreen bugs
+  ifpdistl 1526
+  {
+  ife MOUSEUP 0 set player_use 0
+   ifhitspace
+	{
+		ife MOUSEUP 0
+		ifcount 13
+			{
+			soundonce CONVERSATION
+			getp[].horiz PHORIZ
+			getp[].ang PANG
+			set PCINTER 11
+			set INFO_SEL LOTAGSAVED
+			set MOUSEUP 1
+			resetcount
+			}
+		else
+		ife MOUSEUP 1
+		ifcount 13
+			{
+			soundonce CONVERSATION
+			state conv_give_item
+			    ifg INFO_SEL 230
+				 ifl INFO_SEL 233
+					{
+					operateactivators 32 THISACTOR
+					operatemasterswitches 32
+					operaterespawns 32
+					state civilian_rescued
+					set PCINTER 0
+					set MOUSEUP 0
+					killit
+					}
+			set PCINTER 0
+			set MOUSEUP 0
+			resetcount
+			}
+	}
+
+	ife PCINTER 11
+		{
+		ifcount 13
+			{
+			getinput[].bits temp
+			shiftvarr temp 8
+			andvar temp 0xF
+			switch temp
+				case 1:
+					ifn CONV_CHOICE_1 -1
+					{
+					soundonce CONVERSATION
+					set INFO_SEL CONV_CHOICE_1
+					set CONV_CHOICE_1 -1
+					resetcount
+					}
+					break
+				case 2:
+					ifn CONV_CHOICE_2 -1
+					{
+					soundonce CONVERSATION
+					set INFO_SEL CONV_CHOICE_2
+					set CONV_CHOICE_2 -1
+					resetcount
+					}
+					break
+				case 3:
+					ifn CONV_CHOICE_3 -1
+					{
+					soundonce CONVERSATION
+					set INFO_SEL CONV_CHOICE_3
+					set CONV_CHOICE_3 -1
+					resetcount
+					}
+					break
+				case 4:
+					ifn CONV_CHOICE_4 -1
+					{
+					soundonce CONVERSATION
+					set INFO_SEL CONV_CHOICE_4
+					set CONV_CHOICE_4 -1
+					resetcount
+					}
+					break
+				case 10:
+					state conv_give_item
+					soundonce CONVERSATION
+					set PCINTER 0
+					set MOUSEUP 0
+					ifg INFO_SEL 230
+					 ifl INFO_SEL 233
+						{
+						operateactivators 32 THISACTOR
+						operatemasterswitches 32
+						operaterespawns 32
+						}
+					state civilian_rescued
+					killit
+					resetcount
+					break
+			endswitch
+			}
+		}
+
+   }
+
+}
+enda

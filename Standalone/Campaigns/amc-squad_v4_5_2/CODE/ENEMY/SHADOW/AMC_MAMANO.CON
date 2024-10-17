@@ -1,0 +1,380 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+
+--------------------------------------------------------------------------------
+*/
+
+damageeventtile MAMANO
+damageeventtile MAMANOJUMP
+damageeventtile MAMANO_STAYPUT
+
+action A_MAMANO_RUN 5 4 5 1 8
+action A_MAMANO_TROT 5 4 5 1 12
+action A_MAMANO_BITE 40 3 5 1 10
+action A_MAMANO_STAND 0 1 5 1 1
+action A_MAMANO_READY 25 1 5 1 12
+action A_MAMANO_POUND 25 3 5 1 15
+action A_MAMANO_DIE 55 6 1 1 18
+action A_MAMANO_FLINTCH 55 1 1 1 20
+action A_MAMANO_DEAD 60 1 1 1 1
+
+ai AI_MAMANO_FROZEN A_MAMANO_FLINTCH STOP geth
+ai AI_MAMANO_SHRUNK A_MAMANO_RUN RIPPER_SHRUNKVEL fleeenemy
+ai AI_MAMANO_CHARGE A_MAMANO_RUN RIPPER_VELS faceplayersmart
+ai AI_MAMANO_BITE A_MAMANO_BITE STOP faceplayer
+ai AI_MAMANO_SEEK A_MAMANO_TROT RIPPER_SEARCHVEL seekplayer
+ai AI_MAMANO_WAIT A_MAMANO_STAND STOP geth
+ai AI_MAMANO_READY A_MAMANO_READY STOP faceplayerslow
+ai AI_MAMANO_POUND A_MAMANO_POUND STOP faceplayer
+ai AI_MAMANO_DYING A_MAMANO_DIE STOP geth
+
+defstate MAMANOshrunkstate
+  ifcount SHRUNKDONECOUNT
+    ai AI_MAMANO_SEEK
+  else
+    ifcount SHRUNKCOUNT
+	  {
+	  sound ACTOR_UNSHRINK
+      sizeto 34 34
+	  }
+  else
+    state genericshrunkcode
+ends
+
+defstate MAMANOdyingstate
+
+	strength 0
+	ifaction A_MAMANO_DEAD
+	{
+		ifhitweapon
+		{
+			state standard_jibs
+			state monst_body_jibs
+			sound SQUISHED
+			killit
+		}
+		break
+	}
+	ifaction A_MAMANO_DIE
+	{
+		ifactioncount 6 { sound BOSSFALL ifpdistl 4096 quake 13 action A_MAMANO_DEAD }
+	}
+
+ends
+
+defstate MAMANOpoundstate
+
+	ifaction A_MAMANO_POUND
+	{
+		ifactioncount 3
+		{
+		quake 46
+		sound BOSSFALL
+		sound SPUNCHHIT
+		state smokering
+		ifpdistl 16384
+		  ife knockback2 0
+			ifp ponground
+				{
+				ifp pjumping break
+				getp[].posz temp
+				sub temp 1024
+				setp[].posz temp
+				getp[].ang knockbackang
+				set p_dazed_count 150
+				set knockbackheight -2048
+				set knockback2 8
+				wackplayer
+				}
+			set enemy_cooldown1 300
+			ifpdistl 1536 ai AI_MAMANO_BITE else
+			ai AI_MAMANO_SEEK
+		}
+	}
+
+ends
+
+defstate MAMANOchargestate
+
+	ifn target -1
+	ifl xydist2 1280
+	{
+		ai AI_MAMANO_BITE
+		break
+	}
+
+	add INTERNALCOUNT 1
+	ifg INTERNALCOUNT 13
+		{
+		sound BOS1_WALK
+		ifpdistl 4096 quake 6
+		set INTERNALCOUNT 0
+		}
+
+	ifcansee
+	{
+		ifpdistl 1280
+		{
+			ai AI_MAMANO_BITE
+			break
+		}
+		else
+		ife enemy_cooldown1 0
+		 ifpdistl 8192
+		  ifrnd 16
+			{
+			sound MAMANO_ALERT
+			ai AI_MAMANO_READY
+			}
+	}
+	else ifcount 30
+	ife target -1 ai AI_MAMANO_SEEK
+
+	ifpdistg 8192 ifrnd 1 ai AI_MAMANO_SEEK
+	else
+	ifcount 10
+	ifnotmoving
+	{
+		ifrnd 128 ai AI_MAMANO_SEEK
+		else
+		ai AI_MAMANO_WAIT
+	}
+
+	ifrnd 1 sound MAMANO_ROAM
+
+ends
+
+defstate MAMANOseekstate
+
+	ifcount 60
+	{
+	set INTERNALCOUNT 0
+		ifcansee ai AI_MAMANO_CHARGE
+		ifn target -1 ai AI_MAMANO_CHARGE
+	}
+
+	ifcount 10
+	ifnotmoving
+	{
+		ifpdistl 8192 ifrnd 16 ife enemy_cooldown1 0 { sound MAMANO_ALERT ai AI_MAMANO_READY } else
+		ifrnd 32 ai AI_MAMANO_SEEK
+	}
+
+	ifrnd 1 sound MAMANO_ROAM
+
+ends
+
+defstate MAMANOwaitstate
+
+	ifcount 5
+	{
+		ai AI_MAMANO_SEEK
+	}
+
+ends
+
+defstate MAMANObitestate
+
+	ifn target -1
+	{
+		ifg xydist2 1200 { ifmove STOP move RIPPER_SEARCHVEL geth } else
+		move STOP geth
+	}
+	else
+	{
+		ifpdistg 1200 { ifmove STOP move RIPPER_SEARCHVEL faceplayer } else
+		move STOP faceplayer
+	}
+
+	ifactioncount 3
+	{
+		resetactioncount
+		ifn target -1
+		{
+			ifg xydist2 1536 ai AI_MAMANO_CHARGE
+			shoot 15729
+		}
+		else
+		ifpdistl 1536
+		{
+		ifn SWORD_BLOCK 0
+			 ifp pfacing
+				{
+				shoot SPARK shoot SPARK shoot SPARK shoot SPARK shoot SPARK
+				sub p_stamina 50
+				wackplayer
+				sound SWORD_CLASH
+				ai AI_MAMANO_WAIT
+				}
+			else
+			 shoot 15729
+		}
+			ifpdistg 1536 { cstat 257 ai AI_MAMANO_CHARGE }
+	}
+
+
+ends
+
+useractor enemy MAMANOJUMP 750 A_MAMANO_STAND
+	state monst_glow
+	ai AI_MAMANO_SEEK
+	sound MAMANO_ALERT
+	spawn SHOOTME
+	sizeat 25 25
+	cstat 257
+	cactor MAMANO
+enda
+
+useractor enemystayput MAMANO_STAYPUT 750
+	state monst_glow
+	ai AI_MAMANO_SEEK
+	sound MAMANO_ALERT
+	spawn SHOOTME
+	sizeat 25 25
+	cstat 257
+	cactor MAMANO
+enda
+
+useractor enemy MAMANO 750 A_MAMANO_STAND
+
+fall
+
+state enemyfloordamage
+state enemy_fire_damage
+state enemy_ice_damage
+state enemy_spirit_damage
+
+  ifai AI_MAMANO_FROZEN
+  {
+state frozen_code
+  }
+
+ifai 0
+{
+	set actor_type TYPE_CHITIN
+	state monst_glow
+	sound MAMANO_ALERT
+	spawn SHOOTME
+	ifrnd 128 ai AI_MAMANO_CHARGE
+	ifg SKILL_LEVEL 2
+		{
+		geta[].htflags temp
+		orvar temp SFLAG_NODAMAGEPUSH
+		seta[].htflags temp
+		}
+	sizeat 25 25
+	strength 750
+	cstat 257
+}
+
+ifg enemy_cooldown1 0 sub enemy_cooldown1 1
+
+ifai AI_MAMANO_DYING { state MAMANOdyingstate break }
+
+ifai AI_MAMANO_SHRUNK state MAMANOshrunkstate else
+ifai AI_MAMANO_CHARGE state MAMANOchargestate else
+ifai AI_MAMANO_SEEK state MAMANOseekstate else
+ifai AI_MAMANO_WAIT state MAMANOwaitstate else
+ifai AI_MAMANO_BITE state MAMANObitestate else
+ifai AI_MAMANO_READY
+	{
+	ifactioncount 4 ai AI_MAMANO_POUND
+	}
+else
+ifai AI_MAMANO_POUND state MAMANOpoundstate
+
+ifhitweapon
+{
+	state NEWGUNEFFECTS
+	//spawn BLOOD
+	ifwasweapon SHRINKSPARK
+    {
+      sound ACTOR_SHRINKING
+      ai AI_MAMANO_SHRUNK
+      break
+    }
+    ifrnd 32 sound MAMANO_PAIN
+	guts JIBS6 1
+    state random_wall_jibs
+	ifdead
+	{
+	stopactorsound THISACTOR MAMANO_PAIN
+		ifg ice_damage 0
+		{
+			sound SOMETHINGFROZE
+	        spritepal 1
+	        ai AI_MAMANO_FROZEN
+	        strength 0
+	        break
+        }
+		spawn 16368
+		guts JIBS6 5
+		addkills 1
+		
+		set temp4 0
+		// Mamano sword rampage
+		ife MELEE_RESEARCH[5] 2 
+			{
+			ife cur_weap 0
+			 ife temp_weap 19
+				set temp4 1
+			ife cur_weap 0
+			 ife temp_weap 36
+				set temp4 1
+			ife cur_weap 0
+			 ife temp_weap 37
+				set temp4 1
+			ife cur_weap 1
+			 ife CHAR 17
+				set temp4 1
+			ife temp4 1
+				{
+				palfrom 40 40 40 40
+				set SWORD_RAMP 300
+				quote 249
+				set PLAYER_VOICEOVER 51
+				addphealth 50				
+				}				
+			}
+
+
+		ifrnd 128 cstat 0 else cstat 4
+		ifstrength -100
+		{
+			state standard_jibs
+			state monst_body_jibs
+			// state randsquishsound
+			sound SQUISHED
+			killit
+		}
+		sound MAMANO_DYING
+		ai AI_MAMANO_DYING
+	}
+}
+
+state checksquished
+
+enda

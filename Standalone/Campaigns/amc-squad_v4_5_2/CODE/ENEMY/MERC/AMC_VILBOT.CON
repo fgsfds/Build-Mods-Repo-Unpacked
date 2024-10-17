@@ -1,0 +1,276 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+
+--------------------------------------------------------------------------------
+*/
+
+damageeventtile VILMOS_ROBOT
+
+action A_V_ROBOT_IDLE 20 1 5 1 10
+action A_V_ROBOT_MOVE 0 4 5 1 20
+action A_V_ROBOT_MACHINEG 20 2 5 1 4
+action A_V_ROBOT_GRENADES 20 2 5 1 16
+action A_V_ROBOT_DIE 20 1 5 1 20
+action A_V_ROBOT_DEAD 30 1 1 1 10
+
+move V_ROBOT_WALK 160 0
+
+ai AI_V_ROBOT_IDLE A_V_ROBOT_IDLE STOP
+ai AI_V_ROBOT_MOVE A_V_ROBOT_MOVE V_ROBOT_WALK geth
+ai AI_V_ROBOT_MACHINEG A_V_ROBOT_MACHINEG STOP 
+ai AI_V_ROBOT_GRENADES A_V_ROBOT_GRENADES STOP 
+ai AI_V_ROBOT_DIE A_V_ROBOT_DIE STOP
+
+useractor enemy VILMOS_ROBOT 9000 A_V_ROBOT_IDLE
+fall
+
+ifai 0
+	{
+	set actor_type TYPE_ARMOURED
+	state monst_glow
+	spawn SHOOTME
+	spriteflags ROBOT_ENEMY
+	ifspritepal 50 { sizeat 35 35 strength 4000 }
+	else ifspritepal 21 { sizeat 50 50 strength 5000 }
+	else ifspritepal 9 { sizeat 50 50 strength 5000 }
+	else ifspritepal 24 { sizeat 35 35 strength 4000 }
+	else ifspritepal 40 { sizeat 42 42 strength 8000 }
+	else { sizeat 37 37 strength 9000 }
+
+	cstat 257
+	ai AI_V_ROBOT_IDLE
+	ifspritepal 3 nullop else
+	ifspritepal 24 nullop else
+	ifspritepal 40 nullop else
+	ifspritepal 50 nullop else
+	set CURBOSS THISACTOR
+	}
+
+ifdead nullop else
+	{
+	ifstrength 2000
+		{
+		ifrnd 64
+			{
+			sound SHORT_CIRCUIT
+			shoot SPARK shoot SPARK shoot SPARK shoot SPARK
+			shoot SPARK shoot SPARK shoot SPARK shoot SPARK
+			}
+		}
+	}
+
+ifaction A_V_ROBOT_DEAD
+	{
+	break
+	}
+else
+ifai AI_V_ROBOT_DIE
+	{
+	shoot SPARK2
+	ifactioncount 1
+		{
+		ifn XVELSAVED 0
+				{
+				operateactivators XVELSAVED THISACTOR
+				operatemasterswitches XVELSAVED
+				operaterespawns XVELSAVED
+				set XVELSAVED 0
+				}
+				geta[].x temp
+				geta[].y temp2
+				set temp3 temp
+				add temp3 256
+				randvar temp4 2048
+				rotatepoint temp temp2 temp3 temp2 temp4 temp5 temp6
+				espawn BIG_EXPLOSION
+				seta[RETURN].x temp5
+				seta[RETURN].y temp6
+				espawn BIG_SMOKE2
+				seta[RETURN].x temp5
+				seta[RETURN].y temp6
+				set temp6 0
+				debris SCRAP1 40
+				debris SCRAP2 32
+				debris SCRAP3 32
+				debris SCRAP4 32
+				debris SCRAP5 32
+				ezshoot 4096 19177
+				randvar temp 2048
+				seta[RETURN].ang temp
+				ezshoot 4096 19177
+				randvar temp 2048
+				seta[RETURN].ang temp
+				ezshoot 4096 19172
+				randvar temp 2048
+				seta[RETURN].ang temp
+				ezshoot 4096 19172
+				randvar temp 2048
+				seta[RETURN].ang temp
+		quake 26 sound RPG_EXPLODE action A_V_ROBOT_DEAD
+		geta[].pal temp2 seta[RETURN].pal temp2
+		}
+	}
+else
+ifai AI_V_ROBOT_IDLE
+	{
+	state checkfortarget
+	ifn my_target -1
+	  ai AI_V_ROBOT_MOVE
+	}
+else
+ifai AI_V_ROBOT_MOVE
+	{
+	state checkfortarget
+	ifpdistl 16000
+		{
+		add INTERNALCOUNT 1
+		ifg INTERNALCOUNT 16 { quake 13 ifrnd 128 sound PA_FOOTSTEP2 else sound PA_FOOTSTEP1 set INTERNALCOUNT 0 }
+		}
+
+	ifpdistl 8000
+		ifrnd 8
+			{
+			ai AI_V_ROBOT_MACHINEG
+			}
+	else
+		{
+		 ifn my_target -1
+			ifrnd 32
+			{
+			ifrnd 128 ai AI_V_ROBOT_GRENADES else
+			ai AI_V_ROBOT_MACHINEG
+			}
+		}
+	}
+else
+ifai AI_V_ROBOT_MACHINEG
+	{
+	state new_validatetarget
+	ife my_target -1 ai AI_V_ROBOT_MOVE
+	state fronttowardstarget
+
+		ifspritepal 40
+			{
+			ifactioncount 1 soundonce RAILGUN_CHARGE
+			ifactioncount 10 { shoot RAILGUN flash sound RAILGUN_FIRE ai AI_V_ROBOT_MOVE }
+			}
+		else
+			{
+			ifactioncount 1 
+				{ 
+				state SKILL_ENEMY_ACCURACY 
+				set PROJECTILE_PAL 1
+				set PROJECTILE_STRENGTH 8
+				set PROJECTILE_TO_SHOOT ENEMY_BULLET
+				set PROJECTILE_FIRING_SOUND AUTOTURRET_FIRE
+				set PROJECTILE_OFFSET -24
+				set CALCZ_TARGET_OFFSET -5000
+				setprojectile[FAKE_BULLET].offset -24 // shoots its left gun
+				state sang_enemyShootProjectile
+				shoot FAKE_BULLET
+				setprojectile[FAKE_BULLET].offset 14354
+					
+				set PROJECTILE_OFFSET 22
+				setprojectile[FAKE_BULLET].offset 22 // shoots its right gun
+				state sang_enemyShootProjectile
+				shoot FAKE_BULLET
+				setprojectile[FAKE_BULLET].offset 14354
+				resetactioncount 
+				}
+			ifrnd 16 ai AI_V_ROBOT_MOVE
+			}
+	}
+else
+ifai AI_V_ROBOT_GRENADES
+	{
+	state new_validatetarget
+	ife my_target -1 ai AI_V_ROBOT_MOVE
+	state fronttowardstarget
+
+		ifactioncount 2
+			{
+			ife enemy_attack 0 set PROJECTILE_OFFSET 22
+			else set PROJECTILE_OFFSET -24
+			ifspritepal 40
+				{
+				set PROJECTILE_TO_SHOOT HOMING_MISSILE
+				set PROJECTILE_FIRING_SOUND HOVERTANK_MISSILE
+				state sang_enemyShootProjectile
+				resetactioncount
+				}
+			else
+				{
+				set PROJECTILE_PAL 0
+				set PROJECTILE_STRENGTH 50
+				set PROJECTILE_TO_SHOOT GEO_NADE
+				set PROJECTILE_FIRING_SOUND GRENADELFIRE
+				state sang_enemyShootProjectile
+				geta[RETURN].z temp
+				sub temp 2048
+				seta[RETURN].z temp
+				resetactioncount
+				}
+			ife enemy_attack 0 set enemy_attack 1 else set enemy_attack 0
+			}
+		ifrnd 16 ai AI_V_ROBOT_MOVE
+	}
+
+ifhitweapon
+	{
+	set CURBOSS THISACTOR
+	ifwasweapon RPG seta[].xvel 0
+	ifwasweapon RADIUSEXPLOSION seta[].xvel 0
+	ifwasweapon MICRO_MISSILE seta[].xvel 0
+	ifwasweapon HOMING_MISSILE seta[].xvel 0
+	geta[].htpicnum temp3
+
+
+
+	ifdead
+		{
+		ifn YVELSAVED 0 espawnvar YVELSAVED
+				soundonce BLOWUP
+				geta[].x temp
+				geta[].y temp2
+				set temp3 temp
+				add temp3 256
+				randvar temp4 2048
+				rotatepoint temp temp2 temp3 temp2 temp4 temp5 temp6
+				espawn BIG_EXPLOSION
+				seta[RETURN].x temp5
+				seta[RETURN].y temp6
+				espawn BIG_SMOKE2
+				seta[RETURN].x temp5
+				seta[RETURN].y temp6
+				set temp6 0
+		globalsound PA_DIE
+		ai AI_V_ROBOT_DIE
+		add TREASURE_FOUND 5
+		addkills 1
+		}
+	}
+
+enda

@@ -1,0 +1,278 @@
+// Character selection logic
+// May not be the best filename or location for this file really
+
+defstate TAKETOROOM
+    set temp5 1
+
+    // do not take to room if first episode AMCBase, and Megabase not beaten yet
+    ife VOLUME 0 ife LEVEL 1
+    {
+        ifand BEAT_EPISODES[1] 1
+            nullop
+        else
+            set temp5 0
+    }
+
+    ife temp5 1
+    {
+        set temp -1
+        set temp2 player_spawnpoint[CHAR]
+        ife temp2 0 nullop
+        else
+        {
+            geta[temp2].x CSPAWNPOSX
+            geta[temp2].y CSPAWNPOSY
+            geta[temp2].z CSPAWNPOSZ
+            geta[temp2].ang CSPAWNANG
+            geta[temp2].sectnum temp
+        }
+        ifn temp -1
+        ifn temp2 0
+        {
+            changespritesect THISACTOR temp
+            setp[].cursectnum temp
+            setp[].posx CSPAWNPOSX
+            setp[].posy CSPAWNPOSY
+            setp[].posz CSPAWNPOSZ
+            setp[].ang CSPAWNANG
+            ife VOLUME 0 set PLAYER_VOICEOVER 52
+        }
+    }
+ends
+
+
+// Whenever character needs to be swapped, use this
+var CHANGE_TO_CHAR -1 1
+defstate change_char
+	ifn CHANGE_TO_CHAR -1
+		set CHAR CHANGE_TO_CHAR
+
+	switch CHANGE_TO_CHAR
+		case C_HIGHWIRE
+			state highwire_initgunmags
+			break
+		default
+			// Clear all
+			for temp range gun_mags_arr_count
+			{
+				setarray gun_mags[temp] -1
+			}
+
+			for temp range gun_mags_arr_count
+			{
+				setarray gun_ammopools[temp] -1
+			}
+			break
+	endswitch
+ends
+
+// Input: CHANGE_TO_CHAR
+defstate start_as_char
+	ifn CHAR CHANGE_TO_CHAR { sound SELECT set CHARSHADE 20 }
+	state change_char
+	set char_help CHANGE_TO_CHAR
+
+	ifand BITS_PRESS 4
+	{
+		set MOUSEUP 0
+		set hud_disp 1
+		state SELECTEDCHAR
+		ife give_loadout 1 state give_assigned_weapon
+		ife CHARSTART 1 state TAKETOROOM
+	}
+	else
+	ifand BITS_PRESS 64
+	{
+		set MOUSEUP 0
+		set hud_disp 1
+		state SELECTEDCHAR
+	}
+ends
+
+defstate charselectionmenu_logic
+	ife CHARSELECT 1
+	{
+		set IN_DREAM 0
+		set MOUSEUP 1
+		set jib_quote_track 0
+		set pickup_quote_track 0
+		set P_HAS_SHIELD 0
+		set P_ENERGYSHIELD 0
+
+		set char_help -1
+
+		// usermap -- press R to switch character look
+		ife VOLUME 0 ife LEVEL 7
+		  ifand BITS_PRESS 128
+		  ife button_counter 0
+		{
+			sound INTERFACE_1
+			set button_counter 10
+			xor CHAR_APP 32767
+		}
+
+		ifg MOUSEX 154
+		  ifg MOUSEY 21
+		  ifl MOUSEX 184
+		  ifl MOUSEY 55
+		{
+			ife VOLUME 4 break
+
+			set CHANGE_TO_CHAR C_JAMES
+			state start_as_char
+		}
+
+		ifg MOUSEX 188
+		  ifg MOUSEY 21
+		  ifl MOUSEX 220
+		  ifl MOUSEY 55
+		{
+			set CHANGE_TO_CHAR C_ZAXTOR
+			state start_as_char
+		}
+
+		ifg MOUSEX 223
+		  ifg MOUSEY 21
+		  ifl MOUSEX 255
+		  ifl MOUSEY 55
+		{
+			set CHANGE_TO_CHAR C_MERLIJN
+			state start_as_char
+		}
+
+		ifg MOUSEX 260
+		  ifg MOUSEY 21
+		  ifl MOUSEX 290
+		  ifl MOUSEY 55
+		{
+			set CHANGE_TO_CHAR C_HIGHWIRE
+			state start_as_char
+		}
+
+		ifg MOUSEX 155
+		  ifg MOUSEY 66
+		  ifl MOUSEX 184
+		  ifl MOUSEY 103
+		{
+			set CHANGE_TO_CHAR C_SANG
+			state start_as_char
+		}
+
+		ifg MOUSEX 190
+		  ifg MOUSEY 66
+		  ifl MOUSEX 218
+		  ifl MOUSEY 103
+		{
+			set CHANGE_TO_CHAR C_RUSTY
+			state start_as_char
+		}
+
+		ifg MOUSEX 225
+		  ifg MOUSEY 66
+		  ifl MOUSEX 254
+		  ifl MOUSEY 103
+		{
+			set CHANGE_TO_CHAR C_GEOFFREY
+			state start_as_char
+		}
+
+		ifg MOUSEX 258
+		  ifg MOUSEY 66
+		  ifl MOUSEX 288
+		  ifl MOUSEY 103
+		{
+			set CHANGE_TO_CHAR C_MIKKO
+			state start_as_char
+		}
+
+		ifg MOUSEX 155
+		  ifg MOUSEY 111
+		  ifl MOUSEX 184
+		  ifl MOUSEY 148
+		  ife ep2_new_char 1
+		{
+			set CHANGE_TO_CHAR C_MICKY
+			state start_as_char
+		}
+
+		ifg MOUSEX 188
+		  ifg MOUSEY 111
+		  ifl MOUSEX 220
+		  ifl MOUSEY 148
+		  ife ep3_new_char 1
+		{
+			set CHANGE_TO_CHAR C_SNOWFALL
+			state start_as_char
+		}
+
+		ifg MOUSEX 223
+		  ifg MOUSEY 111
+		  ifl MOUSEX 255
+		  ifl MOUSEY 148
+		  ife ep4_new_char 1
+		{
+			set CHANGE_TO_CHAR C_KAGURA
+			state start_as_char
+		}
+
+		// side characters
+
+		ifge MOUSEX 158
+		  ifge MOUSEY 162
+		  ifle MOUSEX 177
+		  ifle MOUSEY 185
+		  ifand allow_temp_characters 1
+		{
+			set CHANGE_TO_CHAR C_CULTIST
+			state start_as_char
+		}
+
+		ifge MOUSEX 182
+		  ifge MOUSEY 162
+		  ifle MOUSEX 200
+		  ifle MOUSEY 185
+		  ifand allow_temp_characters 2
+		{
+			set CHANGE_TO_CHAR C_BOMBSHELL
+			state start_as_char
+		}
+
+		ifge MOUSEX 205
+		  ifge MOUSEY 162
+		   ifle MOUSEX 223
+		   ifle MOUSEY 185
+		  ifand allow_temp_characters 4
+		{
+			set CHANGE_TO_CHAR C_MAARTEN
+			state start_as_char
+		}
+
+		ifge MOUSEX 228
+		  ifge MOUSEY 162
+		  ifle MOUSEX 246
+		  ifle MOUSEY 185
+		  ifand allow_temp_characters 8
+		{
+			set CHANGE_TO_CHAR C_JANE
+			state start_as_char
+		}
+
+		action 0
+		state lower_weapon
+		set lockp_countdown 10
+
+		setp[].poszv 0
+
+		// delete for testing purposes
+		// ifmultiplayer { randvar CHAR 7 set CHARSELECT 0 set MOUSEUP 0 }
+
+		ifhitspace ifn CHAR -1
+		{
+			setp[].horiz 100
+			set MOUSEUP 0
+			set hud_disp 1
+			state SELECTEDCHAR
+		}
+
+	}
+ends

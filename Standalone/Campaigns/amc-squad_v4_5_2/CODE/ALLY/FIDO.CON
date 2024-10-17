@@ -1,0 +1,399 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+
+--------------------------------------------------------------------------------
+*/
+
+damageeventtile FIDO
+
+action A_FIDO_START 0 1 5 1 12
+action A_FIDO_IDLE 0 1 5 1 12
+
+action A_FIDO_BARK 0 2 5 1 12
+
+action A_FIDO_SIT 10 2 5 1 12
+action A_FIDO_SIT_BARK 10 3 5 1 12
+
+action A_FIDO_WALK 25 4 5 1 20
+action A_FIDO_RUN 45 4 5 1 10
+
+action A_FIDO_SEEK 45 4 5 1 10
+action A_FIDO_ATTACK 65 2 5 1 12 // Bite
+
+// Lunge
+action A_FIDO_LUNGE_UP 5 1 5 1 0
+action A_FIDO_LUNGE_HANG 10 1 5 1 0
+action A_FIDO_LUNGE_DOWN 15 1 5 1 0
+
+move M_FIDO_WALK 125
+move M_FIDO_RUN 250
+
+defstate FIDO_LUNGE_HIT
+	// sprite hit, give it some damage
+	ifge RETURN 49152
+	{
+		set temp RETURN
+		sub temp 49152
+		ifrnd 96 sound FIDO_BARK2
+		else ifrnd 170 sound FIDO_BARK3
+		else sound FIDO_BARK3
+		sound RIPPER_SCRATCH
+
+		// ignore friendly fire
+		getav[temp].faction_flag temp2
+		ifand temp2 ALLIED_FACTION_FLAG nullop
+		else
+		{
+			// random amount of damage
+			set temp2 25
+			rand temp3 10
+			add temp2 temp3
+			seta[temp].htextra temp2
+		}
+	}
+
+	// Ran into sprite or wall -> stop lunge immediately
+	// If we run into a ceiling or floor, keep lunging for a while still
+	ifg RETURN 32768
+		action A_FIDO_RUN
+ends
+
+defstate FIDO_LUNGE
+	ifaction A_FIDO_LUNGE_UP
+	{
+		sound WOLF_ATTACK2
+		ifactorsound THISACTOR WOLF_RUN stopactorsound THISACTOR WOLF_RUN
+
+		ifnotmoving
+			action A_FIDO_RUN
+
+		set movesprite_zvel -3000
+		set movesprite_shift 6
+		set movesprite_clipmask CLIPMASK1
+		state movesprite_state
+
+		state FIDO_LUNGE_HIT
+
+		ifactioncount 10
+			action A_FIDO_LUNGE_HANG
+	}
+	else ifaction A_FIDO_LUNGE_HANG
+	{
+		set movesprite_zvel -1000
+		set movesprite_shift 6
+		set movesprite_clipmask CLIPMASK1
+		state movesprite_state
+
+		state FIDO_LUNGE_HIT
+
+		ifnotmoving
+			action A_FIDO_RUN
+
+		ifactioncount 5
+			action A_FIDO_LUNGE_DOWN
+	}
+	else ifaction A_FIDO_LUNGE_DOWN
+	{
+		set movesprite_zvel 4000
+		set movesprite_shift 6
+		set movesprite_clipmask CLIPMASK1
+		state movesprite_state
+
+		state FIDO_LUNGE_HIT
+
+		ifnotmoving
+			action A_FIDO_RUN
+
+		ifactioncount 6
+			action A_FIDO_RUN
+	}
+
+ends
+
+spriteshadow FIDO
+
+useractor notenemy FIDO 1500 A_FIDO_START
+	fall
+
+	ifaction A_FIDO_START
+	{
+		seta[].htwaterzoffset 8
+		cstat 256
+		strength 1500
+		geta[].htflags temp
+		orvar temp 134217728
+		seta[].htflags temp
+		sizeat 24 24
+		spawn SHOOTME2
+		action A_FIDO_IDLE
+	}
+
+	state player_follow_commands
+
+	ifpdistg 16384
+	 ifrnd 16
+	  ife FOLLOW_PLAYER 1
+	{
+		getp[].posx temp
+		getp[].posy temp2
+		set temp3 temp
+		add temp3 1024
+		randvar temp4 2048
+		rotatepoint temp temp2 temp3 temp2 temp4 temp5 temp6
+		getp[].posz temp8
+		getp[].cursectnum upd_sect
+		updatesectorz temp5 temp6 temp8 upd_sect
+		ifn upd_sect -1
+		{
+			sub temp8 64
+			setsprite THISACTOR temp5 temp6 temp8
+			changespritesect THISACTOR upd_sect
+		}
+	}
+
+	ifg ALLY_VOICE 0
+		sub ALLY_VOICE 1
+	else
+	ifl ALLY_VOICE 0
+		add ALLY_VOICE 1
+
+	ifg enemy_cooldown1 0
+		sub enemy_cooldown1 1
+
+ifaction A_FIDO_IDLE
+{
+	sleeptime 0
+
+	ifstrength 1500 addstrength 2
+	ifactorsound THISACTOR FIDO_PANT
+		nullop
+	else sound FIDO_PANT
+
+	move STOP
+	state checkfortarget
+	ifn my_target -1
+	{
+		sound FIDO_BARK1
+		action A_FIDO_SEEK
+	}
+	else ifpdistg 2048
+	  ife FOLLOW_PLAYER 1
+	{
+		geta[PLAYER_IDENTITY].sectnum temp
+
+		// Stop following the player if they get into water
+		ife sector[temp].lotag 1
+			nullop
+		else ife sector[temp].lotag 2
+			nullop
+		else
+			action A_FIDO_WALK
+	}
+
+	ife ALLY_VOICE 1 { sound FIDO_BARK5 action A_FIDO_BARK }
+	ife ALLY_VOICE -1 { sound FIDO_BARK5 action A_FIDO_BARK }
+}
+else ifaction A_FIDO_BARK
+{
+	move STOP faceplayer
+	ifactioncount 3 action A_FIDO_SIT
+}
+else ifaction A_FIDO_SIT
+{
+	ifstrength 1500 addstrength 2
+	ifactorsound THISACTOR FIDO_PANT nullop else sound FIDO_PANT
+	move STOP
+	state checkfortarget
+	ifn my_target -1
+	{
+		sound FIDO_BARK1
+		action A_FIDO_SEEK
+	}
+	else
+	ifpdistg 2048 ife FOLLOW_PLAYER 1 action A_FIDO_WALK
+
+	ife ALLY_VOICE 1 { sound FIDO_BARK5 action A_FIDO_SIT_BARK }
+	ife ALLY_VOICE -1 { sound FIDO_BARK5 action A_FIDO_SIT_BARK }
+}
+else ifaction A_FIDO_SIT_BARK
+{
+	move STOP faceplayer
+	ifactioncount 3 action A_FIDO_IDLE
+}
+
+else ifaction A_FIDO_WALK
+{
+	move M_FIDO_WALK faceplayer
+
+	geta[PLAYER_IDENTITY].xvel temp
+	ifg temp 10
+	{
+		mul temp 2
+		seta[].xvel temp
+	}
+
+	state checkfortarget
+
+	ifn my_target -1 action A_FIDO_SEEK
+
+	ife FOLLOW_PLAYER 1
+	{
+		geta[PLAYER_IDENTITY].sectnum temp
+
+		// Stop following the player if they get into water
+		ife sector[temp].lotag 1
+			action A_FIDO_IDLE
+		else ife sector[temp].lotag 2
+			action A_FIDO_IDLE
+		else ifpdistg 4096
+			action A_FIDO_RUN
+
+		ifpdistl 1536 action A_FIDO_IDLE
+
+	}
+	else ife FOLLOW_PLAYER 0
+		action A_FIDO_IDLE
+
+	ifnotmoving operate
+}
+
+else ifaction A_FIDO_RUN
+{
+	move M_FIDO_RUN faceplayer
+	ifactorsound THISACTOR WOLF_RUN nullop else sound WOLF_RUN
+
+	geta[PLAYER_IDENTITY].xvel temp
+	ifg temp 10
+	{
+		mul temp 2
+		seta[].xvel temp
+	}
+
+	ife FOLLOW_PLAYER 0
+		action A_FIDO_IDLE
+	else ife FOLLOW_PLAYER 1
+	{
+		geta[PLAYER_IDENTITY].sectnum temp
+
+		// Stop following the player if they get into water
+		ife sector[temp].lotag 1
+			action A_FIDO_IDLE
+		else ife sector[temp].lotag 2
+			action A_FIDO_IDLE
+	}
+
+
+	ifrnd 16 state checkfortarget
+
+	ifn my_target -1 { sound FIDO_BARK1 action A_FIDO_SEEK }
+
+	ifpdistl 1536 action A_FIDO_IDLE
+	ifnotmoving operate
+
+}
+
+else ifaction A_FIDO_SEEK
+{
+	ifactorsound THISACTOR WOLF_RUN nullop else sound WOLF_RUN
+
+	move M_FIDO_RUN geth
+
+	state checkfortarget
+
+	ifn my_target -1
+	{
+		// Target acquired, skill setting can still affect decision to shoot.
+		state SKILL_SHOOT_LEVELADJUST
+
+		ifl RANDOM_CHANCE SKILLCHANCE
+		{
+			ldist temp THISACTOR my_target
+			ifl temp 1024 action A_FIDO_ATTACK // Bite
+			else ifl temp 4096
+			{
+				ife enemy_cooldown1 0
+				{
+					set enemy_cooldown1 100
+					state fronttowardstarget
+					geta[].ang movesprite_angvar
+					action A_FIDO_LUNGE_UP
+				}
+			}
+		}
+	}
+	else
+		action A_FIDO_WALK
+}
+
+else ifaction A_FIDO_ATTACK
+{
+	move STOP
+	state checkfortarget
+	ife my_target -1
+		action A_FIDO_RUN
+
+	state fronttowardstarget
+
+	ifn my_target -1
+	ifactioncount 2
+	{
+		sound WOLF_ATTACK
+		set PROJECTILE_TO_SHOOT 17663
+		set PROJECTILE_FIRING_SOUND RIPPER_SCRATCH
+		state sang_enemyShootProjectile
+
+		ife my_target -1 action A_FIDO_RUN
+		else action A_FIDO_SEEK
+	}
+}
+
+state FIDO_LUNGE
+
+ifg sprite[].htextra 0  // if the actor is set to take some damage from a weapon...
+{
+  ife sprite[].htpicnum FIDO              // if the owner of the weapon IS this actor
+    seta[].htextra -1       // set the damage to zero
+}
+
+ifhitweapon
+{
+		state NEWGUNEFFECTS
+		sound WOLF_PAIN
+		guts JIBS6 1
+		state random_wall_jibs
+		ifdead
+		{
+			state clear_ally_death
+			sound SOMETHINGHITFORCE
+			spawn TRANSPORTERBEAM
+			killit
+		}
+}
+
+
+state checksquished
+
+enda

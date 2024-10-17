@@ -1,0 +1,610 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+
+--------------------------------------------------------------------------------
+*/
+
+damageeventtile TRIAD
+
+defstate triad_flyback
+	setprojectile[TRIAD_CORPSE_FLY].pal sprite[].pal
+	eshoot TRIAD_CORPSE_FLY
+	setprojectile[TRIAD_CORPSE_FLY].pal 0
+	geta[].htang temp4
+	seta[RETURN].ang temp4
+	killit
+ends
+
+action ATRIADIDLE     0  1 5 1 10
+action ATRIADFROZEN 0 1 5 1 10
+action ATRIADWALK     0  4 5 1 20
+action ATRIADRUN      0  4 5 1 11
+action ATRIADSHOOT 20 2 5 1 11
+action ATRIADTHROW 30 3 5 1 20
+
+action ATRIADFLINCH 83 1 1 1 20
+
+action ATRIADDYING 60 7 1 1 15
+action ATRIADDEAD 66 1 1 1 1
+
+action ATRIADHDYING 76 6 1 1 15
+action ATRIADHDEAD 82 1 1 1 15
+
+action ATRIADCHOPDY 67 9 1 1 12
+action ATRIADCHOPD 75 1 1 1 1
+
+
+action ATRIADJUMP 40 3 5 1 20
+action ATRIADFALL 50 1 5 1 1
+
+move TRIADWALKVELS 72
+move TRIADRUNVELS 108
+move TRIADJUMPVELS 158
+
+ai AITRIADIDLE ATRIADIDLE STOP
+ai AITRIADSEEKENEMY ATRIADWALK TRIADWALKVELS geth
+ai AITRIADRUSHENEMY ATRIADRUN TRIADRUNVELS geth
+ai AITRIADSHOOT ATRIADSHOOT STOP 
+ai AITRIADDEAD ATRIADDEAD STOP faceplayer
+ai AITRIAD_HEAD_DEAD ATRIADHDEAD STOP faceplayer
+ai AITRIADCHOPD ATRIADCHOPD STOP faceplayer
+ai AITRIADTHROW ATRIADTHROW STOP 
+ai AITRIADJUMP ATRIADJUMP TRIADJUMPVELS jumptoplayer
+ai AITRIADSHRUNK ATRIADRUN TRIADRUNVELS furthestdir
+ai AITRIADGROW ATRIADIDLE STOP
+
+useractor enemystayput TRIADSTAYPUT
+ife sprite[].pal 0 seta[].pal 22
+state monst_glow
+cactor TRIAD
+enda
+
+useractor enemy TRIADJUMP 50
+ifaction 0
+{
+set MONSTER_FLAGS 2
+state monst_glow
+geta[].htflags temp2
+orvar temp2 4096
+orvar temp2 4194304
+seta[].htflags temp2
+set npc_talking 0
+ife actor_pal 0 spritepal 36
+ife actor_pal 10 strength 100 else
+ife actor_pal 16 strength 75 else
+ife actor_pal 49 strength 150 else
+strength 50
+ife actor_pal 16 nullop
+else
+	{
+	ifrnd 96 soundonce TRIADALERT
+	else ifrnd 96 soundonce TRIADALERT2
+	else ifrnd 96 soundonce TRIADALERT3
+	set npc_talking 60
+	}
+sizeat 22 22
+action ATRIADJUMP
+ai AITRIADJUMP
+cstator 257
+cactor TRIAD
+}
+enda
+
+useractor enemy TRIAD 50 ATRIADIDLE
+fall
+
+ifai 0
+	{
+	set MONSTER_FLAGS 2
+	state monst_glow
+	spriteflags 3
+	spawn SHOOTME
+	geta[].pal actor_pal
+	set npc_talking 0
+	ife actor_pal 0 spritepal 36
+	ife actor_pal 10 strength 100 else
+	ife actor_pal 16 strength 75 else
+	ife actor_pal 49 { set actor_type TYPE_BODY_ARMOUR strength 150 } else
+	strength 50
+	ife actor_pal 16 nullop
+	else
+		{
+		ifrnd 96 soundonce TRIADALERT
+		else ifrnd 96 soundonce TRIADALERT2
+		else ifrnd 96 soundonce TRIADALERT3
+		set npc_talking 60
+		}
+	sizeat 22 22
+	ai AITRIADIDLE
+	cstator 257
+	}
+
+state spawn_cold_breathe
+
+ifg npc_talking 0 sub npc_talking 1
+
+state ENEMYKNOCKBACKS
+state enemyfloordamage
+state enemy_fire_damage
+state enemy_ice_damage
+state enemy_spirit_damage
+
+ifaction ATRIADFROZEN
+	{
+	move 0
+	state frozen_code
+	}
+else
+ifaction ATRIADFALL
+	{
+	move TRIADRUNVELS 0
+	iffloordistl 16 ai AITRIADSEEKENEMY
+	}
+else
+ifaction ATRIADFLINCH
+	{
+	move STOP
+	sub PAIN_AMOUNT 1
+	ife PAIN_AMOUNT 0 ai AITRIADSEEKENEMY
+	}
+else
+ifaction ATRIADHDYING
+	{
+	strength 0
+	ife INTERNALCOUNT 16 state BODY_FALL_NOISES_SOUNDONCE
+	ifactioncount 6 { cstat 0 state rf spawn 16368 ai AITRIAD_HEAD_DEAD }
+	add INTERNALCOUNT 1
+	}
+else
+ifaction ATRIADDYING
+	{
+	strength 0
+	ife INTERNALCOUNT 16 state BODY_FALL_NOISES_SOUNDONCE
+	ifactioncount 7 { spawn 16368 ai AITRIADDEAD }
+	add INTERNALCOUNT 1
+	}
+else
+ifaction ATRIADCHOPDY
+	{
+	ifg SLO_MO_SHOWOFF 0 action ATRIADCHOPDY
+	strength 0
+	seta[].xvel -2
+	ifactioncount 9 { state SQUISH_FALL_NOISES spawn 16368 ai AITRIADCHOPD }
+	}
+else
+ifai AITRIADDEAD
+	{
+	strength 0
+	move 0
+
+		ifhitweapon
+		{
+		  ifwasweapon RADIUSEXPLOSION
+		  {
+			state squish_sounds
+			state human_jibs
+			state standard_jibs
+			killit
+		  }
+		  break
+		}
+
+	}
+else
+ifai AITRIAD_HEAD_DEAD
+	{
+	strength 0
+	move 0
+		ifhitweapon
+		{
+		  ifwasweapon RADIUSEXPLOSION
+		  {
+			state squish_sounds
+			state human_jibs
+			state standard_jibs
+			killit
+		  }
+		  break
+		}
+
+	}
+else
+ifai AITRIADCHOPD
+	{
+	strength 0
+		ifhitweapon
+		{
+		  ifwasweapon RADIUSEXPLOSION
+		  {
+			state squish_sounds
+			state human_jibs
+			state standard_jibs
+			killit
+		  }
+		  break
+		}
+	}
+else
+ifai AITRIADGROW
+state genericgrowcode
+else
+ifai AITRIADSHRUNK
+	{
+		ifcount SHRUNKDONECOUNT
+		  ai AITRIADSEEKENEMY
+		else ifcount SHRUNKCOUNT
+		  {
+		  sound ACTOR_UNSHRINK
+		  sizeto 28 28
+		  }
+		else
+		  state genericshrunkcode
+		break
+	}
+else
+ifai AITRIADJUMP
+	{
+	ifactioncount 4 action ATRIADFALL
+	}
+else
+ifai AITRIADIDLE
+	{
+	state checkfortarget
+	ifn my_target -1 ai AITRIADSEEKENEMY
+	}
+else
+ifai AITRIADSEEKENEMY
+	{
+	state checkfortarget
+	ifand npc_killed 1 // Triad is killed?
+	  ife npc_talking 0 // no speech coming from this guy?
+	   ifrnd 96
+		{
+		ifrnd 128 sound TRIAD_MANDOWN1
+		else ifrnd 128 sound TRIAD_MANDOWN2
+		else sound TRIAD_MANDOWN3
+		set npc_talking 60
+		set npc_killed 0
+		}
+
+	ifp pdead
+		{
+		ife npc_talking 0
+			{
+			ifrnd 96 soundonce TRIAD_KILLPL1
+			else ifrnd 96 soundonce TRIAD_KILLPL2
+			set npc_talking 60
+			}
+		ife my_target -1 ai AITRIADIDLE
+		}
+
+	geta[].htmovflag move_flag
+	ifn move_flag 0 // this is the same as ifnotmoving, but now we have info about what is hit in the temp var
+	{
+			 andvar move_flag 49152
+			 ife move_flag 32768 // the actor is pushing on a wall
+			 {
+			   geta[].htmovflag move_flag2 // need to get the info again
+			   andvar move_flag2 16383 // temp now stores the wall number
+					   getwall[move_flag2].nextsector sect
+					   ifn sect -1
+					   {
+					   ifand wall[move_flag2].cstat 1 break
+					   ife sector[sect].lotag 20 operate
+					   ife sector[sect].lotag 21 operate
+					   ife sector[sect].lotag 22 operate
+					   ife sector[sect].lotag 23 operate
+						  ifl sector[sect].floorz sector[].floorz // assumes floors are not sloped!
+							{
+							ai AITRIADJUMP
+							}
+						}
+			  }
+	}
+
+	ifrnd 2
+	 ife npc_talking 0
+		{
+		ife actor_pal 16 nullop
+		else
+		ifn my_target -1
+			{
+			ifrnd 96 soundonce TRIAD_SEEPL2
+			else ifrnd 96 soundonce TRIAD_SEEPL3
+			else soundonce TRIADROAM
+			set npc_talking 60
+			}
+			else
+			{
+			ifrnd 96 soundonce TRIAD_FINDPL1
+			else ifrnd 96 soundonce TRIAD_FINDPL2
+			else soundonce TRIAD_FINDPL3
+			set npc_talking 60
+			}
+		}
+	ifn my_target -1
+		{
+		ldist temp THISACTOR my_target
+		ifle temp 5120
+		 ifrnd 32
+		   ai AITRIADRUSHENEMY
+		else
+		 ifrnd 64
+			{
+			state SKILL_SHOOT_LEVELADJUST
+			ifl RANDOM_CHANCE SKILLCHANCE ai AITRIADSHOOT
+			}
+		}
+	else ife my_target -1 ifp pdead ai AITRIADIDLE
+	}
+else
+ifai AITRIADRUSHENEMY
+	{
+	state checkfortarget
+	geta[].htmovflag move_flag
+	ifn move_flag 0 // this is the same as ifnotmoving, but now we have info about what is hit in the temp var
+	{
+			 andvar move_flag 49152
+			 ife move_flag 32768 // the actor is pushing on a wall
+			 {
+			   geta[].htmovflag move_flag2 // need to get the info again
+			   andvar move_flag2 16383 // temp now stores the wall number
+					   getwall[move_flag2].nextsector sect
+					   ifn sect -1
+					   {
+					   ifand wall[move_flag2].cstat 1 break
+					   ife sector[sect].lotag 20 operate
+					   ife sector[sect].lotag 21 operate
+					   ife sector[sect].lotag 22 operate
+					   ife sector[sect].lotag 23 operate
+						  ifl sector[sect].floorz sector[].floorz // assumes floors are not sloped!
+							{
+							ai AITRIADJUMP
+							}
+						}
+			  }
+	}
+
+	ifn my_target -1
+		{
+		ldist temp THISACTOR my_target
+		ifrnd 16
+		 ife actor_pal 49
+		  ifle temp 4096
+			ai AITRIADTHROW
+		else
+		ifrnd 16
+		 ife actor_pal 10
+		  ifle temp 2048
+			ai AITRIADTHROW
+		else
+			{
+			state SKILL_SHOOT_LEVELADJUST
+			ifl RANDOM_CHANCE SKILLCHANCE ai AITRIADSHOOT
+			}
+		}
+		else ife my_target -1 ai AITRIADSEEKENEMY
+	}
+else
+ifai AITRIADTHROW
+	{
+	state new_validatetarget
+	ife my_target -1 ai AITRIADSEEKENEMY
+	state fronttowardstarget
+	ifactioncount 2
+		{
+		ife actor_pal 49
+			{
+			sound GRENPIN
+			ifpdistl 4096 eshoot FL_GRENADE
+			else eshoot H_GRENADE
+			setthisprojectile[RETURN].extra 60
+			}
+		else
+		ife actor_pal 10
+			{
+			shoot 3789
+			eshoot 3789
+			geta[RETURN].ang temp add temp 32 seta[RETURN].ang temp
+			eshoot 3789
+			geta[RETURN].ang temp sub temp 32 seta[RETURN].ang temp
+			}
+		ai AITRIADSEEKENEMY
+		}
+	}
+else
+ifai AITRIADSHOOT
+	{
+	state new_validatetarget
+	ife my_target -1 ai AITRIADSEEKENEMY
+	state fronttowardstarget
+		ifactioncount 1
+		{
+			state SKILL_ENEMY_ACCURACY
+			state DARKNESS_ENEMY_ACCURACY
+			geta[].z temp3 sub temp3 1024 seta[].z temp3 // change this actor's height so the projectile comes from the right place
+			ife actor_pal 10 set PROJECTILE_FIRING_SOUND TMPFIRE else
+			ife actor_pal 49 set PROJECTILE_FIRING_SOUND SMG_SHOT else
+			ife actor_pal 16 { set PROJECTILE_PAL 27 set PROJECTILE_FIRING_SOUND SUP_TMP } else
+			set PROJECTILE_FIRING_SOUND TRIAD_FIRE
+			set PROJECTILE_TO_SHOOT ENEMY_BULLET
+			state sang_enemyShootProjectile
+			ife PERFMODE 1
+			 ifcansee
+				{
+				set gunsmoke_z 8244
+				set gunsmoke_angle 0
+				state spawn_gunsmoke_z
+				ife actor_pal 16 nullop else
+					{
+					set gunsmoke_z 6544
+					espawn 16115
+					state spawn_muzzleflash
+					}
+				state npc_pistolshell
+				}
+		geta[].z temp3 add temp3 1024 seta[].z temp3
+		ifrnd 32 ai AITRIADSEEKENEMY
+		resetactioncount
+		}
+	}
+
+ifhitweapon
+{
+state NEWGUNEFFECTS
+ifaction ATRIADDYING break
+ifaction ATRIADDEAD break
+ifaction ATRIADHDEAD break
+ifaction ATRIADHDYING break
+// spawn BLOOD
+guts JIBS6 1
+state random_wall_jibs
+
+ifdead
+	{
+	addkills 1
+	xorvar npc_killed 1
+
+	   set temp2 2649
+		whilevarn temp2 2662 // This loops through and stops all possible speech from this actor
+			{
+			stopactorsound THISACTOR temp2
+			add temp2 1
+			}
+
+
+	ife actor_pal 49 ifrnd 16 spawn SMGSPRITE
+
+	geta[].htpicnum PROJ_HIT_TYPE
+	ifand tiledata[PROJ_HIT_TYPE].gameflags 8 getprojectile[PROJ_HIT_TYPE].userdata PROJ_UDATA else set PROJ_UDATA 0
+
+ ifwasweapon RADIUSEXPLOSION
+		{
+		geta[].extra temp
+		ifg temp -50 state triad_flyback
+		state human_jibs
+		state squish_sounds
+		state standard_jibs
+		killit
+		}
+ ifwasweapon RPG
+		{
+		geta[].extra temp
+		ifg temp -50 state triad_flyback
+		state human_jibs
+		state squish_sounds
+		state standard_jibs
+		killit
+	    }
+ ifand PROJ_UDATA PROJ_GIB
+		{
+		geta[].extra temp
+		ifg temp -50 state triad_flyback
+		state human_jibs
+		state squish_sounds
+		state standard_jibs
+		killit
+		}
+	ifand PROJ_UDATA 8192
+		 {
+		 ifrnd 8 { spawn ELECTROCUTE_MARV soundonce MALE_ELECT1 } else spawn ELECTROCUTE_GUY
+		 shoot SPARK2 shoot SPARK2 shoot SPARK2
+		 killit
+		 }
+	ifwasweapon GROWSPARK { cstat 0 sound ACTOR_GROWING ai AITRIADGROW break }
+	else ifg ice_damage 0 { spritepal 1 strength 1 sound SOMETHINGFROZE action ATRIADFROZEN }
+	else ifwasweapon 7163
+	{
+		ifrnd 64 sound MALE_ONFIRE1
+		else ifrnd 64 sound MALE_ONFIRE2
+		else ifrnd 64 sound MALE_ONFIRE3
+		else sound MALE_ONFIRE4
+		spawn ONFIREGUY
+		killit
+	}
+	else ifand PROJ_UDATA 8 // slashing death
+	{
+        state sword_kill_sounds
+        state random_trigger_showoff
+	ife SWORD_ANIM 1 cstat 0 else cstat 4 state slashed_sounds action ATRIADCHOPDY }
+	else ife HEADSHOT 2
+	  ifrnd 64
+		{
+		state random_trigger_showoff
+		state decap_sounds
+		state jib_sounds
+		set INTERNALCOUNT 0
+		action ATRIADHDYING shoot NJIB shoot NJIB guts JIBS6 3 guts JIBS2 2
+		}
+	else
+	ifg energy_damage 0
+		{
+		shoot SPARK2 shoot SPARK2 shoot SPARK2
+		spritepal 4
+		guts JIBS3 6
+		spawn DISINTIGRATE_GUY
+		killit
+		}
+	else
+	ifg spirit_damage 0
+		{
+		shoot SPARK2 shoot SPARK2 shoot SPARK2
+		spritepal 1
+		guts JIBS3 6
+		spawn SPIRIT_DEATH_GUY
+		killit
+		}
+	else
+	ifg fire_damage 0
+	{
+		ifrnd 64 sound MALE_ONFIRE1
+		else ifrnd 64 sound MALE_ONFIRE2
+		else ifrnd 64 sound MALE_ONFIRE3
+		else sound MALE_ONFIRE4
+		set PLAYER_VOICEOVER 21
+		spawn ONFIREGUY
+		killit
+	}
+	else
+		{
+		state rf
+		sound TRIADDIE
+		set INTERNALCOUNT 0
+		ifstrength -50 ifpdistl 4096 state triad_flyback
+		else ifwasweapon KNEE state triad_flyback
+		else ifwasweapon SHOTGUN ifpdistl 1536 state triad_flyback
+		else action ATRIADDYING
+		}
+
+	}
+else
+ifwasweapon SHRINKSPARK { sound ACTOR_SHRINKING ai AITRIADSHRUNK }
+else
+ifg PAIN_AMOUNT 0 action ATRIADFLINCH else
+ifrnd 64 { soundonce TRIADPAIN state PAIN_SKILL_LEVELADJUST action ATRIADFLINCH }
+}
+state checksquished
+enda

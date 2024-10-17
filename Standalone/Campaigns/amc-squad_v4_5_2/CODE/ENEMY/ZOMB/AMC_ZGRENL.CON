@@ -1,0 +1,282 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+
+--------------------------------------------------------------------------------
+*/
+
+// ************************************************************************************
+// ZOMBIE GRENADE SOLDIER
+// ************************************************************************************
+
+action AZ_GRENADEL_FROZE 0 1 5 1 10
+action AZ_GRENADEL_GROW 30 1 1 1 10
+action AZ_GRENADEL_IDLE 0 1 5 1 20
+action AZ_GRENADEL_RUN  0  4 5 1 11
+action AZ_GRENADEL_FIRE 20 2 5 1 24
+action AZ_GRENADEL_FLINCH 30 1 1 1 10
+action AZ_GRENADEL_DYING 35 5 1 1 10
+action AZ_GRENADEL_DEAD 40 1 1 1 10
+
+action AZ_GRENADEL_HEADSHOT 41 6 1 1 10
+action AZ_GRENADEL_HEADDEAD 46 1 1 1 10
+
+ai AIZ_GRENADEL_SEEKENEMY AZ_GRENADEL_RUN
+ai AIZ_GRENADEL_SHOOTENEMY AZ_GRENADEL_FIRE STOP
+ai AIZ_GRENADEL_DEAD AZ_GRENADEL_DEAD STOP faceplayer
+ai AIZ_GRENADEL__HEADDEAD AZ_GRENADEL_HEADDEAD STOP faceplayer
+ai AIZ_GRENADEL_SHRUNK AZ_GRENADEL_RUN ZSOLDIERRUNVELS furthestdir
+ai AIZ_GRENADEL__GROW AZ_GRENADEL_GROW STOP faceplayer
+
+damageeventtile Z_GRENADEL
+
+useractor enemystayput Z_GRENADEL_STAYPUT 200 AZ_GRENADEL_IDLE
+state monst_glow
+cactor Z_GRENADEL
+enda
+
+useractor enemy Z_GRENADEL 200 AZ_GRENADEL_IDLE
+fall
+
+ifai 0
+{
+	state monst_glow
+	spawn SHOOTME
+	spriteflags NORMAL_ENEMY
+	set actor_type TYPE_BODY_ARMOUR
+	geta[].pal actor_pal
+	ife actor_pal 43 { strength 400 sizeat 26 26 }
+    else ife actor_pal 24 { strength 225 sizeat 24 24 }
+	else { spritepal 21 strength 200 sizeat 24 24 }
+	action AZ_GRENADEL_RUN
+	ai AIZ_GRENADEL_SEEKENEMY
+	sound ZSOLD_SIGHT
+	cstator 257
+}
+
+state ENEMYKNOCKBACKS
+state enemyfloordamage
+state enemy_fire_damage
+state enemy_ice_damage
+state enemy_spirit_damage
+
+ifaction AZ_GRENADEL_FROZE state frozen_code
+else
+ifaction AZ_GRENADEL_FLINCH
+	{
+		sub PAIN_AMOUNT 1
+		move STOP
+		ife PAIN_AMOUNT 0 ai AIZ_GRENADEL_SEEKENEMY
+	}
+else
+ifai AIZ_GRENADEL_DEAD
+	{
+	move STOP
+		ifhitweapon
+			{
+			  ifwasweapon RADIUSEXPLOSION state zombie_jibs
+			  break
+			}
+	}
+else
+ifai AIZ_GRENADEL__HEADDEAD
+	{
+	move STOP
+		ifhitweapon
+			{
+			  ifwasweapon RADIUSEXPLOSION state zombie_jibs
+			  break
+			}
+	}
+else
+ifaction AZ_GRENADEL_DYING
+	{
+		ifactioncount 5 { state BODY_FALL_NOISES spawn BLOODPOOL ai AIZ_GRENADEL_DEAD }
+	}
+else
+ifaction AZ_GRENADEL_HEADSHOT
+	{
+		ifactioncount 5 { state BODY_FALL_NOISES spawn BLOODPOOL ai AIZ_GRENADEL__HEADDEAD }
+	}
+else
+ifai AIZ_GRENADEL__GROW state genericgrowcode
+else
+ifai AIZ_GRENADEL_SHRUNK
+	{
+		ifcount SHRUNKDONECOUNT
+		  ai AIZ_GRENADEL_SEEKENEMY
+		else ifcount SHRUNKCOUNT
+		  {
+		  sound ACTOR_UNSHRINK
+		  sizeto 55 55
+		  }
+		else
+		  state genericshrunkcode
+		break
+	}
+else
+ifai AIZ_GRENADEL_SEEKENEMY
+	{
+		ifmove ZCHAINGWALKVELS { }
+		else
+			move ZCHAINGWALKVELS geth
+
+		state checkfortarget
+
+		state SKILL_SHOOT_LEVELADJUST
+		ifg shoot_countdown 0 sub shoot_countdown 1
+
+		ife shoot_countdown 0 ifn my_target -1 ifl RANDOM_CHANCE SKILLCHANCE ai AIZ_GRENADEL_SHOOTENEMY
+
+		ifrnd 16 { soundonce ZSOLD_ROAM setactorsoundpitch THISACTOR ZSOLD_ROAM -128 }
+	}
+else
+ifai AIZ_GRENADEL_SHOOTENEMY
+	{
+	state fronttowardstarget
+	ife my_target -1 ai AIZ_GRENADEL_SEEKENEMY
+	else
+		ifactioncount 1
+		{
+			addvar ally_mag 1
+			set PROJECTILE_FIRING_SOUND RG_GL_FIRE
+			set PROJECTILE_TO_SHOOT GEO_NADE
+			state sang_enemyShootProjectile
+			setthisprojectile[RETURN].extra 20
+			ife PERFMODE 1
+			 ifcansee
+				{
+				set gunsmoke_z 7644
+				set gunsmoke_angle 256
+				state spawn_gunsmoke_z
+				set gunsmoke_z 5044
+				espawn 16114
+				state spawn_muzzleflash
+				}
+			ifg ally_mag 5
+				{
+				ai AIZ_GRENADEL_SEEKENEMY
+				set ally_mag 0
+				}
+			resetactioncount
+		}
+	}
+
+geta[].htextra temp
+
+ifg temp 0                            // if the actor is set to take some damage from a weapon...
+{
+  geta[].htowner temp      // gets the owner of the weapon into temp
+  ife temp THISACTOR              // if the owner of the weapon IS this actor
+    seta[].htextra 0       // set the damage to 0
+}
+
+ifhitweapon
+{
+	state NEWGUNEFFECTS
+	//spawn BLOOD
+	//guts JIBS6 1
+	state random_wall_jibs
+	ifdead
+		{
+		ifwasweapon GROWSPARK { cstat 0 sound ACTOR_GROWING ai AIZ_GRENADEL__GROW break }
+		else ifg ice_damage 0 { spritepal 1 strength 1 sound SOMETHINGFROZE action AZ_GRENADEL_FROZE }
+		else
+			{
+			state rf
+			addkills 1
+
+			ifwasweapon RADIUSEXPLOSION state zombie_jibs
+			ifwasweapon RPG state zombie_jibs
+			ifand PROJ_UDATA PROJ_GIB state zombie_jibs
+			ifand PROJ_UDATA 8192
+			 {
+			 ifrnd 4 soundonce MALE_ELECT1
+			 spawn ELECTROCUTE_BIGGUY
+			 shoot SPARK2 shoot SPARK2 shoot SPARK2
+			 killit
+			 }
+
+			ifg fire_damage 0
+			{
+			shoot SPARK2 shoot SPARK2 shoot SPARK2
+			ifrnd 128 sound ZSOLD_DIE2 else
+			sound ZSOLD_DIE1
+			spawn ONFIREGUY
+			killit
+			}
+			else
+			ife HEADSHOT 2
+			{
+			    ifg fire_damage 0 set fire_damage 0
+				state random_trigger_showoff
+				state jib_sounds
+				state decap_sounds
+				shoot NJIB
+				shoot NJIB
+				guts JIBS6 3
+				guts JIBS2 2
+				action AZ_GRENADEL_HEADSHOT
+			}
+			else ifg spirit_damage 0
+			{
+			shoot SPARK2 shoot SPARK2 shoot SPARK2
+			spritepal 1
+			guts JIBS3 6
+			spawn SPIRIT_DEATH_GUY
+			killit
+			}
+			else
+			ifg energy_damage 0
+				{
+				shoot SPARK2 shoot SPARK2 shoot SPARK2
+				spritepal 4
+				guts JIBS3 6
+				spawn DISINTIGRATE_BIG_GUY
+				killit
+				}
+			else
+				{
+				ifrnd 128 sound ZSOLD_DIE2 else
+				sound ZSOLD_DIE1
+				action AZ_GRENADEL_DYING
+				}
+			ifrnd 8 { espawn RIOTGUN_GRENADEL_SPRITE randvar temp 4 setactorvar[RETURN].YVELSAVED temp }
+			}
+		ifphealthl 50
+			{
+			state SKILL_LEVELADJUST
+			ifl RANDOM_CHANCE SKILLCHANCE spawn HYPOSPRAY
+			}
+		}
+else
+	ifg PAIN_AMOUNT 0 action AZ_GRENADEL_FLINCH
+	else ifrnd 8 { sound ZSCI_PAIN state PAIN_SKILL_LEVELADJUST action AZ_GRENADEL_FLINCH }
+	else ifwasweapon SHRINKSPARK { sound ACTOR_SHRINKING ai AIZ_GRENADEL_SHRUNK }
+}
+
+state checksquished
+
+enda

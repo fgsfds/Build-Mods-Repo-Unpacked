@@ -1,0 +1,226 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+
+--------------------------------------------------------------------------------
+*/
+
+damageeventtile MISTERH
+
+action AHYDE_IDLE -156 1 5 1 10
+action AHYDE_MOVE 0 4 5 1 20
+action AHYDE_PUNCH 20 3 5 1 14
+action AHYDE_SHOOT 35 2 5 1 20
+action AHYDE_DIE 45 7 1 1 14
+action AHYDE_DEAD 52
+
+move HYDE_MOVE 170
+move HYDE_SUPER 340
+
+ai AIHYDE_IDLE AHYDE_IDLE STOP faceplayer
+ai AIHYDE_MOVE AHYDE_MOVE HYDE_MOVE seekplayer
+ai AIHYDE_DODGE AHYDE_MOVE HYDE_SUPER dodgebullet
+ai AIHYDE_PUNCH AHYDE_PUNCH STOP faceplayer
+ai AIHYDE_SHOOT AHYDE_SHOOT STOP faceplayer
+ai AIHYDE_DIE AHYDE_DIE STOP
+
+spritenopal MISTERH
+
+useractor enemy MISTERH
+fall
+
+ifaction 0
+	{
+	state monst_glow
+	sizeat 28 28
+	strength 4000
+	ifspritepal 3 nullop
+    else globalsound MRH_LAUGH
+	ifspritepal 41
+        nullop
+    else
+    {
+        set CURBOSS THISACTOR
+	    set BOSS_TYPE 5
+	}
+    cstat 257
+	spawn SHOOTME
+	spriteflags NORMAL_ENEMY
+	ai AIHYDE_IDLE
+	}
+
+sleeptime 0
+
+ifg npc_talking 0 sub npc_talking 1
+
+ifdead nullop else
+ifspritepal 0
+ifrnd 16
+ifrnd 16
+	{
+	ifand ALLY_VOICE 1 nullop else ife npc_talking 0
+		{
+		globalsound MRH_TAUNT1
+		xorvar ALLY_VOICE 1
+		set npc_talking 300
+		}
+	ifand ALLY_VOICE 2 nullop else ife npc_talking 0
+		{
+		globalsound MRH_TAUNT2
+		xorvar ALLY_VOICE 2
+		set npc_talking 300
+		}
+	ifand ALLY_VOICE 4 nullop else ife npc_talking 0
+		{
+		globalsound MRH_TAUNT3
+		xorvar ALLY_VOICE 4
+		set npc_talking 300
+		}
+	ifand ALLY_VOICE 8 nullop else ife npc_talking 0
+		{
+		globalsound MRH_TAUNT4
+		xorvar ALLY_VOICE 8
+		set npc_talking 300
+		}
+	ifand ALLY_VOICE 16 nullop else ife npc_talking 0
+		{
+		globalsound MRH_TAUNT5
+		xorvar ALLY_VOICE 16
+		set npc_talking 300
+		}
+	}
+
+ifaction AHYDE_DEAD break
+else
+ifai AIHYDE_DIE
+{
+ifactioncount 7
+	{
+	state rf
+	guts JIBS6 5
+	state BODY_FALL_NOISES
+	spawn BLOODPOOL
+	action AHYDE_DEAD
+	state fade_out_white
+	globalsound USE_PORTAL
+	operateactivators 27555 THISACTOR
+	operatemasterswitches 27555
+	operaterespawns 27555
+	}
+}
+else
+ifai AIHYDE_IDLE
+	{
+	ifcansee
+	 ifcanseetarget
+	  ai AIHYDE_MOVE
+	  else
+	  ifrnd 64
+	   ife camerasprite -1
+	  ai AIHYDE_MOVE
+	}
+else
+ifai AIHYDE_DODGE
+	{
+	spawn FRAMEEFFECT1
+	ifactioncount 2 ai AIHYDE_MOVE
+	}
+else
+ifai AIHYDE_MOVE
+	{
+	ifbulletnear
+	 ifstrength 2000
+	  ife silence_damage 0
+	  { soundonce WHOOSH ai AIHYDE_DODGE }
+
+	ifpdistl 1024 ai AIHYDE_PUNCH
+
+	 ifcanseetarget
+	  ifcanshoottarget
+	   ifrnd 8
+	    ai AIHYDE_SHOOT
+
+	ifrnd 4 { soundonce MRH_SEEK ai AIHYDE_IDLE }
+	}
+else
+ifai AIHYDE_SHOOT
+	{
+	ifactioncount 2 { soundonce MRH_ROAM ai AIHYDE_IDLE }
+	else
+	ifactioncount 1
+		{
+		soundonce FLESH_SQUIRT
+		shoot BONE_SHARD
+		}
+	}
+else
+ifai AIHYDE_PUNCH
+	{
+	ifpdistg 1024 ai AIHYDE_MOVE
+	else
+		{
+		ifactioncount 3
+			{
+			soundonce PUNCH2
+			state setknockback
+			wackplayer
+			addphealth -40
+			palfrom 40 40 0 0
+			ai AIHYDE_MOVE
+			resetactioncount
+			}
+		else ifactioncount 0 soundonce MRH_THROWP
+		}
+	}
+
+	ifg silence_damage 0
+		{
+		sub silence_damage 1
+		state spawn_curse_particles
+		}
+
+ifhitweapon
+	{
+	ifwasweapon RPG seta[].xvel 0
+	ifwasweapon RADIUSEXPLOSION seta[].xvel 0
+	ifwasweapon VOID_BOLT { sound EN_CURSE set silence_damage 150 }
+	ifwasweapon VOID_PLAYER_BOLT { sound EN_CURSE set silence_damage 150 }
+	ifwasweapon VOID_BLAST { sound EN_CURSE set silence_damage 450 }
+	set CURBOSS THISACTOR
+		//spawn BLOOD
+		//guts JIBS6 1
+		ifdead
+			{
+			quake 26
+			guts JIBS6 5
+			add TREASURE_FOUND 5
+			addkills 1
+			ai AIHYDE_DIE
+			}
+	seta[].xvel 5
+	}
+
+
+enda

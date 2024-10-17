@@ -1,0 +1,324 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+
+--------------------------------------------------------------------------------
+*/
+
+// ******************************************************************************
+// RIFLE MERCENARY
+// ******************************************************************************
+
+damageeventtile MERC2
+
+action AMERC2_FROZEN 0 1 5 1 10
+
+action AMERC2IDLE 0 1 5 1 10
+action AMERC2RUN 0 4 5 1 11
+action AMERC2READYSHOOT 20 1 5 1 11
+action AMERC2SHOOT 25 1 5 1 11
+
+action AMERC2PAIN 30 1 1 1 5
+
+action AMERC2GROW 30 1 5 1 5
+
+action AMERC2DYING 30 5 1 1 8
+action AMERC2DEAD 35 1 1 1 1
+
+action A_MERC2_BIDIE 17070 2 1 1 16
+action A_MERC2_BIDEAD 17071
+
+action AMERC2_H_DYING -37 5 1 1 8
+action AMERC2_H_DEAD -33 1 1 1 1
+
+defstate merc2_torsofly
+	cstat 0
+	state random_trigger_showoff
+	sound TORS_BISEC
+	setprojectile[MERC_TORSO_FLY].pal sprite[].pal
+	ezshoot -4096 MERC_TORSO_FLY
+	setprojectile[MERC_TORSO_FLY].pal 0
+	geta[].htang temp4
+	seta[RETURN].ang temp4
+	espawn BIG_BLOOD_EXE
+	action A_MERC2_BIDIE
+ends
+
+ai AIMERC2IDLE AMERC2IDLE STOP
+ai AIMERC2SEEKENEMY AMERC2RUN MERCRUN geth
+ai AIMERC2READYSHOOT AMERC2READYSHOOT STOP 
+ai AIMERC2SHOOT AMERC2SHOOT STOP 
+ai AIMERC2SHRUNK AMERC2RUN MERCRUN furthestdir
+ai AIMERC2GROW AMERC2GROW STOP
+
+ai AIMERC2DYING AMERC2DYING STOP faceplayer
+ai AIMERC2_H_DYING AMERC2_H_DYING STOP faceplayer
+
+useractor enemystayput MERC2STAYPUT 100 AMERC2IDLE
+cactor MERC2
+enda
+
+useractor enemy MERC2 100 AMERC2IDLE
+state ENEMYKNOCKBACKS
+state enemyfloordamage
+state enemy_fire_damage
+state enemy_ice_damage
+state enemy_spirit_damage
+fall
+
+state checksquished
+
+state spawn_cold_breathe
+
+ifai 0
+{
+set actor_type TYPE_FULL_BODY_ARMOUR
+set MONSTER_FLAGS 2
+state monst_glow
+spawn SHOOTME
+spriteflags NORMAL_ENEMY
+sizeat 25 25
+strength 100
+cstator 257
+ai AIMERC2IDLE
+}
+
+ifaction AMERC2_FROZEN state frozen_code
+else
+ifaction AMERC2PAIN
+	{
+	sub PAIN_AMOUNT 1
+	move STOP
+	ife PAIN_AMOUNT 0 ai AIMERC2SEEKENEMY
+	}
+	else
+ifaction AMERC2_H_DEAD
+	state generic_dead
+	else
+ifaction AMERC2DEAD
+	state generic_dead
+	else
+ifaction A_MERC2_BIDEAD
+	state generic_dead
+	else
+ifaction A_MERC2_BIDIE
+	{
+	strength 0
+	ifactioncount 2 { state rf state BODY_FALL_NOISES action A_MERC2_BIDEAD espawn BLOODPOOL }
+	}
+else
+ifai AIMERC2_H_DYING
+{
+ifactioncount 5 { ifaction AMERC2_H_DYING state BODY_FALL_NOISES action AMERC2_H_DEAD }
+}
+else
+ifai AIMERC2DYING
+{
+ifactioncount 5 { ifaction AMERC2DYING state BODY_FALL_NOISES action AMERC2DEAD }
+}
+else
+ifai AIMERC2IDLE
+{
+ifcansee
+	{
+	ifrnd 64 soundonce MERC_SIGHT1
+	else ifrnd 64 soundonce MERC_SIGHT2
+	else ifrnd 64 soundonce MERC_SIGHT3
+	else ifrnd 64 soundonce MERC_SIGHT4
+	else ifrnd 64 soundonce MERC_SIGHT5
+	ai AIMERC2SEEKENEMY
+	}
+}
+else
+ifai AIMERC2GROW state genericgrowcode
+else
+ifai AIMERC2SHRUNK
+{
+    ifcount SHRUNKDONECOUNT
+      ai AIMERC2SEEKENEMY
+    else ifcount SHRUNKCOUNT
+	  {
+	  sound ACTOR_UNSHRINK
+      sizeto 42 42
+	  }
+    else
+      state genericshrunkcode
+    break
+}
+else
+ifai AIMERC2SEEKENEMY
+{
+state checkfortarget
+ifn my_target -1
+	{
+	state SKILL_SHOOT_LEVELADJUST
+	  ifl RANDOM_CHANCE SKILLCHANCE
+		ai AIMERC2READYSHOOT
+	}
+}
+else
+ifai AIMERC2READYSHOOT
+{
+state checkfortarget
+ifn my_target -1
+{ ifactioncount 4 ai AIMERC2SHOOT }
+else ai AIMERC2SEEKENEMY
+}
+else
+ifai AIMERC2SHOOT
+{
+state fronttowardstarget
+ifactioncount 0
+	{
+	set PROJECTILE_STRENGTH 30
+	set PROJECTILE_PAL 2
+	set PROJECTILE_TO_SHOOT ENEMY_BULLET
+	set PROJECTILE_FIRING_SOUND MERC2_RIFLE
+	state sang_enemyShootProjectile
+		ife PERFMODE 1
+		 ifcansee
+			{
+			set gunsmoke_z 8244
+			set gunsmoke_angle 256
+			state spawn_gunsmoke_z
+			state npc_rifleshell
+			set gunsmoke_z 5044
+			espawn 16115
+			state spawn_muzzleflash
+			}
+	ife my_target -1 ai AIMERC2SEEKENEMY else
+	ifrnd 96 ai AIMERC2SEEKENEMY else
+	ai AIMERC2READYSHOOT
+	}
+}
+
+
+ifhitweapon
+{
+state NEWGUNEFFECTS
+ifrnd 32 guts JIBS6 1
+state random_wall_jibs
+ifdead
+{
+addkills 1
+
+    ifwasweapon RADIUSEXPLOSION
+      {
+        state squish_sounds
+		state standard_jibs
+	  state human_jibs
+	  killit
+      }
+    ifwasweapon RPG
+      {
+        state squish_sounds
+		state standard_jibs
+	  state human_jibs
+	  killit
+      }
+	ifand PROJ_UDATA PROJ_GIB // gibbable weapon
+		{
+		state squish_sounds
+		state standard_jibs
+		state human_jibs
+		killit
+		}
+		ifand PROJ_UDATA 8192
+		 {
+		 ifrnd 8 { spawn ELECTROCUTE_MARV soundonce MALE_ELECT1 } else spawn ELECTROCUTE_GUY
+		 shoot SPARK2 shoot SPARK2 shoot SPARK2
+		 killit
+		 }
+	ifwasweapon SAWBLADE state merc2_torsofly
+	else ifwasweapon SAWBLADE_BOUNCE state merc2_torsofly
+	else ifwasweapon SNOWFALL_DISC state merc2_torsofly
+	else ifwasweapon 6875 ife CHAR 2 state merc2_torsofly
+	else ifg ice_damage 0 { spritepal 1 strength 1 sound SOMETHINGFROZE action AMERC2_FROZEN }
+	else ifwasweapon GROWSPARK { cstat 0 sound ACTOR_GROWING ai AIMERC2GROW break }
+	else ifg energy_damage 0
+		{
+		shoot SPARK2 shoot SPARK2 shoot SPARK2
+		spritepal 4
+		guts JIBS3 6
+		spawn DISINTIGRATE_GUY
+		killit
+		}
+	else ifg spirit_damage 0
+		{
+		shoot SPARK2 shoot SPARK2 shoot SPARK2
+		spritepal 1
+		guts JIBS3 6
+		spawn SPIRIT_DEATH_GUY
+		killit
+		}
+	else ifg fire_damage 0
+		{
+		ifrnd 64 sound MALE_ONFIRE1
+		else ifrnd 64 sound MALE_ONFIRE2
+		else ifrnd 64 sound MALE_ONFIRE3
+		else sound MALE_ONFIRE4
+		spawn ONFIREGUY
+		set PLAYER_VOICEOVER 21
+		killit
+		}
+	else ifwasweapon 7163
+	{
+		ifrnd 64 sound MALE_ONFIRE1
+		else ifrnd 64 sound MALE_ONFIRE2
+		else ifrnd 64 sound MALE_ONFIRE3
+		else sound MALE_ONFIRE4
+		spawn ONFIREGUY
+		killit
+	}
+	else
+	ife HEADSHOT 2
+	{
+    guts JIBS6 4 guts JIBS2 2
+	ifrnd 128 sound HEL_HS1 else sound HEL_HS2
+	state rf
+	ai AIMERC2_H_DYING
+	}
+	else
+	{
+	state rf
+	ifrnd 128 sound MERC_DIE1
+	else ifrnd 128 sound MERC_DIE2
+	else sound MERC_DIE3
+	ifl sprite[].extra -100 ifpdistl 4096 state merc2_torsofly
+	else
+	ai AIMERC2DYING
+	}
+}
+else
+	{
+	ifrnd 128 soundonce MERC_PAIN
+	ifg PAIN_AMOUNT 0 action AMERC2PAIN
+	else ifrnd 32 { state PAIN_SKILL_LEVELADJUST action AMERC2PAIN }
+	else ifrnd 196 { resetactioncount ai AIMERC2READYSHOOT }
+	}
+ifwasweapon SHRINKSPARK { sound ACTOR_SHRINKING ai AIMERC2SHRUNK }
+}
+
+enda

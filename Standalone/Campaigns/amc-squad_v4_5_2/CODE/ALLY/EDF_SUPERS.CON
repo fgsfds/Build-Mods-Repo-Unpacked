@@ -1,0 +1,476 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+
+--------------------------------------------------------------------------------
+*/
+
+damageeventtile EDF_SUPERSOLDIER // Ally
+
+action A_EDF_SUPERSOLDIER_GUARD 5 1 5 1 11
+action A_EDF_SUPERSOLDIER_IDLE 0 1 5 1 11
+
+action A_EDF_SUPERSOLDIER_FOLLOW 20 4 5 1 4
+
+action A_EDF_SUPERSOLDIER_MOVE 20 4 5 1 4
+action A_EDF_SUPERSOLDIER_ATTACK 10 2 5 1 4
+action A_EDF_SUPERSOLDIER_ATTACK2 50 2 5 1 12
+
+action A_EDF_SUPERSOLDIER_NADE 60 3 5 1 12
+
+action A_EDF_SUPERSOLDIER_PAIN 70 1
+
+action A_EDF_SUPERSOLDIER_DYING 70 5 1 1 12
+action A_EDF_SUPERSOLDIER_DEAD 74 1 1 1 1
+
+spriteshadow EDF_SUPERSOLDIER
+
+useractor notenemy EDF_SUPERSOLDIER
+fall
+ifaction 0
+{
+	set actor_type TYPE_ARMOURED
+	seta[].htwaterzoffset 8
+	ifspritepal 3 set INVASION 1
+	set NPC_SHIELD 200
+	randvar LAST_NAME 65
+	set GENDER FEMALE
+	add LAST_NAME 7200
+	set ally_mag 5
+	sizeat 27 27
+	clipdist 60
+	set enemy_attack 10
+	set npc_talking 0
+	set max_health 500
+	cstat 257
+	strength 500
+	// TODO remove shootme refs
+	spawn SHOOTME2
+
+	ifspritepal 13 state monst_glow
+
+	action A_EDF_SUPERSOLDIER_GUARD
+}
+
+ifg enemy_cooldown1 0 sub enemy_cooldown1 1
+
+	// don't block player
+	ifn sprite[].pal 13
+	{
+	  ifpdistl 1024
+		cstat 256
+	else cstat 257
+	}
+
+ifdead nullop else state EDF_SUPERSOLDIER_MOVE
+
+state player_follow_commands
+
+ifg npc_talking 0 sub npc_talking 1
+ifg INTERNALCOUNT_2 0 sub INTERNALCOUNT_2 1
+
+ifl ally_mag 5
+	{
+	add INTERNALCOUNT 1
+	ifg INTERNALCOUNT 300
+		{
+		add ally_mag 1
+		set INTERNALCOUNT 0
+		}
+	}
+
+ifdead nullop else state detectledge
+
+ifspritepal 13
+	{
+		ifand npc_killed 512
+			ife npc_talking 0
+			ifrnd 128
+		{
+		ifdead break
+			ife ally_subt 0
+				{
+				qputs 7502 ^60%s: ^0Man down!
+				qsprintf ALLY_SUBTITLE 7502 LAST_NAME
+				set ally_subt 25
+				}
+			sound EDFS_MDOWN
+			set npc_killed 0
+			set npc_talking 60
+		}
+
+	}
+	else
+	{
+		ifand npc_killed 64
+			ife npc_talking 0
+			ifrnd 128
+		{
+		ifdead break
+			ife ally_subt 0
+				{
+				qputs 7502 ^60%s: ^0Man down!
+				qsprintf ALLY_SUBTITLE 7502 LAST_NAME
+				set ally_subt 25
+				}
+			sound EDFS_MDOWN
+			set npc_killed 0
+			set npc_talking 60
+		}
+	}
+
+state ENEMYKNOCKBACKS
+state enemyfloordamage
+
+state enemy_spirit_damage
+
+state ALLY_SHIELD_STUFF
+
+ifaction A_EDF_SUPERSOLDIER_DEAD
+	{
+	move STOP
+	cstat 0
+	ifhitweapon
+		{
+		ifwasweapon RADIUSEXPLOSION
+			{
+			state squish_sounds
+			state standard_jibs
+			state human_jibs
+			killit
+			}
+		}
+	}
+else
+ifaction A_EDF_SUPERSOLDIER_DYING
+	{
+	strength 0
+	cstat 0
+	ifactioncount 5 { state BODY_FALL_NOISES action A_EDF_SUPERSOLDIER_DEAD ifrnd 76 spawn BLOODPOOL  }
+	}
+else
+ifaction A_EDF_SUPERSOLDIER_PAIN
+	{
+	move STOP
+	ifdead action A_EDF_SUPERSOLDIER_DYING else
+	ifactioncount 4 action A_EDF_SUPERSOLDIER_MOVE
+	}
+else
+ifaction A_EDF_SUPERSOLDIER_NADE
+	{
+	move STOP
+		state checkfortarget
+
+			ifactioncount 2
+			  ifn my_target -1
+			{
+				set enemy_cooldown1 300
+				sub enemy_attack 1
+				state fronttowardstarget
+				ifspritepal 13 ife my_target PLAYER_IDENTITY ifg P_ENERGYSHIELD 0 set PROJECTILE_TO_SHOOT EMP_GRENADE else
+				set PROJECTILE_TO_SHOOT GRENADE
+				set PROJECTILE_FIRING_SOUND THROWSOMET
+				state sang_enemyShootProjectile
+				action A_EDF_SUPERSOLDIER_MOVE
+			}
+			else ife my_target -1
+				action A_EDF_SUPERSOLDIER_IDLE
+	}
+else
+ifaction A_EDF_SUPERSOLDIER_ATTACK
+{
+	move STOP
+	state checkfortarget
+
+	ifn my_target -1
+	{
+		state fronttowardstarget
+
+		ifactioncount 2
+			{
+			set PROJECTILE_FIRING_SOUND LASERGUN_FIRE2
+			set PROJECTILE_TO_SHOOT ENEMY_BULLET
+			ifspritepal 13 nullop else set PROJECTILE_PAL 8
+			state sang_enemyShootProjectile
+
+			ife PERFMODE 1
+			 ifcansee
+				{
+				set gunsmoke_z 7244
+				set gunsmoke_angle 256
+				state spawn_gunsmoke_z
+				set gunsmoke_z 7044
+				state spawn_enemy_ARFLASH
+				state spawn_muzzleflash
+				seta[RETURN].pal 1
+				}
+			ifrnd 8 action A_EDF_SUPERSOLDIER_MOVE
+			resetactioncount
+			}
+	}
+	else {
+		state EDF_SUPERSOLDIER_CLEAR
+		action A_EDF_SUPERSOLDIER_MOVE
+	}
+}
+else
+ifaction A_EDF_SUPERSOLDIER_ATTACK2
+{
+	move STOP
+	state checkfortarget
+
+	ifn my_target -1
+	{
+		state fronttowardstarget
+
+		ifactioncount 2
+			{
+			ifg ally_mag 0 sub ally_mag 1
+			set HITSCAN_TO_SHOOT RAILGUN
+			set HITSCAN_FIRING_SOUND ZRAILGUN_FIRE
+			state sang_enemyShootHitscanNoTargetSeek
+			action A_EDF_SUPERSOLDIER_MOVE
+			}
+	}
+	else {
+		state EDF_SUPERSOLDIER_CLEAR
+		action A_EDF_SUPERSOLDIER_MOVE
+	}
+}
+else
+ifaction A_EDF_SUPERSOLDIER_FOLLOW
+{
+	move M_EDF_WALK seekplayer faceplayer
+	ifrnd 16 state checkfortarget
+	ifn my_target -1
+	{
+
+	ifrnd 1 state EDF_SUPERSOLDIER_INCOMING
+
+
+		dist temp THISACTOR my_target // if found, get distance
+		geta[my_target].extra temp2
+
+		ifl temp 8192
+		{
+			ife npc_talking 0 state EDF_SUPERSOLDIER_ENGAGE
+			ifge temp2 70 ife enemy_cooldown1 0 ifg enemy_attack 0 action A_EDF_SUPERSOLDIER_NADE else
+			action A_EDF_SUPERSOLDIER_ATTACK
+			resetactioncount
+		}
+		else
+		ifrnd 64
+		ifge temp2 250
+		ifg ally_mag 0
+		{
+			ife npc_talking 0 state EDF_SUPERSOLDIER_ENGAGE
+			action A_EDF_SUPERSOLDIER_ATTACK2
+			resetactioncount
+		}
+	}
+	else set my_previous_target -1
+
+	ifpdistl 2048 action A_EDF_SUPERSOLDIER_GUARD
+
+	ifactioncount 3
+	{
+		state npc_footsteps
+		resetactioncount
+	}
+	ifnotmoving operate
+}
+else
+ifaction A_EDF_SUPERSOLDIER_MOVE
+{
+	move M_EDF_WALK geth
+
+	state checkfortarget
+	ifn my_target -1
+	{
+		 ife npc_talking 0
+			{
+			state EDF_SUPERSOLDIER_INCOMING
+			set npc_talking 300
+			}
+
+
+		dist temp THISACTOR my_target // if found, get distance
+		geta[my_target].extra temp2
+
+		ifl temp 8192
+		{
+			ife npc_talking 0 state EDF_SUPERSOLDIER_ENGAGE
+			ifspritepal 13 set temp2 300
+			ifge temp2 200 ife enemy_cooldown1 0 ifg enemy_attack 0 action A_EDF_SUPERSOLDIER_NADE else
+			action A_EDF_SUPERSOLDIER_ATTACK
+			resetactioncount
+		}
+		else
+		ifrnd 64
+		ifge temp2 250
+		ifg ally_mag 0
+		{
+			ife npc_talking 0 state EDF_SUPERSOLDIER_ENGAGE
+			action A_EDF_SUPERSOLDIER_ATTACK2
+			resetactioncount
+		}
+	}
+	else // where would we run to? go idle
+		{
+		ifspritepal 13 action A_EDF_SUPERSOLDIER_MOVE
+		else ife FOLLOW_PLAYER 1 action A_EDF_SUPERSOLDIER_FOLLOW
+		else action A_EDF_SUPERSOLDIER_IDLE
+		}
+
+	ifactioncount 3
+	{
+		state npc_footsteps
+		resetactioncount
+	}
+	ifnotmoving operate
+}
+else
+ifaction A_EDF_SUPERSOLDIER_IDLE
+	{
+	move STOP
+	state rand_lookaround
+	sleeptime 0
+	state checkfortarget
+	ifn my_target -1
+	{
+		state EDF_SUPERSOLDIER_INCOMING
+		action A_EDF_SUPERSOLDIER_MOVE
+	}
+	else ife FOLLOW_PLAYER 1
+	{
+		state faceplayerstate
+
+		ifpdistg 2048
+			action A_EDF_SUPERSOLDIER_FOLLOW
+	}
+
+	ifg targetlock 0 sub targetlock 1
+
+	ifn sprite[].pal 42 ifstrength 300 ifcount 6 { addstrength 1 resetcount }
+	}
+else
+ifaction A_EDF_SUPERSOLDIER_GUARD
+	{
+		move STOP
+		sleeptime 0
+		state checkfortarget
+		ifn my_target -1
+			{
+			state EDF_SUPERSOLDIER_INCOMING
+			action A_EDF_SUPERSOLDIER_MOVE
+			}
+		else ife FOLLOW_PLAYER 1 ifpdistg 2048 action A_EDF_SUPERSOLDIER_FOLLOW
+
+
+
+		ifpdistl 1536
+		 ifp pfacing
+		  ifp palive
+		   ifhitspace
+		    ife npc_talking 0
+				{
+				set npc_talking 120
+				}
+
+		ifg targetlock 0 sub targetlock 1
+
+		ifle sprite[].extra max_health ife INTERNALCOUNT_2 0 { addstrength 1 set INTERNALCOUNT_2 6 }
+	}
+
+
+ifhitweapon
+	{
+	state random_wall_jibs
+	ifdead
+		{
+		state clear_ally_death
+		ifspritepal 13
+			{
+			ifand npc_killed 512 nullop else xorvar npc_killed 512
+			}
+		else
+			{
+			ifand npc_killed 64 nullop else xorvar npc_killed 64
+			}
+		state rf
+			ifpdistl 8192
+			 ifn sprite[].pal 13
+				set PLAYER_VOICEOVER 1
+		ifwasweapon RPG
+			{
+			  state squish_sounds
+			  state human_jibs
+			  state standard_jibs
+			  killit
+			}
+		  ifwasweapon RADIUSEXPLOSION
+			{
+			  state squish_sounds
+			  state human_jibs
+			  state standard_jibs
+			  killit
+			}
+		  ifand PROJ_UDATA PROJ_GIB
+			{
+			  state squish_sounds
+			  state human_jibs
+			  state standard_jibs
+			  killit
+			}
+			ifg energy_damage 0
+				{
+				shoot SPARK2 shoot SPARK2 shoot SPARK2
+				spritepal 4
+				guts JIBS3 6
+				spawn DISINTIGRATE_GUY
+				killit
+				}
+			ifg spirit_damage 0
+				{
+				shoot SPARK2 shoot SPARK2 shoot SPARK2
+				spritepal 1
+				guts JIBS3 6
+				spawn SPIRIT_DEATH_GUY
+				killit
+				}
+
+				ifpdistl 8192 ifn sprite[].pal 13 set PLAYER_VOICEOVER 1
+				randvar temp 30
+				ifl temp 10 sound DARKE_DIE1 else
+				ifl temp 20 sound DARKE_DIE2 else
+				sound DARKE_DIE3
+
+			action A_EDF_SUPERSOLDIER_DYING
+			resetactioncount
+		}
+		else ifrnd 64 action A_EDF_SUPERSOLDIER_PAIN
+	}
+
+enda

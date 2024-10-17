@@ -1,0 +1,113 @@
+
+defstate tw_ar65_gunammotypes
+	setarray GUN_AMMO_TYPES_ARR[0] 1024
+ends
+
+defstate tw_ar65_code
+    setarray WEAPON_TILE[0] AR65_SPRITE
+    set GUN_VOLUME 6
+    set GUN_ACCURACY 4
+
+    set GUN_VOLUME 15
+    set GUN_SIZE 2
+    set GUN_HANDS 2
+    set GUN_AMMO_TYPES 1024
+    setarray weap_special[0] 16576
+
+    set WEAPON0_FIREDELAY 2
+    set WEAPON0_TOTALTIME 4
+    set WEAPON0_HOLDDELAY 1
+    set WEAPON0_FIRESOUND 4
+    set WEAPON0_FLAGS 68
+    set WEAPON0_SPAWN 0
+    set WEAPON0_RELOAD 22
+    set WEAPON0_INITIALSOUND 4
+    set WEAPON0_SHOTSPERBURST 1
+    set WEAPON0_CLIP 0
+    set WEAPON0_RELOADSOUND1 4
+    set WEAPON0_RELOADSOUND2 4
+
+    set WEAPON0_SELECTSOUND SELECT_HT_ASSAULTR
+
+    ife cur_weap 0
+        {
+        set weapon_type 1
+        set gun_mag -1
+
+    ife kickbackpic 2 { espawn SOUND_SPRITE state SPAWN_IN_PLAYER_FRONT setactorvar[RETURN].temp AR65_FIRE set gunsmoke_angle 64 state spawn_gunsmoke }
+
+	ifg kickbackpic 6
+	 ife scope 1
+		{
+		set scope 0
+        sound SCIFI_ZOOM_OUT
+		}
+
+        ifg GUN_HEAT[cur_weap] 150
+            {
+            setp[].reloading 1
+            soundonce STEAM_HISSING
+            soundonce AR73_OVERHEAT
+            ifrnd 16 set PLAYER_VOICEOVER 42
+            setp[].kickback_pic 5
+            }
+        ifg GUN_HEAT[cur_weap] 50
+            {
+            ifg kickbackpic 10 { set gunsmoke_z 9444 set gunsmoke_angle 98 }
+            else { set gunsmoke_z 9144 set gunsmoke_angle 64 }
+            state spawn_gunsmoke_z
+            }
+
+        ifg GUN_HEAT[cur_weap] 75
+			{
+			set WEAPON0_SHOOTS FIRE_BULLET
+			ife kickbackpic 2 set gun_recoil 9
+            set WEAPON0_FIREDELAY 2
+            set WEAPON0_TOTALTIME 3
+			soundonce AR73_BEEP
+			}
+		else
+        ifg GUN_HEAT[cur_weap] 50
+            {
+			set WEAPON0_SHOOTS ARMOUR_PIERCING_SHOT
+			ife kickbackpic 2 set gun_recoil 7
+            set WEAPON0_FIREDELAY 2
+            set WEAPON0_TOTALTIME 4
+            }
+        else
+        ifg GUN_HEAT[cur_weap] 25
+            {
+			set WEAPON0_SHOOTS ARMOUR_PIERCING_SHOT
+			ife kickbackpic 2 set gun_recoil 5
+            set WEAPON0_FIREDELAY 2
+            set WEAPON0_TOTALTIME 5
+            }
+        else
+            {
+			set WEAPON0_SHOOTS ARMOUR_PIERCING_SHOT
+			ife kickbackpic 2 set gun_recoil 3
+            set WEAPON0_FIREDELAY 2
+            set WEAPON0_TOTALTIME 6
+            }
+
+        ife kickbackpic 14
+            {
+            set temp9 GUN_HEAT[cur_weap]
+            sub temp9 2
+            setarray GUN_HEAT[cur_weap] temp9
+            ifl GUN_HEAT[cur_weap] 20
+                {
+                stopsound STEAM_HISSING soundonce MDF_READY setarray GUN_HEAT[cur_weap] 0
+                }
+            }
+            ife kickbackpic 15
+            {
+            ifg GUN_HEAT[cur_weap] 20 setp[].kickback_pic 14
+
+            ifg HEAT_SINKS 0
+             ifg GUN_HEAT[cur_weap] 100
+             ifand BITS_PRESS 128 { soundonce HEAT_SINK_EJECT shoot HEAT_SINK sub HEAT_SINKS 1 setarray GUN_HEAT[cur_weap] 25 }
+            }
+            ife kickbackpic 17 soundonce MDF_READY
+        }
+ends

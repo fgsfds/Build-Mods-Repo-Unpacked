@@ -1,0 +1,591 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+
+--------------------------------------------------------------------------------
+*/
+
+damageeventtile NSOUL
+
+action A_NSOUL_IDLE -9810 1 5 1 12
+action A_NSOUL_SEEK -9805 4 5 1 12
+
+action A_NSOUL_BLASTPREP -9780 1 5 1 12
+action A_NSOUL_BLAST -9775 1 5 1 12
+
+action A_NSOUL_SLAPPREP -9770 1 5 1 12
+action A_NSOUL_SLAP -9765 2 5 1 24
+action A_NSOUL_SLAPEND -9760 1 5 1 12
+
+action A_NSOUL_BLAST2PREP -9755 4 5 1 36
+action A_NSOUL_BLAST2 -9735 1 5 1 12
+
+action A_NSOUL_DYING -9730 7 1 1 36
+action A_NSOUL_DEAD -9724
+action A_NSOUL_PAIN -9745 1 1 1 8
+
+move M_NSOUL_WALK 300
+
+// NSOUL Minions spawn a skull explosion on death instead of going through their dying animation
+// This is handled in NEWGUNEFFECTS state in ENEMY.CON
+
+defstate nsoul_selectatk
+
+	// temp 1 = troll fire wall
+	// temp 2 = kag blast
+	// temp 3 = jed skull
+
+	// Boss stage 1 = Mostly kag blast with very slim chance of doing troll firewall
+	ife boss_stage 1
+	{
+		ifrnd 8
+			set temp 1
+		else
+			set temp 2
+	}
+	// Boss stage 2 = increased frequency of troll firewall
+	else ife boss_stage 2
+	{
+		ifrnd 32
+			set temp 1
+		else ifrnd 96
+			set temp 2
+		else
+			set temp 1
+	}
+	// Boss stage 3 = adds jed skulls to the mix. Don't spam too much cause it does get overwhelming quickly...
+	else ife boss_stage 3
+	{
+		ifrnd 48
+			set temp 1
+		else ifrnd 96
+			set temp 2
+		else ifrnd 32
+			set temp 3
+		else
+			set temp 2
+	}
+
+	ife temp 1
+	{
+		ifsound NAL3_ATCK1 nullop
+		else globalsound NAL3_ATCK1
+		set INTERNALCOUNT 0
+		action A_NSOUL_BLASTPREP
+	}
+	else ife temp 2
+	{
+		ifsound NAL3_ATCK1 nullop
+		else globalsound NAL3_ATCK1
+
+		set INTERNALCOUNT 0
+		action A_NSOUL_SLAPPREP
+	}
+	else ife temp 3
+	{
+		ifsound NAL3_ATCK1 nullop
+		else globalsound NAL3_ATCK1
+
+		set INTERNALCOUNT 0
+		action A_NSOUL_BLAST2PREP
+	}
+ends
+
+defstate nsoul_spawnskull
+	geta[].z z
+	sub z 45000
+	seta[].z z
+
+	espawn JEDR_SKULL
+	globalsound SBJ_SKULL
+	setav[RETURN].my_target my_target
+	setav[RETURN].z z
+	add z 45000
+	seta[].z z
+ends
+
+defstate nsoul_killminions
+	// kill all minions
+	set targets_iterator 0
+
+	whilel targets_iterator targets_range
+	{
+		set temp targets[targets_iterator]
+
+		ife temp -2
+		{
+			set targets_iterator targets_range
+			exit
+		}
+
+		ifg temp -1
+		{
+			getav[temp].OWNERSAVED temp2
+
+			ifg temp2 -1
+			{
+				geta[temp2].picnum temp3
+			}
+
+			ifg temp2 -1
+			  ife sprite[temp2].picnum NSOUL_SPAWNER
+			{
+				espawn SKULLEXPLOSION
+				seta[RETURN].x sprite[temp].x
+				seta[RETURN].y sprite[temp].y
+				seta[RETURN].z sprite[temp].z
+
+				// killit
+				seta[temp].xrepeat 0
+			}
+		}
+
+		add targets_iterator 1
+	}
+ends
+
+defstate nsoul_dying_randomexplosion
+	// nsoul pivot point
+	geta[].x x
+	geta[].y y
+	geta[].z z
+
+	// explosion point
+	set temp2 x
+	add temp2 1024
+
+	randvar temp4 2048
+
+	rotatepoint x y temp2 y temp4 mx my
+
+	// nsoul is about 62208 units tall, get random z coordinate and offset it to actual nsoul pos
+	rand mz 62208
+
+	sub z 62208
+	add mz z
+
+	espawn SKULLEXPLOSION
+	seta[RETURN].x mx
+	seta[RETURN].y my
+	seta[RETURN].z mz
+ends
+
+useractor enemy NSOUL
+	fall
+
+	ifaction 0
+	{
+		cstat 257
+		sizeat 64 64
+		strength 3000
+		state monst_glow
+		set boss_stage 1
+		set CURBOSS THISACTOR
+
+		action A_NSOUL_IDLE
+	}
+	else ifaction A_NSOUL_IDLE
+	{
+		move STOP
+		state checkfortarget
+
+		ifn my_target -1
+		{
+			globalsound SPIRIT_ALERT
+			action A_NSOUL_SEEK
+		}
+	}
+	else ifaction A_NSOUL_SEEK
+	{
+		ifmove M_NSOUL_WALK nullop
+		else move M_NSOUL_WALK geth
+
+		state checkfortarget
+
+		ifn my_target -1
+		{
+			// aggression level depends on boss stage
+			ife boss_stage 1
+			  ifrnd 8
+				state nsoul_selectatk
+			else ife boss_stage 2
+			  ifrnd 16
+				state nsoul_selectatk
+			else ife boss_stage 3
+			  ifrnd 32
+				state nsoul_selectatk
+		}
+	}
+	else ifaction A_NSOUL_BLASTPREP
+	{
+		move STOP
+
+		add INTERNALCOUNT 1
+
+		state fronttowardstarget
+
+		ife INTERNALCOUNT 45
+		{
+			set INTERNALCOUNT 0
+
+			ifsound NAL3_ATCK3 nullop
+			else globalsound NAL3_ATCK3
+
+			action A_NSOUL_BLAST
+		}
+	}
+	else ifaction A_NSOUL_BLAST
+	{
+		ife INTERNALCOUNT 0
+		{
+			set temp2 240
+			set temp3 8
+			state shoot_trollfirewall
+			set temp2 192
+			set temp3 16
+			state shoot_trollfirewall
+			set temp2 144
+			set temp3 24
+			state shoot_trollfirewall
+			set temp2 96
+			set temp3 48
+			state shoot_trollfirewall
+			set temp2 48
+			set temp3 64
+			state shoot_trollfirewall
+		}
+
+		add INTERNALCOUNT 1
+
+		ife INTERNALCOUNT 60
+			action A_NSOUL_SEEK
+	}
+	else ifaction A_NSOUL_SLAPPREP
+	{
+		move STOP
+
+		add INTERNALCOUNT 1
+
+		state fronttowardstarget
+
+		ife INTERNALCOUNT 15
+		{
+			set INTERNALCOUNT 0
+
+			ifsound NAL3_ATCK2 nullop
+			else globalsound NAL3_ATCK2
+
+			action A_NSOUL_SLAP
+		}
+	}
+	else ifaction A_NSOUL_SLAP
+	{
+		state fronttowardstarget
+
+		ifactioncount 1
+			ife INTERNALCOUNT 0
+		{
+			set INTERNALCOUNT 1
+			// shoot
+			set CALCZ_TARGET_OFFSET -19000
+			set PROJECTILE_TO_SHOOT KAG_BLAST_RIGHT
+			set PROJECTILE_FIRING_SOUND -1
+
+			setprojectile[KAG_BLAST_RIGHT].EXTRA 65
+			state sang_enemyShootProjectile
+			setthisprojectile[RETURN].ISOUND SKN_IMPACT
+			setthisprojectile[RETURN].pal 1
+
+			setprojectile[KAG_BLAST_RIGHT].EXTRA 350
+		}
+
+		ifactioncount 2
+		{
+			set INTERNALCOUNT 0
+			action A_NSOUL_SLAPEND
+		}
+	}
+	else ifaction A_NSOUL_SLAPEND
+	{
+		add INTERNALCOUNT 1
+
+		ife INTERNALCOUNT 20
+			action A_NSOUL_SEEK
+	}
+	else ifaction A_NSOUL_BLAST2PREP
+	{
+		move STOP
+
+		state fronttowardstarget
+
+		ifactioncount 4
+		{
+			set INTERNALCOUNT 0
+			ifsound NAL3_ATCK2 nullop
+			else globalsound NAL3_ATCK2
+			action A_NSOUL_BLAST2
+		}
+	}
+	else ifaction A_NSOUL_BLAST2
+	{
+		// spawn a couple charging skulls why not right
+		ife INTERNALCOUNT 0	state nsoul_spawnskull
+		else ife INTERNALCOUNT 20 state nsoul_spawnskull
+		else ife INTERNALCOUNT 40 state nsoul_spawnskull
+
+		add INTERNALCOUNT 1
+
+		ife INTERNALCOUNT 50
+			action A_NSOUL_SEEK
+	}
+	else ifaction A_NSOUL_DYING
+	{
+		// this dying animation probably should have some particle effects, slowmo and such
+		move STOP
+
+		add INTERNALCOUNT 1
+
+		strength 0
+		state nsoul_dying_randomexplosion
+
+		ifactioncount 7
+		{
+			globalsound BOSSFALL
+			action A_NSOUL_DEAD
+		}
+	}
+	else ifaction A_NSOUL_DEAD
+	{
+		// activate something
+		add INTERNALCOUNT_3 1
+		ifge INTERNALCOUNT_3 150
+		{
+			operateactivators 870 THISACTOR
+		}
+	}
+	else ifaction A_NSOUL_PAIN
+	{
+		sub PAIN_AMOUNT 1
+		move STOP
+		ife PAIN_AMOUNT 0
+		{
+			ifdead action A_NSOUL_DYING
+			else action A_NSOUL_SEEK
+		}
+	}
+
+	ifg sprite[].extra 0
+	 ifpdistl 1280
+	  ifp palive
+	   ifcansee
+		{
+		addphealth -1000
+		palfrom 63 63
+		}
+
+	ifhitweapon
+	{
+		guts JIBS6 1
+		state bullet_data
+		state melee_hit_effects
+		state random_wall_jibs
+		ifrnd 96 sound SBJ_PAIN1
+		else ifrnd 96 sound SBJ_PAIN2
+
+		ifwasweapon KAG_BLAST_RIGHT nullop
+		else ifwasweapon KAG_BLAST_LEFT nullop
+		else
+		 ife CHAR 17
+			{
+			ife gp_subt 0
+				{
+				set subt_id 13014
+				set gp_subt 154
+				}
+			screensound YO_NAALD2
+			}
+
+		ifdead
+		{
+			addkills 1
+			state rf
+			set INTERNALCOUNT 0
+			stopallsounds
+			screensound NAL3_DIE
+			set SLO_MO_SHOWOFF 100
+			quake 96
+			state nsoul_killminions
+			action A_NSOUL_DYING
+			ife CHAR 17
+				{
+				ife gp_subt 0
+					{
+					set subt_id 13015
+					set gp_subt 109
+					}
+				screensound YO_NAALD3
+				}
+			spawn BLOODPOOL
+		}
+		else
+		{
+			geta[].extra temp
+
+			ifle temp 1000
+			{
+				set boss_stage 3
+
+				ife boss_stage 2
+				{
+					add enemy_spawn_tokens 10
+				}
+			}
+			else ifle temp 2500
+			{
+				set boss_stage 2
+
+				ife boss_stage 1
+				{
+					add enemy_spawn_tokens 10
+				}
+			}
+
+			ifg PAIN_AMOUNT 0 action A_NSOUL_PAIN
+			else ifrnd 32 { state PAIN_SKILL_LEVELADJUST action A_NSOUL_PAIN }
+			else ifaction A_NSOUL_IDLE { state PAIN_SKILL_LEVELADJUST action A_NSOUL_PAIN }
+		}
+	}
+enda
+
+defstate find_nsoul_actor
+	set TARGET_SEARCH_PARAM NSOUL
+	state findfirstactorbypicnum
+ends
+
+defstate nsoul_request_spawntoken
+	getav[OWNERSAVED].enemy_spawn_tokens temp
+
+	set temp2 temp
+
+	ifg temp 0
+	{
+		sub temp 1
+		setav[OWNERSAVED].enemy_spawn_tokens temp
+	}
+ends
+
+defstate nsoul_spawn_minion
+	getav[OWNERSAVED].boss_stage temp
+	getav[OWNERSAVED].my_target my_target
+
+	ife temp 1
+	{
+		espawn ZOMBIE
+	}
+	else ife temp 2
+	{
+		ifrnd 16
+			espawn ZOMBIE
+		else ifrnd 40
+			espawn SATYR
+		else ifrnd 16
+			espawn BRUISER
+		else ifrnd 40
+			espawn FLESHWIZARD
+		else ifrnd 60
+			espawn OGRE
+		else ifrnd 45
+			espawn SHADE
+		else
+			espawn ZOMBIE
+	}
+	else ife temp 3
+	{
+		ifrnd 8
+			espawn CYBERTOUR
+		else ifrnd 40
+			espawn OGRE
+		else ifrnd 32
+			espawn SHADE
+		else ifrnd 16
+			espawn BRUISER
+		else ifrnd 32
+			espawn ARCHER
+		else ifrnd 40
+			espawn FLESHWIZARD
+		else ifrnd 32
+			espawn HADESPHERE
+		else ifrnd 45
+			espawn GOBLINBROS
+		else ifrnd 50
+			espawn NETHERBRUTE
+		else
+			espawn ZOMBIE
+	}
+
+	ifge temp 1
+	 ifle temp 3
+	{
+		setav[RETURN].OWNERSAVED THISACTOR
+		setav[RETURN].my_target my_target
+	}
+ends
+
+// Every 240 tics, randomly check if nsoul allows a spawn. Randomly so that the spawns are not entirely predictable
+// If it allows one, spawn in a new minion, based on boss_stage
+useractor notenemy NSOUL_SPAWNER
+	ifaction 0
+	{
+		cstat 32768
+
+		state find_nsoul_actor
+		set OWNERSAVED RETURN
+
+		set INTERNALCOUNT 120
+		action ZERO
+	}
+	else ifaction ZERO
+	{
+		ifg INTERNALCOUNT 0
+			sub INTERNALCOUNT 1
+
+		// make sure spawn tokens only start getting used up after boss is activated
+		getav[OWNERSAVED].boss_stage temp
+		ifge temp 1
+		{
+			ifle INTERNALCOUNT 0
+				ifrnd 64
+			{
+				state nsoul_request_spawntoken
+
+				ifg temp2 0
+				{
+					set INTERNALCOUNT 120
+					state nsoul_spawn_minion
+				}
+			}
+		}
+	}
+enda

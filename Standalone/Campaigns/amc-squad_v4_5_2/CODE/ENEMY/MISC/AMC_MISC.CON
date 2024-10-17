@@ -1,0 +1,861 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+
+--------------------------------------------------------------------------------
+*/
+
+damageeventtile SHARK
+
+action ASHARKCRUZING 0 8 5 1 24
+action ASHARKFLEE  0 8 5 1 10
+action ASHARKATACK   40 8 5 1 6
+action ASHARKSHRUNK  0 8 5 1 24
+action ASHARKGROW  0 8 5 1 24
+action ASHARKFROZEN  0 1 5 1 24
+action ASHARK_DYING -5 5 1 1 12
+action ASHARK_DEAD -1
+
+move SHARKVELS 48
+move SHARKFASTVELS 144
+move SHARKFLEEVELS 40
+move SHARKUP 72 -40
+move SHARKDOWN 72 40
+
+actor SHARK
+
+ifaction 0
+{
+ifspritepal 36 { strength 500 sizeat 100 100 }
+else
+{ strength 125 sizeat 48 48 }
+state monst_glow
+action ASHARKCRUZING
+move SHARKVELS randomangle geth
+}
+
+ifspritepal 6 nullop
+else ifspritepal 4 nullop
+else
+	{
+   gets[].lotag temp
+   ifn temp 2
+   {
+       seta[].x temp2
+       seta[].y temp3
+       seta[].z temp4
+	   geta[].sectnum upd_sect
+       updatesectorz temp2 temp3 temp4 upd_sect
+       ifn upd_sect -1 changespritesect THISACTOR upd_sect
+   }
+   else
+   {
+       geta[].x temp2
+       geta[].y temp3
+       geta[].z temp4
+   }
+	}
+
+  ifaction ASHARK_DEAD
+  {
+  move STOP
+  }
+  else
+  ifaction ASHARK_DYING
+	{
+	ifrnd 1 spawn WATERBUBBLE
+	 ifactioncount 5 action ASHARK_DEAD
+	}
+  ifaction ASHARKSHRUNK
+  {
+    ifcount SHRUNKDONECOUNT
+      action ASHARKCRUZING
+    else ifcount SHRUNKCOUNT
+	  {
+	  sound ACTOR_UNSHRINK
+      sizeto 60 60
+	  }
+    else
+      state genericshrunkcode
+    break
+  }
+  else
+    ifaction ASHARKGROW
+  {
+    ifcount SHRUNKDONECOUNT
+      action ASHARKCRUZING
+    else
+      ifcount SHRUNKCOUNT
+        sizeto 24 24
+    else
+      state genericgrowcode
+  }
+  else
+    ifaction ASHARKFROZEN
+  {
+    fall
+
+    ifp pfacing
+      ifpdistl FROZENQUICKKICKDIST ife MELEE_WEAPON_LOADOUT[CHAR] 0
+        pkick
+
+    ifcount THAWTIME
+    {
+      action ASHARKFLEE
+      getlastpal
+      break
+    }
+    else
+      ifcount FROZENDRIPTIME
+        ifactioncount 26
+          resetactioncount
+
+    ifhitweapon
+    {
+      ifwasweapon FREEZEBLAST
+        break
+
+      lotsofglass 20
+	  shoot ICE_DEBRIS shoot ICE_DEBRIS shoot ICE_DEBRIS shoot ICE_DEBRIS shoot ICE_DEBRIS
+	  shoot ICE_DEBRIS shoot ICE_DEBRIS shoot ICE_DEBRIS shoot ICE_DEBRIS shoot ICE_DEBRIS
+      sound ICE_SMASH
+      addkills 1
+
+      killit
+    }
+    break
+  }
+  else
+    ifaction ASHARKFLEE
+  {
+    ifcount 16
+      ifrnd 48
+    {
+      action ASHARKCRUZING
+      move SHARKVELS randomangle geth
+    }
+  }
+  else
+    ifaction ASHARKCRUZING
+  {
+    ifcansee
+      ifcount 48
+        ifrnd 64
+          ifpdistl 16384
+			{
+			  action ASHARKATACK
+			  resetcount
+			}
+     else
+      ifp phigher ifrnd 128
+        move SHARKUP getv faceplayer geth
+      else
+		{
+		geta[].z z
+		getp[].posz temp
+		ifg temp z ifrnd 128 move SHARKDOWN getv faceplayer geth
+		}
+
+  }
+  else
+    ifaction ASHARKATACK
+  {
+      ifpdistl 1280
+      {
+      move SHARKFASTVELS faceplayer getv
+        ifp palive ifcanshoottarget
+        {
+		 state check_actor_hitscan
+			ife hitsprite PLAYER_IDENTITY
+			{
+            palfrom 32 32
+			sound OCTA_ATTACK2
+			set CUS_WACK 2
+			ifspritepal 36 addphealth -75 else
+			addphealth -25
+			}
+        }
+        action ASHARKFLEE
+        move SHARKFASTVELS fleeenemy
+      }
+     else
+      ifp phigher ifrnd 128
+        move SHARKUP faceplayer getv geth
+    else
+      ifnotmoving
+    {
+      ifcount 32
+      {
+        action ASHARKCRUZING
+        move SHARKFASTVELS seekplayer geth
+      }
+    }
+    else
+      ifcount 48
+        ifrnd 2
+    {
+      action ASHARKCRUZING
+      move SHARKFASTVELS seekplayer geth
+    }
+      else
+		{
+		geta[].z z
+		getp[].posz temp
+		ifg temp z ifrnd 128 move SHARKDOWN getv faceplayer geth
+		}
+  }
+
+  ifhitweapon
+  {
+state NEWGUNEFFECTS
+
+    ifdead
+    {
+      ifwasweapon GROWSPARK
+      {
+        move 0
+        cstat 0
+        action ASHARKGROW
+        sound ACTOR_GROWING
+        break
+      }
+      else
+        ifg ice_damage 0
+      {
+        spritepal 1
+        strength 0
+        action ASHARKFROZEN
+        sound SOMETHINGFROZE
+      }
+      else
+      {
+        state squish_sounds
+        guts JIBS6 5
+        addkills 1
+
+		state rf
+        action ASHARK_DYING
+      }
+    }
+    else
+    {
+      ifwasweapon SHRINKSPARK
+      {
+        action ASHARKSHRUNK
+        sound ACTOR_SHRINKING
+        move 0
+        break
+      }
+      else
+        ifwasweapon GROWSPARK
+          sound EXPANDERHIT
+
+      move SHARKVELS randomangle geth
+    }
+  }
+enda
+
+// ******************************************************************************
+// THE SLIME
+// ******************************************************************************
+
+action SLIMEIDLE 0
+
+damageeventtile SLIME
+
+move SLIMSTILL 0 0
+move SLIMEMOVE 96 0
+
+useractor notenemy SLIMEPUDDLE
+fall
+cstat 34
+
+ifaction 0
+{
+seta[].blend 255
+sizeat 8 8
+action ZERO
+}
+
+ifaction ZERO
+{
+sizeto 32 32
+}
+
+enda
+
+useractor notenemy SLIME
+cstat 291
+gets[].floorz temp5
+seta[].z temp5
+
+ifhitweapon
+{
+set temp4 0
+zshoot -4096 SLIMEPROJ
+zshoot -4096 SLIMEPROJ
+zshoot -4096 SLIMEPROJ
+zshoot -4096 SLIMEPROJ
+zshoot -4096 SLIMEPROJ
+zshoot -4096 SLIMEPROJ
+zshoot -4096 SLIMEPROJ
+zshoot -4096 SLIMEPROJ
+zshoot -4096 SLIMEPROJ
+zshoot -4096 SLIMEPROJ
+zshoot -4096 SLIMEPROJ
+zshoot -4096 SLIMEPROJ
+killit
+}
+
+ifmove 0
+{
+seta[].blend 255
+spritepal 0
+sizeto 32 32
+set temp4 1
+}
+
+ife temp4 1
+{
+geta[].xrepeat temp
+geta[].yrepeat temp2
+ifaction 0
+	{
+	sizeto 48 48
+	ife temp 48
+	 ife temp2 48
+		action ZERO
+	ife temp3 1
+		{
+		move SLIMEMOVE geth faceplayer
+		}
+	}
+else
+ifaction ZERO
+	{
+	sizeto 24 24
+	ife temp 24
+	 ife temp2 24
+		{
+		sound SLIME_MOVE
+		action 0
+		}
+	ife temp3 1
+		{
+		move SLIMSTILL
+		}
+	}
+ifpdistl 8092
+	{
+	set temp3 1
+	}
+	else
+	{
+	set temp3 0
+	}
+
+ifpdistl 812
+{
+soundonce SLIME_DIGEST
+ifrnd 8
+	{
+	getp[].boot_amount temp
+	ifg temp 0 { quote 75 sub temp 2 setp[].boot_amount temp set gun_recoil 2 } else
+		{
+		set CUS_WACK 2
+		palfrom 16 16 0 0
+		addphealth -2
+		}
+	}
+}
+
+}
+
+
+enda
+
+// ***************************************************************************************************************************************************
+// SCARAB
+// ***************************************************************************************************************************************************
+
+useractor notenemy 22261
+ifaction 0
+	{
+	sleeptime 0
+	ifspritepal 3 ifpdistl 34768 spawn 22262 else
+	ifpdistl 131072 spawn 22262
+	}
+enda
+
+action SCAR_SCUT 0 2 5 1 8
+
+move SCAR_MOVE 120 0
+
+useractor notenemy 22262
+fall
+ifaction 0
+	{
+	sizeat 10 10
+	spriteflags 16787456
+	ifpdistl 131073
+		{
+		randvar g_temp 64
+		ifrnd 128 mul g_temp -1
+		add g_temp sprite[].ang
+		seta[].ang g_temp
+		}
+	action SCAR_SCUT
+	}
+
+ifaction SCAR_SCUT
+	{
+	move SCAR_MOVE geth
+	geta[PLAYER_IDENTITY].shade temp
+	ifpdistl 512
+		ifcansee
+			ifg sprite[PLAYER_IDENTITY].shade 5
+				{
+				ifg player[].boot_amount 0
+					{
+					soundonce SCRATCHS
+					setactorsoundpitch THISACTOR SCRATCHS 512
+					quote 75
+					getp[].boot_amount temp2
+					sub temp2 2
+					setp[].boot_amount temp2
+					setp[].inven_icon 7
+					set gun_recoil 2
+					}
+				else
+					{
+					soundonce SCRATCHS
+					setactorsoundpitch THISACTOR SCRATCHS 1024
+					palfrom 40 60 0 0
+					addphealth -5
+					}
+				}
+	ifnotmoving { espawn SMALLSMOKE seta[RETURN].pal 7 killit }
+	}
+
+enda
+
+// ******************************************************************************
+// Phantasm Ball
+// ******************************************************************************
+
+appendevent EVENT_LOADACTOR
+	ifactor PHANTASM_BALL
+		geta[].zvel ZVELSAVED
+endevent
+
+spriteshadow PHANTASM_BALL
+
+move PB_ROAM 120 0
+move PB_SEEK 275 0
+move PB_STUCK 0 0
+move MPB_STOP 0
+
+useractor notenemy PHANTASM_BALL
+
+	ifaction 0
+	{
+		set smartpoint_lotag_xydist 256
+		state monst_glow
+		sizeat 14 14
+		move PB_ROAM geth
+		set smartpoint_track_sub ZVELSAVED
+		state anglePathToNextLotag
+		seta[].ang angvar
+		set INTERNALCOUNT 0
+		set INTERNALCOUNT_2 0
+		cstat 256
+		action FIVE_ANG
+	}
+
+	// move towards next point in straight line, react to player only if they are in front
+	ifmove PB_ROAM
+	{
+		state anglePathToNextLotag
+		seta[].ang angvar
+		
+		ifactorsound THISACTOR PB_AMBQ nullop else sound PB_AMBQ
+		ifnotmoving move PB_ROAM randomangle
+		ifg INTERNALCOUNT 0 sub INTERNALCOUNT 1
+
+		ife INTERNALCOUNT 0
+		{
+			ifcansee ifcanseetarget ife phantasm_stick -1 // don't double attack
+			{
+				set my_target PLAYER_IDENTITY
+				state angvartotarget // output = angvar
+
+				geta[].ang temp2
+				set MAX_ANGLE_DIFF 256
+				set ANGLE_A temp2
+				set ANGLE_B angvar
+				state check_max_angle_diff
+				// Return 0 means we're within 256 angle units, so player is in view
+				ife RETURN 0
+				{
+					stopactorsound THISACTOR PB_AMBQ
+					soundonce PB_STOP
+					move MPB_STOP
+					set INTERNALCOUNT_2 0
+				}
+			}
+		}
+	}
+	// Detect player for a bit and rush towards them after a certain count is passed
+	// If player gets out of view in time then go back to roaming
+	else ifmove MPB_STOP
+	{
+		cstat 256
+		ifcansee
+		{
+			add INTERNALCOUNT_2 1
+			ife SKILL_LEVEL 1 ifg INTERNALCOUNT_2 52 { soundonce PB_SPOT move PB_SEEK faceplayer set INTERNALCOUNT_2 0 } else
+			ife SKILL_LEVEL 2 ifg INTERNALCOUNT_2 34 { soundonce PB_SPOT move PB_SEEK faceplayer set INTERNALCOUNT_2 0 } else
+			ife SKILL_LEVEL 3 ifg INTERNALCOUNT_2 26 { soundonce PB_SPOT move PB_SEEK faceplayer set INTERNALCOUNT_2 0 } else
+			ife SKILL_LEVEL 4 ifg INTERNALCOUNT_2 13 { soundonce PB_SPOT move PB_SEEK faceplayer set INTERNALCOUNT_2 0 }
+		}
+		else
+		{
+			state findFirstVisiblePointForLotag
+			move PB_ROAM randomangle resetcount
+		}
+	}
+	// Rush at player and try to stick to them, can be avoided by sliding under 
+	else ifmove PB_SEEK
+	{
+		cstat 256
+		spawn FRAMEEFFECT1
+		soundonce PB_AMB
+		ifcansee
+		  ifcanseetarget 
+			nullop 
+		else 
+			add INTERNALCOUNT_2 1
+			
+		ifg INTERNALCOUNT_2 260
+		{ 
+			state findFirstVisiblePointForLotag
+			move PB_ROAM randomangle 
+			set INTERNALCOUNT_2 0 
+		}
+		else ifpdistl 1024
+		  ifp palive
+		  ifg SLIDE_KICK 20
+		{
+			set INTERNALCOUNT_2 0
+			move PB_STUCK
+			stopactorsound THISACTOR PB_AMB
+			sound PB_STIC
+			set CUS_WACK 2
+			palfrom 20 20 0 0
+			ife opt_qte_disable YES // if qte is disabled then the phantasm ball attacks the player once and then disappears. Not perfect but probably fine.
+			{
+				sound SLASH
+				palfrom 20 20 0 0
+				ife HELMET_LOADOUT[CHAR] 1 addphealth -25 
+				else addphealth -50
+				killit
+			}
+			else
+			{
+				setp[].movement_lock 33
+				set phantasm_stick THISACTOR
+			}
+		}
+	}
+	// Phantasm ball is stuck to face, the QTE is playing so this actor is invisible
+	else ifmove PB_STUCK
+	{
+		cstat 32768
+		ifg INTERNALCOUNT 0 
+		{ 
+			cstat 256 
+			
+			// player broke free, pause for a couple seconds before restarting behaviour
+			add INTERNALCOUNT_2 1
+			
+			ifg INTERNALCOUNT_2 90
+			{			
+				state findFirstVisiblePointForLotag
+				move PB_ROAM randomangle 
+			}
+		}
+	}
+	// something's fucky here, recover
+	else
+	{
+		cstat 256
+		state findFirstVisiblePointForLotag
+		move PB_ROAM randomangle
+		gets[].floorz mz
+		sub mz 9216
+		seta[].z mz
+	}								   
+enda
+
+// ==================================================================================================
+// Psychobrain
+// ==================================================================================================
+
+spritenvg 20144
+spriteshadow 20144
+
+useractor notenemy 20144
+
+ifaction 0
+	{
+	strength 100
+	cstat 257
+	action ZERO
+	}
+
+ifaction ZERO
+	{
+	soundonce PSYCHOBRAIN_PULSE
+	ifsquished
+		{
+		state squish_sounds
+		state standard_jibs
+		state random_ooz
+		stopallsounds
+		globalsound PSYCHOBRAIN_DIE
+		quake 52
+		ifn HITAGSAVED 0
+			{
+			operateactivators HITAGSAVED THISACTOR
+			operatemasterswitches HITAGSAVED
+			operaterespawns HITAGSAVED
+			}
+		killit
+		}
+	}
+
+enda
+
+// ***************************************************************************************************************************************************
+// LITTLE SCORPION =======================================================================================================
+// ***************************************************************************************************************************************************
+
+damageeventtile LIL_SCORP
+
+action A_LSC_MOVE 0 2 5 1 8
+action A_LSC_LEAP 10 1 5 1 8
+
+move LIL_SCORP_MOVE 90
+
+ai AI_LSC_MOVE A_LSC_MOVE LIL_SCORP_MOVE seekplayer
+ai AI_LSC_LEAP A_LSC_LEAP LIL_SCORP_MOVE faceplayer jumptoplayer
+
+useractor enemy LIL_SCORP_LEAP
+ifai 0
+	{
+	cstat 257
+	sizeat 16 16
+	strength 10
+	ai AI_LSC_LEAP
+	sound SC_JMP
+	cactor LIL_SCORP
+	}
+enda
+
+useractor enemy LIL_SCORP
+fall
+
+ifai 0
+	{
+	cstat 256
+	sizeat 16 16
+	strength 10
+	ai AI_LSC_MOVE
+	}
+
+ifai AI_LSC_MOVE
+	{
+	ifcansee { }
+	ifrnd 5 ai AI_LSC_MOVE
+	ifpdistl 2048 ifrnd 32 { sound SC_JMP ai AI_LSC_LEAP }
+	else
+	ifpdistl 1024
+	 ifcount 15
+		{
+		sound SC_ATK
+		shoot 23533
+		resetcount
+		}
+	}
+
+ifai AI_LSC_LEAP
+	{
+    cstat 256
+	ifcansee { }
+	ifpdistl 1024 ifcount 22
+		{
+		sound SC_ATK
+        shoot 23533
+        count 20
+		//ai AI_LSC_MOVE
+		}
+	else
+	ifcount 20 iffloordistl 8 { ai AI_LSC_MOVE resetcount }
+	}
+
+ifhitweapon
+	{
+	state NEWGUNEFFECTS
+    spritepal 8
+    guts JIBS6 1
+    getlastpal
+	//espawn BLOOD
+	//seta[RETURN].pal 8
+		ifdead
+			{
+			spritepal 8
+			espawn BLOODPOOL
+			seta[RETURN].pal 8
+			sound SC_DIE
+			guts JIBS6 3
+            ifrnd 128 guts JIBS4 1
+            ifrnd 128 guts JIBS3 1
+			addkills 1
+			killit
+			}
+	}
+
+enda
+
+// ************************************************************************************************************************************************************************************************************************************************************
+// CANNONBALL for Pirates of the Carribean
+// ************************************************************************************************************************************************************************************************************************************************************
+
+useractor notenemy CANNONBALLS 10
+  ifaction 0
+  {
+    cstator 257
+	ifspritepal 3 action ZERO
+  }
+  ifspritepal 3
+	{
+	ifg INTERNALCOUNT 0 sub INTERNALCOUNT 1
+	ifpdistl 1536
+		ifp pfacing
+		 ifp palive
+		  ife INTERNALCOUNT 0
+			{
+			set player_use 0
+			ife use_action_allowed 1
+				{
+				espawn 1819
+				// Immediately put this cannonball in the player's hands
+				setav[RETURN].pickup_forced 1
+
+				set INTERNALCOUNT 60
+				state setIgnoreUse
+				}
+			}
+	}
+	else
+	{
+	  ifhitweapon
+		  {
+			ifdead
+			{
+			  spawn EXPLOSION2
+			  hitradius 4096 WEAKEST WEAK MEDIUMSTRENGTH TOUGH
+			  killit
+			}
+			else
+			  debris SCRAP1 3
+		  }
+	}
+enda
+
+damageeventtile CANNON
+
+action ACANNONWAIT 0 1 7 1 1
+action ACANNONSHOOTING 0 1 7 1 1
+move CANNONSTOP
+
+useractor enemy CANNON 400 // fall
+
+  ifaction 0
+  {
+  set actor_type TYPE_CASE_SPECIFIC
+//    sizeat 64 64
+    action ACANNONWAIT
+  }
+  else
+    ifaction ACANNONSHOOTING
+  {
+    sound CANN_FIRE
+    eshoot CANNONBALL
+	state SPAWN_IN_FRONT
+	seta[RETURN].ang sprite[].ang
+	geta[RETURN].z temp
+	subvar temp 4096
+	seta[RETURN].z temp
+
+	ife PERFMODE 1
+		{
+		espawn BIG_SMOKE2
+		state SPAWN_IN_FRONT
+		geta[RETURN].ang temp
+		addvar temp 1024
+		seta[RETURN].ang temp
+		geta[RETURN].z temp
+		subvar temp 4096
+		seta[RETURN].z temp
+		}
+	action ACANNONWAIT
+  }
+  else
+    ifaction ACANNONWAIT
+  {
+  ifspritepal 3 nullop else
+    ifactioncount 64
+    {
+      ifrnd 128
+        action ACANNONSHOOTING
+      else
+        resetactioncount
+    }
+  }
+
+  ifhitweapon
+  {
+    ifdead
+    {
+      addkills 1
+
+      hitradius 4096 WEAKEST WEAK MEDIUMSTRENGTH TOUGH
+      spawn EXPLOSION2
+      killit
+    }
+    else debris SCRAP1 3
+  }
+enda

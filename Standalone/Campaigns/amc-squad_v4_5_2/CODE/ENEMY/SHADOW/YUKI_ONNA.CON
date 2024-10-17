@@ -1,0 +1,312 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+
+--------------------------------------------------------------------------------
+*/
+
+damageeventtile YUKI_ONNA
+
+action A_YUKIO_FLOAT 0 3 5 1 10
+action A_YUKIO_CAST 15 2 5 1 20
+action A_YUKIO_TELEP 15 2 5 1 38
+action A_YUKIO_PAIN 25 1 1 1 10
+action A_YUKIO_DIE 25 4 1 1 12
+
+move MYUKI_FLOAT 64 0
+move MYUKI_FLOATUP 64 -64
+move MYUKI_FLOATDOWN 64 64
+
+ai AI_YUKIO_FLOAT A_YUKIO_FLOAT MYUKI_FLOAT seekplayer
+ai AI_YUKIO_FLOATUP A_YUKIO_FLOAT MYUKI_FLOATUP seekplayer getv
+ai AI_YUKIO_FLOATDOWN A_YUKIO_FLOAT MYUKI_FLOATDOWN seekplayer getv
+ai AI_YUKIO_SHOOT A_YUKIO_CAST STOP faceplayer
+ai AI_YUKIO_PUSH A_YUKIO_CAST STOP faceplayer
+ai AI_YUKIO_PAIN A_YUKIO_PAIN STOP faceplayer
+ai AI_YUKIO_TELEPORT A_YUKIO_TELEP STOP faceplayer
+ai AI_YUKIO_DYING A_YUKIO_DIE STOP faceplayer
+
+spritenoshade YUKI_ONNA
+
+useractor enemy YUKI_ONNA 200 A_YUKIO_FLOAT
+
+ifai 0
+	{
+	seta[].shade -127
+	set actor_type TYPE_CASE_SPECIFIC
+	set blood_type 27
+	set MONSTER_FLAGS 1
+	state monst_glow
+	spawn SHOOTME
+	spriteflags NORMAL_ENEMY
+	sound YUK_AMB1
+	strength 200
+	sizeat 24 24
+	action A_YUKIO_FLOAT
+	ai AI_YUKIO_FLOAT
+	cstat 257
+	}
+
+state check_canfloat
+
+ifai AI_YUKIO_DYING
+	{
+	cstat 0
+	spriteflags 39
+	ifactioncount 4
+		{
+		spritepal 1
+		  lotsofglass 20
+		  shoot ICE_DEBRIS shoot ICE_DEBRIS shoot ICE_DEBRIS shoot ICE_DEBRIS shoot ICE_DEBRIS
+		  shoot ICE_DEBRIS shoot ICE_DEBRIS shoot ICE_DEBRIS shoot ICE_DEBRIS shoot ICE_DEBRIS
+		  sound ICE_SMASH
+		  set PLAYER_VOICEOVER 20
+		killit
+		}
+	}
+else
+ifai AI_YUKIO_PAIN
+	{
+	sub PAIN_AMOUNT 1
+	move STOP
+	ife PAIN_AMOUNT 0 ai AI_YUKIO_FLOAT
+	}
+else
+ifai AI_YUKIO_FLOAT
+{
+sizeto 24 24
+spriteflags 35
+ifrnd 2
+	{
+	randvar temp4 3
+	ife temp4 0 sound YUK_AMB1
+	else ife temp4 1 sound YUK_AMB2
+	else ife temp4 2 sound YUK_AMB2
+	else ife temp4 3 sound YUK_AMB3
+	}
+ ifcanseetarget
+  ifcanshoottarget
+  ifrnd 8
+  {
+  sound YUK_ATT
+   ai AI_YUKIO_SHOOT
+   }
+   else
+   ifpdistl 1024
+    ifrnd 32
+	ai AI_YUKIO_PUSH
+   else
+ifpdistg 8098
+ ifrnd 16
+  ife camerasprite -1
+   ife silence_damage 0
+	{
+	getp[].posx temp
+	getp[].posy temp2
+	set temp3 temp
+	add temp3 1024
+	randvar temp4 2048
+	rotatepoint temp temp2 temp3 temp2 temp4 temp5 temp6
+	getp[].cursectnum upd_sect
+	updatesectorz temp5 temp6 player[].posz upd_sect
+	ifn upd_sect -1
+		{
+		set INTERNALCOUNT 0
+		ai AI_YUKIO_TELEPORT
+		resetcount
+		}
+	}
+	else
+ifrnd 128
+	{
+	state check_canfloat
+	 // Skip the float detection code if the wizard can't float freely in here
+	 ife temp9 1
+	 {
+		 ifp phigher
+			ai AI_YUKIO_FLOATUP
+		  else
+		  {
+			geta[].z z
+			ifg temp10 z
+			{
+				ai AI_YUKIO_FLOATDOWN
+			}
+		  }
+	  }
+	}
+}
+else
+ifai AI_YUKIO_TELEPORT
+{
+add INTERNALCOUNT 1
+	spawn FRAMEEFFECT1
+	ife INTERNALCOUNT 4 { cstat 2 sizeto 2 24 }
+	ife INTERNALCOUNT 26
+		{
+			cstat 32768
+			getp[].posx temp
+			getp[].posy temp2
+			set temp3 temp
+			add temp3 1024
+			randvar temp4 2048
+			rotatepoint temp temp2 temp3 temp2 temp4 temp5 temp6
+			getp[].cursectnum upd_sect
+			updatesectorz temp5 temp6 player[].posz upd_sect
+			ifn upd_sect -1
+				{
+				ife sector[temp7].lotag 2 { cstat 257 sizeat 24 24 ai AI_YUKIO_FLOAT }
+				spawn 8433
+				getp[].posz temp8
+				sub temp8 1754
+				setsprite THISACTOR temp5 temp6 temp8
+				}
+			else { cstat 257 sizeat 24 24 ai AI_YUKIO_FLOAT }
+		}
+	ife INTERNALCOUNT 27 { soundonce SIREN_TELEP cstat 2 sizeto 24 24 spawn 8433 }
+	ife INTERNALCOUNT 40 { spawn SHOOTME cstat 257 sizeat 24 24 sound YUK_ATT ai AI_YUKIO_SHOOT }
+}
+else
+ifai AI_YUKIO_FLOATUP
+{
+state thisactor_getzrange
+ ifcanseetarget
+  ifcanshoottarget
+  ifrnd 4
+  {
+  sound YUK_ATT
+   ai AI_YUKIO_SHOOT
+   }
+   else
+   ifpdistl 1024
+    ifrnd 32
+	ai AI_YUKIO_PUSH
+	else
+ifrnd 16 ai AI_YUKIO_FLOAT
+}
+else
+ifai AI_YUKIO_FLOATDOWN
+{
+state thisactor_getzrange
+ ifcanseetarget
+  ifcanshoottarget
+  ifrnd 4
+  {
+  sound YUK_ATT
+   ai AI_YUKIO_SHOOT
+   }
+   else
+   ifpdistl 1024
+    ifrnd 32
+	ai AI_YUKIO_PUSH
+   else
+ifrnd 16 ai AI_YUKIO_FLOAT
+
+state getfloordist
+ifl z 0
+	{
+	seta[].z sector[].floorz
+	ai AI_YUKIO_FLOAT
+	}
+
+}
+else
+ifai AI_YUKIO_SHOOT
+{
+spriteflags 39
+seta[].shade -64
+ifactioncount 2 { shoot FREEZEBLAST ai AI_YUKIO_FLOAT resetactioncount }
+}
+else
+ifai AI_YUKIO_PUSH
+{
+spriteflags 39
+seta[].shade -64
+ifactioncount 1
+	{
+	getp[].posx mx
+	getp[].posy my
+	geta[].x x
+	geta[].y y
+	sub mx x
+	sub my y
+	getangle knockbackang mx my
+	set knockback 6
+	sound FORCE_BLAST
+	ifpdistl 1024
+		{
+		wackplayer
+		palfrom 20 30 0 0
+		setav[PLAYER_IDENTITY].ice_damage 15
+		}
+	ai AI_YUKIO_FLOAT
+	resetactioncount
+	}
+}
+
+ifg silence_damage 0
+	{
+	sub silence_damage 1
+	state spawn_curse_particles
+	}
+
+
+ifhitweapon
+	{
+	ifand PROJ_UDATA 4 seta[].htextra -1 // ice doesnt work on ice enemies, i wonder why!!!
+	ifand PROJ_UDATA 2 // fire damage does x2 damage
+		{
+		geta[].htextra temp
+		mul temp 2
+		seta[].htextra temp
+		}
+	ifwasweapon VOID_PLAYER_BOLT { sound EN_CURSE set silence_damage 150 }
+	ifwasweapon VOID_BOLT { sound EN_CURSE set silence_damage 300 }
+	ifwasweapon VOID_BLAST { sound EN_CURSE set silence_damage 900 }
+	state NEWGUNEFFECTS
+	//spawn BLOOD
+	//guts JIBS6 1
+	state random_wall_jibs
+	ifwasweapon 6875 { set WEP3_BLOODY 1 sound STAB_01 }
+    ifwasweapon RPG
+	{ seta[].xvel 5 }
+	ifdead
+		{
+			state jib_sounds
+			sound YUK_DIE
+			ai AI_YUKIO_DYING
+			state rf
+			addkills 1
+
+			set INTERNALCOUNT 0
+		}
+	else ifpdistl 1024 { ifai AI_YUKIO_PUSH nullop else ai AI_YUKIO_PUSH }
+	else ifg PAIN_AMOUNT 0 ai AI_YUKIO_PAIN
+	else ifrnd 16 { state PAIN_SKILL_LEVELADJUST sound YUK_PAIN ai AI_YUKIO_PAIN }
+	}
+
+state ENEMYKNOCKBACKS
+
+enda

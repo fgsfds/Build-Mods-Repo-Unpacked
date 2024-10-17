@@ -1,0 +1,375 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Based on the Duke3D CON files by 3DRealms, released under the GPL2 at:
+https://github.com/videogamepreservation/dukenukem3d/blob/ef609159bd352985a0c63734a11241d86c873fe5/testdata/GAME.CON
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+
+--------------------------------------------------------------------------------
+*/
+
+damageeventtile DRONE
+
+action DRONEFRAMES   0   1   7   1   1
+action DRONESCREAM   -79   1   7   1   1
+
+move DRONERUNVELS 128 64
+move DRONERUNUPVELS 128 -64
+move DRONEBULLVELS 252 -64
+move DRONEBACKWARDS -64 -64
+move DRONERISE 32 -32
+move DRONESTOPPED -16
+
+ai AIDRONEGETE DRONESCREAM DRONERUNVELS faceplayerslow getv
+ai AIDRONEWAIT DRONEFRAMES DRONESTOPPED faceplayerslow
+ai AIDRONEGETUP DRONEFRAMES DRONERUNUPVELS faceplayer getv
+ai AIDRONEPULLBACK DRONEFRAMES DRONEBACKWARDS faceplayerslow
+ai AIDRONEHIT DRONEFRAMES DRONEBACKWARDS faceplayer
+ai AIDRONESHRUNK DRONEFRAMES SHRUNKVELS fleeenemy
+ai AIDRONEDODGE DRONEFRAMES DRONEBULLVELS dodgebullet geth
+ai AIDRONEDODGEUP DRONEFRAMES DRONERISE getv geth
+
+defstate dronedead
+  addkills 1
+  set PLAYER_VOICEOVER 33
+
+  debris SCRAP1 8
+  debris SCRAP2 4
+  debris SCRAP3 7
+  spawn EXPLOSION2
+  sound DRON_DYING
+  sound RPG_EXPLODE
+  ifactor WASP_DRONE nullop else
+  hitradius 2048 15 20 25 30
+  killit
+ends
+
+defstate checkdronehitstate
+
+  ifdead state dronedead
+  else ifsquished { sound METAL_CRUSH state dronedead }
+  else
+  {
+	geta[].htpicnum temp
+	ife temp 6197 { addstrength -75 }
+	ife temp 6465 { addstrength -10 }
+
+	ifspritepal 41 sound RED_COMPBEEP else
+    sound DRON_PAIN
+	ifspritepal 24 setactorsoundpitch THISACTOR DRON_PAIN 512
+    ifbulletnear
+		{
+		ifceilingdistl 16
+			ifrnd 48
+		  ai AIDRONEDODGEUP
+		  else ai AIDRONEDODGE
+		}
+    else
+      ai AIDRONEGETE
+  }
+ends
+
+defstate droneshrunkstate
+  ifcount 24
+    killit
+  else
+    sizeto 1 1
+ends
+
+defstate drone_explode
+	state setknockback
+      addkills 1
+
+	  ifspritepal 41 sound RED_COMPBEEP else
+      sound DRON_ATTACK2
+		  ifspritepal 24
+		  {
+		  setactorsoundpitch THISACTOR DRON_ATTACK2 512
+		  debris SCRAP1 8
+		  debris SCRAP2 4
+		  debris SCRAP3 7
+		  shoot SPARK
+		  shoot SPARK
+		  shoot SPARK
+		  shoot SPARK
+		  shoot SPARK
+		  shoot SPARK
+		  shoot SPARK
+		  shoot SPARK
+		  shoot SPARK
+		  espawn EXPLOSION2
+		  seta[RETURN].xrepeat 20
+		  seta[RETURN].yrepeat 20
+		  sound RPG_EXPLODE
+
+		  setactorsoundpitch THISACTOR RPG_EXPLODE 512
+		  hitradius 1536 5 10 15 20
+		  }
+	  else
+	  {
+      debris SCRAP1 8
+      debris SCRAP2 4
+      debris SCRAP3 7
+	  shoot SPARK
+	  shoot SPARK
+	  shoot SPARK
+	  shoot SPARK
+	  shoot SPARK
+	  shoot SPARK
+	  shoot SPARK
+	  shoot SPARK
+	  shoot SPARK
+	  ifspritepal 40 spawn SKULLEXPLOSION else
+      spawn EXPLOSION2
+      sound RPG_EXPLODE
+      hitradius 2048 30 40 50 60
+	  }
+		  ifspritepal 41 stopactorsound THISACTOR FLYBOOTS_HUM
+		  else stopactorsound THISACTOR DRON_JETSND
+      killit
+ends
+
+defstate checkdronenearplayer
+state correctcansee
+
+  ifp palive
+   ife sightvar YES
+    ifpdistl 1596
+	  {
+	  add INTERNALCOUNT 1
+	  ife PERSONNEL_RESEARCH[20] 2 // Drone IFF codes?s
+			{
+			ifg INTERNALCOUNT 30
+				state drone_explode
+			  else
+				{
+				sound LASERTRIP_ARMING
+				ifspritepal 24 setactorsoundpitch THISACTOR LASERTRIP_ARMING 512
+				}
+			}
+		else
+			{
+			ifg INTERNALCOUNT 8
+				state drone_explode
+			else
+				{
+				sound LASERTRIP_ARMING
+				ifspritepal 24 setactorsoundpitch THISACTOR LASERTRIP_ARMING 512
+				}
+			}
+	  }
+  else ifg INTERNALCOUNT 0
+   ifpdistg 1596
+	{
+	ai AIDRONEWAIT
+	resetactioncount
+	set INTERNALCOUNT 0
+	}
+
+ends
+
+defstate dronegetstate
+  ifrnd 192
+  {
+    ifn player[].holoduke_on -1
+		{
+		canseespr THISACTOR player[].holoduke_on temp2
+		ife temp2 1
+				{
+					geta[player.holoduke_on].x mx
+					geta[player.holoduke_on].y my
+					geta[].x x
+					geta[].y y
+					sub mx x
+					sub my y
+					getangle temp mx my
+					seta[].ang temp
+					ldist temp3 temp THISACTOR
+					ifl temp3 60000 move DRONEBULLVELS geth
+					ifl temp3 15960
+						{
+					  getp[].holoduke_amount temp4
+					  sub temp4 120 ifl temp4 0 set temp4 0
+					  setp[].holoduke_amount temp4
+					  addkills 1
+					  ifspritepal 41 stopactorsound THISACTOR FLYBOOTS_HUM
+					  else stopactorsound THISACTOR DRON_JETSND
+					  sound DRON_ATTACK2
+					  debris SCRAP1 8
+					  debris SCRAP2 4
+					  debris SCRAP3 7
+					  spawn EXPLOSION2
+					  sound RPG_EXPLODE
+					  hitradius 2048 15 20 25 30
+					  killit
+						}
+				}
+		}
+	else
+		{
+		ifbulletnear { ifrnd 128 ai AIDRONEDODGEUP else ai AIDRONEDODGE }
+		ifrnd 1 operate
+		  ifcansee
+				{
+				  ifmove DRONEBULLVELS
+					  {
+						ifcount 64
+							{
+							ai AIDRONEPULLBACK
+							resetcount
+							}
+						else
+						  ifnotmoving
+							ifcount 16
+							  ai AIDRONEPULLBACK
+					  }
+				  else
+					ifcount 32
+					  {
+						ifp phigher
+						  move DRONEBULLVELS geth getv
+						else
+						  move DRONEBULLVELS geth
+						resetcount
+					  }
+				}
+	  }
+  }
+ends
+
+defstate dronedodgestate
+  ifai AIDRONEDODGEUP
+  {
+     ifcount 8
+	   {
+       ai AIDRONEGETE
+	   resetcount
+	   }
+     else
+       ifnotmoving
+         ai AIDRONEGETE
+  }
+  else
+  {
+    ifcount 8
+	  {
+      ai AIDRONEGETE
+	  resetcount
+	  }
+    else
+      ifnotmoving
+        ai AIDRONEGETE
+  }
+ends
+
+actor DRONE DRONESTRENGTH
+  state checkdronenearplayer
+
+  ifrnd 2
+    fall
+  else
+    {
+	ifspritepal 40 nullop else
+	ifspritepal 41
+		{
+		ifactorsound THISACTOR FLYBOOTS_HUM nullop else
+		sound FLYBOOTS_HUM
+		setactorsoundpitch THISACTOR FLYBOOTS_HUM 128
+		}
+	else
+		{
+		ifactorsound THISACTOR DRON_JETSND nullop else
+		sound DRON_JETSND
+		ifspritepal 24 setactorsoundpitch THISACTOR DRON_JETSND 512
+		}
+	}
+
+  ifai 0
+    {
+	set MONSTER_FLAGS 1
+	state monst_glow
+	set actor_type TYPE_CASE_SPECIFIC
+	ifspawnedby LIZTROOP
+		{
+		sizeat 20 20
+		strength 1
+		spritepal 24
+		}
+	else
+		{
+		ifspritepal 0 spritepal 11
+		sizeat 26 26
+		}
+	spawn SHOOTME
+	ai AIDRONEGETE
+	resetactioncount
+	}
+  else
+    ifai AIDRONEWAIT
+  {
+    ifactioncount 4
+      ifrnd 16
+        ifcansee
+			{
+			ifspritepal 41 sound RED_COMPBEEP else
+			  sound DRON_ATTACK1
+			  ifspritepal 24 setactorsoundpitch THISACTOR DRON_ATTACK1 512
+			  ifp phigher
+				ai AIDRONEGETUP
+			  else ai AIDRONEGETE
+			}
+  ifbulletnear { ifrnd 128 ai AIDRONEDODGEUP else ai AIDRONEDODGE }
+  }
+  else
+    ifai AIDRONEGETE
+      state dronegetstate
+  else
+    ifai AIDRONEGETUP
+      state dronegetstate
+  else
+    ifai AIDRONEPULLBACK
+	  {
+		ifcount 32 { ai AIDRONEWAIT resetactioncount resetcount }
+	  }
+  else
+    ifai AIDRONEHIT
+  {
+    ifcount 8 { ai AIDRONEWAIT resetactioncount resetcount }
+  }
+  else
+    ifai AIDRONESHRUNK
+      state droneshrunkstate
+  else
+    ifai AIDRONEDODGE
+      state dronedodgestate
+  else
+    ifai AIDRONEDODGEUP
+      state dronedodgestate
+
+  ifhitweapon
+    state checkdronehitstate
+
+
+enda

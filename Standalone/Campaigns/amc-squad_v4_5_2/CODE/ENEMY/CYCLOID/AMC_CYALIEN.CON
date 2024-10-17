@@ -1,0 +1,234 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+
+--------------------------------------------------------------------------------
+*/
+
+damageeventtile CYBERALIEN
+
+action ACYBERA_IDLE 35 1 5 1 10
+action ACYBERA_WALK 0 4 5 1 20
+action ACYBERA_RUN 0 4 5 1 8
+action ACYBERA_PREPARE 20 1 5 1 12
+action ACYBERA_MISSILE 25 1 5 1 12
+action ACYBERA_MORTER 30 1 5 1 12
+action ACYBERA_PAIN 40 1 1 1 10
+action ACYBERA_DYING 40 5 1 1 20
+action ACYBERA_DEAD 45
+
+move CYBERA_MOVE 120
+move CYBERA_RUN 180
+
+ai AI_CYBERA_IDLE ACYBERA_IDLE STOP
+ai AI_CYBERA_WALK ACYBERA_WALK CYBERA_MOVE seekplayer
+ai AI_CYBERA_RUSH ACYBERA_RUN CYBERA_RUN seekplayer
+ai AI_CYBERA_PREPARE ACYBERA_PREPARE STOP shoottarget
+ai AI_CYBERA_MISSILE ACYBERA_MISSILE STOP shoottarget
+ai AI_CYBERA_MORTER ACYBERA_MORTER STOP faceplayer
+ai AI_CYBERA_DIE ACYBERA_DYING
+
+useractor enemystayput CYBERALIEN_STAYPUT fall cactor CYBERALIEN enda
+
+useractor enemy CYBERALIEN 600 ACYBERA_IDLE
+fall
+ifai 0
+	{
+	spawn SHOOTME
+	state monst_glow
+	set actor_type TYPE_ARMOURED
+	spriteflags NORMAL_ENEMY
+	sizeat 26 26
+	cstat 257
+	strength 600
+	sound CYBERA_RECOG
+	ai AI_CYBERA_IDLE
+	}
+
+ifaction ACYBERA_DEAD
+	{
+	move STOP
+		  strength 0
+		  ifhitweapon
+			ifwasweapon RADIUSEXPLOSION
+		  {
+			state squish_sounds
+			guts JIBS2 5              // Instead of the normal "standard_jibs"
+			guts JIBS3 5              // amount, I found that ,because these
+			guts JIBS4 5              // bodies are so huge, they should spawn
+			guts JIBS5 15             // a more realistic amount of gutter!
+			guts JIBS6 15
+			debris SCRAP1 5           // There are also spawned some metal
+			debris SCRAP2 5           // scraps, since this boss has a lot
+			debris SCRAP5 5           // of metalware with him.
+			state standard_jibs
+			killit
+		  }
+		  break
+	}
+else
+ifai AI_CYBERA_DIE
+	{
+	ifactioncount 5 { spawn BLOODPOOL sound CYBERDEMON_METAL action ACYBERA_DEAD }
+	}
+else
+ifaction ACYBERA_PAIN
+	{
+	ifdead ai AI_CYBERA_DIE else ifactioncount 2 ai AI_CYBERA_IDLE
+	}
+else
+ifai AI_CYBERA_IDLE
+	{
+	ai AI_CYBERA_WALK
+	}
+else
+ifai AI_CYBERA_WALK
+	{
+	ifrnd 2 soundonce CYBERA_ROAM
+	state SKILL_SHOOT_LEVELADJUST
+	ife target -1 ifrnd 4 { ai AI_CYBERA_WALK }
+	ifrnd 2 ai AI_CYBERA_RUSH
+	ifl xydist 8012 ai AI_CYBERA_RUSH
+	else ifg xydist 8012
+		ifl RANDOM_CHANCE SKILLCHANCE
+				ai AI_CYBERA_PREPARE
+
+	}
+else
+ifai AI_CYBERA_RUSH
+	{
+	ifrnd 2 soundonce CYBERA_ROAM
+	state SKILL_SHOOT_LEVELADJUST
+	ife target -1 ifrnd 4 { ai AI_CYBERA_WALK }
+	ifg xydist 8012 ifrnd 16 ai AI_CYBERA_WALK
+	else ifl xydist 8012
+		ifl RANDOM_CHANCE SKILLCHANCE
+				ai AI_CYBERA_PREPARE
+	}
+else
+ifai AI_CYBERA_PREPARE
+	{
+	ifactioncount 2
+		{
+		ifrnd 128
+			{
+			state SKILL_SHOOT_LEVELADJUST
+			ifl RANDOM_CHANCE SKILLCHANCE
+			{ sound CYBERA_RECOG set temp4 1 } else set temp4 0
+			ai AI_CYBERA_MISSILE
+			}
+		else { set INTERNALCOUNT_2 0 ai AI_CYBERA_MORTER }
+		resetactioncount
+		}
+	}
+else
+ifai AI_CYBERA_MISSILE
+{
+ifactioncount 1
+	{
+	ife INTERNALCOUNT 0
+		{
+		ife temp4 1 shoot HOMING_MISSILE else
+			{
+			setprojectile[MICRO_MISSILE].offset -512
+			shoot MICRO_MISSILE
+			setprojectile[MICRO_MISSILE].offset 224
+			}
+		sound CYBERT_FIRE
+		ife PERFMODE 1
+		 ifcansee
+			{
+			set gunsmoke_z 5244
+			set gunsmoke_angle -356
+			state spawn_gunsmoke_z
+			set gunsmoke_z 5244
+			espawn 16114
+			seta[RETURN].pal 2
+			state spawn_muzzleflash
+			}
+		set INTERNALCOUNT 1
+		}
+	}
+ifactioncount 2
+	{
+	set INTERNALCOUNT 0
+	resetactioncount
+	ai AI_CYBERA_RUSH
+	}
+}
+else
+ifai AI_CYBERA_MORTER
+{
+ifactioncount 1
+	{
+	ife INTERNALCOUNT_2 0
+		{
+		sound BOS1_ATTACK2
+		shoot MORTER
+		ai AI_CYBERA_RUSH
+		ife PERFMODE 1
+		 ifcansee
+			{
+			set gunsmoke_z 5244
+			set gunsmoke_angle 356
+			state spawn_gunsmoke_z
+			set gunsmoke_z 5244
+			espawn 16114
+			seta[RETURN].pal 2
+			state spawn_muzzleflash
+			}
+		set INTERNALCOUNT_2 1
+		}
+	}
+ifactioncount 2
+	{
+	set INTERNALCOUNT_2 0
+	resetactioncount
+	ai AI_CYBERA_RUSH
+	}
+}
+
+ifhitweapon
+{
+//spawn BLOOD
+ifrnd 128 guts JIBS6 1
+ifrnd 128 debris SCRAP1 1
+state NEWGUNEFFECTS
+ifdead
+	{
+	state rf
+	sound CYBERA_DYING
+
+	shoot NJIB shoot NJIB shoot NJIB shoot NJIB shoot NJIB
+	debris SCRAP1 5
+	shoot SPARK shoot SPARK shoot SPARK shoot SPARK
+	ifrnd 4 spawn HEAT_SEEK_CARD_PICKUP
+	ai AI_CYBERA_DIE
+	}
+else ifrnd 16 { sound CYBERA_PAIN action ACYBERA_PAIN }
+}
+state checksquished
+
+enda

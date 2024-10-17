@@ -1,0 +1,376 @@
+// Call this state instead of manipulating ammo_amount directly
+// Input: ammo_forweaponidx, ammo_to_add
+var ammo_to_add 0 1
+defstate do_addammo
+	set temp3 gun_ammopools[ammo_forweaponidx]
+
+	ife temp3 -1 // Means: gun not yet migrated to use pools, keep to old logic
+		getp[].ammo_amount ammo_forweaponidx temp
+	else
+		set temp temp3
+
+	getp[].max_ammo_amount ammo_forweaponidx temp2
+	ife temp temp2 return
+	add temp ammo_to_add
+
+	clamp temp 0 temp2
+
+	// not yet migrated => manipulate ammo_amount directly
+	ife temp3 -1
+		setp[].ammo_amount ammo_forweaponidx temp
+	else
+	{
+		// put the ammo in the pool
+		setarray gun_ammopools[ammo_forweaponidx] temp
+
+		// recalculate ammo_amount as mag + pool
+		set temp4 gun_mags[ammo_forweaponidx]
+		add temp4 temp
+
+		setp[].ammo_amount ammo_forweaponidx temp4
+	}
+ends
+
+defstate dropemptyweapon
+	set GUN_VOLUME 0
+	ifg scope 0
+	{
+		set ZOOMAMOUNT 4
+		set scope 0
+	}
+	soundonce ENDSEQVOL2SND1
+	ifand gun_firemode 16384 xorvar gun_firemode 16384
+	ifand gun_firemode 256 xorvar gun_firemode 256 // If they fired a double shot reset to normal mode
+	set RETURN 1
+	set temp_weap 0
+	quote 515
+	setarray AMMO_TYPES[cur_weap] 0
+	set gl_countd 0
+ends
+
+var switchaltammotype -1 1
+defstate detecttempweaponaltammoswitching
+	ifle switchaltammotype -1
+	{
+		set ammo_forweaponidx cur_weap
+		state ammo_getdefs
+
+		ife ammo_remaining 0
+		{
+			ife cur_weap 0 // using temp weapon
+			{
+				set ammo_forweaponidx cur_weap
+				set ammo_checkcanswitch 1
+				state ammo_getdefs
+				set switchaltammotype ammo_canswitchto
+				ifn switchaltammotype -1
+				{
+					ifn ammo_switchtofiremode -1
+					{
+						ifand gun_firemode ammo_switchtofiremode
+							nullop
+						else
+							set gun_firemode ammo_switchtofiremode // If this needs to be a bitwise operation, it would be better to perform it in the ammo_defs file
+					}
+
+					ifn ammo_switchtofiremode_two -1
+					{
+						ifand gun_firemode_two ammo_switchtofiremode_two
+							nullop
+						else
+							set gun_firemode_two ammo_switchtofiremode_two // If this needs to be a bitwise operation, it would be better to perform it in the ammo_defs file
+					}
+
+					ifn ammo_switch_sound -1
+						sound ammo_switch_sound
+
+					ifn ammo_switch_quote -1
+					{
+						setp[].fta 99
+						setp[].ftq ammo_switch_quote
+					}
+
+					// This could be better
+					ifg switchaltammotype 0
+						setarray AMMO_TYPES[cur_weap] switchaltammotype
+					else
+						setarray AMMO_TYPES[cur_weap] 0				 
+					setp[].ammo_amount cur_weap ammo_remaining
+					state lower_weapon
+				}
+			}
+
+			ifg temp_wep_mag -1 set temp_wep_mag 0 // force gun to reload if it has a magazine
+		}
+		else
+			set switchaltammotype -2
+	}
+ends
+
+defstate standard_shotgun_load
+	ifand GUN_AMMO_TYPES 1 ifand AMMO_TYPES[cur_weap] 1 ife explosive_shells 0 break
+	else ifand GUN_AMMO_TYPES 1  ifand AMMO_TYPES[cur_weap] 4 ife flechete_shells 0 break
+	else ifand GUN_AMMO_TYPES 4 ifand AMMO_TYPES[cur_weap] 64 ife magnum_shells 0 break
+	else ifand GUN_AMMO_TYPES 4 ifand AMMO_TYPES[cur_weap] 1024 ife dragon_shells 0 break
+	else ife cur_ammo 0 break
+	ife SHOTGUNMAG MAX_SHOTGUNMAG break
+	set reload_temp MAX_SHOTGUNMAG
+	sub reload_temp SHOTGUNMAG
+	set shotgun_load reload_temp
+	ifand GUN_AMMO_TYPES 1 ifand AMMO_TYPES[cur_weap] 1 { ifg shotgun_load explosive_shells set shotgun_load explosive_shells }
+	else ifand GUN_AMMO_TYPES 1  ifand AMMO_TYPES[cur_weap] 4 { ifg shotgun_load flechete_shells set shotgun_load flechete_shells }
+	else ifand GUN_AMMO_TYPES 4 ifand AMMO_TYPES[cur_weap] 64 { ifg shotgun_load magnum_shells set shotgun_load magnum_shells }
+	else ifand GUN_AMMO_TYPES 4 ifand AMMO_TYPES[cur_weap] 1024 { ifg shotgun_load dragon_shells set shotgun_load dragon_shells }
+	else
+	{
+		// old logic
+		ife gun_ammopools[2] -1
+		{
+			ifg shotgun_load player[].ammo_amount 2
+				set shotgun_load player[].ammo_amount 2
+		}
+		// new logic
+		else
+		{
+			ifg shotgun_load gun_ammopools[2]
+				set shotgun_load gun_ammopools[2]
+		}
+	}
+ends
+
+defstate shotgun_load_check
+	ife SHOTGUNMAG 0
+	 ife player[].weapon_pos 0
+	  ife fire_mode_menu 0
+		{
+		setarray needs_pump[cur_weap] 1
+		ifand AMMO_TYPES[cur_weap] 1
+			{
+				ifl explosive_shells MAX_SHOTGUNMAG set shotgun_load explosive_shells else
+				set shotgun_load MAX_SHOTGUNMAG
+			}
+		else
+		ifand AMMO_TYPES[cur_weap] 4
+			{
+				ifl flechete_shells MAX_SHOTGUNMAG set shotgun_load flechete_shells else
+				set shotgun_load MAX_SHOTGUNMAG
+			}
+		else
+		ifand AMMO_TYPES[cur_weap] 64
+			{
+				ifl magnum_shells MAX_SHOTGUNMAG set shotgun_load magnum_shells else
+				set shotgun_load MAX_SHOTGUNMAG
+			}
+		else
+		ifand AMMO_TYPES[cur_weap] 1024
+			{
+				ifl dragon_shells MAX_SHOTGUNMAG set shotgun_load dragon_shells else
+				set shotgun_load MAX_SHOTGUNMAG
+			}
+		else
+			{
+				ifl player[].ammo_amount 2 MAX_SHOTGUNMAG set shotgun_load player[].ammo_amount 2 else
+				set shotgun_load MAX_SHOTGUNMAG
+			}
+		}
+ends
+
+defstate shotgun_dual_load_check
+	ife SHOTGUNBOXMAG 0
+	 ife player[].weapon_pos 0
+	  ife fire_mode_menu 0
+		{
+		setarray needs_pump[cur_weap] 1
+		ifand AMMO_TYPES[15] 1
+			{
+				ifl explosive_shells MAX_SHOTGUNBOXMAG set shotgun_load explosive_shells else
+				set shotgun_load MAX_SHOTGUNBOXMAG
+			}
+		else
+		ifand AMMO_TYPES[15] 4
+			{
+				ifl flechete_shells MAX_SHOTGUNBOXMAG set shotgun_load flechete_shells else
+				set shotgun_load MAX_SHOTGUNBOXMAG
+			}
+		else
+		ifand AMMO_TYPES[15] 64
+			{
+				ifl magnum_shells MAX_SHOTGUNBOXMAG set shotgun_load magnum_shells else
+				set shotgun_load MAX_SHOTGUNBOXMAG
+			}
+		else
+		ifand AMMO_TYPES[15] 1024
+			{
+				ifl dragon_shells MAX_SHOTGUNBOXMAG set shotgun_load dragon_shells else
+				set shotgun_load MAX_SHOTGUNBOXMAG
+			}
+		else
+			{
+				ifl player[].ammo_amount 2 MAX_SHOTGUNBOXMAG set shotgun_load player[].ammo_amount 2 else
+				set shotgun_load MAX_SHOTGUNBOXMAG
+			}
+		}
+ends
+
+defstate handle_tempweapon_dofire
+	// handle ammo subtraction and drop empty weapon for temp weapons
+    ifvarn gun_mag -1 ifvarl gun_mag 6 ifn temp_weap 10 sound MAG_LOW
+
+    // This state kinda serves 2 functions, if the generic handling does not apply it returns -2
+	// Else it returns the ammoremaining for the given type
+	set ammo_forweaponidx 0
+    state ammo_getdefs
+
+    ifn ammo_remaining -1 // specific handling
+    {
+		// Reduce ammo in appropriate variable
+		set ammo_forweaponidx 0
+
+		// If using a shotgun where we fire both barrels, the ammo reduction is 2
+		ifand gun_firemode 256
+			set ammo_doreduce 2
+		else
+			set ammo_doreduce 1
+		state ammo_getdefs
+
+		ifg temp_wep_mag 0
+		{
+			ifand gun_firemode 256
+				sub temp_wep_mag 2
+			else
+				sub temp_wep_mag 1
+
+		}
+
+		// But the "appropriate variable" is not yet reliable at this point in the event, so use the ammo_amount still
+		getp[].ammo_amount 0 hold_ammo_temp
+        ifge hold_ammo_temp 0
+			setp[].ammo_amount 0 ammo_remaining
+    }
+    else
+    {
+        getp[].ammo_amount 0 hold_ammo_temp
+        ifg hold_ammo_temp 0
+        {
+			switch temp_weap
+				// These are all melee weapons! No handling needed
+				case 17
+				case 19
+				case 20
+				case 36
+				case 37
+				case 49
+				case 51
+					break
+
+				case 21 // FNFAL
+					sub temp_wep_mag 1
+					sub hold_ammo_temp 1
+					setp[].ammo_amount 0 hold_ammo_temp
+					break
+
+				case 22 // MP40
+					sub temp_wep_mag 1
+					sub hold_ammo_temp 1
+					setp[].ammo_amount 0 hold_ammo_temp
+					break
+
+				case 25
+					randvar temp2 1024
+					zshoot temp2 RIFLESHELL
+					sub temp_wep_mag 1
+					sub hold_ammo_temp 1
+					setp[].ammo_amount 0 hold_ammo_temp
+					break
+
+				case 26
+					randvar temp2 1024
+					zshoot temp2 RIFLESHELL
+					sub temp_wep_mag 1
+					sub hold_ammo_temp 1
+					setp[].ammo_amount 0 hold_ammo_temp
+					break
+
+				case 31
+					randvar temp2 1024
+					zshoot temp2 RIFLESHELL
+					randvar temp2 12
+					set temp9 GUN_HEAT[cur_weap]
+					add temp9 temp2
+					setarray GUN_HEAT[cur_weap] temp9
+					randvar temp2 1024
+					zshoot temp2 SHELL_LINK
+
+					sub temp_wep_mag 1
+					sub hold_ammo_temp 1
+					setp[].ammo_amount 0 hold_ammo_temp
+					break
+
+				case 32
+					ife GEO_MEGA_SHOT[1] 1 ifand gun_firemode_two 2 nullop
+					else ifand gun_firemode_two 4 nullop
+					else
+					{
+						sub hold_ammo_temp 1
+						setp[].ammo_amount 0 hold_ammo_temp
+					}
+					break
+
+				case 35
+					randvar temp2 1024
+					zshoot temp2 NINEMM_SHELL
+					sub temp_wep_mag 1
+					sub hold_ammo_temp 1
+					setp[].ammo_amount 0 hold_ammo_temp
+					break
+
+				case 39
+					randvar temp2 1024
+					zshoot temp2 RIFLESHELL
+					randvar temp2 1024
+					zshoot temp2 SHELL_LINK
+					sub hold_ammo_temp 1
+					setp[].ammo_amount 0 hold_ammo_temp
+					break
+
+				case 41 // AR-65
+					randvar temp4 17
+					set temp9 GUN_HEAT[cur_weap]
+					add temp9 temp4
+					setarray GUN_HEAT[cur_weap] temp9
+					sub hold_ammo_temp 1
+					setp[].ammo_amount 0 hold_ammo_temp
+					break
+
+				case 45
+					randvar temp2 1024
+					zshoot temp2 NINEMM_SHELL
+					sub temp_wep_mag 1
+					sub hold_ammo_temp 1
+					setp[].ammo_amount 0 hold_ammo_temp
+					break
+
+				case 47 // Eng SMG
+					sub temp_wep_mag 1
+					sub hold_ammo_temp 1
+					setp[].ammo_amount 0 hold_ammo_temp
+					break
+
+				case 52 // UDP45
+					randvar temp2 1024
+					zshoot temp2 NINEMM_SHELL
+					sub temp_wep_mag 1
+					sub hold_ammo_temp 1
+					setp[].ammo_amount 0 hold_ammo_temp
+					break
+
+				default
+					sub hold_ammo_temp 1
+					setp[].ammo_amount 0 hold_ammo_temp
+					break
+			endswitch
+        }
+        else
+            state dropemptyweapon
+    }
+ends

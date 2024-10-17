@@ -1,0 +1,2948 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+This CON file should contain commonly called sound events, states and sound code
+--------------------------------------------------------------------------------
+*/
+
+// MUSIC CHANGE PLUS===================================================================================
+
+var music_changer -1 0
+
+useractor notenemy MUSIC_CHANGE_PLUS
+cstat 32768
+	ife sprite[PLAYER_IDENTITY].sectnum sprite[].sectnum
+	ife music_override 0 // music isn't being overridden?
+	{
+	 ifn userdef[].music_episode HITAGSAVED
+	  ifn userdef[].music_level LOTAGSAVED
+		{
+		set music_vol 100
+		set music_fade 1
+		set music_changer THISACTOR
+		}
+	else
+	 ife userdef[].music_episode HITAGSAVED
+	  ifn userdef[].music_level LOTAGSAVED
+		{
+		set music_vol 100
+		set music_fade 1
+		set music_changer THISACTOR
+		}
+	else
+	 ifn userdef[].music_episode HITAGSAVED
+	  ife userdef[].music_level LOTAGSAVED
+		{
+		set music_vol 100
+		set music_fade 1
+		set music_changer THISACTOR
+		}
+	}
+
+ife music_changer THISACTOR
+	{
+	ife music_vol 0
+		{
+		starttrackslot HITAGSAVED LOTAGSAVED
+		set music_fade 0
+		set music_changer -1
+		}
+	}
+
+enda
+
+// MUSIC CHANGE===================================================================================
+
+spritenopal MUSIC_CHANGE
+
+useractor notenemy MUSIC_CHANGE
+cstat 32768
+
+ifn HITAGSAVED 0
+{
+checkactivatormotion HITAGSAVED
+ife RETURN 1
+	{
+	ifspritepal 100
+		{
+		set music_vol 100
+		set music_fade 2
+		killit
+		}
+	ifspritepal 101
+		{
+		set music_vol 100
+		set music_fade 2
+		stopallmusic
+		killit
+		}
+	ifspritepal 102 // this will disable all other non-essential music changers and make this one a priority
+		{
+		set music_vol 100
+		set music_fade 2
+		set music_override 1
+		}
+	ifspritepal 103 // this will disable all other non-essential music changers and make this one a priority
+		{
+		set music_vol 100
+		set music_fade 2
+		set music_override 1
+		killit
+		}
+
+	ifg EXTRASAVED -1
+		{
+		set music_vol 100
+		ife music_fade 1 set music_fade 0
+		ifn LOTAGSAVED 0 ife opt_streamer_mode YES starttrackslot EXTRASAVED LOTAGSAVED else
+		starttrackslot EXTRASAVED sprite[].pal
+		killit
+		}
+	else
+		{
+		set music_vol 100
+		ife music_fade 1 set music_fade 0
+		ifn LOTAGSAVED 0 ife opt_streamer_mode YES starttrackvar LOTAGSAVED else
+		starttrackvar sprite[].pal
+		killit
+		}
+	}
+}
+else
+ifpdistl 1024
+	{
+	ifspritepal 100
+		{
+		set music_vol 100
+		set music_fade 2
+		killit
+		}
+	ifspritepal 101
+		{
+		set music_vol 100
+		set music_fade 2
+		stopallmusic
+		killit
+		}
+
+	ifn EXTRASAVED -1
+		{
+		set music_vol 100
+		ifge music_fade 1 set music_fade 0
+		ifn LOTAGSAVED 0 ife opt_streamer_mode YES starttrackslot EXTRASAVED LOTAGSAVED else
+		starttrackslot EXTRASAVED sprite[].pal
+		killit
+		}
+		else
+		{
+		set music_vol 100
+		ifge music_fade 1 set music_fade 0
+		ifn LOTAGSAVED 0 ife opt_streamer_mode YES starttrackvar LOTAGSAVED
+		else
+		{
+			// for autosave_playtest.map, skip this, it gives annoying errors on testing in case the level is not properly defined in volume 0
+			state is_autosave_playtest
+
+			ifn temp2 0
+				starttrackvar sprite[].pal
+		}
+		killit
+		}
+	}
+
+enda
+
+
+onevent EVENT_OPENMENUSOUND
+set RETURN ENTMENUSOUND
+endevent
+
+var first_shot 0 1
+
+appendevent EVENT_GAME
+ife userdef.soundtoggle 1
+	{
+	switch sprite[].picnum
+		case RPG
+			ifg sprite[].xrepeat 7 // Devistator projectile is resized to 7x7 so this checks to make sure it's not that
+			 ifpdistl 8192
+				{
+				ifactorsound THISACTOR ROCKETT nullop else sound ROCKETT
+				}
+			break
+		case RPG7_ROCKET
+			ifactorsound THISACTOR ROCKETT nullop else sound ROCKETT
+			break
+		case MISSILE
+		case MICRO_MISSILE
+		case HOMING_MISSILE
+			ifactorsound THISACTOR MISSILET nullop else sound MISSILET
+			break
+		case CYCLOID_PLASMA // Cycloid Plasma
+			ifactorsound THISACTOR PLASMAT nullop else sound PLASMAT
+			break
+		case ATOM_BOMB
+			ifactorsound THISACTOR GEIGER_2 nullop else sound GEIGER_2
+			break
+		case 22610
+		case SPELL2
+		case REDM_BLAST
+		case BLOOD_BLAST
+			ifspawnedby APLAYER ife CHAR 2 nullop else
+				{
+				ifactorsound THISACTOR LBALL_FLY nullop else sound LBALL_FLY
+				}
+			break
+		case 12782
+			ifactorsound THISACTOR PROJ_FLY nullop else sound PROJ_FLY
+			break
+		case 6221
+		case HADESBLASTH
+		case 12717
+		case 30081
+		case BRUISERFIREBALL
+			ifactorsound THISACTOR FBALL_FLY nullop else sound FBALL_FLY
+			break
+		case 29020
+		ifspawnedby HYDRA nullop else
+		 ifspawnedby MAKARA nullop else
+		  ifinwater nullop else
+			{
+			ifactorsound THISACTOR WATER_RUSH nullop else sound WATER_RUSH
+			}
+			break
+	endswitch
+	}
+endevent
+
+appendevent EVENT_KILLIT
+ife userdef.soundtoggle 1
+	{
+	switch sprite[].picnum
+		case RPG
+		case RPG7_ROCKET
+			ifactorsound THISACTOR ROCKETT stopactorsound THISACTOR ROCKETT
+			break
+		case MISSILE
+		case MICRO_MISSILE
+		case HOMING_MISSILE
+			ifactorsound THISACTOR MISSILET stopactorsound THISACTOR MISSILET
+			break
+		case CYCLOID_PLASMA // Cycloid Plasma
+			ifactorsound THISACTOR PLASMAT stopactorsound THISACTOR PLASMAT
+			break
+		case ATOM_BOMB
+			ifactorsound THISACTOR GEIGER_2 stopactorsound THISACTOR GEIGER_2
+			break
+		case 22610
+		case SPELL2
+		case 20943
+		case REDM_BLAST
+			ifactorsound THISACTOR LBALL_FLY stopactorsound THISACTOR LBALL_FLY
+			break
+		case 12782 // Anubis throwing axe
+			ifactorsound THISACTOR PROJ_FLY stopactorsound THISACTOR PROJ_FLY
+			break
+		case 6221 // Aludran purple blast
+		case HADESBLASTH
+		case 12717 // Siren Curse blast
+		case 30081 // Magic Hammer
+		case BRUISERFIREBALL
+			ifactorsound THISACTOR FBALL_FLY stopactorsound THISACTOR FBALL_FLY
+			break
+	endswitch
+	}
+endevent
+
+onevent EVENT_SOUND
+    ife opt_streamer_mode YES
+        {
+        ife RETURN LTS_FADE set RETURN 4
+        }
+    ifand player[].gm 1
+    {
+    switch RETURN
+            case LASERTRIP_EXPLODE
+            case PLYR_GRUNT
+            case PLYR_LAND_HURT
+            case CHAINGUN_FIRE
+            case SQUISHED
+            case PISTOL_RICOCHET
+            case PISTOL_FIRE
+            case SHOTGUN_FIRE
+            case BOS1_WALK
+            case RPG_EXPLODE
+            case PIPEBOMB_BOUNCE
+            case PIPEBOMB_EXPLODE
+            case NITEVISION_ONOFF
+            case RPG_SHOOT
+            case SELECT_WEAPON
+             set RETURN 4
+             screensound INTERFACE_2
+            break
+            case PISTOL_BODYHIT
+             set RETURN 4
+             screensound INTERFACE_1
+            break
+            case KICK_HIT
+             set RETURN 4
+             screensound COMP_SELECT
+            break
+            case 227
+            case UNDER_HALL
+            case 195
+            case 226
+             set RETURN 4
+             screensound COMP_SELECT
+            break
+        endswitch
+    }
+
+ife RETURN END_OF_LEVEL_WARN
+	{
+	ife VOLUME 2
+	 ife LEVEL 17
+		set RETURN ANC_UNL
+
+	}
+
+// explosion/water stuff
+ife userdef.soundtoggle 1
+switch RETURN
+    case RPG_EXPLODE
+    case PIPEBOMB_EXPLODE
+    case LASERTRIP_EXPLODE
+        ifinwater set RETURN UNDERWATER_EXP
+        else ifonwater set RETURN WATER_EXPLOSION
+        else
+            {
+			dist temp4 THISACTOR PLAYER_IDENTITY
+			ifge temp4 65536 set RETURN DISTANT_EXPLOSION else
+            ifrnd 51 set RETURN EXPLOSION_1
+            else ifrnd 102 set RETURN EXPLOSION_2
+            else ifrnd 153 set RETURN EXPLOSION_3
+            else ifrnd 204 set RETURN EXPLOSION_4
+            else set RETURN EXPLOSION_5
+            }
+		break
+	case MISSILE_EXPLODE
+	case EXPLOSION_HUGE
+	case EXPLOSION_BIG
+		ifinwater set RETURN UNDERWATER_EXP
+		else ifonwater set RETURN WATER_EXPLOSION
+		else
+			{
+			dist temp4 THISACTOR PLAYER_IDENTITY
+			ifge temp4 65536 set RETURN DISTANT_EXPLOSION
+			}
+		break
+	case DEMON_FIREXPL
+		ifinwater set RETURN UW_MBOOM1
+		else ifonwater set RETURN WATER_EXPLOSION
+		break
+	case EXPLOSION_SMALL
+	case GORO_EXPLOSION
+		ifinwater
+			{
+			ifrnd 128 set RETURN UW_SBOOM2 else
+			set RETURN UW_SBOOM1
+			}
+		// else ifonwater set RETURN WATER_EXPLOSION
+		break
+	case BOLT_MISS
+	case METSWIPE
+	case METSWIPE2
+	case METSWIPE3
+		ifinwater set RETURN UW_BOLT
+		break
+	case HITGLASS
+		ifinwater set RETURN UW_GLASS
+		break
+	case ICE_BOUNCE
+		ifinwater set RETURN UW_ICE
+		break
+	case GRENBOUNCE
+	case H_GREN_BOUNCE
+	case PIPEBOMB_BOUNCE
+	case MC_GREN_BOUNCE
+		ifinwater set RETURN UW_BOUNCE
+		break
+endswitch
+
+// reverb stuff
+ife userdef.soundtoggle 1
+ ife sprite[THISACTOR].picnum SOUND_SPRITE // only player sounds should do this
+switch RETURN
+    case ASSAULTRIFLE
+    case ASSAULTRIFLEU
+    case AUTOMAG_FIRE
+    case AP_SMG
+    case BOS1_ATTACK1
+    case BERET_FIRE
+    case CAPT_ATTACK
+    case CHAINGUN_FIRE
+    case CZN_F
+	case C96_FIRE
+    case CULTIST_RIFLE
+    case DRAGONS_BR_FIRE
+	case ENGY_SMG_FIRE
+	case EVISC_FIRE
+    case FN57_FIRE
+    case GOLREV_F
+    case GLOCKFIRE
+    case GEO_SMGFIRE
+    case GEO_AP_FIRE
+    case GEO_PISTOL
+    case GEF_GR_FIRE
+    case GEO_GLAUNCHER
+    case GOLD_R_FIRE
+    case JERICHO_FIRE
+    case KASHTAN_FIRE
+	case LIZM_GUNF
+    case LONGSLIDE_SHOOT
+    case M203_GL
+    case M960_FIRE
+	case M960P_F
+    case MP40_FIRE
+    case MP5K_FIRE
+    case MICRO_UZI_F
+    case MSPISTOL_FIRE
+    case MC_PISTOL_F
+    case NAILGUN_FIRE
+    case OTS33_FIRE
+    case P90_FIRE
+    case PPSH_FIRE
+    case PISTOL_FIRE
+    case S1911_FIRE
+    case RGL_FIRE
+    case RIOTGUN_FIRE
+    case REVOLVERFIRE
+    case REVOLVER2FIRE
+    case SILVER_T_FIRE
+    case SAA_FIRE
+	case STERLING_FIRE
+    case SKORP_FIRE
+    case SMG_SHOT
+    case SAWNOFF_FIRE
+    case SR-2_FIRE
+	case SNAILGF
+	case SURV_FIR
+	case SURV_FLR
+    case TEC_PISTOL
+    case TMPFIRE
+    case TOKAROVFIRE
+    case TOMMYG_FIRE
+    case TOMMYG_SFIRE
+    case INCEND_FIRE
+    case UMP_FIRE
+    case UDP45_FIRE
+    case KRISS_FIRE
+    case UP_GLOCKFIRE
+    case UZIFIRE
+    case ZAX_SMG
+    case ZAX_GRIFLE_F
+    case PP19_FIRE
+        ifinwater set RETURN UNDWTR_SMALL
+        ife room_type 1 sound PISTOL_BUILD
+        ife room_type 2 sound PISTOL_HALL
+        ife room_type 3 sound PISTOL_OPEN
+        ife room_type 4 sound PISTOL_ROOM
+		break
+    case AA12_FIRE
+    case AA12_FIRE2
+    case AUTOSHOT_FIRE
+    case AUTO5_FIRE
+	case ALOF_FI		 
+	case ARX_SG_F
+    case BLUNDERBUSS
+    case DBSHOTGFIRE
+    case GEO_SHOTGUN
+    case GEO_GOLD_SHOTGUN
+    case GEO_AUTOS_FIRE
+    case JACKHAMMER
+    case KSG_12_FIRE
+	case MOSSB_FIRE
+    case M16_SHOTGUN
+    case MC_EX_SHOTGUN_F
+    case MERC_SHOTGUN
+    case MSSHOTGUN_FIRE
+    case MS_AS_FIRE
+    case MIK_GOLD_SHOTGUN
+    case MSC12_FIRE
+    case OVERUNDER_FIRE
+    case PROTECTA_FIRE
+    case PIGC_SHOTG
+	case PIG_FIRE
+    case R870FIRE
+    case RUS_GOLD_SHOTGUN
+	case RL_NAILB
+    case RN_AUTOSHOTGUN
+    case SERAPH_SG
+	case SSHOTGF
+	case SF_SPIKE_F
+    case SF_SHOTGUN
+	case STAKE_FIRE
+    case SAIGA12_FIRE
+	case SBBALL_FIRE
+    case SAWNOFF_FIRE1
+	case TRENCH_FIRE
+    case UTS15_FIRE
+    case USAS-12_FIRE
+    case WHIPLASH_FIRE
+        ifinwater set RETURN UNDWTR_SHOTGUN
+        ife room_type 1 sound MED_BUILD
+        ife room_type 2 sound MED_HALL
+        ife room_type 3 sound MED_OPEN
+        ife room_type 4 sound MED_ROOM
+		break
+    case AR65_FIRE
+    case AK104FIRE
+    case AK74_FIRE
+	case ARX_FIRE
+    case AKM_FIRE
+    case AK47_FIRE
+    case AK47_GRENADEL
+    case AWMS_FIRE1
+    case AN-94_FIRE
+    case AN-94_FIRE2
+    case AUG_FIRE
+    case AR73_FIRE
+    case BAR_FIRE
+    case BOS1_ATTACK2
+    case BOLTER_FIRE
+    case CZNHV_F
+	case CUTL_FIRE
+    case DEAGLE_FIRE
+    case DP12_FIR
+    case EXPL_SHELL_FIRE
+	case ENGY_SMG_SFIRE
+	case FIREBALL_FIRE
+    case F2000_FIRE
+    case FLECH_SHELL_FIRE
+    case FAMAS_FIRE
+    case FNFAL_FIRE
+    case FG42_FIRE
+    case GEO_PISTOLMEGA
+    case GP-63_FIRE
+    case GRENADELFIRE
+    case GILBOA_FIRE
+    case G36_FIRE
+	case JS_ROCKETP
+    case KAG_MISSL
+    case LR300_FIRE
+    case M4A1_FIRE
+    case M60_FIRE
+    case M16_FIRE
+    case M16_2_FIRE
+    case MC_AP_AR
+    case MERC2_RIFLE
+    case M14_FIRE
+    case MACYFIRE
+    case MSRIFLE_AP
+    case MSRIFLE_HP
+    case MS_BRIFLE_FIRE
+    case PAW20_FIRE
+    case PKM_FIRE
+    case PRIBOR_FIRE
+    case RIFLEFIRE
+    case RPG_SHOOT2
+    case ERPG_SHOOT
+    case RPK_FIRE
+    case RG_GL_FIRE
+	case SLUGFIRE
+    case SF_HMG
+    case SF_ASSAULTR
+    case SF_CANNON_FIRE
+    case SONICC
+    case TRI_FIRE
+    case WARCANNON_FIRE
+    case XM25_FIRE
+    case Z_MISSILE_FIRE
+    case ZAX_GOLDS_FIRE
+    case ZAX_GLFIRE
+    case ZAX_SGALILF
+        ifinwater set RETURN UNDWTR_MED
+        ife room_type 1 sound MED_BUILD
+        ife room_type 2 sound MED_HALL
+        ife room_type 3 sound MED_OPEN
+        ife room_type 4 sound MED_ROOM
+		break
+    case AWMS_FIRE2
+	case AWM_FIRE
+    case BARRETT_SHOT
+    case BLUNDER_P
+	case DUP_FIRE
+	case KM52_FIRE
+    case MAGNUM_SHOTGUN
+    case M99_FIRE
+    case MC_ROCKETL_FIRE
+    case MISSILE_LAUNCH
+    case RPG7_FIRE
+	case PLASRG_FIRE
+    case PA_MISSILEL
+    case RAILGUN_FIRE
+	case SSHOTGF2
+	case STYGIAN_FIRE
+    case STINGER_FIRE
+	case SPELL4FIRE
+    case SF_RPG
+    case SF_LIGHTNINGG
+    case QUAD_SHOTGUN
+    case ZRAILGUN_FIRE
+	case CANN_FIRE
+        ifinwater set RETURN UNDWTR_BIG
+        ife room_type 1 sound LARGE_BUILD
+        ife room_type 2 sound LARGE_HALL
+        ife room_type 3 sound LARGE_OPEN
+        ife room_type 4 sound LARGE_ROOM
+		break
+	case ARCH_FIRE
+	case ARCH_FIRE2
+	case FLESH_SQUIRT
+	case GREMGUN_FIRE
+	case GREMGUN_ICE
+	case MAGIC_AXE
+	case MANACLE_FIRE
+	case OGR_STAFF
+	case UNMAKERF
+	case REDMGUN_FIRE
+	case SKULL_DUSTER
+	case SPELL1FIRE
+	case SANG_GOLDSPELL
+	case SPELL8FIRE
+	case VOID_FIRE
+	case VOID_MEGA
+        ife room_type 1 sound MAG_OPEN
+        ife room_type 2 sound MAG_HALL
+        ife room_type 3 sound MAG_OPEN
+        ife room_type 4 sound MAG_ROOM
+		break
+	case CYBERCULTIST_RIFLE
+	case DARKMATTER_XM8
+    case LASERGUN_FIRE
+    case LASERGUN_FIRE2
+    case LASERGUN_FIRE3
+	case LASERSHOOT
+	case MC_GOLD_SHOTG
+	case MC_MESONC_FIRE
+	case MC_PULSERIFLE_F
+	case MC_PULSEG_FIRE
+	case MC_ICEB
+	case MPLASMA_FIRE
+	case MDF_FIRE
+	case PL_SMGF
+	case PLAS_SHOTGUN
+	case PLASMAGUN
+	case SF_BLASTER
+	case SF_TS_ARF
+	case SF_HAVOK_FIRE
+	case TERMPLAS_FIRE
+	case SHOCKGUN_SNIPE
+	case SHOCKGUN_FIRE
+	case XM8_FIRE
+        ife room_type 1 sound LAS_OPEN
+        ife room_type 2 sound LAS_HALL
+        ife room_type 3 sound LAS_OPEN
+        ife room_type 4 sound LAS_ROOM
+		break
+endswitch
+
+ife RETURN 4 set RETURN -1
+
+ife RETURN SOMETHINGHITFORCE
+	{
+	ifn camerasprite -1 set RETURN 4
+	}
+
+ife RETURN PLYR_TAKEPILLS
+    {
+    ifp pboosted set RETURN 4
+    }
+
+ife RETURN PLYR_GRUNT
+    {
+    ife CHAR 0 set RETURN JEXERT
+    else ife CHAR 1 set RETURN ZEXERT
+    else ife CHAR 10 set RETURN BS_GRUNT
+	else ife CHAR 11 set RETURN MT_EXH1
+    else ife CHAR 17 set RETURN BS_GRUNT
+    else set RETURN 4
+    }
+
+ife RETURN PLYR_LOOKINTOMIRROR
+    {
+    set RETURN 4
+    state MIRROR_QUOTES
+    soundoncevar playsound
+    ife fake_shrunk 1 setactorsoundpitch THISACTOR playsound 512
+    }
+
+ife RETURN PLYR_GASP
+    {
+    set RETURN 4
+    ife CHAR 0 set playsound JGASP2
+    ife CHAR 1 set playsound ZGASP2
+    ife CHAR 3 set playsound R_GASP
+    ife CHAR 4 set playsound SGASP
+    ife CHAR 6 set playsound G_GASP1
+    ife CHAR 13 set playsound MC_GASP
+    ife CHAR 17 set playsound KG_GASP
+    soundoncevar playsound
+    ife fake_shrunk 1 setactorsoundpitch THISACTOR playsound 512
+    }
+
+ife RETURN PLYR_KILLED5
+    {
+    set RETURN 4
+    state PISSED_QUOTES
+    }
+
+ife RETURN PLYR_GOTHEALTHATLOW
+    {
+    set RETURN 4
+    ife amc_base 0 state FIRSTAID_QUOTES
+    }
+
+ife RETURN PLYR_PISSRELIEF
+    {
+    set RETURN 4
+    state RELIEVED_QUOTES
+    }
+
+ife RETURN PLYR_JETPACK_ON
+    {
+    ife CHAR 1 nullop else set RETURN 4
+    ife CHAR 0 soundonce JJETPAKON
+    ife CHAR 2 soundonce FLYBOOTS_ACTIVE
+    ife CHAR 3 soundonce MC_JETPAKON
+    ife CHAR 4 soundonce SPITCHFORK
+    ife CHAR 5 soundonce RNWATCH
+    ife CHAR 6 soundonce GSANDAL
+    ife CHAR 7 soundonce MIK_JETP_ON
+    ife CHAR 10 soundonce JJETPAKON
+    ife CHAR 11 soundonce FLYBOOTS_ACTIVE
+	ife CHAR 12 soundonce JJETPAKON
+    ife CHAR 13 soundonce MC_JETPAKON
+    ife CHAR 14 { soundonce SF_JETPACK_ON ifrnd 32 soundonce SF_JP }
+    }
+
+ife RETURN PLYR_JETPACK_IDLE
+    {
+	set RETURN 4
+    ifn player_using_fighter -1 set itemsound 4
+    else ifn player_using_hovertank -1 set itemsound 4
+     else ifn player_using_VR_tank -1 set itemsound 4
+        else
+        {
+		ife CHAR 1 set itemsound ZTR_JETPACK_IDLE
+        else ife CHAR 2 set itemsound FLYBOOTS_HUM
+        else ife CHAR 3 set itemsound MC_JETPAKIDLE
+        else ife CHAR 7 set itemsound MIK_JETP_IDLE
+        else ife CHAR 10 set itemsound JJETPAKIDLE
+        else ife CHAR 11 set itemsound FLYBOOTS_HUM
+		else ife CHAR 12 set itemsound JJETPAKIDLE
+        else ife CHAR 13 set itemsound MC_JETPAKIDLE
+		else set itemsound ZTR_JETPACK_IDLE
+        }
+	soundoncevar itemsound
+	getp[].jetpack_amount temp8
+	div temp8 8
+	setactorsoundpitch THISACTOR itemsound temp8
+    }
+
+ife RETURN PLYR_JETPACK_OFF
+    {
+	ifn itemsound 0 { stopsoundvar itemsound set itemsound 0 }
+    ife CHAR 1 nullop else set RETURN 4
+    ife CHAR 0 { stopsound JJETPAKIDLE soundonce JJETPAKOFF }
+    ife CHAR 2 { stopsound FLYBOOTS_HUM soundonce FLYBOOTS_ACTIVE }
+    ife CHAR 3 soundonce MC_JETPAKOFF
+    ife CHAR 4 soundonce SPITCHFORK
+    ife CHAR 5 soundonce RNWATCH
+    ife CHAR 6 soundonce GSANDAL2
+    ife CHAR 7 { stopsound MIK_JETP_IDLE soundonce MIK_JETP_OFF }
+    ife CHAR 10 { stopsound JJETPAKIDLE soundonce JJETPAKOFF }
+    ife CHAR 11 { stopsound FLYBOOTS_HUM soundonce FLYBOOTS_ACTIVE }
+	ife CHAR 12
+		{
+		stopsound JJETPAKIDLE
+		soundonce JJETPAKOFF
+		}
+    ife CHAR 13 soundonce MC_JETPAKOFF
+    ife CHAR 14 soundonce SF_JETPACK_OFF
+    }
+
+ife RETURN PLYR_SEARCH set RETURN 4
+
+ife RETURN PLYR_SEARCH2 set RETURN 4
+
+ife RETURN PLYR_SCREAM
+ ifge player[].falling_counter 62
+        {
+        set RETURN 4
+        ife END_LEVEL 0 state FALL_SCREAM_QUOTES
+        }
+
+endevent
+
+defstate METAL_HIT_SOUNDS
+ifrnd 96 set playsound HITMETAL else
+ifrnd 96 set playsound HITMETAL2 else
+ifrnd 96 set playsound HITMETAL3 else
+set playsound HITMETAL4
+ends
+
+defstate SQUISH_HIT_SOUNDS
+ifrnd 128 set playsound HITFLESH
+else set playsound HITFLESH2
+ends
+
+defstate slashed_sounds
+randvar temp8 50
+ifl temp8 10 sound SLASH_DIE_01
+else ifl temp8 20 sound SLASH_DIE_02
+else ifl temp8 30 sound SLASH_DIE_03
+else ifl temp8 40 sound SLASH_DIE_04
+else sound SLASH_DIE_05
+ends
+
+defstate SQUISH_FALL_NOISES
+randvar temp8 50
+ifl temp8 10 sound SLASH_F1
+else ifl temp8 20 sound SLASH_F2
+else ifl temp8 30 sound SLASH_F3
+else ifl temp8 40 sound SLASH_F4
+else sound SLASH_F5
+ends
+
+
+defstate RUNSOUNDS
+randvar footstep_count 3
+
+ifg player[].footprintcount 0 { ifonwater nullop else ifinwater nullop else sound WET_FOOT }
+
+ifonwater ifn STEPSOUNDFX 12 ifn STEPSOUNDFX 13 set STEPSOUNDFX 16
+
+ifonwater nullop else
+{
+ifp pboosted
+ife CHAR 1
+    sound BIG_BOOT_STEP
+
+ife FIRE_SUIT 1
+    sound BIG_BOOT_STEP
+
+ife SPACE_SUIT 1
+    sound BIG_BOOT_STEP
+
+}
+
+ife CHAR 2
+{
+ifand BITS_PRESS P_SPRINTING
+    {
+    espawn SOUND_SPRITE state SPAWN_IN_PLAYER_FRONT
+    ife footstep_count 0 setactorvar[RETURN].temp H_ARMOUR_S1
+    else ife footstep_count 1 setactorvar[RETURN].temp 4
+    else ife footstep_count 2 setactorvar[RETURN].temp H_ARMOUR_S2
+    else ife footstep_count 3 setactorvar[RETURN].temp 4
+    }
+    else
+    ifp prunning
+    {
+    ife footstep_count 0 sound H_ARMOUR_M1 else
+    ife footstep_count 1 sound H_ARMOUR_M2 else
+    ife footstep_count 2 sound H_ARMOUR_M3 else
+    ife footstep_count 3 sound H_ARMOUR_M4
+    }
+}
+
+// make sure to increase footstep_stopper code in pstats.con if adding new footstep sounds
+
+ife STEPSOUNDFX 0
+    {
+    ife CHAR 20
+        {
+		ife footstep_count old_fs_count randvar footstep_count 3
+		switch room_type
+			case 0
+			default
+				ife footstep_count 0 set playsound HEELS_1 else
+				ife footstep_count 1 set playsound HEELS_2 else
+				ife footstep_count 2 set playsound HEELS_3 else
+				ife footstep_count 3 set playsound HEELS_4
+				break
+			case 1
+			case 3
+				ife footstep_count 0 set playsound O_HEEL1 else
+				ife footstep_count 1 set playsound O_HEEL2 else
+				ife footstep_count 2 set playsound O_HEEL3 else
+				ife footstep_count 3 set playsound O_HEEL4
+				break
+			case 2
+			case 4
+				ife footstep_count 0 set playsound I_HEEL1 else
+				ife footstep_count 1 set playsound I_HEEL2 else
+				ife footstep_count 2 set playsound I_HEEL3 else
+				ife footstep_count 3 set playsound I_HEEL4
+				break
+			endswitch
+		set old_fs_count footstep_count // simple method of stopping one sound playing consecutively
+        }
+    else // normal step has 8 since it's a common steps ound
+        {
+        randvar footstep_count 7
+        ife footstep_count old_fs_count randvar footstep_count 7
+		switch room_type
+			case 0
+			default
+			ife footstep_count 0 set playsound STEP1 else
+			ife footstep_count 1 set playsound STEP2 else
+			ife footstep_count 2 set playsound STEP3 else
+			ife footstep_count 3 set playsound STEP4 else
+			ife footstep_count 4 set playsound STEP5 else
+			ife footstep_count 5 set playsound STEP6 else
+			ife footstep_count 6 set playsound STEP7 else
+			ife footstep_count 7 set playsound STEP8
+			break
+			case 2
+			case 4
+			ife footstep_count 0 set playsound I_STEP1 else
+			ife footstep_count 1 set playsound I_STEP2 else
+			ife footstep_count 2 set playsound I_STEP3 else
+			ife footstep_count 3 set playsound I_STEP4 else
+			ife footstep_count 4 set playsound I_STEP5 else
+			ife footstep_count 5 set playsound I_STEP6 else
+			ife footstep_count 6 set playsound I_STEP7 else
+			ife footstep_count 7 set playsound I_STEP8
+			break
+			case 1
+			case 3
+			ife footstep_count 0 set playsound O_STEP1 else
+			ife footstep_count 1 set playsound O_STEP2 else
+			ife footstep_count 2 set playsound O_STEP3 else
+			ife footstep_count 3 set playsound O_STEP4 else
+			ife footstep_count 4 set playsound O_STEP5 else
+			ife footstep_count 5 set playsound O_STEP6 else
+			ife footstep_count 6 set playsound O_STEP7 else
+			ife footstep_count 7 set playsound O_STEP8
+			break
+		endswitch
+        set old_fs_count footstep_count // simple method of stopping one sound playing consecutively
+        }
+    }
+ife STEPSOUNDFX 1
+    {
+    randvar footstep_count 7
+    ife footstep_count old_fs_count randvar footstep_count 7
+	switch room_type
+		case 0
+		default
+			ife footstep_count 0 set playsound WOOD1 else
+			ife footstep_count 1 set playsound WOOD2 else
+			ife footstep_count 2 set playsound WOOD3 else
+			ife footstep_count 3 set playsound WOOD4 else
+			ife footstep_count 4 set playsound WOOD5 else
+			ife footstep_count 5 set playsound WOOD6 else
+			ife footstep_count 6 set playsound WOOD7 else
+			ife footstep_count 7 set playsound WOOD8
+			break
+		case 1
+		case 3
+			ife footstep_count 0 set playsound O_WOOD1 else
+			ife footstep_count 1 set playsound O_WOOD2 else
+			ife footstep_count 2 set playsound O_WOOD3 else
+			ife footstep_count 3 set playsound O_WOOD4 else
+			ife footstep_count 4 set playsound O_WOOD5 else
+			ife footstep_count 5 set playsound O_WOOD6 else
+			ife footstep_count 6 set playsound O_WOOD7 else
+			ife footstep_count 7 set playsound O_WOOD8
+			break
+		case 2
+		case 4
+			ife footstep_count 0 set playsound I_WOOD1 else
+			ife footstep_count 1 set playsound I_WOOD2 else
+			ife footstep_count 2 set playsound I_WOOD3 else
+			ife footstep_count 3 set playsound I_WOOD4 else
+			ife footstep_count 4 set playsound I_WOOD5 else
+			ife footstep_count 5 set playsound I_WOOD6 else
+			ife footstep_count 6 set playsound I_WOOD7 else
+			ife footstep_count 7 set playsound I_WOOD8
+			break
+	endswitch
+    set old_fs_count footstep_count // simple method of stopping one sound playing consecutively
+    }
+ife STEPSOUNDFX 2
+    {
+    randvar footstep_count 6
+    ife footstep_count old_fs_count randvar footstep_count 6
+	switch room_type
+		case 0
+		default
+			ife footstep_count 0 set playsound TIN1 else
+			ife footstep_count 1 set playsound TIN2 else
+			ife footstep_count 2 set playsound TIN3 else
+			ife footstep_count 3 set playsound TIN4 else
+			ife footstep_count 4 set playsound TIN5 else
+			ife footstep_count 5 set playsound TIN6 else
+			ife footstep_count 6 set playsound TIN7
+			break
+		case 1
+		case 3
+			ife footstep_count 0 set playsound O_TIN1 else
+			ife footstep_count 1 set playsound O_TIN2 else
+			ife footstep_count 2 set playsound O_TIN3 else
+			ife footstep_count 3 set playsound O_TIN4 else
+			ife footstep_count 4 set playsound O_TIN5 else
+			ife footstep_count 5 set playsound O_TIN6 else
+			ife footstep_count 6 set playsound O_TIN7
+			break
+		case 2
+		case 4
+			ife footstep_count 0 set playsound I_TIN1 else
+			ife footstep_count 1 set playsound I_TIN2 else
+			ife footstep_count 2 set playsound I_TIN3 else
+			ife footstep_count 3 set playsound I_TIN4 else
+			ife footstep_count 4 set playsound I_TIN5 else
+			ife footstep_count 5 set playsound I_TIN6 else
+			ife footstep_count 6 set playsound I_TIN7
+			break
+	endswitch
+    set old_fs_count footstep_count // simple method of stopping one sound playing consecutively
+    }
+ife STEPSOUNDFX 3
+    {
+    randvar footstep_count 6
+    ife footstep_count old_fs_count randvar footstep_count 6
+	switch room_type
+		case 0
+		default
+			ife footstep_count 0 set playsound GRATES1 else
+			ife footstep_count 1 set playsound GRATE2 else
+			ife footstep_count 2 set playsound GRATE3 else
+			ife footstep_count 3 set playsound GRATE4 else
+			ife footstep_count 4 set playsound GRATE5 else
+			ife footstep_count 5 set playsound GRATE6 else
+			ife footstep_count 6 set playsound GRATE7
+			break
+		case 1
+		case 3
+			ife footstep_count 0 set playsound O_GRATE1 else
+			ife footstep_count 1 set playsound O_GRATE2 else
+			ife footstep_count 2 set playsound O_GRATE3 else
+			ife footstep_count 3 set playsound O_GRATE4 else
+			ife footstep_count 4 set playsound O_GRATE5 else
+			ife footstep_count 5 set playsound O_GRATE6 else
+			ife footstep_count 6 set playsound O_GRATE7
+			break
+		case 2
+		case 4
+			ife footstep_count 0 set playsound I_GRATE1 else
+			ife footstep_count 1 set playsound I_GRATE2 else
+			ife footstep_count 2 set playsound I_GRATE3 else
+			ife footstep_count 3 set playsound I_GRATE4 else
+			ife footstep_count 4 set playsound I_GRATE5 else
+			ife footstep_count 5 set playsound I_GRATE6 else
+			ife footstep_count 6 set playsound I_GRATE7
+			break
+		endswitch
+    set old_fs_count footstep_count // simple method of stopping one sound playing consecutively
+    }
+ife STEPSOUNDFX 4
+    {
+    randvar footstep_count 6
+    ife footstep_count old_fs_count randvar footstep_count 6
+	switch room_type
+		case 0
+		default
+			ife footstep_count 0 set playsound GRASS1 else
+			ife footstep_count 1 set playsound GRASS2 else
+			ife footstep_count 2 set playsound GRASS3 else
+			ife footstep_count 3 set playsound GRASS4 else
+			ife footstep_count 4 set playsound GRASS5 else
+			ife footstep_count 5 set playsound GRASS6 else
+			ife footstep_count 6 set playsound GRASS7
+			break
+		case 1
+		case 3
+			ife footstep_count 0 set playsound O_GRASS1 else
+			ife footstep_count 1 set playsound O_GRASS2 else
+			ife footstep_count 2 set playsound O_GRASS3 else
+			ife footstep_count 3 set playsound O_GRASS4 else
+			ife footstep_count 4 set playsound O_GRASS5 else
+			ife footstep_count 5 set playsound O_GRASS6 else
+			ife footstep_count 6 set playsound O_GRASS7
+			break
+		case 2
+		case 4
+			ife footstep_count 0 set playsound I_GRASS1 else
+			ife footstep_count 1 set playsound I_GRASS2 else
+			ife footstep_count 2 set playsound I_GRASS3 else
+			ife footstep_count 3 set playsound I_GRASS4 else
+			ife footstep_count 4 set playsound I_GRASS5 else
+			ife footstep_count 5 set playsound I_GRASS6 else
+			ife footstep_count 6 set playsound I_GRASS7
+			break
+		endswitch
+    set old_fs_count footstep_count // simple method of stopping one sound playing consecutively
+    }
+ife STEPSOUNDFX 5
+    {
+    randvar footstep_count 7
+    ife footstep_count old_fs_count randvar footstep_count 7
+	switch room_type
+		case 0
+		default
+			ife footstep_count 0 set playsound TILE1 else
+			ife footstep_count 1 set playsound TILE2 else
+			ife footstep_count 2 set playsound TILE3 else
+			ife footstep_count 3 set playsound TILE4 else
+			ife footstep_count 4 set playsound TILE5 else
+			ife footstep_count 5 set playsound TILE6 else
+			ife footstep_count 6 set playsound TILE7 else
+			ife footstep_count 7 set playsound TILE8
+			break
+		case 1
+		case 3
+			ife footstep_count 0 set playsound O_TILE1 else
+			ife footstep_count 1 set playsound O_TILE2 else
+			ife footstep_count 2 set playsound O_TILE3 else
+			ife footstep_count 3 set playsound O_TILE4 else
+			ife footstep_count 4 set playsound O_TILE5 else
+			ife footstep_count 5 set playsound O_TILE6 else
+			ife footstep_count 6 set playsound O_TILE7 else
+			ife footstep_count 7 set playsound O_TILE8
+			break
+		case 2
+		case 4
+			ife footstep_count 0 set playsound I_TILE1 else
+			ife footstep_count 1 set playsound I_TILE2 else
+			ife footstep_count 2 set playsound I_TILE3 else
+			ife footstep_count 3 set playsound I_TILE4 else
+			ife footstep_count 4 set playsound I_TILE5 else
+			ife footstep_count 5 set playsound I_TILE6 else
+			ife footstep_count 6 set playsound I_TILE7 else
+			ife footstep_count 7 set playsound I_TILE8
+			break
+		endswitch
+    set old_fs_count footstep_count // simple method of stopping one sound playing consecutively
+    }
+ife STEPSOUNDFX 6
+    {
+    randvar footstep_count 7
+    ife footstep_count old_fs_count randvar footstep_count 7
+	switch room_type
+		case 0
+		default
+			ife footstep_count 0 set playsound CARPET1 else
+			ife footstep_count 1 set playsound CARPET2 else
+			ife footstep_count 2 set playsound CARPET3 else
+			ife footstep_count 3 set playsound CARPET4 else
+			ife footstep_count 4 set playsound CARPET5 else
+			ife footstep_count 5 set playsound CARPET6 else
+			ife footstep_count 6 set playsound CARPET7 else
+			ife footstep_count 7 set playsound CARPET8
+			break
+		case 1
+		case 3
+			ife footstep_count 0 set playsound O_CARPET1 else
+			ife footstep_count 1 set playsound O_CARPET2 else
+			ife footstep_count 2 set playsound O_CARPET3 else
+			ife footstep_count 3 set playsound O_CARPET4 else
+			ife footstep_count 4 set playsound O_CARPET5 else
+			ife footstep_count 5 set playsound O_CARPET6 else
+			ife footstep_count 6 set playsound O_CARPET7 else
+			ife footstep_count 7 set playsound O_CARPET8
+			break
+		case 2
+		case 4
+			ife footstep_count 0 set playsound I_CARPET1 else
+			ife footstep_count 1 set playsound I_CARPET2 else
+			ife footstep_count 2 set playsound I_CARPET3 else
+			ife footstep_count 3 set playsound I_CARPET4 else
+			ife footstep_count 4 set playsound I_CARPET5 else
+			ife footstep_count 5 set playsound I_CARPET6 else
+			ife footstep_count 6 set playsound I_CARPET7 else
+			ife footstep_count 7 set playsound I_CARPET8
+			break
+		endswitch
+    set old_fs_count footstep_count // simple method of stopping one sound playing consecutively
+    }
+ife STEPSOUNDFX 7 set playsound 4 // just a blank sound file
+ife STEPSOUNDFX 8
+    {
+    ife snowprint 0 { spawn SNOWPRINT1 set snowprint 1 } else ife snowprint 1 { spawn SNOWPRINT2 set snowprint 0 }
+    randvar footstep_count 7
+    ife footstep_count old_fs_count randvar footstep_count 7
+	switch room_type
+		case 0
+		default
+			ife footstep_count 0 set playsound SNOW1 else
+			ife footstep_count 1 set playsound SNOW2 else
+			ife footstep_count 2 set playsound SNOW3 else
+			ife footstep_count 3 set playsound SNOW4 else
+			ife footstep_count 4 set playsound SNOW5 else
+			ife footstep_count 5 set playsound SNOW6 else
+			ife footstep_count 6 set playsound SNOW7 else
+			ife footstep_count 7 set playsound SNOW8
+			break
+		case 1
+		case 3
+			ife footstep_count 0 set playsound O_SNOW1 else
+			ife footstep_count 1 set playsound O_SNOW2 else
+			ife footstep_count 2 set playsound O_SNOW3 else
+			ife footstep_count 3 set playsound O_SNOW4 else
+			ife footstep_count 4 set playsound O_SNOW5 else
+			ife footstep_count 5 set playsound O_SNOW6 else
+			ife footstep_count 6 set playsound O_SNOW7 else
+			ife footstep_count 7 set playsound O_SNOW8
+			break
+		case 2
+		case 4
+			ife footstep_count 0 set playsound I_SNOW1 else
+			ife footstep_count 1 set playsound I_SNOW2 else
+			ife footstep_count 2 set playsound I_SNOW3 else
+			ife footstep_count 3 set playsound I_SNOW4 else
+			ife footstep_count 4 set playsound I_SNOW5 else
+			ife footstep_count 5 set playsound I_SNOW6 else
+			ife footstep_count 6 set playsound I_SNOW7 else
+			ife footstep_count 7 set playsound I_SNOW8
+			break
+		endswitch
+    set old_fs_count footstep_count // simple method of stopping one sound playing consecutively
+    }
+ife STEPSOUNDFX 9
+    {
+    ife sector[].floorpicnum 5795 seta[].pal 11
+    ife sector[].floorpicnum 7387 seta[].pal 14
+    espawn 8435
+    geta[RETURN].sectnum temp
+    geta[RETURN].x temp2
+    geta[RETURN].y temp3
+    getflorzofslope temp temp2 temp3 temp4
+    seta[RETURN].z temp4
+    geta[].pal temp
+    seta[RETURN].pal temp
+    randvar footstep_count 6
+    ife footstep_count old_fs_count randvar footstep_count 7
+	switch room_type
+		case 0
+		default
+			ife footstep_count 0 set playsound SLOSH1 else
+			ife footstep_count 1 set playsound SLOSH2 else
+			ife footstep_count 2 set playsound SLOSH3 else
+			ife footstep_count 3 set playsound SLOSH4 else
+			ife footstep_count 4 set playsound SLOSH5 else
+			ife footstep_count 5 set playsound SLOSH6 else
+			ife footstep_count 6 set playsound SLOSH7
+			break
+		case 1
+		case 3
+			ife footstep_count 0 set playsound O_SLOSH1 else
+			ife footstep_count 1 set playsound O_SLOSH2 else
+			ife footstep_count 2 set playsound O_SLOSH3 else
+			ife footstep_count 3 set playsound O_SLOSH4 else
+			ife footstep_count 4 set playsound O_SLOSH5 else
+			ife footstep_count 5 set playsound O_SLOSH6 else
+			ife footstep_count 6 set playsound O_SLOSH7
+			break
+		case 2
+		case 4
+			ife footstep_count 0 set playsound I_SLOSH1 else
+			ife footstep_count 1 set playsound I_SLOSH2 else
+			ife footstep_count 2 set playsound I_SLOSH3 else
+			ife footstep_count 3 set playsound I_SLOSH4 else
+			ife footstep_count 4 set playsound I_SLOSH5 else
+			ife footstep_count 5 set playsound I_SLOSH6 else
+			ife footstep_count 6 set playsound I_SLOSH7
+			break
+		endswitch
+    }
+ife STEPSOUNDFX 10
+    {
+    randvar footstep_count 7
+    ife footstep_count old_fs_count randvar footstep_count 7
+	switch room_type
+		case 0
+		default
+			ife footstep_count 0 set playsound DIRT1 else
+			ife footstep_count 1 set playsound DIRT2 else
+			ife footstep_count 2 set playsound DIRT3 else
+			ife footstep_count 3 set playsound DIRT4 else
+			ife footstep_count 4 set playsound DIRT5 else
+			ife footstep_count 5 set playsound DIRT6 else
+			ife footstep_count 6 set playsound DIRT7 else
+			ife footstep_count 7 set playsound DIRT8
+			break
+		case 1
+		case 3
+			ife footstep_count 0 set playsound O_DIRT1 else
+			ife footstep_count 1 set playsound O_DIRT2 else
+			ife footstep_count 2 set playsound O_DIRT3 else
+			ife footstep_count 3 set playsound O_DIRT4 else
+			ife footstep_count 4 set playsound O_DIRT5 else
+			ife footstep_count 5 set playsound O_DIRT6 else
+			ife footstep_count 6 set playsound O_DIRT7 else
+			ife footstep_count 7 set playsound O_DIRT8
+			break
+		case 2
+		case 4
+			ife footstep_count 0 set playsound I_DIRT1 else
+			ife footstep_count 1 set playsound I_DIRT2 else
+			ife footstep_count 2 set playsound I_DIRT3 else
+			ife footstep_count 3 set playsound I_DIRT4 else
+			ife footstep_count 4 set playsound I_DIRT5 else
+			ife footstep_count 5 set playsound I_DIRT6 else
+			ife footstep_count 6 set playsound I_DIRT7 else
+			ife footstep_count 7 set playsound I_DIRT8
+			break
+		endswitch
+    set old_fs_count footstep_count // simple method of stopping one sound playing consecutively
+    }
+ife STEPSOUNDFX 11
+    {
+    randvar footstep_count 7
+    ife footstep_count old_fs_count randvar footstep_count 7
+	switch room_type
+		case 0
+		default
+			ife footstep_count 0 set playsound CRETE1 else
+			ife footstep_count 1 set playsound CRETE2 else
+			ife footstep_count 2 set playsound CRETE3 else
+			ife footstep_count 3 set playsound CRETE4 else
+			ife footstep_count 4 set playsound CRETE5 else
+			ife footstep_count 5 set playsound CRETE6 else
+			ife footstep_count 6 set playsound CRETE7 else
+			ife footstep_count 7 set playsound CRETE8
+			break
+		case 1
+		case 3
+			ife footstep_count 0 set playsound O_CRETE1 else
+			ife footstep_count 1 set playsound O_CRETE2 else
+			ife footstep_count 2 set playsound O_CRETE3 else
+			ife footstep_count 3 set playsound O_CRETE4 else
+			ife footstep_count 4 set playsound O_CRETE5 else
+			ife footstep_count 5 set playsound O_CRETE6 else
+			ife footstep_count 6 set playsound O_CRETE7 else
+			ife footstep_count 7 set playsound O_CRETE8
+			break
+		case 2
+		case 4
+			ife footstep_count 0 set playsound I_CRETE1 else
+			ife footstep_count 1 set playsound I_CRETE2 else
+			ife footstep_count 2 set playsound I_CRETE3 else
+			ife footstep_count 3 set playsound I_CRETE4 else
+			ife footstep_count 4 set playsound I_CRETE5 else
+			ife footstep_count 5 set playsound I_CRETE6 else
+			ife footstep_count 6 set playsound I_CRETE7 else
+			ife footstep_count 7 set playsound I_CRETE8
+			break
+		endswitch
+    set old_fs_count footstep_count // simple method of stopping one sound playing consecutively
+    }
+ife STEPSOUNDFX 12
+    {
+    randvar footstep_count 7
+    ife footstep_count old_fs_count randvar footstep_count 6
+	switch room_type
+		case 0
+		default
+			ife footstep_count 0 set playsound MUD1 else
+			ife footstep_count 1 set playsound MUD2 else
+			ife footstep_count 2 set playsound MUD3 else
+			ife footstep_count 3 set playsound MUD4 else
+			ife footstep_count 4 set playsound MUD5 else
+			ife footstep_count 5 set playsound MUD6 else
+			ife footstep_count 6 set playsound MUD7 else
+			ife footstep_count 7 set playsound MUD8
+			break
+		case 1
+		case 3
+			ife footstep_count 0 set playsound O_MUD1 else
+			ife footstep_count 1 set playsound O_MUD2 else
+			ife footstep_count 2 set playsound O_MUD3 else
+			ife footstep_count 3 set playsound O_MUD4 else
+			ife footstep_count 4 set playsound O_MUD5 else
+			ife footstep_count 5 set playsound O_MUD6 else
+			ife footstep_count 6 set playsound O_MUD7 else
+			ife footstep_count 7 set playsound O_MUD8
+			break
+		case 2
+		case 4
+			ife footstep_count 0 set playsound I_MUD1 else
+			ife footstep_count 1 set playsound I_MUD2 else
+			ife footstep_count 2 set playsound I_MUD3 else
+			ife footstep_count 3 set playsound I_MUD4 else
+			ife footstep_count 4 set playsound I_MUD5 else
+			ife footstep_count 5 set playsound I_MUD6 else
+			ife footstep_count 6 set playsound I_MUD7 else
+			ife footstep_count 7 set playsound I_MUD8
+			break
+		endswitch
+    set old_fs_count footstep_count // simple method of stopping one sound playing consecutively
+    }
+ife STEPSOUNDFX 13
+{
+randvar footstep_count 3
+ife footstep_count old_fs_count randvar footstep_count 3
+ife footstep_count 0 set playsound LAVA_SPLASH else
+ife footstep_count 1 set playsound LAVA_SPLASH else
+ife footstep_count 2 set playsound LAVA_SPLASH else
+ife footstep_count 3 set playsound LAVA_SPLASH
+set old_fs_count footstep_count // simple method of stopping one sound playing consecutively
+}
+ife STEPSOUNDFX 14
+{
+	    randvar footstep_count 3
+    ife footstep_count old_fs_count randvar footstep_count 3
+	switch room_type
+		case 0
+		default
+			ife footstep_count 0 { set playsound TIN1 sound SLOSH1 } else
+			ife footstep_count 1 { set playsound TIN2 sound SLOSH2 } else
+			ife footstep_count 2 { set playsound TIN3 sound SLOSH3 } else
+			ife footstep_count 3 { set playsound TIN4 sound SLOSH4 }
+			break
+		case 1
+		case 3
+			ife footstep_count 0 { set playsound O_TIN1 sound O_SLOSH1 } else
+			ife footstep_count 1 { set playsound O_TIN2 sound O_SLOSH2 } else
+			ife footstep_count 2 { set playsound O_TIN3 sound O_SLOSH3 } else
+			ife footstep_count 3 { set playsound O_TIN4 sound O_SLOSH4 }
+			break
+		case 2
+		case 4
+			ife footstep_count 0 { set playsound I_TIN1 sound I_SLOSH1 } else
+			ife footstep_count 1 { set playsound I_TIN2 sound I_SLOSH2 } else
+			ife footstep_count 2 { set playsound I_TIN3 sound I_SLOSH3 } else
+			ife footstep_count 3 { set playsound I_TIN4 sound I_SLOSH4 }
+			break
+	endswitch
+set old_fs_count footstep_count // simple method of stopping one sound playing consecutively
+}
+ife STEPSOUNDFX 15
+{
+    randvar footstep_count 3
+    ife footstep_count old_fs_count randvar footstep_count 3
+	switch room_type
+		case 0
+		default
+			ife footstep_count 0 { set playsound STEP1 sound SLOSH1 } else
+			ife footstep_count 1 { set playsound STEP2 sound SLOSH2 } else
+			ife footstep_count 2 { set playsound STEP3 sound SLOSH3 } else
+			ife footstep_count 3 { set playsound STEP4 sound SLOSH4 }
+			break
+		case 1
+		case 3
+			ife footstep_count 0 { set playsound O_STEP1 sound O_SLOSH1 } else
+			ife footstep_count 1 { set playsound O_STEP2 sound O_SLOSH2 } else
+			ife footstep_count 2 { set playsound O_STEP3 sound O_SLOSH3 } else
+			ife footstep_count 3 { set playsound O_STEP4 sound O_SLOSH4 }
+			break
+		case 2
+		case 4
+			ife footstep_count 0 { set playsound I_STEP1 sound I_SLOSH1 } else
+			ife footstep_count 1 { set playsound I_STEP2 sound I_SLOSH2 } else
+			ife footstep_count 2 { set playsound I_STEP3 sound I_SLOSH3 } else
+			ife footstep_count 3 { set playsound I_STEP4 sound I_SLOSH4 }
+			break
+	endswitch
+set old_fs_count footstep_count // simple method of stopping one sound playing consecutively
+}
+ife STEPSOUNDFX 16
+{
+  gets[].floorpicnum temp
+    ife temp 5795 seta[].pal 11
+    ife temp 7387 seta[].pal 14
+    espawn 8435
+    geta[RETURN].z temp3
+    add temp3 -512
+    seta[RETURN].z temp3
+    geta[].pal temp
+    seta[RETURN].pal temp
+    ife footstep_count old_fs_count randvar footstep_count 3
+	switch room_type
+		case 0
+		default
+			ife footstep_count 0 set playsound WADE1 else
+			ife footstep_count 1 set playsound WADE2 else
+			ife footstep_count 2 set playsound WADE3 else
+			ife footstep_count 3 set playsound WADE4
+			break
+		case 1
+		case 3
+			ife footstep_count 0 set playsound O_WADE1 else
+			ife footstep_count 1 set playsound O_WADE2 else
+			ife footstep_count 2 set playsound O_WADE3 else
+			ife footstep_count 3 set playsound O_WADE4
+			break
+		case 2
+		case 4
+			ife footstep_count 0 set playsound I_WADE1 else
+			ife footstep_count 1 set playsound I_WADE2 else
+			ife footstep_count 2 set playsound I_WADE3 else
+			ife footstep_count 3 set playsound I_WADE4
+			break
+		endswitch
+	set old_fs_count footstep_count // simple method of stopping one sound playing consecutively
+}
+ife STEPSOUNDFX 17
+{
+    ife footstep_count old_fs_count randvar footstep_count 3
+	switch room_type
+		case 0
+		default
+			ife footstep_count 0 set playsound CHAINL_1 else
+			ife footstep_count 1 set playsound CHAINL_2 else
+			ife footstep_count 2 set playsound CHAINL_3 else
+			ife footstep_count 3 set playsound CHAINL_4
+			break
+		case 1
+		case 3
+			ife footstep_count 0 set playsound O_CHAIN1 else
+			ife footstep_count 1 set playsound O_CHAIN2 else
+			ife footstep_count 2 set playsound O_CHAIN3 else
+			ife footstep_count 3 set playsound O_CHAIN4
+			break
+		case 2
+		case 4
+			ife footstep_count 0 set playsound I_CHAIN1 else
+			ife footstep_count 1 set playsound I_CHAIN2 else
+			ife footstep_count 2 set playsound I_CHAIN3 else
+			ife footstep_count 3 set playsound I_CHAIN4
+			break
+		endswitch
+set old_fs_count footstep_count // simple method of stopping one sound playing consecutively
+}
+ife STEPSOUNDFX 18
+    {
+    randvar footstep_count 7
+    ife footstep_count old_fs_count randvar footstep_count 6
+	switch room_type
+		case 0
+		default
+			ife footstep_count 0 set playsound GLASS1 else
+			ife footstep_count 1 set playsound GLASS2S else
+			ife footstep_count 2 set playsound GLASS3S else
+			ife footstep_count 3 set playsound GLASS4 else
+			ife footstep_count 4 set playsound GLASS5 else
+			ife footstep_count 5 set playsound GLASS6 else
+			ife footstep_count 6 set playsound GLASS7 else
+			ife footstep_count 7 set playsound GLASS8
+			break
+		case 1
+		case 3
+			ife footstep_count 0 set playsound O_GLASS1 else
+			ife footstep_count 1 set playsound O_GLASS2 else
+			ife footstep_count 2 set playsound O_GLASS3 else
+			ife footstep_count 3 set playsound O_GLASS4 else
+			ife footstep_count 4 set playsound O_GLASS5 else
+			ife footstep_count 5 set playsound O_GLASS6 else
+			ife footstep_count 6 set playsound O_GLASS7 else
+			ife footstep_count 7 set playsound O_GLASS8
+			break
+		case 2
+		case 4
+			ife footstep_count 0 set playsound I_GLASS1 else
+			ife footstep_count 1 set playsound I_GLASS2 else
+			ife footstep_count 2 set playsound I_GLASS3 else
+			ife footstep_count 3 set playsound I_GLASS4 else
+			ife footstep_count 4 set playsound I_GLASS5 else
+			ife footstep_count 5 set playsound I_GLASS6 else
+			ife footstep_count 6 set playsound I_GLASS7 else
+			ife footstep_count 7 set playsound I_GLASS8
+			break
+	endswitch
+    set old_fs_count footstep_count // simple method of stopping one sound playing consecutively
+    }
+ife STEPSOUNDFX 19
+{
+randvar footstep_count 3
+ife footstep_count old_fs_count randvar footstep_count 3
+	switch room_type
+		case 0
+		default
+			ife footstep_count 0 set playsound CARDB_1 else
+			ife footstep_count 1 set playsound CARDB_2 else
+			ife footstep_count 2 set playsound CARDB_3 else
+			ife footstep_count 3 set playsound CARDB_4
+			break
+		case 1
+		case 3
+			ife footstep_count 0 set playsound O_CARDB1 else
+			ife footstep_count 1 set playsound O_CARDB2 else
+			ife footstep_count 2 set playsound O_CARDB3 else
+			ife footstep_count 3 set playsound O_CARDB4
+			break
+		case 2
+		case 4
+			ife footstep_count 0 set playsound I_CARDB1 else
+			ife footstep_count 1 set playsound I_CARDB2 else
+			ife footstep_count 2 set playsound I_CARDB3 else
+			ife footstep_count 3 set playsound I_CARDB4
+			break
+		endswitch
+set old_fs_count footstep_count // simple method of stopping one sound playing consecutively
+}
+ife STEPSOUNDFX 20
+    {
+    randvar footstep_count 7
+    ife footstep_count old_fs_count randvar footstep_count 6
+	switch room_type
+		case 0
+		default
+			ife footstep_count 0 set playsound MUD1 else
+			ife footstep_count 1 set playsound MUD2 else
+			ife footstep_count 2 set playsound MUD3 else
+			ife footstep_count 3 set playsound MUD4 else
+			ife footstep_count 4 set playsound MUD5 else
+			ife footstep_count 5 set playsound MUD6 else
+			ife footstep_count 6 set playsound MUD7 else
+			ife footstep_count 7 set playsound MUD8
+			break
+		case 1
+		case 3
+			ife footstep_count 0 set playsound O_MUD1 else
+			ife footstep_count 1 set playsound O_MUD2 else
+			ife footstep_count 2 set playsound O_MUD3 else
+			ife footstep_count 3 set playsound O_MUD4 else
+			ife footstep_count 4 set playsound O_MUD5 else
+			ife footstep_count 5 set playsound O_MUD6 else
+			ife footstep_count 6 set playsound O_MUD7 else
+			ife footstep_count 7 set playsound O_MUD8
+			break
+		case 2
+		case 4
+			ife footstep_count 0 set playsound I_MUD1 else
+			ife footstep_count 1 set playsound I_MUD2 else
+			ife footstep_count 2 set playsound I_MUD3 else
+			ife footstep_count 3 set playsound I_MUD4 else
+			ife footstep_count 4 set playsound I_MUD5 else
+			ife footstep_count 5 set playsound I_MUD6 else
+			ife footstep_count 6 set playsound I_MUD7 else
+			ife footstep_count 7 set playsound I_MUD8
+			break
+		endswitch
+    set old_fs_count footstep_count // simple method of stopping one sound playing consecutively
+    }
+ife STEPSOUNDFX 21 // blood/gore
+    {
+    randvar footstep_count 7
+    ife footstep_count old_fs_count randvar footstep_count 6
+	switch room_type
+		case 0
+		default
+			ife footstep_count 0 set playsound MUD1 else
+			ife footstep_count 1 set playsound MUD2 else
+			ife footstep_count 2 set playsound MUD3 else
+			ife footstep_count 3 set playsound MUD4 else
+			ife footstep_count 4 set playsound MUD5 else
+			ife footstep_count 5 set playsound MUD6 else
+			ife footstep_count 6 set playsound MUD7 else
+			ife footstep_count 7 set playsound MUD8
+			break
+		case 1
+		case 3
+			ife footstep_count 0 set playsound O_MUD1 else
+			ife footstep_count 1 set playsound O_MUD2 else
+			ife footstep_count 2 set playsound O_MUD3 else
+			ife footstep_count 3 set playsound O_MUD4 else
+			ife footstep_count 4 set playsound O_MUD5 else
+			ife footstep_count 5 set playsound O_MUD6 else
+			ife footstep_count 6 set playsound O_MUD7 else
+			ife footstep_count 7 set playsound O_MUD8
+			break
+		case 2
+		case 4
+			ife footstep_count 0 set playsound I_MUD1 else
+			ife footstep_count 1 set playsound I_MUD2 else
+			ife footstep_count 2 set playsound I_MUD3 else
+			ife footstep_count 3 set playsound I_MUD4 else
+			ife footstep_count 4 set playsound I_MUD5 else
+			ife footstep_count 5 set playsound I_MUD6 else
+			ife footstep_count 6 set playsound I_MUD7 else
+			ife footstep_count 7 set playsound I_MUD8
+			break
+		endswitch
+    set old_fs_count footstep_count // simple method of stopping one sound playing consecutively
+    }
+ife STEPSOUNDFX 22
+    {
+    randvar footstep_count 7
+    ife footstep_count old_fs_count randvar footstep_count 7
+	switch room_type
+		case 0
+		default
+			ife footstep_count 0 set playsound LEAF1 else
+			ife footstep_count 1 set playsound LEAF2 else
+			ife footstep_count 2 set playsound LEAF3 else
+			ife footstep_count 3 set playsound LEAF4 else
+			ife footstep_count 4 set playsound LEAF5 else
+			ife footstep_count 5 set playsound LEAF6 else
+			ife footstep_count 6 set playsound LEAF7 else
+			ife footstep_count 7 set playsound LEAF8
+			break
+		case 1
+		case 3
+			ife footstep_count 0 set playsound O_LEAF1 else
+			ife footstep_count 1 set playsound O_LEAF2 else
+			ife footstep_count 2 set playsound O_LEAF3 else
+			ife footstep_count 3 set playsound O_LEAF4 else
+			ife footstep_count 4 set playsound O_LEAF5 else
+			ife footstep_count 5 set playsound O_LEAF6 else
+			ife footstep_count 6 set playsound O_LEAF7 else
+			ife footstep_count 7 set playsound O_LEAF8
+			break
+		case 2
+		case 4
+			ife footstep_count 0 set playsound I_LEAF1 else
+			ife footstep_count 1 set playsound I_LEAF2 else
+			ife footstep_count 2 set playsound I_LEAF3 else
+			ife footstep_count 3 set playsound I_LEAF4 else
+			ife footstep_count 4 set playsound I_LEAF5 else
+			ife footstep_count 5 set playsound I_LEAF6 else
+			ife footstep_count 6 set playsound I_LEAF7 else
+			ife footstep_count 7 set playsound I_LEAF8
+			break
+		endswitch
+    set old_fs_count footstep_count // simple method of stopping one sound playing consecutively
+    }
+ife STEPSOUNDFX 23
+    {
+    randvar footstep_count 7
+    ife footstep_count old_fs_count randvar footstep_count 7
+	switch room_type
+		case 0
+		default
+			ife footstep_count 0 set playsound PLANK1 else
+			ife footstep_count 1 set playsound PLANK2 else
+			ife footstep_count 2 set playsound PLANK3 else
+			ife footstep_count 3 set playsound PLANK4 else
+			ife footstep_count 4 set playsound PLANK5 else
+			ife footstep_count 5 set playsound PLANK6 else
+			ife footstep_count 6 set playsound PLANK7 else
+			ife footstep_count 7 set playsound PLANK8
+			break
+		case 1
+		case 3
+			ife footstep_count 0 set playsound O_PLANK1 else
+			ife footstep_count 1 set playsound O_PLANK2 else
+			ife footstep_count 2 set playsound O_PLANK3 else
+			ife footstep_count 3 set playsound O_PLANK4 else
+			ife footstep_count 4 set playsound O_PLANK5 else
+			ife footstep_count 5 set playsound O_PLANK6 else
+			ife footstep_count 6 set playsound O_PLANK7 else
+			ife footstep_count 7 set playsound O_PLANK8
+			break
+		case 2
+		case 4
+			ife footstep_count 0 set playsound I_PLANK1 else
+			ife footstep_count 1 set playsound I_PLANK2 else
+			ife footstep_count 2 set playsound I_PLANK3 else
+			ife footstep_count 3 set playsound I_PLANK4 else
+			ife footstep_count 4 set playsound I_PLANK5 else
+			ife footstep_count 5 set playsound I_PLANK6 else
+			ife footstep_count 6 set playsound I_PLANK7 else
+			ife footstep_count 7 set playsound I_PLANK8
+			break
+		endswitch
+    set old_fs_count footstep_count // simple method of stopping one sound playing consecutively
+    }
+ife STEPSOUNDFX 24
+	{
+	ife footstep_count old_fs_count randvar footstep_count 3
+	switch room_type
+		case 0
+		default
+			ife footstep_count 0 set playsound DUCT1 else
+			ife footstep_count 1 set playsound DUCT2 else
+			ife footstep_count 2 set playsound DUCT3 else
+			ife footstep_count 3 set playsound DUCT4
+			break
+		case 1
+		case 3
+			ife footstep_count 0 set playsound O_DUCT1 else
+			ife footstep_count 1 set playsound O_DUCT2 else
+			ife footstep_count 2 set playsound O_DUCT3 else
+			ife footstep_count 3 set playsound O_DUCT4
+			break
+		case 2
+		case 4
+			ife footstep_count 0 set playsound I_DUCT1 else
+			ife footstep_count 1 set playsound I_DUCT2 else
+			ife footstep_count 2 set playsound I_DUCT3 else
+			ife footstep_count 3 set playsound I_DUCT4
+			break
+		endswitch
+	set old_fs_count footstep_count // simple method of stopping one sound playing consecutively
+	}
+ife STEPSOUNDFX 25
+	{
+	ife footstep_count old_fs_count randvar footstep_count 3
+	switch room_type
+		case 0
+		default
+			ife footstep_count 0 set playsound FORCEF_1 else
+			ife footstep_count 1 set playsound FORCEF_2 else
+			ife footstep_count 2 set playsound FORCEF_3 else
+			ife footstep_count 3 set playsound FORCEF_4
+			break
+		case 1
+		case 3
+			ife footstep_count 0 set playsound O_FF_STEP else
+			ife footstep_count 1 set playsound O_FF_STEP else
+			ife footstep_count 2 set playsound O_FF_STEP else
+			ife footstep_count 3 set playsound O_FF_STEP
+			break
+	endswitch
+	set old_fs_count footstep_count // simple method of stopping one sound playing consecutively
+	}
+ife STEPSOUNDFX 26
+    {
+    randvar footstep_count 5
+    ife footstep_count old_fs_count randvar footstep_count 5
+	switch room_type
+		case 0
+		default
+			ife footstep_count 0 set playsound ICE_1 else
+			ife footstep_count 1 set playsound ICE_2 else
+			ife footstep_count 2 set playsound ICE_3 else
+			ife footstep_count 3 set playsound ICE_4 else
+			ife footstep_count 4 set playsound ICE_5 else
+			ife footstep_count 5 set playsound ICE_6
+			break
+		case 1
+		case 3
+			ife footstep_count 0 set playsound O_ICE1 else
+			ife footstep_count 1 set playsound O_ICE2 else
+			ife footstep_count 2 set playsound O_ICE3 else
+			ife footstep_count 3 set playsound O_ICE4 else
+			ife footstep_count 4 set playsound O_ICE5 else
+			ife footstep_count 5 set playsound O_ICE6
+			break
+		case 2
+		case 4
+			ife footstep_count 0 set playsound I_ICE1 else
+			ife footstep_count 1 set playsound I_ICE2 else
+			ife footstep_count 2 set playsound I_ICE3 else
+			ife footstep_count 3 set playsound I_ICE4 else
+			ife footstep_count 4 set playsound I_ICE5 else
+			ife footstep_count 5 set playsound I_ICE6
+			break
+	endswitch
+    set old_fs_count footstep_count // simple method of stopping one sound playing consecutively
+    }
+ife STEPSOUNDFX 27
+    {
+    randvar footstep_count 7
+    ife footstep_count old_fs_count randvar footstep_count 7
+	switch room_type
+		case 0
+		default
+			ife footstep_count 0 set playsound GRAVEL_1 else
+			ife footstep_count 1 set playsound GRAVEL_2 else
+			ife footstep_count 2 set playsound GRAVEL_3 else
+			ife footstep_count 3 set playsound GRAVEL_4 else
+			ife footstep_count 4 set playsound GRAVEL_5 else
+			ife footstep_count 5 set playsound GRAVEL_6 else
+			ife footstep_count 6 set playsound GRAVEL_7 else
+			ife footstep_count 7 set playsound GRAVEL_8
+			break
+		case 1
+		case 3
+			ife footstep_count 0 set playsound O_GRAV1 else
+			ife footstep_count 1 set playsound O_GRAV2 else
+			ife footstep_count 2 set playsound O_GRAV3 else
+			ife footstep_count 3 set playsound O_GRAV4 else
+			ife footstep_count 4 set playsound O_GRAV5 else
+			ife footstep_count 5 set playsound O_GRAV6 else
+			ife footstep_count 6 set playsound O_GRAV7 else
+			ife footstep_count 7 set playsound O_GRAV8
+			break
+		case 2
+		case 4
+			ife footstep_count 0 set playsound I_GRAV1 else
+			ife footstep_count 1 set playsound I_GRAV2 else
+			ife footstep_count 2 set playsound I_GRAV3 else
+			ife footstep_count 3 set playsound I_GRAV4 else
+			ife footstep_count 4 set playsound I_GRAV5 else
+			ife footstep_count 5 set playsound I_GRAV6 else
+			ife footstep_count 6 set playsound I_GRAV7 else
+			ife footstep_count 7 set playsound I_GRAV8
+			break
+	endswitch
+    set old_fs_count footstep_count // simple method of stopping one sound playing consecutively
+    }
+ife STEPSOUNDFX 28
+    {
+    ife snowprint 0 { espawn SNOWPRINT1 seta[RETURN].pal 19 set snowprint 1 } else
+    ife snowprint 1 { espawn SNOWPRINT2 seta[RETURN].pal 19 set snowprint 0 }
+    randvar footstep_count 7
+    ife footstep_count old_fs_count randvar footstep_count 7
+	switch room_type
+		case 0
+		default
+			ife footstep_count 0 set playsound SAND_1 else
+			ife footstep_count 1 set playsound SAND_2 else
+			ife footstep_count 2 set playsound SAND_3 else
+			ife footstep_count 3 set playsound SAND_4 else
+			ife footstep_count 4 set playsound SAND_5 else
+			ife footstep_count 5 set playsound SAND_6 else
+			ife footstep_count 6 set playsound SAND_7 else
+			ife footstep_count 7 set playsound SAND_8
+			break
+		case 1
+		case 3
+			ife footstep_count 0 set playsound O_SAND1 else
+			ife footstep_count 1 set playsound O_SAND2 else
+			ife footstep_count 2 set playsound O_SAND3 else
+			ife footstep_count 3 set playsound O_SAND4 else
+			ife footstep_count 4 set playsound O_SAND5 else
+			ife footstep_count 5 set playsound O_SAND6 else
+			ife footstep_count 6 set playsound O_SAND7 else
+			ife footstep_count 7 set playsound O_SAND8
+			break
+		case 2
+		case 4
+			ife footstep_count 0 set playsound I_SAND1 else
+			ife footstep_count 1 set playsound I_SAND2 else
+			ife footstep_count 2 set playsound I_SAND3 else
+			ife footstep_count 3 set playsound I_SAND4 else
+			ife footstep_count 4 set playsound I_SAND5 else
+			ife footstep_count 5 set playsound I_SAND6 else
+			ife footstep_count 6 set playsound I_SAND7 else
+			ife footstep_count 7 set playsound I_SAND8
+			break
+		endswitch
+    set old_fs_count footstep_count // simple method of stopping one sound playing consecutively
+    }
+ife STEPSOUNDFX 30
+	{
+	ife footstep_count old_fs_count randvar footstep_count 3
+	switch room_type
+		case 0
+		default
+			ife footstep_count 0 set playsound BONE1 else
+			ife footstep_count 1 set playsound BONE2 else
+			ife footstep_count 2 set playsound BONE1 else
+			ife footstep_count 3 set playsound BONE2
+			break
+		case 1
+		case 3
+			ife footstep_count 0 set playsound O_BONE1 else
+			ife footstep_count 1 set playsound O_BONE2 else
+			ife footstep_count 2 set playsound O_BONE1 else
+			ife footstep_count 3 set playsound O_BONE2
+			break
+		case 2
+		case 4
+			ife footstep_count 0 set playsound I_BONE1 else
+			ife footstep_count 1 set playsound I_BONE2 else
+			ife footstep_count 2 set playsound I_BONE1 else
+			ife footstep_count 3 set playsound I_BONE2
+			break
+		endswitch
+	set old_fs_count footstep_count // simple method of stopping one sound playing consecutively
+	}
+ife STEPSOUNDFX 31
+	{
+	ife footstep_count old_fs_count randvar footstep_count 3
+	switch room_type
+		case 0
+		default
+			ife footstep_count 0 set playsound COINS_1 else
+			ife footstep_count 1 set playsound COINS_2 else
+			ife footstep_count 2 set playsound COINS_1 else
+			ife footstep_count 3 set playsound COINS_2
+			break
+		case 1
+		case 3
+			ife footstep_count 0 set playsound O_COINS1 else
+			ife footstep_count 1 set playsound O_COINS2 else
+			ife footstep_count 2 set playsound O_COINS1 else
+			ife footstep_count 3 set playsound O_COINS2
+			break
+		case 2
+		case 4
+			ife footstep_count 0 set playsound I_COINS1 else
+			ife footstep_count 1 set playsound I_COINS2 else
+			ife footstep_count 2 set playsound I_COINS1 else
+			ife footstep_count 3 set playsound I_COINS2
+			break
+		endswitch
+	set old_fs_count footstep_count // simple method of stopping one sound playing consecutively
+	}
+ife STEPSOUNDFX 32 // green organic
+    {
+    randvar footstep_count 7
+    ife footstep_count old_fs_count randvar footstep_count 6
+	switch room_type
+		case 0
+		default
+			ife footstep_count 0 set playsound MUD1 else
+			ife footstep_count 1 set playsound MUD2 else
+			ife footstep_count 2 set playsound MUD3 else
+			ife footstep_count 3 set playsound MUD4 else
+			ife footstep_count 4 set playsound MUD5 else
+			ife footstep_count 5 set playsound MUD6 else
+			ife footstep_count 6 set playsound MUD7 else
+			ife footstep_count 7 set playsound MUD8
+			break
+		case 1
+		case 3
+			ife footstep_count 0 set playsound O_MUD1 else
+			ife footstep_count 1 set playsound O_MUD2 else
+			ife footstep_count 2 set playsound O_MUD3 else
+			ife footstep_count 3 set playsound O_MUD4 else
+			ife footstep_count 4 set playsound O_MUD5 else
+			ife footstep_count 5 set playsound O_MUD6 else
+			ife footstep_count 6 set playsound O_MUD7 else
+			ife footstep_count 7 set playsound O_MUD8
+			break
+		case 2
+		case 4
+			ife footstep_count 0 set playsound I_MUD1 else
+			ife footstep_count 1 set playsound I_MUD2 else
+			ife footstep_count 2 set playsound I_MUD3 else
+			ife footstep_count 3 set playsound I_MUD4 else
+			ife footstep_count 4 set playsound I_MUD5 else
+			ife footstep_count 5 set playsound I_MUD6 else
+			ife footstep_count 6 set playsound I_MUD7 else
+			ife footstep_count 7 set playsound I_MUD8
+			break
+		endswitch
+    set old_fs_count footstep_count // simple method of stopping one sound playing consecutively
+    }
+ife STEPSOUNDFX 33 // sand and stone
+    {
+    randvar footstep_count 7
+    ife footstep_count old_fs_count randvar footstep_count 7
+	switch room_type
+		case 0
+		default
+			ife footstep_count 0 set playsound SANDST_1 else
+			ife footstep_count 1 set playsound SANDST_2 else
+			ife footstep_count 2 set playsound SANDST_3 else
+			ife footstep_count 3 set playsound SANDST_4 else
+			ife footstep_count 4 set playsound SANDST_5 else
+			ife footstep_count 5 set playsound SANDST_6 else
+			ife footstep_count 6 set playsound SANDST_7 else
+			ife footstep_count 7 set playsound SANDST_8
+			break
+		case 1
+		case 3
+			ife footstep_count 0 set playsound O_SANDST1 else
+			ife footstep_count 1 set playsound O_SANDST2 else
+			ife footstep_count 2 set playsound O_SANDST3 else
+			ife footstep_count 3 set playsound O_SANDST4 else
+			ife footstep_count 4 set playsound O_SANDST5 else
+			ife footstep_count 5 set playsound O_SANDST6 else
+			ife footstep_count 6 set playsound O_SANDST7 else
+			ife footstep_count 7 set playsound O_SANDST8
+			break
+		case 2
+		case 4
+			ife footstep_count 0 set playsound I_SANDST1 else
+			ife footstep_count 1 set playsound I_SANDST2 else
+			ife footstep_count 2 set playsound I_SANDST3 else
+			ife footstep_count 3 set playsound I_SANDST4 else
+			ife footstep_count 4 set playsound I_SANDST5 else
+			ife footstep_count 5 set playsound I_SANDST6 else
+			ife footstep_count 6 set playsound I_SANDST7 else
+			ife footstep_count 7 set playsound I_SANDST8
+			break
+		endswitch
+    set old_fs_count footstep_count // simple method of stopping one sound playing consecutively
+    }
+ife STEPSOUNDFX 34 // ROCK
+    {
+    randvar footstep_count 7
+    ife footstep_count old_fs_count randvar footstep_count 7
+	switch room_type
+		case 0
+		default
+			ife footstep_count 0 set playsound ROCK_1 else
+			ife footstep_count 1 set playsound ROCK_2 else
+			ife footstep_count 2 set playsound ROCK_3 else
+			ife footstep_count 3 set playsound ROCK_4 else
+			ife footstep_count 4 set playsound ROCK_5 else
+			ife footstep_count 5 set playsound ROCK_6 else
+			ife footstep_count 6 set playsound ROCK_7 else
+			ife footstep_count 7 set playsound ROCK_8
+			break
+		case 1
+		case 3
+			ife footstep_count 0 set playsound O_ROCK1 else
+			ife footstep_count 1 set playsound O_ROCK2 else
+			ife footstep_count 2 set playsound O_ROCK3 else
+			ife footstep_count 3 set playsound O_ROCK4 else
+			ife footstep_count 4 set playsound O_ROCK5 else
+			ife footstep_count 5 set playsound O_ROCK6 else
+			ife footstep_count 6 set playsound O_ROCK7 else
+			ife footstep_count 7 set playsound O_ROCK8
+			break
+		case 2
+		case 4
+			ife footstep_count 0 set playsound I_ROCK1 else
+			ife footstep_count 1 set playsound I_ROCK2 else
+			ife footstep_count 2 set playsound I_ROCK3 else
+			ife footstep_count 3 set playsound I_ROCK4 else
+			ife footstep_count 4 set playsound I_ROCK5 else
+			ife footstep_count 5 set playsound I_ROCK6 else
+			ife footstep_count 6 set playsound I_ROCK7 else
+			ife footstep_count 7 set playsound I_ROCK8
+			break
+		endswitch
+    set old_fs_count footstep_count // simple method of stopping one sound playing consecutively
+    }
+ife JUGGERN_SUIT 1
+	{
+	ife footstep_count old_fs_count randvar footstep_count 3
+	ife footstep_count 0 set playsound SUIT_STEP1 else
+	ife footstep_count 1 set playsound SUIT_STEP2 else
+	ife footstep_count 2 set playsound SUIT_STEP3 else
+	ife footstep_count 3 set playsound SUIT_STEP4
+	set old_fs_count footstep_count // simple method of stopping one sound playing consecutively
+	}
+ifn playsound 0
+{
+soundvar playsound
+ife cuts_txt -1
+    {
+    randvar sound_pitch 256
+    sub sound_pitch 128 // this creates the default step sound range of -128 to 128
+    ife fake_shrunk 1 add sound_pitch 512
+    else ife CHAR 1 sub sound_pitch -256
+    else ife CHAR 2 sub sound_pitch  -128
+    else ife CHAR 3 add sound_pitch 128
+    else ife CHAR 4
+        {
+        ifand CHAR_APP 2 nullop else
+        add sound_pitch 128
+        }
+    else ife CHAR 7 sub sound_pitch -128
+    else ife CHAR 10 add sound_pitch 256
+    else ife CHAR 14 add sound_pitch 128
+    else ife CHAR 17 add sound_pitch 256
+    else ife CHAR 20 add sound_pitch 256
+    setactorsoundpitch THISACTOR playsound sound_pitch
+    }
+}
+resetactioncount
+ends
+
+var footstep_stopper 5000 1
+
+defstate STOPSTEPSOUNDS
+set footstep_stopper 5000
+whilevarn footstep_stopper 5178 // UPDATE WHEN ADDING NEW FOOTSOUNDS
+    {
+    stopsoundvar footstep_stopper
+    add footstep_stopper 1
+    }
+
+ends
+
+defstate landsounds
+add wepsway_y 10
+ifl CHOKE 1
+ ifl FCHOKE 1
+  ife camerasprite -1
+    {
+    ife CHAR 0
+        {
+        ifg player[].hard_landing 3 soundonce JLAND_HEAVY else soundonce JLAND
+        }
+    else
+    ife CHAR 2
+        {
+        ifg player[].hard_landing 3
+            {
+            soundonce LAND_METAL
+            soundonce LAND_HEAVY
+            }
+        else
+            {
+            ifrnd 64 sound H_ARMOUR_S1 else
+            ifrnd 128 sound H_ARMOUR_S2
+            }
+        }
+    else
+    ifg player[].hard_landing 3
+        {
+        soundonce LAND_HEAVY
+        ife CHAR 5 soundonce RN_HLAND
+        ife CHAR 9 soundonce CULTIST_HLAND
+        ife CHAR 10 sound BS_HARDL
+        ife CHAR 17 { ifrnd 128 sound KG_HLAND1 else sound KG_HLAND2 }
+        }
+    ife CHAR 3 ife cur_weap 9 ife SPECIALIST_EQUIPMENT[35] 2 { ifg gun_mag 3 soundonce CHAIN_RATTLE }
+    ife CHAR 12 ife cur_weap 9 { getp[].ammo_amount 9 temp ifg temp 5 soundonce CHAIN_RATTLE }
+    ife cur_weap 0 ife temp_weap 27 { getp[].ammo_amount 0 temp ifg temp 5 soundonce CHAIN_RATTLE }
+    getp[].spritebridge temp2
+    ife STEPSOUNDFX 1 soundonce LAND_WOOD else
+    ife STEPSOUNDFX 2 soundonce LAND_METAL else
+    ife STEPSOUNDFX 3 soundonce LAND_GRATE else
+    ife STEPSOUNDFX 4 soundonce LAND_GRASS else
+    ife STEPSOUNDFX 5 soundonce LAND_TILE else
+    ife STEPSOUNDFX 6 soundonce LAND_CARPET else
+    ife STEPSOUNDFX 7 nullop else
+    ife STEPSOUNDFX 8 soundonce LAND_SNOW else
+    ife STEPSOUNDFX 9 { ifonwater soundonce WATER_SPLASH else soundonce LAND_WATER spawn 8435 } else
+    ife STEPSOUNDFX 10 soundonce LAND_DIRT else
+    ife STEPSOUNDFX 11 soundonce LAND_CRETE else
+    ife STEPSOUNDFX 12 soundonce LAND_MUD else
+    ife STEPSOUNDFX 13 soundonce LAVA_SPLASH else
+    ife STEPSOUNDFX 14 { soundonce LAND_METAL soundonce LAND_WATER } else
+    ife STEPSOUNDFX 15 { soundonce LAND_NORM soundonce LAND_WATER } else
+    ife STEPSOUNDFX 17 soundonce LAND_CHAIN else
+    ife STEPSOUNDFX 18 soundonce LAND_GLASS else
+    ife STEPSOUNDFX 19 soundonce LAND_CARDB else
+    ife STEPSOUNDFX 20 soundonce LAND_MUD else
+    ife STEPSOUNDFX 21 soundonce LAND_MUD else
+    ife STEPSOUNDFX 22 soundonce LAND_LEAF else
+    ife STEPSOUNDFX 23 soundonce LAND_PLANK else
+    ife STEPSOUNDFX 24 soundonce LAND_METAL else
+    ife STEPSOUNDFX 25 sound FORCEF_LAND else
+    ife STEPSOUNDFX 26 soundonce LAND_ICE else
+    ife STEPSOUNDFX 27 soundonce LAND_GRAVEL else
+    ife STEPSOUNDFX 28 soundonce LAND_SAND else
+    ife STEPSOUNDFX 30 soundonce LAND_BONE else
+    ife STEPSOUNDFX 31 soundonce LAND_COINS else
+    ife STEPSOUNDFX 32 soundonce LAND_MUD else
+    ife STEPSOUNDFX 33 soundonce LAND_SANDST else
+    ife STEPSOUNDFX 34 soundonce LAND_ROCK else
+    ifonwater ife temp2 0 soundonce WATER_SPLASH else
+        {
+        ife FIRE_SUIT 1 soundonce LAND_METAL
+        else ife JUGGERN_SUIT 1 soundonce LAND_HEAVY
+        else ife CHAR 2 soundonce LAND_HEAVY
+        else ife CHAR 7 soundonce LAND_HEAVY
+        else ife CHAR 20 soundonce LAND_NORM
+        else soundonce LAND_NORM
+        }
+    }
+ends
+
+defstate sg_shell_sounds
+        ifand AMMO_TYPES[cur_weap] 1
+            {
+            ifrnd 128 sound EXPL_L1
+            else sound EXPL_L2
+            }
+        else ifand AMMO_TYPES[cur_weap] 4
+            {
+            ifrnd 128 sound FLECH_L1
+            else sound FLECH_L2
+            }
+        else ifand AMMO_TYPES[cur_weap] 64
+            {
+            ifrnd 128 sound MAGN_1
+            else sound MAGN_2
+            }
+        else ifand AMMO_TYPES[cur_weap] 1024
+            {
+            ifrnd 128 sound DRAG_L1
+            else sound DRAG_L2
+            }
+        else ifand AMMO_TYPES[cur_weap] 65536
+            {
+            ifrnd 128 sound SILB_L1
+            else sound SILB_L2
+            }
+        else
+            {
+             randvar sound_rand 7
+             ife sound_rand 0 sound LOAD_SHELL1
+             else ife sound_rand 1 sound LOAD_SHELL2
+             else ife sound_rand 2 sound LOAD_SHELL3
+             else ife sound_rand 3 sound LOAD_SHELL4
+             else ife sound_rand 4 sound LOAD_SHELL5
+             else ife sound_rand 5 sound LOAD_SHELL6
+             else ife sound_rand 6 sound LOAD_SHELL7
+             else ife sound_rand 7 sound LOAD_SHELL8
+            }
+ends
+
+defstate sg2_shell_sounds
+        ifand AMMO_TYPES[15] 1
+            {
+            ifrnd 128 sound EXPL_L1
+            else sound EXPL_L2
+            }
+        else ifand AMMO_TYPES[15] 4
+            {
+            ifrnd 128 sound FLECH_L1
+            else sound FLECH_L2
+            }
+        else ifand AMMO_TYPES[15] 64
+            {
+            ifrnd 128 sound MAGN_1
+            else sound MAGN_2
+            }
+        else ifand AMMO_TYPES[15] 1024
+            {
+            ifrnd 128 sound DRAG_L1
+            else sound DRAG_L2
+            }
+        else ifand AMMO_TYPES[15] 65536
+            {
+            ifrnd 128 sound SILB_L1
+            else sound SILB_L2
+            }
+        else
+            {
+             randvar sound_rand 7
+             ife sound_rand 0 sound LOAD_SHELL1
+             else ife sound_rand 1 sound LOAD_SHELL2
+             else ife sound_rand 2 sound LOAD_SHELL3
+             else ife sound_rand 3 sound LOAD_SHELL4
+             else ife sound_rand 4 sound LOAD_SHELL5
+             else ife sound_rand 5 sound LOAD_SHELL6
+             else ife sound_rand 6 sound LOAD_SHELL7
+             else ife sound_rand 7 sound LOAD_SHELL8
+            }
+ends
+
+// SMG
+
+defstate smg_mag_out_sounds
+ randvar sound_rand 2
+ ife sound_rand 0 sound SMG_MAGOUT_1
+ else ife sound_rand 1 sound SMG_MAGOUT_2
+ else ife sound_rand 2 sound SMG_MAGOUT_3
+ends
+
+defstate smg_mag_in_sounds
+ randvar sound_rand 2
+ ife sound_rand 0 sound SMG_MAGIN_1
+ else ife sound_rand 1 sound SMG_MAGIN_2
+ else ife sound_rand 2 sound SMG_MAGIN_3
+ends
+
+// AR
+
+defstate ar_mag_out_sounds
+ randvar sound_rand 4
+ ife sound_rand 0 sound AR_MAGOUT_1
+ else ife sound_rand 1 sound AR_MAGOUT_2
+ else ife sound_rand 2 sound AR_MAGOUT_3
+ else ife sound_rand 3 sound AR_MAGOUT_4
+ else ife sound_rand 4 sound AR_MAGOUT_5
+ends
+
+defstate ar_mag_in_sounds
+ randvar sound_rand 3
+ ife sound_rand 0 sound AR_MAGIN_1
+ else ife sound_rand 1 sound AR_MAGIN_2
+ else ife sound_rand 2 sound AR_MAGIN_3
+ else ife sound_rand 3 sound AR_MAGIN_4
+ends
+
+// big AR
+
+defstate bgar_mag_out_sounds
+ randvar sound_rand 3
+ ife sound_rand 0 sound BGAR_MAGOUT_1
+ else ife sound_rand 1 sound BGAR_MAGOUT_2
+ else ife sound_rand 2 sound BGAR_MAGOUT_3
+ else ife sound_rand 3 sound BGAR_MAGOUT_4
+ends
+
+defstate bgar_mag_in_sounds
+ randvar sound_rand 4
+ ife sound_rand 0 sound BGAR_MAGIN_1
+ else ife sound_rand 1 sound BGAR_MAGIN_2
+ else ife sound_rand 2 sound BGAR_MAGIN_3
+ else ife sound_rand 3 sound BGAR_MAGIN_4
+ else ife sound_rand 4 sound BGAR_MAGIN_5
+ends
+
+// ROOM TYPE
+
+useractor notenemy ROOM_TYPE_SPRITE
+cstat 32768
+set auto_room_type 0
+ife HITAGSAVED 0
+{
+ife player[].cursectnum sprite[].sectnum
+        {
+        ifspritepal 0 set room_type 0
+        else ifspritepal 1 set room_type 1 // around buildings
+        else ifspritepal 2 set room_type 2 // hallway
+        else ifspritepal 3 set room_type 3 // open area
+        else ifspritepal 4 set room_type 4 // room
+        }
+}
+else
+{
+dist temp6 THISACTOR player[].i
+    ifl temp6 HITAGSAVED
+        {
+        set room_type_reset 30
+        ifspritepal 0 set room_type 0
+        else ifspritepal 1 set room_type 1 // around buildings
+        else ifspritepal 2 set room_type 2 // hallway
+        else ifspritepal 3 set room_type 3 // open area
+        else ifspritepal 4 set room_type 4 // room
+        }
+}
+enda
+
+// RANDOM SOUNDS=================================================================================
+// RANDOM AMBIENCE
+
+// 0 = WOODLAND SOUNDS
+// 1 = METAL GROANING SOUNDS
+// 2 = CITY SOUNDS
+// 3 = SPOOKY SOUNDS
+// 4 = HELL/DIS SOUNDS
+// 5 = WAR SOUNDS
+// 6 = PA SOUNDS
+// 7 = BIRDS SOUNDS
+// 12 = MEDIEVAL TOWN SOUNDS
+
+
+useractor notenemy 3728
+cstat 32768
+
+ifn cuts_txt -1 break
+
+add INTERNALCOUNT 1
+ifge INTERNALCOUNT 32767 set INTERNALCOUNT 0
+
+ifg OWNERSAVED 0
+ife LOTAGSAVED 0
+{
+checkactivatormotion OWNERSAVED
+ife RETURN 1 killit
+}
+else
+ifg OWNERSAVED 0
+ifn LOTAGSAVED 0
+    {
+    checkactivatormotion OWNERSAVED
+    ife RETURN 1 { set LOTAGSAVED 0 set OWNERSAVED 0 }
+    }
+
+ifn LOTAGSAVED 0
+ifn sprite[].pal 13
+{
+ifge INTERNALCOUNT LOTAGSAVED
+    {
+    ifrnd 64 { ifand temp2 1 ifn HITAGSAVED -1 soundoncevar HITAGSAVED } else
+    ifrnd 64 { ifand temp2 2 ifn EXTRASAVED -1 soundoncevar EXTRASAVED } else
+    ifrnd 64 { ifand temp2 4 ifn XVELSAVED -1 soundoncevar XVELSAVED } else
+    ifrnd 64 { ifand temp2 8 ifn YVELSAVED -1 soundoncevar YVELSAVED } else
+    ifrnd 64 { ifand temp2 16 ifn ZVELSAVED -1 soundoncevar ZVELSAVED }
+    set INTERNALCOUNT 0
+    }
+}
+else
+ifspritepal 0
+{
+    ifge INTERNALCOUNT 104
+    {
+        ifn DAYNIGHT 0
+            {
+            ife DAYNIGHT 1 killit
+            }
+        ifrnd 32 soundonce OWLHOOT1 else
+        ifrnd 32 soundonce OWLHOOT2
+        set INTERNALCOUNT 0
+    }
+}
+else
+ifspritepal 1
+{
+    ifge INTERNALCOUNT 104
+    {
+        ifrnd 32 soundonce SHIPGROAN1 else
+        ifrnd 32 soundonce SHIPGROAN2 else
+        ifrnd 32 soundonce SHIPGROAN3
+        set INTERNALCOUNT 0
+    }
+}
+else
+ifspritepal 2
+{
+    ifge INTERNALCOUNT 208
+    {
+        ifrnd 16 soundonce WAR_AMBIENCE1 else
+        ifrnd 16 soundonce WAR_AMBIENCE2 else
+        ifrnd 16 soundonce WAR_AMBIENCE3 else
+        ifrnd 16 soundonce WAR_AMBIENCE4 else
+        ifrnd 16 soundonce DISTANT_SIREN else
+        ifrnd 16 soundonce DISTANT_SIREN2
+        set INTERNALCOUNT 0
+    }
+}
+else
+ifspritepal 3
+{
+    ifge INTERNALCOUNT 208
+    {
+        ifrnd 32 soundonce SPOOKY1 else
+        ifrnd 32 soundonce SPOOKY2 else
+        ifrnd 32 soundonce SPOOKY3 else
+        ifrnd 32 soundonce SPOOKY4
+        set INTERNALCOUNT 0
+    }
+}
+else
+ifspritepal 4
+{
+    ifge INTERNALCOUNT 208
+    {
+        ifrnd 32 sound DIS_CRYING else
+        ifrnd 16 sound DIS_VOICES else
+        ifrnd 16 sound DIS_VOICES2
+        set INTERNALCOUNT 0
+    }
+}
+else
+ifspritepal 5
+{
+    ifge INTERNALCOUNT 104
+    {
+        randvar temp4 90
+        ifl temp4 10 soundonce DISTANT_GUNS else
+        ifl temp4 20 soundonce DISTANT_COMB1 else
+        ifl temp4 30 soundonce DISTANT_COMB2 else
+        ifl temp4 40 soundonce DISTANT_COMB3 else
+        ifl temp4 50 soundonce DISTANT_MGUN1 else
+        ifl temp4 60 soundonce DISTANT_MGUN2 else
+        ifl temp4 70 soundonce DISTANT_MGUN3 else
+        ifl temp4 80 soundonce DISTANT_COMB4 else
+        ifl temp4 90 soundonce DISTANT_COMB5
+        set INTERNALCOUNT 0
+    }
+}
+else
+ifspritepal 6
+{
+    ifge INTERNALCOUNT 208
+    {
+        randvar temp4 50
+        ifl temp4 10 soundonce PA_SYSTEM_1 else
+        ifl temp4 20 soundonce PA_SYSTEM_2 else
+        ifl temp4 30 soundonce PA_SYSTEM_3 else
+        ifl temp4 40 soundonce PA_SYSTEM_4 else
+        ifl temp4 50 soundonce PA_SYSTEM_5
+        set INTERNALCOUNT 0
+    }
+}
+else
+ifspritepal 7
+{
+    ifge INTERNALCOUNT 208
+    {
+        randvar temp4 20
+        ifl temp4 10 sound BIRDS_CHIRP1 else
+        ifl temp4 20 sound BIRDS_CHIRP2
+        set INTERNALCOUNT 0
+    }
+}
+else
+ifspritepal 8
+{
+    ifge INTERNALCOUNT 208
+    {
+        randvar temp4 60
+        ifl temp4 10 soundonce TRAFFIC_1 else
+        ifl temp4 20 soundonce TRAFFIC_2 else
+        ifl temp4 30 soundonce TRAFFIC_3 else
+        ifl temp4 40 soundonce TRAFFIC_4 else
+        ifl temp4 50 soundonce TRAFFIC_5 else
+        ifl temp4 60 soundonce TRAFFIC_6
+        set INTERNALCOUNT 0
+    }
+}
+else
+ifspritepal 9
+{
+// ifactorsound THISACTOR HITAGSAVED nullop else soundvar HITAGSAVED
+checkactivatormotion EXTRASAVED
+ife RETURN 1
+    {
+    set HITAGSAVED XVELSAVED
+    set EXTRASAVED -1
+    }
+}
+else
+ifspritepal 10
+{
+ifactorsound THISACTOR PUBLIC_NOISE2 nullop else sound PUBLIC_NOISE2
+checkactivatormotion EXTRASAVED
+ife RETURN 1
+    {
+    set HITAGSAVED XVELSAVED
+    set EXTRASAVED -1
+    }
+}
+else
+ifspritepal 11
+{
+    ifge INTERNALCOUNT 104
+    {
+        ifrnd 32 soundonce WOOD_GROAN1 else
+        ifrnd 32 soundonce WOOD_GROAN2 else
+        ifrnd 32 soundonce WOOD_GROAN3 else
+        ifrnd 32 soundonce WOOD_GROAN4
+        set INTERNALCOUNT 0
+    }
+}
+else
+ifspritepal 12
+{
+    ifge INTERNALCOUNT 104
+    {
+        randvar temp4 200
+        ifl temp4 10 soundonce MT_AMB1 else
+        ifl temp4 20 soundonce MT_AMB2 else
+        ifl temp4 30 soundonce MT_AMB3 else
+        ifl temp4 40 soundonce MT_AMB4 else
+        ifl temp4 50 soundonce MT_AMB5 else
+        ifl temp4 60 soundonce MT_AMB6 else
+        ifl temp4 70 soundonce MT_AMB7 else
+        ifl temp4 80 soundonce MT_AMB8 else
+        ifl temp4 90 soundonce MT_AMB9 else
+        ifl temp4 100 soundonce MT_AMB10 else
+        ifl temp4 110 soundonce MT_AMB11 else
+        ifl temp4 120 soundonce MT_AMB12 else
+        ifl temp4 130 soundonce MT_AMB13 else
+        ifl temp4 140 soundonce MT_AMB14 else
+        ifl temp4 150 soundonce MT_AMB15 else
+        ifl temp4 160 soundonce MT_AMB16 else
+        ifl temp4 170 soundonce MT_AMB17 else
+        ifl temp4 180 soundonce MT_AMB18 else
+        ifl temp4 190 soundonce MT_AMB19 else
+        soundonce MT_AMB20
+        set INTERNALCOUNT 0
+    }
+}
+// Continous distant bell sound
+else ifspritepal 13
+{
+    ifaction 0
+    {
+        checkactivatormotion HITAGSAVED
+        ife RETURN 1
+            {
+            ifpdistl 32767 globalsound BIG_BELL else globalsound BIG_BELL_DIST
+            set INTERNALCOUNT 0
+            action ZERO
+            }
+    }
+
+    ifaction ZERO
+    {
+        checkactivatormotion LOTAGSAVED
+        ife RETURN 1 killit
+        ifge INTERNALCOUNT 250
+            {
+            ifpdistl 32767 globalsound BIG_BELL else globalsound BIG_BELL_DIST
+            set INTERNALCOUNT 0
+            }
+    }
+}
+else
+ifspritepal 14
+{
+    ifge INTERNALCOUNT 104
+    {
+        ifrnd 32 soundonce AMB_ROCKF1 else
+        ifrnd 32 soundonce AMB_ROCKF2 else
+        ifrnd 32 soundonce AMB_ROCKF3 else
+        ifrnd 32 soundonce AMB_ROCKF4 else
+		ifrnd 32 soundonce AMB_ROCKF5
+        set INTERNALCOUNT 0
+    }
+}
+enda
+
+onevent EVENT_MOVEEFFECTORS
+
+ife sprite[THISACTOR].lotag 32
+ ifn EXTRASAVED 0
+	{
+	add INTERNALCOUNT 1
+	ife INTERNALCOUNT 1 getsector[THISACTOR].ceilingz temp
+	ifge INTERNALCOUNT 5
+		{
+		getsector[THISACTOR].ceilingz temp2
+		ifn temp temp2
+			{
+			ifactorsound THISACTOR EXTRASAVED nullop
+			else soundvar EXTRASAVED
+			}
+		set INTERNALCOUNT 0
+		}
+	}
+
+endevent
+
+// ==========================================================================
+// SOUND SCAPE ACTOR.
+// This is basically an actor that follows the player around and emits a sound, can be used instead of having to place ambient sounds all over the place.
+var soundscape_fade -1 1
+var soundscape_id -1 1 // this gets set to the number of the sound that's current playing
+var soundscape_trans -1 1 // this gets set to the number of the sound to transition to
+
+useractor notenemy SOUND_SCAPER
+	cstat 32768
+
+	// Hitag is distance like with a regular music&sfx sprite.
+	// If left to 0, the soundscape will start playing when the player enters the sector.
+	ife HITAGSAVED 0
+	{
+		ife player[].cursectnum sprite[].sectnum
+			set soundscape_trans LOTAGSAVED
+	}
+	else
+	{
+		dist temp6 THISACTOR player[].i
+		ifl temp6 HITAGSAVED
+			set soundscape_trans LOTAGSAVED
+	}
+enda
+
+defstate soundscape_setnewsound
+	// If transition to "0", we transition to silence
+	ife soundscape_trans 0
+		set soundscape_id -1
+	else
+		set soundscape_id soundscape_trans
+
+	set soundscape_trans -1
+ends
+
+// The SOUNDSCAPE actor is on the player at all times (ie. it gets spawned on them when the player initializes)
+var soundscape_z 0 1
+var soundscape_player_z 0 1
+useractor notenemy SOUNDSCAPE
+	ife debug_stuff 0
+		cstat 32768
+	else
+		cstat 0
+
+	sizeat 32 32
+
+	// Keep playing sound in a loop
+	ifn soundscape_id -1
+	 ife music_override 0
+		soundoncevar soundscape_id
+
+	// stop this actor's sound if override is set and its still playing
+	ife music_override 1 ifactorsound THISACTOR soundscape_id ifn soundscape_id -1 stopsound soundscape_id
+
+	// We are transitioning. Determine specifics as to what we need to do.
+	ifn soundscape_trans -1
+	{
+		// If no sound is playing and we switch to nothing, then do nothing
+		ife soundscape_id -1
+			ife soundscape_trans 0
+		{
+			set soundscape_trans -1
+			set soundscape_fade -1
+		}
+		// Are we currently playing the sound?
+		else ife soundscape_trans soundscape_id
+		{
+			// Is it fading out? If so, fade back in from current point
+			ifge soundscape_fade 0 ifle soundscape_fade 1
+			{
+				state soundscape_setnewsound
+				set soundscape_fade 3
+			}
+			// Marked for fade in start => do nothing
+			else ife soundscape_fade 2
+				nullop
+			// If we're here and it's fading in then we skipped the step where soundscape_trans gets reset back to -1, do that now
+			else ife soundscape_fade 3
+				state soundscape_setnewsound
+			// Sound is stable or faded in or whatever you wanna call it already, so cancel trans request
+			else ife soundscape_fade -1
+				set soundscape_trans -1
+
+		}
+		// Currently playing a different sound? fade that out first
+		else ifn soundscape_id -1
+		{
+			ifn soundscape_fade 1
+			  set soundscape_fade 0
+		}
+		// Not playing a sound, and not currently fading out, then fade in immediately
+		else ifn soundscape_fade 1
+		{
+			ifn soundscape_fade 3
+				set soundscape_fade 2
+		}
+	}
+
+	// Soundscape fade out works by adjusting the Z coordinate
+	geta[myowner].z soundscape_player_z
+	ife soundscape_fade -1
+		set soundscape_z soundscape_player_z
+
+	ife soundscape_fade 0 // Mark start coordinate of Z coordinate fade out, starts at player Z coordinate
+	{
+		set soundscape_z soundscape_player_z
+		set soundscape_fade 1
+	}
+
+	ife soundscape_fade 1 // Fade out
+	{
+		sub soundscape_z 8192
+		sub soundscape_player_z 327680
+
+		ifle soundscape_z soundscape_player_z
+		{
+			// Fade out is done, stop the sound, switch to fade in
+			ifn soundscape_id -1
+				stopsoundvar soundscape_id
+
+			// Start fade in of new sound
+			set soundscape_fade 2
+		}
+	}
+
+	ife soundscape_fade 2 // Mark start fade in
+	{
+		// Set soundscape actor to player Z - 327680 units
+		set soundscape_z soundscape_player_z
+		sub soundscape_z 327680
+		set soundscape_fade 3
+
+		state soundscape_setnewsound
+	}
+
+	ife soundscape_fade 3 // fade in until soundscape is at player Z - 8192
+	{
+		add soundscape_z 8192
+		sub soundscape_player_z 8192
+
+		ifge soundscape_z soundscape_player_z
+			set soundscape_fade -1 // mark ready
+	}
+
+	// This puts the sprite 64 units in front of the player, EVEN if that coordinate is in void space.
+	// This makes it so that the sound doesn't suddenly only come out of one ear or something if the actor clips into something, or if the player moves quickly enough.
+	// The actor will always be 64 units in front of the player no matter what...
+	state getxycoords_front_player_2
+	setsprite THISACTOR FRONT_PLAYER_X FRONT_PLAYER_Y soundscape_z
+enda
+
+defstate player_pain_sounds
+set playsound 4
+  ifphealthl YELLHURTSOUNDSTRENGTH
+        {
+          ifrnd 74
+            {
+			ife CHAR 0 set playsound J_LONGTERM_PAIN2
+			ife CHAR 1 set playsound Z_LONGTERM_PAIN2
+			ife CHAR 2 set playsound MHURT
+			ife CHAR 3 set playsound RHURT
+			ife CHAR 4 set playsound SHURT
+			ife CHAR 5 set playsound RNHURT
+			ife CHAR 7 set playsound MSHURT
+			ife CHAR 9 set playsound CULTIST_PAIN1
+			ife CHAR 10 set playsound BS_PAIN1
+			ife CHAR 11 set playsound MT_PAIN1
+			ife CHAR 12 set playsound JA_PAIN1
+			ife CHAR 13 set playsound MC_HURT
+			ife CHAR 14 set playsound SF_PAIN1
+			ife CHAR 15 set playsound MC_NS_HURT
+			ife CHAR 17 set playsound KG_PAIN1
+			}
+          else
+            ifrnd 8
+              {
+			  ife CHAR 0 set playsound J_LONGTERM_PAIN3
+			ife CHAR 1 set playsound Z_LONGTERM_PAIN3
+			ife CHAR 2 set playsound MHURT
+			ife CHAR 3 set playsound RHURT
+			ife CHAR 4 set playsound SHURT2
+			ife CHAR 5 set playsound RNHURT2
+			ife CHAR 7 set playsound MSHURT2
+			ife CHAR 9 set playsound CULTIST_PAIN2
+			ife CHAR 10 set playsound BS_PAIN2
+			ife CHAR 11 set playsound MT_PAIN2
+			ife CHAR 12 set playsound JA_PAIN2
+			ife CHAR 13 set playsound MC_HURT2
+			ife CHAR 14 set playsound SF_PAIN2
+			ife CHAR 15 set playsound MC_NS_HURT2
+			ife CHAR 17 set playsound KG_PAIN2
+				}
+          else
+            {
+			ife CHAR 0 set playsound J_LONGTERM_PAIN4
+			ife CHAR 1 set playsound Z_LONGTERM_PAIN4
+			ife CHAR 2 set playsound MHURT2
+			ife CHAR 3 set playsound RHURT2
+			ife CHAR 4 set playsound SHURT3
+			ife CHAR 5 set playsound RNHURT3
+			ife CHAR 7 set playsound MSHURT
+			ife CHAR 9 set playsound CULTIST_PAIN3
+			ife CHAR 10 set playsound BS_PAIN3
+			ife CHAR 11 set playsound MT_PAIN3
+			ife CHAR 12 set playsound JA_PAIN3
+			ife CHAR 13 set playsound MC_HURT3
+			ife CHAR 14 set playsound SF_PAIN3
+			ife CHAR 15 set playsound MC_NS_HURT3
+			ife CHAR 17 set playsound KG_PAIN3
+			}
+			set voice_cooldown 60
+			globalsoundvar playsound
+			ife fake_shrunk 1 setactorsoundpitch THISACTOR playsound 512
+        }
+	  else
+        ifrnd 128
+          {
+		  ife CHAR 0 set playsound JGASP
+		  ife CHAR 1 set playsound Z_LONGTERM_PAIN
+		  ife CHAR 4 set playsound SHURT4
+		  ife CHAR 9 set playsound CULTIST_PAIN3
+			ife CHAR 10 set playsound BS_PAIN4
+			ife CHAR 11 set playsound MT_PAIN4
+			ife CHAR 12 set playsound JA_PAIN4
+		  ife CHAR 14 set playsound SF_PAIN4
+		  ife CHAR 17 set playsound KG_PAIN4
+		  set voice_cooldown 60
+			globalsoundvar playsound
+			ife fake_shrunk 1 setactorsoundpitch THISACTOR playsound 512
+		  }
+
+    ifstrength TOUGH
+    {
+	ife CHAR 10 sound BS_GRUNT
+	else ife CHAR 12 sound JA_PAIN1
+	else ife CHAR 17 sound BS_GRUNT
+	else ife CHAR 20 sound BS_GRUNT
+	else
+      sound PLYR_GRUNT
+	set voice_cooldown 60
+    }
+ends

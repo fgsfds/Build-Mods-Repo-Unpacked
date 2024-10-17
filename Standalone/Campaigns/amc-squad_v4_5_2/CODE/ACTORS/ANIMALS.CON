@@ -1,0 +1,1101 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+
+--------------------------------------------------------------------------------
+*/
+
+
+move AROUND 25
+move PANIC 50
+
+action AANIMALR 0 2 5 1 10
+action AANIMALRPICK 0 2 5 1 10
+
+defstate SMALLANIMAL
+
+ifaction 0
+{
+	cstat 256
+	sizeat 16 16
+	action AANIMALR
+}
+
+ifg INTERNALCOUNT 0 sub INTERNALCOUNT 1
+
+ifaction AANIMALR
+{
+	fall
+	ifnotmoving move AROUND geth
+	ifactor 6283
+	{
+	ifmove AROUND
+		{
+		ifbulletnear
+		 ifrnd 64
+		  ifcansee
+			{
+			sound CHICKEN_RUFFLE
+			move PANIC
+			}
+		}
+	ifmove PANIC
+		{
+		ifrnd 4 move AROUND geth
+		}
+	}
+
+	ifpdistl 1024
+	 ifp pfacing
+	  ifp palive
+	  {
+	  set player_use 0
+	   ifhitspace
+		ife INTERNALCOUNT 0
+		{
+		set INTERNALCOUNT 13
+		ifactor 6283 sound CHICKENC
+		else ifactor PIG sound LPIG_ROAM
+		action AANIMALRPICK
+		resetcount
+		}
+	   }
+
+	ifrnd 1 ifcansee { ifactor 6283 sound CHICKENC else ifactor PIG sound LPIG_ROAM }
+	ifrnd 8 { move AROUND geth randomangle }
+}
+
+ifaction AANIMALRPICK
+{
+	ifrnd 4 { ifactor 6283 sound CHICKENC else ifactor PIG sound LPIG_ROAM }
+	cstat 256
+
+	set temp3 player[].posx
+	add temp3 512
+
+	seta[].ang player[].ang
+
+	rotatepoint player[].posx player[].posy temp3 player[].posy player[].ang temp5 temp6
+
+	geta[].sectnum upd_sect
+	updatesectorz temp5 temp6 sprite[].z upd_sect
+	ife upd_sect -1 action AANIMALR else
+	{
+	seta[].x temp5
+	seta[].y temp6
+	changespritesect THISACTOR upd_sect
+	}
+	getp[].posz temp
+	add temp 5600
+	seta[].z temp
+	state lower_weapon
+
+	ifp pstanding
+	 ifhitspace
+	  ife INTERNALCOUNT 0
+		{
+		action AANIMALR
+		set INTERNALCOUNT 13
+		}
+
+	ifpdistg 1024 action AANIMALR
+	ifp pjumping action AANIMALR
+}
+
+	ifhitweapon { ifactor CHICKEN sound CHICKDIE guts JIBS6 4 killit }
+
+ends
+
+spriteshadow CHICKEN
+useractor notenemy CHICKEN state SMALLANIMAL enda
+
+spriteshadow PIG
+useractor notenemy PIG state SMALLANIMAL enda
+
+
+// SHEEP
+action ASHEEP_STOP 0 1 5 1 8
+action ASHEEP_WAIT 0 1 5 1 8
+action ASHEEP_WALK 0 4 5 1 24
+action ASHEEP_FOLLOW 0 4 5 1 24
+
+action ASHEEP_PANIC 0 4 5 1 12
+action ASHEEP_PANIC2 0 4 5 1 12
+
+action ASHEEP_EAT 20 2 5 1 24
+action ASHEEP_DIE 30 4 1 1 16
+action ASHEEP_DEAD 33
+
+spriteshadow SHEEP
+
+move SHEEP_MOVE 48 0
+move SHEEP_PAN 96 0
+move SHEEP_FOLLOW 192 0
+
+useractor notenemy 22967 // panicky sheep
+ifaction 0
+	{
+	sizeat 24 24
+	spritepal 12
+	strength 50
+	cstat 256
+	action ASHEEP_PANIC2
+	cactor SHEEP
+	}
+enda
+
+defstate sheep_bahing
+ifrnd 64 sound SHEEP_BAH1 else
+ifrnd 64 sound SHEEP_BAH2 else
+ifrnd 64 sound SHEEP_BAH3 else
+ifrnd 64 sound SHEEP_BAH4 else
+sound SHEEP_BAH5
+ends
+
+defstate sheep_follow
+	ifpdistl 1526
+	 ifg enemies_cleared 149 // player not in combat?
+	  ifp pfacing
+      ifp palive
+	{
+		set player_use 0
+		ife use_action_allowed 1
+		{
+			// play follow me sound just because
+			ife CHAR 4
+			{
+				ifrnd 96
+				{
+					ife gp_subt 0
+						{
+						set subt_id 10866
+						set gp_subt 67
+						}
+					sound S_FOLLOW2
+					set ALLY_VOICE 67
+				}
+				else
+				{
+					ife gp_subt 0
+						{
+						set subt_id 10868
+						set gp_subt 47
+						}
+					sound S_FOLLOW
+					set ALLY_VOICE 47
+				}
+			}
+			state sheep_bahing
+			action ASHEEP_FOLLOW
+			state setIgnoreUse
+		}
+	}
+ends
+
+useractor notenemy SHEEP
+fall
+
+ifaction 0
+	{
+	sizeat 24 24
+	spritepal 12
+	strength 50
+	cstat 256
+	action ASHEEP_STOP
+	}
+
+ifaction ASHEEP_DEAD
+	{
+	move STOP
+	break
+	}
+else
+ifaction ASHEEP_DIE
+	{
+	move STOP
+	ifactioncount 4
+		{
+		spawn BLOODPOOL
+		action ASHEEP_DEAD
+		}
+	}
+else
+ifaction ASHEEP_STOP
+	{
+	move STOP
+	ifrnd 16
+		{
+		action ASHEEP_WALK
+		}
+	}
+else
+ifaction ASHEEP_WAIT
+	{
+	move STOP
+	ifrnd 4 move STOP randomangle
+	state sheep_follow
+	}
+else
+ifaction ASHEEP_WALK
+	{
+	ifrnd 4 state sheep_bahing
+	ifrnd 16 move SHEEP_MOVE geth randomangle
+		ifrnd 16 action ASHEEP_STOP
+		else ifrnd 4 action ASHEEP_EAT
+	}
+else
+ifaction ASHEEP_FOLLOW
+	{
+	ifrnd 0 state sheep_bahing
+	ifrnd 2 move SHEEP_FOLLOW geth randomangle
+	else move SHEEP_FOLLOW faceplayer
+	ifpdistg 65535 action ASHEEP_STOP
+
+	ifpdistl 1526
+	 ifg enemies_cleared 149 // player not in combat?
+	  ifp pfacing
+      ifp palive
+	{
+		set player_use 0
+		ife use_action_allowed 1
+		{
+			state sheep_bahing
+			action ASHEEP_WAIT
+			state setIgnoreUse
+		}
+	}
+
+	}
+else
+ifaction ASHEEP_PANIC // panicked by player?
+	{
+	ifrnd 8
+		{
+		ifrnd 64 set playsound SHEEP_BAH1 else
+		ifrnd 64 set playsound SHEEP_BAH2 else
+		ifrnd 64 set playsound SHEEP_BAH3 else
+		ifrnd 64 set playsound SHEEP_BAH4 else
+		set playsound SHEEP_BAH5
+		soundvar playsound
+		setactorsoundpitch THISACTOR playsound 512
+		}
+	ifnotmoving move SHEEP_PAN geth randomangle else move SHEEP_PAN geth fleeenemy
+	ifpdistg 8192
+		ifrnd 16
+		action ASHEEP_STOP
+	}
+else
+ifaction ASHEEP_PANIC2 // panicked by default?
+{
+	ifrnd 8
+		{
+		ifrnd 64 set playsound SHEEP_BAH1 else
+		ifrnd 64 set playsound SHEEP_BAH2 else
+		ifrnd 64 set playsound SHEEP_BAH3 else
+		ifrnd 64 set playsound SHEEP_BAH4 else
+		set playsound SHEEP_BAH5
+		soundvar playsound
+		setactorsoundpitch THISACTOR playsound 512
+		}
+	ifnotmoving move SHEEP_PAN geth randomangle else move SHEEP_PAN geth fleeenemy
+	ifpdistl 1526
+	 ifg enemies_cleared 149 // player not in combat?
+	  ifp pfacing
+      ifp palive
+	{
+		set player_use 0
+		ife use_action_allowed 1
+		{
+			// play follow me sound just because
+			ife CHAR 4
+			{
+				ifrnd 96
+				{
+					ife gp_subt 0
+						{
+						set subt_id 10866
+						set gp_subt 67
+						}
+					sound S_FOLLOW2
+					set ALLY_VOICE 67
+				}
+				else
+				{
+					ife gp_subt 0
+						{
+						set subt_id 10868
+						set gp_subt 47
+						}
+					sound S_FOLLOW
+					set ALLY_VOICE 47
+				}
+			}
+			state sheep_bahing
+			action ASHEEP_FOLLOW
+			state setIgnoreUse
+		}
+	}
+}
+else
+ifaction ASHEEP_EAT
+	{
+	move STOP
+	ifactioncount 2
+		{
+		sound ANM_EAT
+		ifrnd 96 action ASHEEP_WALK
+		resetactioncount
+		}
+	}
+
+ifhitweapon
+	{
+	spawn BLOOD
+		ifdead
+			{
+			state rf
+			action ASHEEP_DIE
+			}
+		else
+		action ASHEEP_PANIC
+	}
+
+enda
+
+// CAT
+action ACAT_STOP 0 1 5
+action ACAT_WALK 5 4 5 1 24
+action ACAT_RUN 5 4 5 1 12
+action ACAT_REST 25 1 5
+
+spriteshadow CAT
+
+move CAT_MOVE 48 0
+move CAT_RUN 196 0
+
+defstate scratch_cat
+	ifpdistl 1024
+	 ifp pfacing
+	  ifp pducking
+	   ifp palive
+		{
+		set player_use 0
+			ifhitspace
+			 ife hit_key 0
+				{
+				move STOP faceplayer
+				ife CHAR 7 soundonce CAT_HISS
+				else ife CHAR 9 soundonce CAT_HISS
+				else soundonce CAT_PURR
+				set hit_key 30
+				setplayer[].weapon_pos 10
+				action ACAT_REST
+				}
+		}
+ends
+
+useractor notenemy CAT
+seta[].z sector[].floorz
+
+add INTERNALCOUNT 1
+
+ifaction 0
+	{
+	// Kagura's cat should only appear in ep4+
+	ifspritepal 0 ifl VOLUME 3 killit
+	cstat 0
+	sizeat 12 12
+	action ACAT_STOP
+	}
+else
+ifaction ACAT_STOP
+	{
+	move STOP
+	ifrnd 16
+		action ACAT_WALK
+	else ifrnd 8 action ACAT_REST
+	state scratch_cat
+	}
+else
+ifaction ACAT_WALK
+	{
+	ifrnd 1 sound CAT_MEOW
+	move CAT_MOVE geth
+	ifnotmoving move CAT_MOVE geth randomangle
+	ifg INTERNALCOUNT 30
+		{
+		ifrnd 16 move CAT_MOVE geth randomangle
+			ifrnd 32 action ACAT_STOP
+			else ifrnd 16 action ACAT_REST
+		set INTERNALCOUNT 0
+		}
+	}
+else
+ifaction ACAT_RUN
+	{
+	ifnotmoving move CAT_RUN geth randomangle
+		ifrnd 16
+		action ACAT_STOP
+	}
+else
+ifaction ACAT_REST
+	{
+	move STOP
+	ifactioncount 150
+		{
+		ifrnd 64 action ACAT_WALK
+		resetactioncount
+		}
+	state scratch_cat
+	}
+enda
+
+// SQUIRREL
+action ASQUIRREL_STOP 0 1 5
+action ASQUIRREL_WALK 50 3 5 1 12
+action ASQUIRREL_RUN 50 3 5 1 3
+
+spriteshadow SQUIRREL
+
+move SQUIRREL_MOVE 96 0
+move SQUIRREL_RUN 196 0
+
+useractor notenemy SQUIRREL
+
+ifand sector[].floorstat 1024 fall
+else
+{
+	geta .sectnum temp
+	geta .x x
+	geta .y y
+	getflorzofslope temp x y z
+	seta .z z
+}
+add INTERNALCOUNT 1
+
+ifaction 0
+{
+	cstator 257
+	sizeat 24 24
+	action ASQUIRREL_STOP
+	getactor[THISACTOR].x initx
+	getactor[THISACTOR].y inity
+	getactor[THISACTOR].z initz
+}
+else ifaction ASQUIRREL_STOP
+{
+	move STOP
+	ifrnd 16 action ASQUIRREL_WALK
+}
+else ifaction ASQUIRREL_WALK
+{
+	move SQUIRREL_MOVE geth
+	ifnotmoving move SQUIRREL_MOVE geth randomangle
+
+	ifg INTERNALCOUNT 30
+	{
+		ifrnd 16 move SQUIRREL_MOVE geth randomangle
+			ifrnd 32 action ASQUIRREL_STOP
+		set INTERNALCOUNT 0
+	}
+}
+else ifaction ASQUIRREL_RUN
+{
+	ifnotmoving move SQUIRREL_RUN geth randomangle
+	ifrnd 16 action ASQUIRREL_STOP
+}
+
+addvar INTERNALCOUNT_2 1
+ifvarg INTERNALCOUNT_2 300
+{
+	setvar INTERNALCOUNT_2 0
+	ifcansee break
+	setsprite THISACTOR initx inity initz
+}
+
+ifhitweapon
+{
+	spawn BLOOD
+	guts JIBS5 1
+	killit
+}
+
+enda
+
+// FROG
+action A_FROG_STOP 0 1 5
+action A_FROG_UP 5 1 5 1 12
+action A_FROG_DOWN 10 1 5 1 12
+
+spriteshadow FROG
+
+move M_FROG_UP 200 -50
+move M_FROG_DOWN 200 40
+
+var frog_jump_cooldown 50 2 // cooldown between jumps
+
+useractor notenemy FROG
+fall
+
+ifaction 0
+{
+	cstator 257
+	sizeat 18 18
+	getactor[THISACTOR].x initx
+	getactor[THISACTOR].y inity
+	getactor[THISACTOR].z initz
+	action A_FROG_STOP
+}
+else ifaction A_FROG_STOP
+{
+	move STOP
+	set INTERNALCOUNT 0
+	ifrnd 4 sound FROG_ROAM
+	add frog_jump_cooldown -1
+
+	ifrnd 64 ifl frog_jump_cooldown 1
+	{
+		set frog_jump_cooldown 50
+		action A_FROG_UP
+	}
+}
+else ifaction A_FROG_UP
+{
+	ifmove M_FROG_UP
+		nullop
+	else
+		move M_FROG_UP geth getv randomangle
+
+	set temp 0
+
+	ifnotmoving
+		set temp 1
+
+	ifactioncount 1
+		set temp 1
+
+	ife temp 1
+		action A_FROG_DOWN
+}
+else ifaction A_FROG_DOWN
+{
+	ifmove M_FROG_DOWN
+		nullop
+	else
+		move M_FROG_DOWN geth getv
+
+	ifnotmoving
+		action A_FROG_STOP
+
+	ifg INTERNALCOUNT 30
+		action A_FROG_STOP
+
+	add INTERNALCOUNT 1
+
+	geta[].sectnum temp
+	geta[].x x
+	geta[].y y
+	geta[].z z
+	getflorzofslope temp x y temp2
+	add z 300 // comparison of Z coordinates isn't exact, add some margin of error
+
+	ifg z temp2
+		action A_FROG_STOP
+	else ifg INTERNALCOUNT 30 // stuck on something, force to stop. Unlikely that an acceptable fall will be more than 30 tics
+		action A_FROG_STOP
+}
+
+addvar INTERNALCOUNT_2 1
+ifvarg INTERNALCOUNT_2 300 // will reset the frog to its starting position if it's been longer than 10 seconds and the player cannot see it
+{
+	setvar INTERNALCOUNT_2 0
+	ifcansee break
+	setsprite THISACTOR initx inity initz
+}
+
+
+ifhitweapon
+{
+	spawn BLOOD
+	guts JIBS5 1
+	killit
+}
+
+enda
+
+// RAT ====================================================================================================================================================
+action A_RAT_STOP 0 1 5
+action A_RAT_MOVE 0 2 5 1 16
+action A_RAT_SCURRY 0 2 5 1 8
+
+spriteshadow ARAT
+
+move RAT_SLOW 30 0
+move RAT_SCURRY 90 0
+
+useractor notenemy ARAT
+fall
+
+ifaction 0
+	{
+	cstat 0
+	sizeat 26 26
+	action A_RAT_STOP
+	}
+
+ifaction A_RAT_STOP
+	{
+	move STOP
+	ifrnd 4 { action A_RAT_MOVE move RAT_SLOW randomangle geth }
+	ifpdistl 2048 { sound RATTY action A_RAT_SCURRY }
+	}
+
+ifaction A_RAT_MOVE
+	{
+	move RAT_SLOW geth
+	ifnotmoving move RAT_SLOW geth randomangle
+	ifrnd 2 action A_RAT_STOP
+	ifpdistl 2048 { sound RATTY action A_RAT_SCURRY }
+	}
+
+ifaction A_RAT_SCURRY
+	{
+	move RAT_SCURRY fleeenemy geth
+	ifnotmoving move RAT_SCURRY fleeenemy randomangle
+	ifpdistg 4096 { action A_RAT_MOVE move RAT_SLOW randomangle geth }
+	}
+
+enda
+
+// ROACH ====================================================================================================================================================
+action A_ROACH_STOP 0 
+action A_ROACH_MOVE 1 
+action A_ROACH_SCURRY 1
+
+useractor notenemy ROACH
+fall
+
+ifaction 0
+	{
+	cstat 32
+	sizeat 8 8
+	action A_ROACH_STOP
+	}
+
+seta[].shade sector[].floorshade
+seta[].pal sector[].floorpal
+
+ifaction A_ROACH_STOP
+	{
+	move STOP
+	ifrnd 4 { action A_ROACH_MOVE move RAT_SLOW randomangle geth }
+	ifpdistl 2048 { action A_ROACH_SCURRY }
+	}
+
+ifaction A_ROACH_MOVE
+	{
+	move RAT_SLOW geth
+	ifnotmoving move RAT_SLOW geth randomangle
+	ifrnd 2 action A_ROACH_STOP
+	ifpdistl 2048 { action A_ROACH_SCURRY }
+	}
+
+ifaction A_ROACH_SCURRY
+	{
+	move RAT_SCURRY fleeenemy geth
+	ifnotmoving move RAT_SCURRY fleeenemy randomangle
+	ifpdistg 4096 { action A_ROACH_MOVE move RAT_SLOW randomangle geth }
+	}
+	
+ifpdistl 512
+	{
+	killit
+	}
+
+enda
+
+// RABBIT
+action A_RABBIT_STOP 0 1 5
+action A_RABBIT_GRAZE 5 1 5
+action A_RABBIT_UP 15 1 5 1 12
+action A_RABBIT_DOWN 10 1 5 1 12
+
+spriteshadow RABBIT
+
+move M_RABBIT_UP 150 -25
+move M_RABBIT_DOWN 150 20
+
+useractor notenemy RABBIT
+fall
+
+ifaction 0
+{
+	cstator 257
+	sizeat 18 18
+	getactor[THISACTOR].x initx
+	getactor[THISACTOR].y inity
+	getactor[THISACTOR].z initz
+	action A_RABBIT_STOP
+}
+else ifaction A_RABBIT_STOP
+{
+	move STOP
+	set INTERNALCOUNT 0
+	add frog_jump_cooldown -1
+
+	ifrnd 64 ifl frog_jump_cooldown 1
+	{
+		set frog_jump_cooldown 50
+		action A_RABBIT_UP
+	}
+	else
+	ifrnd 16 action A_RABBIT_GRAZE
+}
+else ifaction A_RABBIT_GRAZE
+{
+	move STOP
+	set INTERNALCOUNT 0
+	add frog_jump_cooldown -1
+
+	ifrnd 16 action A_RABBIT_STOP
+}
+else ifaction A_RABBIT_UP
+{
+	ifmove M_RABBIT_UP
+		nullop
+	else
+		move M_RABBIT_UP geth getv randomangle
+
+	set temp 0
+
+	ifnotmoving
+		set temp 1
+
+	ifactioncount 1
+		set temp 1
+
+	ife temp 1
+		action A_RABBIT_DOWN
+}
+else ifaction A_RABBIT_DOWN
+{
+	ifmove M_RABBIT_DOWN
+		nullop
+	else
+		move M_RABBIT_DOWN geth getv
+
+	ifnotmoving
+		action A_RABBIT_STOP
+
+	ifg INTERNALCOUNT 30
+		action A_RABBIT_STOP
+
+	add INTERNALCOUNT 1
+
+	geta[].sectnum temp
+	geta[].x x
+	geta[].y y
+	geta[].z z
+	getflorzofslope temp x y temp2
+	add z 300 // comparison of Z coordinates isn't exact, add some margin of error
+
+	ifg z temp2
+		action A_RABBIT_STOP
+	else ifg INTERNALCOUNT 30 // stuck on something, force to stop. Unlikely that an acceptable fall will be more than 30 tics
+		action A_RABBIT_STOP
+}
+
+addvar INTERNALCOUNT_2 1
+ifvarg INTERNALCOUNT_2 300 // will reset the RABBIT to its starting position if it's been longer than 10 seconds and the player cannot see it
+{
+	setvar INTERNALCOUNT_2 0
+	ifcansee break
+	setsprite THISACTOR initx inity initz
+}
+
+
+ifhitweapon
+{
+	spawn BLOOD
+	guts JIBS5 1
+	killit
+}
+
+enda
+
+// Credits to Dan Gaskil for this code
+
+action ABUTTFLAP 0 1 5 1 10
+action ABUTTFLAP2 5 1 5 1 10
+action ABUTTFLAP3 10 1 5 1 10
+action ABUTTFLAP4 5 1 5 1 10
+
+move BUTTMOVE1 32 -16
+move BUTTMOVE2 32 16
+
+useractor notenemy BUTTERFLY 0 ABUTTFLAP
+
+ifaction ABUTTFLAP ifactioncount 1 { action ABUTTFLAP2 resetactioncount }
+ifaction ABUTTFLAP2 ifactioncount 1 { action ABUTTFLAP3 resetactioncount }
+ifaction ABUTTFLAP3 ifactioncount 1 { action ABUTTFLAP4 resetactioncount }
+ifaction ABUTTFLAP4 ifactioncount 1 { action ABUTTFLAP resetactioncount }
+
+ifmove 0
+{
+	spriteflags 10256
+	cstat 128
+	clipdist 1
+	sizeat 12 12
+	move BUTTMOVE1 geth getv
+
+	getactor[THISACTOR].x initx
+	getactor[THISACTOR].y inity
+	getactor[THISACTOR].z initz
+}
+
+ifcount 52 ifrnd 64
+{
+	ifpdistl 1560 move BUTTMOVE1 geth getv furthestdir
+	else
+	iffloordistl 12 move BUTTMOVE1 geth getv randomangle else
+	ifceilingdistl 16 move BUTTMOVE2 geth getv randomangle
+	else
+	ifrnd 128 move BUTTMOVE1 geth getv randomangle
+	else
+	move BUTTMOVE2 geth getv randomangle
+	ifrnd 128 setvar mtype 1 else setvar mtype 0
+}
+
+getactor[THISACTOR].ang angvar
+ifvare mtype 0 addvar angvar 16 else subvar angvar 16
+setactor[THISACTOR].ang angvar
+
+addvar INTERNALCOUNT 1
+ifvarg INTERNALCOUNT 300
+{
+	setvar INTERNALCOUNT 0
+	ifcansee break
+	setsprite THISACTOR initx inity initz
+}
+
+enda
+
+action TORT_WALK 5 2 5 1 20
+action TORT_IDLE 0 1 5
+action TORT_HIDE 15 1 5
+
+move MOV_TORT 15
+
+spriteshadow TORTOISE
+
+useractor notenemy TORTOISE
+fall
+add INTERNALCOUNT 1
+
+ifaction 0
+{
+	cstator 256
+	sizeat 24 24
+	strength 50
+	action TORT_IDLE
+	getactor[THISACTOR].x initx
+	getactor[THISACTOR].y inity
+	getactor[THISACTOR].z initz
+}
+else ifaction TORT_IDLE
+{
+	move STOP
+	ifrnd 16 action TORT_WALK
+}
+else ifaction TORT_WALK
+{
+	move MOV_TORT geth
+	ifnotmoving move MOV_TORT geth randomangle
+
+	ifg INTERNALCOUNT 30
+	{
+		ifrnd 16 move MOV_TORT geth randomangle
+			ifrnd 32 action TORT_IDLE
+		set INTERNALCOUNT 0
+	}
+}
+else ifaction TORT_HIDE
+{
+	move STOP
+	ifrnd 1 action TORT_WALK
+}
+
+addvar INTERNALCOUNT_2 1
+ifvarg INTERNALCOUNT_2 300
+{
+	setvar INTERNALCOUNT_2 0
+	ifcansee break
+	setsprite THISACTOR initx inity initz
+}
+
+ifhitweapon
+{
+	action TORT_HIDE
+	strength 50
+}
+enda
+
+// ********************************************************************************
+// BUG
+// ********************************************************************************
+
+move FLYMOVE 80
+
+spriteshadow 11669
+
+action AFLYMOVE 0 2 5 1 10
+
+useractor notenemy 11669
+
+ifaction 0 { sizeat 22 22 action AFLYMOVE }
+
+ifmove 0
+{
+geta[].x temp
+geta[].y temp2
+move FLYMOVE geth randomangle
+}
+
+ifnotmoving
+{
+move FLYMOVE geth randomangle
+}
+
+addvar INTERNALCOUNT_2 1
+ifvarg INTERNALCOUNT_2 300
+{
+	setvar INTERNALCOUNT_2 0
+	ifcansee break
+	setsprite THISACTOR initx inity initz
+}
+
+enda
+
+// FISHES ====================================================================
+
+action A_FISH_SWIM 0 3 5 1 18
+action A_BIG_FISH_SWIM 0 3 5 1 64
+
+move FISH_VELS 24
+move FISH_VELS2 48
+move FISH_FAST 96
+
+// code originally by Dan
+
+defstate fish_code
+
+ifaction 0
+	{
+	randvar temp 15
+	add temp 10 // minimum size
+	seta[].xrepeat temp
+	seta[].yrepeat temp
+	ifactor 29601
+		{
+		action A_BIG_FISH_SWIM
+		sizeat 64 64
+		}
+	else
+		action A_FISH_SWIM
+      ifrnd 128
+        move FISH_VELS randomangle geth
+      else
+        move FISH_VELS2 randomangle geth
+	resetcount
+	}
+
+	ifrnd 8 ifinwater spawn WATERBUBBLE
+
+  ifaction A_FISH_SWIM
+  {
+    ifnotmoving
+    {
+      ifrnd 128
+        move FISH_VELS randomangle geth
+      else
+        move FISH_VELS2 randomangle geth
+    }
+  }
+
+   ifaction A_BIG_FISH_SWIM
+  {
+    ifnotmoving
+    {
+      ifrnd 128
+        move FISH_VELS randomangle geth
+      else
+        move FISH_VELS2 randomangle geth
+    }
+  }
+
+  ifn player_using_submarine -1
+   ifpdistl 4096 move FISH_FAST fleeenemy
+
+  ifmove FISH_FAST
+	{
+	ifcount 90
+	 ifrnd 32
+	  {
+	  move FISH_VELS randomangle geth
+	  resetcount
+	  }
+	}
+
+  ifhitweapon
+  {
+    ifdead
+    {
+        state squish_sounds
+        guts JIBS6 3
+        killit
+    }
+    else
+      move FISH_FAST randomangle geth
+  }
+  else ifsquished
+  {
+	  state squish_sounds
+	  guts JIBS6 3
+      killit
+  }
+
+ends
+
+spriteshadow 22290
+
+useractor notenemy 22290 state fish_code enda
+
+spriteshadow 29601
+
+useractor notenemy 29601 sleeptime 0 state fish_code enda
+
+spriteshadow 32742
+
+useractor notenemy 32742 sleeptime 0 state fish_code enda

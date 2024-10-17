@@ -1,0 +1,366 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+
+--------------------------------------------------------------------------------
+*/
+
+damageeventtile BEYONDER
+
+var beyonder_cinematic_mode 0 1 // used in E2 and E3 intro to make it a bit freakier. But wouldn't work nicely during normal gameplay.
+var beyonder_cinematic_atk 0 2 // only attack once
+
+
+// Disable crouch & jump while beyondered
+appendevent EVENT_JUMP
+	ife beyonder_cinematic_mode 1
+		set RETURN 99
+endevent
+
+appendevent EVENT_CROUCH
+	ife beyonder_cinematic_mode 1
+		set RETURN 99
+endevent
+
+// beyonder has no idle state (but maybe it should for easier scripted sequences?)
+action A_BEYOND_DEAD     31   1   1   1  1
+action A_BEYOND_DYING    25   7   1   1   17
+action A_BEYOND_PAIN     0   1   5   1   15
+action A_BEYOND_SEEK     0   3   5   1   15
+action A_BEYOND_ATTACK   20   1   5   1   10
+
+move M_BEYOND_DOWNVELS 96 30 // move down
+move M_BEYOND_UPVELS 96 -30 // move up
+move M_BEYOND_STOPPED 0 30
+move M_BEYOND_INWATER 96 24
+
+defstate BEYONDgetenemystate
+	ife beyonder_cinematic_mode 1
+	{
+		set my_target PLAYER_IDENTITY
+		set ANGLE_TO_ACTOR PLAYER_IDENTITY
+		state angleTo
+		seta[].ang angvar
+
+		ife beyonder_cinematic_atk 0
+			ifactioncount 12
+		{
+			set beyonder_cinematic_atk 1
+			sound BEYOND_CHA
+			action A_BEYOND_ATTACK
+		}
+	}
+	else
+	{
+		ifnotmoving ifrnd 4 operate
+
+		state checkfortarget
+
+		ifn my_target -1
+		{
+			ifactioncount 32
+			{
+				ifrnd 48
+				{
+					sound BEYOND_CHA
+					action A_BEYOND_ATTACK
+				}
+			}
+		}
+	}
+ends
+
+
+defstate BEYONDshootenemystate
+	ifmove M_BEYOND_STOPPED nullop
+	else move M_BEYOND_STOPPED geth getv
+
+	state new_validatetarget
+	ife my_target -1
+	{
+		move STOP // a bit unintuitive, but this kills the "stopped" movement and allows it to move again
+		action A_BEYOND_SEEK
+	}
+
+	state fronttowardstarget
+
+	ifcount 25
+	{
+		// I don't know why, but merging this to a single ifcount 27 breaks the behaviour
+		ifcount 27
+		{
+			move STOP
+			action A_BEYOND_SEEK
+		}
+	}
+	else ifcount 24
+	{
+		ife beyonder_cinematic_mode 1
+		ife player_spooked 0
+		{
+			stopallsounds
+			globalsound BEYOND_HIT
+			wackplayer
+			set player_spooked 98
+			state fade_out_white
+			state setknockback
+		}
+		else
+		{
+			ifn my_target -1
+			{
+				geta[my_target].picnum temp2
+				// if shootme, apply to owner - otherwise to target itself
+				ifg temp2 9070
+					ifl temp2 9074
+				{
+					getav[my_target].myowner temp4
+				}
+				else {
+					set temp4 my_target
+				}
+
+				ife temp4 PLAYER_IDENTITY
+				{
+					ifcansee
+					{
+						ifg P_SPIRIT_ARMOUR 20
+						{
+							stopallsounds
+							globalsound BEYOND_HITENEMY
+							wackplayer
+							sub P_SPIRIT_ARMOUR 40
+							soundonce SPARM_PROTECT
+							palfrom 20 0 0 40
+							ifl P_SPIRIT_ARMOUR 0 set P_SPIRIT_ARMOUR 0
+							state setknockback
+						}
+						else
+							ife CHAR 14
+							ifn player[].holoduke_on -1
+						{
+							stopallsounds
+							globalsound BEYOND_HITENEMY
+							wackplayer
+							soundonce SPARM_PROTECT
+							palfrom 20 0 0 40
+							state setknockback
+						}
+						else
+						{
+							stopallsounds
+							globalsound BEYOND_HIT
+							wackplayer
+							ife player_spooked 0 set player_spooked 98
+							addphealth -75
+							state fade_out_white
+							state setknockback
+						}
+					}
+				}
+				else
+				{
+					globalsound BEYOND_HITENEMY
+
+					ifg temp2 9070
+						ifl temp2 9074
+					{
+						seta[temp4].htextra 5000
+						seta[temp4].htpicnum RADIUSEXPLOSION
+					}
+					else {
+						seta[my_target].htextra 5000
+						seta[my_target].htpicnum RADIUSEXPLOSION
+					}
+				}
+			}
+		}
+	}
+	else ifactioncount 6
+		resetactioncount
+
+ends
+
+defstate checkBEYONDhitstate
+	// don't put a move stop or anything here, or the beyonder gets stunlocked each time they're hit
+	state NEWGUNEFFECTS
+	ifwasweapon RPG seta[].xvel 0
+	ifwasweapon RADIUSEXPLOSION seta[].xvel 0
+
+    ifdead
+    {
+		ifmove M_BEYOND_STOPPED nullop
+		else move M_BEYOND_STOPPED geth getv
+		addkills 1
+
+		ifwasweapon RPG
+		{
+			state squish_sounds
+			state standard_jibs
+			killit
+		}
+		else ifwasweapon RADIUSEXPLOSION
+		{
+			state squish_sounds
+			state standard_jibs
+			killit
+		}
+		else
+		{
+			state rf
+			action A_BEYOND_DYING
+		}
+		// sound BEYOND_DYING
+    }
+    else
+    {
+		//spawn BLOOD
+		ifrnd 4
+			action A_BEYOND_PAIN
+    }
+	state random_wall_jibs
+ends
+
+defstate BEYONDdyingstate
+	ifactioncount 7
+	{
+		ifrnd 64
+		spawn BLOODPOOL
+		ifmove M_BEYOND_STOPPED nullop
+		else move M_BEYOND_STOPPED geth getv
+		action A_BEYOND_DEAD
+	}
+	else ifactioncount 5 nullop
+	else
+		ifactioncount 4
+		iffloordistl 8
+		state BODY_FALL_NOISES
+ends
+
+useractor enemystayput BEYONDBRAIN_STAYPUT 6000
+    cactor BEYONDER
+enda
+
+useractor enemy BEYONDER 6000
+	fall
+	state checksquished
+	state ENEMYKNOCKBACKS
+
+// force player perspective
+ife beyonder_cinematic_mode 1
+{
+	lockplayer 13
+	set ANGLE_TO_ACTOR THISACTOR
+	state angleToFromPlayer
+	setp[].ang angvar
+}
+
+// 947 is a currently hardwired lotag that is activated sometime after the beyonder attacks in the episode 2 and 3 intros.
+// kill the beyonder just in case to unlock the player
+ife IN_DREAM 1
+{
+	checkactivatormotion 947
+	ife RETURN 1
+	{
+		set beyonder_cinematic_mode 0
+		killit
+	}
+}
+
+ifaction 0
+{
+	ife IN_DREAM 1 ifn VOLUME 4 // for sections where you play as cassandra (in the intros really)
+		set beyonder_cinematic_mode 1
+	set actor_type TYPE_BEYOND
+	state monst_glow
+	globalsound BEYOND_SPA
+	sizeat 32 32
+	cstat 257
+	spriteflags NORMAL_ENEMY
+	action A_BEYOND_SEEK
+}
+else ifaction A_BEYOND_DEAD
+{
+	move M_BEYOND_STOPPED geth getv
+	strength 0
+	ifhitweapon
+		ifwasweapon RADIUSEXPLOSION
+	{
+		state standard_jibs
+		killit
+	}
+}
+else
+{
+	ifrnd 4
+		{
+		ifrnd 96 soundonce BEYOND_A2
+		else ifrnd 96 soundonce BEYOND_A3
+		else ifrnd 96 soundonce BEYOND_AMB
+		}
+
+	ifaction A_BEYOND_SEEK
+		state BEYONDgetenemystate
+	else ifaction A_BEYOND_PAIN
+	{
+		ifcount 4
+			action A_BEYOND_ATTACK
+	}
+	else ifaction A_BEYOND_DYING
+		state BEYONDdyingstate
+	else ifaction A_BEYOND_ATTACK
+		state BEYONDshootenemystate
+
+	// stop bumping into the player if we have attacked cause it looks silly
+	ife beyonder_cinematic_atk 1
+	{
+		ifmove M_BEYOND_STOPPED nullop
+		else move M_BEYOND_STOPPED geth getv
+	}
+	else
+	{
+		ifmove M_BEYOND_STOPPED nullop
+		else
+		{
+			ifp phigher
+			{
+				ifmove M_BEYOND_UPVELS nullop
+				else move M_BEYOND_UPVELS geth getv
+			}
+			else ifmove M_BEYOND_INWATER nullop
+			else ifinwater
+				move M_BEYOND_INWATER geth getv
+			else
+			{
+				ifmove M_BEYOND_DOWNVELS nullop
+				else move M_BEYOND_DOWNVELS geth getv
+			}
+		}
+	}
+
+	ifhitweapon
+		state checkBEYONDhitstate
+}
+enda

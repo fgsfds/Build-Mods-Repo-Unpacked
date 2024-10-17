@@ -1,0 +1,909 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+
+--------------------------------------------------------------------------------
+*/
+
+// TODO fix bug where switching from walking terminator to crawling one adds another enemy to the map
+// Killing it only adds 1 kill though so the killcount is 1 / 2 when killing a single terminator...
+
+// Terminator weak spot
+
+damageeventtile 24730 // Terminator weak spot
+damageeventtile TERMINATOR
+damageeventtile TERMINATORCRAWLING
+damageeventtile TERMINATORSTAYPUT
+damageeventtile TERMINATORDUCKING
+
+useractor notenemy 24730
+ifaction 0
+	{
+	sizeat 30 30
+	seta[].blend 255
+	seta[].shade 50
+	strength 2000
+	cstat 339
+	action ZERO
+	}
+
+	geta[].htextra EV_NEW_DAMAGE
+	ifg EV_NEW_DAMAGE 0
+		{
+		strength 2000
+		geta[EV_TARG_SPRITE].htpicnum EV_PROJ_TYPE
+		ife EV_PROJ_TYPE RPG break
+		ife EV_PROJ_TYPE RADIUSEXPLOSION break
+		ifand tiledata[EV_PROJ_TYPE].gameflags 8
+			getprojectile[EV_PROJ_TYPE].userdata PROJ_UDATA
+		else set PROJ_UDATA 0
+		ifg EV_NEW_DAMAGE sprite[myowner].extra { seta[myowner].htextra 2000 killit }
+		ifand PROJ_UDATA 66080
+                { // Armor piercing (32) + Nuclear/Atomic (65536) -- (dmg * 2)
+				globalsound TERM_CRIT
+				screensound TERM_CRIT
+                mulvar EV_NEW_DAMAGE 2
+                set hit_indic_pal 125
+                shoot SPARK shoot SPARK shoot SPARK
+				seta[myowner].htextra EV_NEW_DAMAGE
+                }
+        else
+                {
+				globalsound TERM_CRIT
+				screensound TERM_CRIT
+                set hit_indic_pal 32
+                shoot SPARK shoot SPARK shoot SPARK shoot SPARK
+				seta[myowner].htextra EV_NEW_DAMAGE
+                }
+		set EV_NEW_DAMAGE 0
+		seta[].htextra -1
+		}
+
+ifaction ZERO
+	{
+	set temp3 sprite[myowner].x
+	add temp3 79
+
+	rotatepoint sprite[myowner].x sprite[myowner].y temp3 sprite[myowner].y sprite[myowner].ang temp5 temp6
+
+	seta[].ang sprite[myowner].ang
+
+	updatesector temp5 temp6 temp7
+
+	geta[myowner].z temp
+
+	ife actorvar[myowner].ally_mag 1 sub temp 5400 else
+	sub temp 9200
+
+	setsprite THISACTOR temp5 temp6 temp
+
+	ifl sprite[myowner].extra 1 killit
+
+	}
+
+
+enda
+
+// DUKINATOR ==========================================================================================================================================================================
+// sprites by sebabdukeboss20, code by Dan Gaskill, modifications by Sang
+// ====================================================================================================================================================================================
+
+action ATERMINATOROFF			0  1  5  1  10
+action ATERMINATORON			5  1  5  1  10
+action ATERMINATORWALK			10 4  5  1  20
+action ATERMINATORSHOOT			30 2  5  1  6
+action ATERMINATORDUCK1			0 1  5  1  10 // 40
+action ATERMINATORDUCKSHOOT		0 2  5  1  6
+action ATERMINATORCRAWL			0 4  5  1  20 // 50
+action ATERMINATORCRAWLSHOOT	20 2  5  1  6
+action ATERMINATORHIT			80 1  1  1  10
+action ATERMINATORDIE			80 3  1  1  12
+action ATERMINATORCRAWLDIE		37 2  1  1  12 // 87
+action ATERMINATOR_DESTRUCT		37 2  1  1  12 // 87
+
+move TERMINATORWALKVELS 71
+move TERMINATORCRAWLVELS 38
+
+gamevar initsprite 0 2
+
+useractor notenemy TERMHEAD 0
+
+ifaction 0
+{
+	seta[].mdflags 16
+	action ZERO
+	sizeat 29 29
+	ifrnd 128 cstator 4
+}
+
+ifaction ZERO
+{
+ifactioncount 60
+	{
+	ifrnd 64 action ONE
+	else resetcount
+	}
+}
+
+ifaction ONE
+{
+ifactioncount 30
+	{
+	ifrnd 64 action TWO
+	else resetcount
+	}
+}
+
+fall
+
+enda
+
+defstate termtaunt
+	ifsound TERMBALLS nullop
+	else ifsound TERMGUTS nullop
+	else ifsound TERMTAUNT1 nullop
+	else ifsound TERMTAUNT2 nullop
+	else ifsound TERMTAUNT3 nullop
+	else
+	{
+		rand temp 4
+		switch temp
+		case 0 sound TERMBALLS break
+		case 1 sound TERMGUTS break
+		case 2 sound TERMTAUNT1 break
+		case 3 sound TERMTAUNT2 break
+		case 4 sound TERMTAUNT3 break
+		endswitch
+	}
+ends
+
+defstate terminatorstepcode
+	ife mtype 0 // first step
+	{
+		ifactioncount 1
+		{
+			sound TERMSTEP
+			set mtype 1
+		}
+	}
+	else ife mtype 1
+	{
+		ifactioncount 2
+		{
+		ifspritepal 51 sound TERM_RUST else sound SERVOSND
+			set mtype 2
+		}
+	}
+	else ife mtype 2
+	{
+		ifactioncount 3
+		{
+			sound TERMSTEP
+			set mtype 3
+		}
+	}
+	else ife mtype 3
+	{
+		ifactioncount 4
+		{
+			set mtype 0
+			resetactioncount
+			ifspritepal 51 sound TERM_RUST else sound SERVOSND
+		}
+	}
+ends
+
+defstate termwaitstate
+	state checkfortarget
+
+	ifn my_target -1
+	{
+		state termtaunt
+		action ATERMINATORWALK
+	}
+ends
+
+defstate termhitstate
+	ifactioncount 10 action ATERMINATORWALK
+ends
+
+defstate termseekstate
+	ifrnd 1 ifrnd 128 state termtaunt
+
+	state checkfortarget
+
+	ifn my_target -1
+	{
+		// if target is the player, do duck stuff
+		ife my_target PLAYER_IDENTITY
+		{
+			ifg player[].curr_weapon CHAINGUN_WEAPON
+			ifp pfacing ifbulletnear
+			{
+				cactor TERMINATORDUCKING action ATERMINATORDUCK1
+				break
+			}
+		}
+
+		ifrnd 32
+			ife mtype 0
+		{
+			set mtype 0
+			set initsprite 0
+			ifrnd 128 { cactor TERMINATORDUCKING action ATERMINATORDUCK1 }
+			else
+				action ATERMINATORSHOOT
+		}
+	}
+ends
+
+defstate termshootstate
+	ifaction ATERMINATORSHOOT
+	{
+		move STOP
+		state fronttowardstarget
+
+		ife my_target -1
+		{
+			set initsprite 0
+			set mtype 0
+			action ATERMINATORWALK
+		}
+		else ife mtype 0
+		{
+			ifactioncount 1
+			{
+				ife initsprite 5
+				{
+					set initsprite 0
+					set mtype 0
+					action ATERMINATORWALK
+				}
+				else
+				{
+					set PROJECTILE_FIRING_SOUND LASERSHOOT
+					set PROJECTILE_TO_SHOOT PLASMAPROJ
+					state sang_enemyShootProjectile
+
+					set mtype 1
+					add initsprite 1
+				}
+			}
+		}
+		else ife mtype 1
+		{
+			ifactioncount 2
+			{
+				set mtype 0
+				resetactioncount
+			}
+		}
+	}
+
+	ifaction ATERMINATORDUCKSHOOT
+	{
+		move STOP
+		state fronttowardstarget
+
+		ife my_target -1
+		{
+			set initsprite 0
+			set mtype 0
+			cactor TERMINATOR
+			action ATERMINATORWALK
+		}
+		else ife mtype 0
+		{
+			ifactioncount 1
+			{
+				ife initsprite 5
+				{
+					set initsprite 0
+					set mtype 0
+					cactor TERMINATOR
+					action ATERMINATORWALK
+				}
+				else
+				{
+					set PROJECTILE_FIRING_SOUND LASERSHOOT
+					set PROJECTILE_TO_SHOOT PLASMAPROJ
+					state sang_enemyShootProjectile
+
+					set mtype 1
+					add initsprite 1
+				}
+			}
+		}
+		ife mtype 1
+		{
+			ifactioncount 2
+			{
+				set mtype 0
+				resetactioncount
+			}
+		}
+	}
+ends
+
+defstate spawnpartset
+	seta[RETURN].xrepeat sprite[].xrepeat
+	seta[RETURN].yrepeat sprite[].yrepeat
+	seta[RETURN].pal sprite[].pal
+ends
+
+defstate termspawnlegparts
+	rand z 3072
+	mul z -1
+	ezshoot z TERMLEGPART1
+	randvar temp  2047
+	setactor[RETURN].ang temp
+	randvar temp  128 add temp 128
+	setactor[RETURN].xvel temp
+	state spawnpartset
+
+	ifrnd 128
+	{
+		rand z 3072
+		mul z -1
+		ezshoot z TERMLEGPART1
+		randvar temp  2047
+		setactor[RETURN].ang temp
+		randvar temp  128 add temp 128
+		setactor[RETURN].xvel temp
+		state spawnpartset
+	}
+
+	rand z 3072
+	mul z -1
+	ezshoot z TERMLEGPART2
+	randvar temp  2047
+	setactor[RETURN].ang temp
+	randvar temp  128 add temp 128
+	setactor[RETURN].xvel temp
+	state spawnpartset
+
+	ifrnd 128
+	{
+		rand z 3072
+		mul z -1
+		ezshoot z TERMLEGPART2
+		randvar temp  2047
+		setactor[RETURN].ang temp
+		randvar temp  128 add temp 128
+		setactor[RETURN].xvel temp
+		state spawnpartset
+	}
+
+	rand z 3072
+	mul z -1
+	ezshoot z TERMLEGPART3
+	randvar temp  2047
+	setactor[RETURN].ang temp
+	randvar temp  128 add temp 128
+	setactor[RETURN].xvel temp
+	state spawnpartset
+
+	ifrnd 128
+	{
+		rand z 3072
+		mul z -1
+		ezshoot z TERMLEGPART3
+		randvar temp  2047
+		setactor[RETURN].ang temp
+		randvar temp  128 add temp 128
+		setactor[RETURN].xvel temp
+		state spawnpartset
+	}
+ends
+
+defstate termdyingstate
+	seta[].shade -127
+	ifl sprite[].extra -200
+		{
+		shoot SPARK2
+		shoot SPARK2
+		state spawnpartset
+		espawn EXPLOSION2
+		globalsound ROBOT_EXPLODE
+		set PLAYER_VOICEOVER 33
+		state spawnpartset
+		addkills 1
+		state spawnpartset
+		seta[RETURN].pal sprite[].pal
+		add z 4096
+		seta[].z z
+		state termspawnlegparts
+		ifrnd SPAWNAMMOODDS spawn PHPLASMA_SPRITE
+		killit
+		}
+	ifactioncount 6
+	{
+		shoot SPARK2
+		shoot SPARK2
+		shoot SPARK2
+		shoot SPARK2
+		shoot SPARK2
+		geta[].z z
+		sub z 4096
+		seta[].z z
+		ifl sprite[].extra -100
+		{
+			shoot SPARK2
+			shoot SPARK2
+			state spawnpartset
+			espawn EXPLOSION2
+			globalsound ROBOT_EXPLODE
+			set PLAYER_VOICEOVER 33
+			state spawnpartset
+			ifrnd SPAWNAMMOODDS spawn PHPLASMA_SPRITE
+			addkills 1
+		}
+		else
+			{
+			sound TERM_TORS
+			espawn TERMTORSO
+			setav[RETURN].actor_pal actor_pal
+			setav[RETURN].faction_flag faction_flag
+			}
+
+		state spawnpartset
+		seta[RETURN].pal sprite[].pal
+		add z 4096
+		seta[].z z
+		state termspawnlegparts
+		killit
+	}
+ends
+
+defstate terminatorfactioncode
+	ife VOLUME 2
+	{
+		switch LEVEL
+			case 23
+			case 24
+			case 25
+			case 36 // Terminators on Triton Facility
+				set faction_flag 2
+				break
+			default
+					ife actor_pal 3 set faction_flag 1024 // friendly, eaf
+					else ife actor_pal 9 set faction_flag 512 // hostile
+					else ife actor_pal 16 set faction_flag 1024 // friendly, EDF
+					else set faction_flag 64 // hostile, allied to Mercs
+				break
+		endswitch
+	}
+	else
+		{
+		ife actor_pal 3 set faction_flag 1024 // friendly, eaf
+		else ife actor_pal 9 set faction_flag 512 // hostile
+		else ife actor_pal 16 set faction_flag 1024 // friendly, EDF
+		else set faction_flag 64 // hostile, allied to Mercs
+		}
+
+	state addtotargetarray
+ends
+
+defstate terminatorcode
+fall
+
+ifaction 0
+{	
+	ife actor_pal 0 geta[].pal actor_pal
+	ifspritepal 16 spritepal 0
+	set actor_type TYPE_ROBOTIC
+	ifg EXTRASAVED 0
+	{
+		action ATERMINATOROFF
+	}
+	else
+	{
+		sound TERMBEEP
+		spriteflags ROBOT_ENEMY
+		espawn SHOOTME seta[RETURN].pal 1
+		action ATERMINATORON
+	}
+	spawn 24730
+	sizeat 29 25
+	set command 8192
+	cstat 257
+}
+else ifaction ATERMINATOROFF
+{
+	sleeptime 0
+	move STOP
+	checkactivatormotion EXTRASAVED
+	ife RETURN 1
+	{
+		sound TERMBEEP
+		action ATERMINATORON
+		state terminatorfactioncode
+		espawn SHOOTME seta[RETURN].pal 1
+	}
+}
+else ifaction ATERMINATORON
+{
+	move STOP
+	state termwaitstate
+}
+else ifaction ATERMINATORHIT
+{
+	move STOP
+
+	ifn my_target -1
+		state fronttowardstarget
+
+	state termhitstate
+}
+else ifaction ATERMINATORSHOOT
+{
+	move STOP
+
+	state checkfortarget
+	ifn my_target -1
+	{
+		state fronttowardstarget
+		state termshootstate
+	}
+	else
+	{
+		set initsprite 0
+		set mtype 0
+		action ATERMINATORWALK
+	}
+}
+else ifaction ATERMINATORDUCK1
+{
+	move STOP
+
+	state checkfortarget
+
+	ife my_target -1
+	{
+		cactor TERMINATOR
+		action ATERMINATORWALK
+	}
+	else ifactioncount 8
+	{
+		set initsprite 0
+		set mtype 0
+		action ATERMINATORDUCKSHOOT
+	}
+}
+else ifaction ATERMINATORDUCKSHOOT
+{
+	move STOP
+
+	state checkfortarget
+
+	ifn my_target -1
+	{
+		state fronttowardstarget
+		state termshootstate
+	}
+	else
+	{
+		set initsprite 0
+		set mtype 0
+		cactor TERMINATOR
+		action ATERMINATORWALK
+	}
+}
+else ifaction ATERMINATORDIE
+{
+	move STOP
+	state termdyingstate
+}
+else ifaction ATERMINATORWALK
+{
+	ifmove TERMINATORWALKVELS nullop
+	else move TERMINATORWALKVELS geth
+
+	state terminatorstepcode
+	state termseekstate
+}
+
+ifsquished
+{ geta[].htextra temp add temp 10 seta[].htextra temp seta[].htpicnum RPG }
+
+ifhitweapon
+{
+	ifwasweapon GROWSPARK
+		sound EXPANDERHIT
+
+	ifdead
+	{
+		ifactor TERMINATORDUCKING cactor TERMINATOR
+		action ATERMINATORDIE
+		ifrnd 128 globalsound TERMELECT2
+		else globalsound TERMELECT
+	}
+	else ifaction ATERMINATORHIT nullop else
+		ifn sprite[].picnum TERMINATORDUCKING
+		ifn sprite[].picnum TERMINATORCRAWLING
+	{
+		ifaction ATERMINATOROFF
+			{
+			action ATERMINATORON
+			state terminatorfactioncode
+			espawn SHOOTME seta[RETURN].pal 1
+			}
+		ifrnd 16
+		{
+			ifrnd 128 sound TERM_PAIN else sound TERM_PAIN2
+			action ATERMINATORHIT
+		}
+		else ifrnd 64
+		{
+			ifaction ATERMINATORSHOOT nullop
+			else
+			{
+				set mtype 0
+				set initsprite 0
+				ifrnd 128 { cactor TERMINATORDUCKING action ATERMINATORDUCK1 }
+				else action ATERMINATORSHOOT
+			}
+		}
+	}
+}
+ends
+
+useractor enemy TERMINATOR 200 0 set ally_mag 0 state terminatorcode enda
+
+useractor enemystayput TERMINATORSTAYPUT 200 0 cactor TERMINATOR state terminatorcode enda
+
+useractor enemy TERMINATORDUCKING 200 0 set ally_mag 1 state terminatorcode enda
+
+defstate termcrawlstepscode
+	soundonce TERMCRAWL
+	ife mtype 0 // first step
+	{
+		ifactioncount 1
+		{
+		ifspritepal 51 sound TERM_RUST
+			sound TERMCRAWL
+			set mtype 1
+		}
+	}
+	else ife mtype 1
+	{
+		ifactioncount 2
+		{
+		ifspritepal 51 sound TERM_RUST
+			sound TERMCRAWL
+			set mtype 2
+		}
+	}
+	else ife mtype 2
+	{
+		ifactioncount 3
+		{
+		ifspritepal 51 sound TERM_RUST
+			sound TERMCRAWL
+			set mtype 3
+		}
+	}
+	else ife mtype 3
+	{
+		ifactioncount 4
+		{
+		ifspritepal 51 sound TERM_RUST
+			set mtype 0
+			resetactioncount
+			sound TERMCRAWL
+		}
+	}
+ends
+
+defstate termcrawlstate
+ifaction ATERMINATORCRAWL
+{
+	ifmove TERMINATORCRAWLVELS nullop
+	else move TERMINATORCRAWLVELS geth
+
+	state termcrawlstepscode
+
+	state checkfortarget
+
+	ifn my_target -1
+		ifrnd 32
+		ife mtype 0
+	{
+		set mtype 0
+		set initsprite 0
+		action ATERMINATORCRAWLSHOOT
+	}
+}
+else ifaction ATERMINATORCRAWLSHOOT
+{
+	move STOP
+	state fronttowardstarget
+
+	ife my_target -1
+	{
+		set initsprite 0
+		set mtype 0
+		action ATERMINATORCRAWL
+	}
+	else ife mtype 0
+	{
+
+		ifactioncount 1
+		{
+			ife initsprite 3
+			{
+				set initsprite 0
+				set mtype 0
+				action ATERMINATORCRAWL
+			}
+			else
+			{
+				set PROJECTILE_FIRING_SOUND LASERSHOOT
+				set PROJECTILE_TO_SHOOT PLASMAPROJ
+				state sang_enemyShootProjectile
+
+				set mtype 1
+				add initsprite 1
+			}
+		}
+	}
+
+	ife mtype 1
+	{
+		ifactioncount 2
+		{
+			set mtype 0
+			resetactioncount
+		}
+	}
+}
+ends
+
+useractor enemy TERMINATORCRAWLING 100
+fall
+
+ifaction 0
+{
+	spriteflags ROBOT_ENEMY
+	set actor_type TYPE_ROBOTIC
+	sizeat 29 25
+	set command 8192
+	cstat 257
+	action ATERMINATORCRAWL
+}
+else ifaction ATERMINATOR_DESTRUCT
+{
+	ifrnd 4 shoot SPARK2
+	seta[].shade -127
+
+	ifactioncount 18
+	{
+		espawn EXPLOSION2
+		globalsound ROBOT_EXPLODE
+		seta[RETURN].xrepeat 64
+		seta[RETURN].yrepeat 64
+		set INTERNALCOUNT_2 0
+		whilevarn INTERNALCOUNT_2 4
+		{
+		   rand z 3072
+		   add z 2048
+		   mul z -1
+		   ezshoot z CARXPLODE
+		   randvar temp  2047
+		   setactor[RETURN].ang temp
+		   randvar temp  192 add temp 128
+		   setactor[RETURN].xvel temp
+		   add INTERNALCOUNT_2 1
+		}
+		hitradius 1536 10 20 30 40
+		debris SCRAP1 3
+		debris SCRAP2 3
+		debris SCRAP6 3
+		ifrnd SPAWNAMMOODDS spawn PHPLASMA_SPRITE
+		killit
+	}
+}
+else ifaction ATERMINATORCRAWLDIE
+{
+	seta[].shade -127
+	ifactioncount 6
+	{
+		espawn EXPLOSION2
+		set PLAYER_VOICEOVER 33
+		globalsound ROBOT_EXPLODE
+		seta[RETURN].xrepeat 32
+		seta[RETURN].yrepeat 32
+		set INTERNALCOUNT_2 0
+		whilevarn INTERNALCOUNT_2 4
+		{
+		   rand z 3072
+		   add z 2048
+		   mul z -1
+		   ezshoot z CARXPLODE
+		   randvar temp  2047
+		   setactor[RETURN].ang temp
+		   randvar temp  192 add temp 128
+		   setactor[RETURN].xvel temp
+		   add INTERNALCOUNT_2 1
+		}
+		hitradius 1024 5 10 15 20
+		debris SCRAP1 3
+		debris SCRAP2 3
+		debris SCRAP6 3
+		espawn TERMHEAD
+		setav[RETURN].actor_pal actor_pal
+		ifrnd SPAWNAMMOODDS spawn PHPLASMA_SPRITE
+		killit
+	}
+}
+
+state termcrawlstate
+
+ifpdistl 1024
+ ifrnd 16
+  ifn faction_flag 1024
+	{
+		ifrnd 128 sound TERM_SELFD
+		else sound TERM_SELFD2
+		addkills 1
+		move STOP
+		action ATERMINATOR_DESTRUCT
+		ifrnd 128 globalsound TERMELECT2
+		else globalsound TERMELECT
+	}
+
+ifsquished
+{ geta[].htextra temp add temp 10 seta[].htextra temp seta[].htpicnum RPG }
+
+ifhitweapon
+{
+	ifwasweapon GROWSPARK
+	  sound EXPANDERHIT
+
+	ifdead
+	{
+		addkills 1
+		action ATERMINATORCRAWLDIE
+		move STOP
+		ifrnd 128 globalsound TERMELECT2
+		else globalsound TERMELECT
+	}
+}
+enda
+
+
+useractor enemy TERMTORSO 100
+fall
+seta[].mdflags 16
+iffloordistl 2
+{
+	sound LAND_METAL
+	state monst_glow
+	cactor TERMINATORCRAWLING
+	strength 100
+	sizeat 29 25
+	cstat 257
+}
+enda

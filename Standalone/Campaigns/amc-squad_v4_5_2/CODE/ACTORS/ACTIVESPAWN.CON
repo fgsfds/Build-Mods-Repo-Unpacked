@@ -1,0 +1,121 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+
+--------------------------------------------------------------------------------
+*/
+
+// Activespawn
+// Lotag = activator to check for
+// Hitag = Picnum to spawn
+// Xvel = Delay tics (will spawn if activator is in motion + x tics)
+// Yvel = lotag to give the spawned sprite
+// Zvel = hitag to give the spawned sprite
+// Resize to not 64x64 to have the spawned sprite apply the same dimensions
+// Apply transparency on this sprite to apply transparency on the spawned sprite
+useractor notenemy ACTIVESPAWN
+	geta[].cstat CSTATSAVED
+
+	ifand CSTATSAVED 32768 nullop
+	else
+	{
+		add CSTATSAVED 32768
+		seta[].cstat CSTATSAVED
+	}
+
+	checkactivatormotion LOTAGSAVED
+
+	ife RETURN 1
+	{
+		set temp 1
+	}
+
+	ife temp 1
+	{
+		add INTERNALCOUNT 1
+		set temp2 0
+
+		geta[].xvel XVELSAVED
+
+		ife XVELSAVED 0
+			set temp2 1
+		else ifg INTERNALCOUNT XVELSAVED
+			set temp2 1
+
+		ife temp2 1
+		{
+			geta[].yvel YVELSAVED
+			geta[].zvel ZVELSAVED
+			geta[].pal PALSAVED
+
+			espawn HITAGSAVED
+			seta[RETURN].pal PALSAVED
+			setav[RETURN].LOTAGSAVED YVELSAVED
+			setav[RETURN].HITAGSAVED ZVELSAVED
+			setav[RETURN].my_target PLAYER_IDENTITY
+
+			geta[].xrepeat my_x
+			geta[].yrepeat my_y
+
+			// if this sprite was explicitly resized (so not just 64x64), apply this size to the spawned thing
+			ifn my_x 64
+				ifn my_y 64
+			{
+				seta[RETURN].xrepeat my_x
+				seta[RETURN].yrepeat my_y
+			}
+
+			// apply transparency
+			geta[].cstat temp
+
+			ifand temp 2
+			{
+				geta[RETURN].cstat temp2
+
+				// if already set then nvm
+				ifand temp2 2 nullop
+				else
+				{
+					add temp2 2
+					seta[RETURN].cstat temp2
+				}
+			}
+
+			ifand temp 512
+			{
+				geta[RETURN].cstat temp2
+				// if already set then nvm
+				ifand temp2 512 nullop
+				else
+				{
+					add temp2 512
+					seta[RETURN].cstat temp2
+				}
+			}
+
+			killit
+		}
+	}
+enda

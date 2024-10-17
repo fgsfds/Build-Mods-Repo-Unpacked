@@ -1,0 +1,757 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+
+--------------------------------------------------------------------------------
+*/
+
+damageeventtile JEDRIK
+
+spritenoshade JEDR_RAIN_XHAIR
+spritenoshade JEDR_LIGHTN_RAIN
+spritenoshade 30079
+spritenoshade JEDR_SKULL
+spritenopal JEDR_SKULL
+
+appendevent EVENT_EGS
+	ifactor JEDR_SKULL
+		geta[].owner OWNERSAVED
+endevent
+
+defstate jed_skull_pivot
+	// pivot
+	geta[OWNERSAVED].x x
+	geta[OWNERSAVED].y y
+	geta[OWNERSAVED].z z
+
+	// me
+	set temp2 x
+	add temp2 1024
+
+	rotatepoint x y temp2 y temp4 mx my
+
+	add temp4 32
+
+	ifg temp4 2048
+		sub temp4 2048
+
+	seta[].x mx
+	seta[].y my
+	sub z 4096
+	seta[].z z
+
+	geta[OWNERSAVED].sectnum mysector
+	updatesectorz mx my z mysector
+	seta[].sectnum mysector
+
+	cstat 257
+ends
+
+defstate jed_skull_die
+	spawn SKULLEXPLOSION
+	sound GORO_EXPLOSION
+	stopactorsound THISACTOR SBJ_SKULL_CLOSE
+	getav[OWNERSAVED].enemy_cooldown3 temp
+	ifg temp 0
+		sub temp 1
+	setav[OWNERSAVED].enemy_cooldown3 temp
+
+	killit
+ends
+
+action A_JEDRSKULL_FLOAT 0 3 5 1 12
+action A_JEDRSKULL_CHARGE 0 3 5 1 6
+
+move M_JEDRSKULL_CHARGE 400
+useractor notenemy JEDR_SKULL
+	ifaction 0
+	{
+		cstat 32768 // invisible until in position, otherwise we get this weird interpolated snap thing
+
+		sizeat 24 24
+		spritepal 7
+		strength 1
+
+		set INTERNALCOUNT 0
+
+		// NSOUL fires the skull as a projectile
+		ifspawnedby NSOUL
+		{
+			cstat 257
+			action A_JEDRSKULL_CHARGE
+		}
+		else
+		{
+			// random delay on when to start charge
+			ifrnd 32
+				set INTERNALCOUNT_2 120
+			else ifrnd 32
+				set INTERNALCOUNT_2 180
+			else ifrnd 32
+				set INTERNALCOUNT_2 220
+			else ifrnd 32
+				set INTERNALCOUNT_2 240
+			else
+				set INTERNALCOUNT_2 250
+
+
+			action A_JEDRSKULL_FLOAT
+		}
+	}
+
+	else ifaction A_JEDRSKULL_FLOAT
+	{
+		state jed_skull_pivot
+
+		geta[OWNERSAVED].ang angvar
+		seta[].ang angvar
+
+		add INTERNALCOUNT 1
+
+		// delay and randomness
+		ifge INTERNALCOUNT INTERNALCOUNT_2
+		ifrnd 32
+		ifn my_target -1
+		{
+			state validateshoot
+
+			ife wallinbetween 0
+			ife friendlyfire 0
+				{
+				sound SBJ_SKULL
+				action A_JEDRSKULL_CHARGE
+				}
+		}
+	}
+	else ifaction A_JEDRSKULL_CHARGE
+	{
+		ifn my_target -1
+		{
+			state fronttowardstarget
+
+			ifmove M_JEDRSKULL_CHARGE nullop
+			else move M_JEDRSKULL_CHARGE geth
+
+			// Correct height
+			geta[].z z
+			geta[my_target].z mz
+			sub mz 4096
+
+			ifl z mz
+				add z 512
+			else ifg z mz
+				sub z 512
+
+			seta[].z z
+
+			dist temp THISACTOR my_target
+			ifl temp 6144
+				{
+				ifactorsound THISACTOR SBJ_SKULL_CLOSE nullop else
+				sound SBJ_SKULL_CLOSE
+				}
+			ifl temp 768
+			{
+			sizeto 64 64
+			add INTERNALCOUNT_3 1
+			ifge INTERNALCOUNT_3 45
+				{
+				ifge SKILL_LEVEL 3 hitradius 2048 64 96 128 256
+				else hitradius 2048 16 24 64 128
+					state jed_skull_die
+				}
+			}
+			else ifg INTERNALCOUNT_3 0 { sizeat 24 24 sub INTERNALCOUNT_3 1 }
+		}
+	}
+
+	ifhitweapon
+	{
+		state jed_skull_die
+	}
+enda
+
+useractor notenemy JEDR_RAIN_XHAIR
+	ifaction 0
+	{
+	sizeat 32 32
+	cstat 34
+	seta[].shade -127
+	seta[].blend 255
+	action ZERO
+	}
+	ifaction ZERO
+	{
+	sizeto 1 1
+	geta[].ang temp
+	add temp 16
+	seta[].ang temp
+	ifl sprite[].xrepeat 2
+		{
+		ifrnd 128 sound LIGHTNING_SLAP
+		else sound LIGHTNING_SLAP2
+		espawn JEDR_LIGHTN_RAIN
+		getsector[].floorz temp
+		seta[RETURN].z temp
+		killit
+		}
+	}
+enda
+
+useractor notenemy JEDR_LIGHTN_RAIN
+fall
+ifaction 0
+	{
+	sizeat 160 160
+	cstat 2
+	ifrnd 128 cstator 4
+	ifrnd 128 cstator 8
+	seta[].shade -32
+	seta[].blend 255
+	espawn 30079
+	getsector[].floorz temp
+	seta[RETURN].z temp
+	action ZERO
+	resetcount
+	}
+ifaction ZERO
+	{
+	geta[].shade temp
+	add temp 4
+	seta[].shade temp
+		ifge temp 30
+			{
+			spawn BIG_SMOKE
+			ifpdistl 8192 quake 13
+			shoot SPARK2 shoot SPARK2 shoot SPARK2
+			globalsound LIGHT_CONDUCT
+			flash
+			ifpdistl 256 addphealth -500
+			hitradius 2048 6 12 18 32
+			killit
+			}
+	}
+enda
+
+useractor notenemy 30079
+ifaction 0
+	{
+	sizeat 64 64
+	cstat 34
+	seta[].shade -32
+	seta[].blend 255
+	action ZERO
+	}
+ifaction ZERO
+	{
+	geta[].shade temp
+	add temp 1
+	seta[].shade temp
+	ifge temp 35 killit
+	}
+enda
+
+action A_JEDRIK_IDLE 0 1 5 1 12
+action A_JEDRIK_DEAD 75
+action A_JEDRIK_DYING 70 6 1 1 16
+action A_JEDRIK_PAIN 70 1 1 1 8
+action A_JEDRIK_SEEK 5 4 5 1 12
+
+action A_JEDRIK_MELEEATTACK 30 3 5 1 16
+action A_JEDRIK_RANGEDATTACK 30 3 5 1 16
+action A_JEDRIK_HAMMERUP 45 1 5 1 12
+action A_JEDRIK_HAMMERHOLD 50 1 5 1 12
+action A_JEDRIK_SHIELD 25 1 5 1 12
+
+move M_JEDRIK_WALK 200
+
+defstate call_lightning_rain
+	add INTERNALCOUNT_2 1
+	set xydist player[].posx
+	ifstrength 2000 randvar temp 2048
+	else ifstrength 4000 randvar temp 4096
+	else randvarvar temp 8192 // the random component of the distance from player
+	ifge SKILL_LEVEL 4 div temp 2
+	add xydist temp
+	randvar angvar 2047
+
+	rotatepoint player[].posx player[].posy xydist player[].posy angvar x y
+	getp[].posz z
+	updatesectorz x y z mysector
+	ifn mysector -1
+	{
+		espawn JEDR_RAIN_XHAIR
+		seta[RETURN].x x
+		seta[RETURN].y y
+		seta[RETURN].z sector[mysector].floorz
+		seta[RETURN].sectnum mysector
+	}
+
+	ife SKILL_LEVEL 1 ifge INTERNALCOUNT_2 20 action A_JEDRIK_SEEK
+	else ife SKILL_LEVEL 2 ifge INTERNALCOUNT_2 40 action A_JEDRIK_SEEK
+	else ife SKILL_LEVEL 3 ifge INTERNALCOUNT_2 60 action A_JEDRIK_SEEK
+	else ife SKILL_LEVEL 4 ifge INTERNALCOUNT_2 80 action A_JEDRIK_SEEK
+	else ife SKILL_LEVEL 5 ifge INTERNALCOUNT_2 100 action A_JEDRIK_SEEK
+ends
+
+defstate jedrik_taunts
+	ifrnd 16
+	{
+		randvar npc_talking 50
+		ifsound SBJ_TAUNT1 nullop
+		else ifsound SBJ_TAUNT2 nullop
+		else ifsound SBJ_TAUNT3 nullop
+		else ifsound SBJ_TAUNT4 nullop
+		else ifsound SBJ_TAUNT5 nullop
+		else ifsound SBJ_LAUGH nullop
+		else ifl npc_talking 10
+			soundonce SBJ_TAUNT1
+		else ifl npc_talking 20
+			soundonce SBJ_TAUNT2
+		else ifl npc_talking 30
+			soundonce SBJ_TAUNT3
+		else ifl npc_talking 40
+			soundonce SBJ_TAUNT4
+		else
+			soundonce SBJ_TAUNT5
+	}
+ends
+
+
+// Return if jedrik should raise shield depending on some factors
+defstate jedrik_shouldshield
+	set RETURN 0
+
+	// player has dragonslayer equipped and starts swinging
+	ife player[].curr_weapon FREEZE_WEAPON
+	  ifand BITS_PRESS 4
+	{
+		set RETURN 1
+	}
+ends
+
+defstate jedrik_meleeattack
+	move STOP
+
+	state fronttowardstarget
+
+	ifactioncount 3
+	{
+		state checkfortarget
+
+		set INTERNALCOUNT 0
+		ife my_target -1
+			action A_JEDRIK_SEEK
+		else
+		{
+			state jedrik_shouldshield
+			ife RETURN 1
+				action A_JEDRIK_SHIELD
+			else ifrnd 16
+				action A_JEDRIK_SHIELD
+			else
+			{
+				ldist temp THISACTOR my_target
+				ifg temp 1024
+					action A_JEDRIK_SEEK
+			}
+		}
+
+		resetactioncount
+	}
+	else ifactioncount 2
+	{
+		ife INTERNALCOUNT 0
+		{
+			// player is parrying
+			ifn SWORD_BLOCK 0
+			  ifp pfacing
+			{
+				shoot SPARK shoot SPARK shoot SPARK shoot SPARK shoot SPARK
+				sub p_stamina 40
+				wackplayer
+				sound SWORD_CLASH
+			}
+			else
+			{
+				setprojectile[11742].extra 70
+				set PROJECTILE_TO_SHOOT 11742
+				set PROJECTILE_FIRING_SOUND BERSERK_SWING
+				state sang_enemyShootProjectile
+				setprojectile[11742].extra 35
+			}
+		}
+
+		add INTERNALCOUNT 1
+	}
+ends
+
+defstate jedrik_rangedattack
+	move STOP
+
+	state fronttowardstarget
+
+	ifactioncount 2
+	{
+		ife INTERNALCOUNT 0
+			shoot 30081
+
+		add INTERNALCOUNT 1
+	}
+
+	ifactioncount 3
+		action A_JEDRIK_SEEK
+
+	set enemy_cooldown1 30
+ends
+
+defstate jedrik_hammerup
+	move STOP
+
+	add INTERNALCOUNT 1
+
+	ife INTERNALCOUNT 80
+	{
+		set INTERNALCOUNT 0
+		set INTERNALCOUNT_2 0
+		action A_JEDRIK_HAMMERHOLD
+	}
+
+	set enemy_cooldown2 360
+ends
+
+defstate jedrik_spawnskulls
+	sound SBJ_RING
+
+	espawn JEDR_SKULL
+	setav[RETURN].temp4 0
+	setav[RETURN].my_target my_target
+
+	espawn JEDR_SKULL
+	setav[RETURN].temp4 512
+	setav[RETURN].my_target my_target
+
+	espawn JEDR_SKULL
+	setav[RETURN].temp4 1024
+	setav[RETURN].my_target my_target
+
+	espawn JEDR_SKULL
+	setav[RETURN].temp4 1536
+	setav[RETURN].my_target my_target
+
+	set enemy_cooldown3 4 // subtract 1 from the skull actor each time one dies
+	ife SKILL_LEVEL 1 set enemy_cooldown4 400
+	ife SKILL_LEVEL 2 set enemy_cooldown4 300
+	ife SKILL_LEVEL 3 set enemy_cooldown4 250
+	ife SKILL_LEVEL 4 set enemy_cooldown4 200
+	ife SKILL_LEVEL 5 set enemy_cooldown4 150
+ends
+
+defstate jedrik_selectattack
+	set INTERNALCOUNT 0
+	set INTERNALCOUNT_2 0
+
+
+	set temp2 0 // set to 1 if shielding
+	ldist xydist THISACTOR my_target
+
+	ifle xydist 2048
+	{
+		state jedrik_shouldshield
+
+		ife RETURN 1
+		{
+			set temp2 1
+			action A_JEDRIK_SHIELD
+		}
+		else ifrnd 16
+		{
+			set temp2 1
+			action A_JEDRIK_SHIELD
+		}
+	}
+
+	ifl xydist 1024
+	  ife temp2 0
+		action A_JEDRIK_MELEEATTACK
+	else ifg xydist 2048
+	{
+		ife boss_stage 3
+		  ifrnd 16
+		  ife enemy_cooldown4 0
+			state jedrik_spawnskulls
+		else ifge boss_stage 2
+		  ifrnd 64
+		  ife enemy_cooldown2 0
+		{
+			globalsound SBJ_LAUGH
+			action A_JEDRIK_HAMMERUP
+		}
+		else ifrnd 96
+		  ife enemy_cooldown1 0
+		  ife enemy_cooldown3 0 // don't hit our own skulls with the hammer
+		{
+			sound SBJ_HAMMER
+			action A_JEDRIK_RANGEDATTACK
+		}
+
+	}
+ends
+
+useractor enemy JEDRIK
+	fall
+
+	ifaction A_JEDRIK_SHIELD
+		set enemy_deflecting 1
+	else ifaction A_JEDRIK_HAMMERHOLD
+		set enemy_deflecting 1
+	else ifaction A_JEDRIK_HAMMERUP
+		set enemy_deflecting 1
+	else
+		set enemy_deflecting 0
+
+	ifaction A_JEDRIK_HAMMERHOLD nullop
+	else ifaction A_JEDRIK_IDLE nullop
+	else
+	{
+		ifg enemy_cooldown1 0
+			sub enemy_cooldown1 1
+
+		ifg enemy_cooldown2 0
+			sub enemy_cooldown2 1
+
+		ifg enemy_cooldown4 0
+		  ife enemy_cooldown3 0
+			sub enemy_cooldown4 1
+	}
+
+	ifaction 0
+	{
+		ifspritepal 121 cstat 259 else
+		cstat 257
+		sizeat 36 33
+
+		state monst_glow
+
+		set boss_stage 1
+		set enemy_cooldown1 150 // cooldown 1 = ranged attack
+		set enemy_cooldown2 0 // cooldown 2 = hammer lightning thing
+		set enemy_cooldown3 0 // cooldown 3 = amount of active skulls. Don't spawn if more than 0
+		set enemy_cooldown4 0 // cooldonw 4 = time to wait between skull spawns. Decrements if cooldown3 is 0.
+
+		action A_JEDRIK_IDLE
+	}
+	else ifaction A_JEDRIK_DEAD
+	{
+		move STOP
+		add INTERNALCOUNT_3 1
+		ifge INTERNALCOUNT_3 150
+			{
+			operateactivators 869 THISACTOR
+			killit
+			}
+	}
+	else ifaction A_JEDRIK_DYING
+	{
+		strength 0
+
+		ifactioncount 6
+		{
+			state BODY_FALL_NOISES
+			action A_JEDRIK_DEAD
+		}
+	}
+	else ifaction A_JEDRIK_PAIN
+	{
+		sub PAIN_AMOUNT 1
+		move STOP
+		ife PAIN_AMOUNT 0
+		{
+			set dazed_count 0
+			ifdead action A_JEDRIK_DYING
+			else action A_JEDRIK_SEEK
+		}
+	}
+	else ifaction A_JEDRIK_IDLE
+	{
+		ifn HITAGSAVED 0
+		{
+			checkactivatormotion HITAGSAVED
+			ife RETURN 1 set HITAGSAVED 0
+		}
+		else ife HITAGSAVED 0
+		{
+			state checkfortarget
+			ifn my_target -1
+			{
+					ifspritepal 121 strength 5000 else
+					strength 8000
+					set CURBOSS THISACTOR
+					state jedrik_taunts
+					action A_JEDRIK_SEEK
+			}
+		}
+	}
+	else ifaction A_JEDRIK_SEEK
+	{
+		ifmove M_JEDRIK_WALK nullop
+		else move M_JEDRIK_WALK geth
+
+		state checkfortarget
+
+		add INTERNALCOUNT 1
+
+		ifge INTERNALCOUNT 9
+		{
+			state npc_footsteps
+			set INTERNALCOUNT 0
+			state jedrik_taunts
+		}
+
+		ifrnd 64
+		ifn my_target -1
+			state jedrik_selectattack
+	}
+	else ifaction A_JEDRIK_MELEEATTACK
+		state jedrik_meleeattack
+	else ifaction A_JEDRIK_RANGEDATTACK
+		state jedrik_rangedattack
+	else ifaction A_JEDRIK_HAMMERUP
+		state jedrik_hammerup
+	else ifaction A_JEDRIK_HAMMERHOLD
+	{
+		move STOP
+
+		ife INTERNALCOUNT 0
+		{
+			globalsound SBJ_LIGHTN
+			// spawn lightning
+			espawn 17128
+			seta[RETURN].pal 1
+			geta[].z z
+			sub z 20000
+			seta[RETURN].z z
+		}
+
+		add INTERNALCOUNT 1
+
+		ifge INTERNALCOUNT 50
+		{
+			state call_lightning_rain
+		}
+	}
+	else ifaction A_JEDRIK_SHIELD
+	{
+		move STOP
+		add INTERNALCOUNT 1
+
+		state checkfortarget
+
+		ifn my_target -1
+		{
+			state fronttowardstarget
+
+			ifg INTERNALCOUNT 70
+				ifrnd 32
+				{
+					state jedrik_shouldshield
+
+					ife RETURN 0
+						action A_JEDRIK_SEEK
+				}
+		}
+		else
+			action A_JEDRIK_SEEK
+	}
+
+	geta[].htextra temp
+
+	ifg temp -1
+	{
+		geta[].htpicnum temp
+
+		// dragonslayer
+		ife temp 19
+		{
+			ifaction A_JEDRIK_HAMMERHOLD
+				seta[].htextra -1
+			else ifaction A_JEDRIK_HAMMERUP
+				seta[].htextra -1
+			else
+			ifg dazed_count 0 seta[].htextra 125
+			else
+				seta[].htextra 50
+		}
+	}
+
+	ifhitweapon
+	{
+		guts JIBS6 1
+		state bullet_data
+		state melee_hit_effects
+		state random_wall_jibs
+		ifrnd 96 sound SBJ_PAIN1
+		else ifrnd 96 sound SBJ_PAIN2
+
+		ifaction A_JEDRIK_MELEEATTACK
+		 ifactioncount 1
+		  ifwasweapon 4964 // shield bash?
+			{
+			state spawn_dazed
+			sound DAZED
+			ife SKILL_LEVEL 1 set dazed_count 120
+			ife SKILL_LEVEL 2 set dazed_count 90
+			ife SKILL_LEVEL 3 set dazed_count 75
+			ife SKILL_LEVEL 4 set dazed_count 60
+			ife SKILL_LEVEL 5 set dazed_count 45
+			set PAIN_AMOUNT dazed_count
+			}
+
+		ifdead
+		{
+			set dazed_count 0
+			addkills 1
+			state rf
+
+			sound SBJ_DIE1
+			action A_JEDRIK_DYING
+			spawn BLOODPOOL
+		}
+		else
+		{
+			geta[].extra temp
+
+			ifle temp 3500
+				set boss_stage 3
+			else ifle temp 5500
+				set boss_stage 2
+
+			ifg PAIN_AMOUNT 0 action A_JEDRIK_PAIN
+			else ifrnd 32 { state PAIN_SKILL_LEVELADJUST action A_JEDRIK_PAIN }
+			else ifaction A_JEDRIK_IDLE { state PAIN_SKILL_LEVELADJUST action A_JEDRIK_PAIN }
+		}
+	}
+
+enda

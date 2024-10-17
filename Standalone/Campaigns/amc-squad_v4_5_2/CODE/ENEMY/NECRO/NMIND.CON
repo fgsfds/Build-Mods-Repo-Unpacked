@@ -1,0 +1,604 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+
+--------------------------------------------------------------------------------
+*/
+
+damageeventtile NMIND
+
+action A_NMIND_IDLE -9079 1 5 1 12
+action A_NMIND_SEEK -9079 1 5 1 12
+action A_NMIND_STRAFE -9079 1 5 1 12
+action A_NMIND_THROW_PREP -9074 1 5 1 12
+action A_NMIND_THROW -9069 1 5 1 12
+action A_NMIND_RAY_PREP -9064 1 5 1 12
+action A_NMIND_RAY -9059 1 5 1 12
+action A_NMIND_MIND -9054 1 5 1 12
+action A_NMIND_COPY -9054 1 5 1 12 // create fake copies of self that spawn sorcerers if hit
+action A_NMIND_PAIN -9049 1 5 1 12
+action A_NMIND_DYING -9049 1 5 1 12
+
+move M_NMIND_FLOAT 260
+
+defstate nmind_selectatk
+	set INTERNALCOUNT 0
+
+	// Boss stage 1: only throw and "ray"
+	ife boss_stage 1
+	{
+		ifrnd 128
+		  ife enemy_cooldown1 0
+			action A_NMIND_THROW_PREP
+		else ifrnd 128
+		  ife enemy_cooldown2 0
+			action A_NMIND_RAY_PREP
+	}
+	// Boss stage 2 starts doing copy & mindblasts
+	else ife boss_stage 2
+	{
+		ifrnd 64
+		  ife enemy_cooldown4 0
+		{
+			globalsound NMIND_ILLU
+			action A_NMIND_COPY
+		}
+		else ifrnd 32
+		  ife enemy_cooldown3 0
+		{
+			globalsound NMIND_SUMM
+			ifand NOISE_SAID 1024 nullop else
+				{
+				screensound LESANG_MOB
+				ife gp_subt 0
+					{
+					set subt_id 13013
+					set gp_subt 79
+					}
+				xor NOISE_SAID 1024
+				}
+			action A_NMIND_MIND
+		}
+		else ifrnd 64
+		  ife enemy_cooldown1 0
+			action A_NMIND_THROW_PREP
+		else ifrnd 64
+		  ife enemy_cooldown2 0
+			action A_NMIND_RAY_PREP
+		else
+			action A_NMIND_THROW_PREP
+	}
+ends
+
+defstate nmind_dying_randomexplosion
+	// nmind pivot point
+	geta[].x x
+	geta[].y y
+	geta[].z z
+
+	// explosion point
+	set temp2 x
+	add temp2 1024
+
+	randvar temp4 2048
+
+	rotatepoint x y temp2 y temp4 mx my
+
+	// nmind is about 38400 units tall, get random z coordinate and offset it to actual nmind pos
+	rand mz 38400
+
+	sub z 38400
+	add mz z
+	sound SKULL_EXP
+	espawn SKULLEXPLOSION
+	seta[RETURN].x mx
+	seta[RETURN].y my
+	seta[RETURN].z mz
+ends
+
+defstate spawn_nmind_smoke
+ifg sprite[].extra 0
+	{
+	set temp3 sprite[].x
+	randvarvar temp4 512
+	add temp3 temp4
+	randvar temp4 2048
+	rotatepoint sprite[].x sprite[].y temp3 sprite[].y temp4 temp5 temp6
+	espawn GUNSMOKE
+	geta[].z temp7
+	sub temp7 16384
+	seta[RETURN].z temp7
+	seta[RETURN].pal 1
+	seta[RETURN].x temp5
+	seta[RETURN].y temp6
+	}
+ends
+
+// not a ray but whatever
+defstate nmind_ray_ang_shoot
+	set temp angvar
+	add temp temp2
+	seta[].ang temp
+
+	zshoot temp3 SPELL8
+ends
+
+defstate nmind_ray_attack
+	setprojectile[SPELL8].xrepeat 32
+	setprojectile[SPELL8].yrepeat 32
+	setprojectile[SPELL8].extra 35
+	setprojectile[SPELL8].pal 2 // contrast against blue nmind, but maybe nmind shouldn't be blue?
+
+	set CALCZ_TARGET_OFFSET -10000
+	set PROJECTILE_TO_SHOOT SPELL8 // nemesis blast
+	set PROJECTILE_FIRING_SOUND SPELL8CHARGE
+	set PROJECTILE_DISABLEAUTOAIM 1
+	state sang_enemyShootProjectile
+
+	geta[].ang angvar
+	set temp2 64
+	state nmind_ray_ang_shoot
+	set temp2 -64
+	state nmind_ray_ang_shoot
+	set temp2 128
+	state nmind_ray_ang_shoot
+	set temp2 -128
+	state nmind_ray_ang_shoot
+
+	seta[].ang angvar
+
+	set PROJECTILE_DISABLEAUTOAIM 0
+
+	setprojectile[SPELL8].xrepeat 18
+	setprojectile[SPELL8].yrepeat 18
+	setprojectile[SPELL8].extra 150
+	setprojectile[SPELL8].pal 0
+ends
+
+useractor enemy NMIND
+	// strafe cooldown
+	ifg INTERNALCOUNT_2 0
+		sub INTERNALCOUNT_2 1
+
+	// fake nmind temporary lifespan
+	ifg INTERNALCOUNT_3 0
+		sub INTERNALCOUNT_3 1
+
+	ifg enemy_cooldown1 0
+		sub enemy_cooldown1 1
+
+	ifg enemy_cooldown2 0
+		sub enemy_cooldown2 1
+
+	ife boss_stage 2
+	{
+		ifg enemy_cooldown3 0
+			sub enemy_cooldown3 1
+
+		ifg enemy_cooldown4 0
+			sub enemy_cooldown4 1
+	}
+
+	state spawn_nmind_smoke
+
+	ifaction 0
+	{
+		cstat 257
+		sizeat 64 64
+		set actor_type TYPE_SUPERNATURAL
+		geta[].owner myowner
+
+		// if spawned by OTHER NMIND
+		ife sprite[myowner].picnum NMIND
+		  ifn THISACTOR myowner
+		{
+			set INTERNALCOUNT_3 400
+			strength 1
+		}
+		else
+		{
+			strength 8000
+			set CURBOSS THISACTOR
+			globalsound NMIND_RCG
+		}
+
+		state monst_glow
+		seta[].mdflags 16
+		set command 32768
+		set boss_stage 1
+
+		set enemy_cooldown1 60 // throw ranged attack
+		set enemy_cooldown2 80 // ray ranged attack
+		set enemy_cooldown3 500 // mindblast
+		set enemy_cooldown4 300 // nmind copy
+
+		action A_NMIND_IDLE
+	}
+	else ifaction A_NMIND_IDLE
+	{
+		move STOP
+		state checkfortarget
+
+		ifn my_target -1 action A_NMIND_SEEK
+	}
+	else ifaction A_NMIND_SEEK
+	{
+		ifspawnedby NMIND nullop
+		else ifrnd 1 sound NMIND_LAUGH
+
+		ifmove M_NMIND_FLOAT nullop
+		else move M_NMIND_FLOAT geth
+
+		ifrnd 32
+		  ifle INTERNALCOUNT_2 0
+			action A_NMIND_STRAFE
+		else
+		{
+			set my_target PLAYER_IDENTITY
+			set ANGLE_TO_ACTOR my_target
+			state angleTo
+			seta[].ang angvar
+
+			ifspawnedby NMIND nullop
+			else ifn my_target -1
+			 ifrnd 16
+				state nmind_selectatk
+		}
+	}
+	else ifaction A_NMIND_STRAFE
+	{
+		ifspawnedby NMIND nullop
+		else ifrnd 1 sound NMIND_LAUGH
+
+		set INTERNALCOUNT_2 60
+		set my_target PLAYER_IDENTITY
+
+		ife my_target -1
+		{
+			set ACTOR_STRAFING 0
+			action A_NMIND_SEEK
+		}
+		else
+		{
+			// force angvar to my_target
+			set ANGLE_TO_ACTOR my_target
+			state angleTo
+			seta[].ang angvar
+
+			set strafe_duration 20
+			set strafe_speedshift 6
+			state actor_strafe
+
+			ifn RETURN 0 // hit something, abort strafe
+				set ACTOR_STRAFING 0
+
+			ife ACTOR_STRAFING 0
+				action A_NMIND_SEEK
+		}
+	}
+	else ifaction A_NMIND_THROW_PREP
+	{
+		move STOP
+
+		state fronttowardstarget
+
+		add INTERNALCOUNT 1
+
+		ife INTERNALCOUNT 15
+		{
+			set INTERNALCOUNT 0
+			sound NMIND_ATCK1
+			action A_NMIND_THROW
+		}
+	}
+	else ifaction A_NMIND_THROW
+	{
+		move STOP
+
+		state fronttowardstarget
+
+		ife INTERNALCOUNT 0
+		{
+			setprojectile[MPLASMA].xrepeat 64
+			setprojectile[MPLASMA].yrepeat 64
+			setprojectile[MPLASMA].extra 35
+			setprojectile[MPLASMA].pal 2 // contrast against blue nmind, but maybe nmind shouldn't be blue?
+
+			set CALCZ_TARGET_OFFSET -10000
+			set PROJECTILE_TO_SHOOT MPLASMA
+			set PROJECTILE_FIRING_SOUND BRUISER_THROW
+			state sang_enemyShootProjectile
+
+			setprojectile[MPLASMA].xrepeat 20
+			setprojectile[MPLASMA].yrepeat 20
+			setprojectile[MPLASMA].extra 20
+			setprojectile[MPLASMA].pal 0
+		}
+
+		add INTERNALCOUNT 1
+
+		ife INTERNALCOUNT 10
+			action A_NMIND_SEEK
+	}
+	else ifaction A_NMIND_RAY_PREP
+	{
+		move STOP
+
+		state fronttowardstarget
+
+		add INTERNALCOUNT 1
+
+		ife INTERNALCOUNT 20
+		{
+			set INTERNALCOUNT 0
+			sound NMIND_ATCK2
+			action A_NMIND_RAY
+		}
+	}
+	else ifaction A_NMIND_RAY
+	{
+		move STOP
+
+		state fronttowardstarget
+
+		ife INTERNALCOUNT 0
+			state nmind_ray_attack
+		else ife INTERNALCOUNT 20
+			state nmind_ray_attack
+		else ife INTERNALCOUNT 40
+			state nmind_ray_attack
+
+		add INTERNALCOUNT 1
+
+		ife INTERNALCOUNT 50
+			action A_NMIND_SEEK
+	}
+	else ifaction A_NMIND_MIND
+	{
+		ife boss_stage 2
+			set enemy_cooldown3 500
+		else ife boss_stage 3
+			set enemy_cooldown3 250
+
+		move STOP faceplayer
+
+		ifg player[].holoduke_amount 0 setp[].inven_icon 3
+
+		// do things
+		ife INTERNALCOUNT 120
+		{
+			ife CHAR 4
+			 ifg player[].holoduke_on -1
+			{
+				setplayer[].holoduke_amount 1
+				palfrom 30 30 0 30
+				sound NMIND_PAIN
+				globalsound WHOOSH
+				action A_NMIND_PAIN
+				set PAIN_AMOUNT 90
+				seta[].htextra 1000
+			}
+			else ifg P_SPIRIT_ARMOUR 0
+			{
+				sub P_SPIRIT_ARMOUR 50
+				soundonce SPARM_PROTECT
+				palfrom 20 0 0 40
+				ifl P_SPIRIT_ARMOUR 0
+					set P_SPIRIT_ARMOUR 0
+				state setknockback
+			}
+			else
+			{
+				set player_spooked 98
+				addphealth -50
+				palfrom 40 40 0 0
+				state setknockback
+			}
+
+			action A_NMIND_SEEK
+		}
+		add INTERNALCOUNT 1
+	}
+	else ifaction A_NMIND_COPY
+	{
+		ife boss_stage 2
+			set enemy_cooldown4 300
+		else ife boss_stage 3
+			set enemy_cooldown4 150
+
+		move STOP
+
+		set ANGLE_TO_ACTOR my_target
+		state angleTo
+		seta[].ang angvar
+
+		set strafe_duration 80
+		set strafe_speedshift 6
+		state actor_strafe
+
+		ife ACTOR_STRAFING 0
+			action A_NMIND_SEEK
+
+		add INTERNALCOUNT 1
+
+		ife INTERNALCOUNT 30
+		{
+			espawn NMIND
+			setav[RETURN].my_target my_target
+		}
+
+		ife INTERNALCOUNT 50
+		{
+			espawn NMIND
+			setav[RETURN].my_target my_target
+		}
+
+		ife INTERNALCOUNT 70
+		{
+			espawn NMIND
+			setav[RETURN].my_target my_target
+		}
+	}
+	else ifaction A_NMIND_PAIN
+	{
+		sub PAIN_AMOUNT 1
+		move STOP
+		ife PAIN_AMOUNT 0
+		{
+			ifdead action A_NMIND_DYING
+			else action A_NMIND_SEEK
+		}
+	}
+	else ifaction A_NMIND_DYING
+	{
+		state nmind_dying_randomexplosion
+		add INTERNALCOUNT 1
+
+		ife INTERNALCOUNT 30
+			{
+			set music_fade 1
+			cstator 2
+			}
+		else ife INTERNALCOUNT 80
+			cstator 512
+		else ife INTERNALCOUNT 120
+			{
+			set music_fade 0
+			set music_vol 100
+			state fade_out_white
+
+			// nuke sorcerers (both enemy and friendly, so they don't teleport to the next fight)
+			set targets_iterator 0
+
+			whilel targets_iterator targets_range
+			{
+				set temp targets[targets_iterator]
+
+				ife temp -2
+				{
+					set targets_iterator targets_range
+					exit
+				}
+
+				ifg temp -1
+				{
+					geta[temp].picnum temp2
+
+					ife temp2 SORCERER
+					{
+						seta[temp].htextra 5000
+						seta[temp].htpicnum SHOTSPARK1
+					}
+					else ife temp2 FR_SORCERER
+					{
+						seta[temp].htextra 5000
+						seta[temp].htpicnum SHOTSPARK1
+					}
+
+				}
+
+				add targets_iterator 1
+			}
+
+			operateactivators EXTRASAVED THISACTOR
+			killit
+			}
+	}
+
+	// Hover a distance over floor
+	gets[].floorz z
+	geta[].z mz
+
+	sub z 8192
+	ifg mz z
+	{
+		set mz z
+		seta[].z mz
+	}
+
+	ifn CURBOSS THISACTOR
+	  ifn my_target -1
+	  ife INTERNALCOUNT_3 0
+	{
+		seta[].htextra 1
+		seta[].htpicnum SHOTSPARK1 // doesn't matter
+	}
+
+	ifhitweapon
+	{
+		ifdead
+		{
+			addkills 1
+			state rf
+			set INTERNALCOUNT 0
+
+			// ifspawnedby doesn't work here so do it in a roundabout way...
+			ifn CURBOSS -1
+			  ifn CURBOSS THISACTOR
+			{
+				soundonce LOST_DIE
+				spawn SKULLEXPLOSION
+				ifrnd 64 espawn LOST else
+				espawn SORCERER
+				killit
+			}
+			else
+			{
+				globalsound NMIND_DIE
+				action A_NMIND_DYING
+				quake 96
+			}
+		}
+		else
+		{
+			// Advance boss stage
+			geta[].extra temp
+
+			ifle temp 7000
+				set boss_stage 2
+			else ifle temp 4000
+				set boss_stage 3
+
+			ifaction A_NMIND_IDLE { state PAIN_SKILL_LEVELADJUST action A_NMIND_PAIN }
+
+			/* disable pain, makes it too easy
+
+			ifaction A_NMIND_THROW_PREP nullop
+			else ifaction A_NMIND_THROW_PREP nullop
+			else ifaction A_NMIND_RAY_PREP nullop
+			else ifaction A_NMIND_RAY nullop
+			else ifaction A_NMIND_COPY nullop
+			else ifaction A_NMIND_MIND nullop
+			else
+			{
+				ifrnd 86 sound NMIND_PAIN
+				ifg PAIN_AMOUNT 0 action A_NMIND_PAIN
+				else ifrnd 32 { state PAIN_SKILL_LEVELADJUST action A_NMIND_PAIN }
+				ifaction A_NMIND_IDLE { state PAIN_SKILL_LEVELADJUST action A_NMIND_PAIN }
+			}
+			*/
+		}
+	}
+enda

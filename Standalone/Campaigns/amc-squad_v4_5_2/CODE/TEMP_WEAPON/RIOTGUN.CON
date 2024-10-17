@@ -1,0 +1,352 @@
+
+
+// The default fire event reduces the ammo only once. In the case of the riotgun we want the ammo to reduce multiple times while we're taking our shots
+// In the event of quad mode. So this must be called multiple times.
+defstate reduce_riotgun_ammo
+	set ammo_forweaponidx 0
+	set ammo_doreduce 1
+	state ammo_getdefs
+	setp[].ammo_amount 0 ammo_remaining
+ends
+defstate tw_riotgun_gunammotypes
+	setarray GUN_AMMO_TYPES_ARR[0] 8
+ends								 
+
+defstate tw_riotgun_code
+    setarray WEAPON_TILE[0] RIOTGUNSPRITE
+    set gun_mag -1
+    set GUN_ACCURACY 24
+    set GUN_MAX_SPREAD 8
+    set GUN_SIZE 1
+    set GUN_HANDS 1 // gun has a strap so player could use it one-handed
+    set GUN_AMMO_TYPES 8
+    set WEAPON0_WORKSLIKE 0
+    set WEAPON0_INITIALSOUND 4
+    set WEAPON0_FLAGS 1024
+    set WEAPON0_SELECTSOUND SELECT_SHOTGUN
+    setarray weap_special[0] 16384
+
+    ifand AMMO_TYPES[cur_weap] 8 nullop else
+        {
+            ife kickbackpic 3
+                {
+				add gun_spread 8
+				set gun_recoil 6
+                set gun_pushback_power -96
+                state gun_pushback
+                }
+
+            ife kickbackpic 5
+            {
+            set gunsmoke_angle 64 state spawn_gunsmoke
+            ifl cur_ammo 1
+                {
+                sound ENDSEQVOL2SND1 set temp_weap 0 quote 515
+                }
+            }
+        }
+
+
+    ifand AMMO_TYPES[cur_weap] 8 // Tesla ammo
+        {
+        set GUN_VOLUME 15
+        set weapon_type 8
+        set WEAPON0_FIREDELAY 27
+        set WEAPON0_TOTALTIME 50
+        set WEAPON0_HOLDDELAY 55
+        set WEAPON0_SHOOTS 6198
+        set WEAPON0_SHOTSPERBURST 1
+        set WEAPON0_FIRESOUND RIOTGUN_TESLAF
+        ife kickbackpic 3 sound MINIGUN3_START
+        ife kickbackpic 47 sound MINIGUN3_STOP
+        ife kickbackpic 6 sound TESLA_ARC
+        ife kickbackpic 27
+            {
+            set gun_recoil 5
+            set gunsmoke_angle 64 state spawn_gunsmoke
+            set gun_pushback_power -16 state gun_pushback
+            }
+        ife kickbackpic 28 { ifand BITS_PRESS 4 setp[].kickback_pic 26 }
+        }
+    else
+    ifand gun_firemode 16 // 4 shots
+        {
+        set GUN_VOLUME 40
+        set weapon_type 2
+        set WEAPON0_FIREDELAY 2
+        set WEAPON0_TOTALTIME 46
+        set WEAPON0_HOLDDELAY 50
+        set WEAPON0_SHOTSPERBURST 7
+        set WEAPON0_FIRESOUND RIOTGUN_FIRE
+        set WEAPON0_SHOOTS SHOTGUN
+
+        ife kickbackpic 6 { sound SAWNOFF_LOAD shoot 3761  }
+        ife kickbackpic 7
+        { flash espawn SOUND_SPRITE state SPAWN_IN_PLAYER_FRONT setactorvar[RETURN].temp RIOTGUN_FIRE shoot SHOTGUN shoot SHOTGUN shoot
+        SHOTGUN shoot SHOTGUN shoot SHOTGUN shoot SHOTGUN shoot SHOTGUN }
+        ife kickbackpic 8 state reduce_riotgun_ammo
+        ife kickbackpic 11
+            {
+            add gun_spread 8
+            set gun_recoil 6
+            set gun_pushback_power -96
+            state gun_pushback
+            }
+        ife kickbackpic 12
+            {
+            sound SAWNOFF_LOAD shoot 3761
+            set gunsmoke_angle 64 state spawn_gunsmoke
+            }
+
+        ife kickbackpic 13
+        { flash espawn SOUND_SPRITE state SPAWN_IN_PLAYER_FRONT setactorvar[RETURN].temp RIOTGUN_FIRE shoot SHOTGUN shoot SHOTGUN shoot
+        SHOTGUN shoot SHOTGUN shoot SHOTGUN shoot SHOTGUN shoot SHOTGUN }
+        ife kickbackpic 14 state reduce_riotgun_ammo
+        ife kickbackpic 17
+            {
+            add gun_spread 8
+            set gun_recoil 6
+            set gun_pushback_power -96
+            state gun_pushback
+            }
+        ife kickbackpic 18
+            {
+            sound SAWNOFF_LOAD shoot 3761
+            set gunsmoke_angle 64 state spawn_gunsmoke
+            }
+
+        ife kickbackpic 19
+        { flash espawn SOUND_SPRITE state SPAWN_IN_PLAYER_FRONT setactorvar[RETURN].temp RIOTGUN_FIRE shoot SHOTGUN shoot SHOTGUN shoot
+        SHOTGUN shoot SHOTGUN shoot SHOTGUN shoot SHOTGUN shoot SHOTGUN }
+        ife kickbackpic 20 state reduce_riotgun_ammo
+        ife kickbackpic 23
+            {
+            add gun_spread 8
+            set gun_recoil 6
+            set gun_pushback_power -96
+            state gun_pushback
+            }
+        ife kickbackpic 24
+            {
+            sound SAWNOFF_LOAD shoot 3761
+            set gunsmoke_angle 64 state spawn_gunsmoke
+            }
+
+        ife kickbackpic 26 sound RIOTGUN_BOLT
+
+        ife kickbackpic 40 sound RIOTGUN_COCK
+
+        }
+    else // Standard mode
+        {
+        set GUN_VOLUME 45
+        set weapon_type 2
+        set WEAPON0_FIREDELAY 2
+        set WEAPON0_TOTALTIME 15
+        set WEAPON0_HOLDDELAY 0
+        set WEAPON0_SHOTSPERBURST 7
+        set WEAPON0_SHOOTS SHOTGUN
+        set WEAPON0_FIRESOUND 4
+        ife kickbackpic 2 { espawn SOUND_SPRITE state SPAWN_IN_PLAYER_FRONT setactorvar[RETURN].temp RIOTGUN_FIRE }
+        ife kickbackpic 12 { sound SAWNOFF_LOAD shoot 3761 }
+        }
+ends
+
+
+defstate tw_glriotgun_code
+    setarray WEAPON_TILE[0] RIOTGUN_GRENADEL_SPRITE
+    set WEAPON0_WORKSLIKE 0
+    set WEAPON0_INITIALSOUND 4
+    set WEAPON0_FLAGS 1024
+
+    set WEAPON0_FIREDELAY 2
+    set WEAPON0_TOTALTIME 10
+    set WEAPON0_HOLDDELAY 0
+    set WEAPON0_SHOTSPERBURST 1
+    set WEAPON0_SHOOTS GEO_NADE
+    set WEAPON0_FIRESOUND 4
+    set WEAPON0_SELECTSOUND SELECT_BIG_WEAPON
+    setarray weap_special[0] 0
+
+    ife cur_weap 0
+    {
+    set weapon_type 4
+    set gun_mag -1
+    set GUN_ACCURACY 32
+    set GUN_MAX_SPREAD 0
+    set GUN_SIZE 3
+    set GUN_HANDS 2
+    set GUN_AMMO_TYPES 0
+        set GUN_VOLUME 45
+        ife kickbackpic 2
+            {
+			set gun_recoil 6
+            set gun_pushback_power -96
+            state gun_pushback
+			espawn SOUND_SPRITE state SPAWN_IN_PLAYER_FRONT setactorvar[RETURN].temp RG_GL_FIRE
+            }
+        ife kickbackpic 3
+        {
+        set gunsmoke_angle 64 state spawn_gunsmoke
+        ifl cur_ammo 1
+            {
+            sound ENDSEQVOL2SND1 set temp_weap 0 quote 515
+            }
+        }
+    }
+ends
+
+
+defstate tw_riotgun_minigun_mk1_gunammotypes
+
+    setarray GUN_AMMO_TYPES_ARR[0] 8
+ends									
+
+defstate tw_riotgun_minigun_mk1_code
+    setarray WEAPON_TILE[0] RIOTGUN_MINIGUN_SPRITE
+    set GUN_VOLUME 20
+    set GUN_ACCURACY 32
+    set GUN_MAX_SPREAD 12
+    set GUN_SIZE 3
+    set GUN_HANDS 2
+    set GUN_AMMO_TYPES 8
+    set gun_mag -1
+    set WEAPON0_WORKSLIKE 0
+    set WEAPON0_INITIALSOUND 4
+    set WEAPON0_FLAGS 1024
+    set WEAPON0_SELECTSOUND SELECT_BIG_WEAPON
+    setarray weap_special[0] 0
+
+        ifand AMMO_TYPES[cur_weap] 8 // Tesla ammo
+        {
+        set weapon_type 8
+        set WEAPON0_FIREDELAY 27
+        set WEAPON0_TOTALTIME 50
+        set WEAPON0_HOLDDELAY 55
+        set WEAPON0_SHOOTS 6198
+        set WEAPON0_SHOTSPERBURST 1
+        set WEAPON0_FIRESOUND RIOTGUN_TESLAF
+        ife kickbackpic 6 sound TESLA_ARC
+        ife kickbackpic 27
+            {
+            set gunsmoke_angle 64 state spawn_gunsmoke
+            set gun_pushback_power -16 state gun_pushback
+            }
+        }
+        else
+        {
+        set weapon_type 0
+        set WEAPON0_FIREDELAY 27
+        set WEAPON0_TOTALTIME 50
+        set WEAPON0_HOLDDELAY 55
+        set WEAPON0_SHOOTS ZRIFLESHOTU
+        set WEAPON0_SHOTSPERBURST 2
+        set WEAPON0_FIRESOUND 4
+        }
+
+        ife cur_weap 0
+        {
+        ife kickbackpic 3 sound MINIGUN2_START
+        ife kickbackpic 37 sound MINIGUN2_STOP
+        ife kickbackpic 27
+            {
+            espawn SOUND_SPRITE state SPAWN_IN_PLAYER_FRONT setactorvar[RETURN].temp BOS1_ATTACK1
+            set gunsmoke_angle 64 state spawn_gunsmoke
+            set gun_pushback_power -16 state gun_pushback
+            set gun_recoil 10
+            ifand AMMO_TYPES[cur_weap] 8 nullop else shoot RIFLESHELL
+            }
+        ife kickbackpic 28
+            {
+            add gun_spread 8
+            ifand BITS_PRESS 4 setp[].kickback_pic 26
+            ifand AMMO_TYPES[cur_weap] 8 nullop else shoot RIFLESHELL
+            }
+		ifg kickbackpic 30 ifand BITS_PRESS 4 ifg cur_ammo 0 setp[].kickback_pic 26
+        }
+ends
+
+defstate tw_riotgun_minigun_mk2_gunammotypes
+    setarray GUN_AMMO_TYPES_ARR[0] 8
+ends									
+
+defstate tw_riotgun_minigun_mk2_code
+    setarray WEAPON_TILE[0] 16087
+    set GUN_VOLUME 20
+    set GUN_ACCURACY 24
+    set GUN_MAX_SPREAD 8
+    set GUN_SIZE 2
+    set GUN_HANDS 3
+    set GUN_AMMO_TYPES 8
+    set gun_mag -1
+    set WEAPON0_WORKSLIKE 0
+    set WEAPON0_INITIALSOUND 4
+    set WEAPON0_FLAGS 1024
+    setarray weap_special[0] 0
+    set WEAPON0_SELECTSOUND SELECT_HT_BIGGUN
+
+        ifand AMMO_TYPES[cur_weap] 8 // Tesla ammo
+        {
+        set weapon_type 8
+        set WEAPON0_FIREDELAY 27
+        set WEAPON0_TOTALTIME 50
+        set WEAPON0_HOLDDELAY 55
+        set WEAPON0_SHOOTS 6198
+        set WEAPON0_SHOTSPERBURST 1
+        set WEAPON0_FIRESOUND RIOTGUN_TESLAF
+        ife kickbackpic 6 sound TESLA_ARC
+        ife kickbackpic 27
+            {
+            set gunsmoke_angle 64 state spawn_gunsmoke
+            set gun_pushback_power -8 state gun_pushback
+            }
+        }
+        else
+        {
+        set weapon_type 0
+        set WEAPON0_FIREDELAY 27
+        set WEAPON0_TOTALTIME 50
+        set WEAPON0_HOLDDELAY 55
+        set WEAPON0_SHOOTS ZRIFLESHOTU
+        set WEAPON0_SHOTSPERBURST 2
+        set WEAPON0_FIRESOUND 4
+        }
+
+        ife cur_weap 0
+        {
+        ifn player[].weapon_pos 0 setp[].kickback_pic 0
+        ifand gun_firemode_two 16
+            {
+            ife kickbackpic 0 setp[].kickback_pic 1
+            ife kickbackpic 25
+                {
+                ifand BITS_PRESS 4 setp[].kickback_pic 26
+                else { soundonce MINIGUN_SPIN setp[].kickback_pic 30 }
+                }
+            ife kickbackpic 31 setp[].kickback_pic 24
+            }
+
+        ife kickbackpic 26
+            {
+            ifand BITS_PRESS 4 nullop else setp[].kickback_pic 30
+            }
+
+        ife kickbackpic 3 sound MINIGUN2_START
+        ife kickbackpic 37 sound MINIGUN2_STOP
+        ife kickbackpic 27
+            {
+            espawn SOUND_SPRITE state SPAWN_IN_PLAYER_FRONT setactorvar[RETURN].temp BOS1_ATTACK1
+            set gunsmoke_angle 64 state spawn_gunsmoke
+            set gun_pushback_power -8 state gun_pushback
+            set gun_recoil 6
+            ifand AMMO_TYPES[cur_weap] 8 nullop else shoot RIFLESHELL
+            }
+        ife kickbackpic 28
+            {
+            add gun_spread 6
+            ifand BITS_PRESS 4 setp[].kickback_pic 26
+            ifand AMMO_TYPES[cur_weap] 8 nullop else shoot RIFLESHELL
+            }
+		ifg kickbackpic 30 ifand BITS_PRESS 4 ifg cur_ammo 0 setp[].kickback_pic 26
+        }
+ends

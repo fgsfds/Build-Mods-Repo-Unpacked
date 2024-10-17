@@ -1,0 +1,1239 @@
+
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+This file contains the code for the bestiary instructions in the command interface
+
+HOW TO SET UP:
+1. Go to the appropriate mission info in CODE/GUI/COMM_MISS.CON
+2. Scroll down to the state PRECOG_BOX section; the code in brackets after box toggle is the info needed
+3. Underneath the main pic, you'll need to manually set a variable containing what enemies are in the map;
+this involves checking the lists below, adding each value for what enemy type is present, than setting the
+appropriate faction flag. So if the map has cycloids with pigcops and pig tanks, ps_cycloids would be set to 130.
+you need to do this for each faction present, set their appropriate flags this way.
+4. underneath this, add state precog_enemies
+5. That should be it - double check the precog box in the mission interface.
+6. TODO: some unique per-map enemies, bosses or special actors aren't included yet, will be done over time.
+
+--------------------------------------------------------------------------------
+*/
+
+var ei_x 95 0
+var ei_y 35 0
+var ei_icon 0 0
+
+var ps_cycloids 0 0
+
+// 1 = liztroops
+// 2 = pigcops
+// 4 = lizmen
+// 8 = commander
+// 16 = octabrain
+// 32 = sentry drone
+// 64 = battlelord
+// 128 = pig tank
+// 256 = protector drone
+// 512 = Overlord
+// 1024 = Cycloid Emporer
+// 2048 = Alien Queen
+// 4096 = High Emporer
+// 8192 = Cyber Alien
+// 16384 = Pig Riot shield
+// 32768 = Elite Pigcop
+// 65536 = Elite Lizman
+// 131072 = Pig boss
+// 262144 = mechalizman
+// 524288 = Space liztrooper
+// 1048576 = liztroop major
+// 2097152 = alien sniper
+// 4194304 = pigcop recon
+// 8388608 = advanced commander
+// 16777216 = battlebaron
+
+var ps_demons 0 0
+
+// 1 = shade
+// 2 = satyr
+// 4 = bruiser
+// 8 = hades sphere
+// 16 = cybertour
+// 32 = flesh wizard
+// 64 = cyberdemon
+// 128 = abyss despot
+// 256 = maephisto
+// 512 = infernal
+
+var ps_zombies 0 0
+
+// 1 = zombie chaingunner
+// 2 = zombie grenadier
+// 4 = zombie
+// 8 = zombie scientist
+// 16 = zombie soldier
+// 32 = zombie soldier 2
+// 128 = zombie scientist 2
+
+var ps_mercs 0 0
+
+// 1 = heavy powersuit
+// 2 = light powersuit
+// 4 = madrax
+// 8 = merc shotgun
+// 16 = merc rifle
+// 32 = merc assault/facist
+// 64 = juggernaut
+// 128 = vilmos robot
+
+var ps_cults 0 0
+
+// 2 = cultist
+// 4 = dark avatar
+// 8 = entity
+// 32 = lost
+// 64 = lilith
+// 128 = doctor j
+// 256 = mister h
+// 512 = shambler
+// 1024 = sorcerer
+// 2048 = spirit
+// 4096 = cult chainsaw
+// 8192 = cult flame
+// 16384 = cult hmg
+// 32768 = elite cultist
+
+var ps_misc 0 0
+
+// 1 = cybercultist
+// 2 = chryssalid
+// 4 = conservator
+// 8 = gorilla
+// 16 = gorilla leader
+// 32 = lil scorp
+// 64 = nazi
+// 256 = pitfiend
+// 512 = spider2
+// 1024 = terminator
+// 2048 = wasp drone
+// 4096 = makara
+// 8192 = sentry
+
+var ps_shadow 0 0
+// 1 = guardian
+// 2 = mamano
+// 4 = ninja
+// 8 = ripper
+// 16 = serpent god
+// 32 = triad
+// 64 = yuki onna
+
+var ps_paradigm 0 0
+// 2 = elder
+// 4 = trooper
+// 8 = shotgunner
+// 32 = PE sentry
+// 64 = trenton solari
+
+var ps_mj12 0 0
+// 1 = assassin
+// 2 = trooper
+// 16 = patcos
+
+var ps_egypt 0 0
+
+// 1 = Aludran
+// 2 = anubis mummy
+// 4 = cobra
+// 8 = lava beast
+// 16 = scorpioness
+// 32 = scarab demon
+// 64 = siren
+// 128 = thoth
+// 256 = le sang
+
+var ps_necro 0 0
+// 1 = archer
+// 2 = beholder
+// 4 = berserker
+// 8 = dragon
+// 16 = skull knight
+// 32 = skull squire
+// 64 = goblin bros
+// 128 = golem
+// 256 = hydra
+// 512 = jedrik
+// 1024 = kraken
+// 2048 = mongur
+// 4096 = naaldir
+// 8192 = necro mind
+// 16384 = necro soul
+// 32768 = nether brute
+// 65536 = ogre
+// 131072 = succubus
+// 262144 = svedr
+// 524288 = orc
+// 1048576 = troll
+// 2097152 = vegunth
+// 4194304 = woofer
+
+var ps_beyond 0 0
+// 1 = beyonder
+
+defstate clear_precog
+				set ps_cycloids 0
+				set ps_demons 0
+				set ps_zombies 0
+				set ps_mercs 0
+				set ps_cults 0
+				set ps_misc 0
+				set ps_shadow 0
+				set ps_paradigm 0
+				set ps_mj12 0
+				set ps_egypt 0
+				set ps_necro 0
+				set ps_beyond 0
+ends
+
+defstate icon_pos
+add ei_x 14
+ifg ei_x 230 { set ei_x 97 add ei_y 14 }
+ends
+
+defstate precog_enemies
+set ei_x 83
+set ei_y 35
+ifn ps_cycloids 0
+	{
+	ifand ps_cycloids 1 // liztroop
+		{
+		state icon_pos
+		set CHK_ENEMY_IN_BST_PICNUM LIZTROOP
+		state isenemyinbestiary
+		ife ENEMY_IN_BST 1 set ei_icon 2 else set ei_icon 0
+		rotatesprite ei_x ei_y 12288 0 3288 0 ei_icon 0 0 0 xdim ydim
+		}
+	ifand ps_cycloids 2 // pigcop
+		{
+		state icon_pos
+		set CHK_ENEMY_IN_BST_PICNUM PIGCOP
+		state isenemyinbestiary
+		ife ENEMY_IN_BST 1 set ei_icon 6 else set ei_icon 240
+		rotatesprite ei_x ei_y 12288 0 3288 0 ei_icon 0 0 0 xdim ydim
+		}
+	ifand ps_cycloids 4 // lizman
+		{
+		state icon_pos
+		set CHK_ENEMY_IN_BST_PICNUM LIZMAN
+		state isenemyinbestiary
+		ife ENEMY_IN_BST 1 set ei_icon 7 else set ei_icon 0
+		rotatesprite ei_x ei_y 12288 0 3288 0 ei_icon 0 0 0 xdim ydim
+		}
+	ifand ps_cycloids 8 // commander
+		{
+		state icon_pos
+		set CHK_ENEMY_IN_BST_PICNUM COMMANDER
+		state isenemyinbestiary
+		ife ENEMY_IN_BST 1 set ei_icon 5 else set ei_icon 0
+		rotatesprite ei_x ei_y 12288 0 3288 0 ei_icon 0 0 0 xdim ydim
+		}
+	ifand ps_cycloids 16 // octabrain
+		{
+		state icon_pos
+		set CHK_ENEMY_IN_BST_PICNUM OCTABRAIN
+		state isenemyinbestiary
+		ife ENEMY_IN_BST 1 set ei_icon 3 else set ei_icon 0
+		rotatesprite ei_x ei_y 12288 0 3288 0 ei_icon 0 0 0 xdim ydim
+		}
+	ifand ps_cycloids 32 // sentry drone
+		{
+		state icon_pos
+		set CHK_ENEMY_IN_BST_PICNUM DRONE
+		state isenemyinbestiary
+		ife ENEMY_IN_BST 1 set ei_icon 4 else set ei_icon 0
+		rotatesprite ei_x ei_y 12288 0 3288 0 ei_icon 0 0 0 xdim ydim
+		}
+	ifand ps_cycloids 64 // battlelord
+		{
+		state icon_pos
+		set CHK_ENEMY_IN_BST_PICNUM BATTLELORD
+		set CHK_ENEMY_IN_BST_PAL 21
+		state isenemyinbestiary
+		ife ENEMY_IN_BST 1 set ei_icon 11 else set ei_icon 0
+		rotatesprite ei_x ei_y 12288 0 3288 0 ei_icon 0 0 0 xdim ydim
+		}
+	ifand ps_cycloids 128 // pig tank
+		{
+		state icon_pos
+		set CHK_ENEMY_IN_BST_PICNUM TANK
+		state isenemyinbestiary
+		ife ENEMY_IN_BST 1 set ei_icon 12 else set ei_icon 241
+		rotatesprite ei_x ei_y 12288 0 3288 0 ei_icon 0 0 0 xdim ydim
+		}
+	ifand ps_cycloids 256 // newbeast
+		{
+		state icon_pos
+		set CHK_ENEMY_IN_BST_PICNUM NEWBEAST
+		state isenemyinbestiary
+		ife ENEMY_IN_BST 1 set ei_icon 13 else set ei_icon 244
+		rotatesprite ei_x ei_y 12288 0 3288 0 ei_icon 0 0 0 xdim ydim
+		}
+	ifand ps_cycloids 512 // overlord
+		{
+		state icon_pos
+		set CHK_ENEMY_IN_BST_PICNUM BOSS3
+		state isenemyinbestiary
+		ife ENEMY_IN_BST 1 set ei_icon 9 else set ei_icon 0
+		rotatesprite ei_x ei_y 12288 0 3288 0 ei_icon 0 0 0 xdim ydim
+		}
+	ifand ps_cycloids 1024 // Cycloid Empo
+		{
+		state icon_pos
+		set CHK_ENEMY_IN_BST_PICNUM BOSS2
+		state isenemyinbestiary
+		ife ENEMY_IN_BST 1 set ei_icon 10 else set ei_icon 0
+		rotatesprite ei_x ei_y 12288 0 3288 0 ei_icon 0 0 0 xdim ydim
+		}
+	ifand ps_cycloids 2048 // Alien queen
+		{
+		state icon_pos
+		set CHK_ENEMY_IN_BST_PICNUM BOSS4
+		state isenemyinbestiary
+		ife ENEMY_IN_BST 1 set ei_icon 14 else set ei_icon 0
+		rotatesprite ei_x ei_y 12288 0 3288 0 ei_icon 0 0 0 xdim ydim
+		}
+	ifand ps_cycloids 4096 // High Emporer
+		{
+		state icon_pos
+		set CHK_ENEMY_IN_BST_PICNUM BOSS5
+		state isenemyinbestiary
+		ife ENEMY_IN_BST 1 set ei_icon 57 else set ei_icon 0
+		rotatesprite ei_x ei_y 12288 0 3288 0 ei_icon 0 0 0 xdim ydim
+		}
+	ifand ps_cycloids 8192 // Cyberalien
+		{
+		state icon_pos
+		set CHK_ENEMY_IN_BST_PICNUM CYBERALIEN
+		state isenemyinbestiary
+		ife ENEMY_IN_BST 1 set ei_icon 58 else set ei_icon 241
+		rotatesprite ei_x ei_y 12288 0 3288 0 ei_icon 0 0 0 xdim ydim
+		}
+	ifand ps_cycloids 16384 // riot shield pigcop
+		{
+		state icon_pos
+		set CHK_ENEMY_IN_BST_PICNUM PIGCOP_RIOT
+		state isenemyinbestiary
+		ife ENEMY_IN_BST 1 set ei_icon 64 else set ei_icon 0
+		rotatesprite ei_x ei_y 12288 0 3288 0 ei_icon 0 0 0 xdim ydim
+		}
+	ifand ps_cycloids 32768 // pigcop special forces
+		{
+		state icon_pos
+		set CHK_ENEMY_IN_BST_PICNUM PIG_SF
+		state isenemyinbestiary
+		ife ENEMY_IN_BST 1 set ei_icon 97 else set ei_icon 240
+		rotatesprite ei_x ei_y 12288 0 3288 0 ei_icon 0 0 0 xdim ydim
+		}
+	ifand ps_cycloids 65536 // elite lizman
+		{
+		state icon_pos
+		set CHK_ENEMY_IN_BST_PICNUM ELITE_LIZMAN
+		state isenemyinbestiary
+		ife ENEMY_IN_BST 1 set ei_icon 99 else set ei_icon 0
+		rotatesprite ei_x ei_y 12288 0 3288 0 ei_icon 0 0 0 xdim ydim
+		}
+	ifand ps_cycloids 131072 // pigboss
+		{
+		state icon_pos
+		set CHK_ENEMY_IN_BST_PICNUM PIGBOSS
+		state isenemyinbestiary
+		ife ENEMY_IN_BST 1 set ei_icon 103 else set ei_icon 0
+		rotatesprite ei_x ei_y 12288 0 3288 0 ei_icon 0 0 0 xdim ydim
+		}
+	ifand ps_cycloids 262144 // mechaliz
+		{
+		state icon_pos
+		set CHK_ENEMY_IN_BST_PICNUM LIZBOSS
+		state isenemyinbestiary
+		ife ENEMY_IN_BST 1 set ei_icon 104 else set ei_icon 0
+		rotatesprite ei_x ei_y 12288 0 3288 0 ei_icon 0 0 0 xdim ydim
+		}
+	ifand ps_cycloids 524288 // space liztrooper
+		{
+		state icon_pos
+		set CHK_ENEMY_IN_BST_PICNUM SPACE_LIZTROOP
+		state isenemyinbestiary
+		ife ENEMY_IN_BST 1 set ei_icon 105 else set ei_icon 0
+		rotatesprite ei_x ei_y 12288 0 3288 0 ei_icon 0 0 0 xdim ydim
+		}
+	ifand ps_cycloids 1048576 // liztroop major
+		{
+		state icon_pos
+		set CHK_ENEMY_IN_BST_PICNUM LIZTROOP_BESTIARY_PAL10
+		state isenemyinbestiary
+		ife ENEMY_IN_BST 1 set ei_icon 158 else set ei_icon 0
+		rotatesprite ei_x ei_y 12288 0 3288 0 ei_icon 0 0 0 xdim ydim
+		}
+	ifand ps_cycloids 2097152 // lizard sniper
+		{
+		state icon_pos
+		set CHK_ENEMY_IN_BST_PICNUM LIZ_SNIPER
+		state isenemyinbestiary
+		ife ENEMY_IN_BST 1 set ei_icon 160 else set ei_icon 0
+		rotatesprite ei_x ei_y 12288 0 3288 0 ei_icon 0 0 0 xdim ydim
+		}
+	ifand ps_cycloids 4194304 // pigcop recon
+		{
+		state icon_pos
+		set CHK_ENEMY_IN_BST_PICNUM RECON
+		state isenemyinbestiary
+		ife ENEMY_IN_BST 1 set ei_icon 153 else set ei_icon 0
+		rotatesprite ei_x ei_y 12288 0 3288 0 ei_icon 0 0 0 xdim ydim
+		}
+	ifand ps_cycloids 8388608
+		{
+		state icon_pos
+		set CHK_ENEMY_IN_BST_PICNUM ADV_COMMANDER
+		state isenemyinbestiary
+		ife ENEMY_IN_BST 1 set ei_icon 155 else set ei_icon 0
+		rotatesprite ei_x ei_y 12288 0 3288 0 ei_icon 0 0 0 xdim ydim
+		}
+	ifand ps_cycloids 16777216
+		{
+		state icon_pos
+		set CHK_ENEMY_IN_BST_PICNUM BLORD_BESTIARY_PAL0
+		state isenemyinbestiary
+		ife ENEMY_IN_BST 1 set ei_icon 87 else set ei_icon 0
+		rotatesprite ei_x ei_y 12288 0 3288 0 ei_icon 0 0 0 xdim ydim
+		}
+	}
+ifn ps_demons 0
+	{
+	ifand ps_demons 1 // shade
+		{
+		state icon_pos
+		set CHK_ENEMY_IN_BST_PICNUM SHADE
+		state isenemyinbestiary
+		ife ENEMY_IN_BST 1 set ei_icon 15 else set ei_icon 0
+		rotatesprite ei_x ei_y 12288 0 3288 0 ei_icon 0 0 0 xdim ydim
+		}
+	ifand ps_demons 2 // satyr
+		{
+		state icon_pos
+		set CHK_ENEMY_IN_BST_PICNUM SATYR
+		state isenemyinbestiary
+		ife ENEMY_IN_BST 1 set ei_icon 16 else set ei_icon 0
+		rotatesprite ei_x ei_y 12288 0 3288 0 ei_icon 0 0 0 xdim ydim
+		}
+	ifand ps_demons 4 // bruiser
+		{
+		state icon_pos
+		set CHK_ENEMY_IN_BST_PICNUM BRUISER
+		state isenemyinbestiary
+		ife ENEMY_IN_BST 1 set ei_icon 17 else set ei_icon 0
+		rotatesprite ei_x ei_y 12288 0 3288 0 ei_icon 0 0 0 xdim ydim
+		}
+	ifand ps_demons 8 // hades sphere
+		{
+		state icon_pos
+		set CHK_ENEMY_IN_BST_PICNUM HADESPHERE
+		state isenemyinbestiary
+		ife ENEMY_IN_BST 1 set ei_icon 20 else set ei_icon 0
+		rotatesprite ei_x ei_y 12288 0 3288 0 ei_icon 0 0 0 xdim ydim
+		}
+	ifand ps_demons 16 // cybertour
+		{
+		state icon_pos
+		set CHK_ENEMY_IN_BST_PICNUM CYBERTOUR
+		state isenemyinbestiary
+		ife ENEMY_IN_BST 1 set ei_icon 21 else set ei_icon 241
+		rotatesprite ei_x ei_y 12288 0 3288 0 ei_icon 0 0 0 xdim ydim
+		}
+	ifand ps_demons 32 // flesh wizard
+		{
+		state icon_pos
+		set CHK_ENEMY_IN_BST_PICNUM FLESHWIZARD
+		state isenemyinbestiary
+		ife ENEMY_IN_BST 1 set ei_icon 23 else set ei_icon 0
+		rotatesprite ei_x ei_y 12288 0 3288 0 ei_icon 0 0 0 xdim ydim
+		}
+	ifand ps_demons 64 // cyberdemon
+		{
+		state icon_pos
+		set CHK_ENEMY_IN_BST_PICNUM CYBERDEMON
+		state isenemyinbestiary
+		ife ENEMY_IN_BST 1 set ei_icon 33 else set ei_icon 0
+		rotatesprite ei_x ei_y 12288 0 3288 0 ei_icon 0 0 0 xdim ydim
+		}
+	ifand ps_demons 128 // abyss despot
+		{
+		state icon_pos
+		set CHK_ENEMY_IN_BST_PICNUM ABYSS_DESPOT
+		state isenemyinbestiary
+		ife ENEMY_IN_BST 1 set ei_icon 37 else set ei_icon 0
+		rotatesprite ei_x ei_y 12288 0 3288 0 ei_icon 0 0 0 xdim ydim
+		}
+	ifand ps_demons 256 // maephisto
+		{
+		state icon_pos
+		set CHK_ENEMY_IN_BST_PICNUM MAEPHISTO
+		state isenemyinbestiary
+		ife ENEMY_IN_BST 1 set ei_icon 52 else set ei_icon 0
+		rotatesprite ei_x ei_y 12288 0 3288 0 ei_icon 0 0 0 xdim ydim
+		}
+	ifand ps_demons 512 // infernal
+		{
+		state icon_pos
+		set CHK_ENEMY_IN_BST_PICNUM INFERNAL
+		state isenemyinbestiary
+		ife ENEMY_IN_BST 1 set ei_icon 54 else set ei_icon 0
+		rotatesprite ei_x ei_y 12288 0 3288 0 ei_icon 0 0 0 xdim ydim
+		}
+	}
+ifn ps_zombies 0
+	{
+	ifand ps_zombies 1
+		{
+		state icon_pos
+		set CHK_ENEMY_IN_BST_PICNUM ZCHAING
+		state isenemyinbestiary
+		ife ENEMY_IN_BST 1 set ei_icon 22 else set ei_icon 0
+		rotatesprite ei_x ei_y 12288 0 3288 0 ei_icon 0 0 0 xdim ydim
+		}
+	ifand ps_zombies 2
+		{
+		state icon_pos
+		set CHK_ENEMY_IN_BST_PICNUM Z_GRENADEL
+		state isenemyinbestiary
+		ife ENEMY_IN_BST 1 set ei_icon 60 else set ei_icon 240
+		rotatesprite ei_x ei_y 12288 0 3288 0 ei_icon 0 0 0 xdim ydim
+		}
+	ifand ps_zombies 4
+		{
+		state icon_pos
+		set CHK_ENEMY_IN_BST_PICNUM ZOMBIE
+		state isenemyinbestiary
+		ife ENEMY_IN_BST 1 set ei_icon 31 else set ei_icon 0
+		rotatesprite ei_x ei_y 12288 0 3288 0 ei_icon 0 0 0 xdim ydim
+		}
+	ifand ps_zombies 8
+		{
+		state icon_pos
+		set CHK_ENEMY_IN_BST_PICNUM ZSCIEN
+		state isenemyinbestiary
+		ife ENEMY_IN_BST 1 set ei_icon 18 else set ei_icon 0
+		rotatesprite ei_x ei_y 12288 0 3288 0 ei_icon 0 0 0 xdim ydim
+		}
+	ifand ps_zombies 16
+		{
+		state icon_pos
+		set CHK_ENEMY_IN_BST_PICNUM ZSOLDIER
+		state isenemyinbestiary
+		ife ENEMY_IN_BST 1 set ei_icon 47 else set ei_icon 0
+		rotatesprite ei_x ei_y 12288 0 3288 0 ei_icon 0 0 0 xdim ydim
+		}
+	ifand ps_zombies 32
+		{
+		state icon_pos
+		set CHK_ENEMY_IN_BST_PICNUM ZSOLDIER2
+		state isenemyinbestiary
+		ife ENEMY_IN_BST 1 set ei_icon 56 else set ei_icon 0
+		rotatesprite ei_x ei_y 12288 0 3288 0 ei_icon 0 0 0 xdim ydim
+		}
+	}
+ifn ps_mercs 0
+	{
+	ifand ps_mercs 1
+		{
+		state icon_pos
+		set CHK_ENEMY_IN_BST_PICNUM HPOWERSUIT
+		state isenemyinbestiary
+		ife ENEMY_IN_BST 1 set ei_icon 25 else set ei_icon 241
+		rotatesprite ei_x ei_y 12288 0 3288 0 ei_icon 0 0 0 xdim ydim
+		}
+	ifand ps_mercs 2
+		{
+		state icon_pos
+		set CHK_ENEMY_IN_BST_PICNUM LPOWERSUIT
+		state isenemyinbestiary
+		ife ENEMY_IN_BST 1 set ei_icon 24 else set ei_icon 241
+		rotatesprite ei_x ei_y 12288 0 3288 0 ei_icon 0 0 0 xdim ydim
+		}
+	ifand ps_mercs 4
+		{
+		state icon_pos
+		set CHK_ENEMY_IN_BST_PICNUM MADRAX
+		state isenemyinbestiary
+		ife ENEMY_IN_BST 1 set ei_icon 95 else set ei_icon 240
+		rotatesprite ei_x ei_y 12288 0 3288 0 ei_icon 0 0 0 xdim ydim
+		}
+	ifand ps_mercs 8
+		{
+		state icon_pos
+		set CHK_ENEMY_IN_BST_PICNUM MERC
+		state isenemyinbestiary
+		ife ENEMY_IN_BST 1 set ei_icon 26 else set ei_icon 0
+		rotatesprite ei_x ei_y 12288 0 3288 0 ei_icon 0 0 0 xdim ydim
+		}
+	ifand ps_mercs 16
+		{
+		state icon_pos
+		set CHK_ENEMY_IN_BST_PICNUM MERC2
+		state isenemyinbestiary
+		ife ENEMY_IN_BST 1 set ei_icon 46 else set ei_icon 240
+		rotatesprite ei_x ei_y 12288 0 3288 0 ei_icon 0 0 0 xdim ydim
+		}
+	ifand ps_mercs 32
+		{
+		state icon_pos
+		set CHK_ENEMY_IN_BST_PICNUM FASCIST
+		state isenemyinbestiary
+		ife ENEMY_IN_BST 1 set ei_icon 43 else set ei_icon 240
+		rotatesprite ei_x ei_y 12288 0 3288 0 ei_icon 0 0 0 xdim ydim
+		}
+	ifand ps_mercs 64
+		{
+		state icon_pos
+		set CHK_ENEMY_IN_BST_PICNUM JUGGERNAUT
+		state isenemyinbestiary
+		ife ENEMY_IN_BST 1 set ei_icon 131 else set ei_icon 240
+		rotatesprite ei_x ei_y 12288 0 3288 0 ei_icon 0 0 0 xdim ydim
+		}
+	ifand ps_mercs 128
+		{
+		state icon_pos
+		set CHK_ENEMY_IN_BST_PICNUM VILMOS_ROBOT
+		state isenemyinbestiary
+		ife ENEMY_IN_BST 1 set ei_icon 44 else set ei_icon 241
+		rotatesprite ei_x ei_y 12288 0 3288 0 ei_icon 0 0 0 xdim ydim
+		}
+	}
+ifn ps_cults 0
+	{
+	ifand ps_cults 2
+		{
+		state icon_pos
+		set CHK_ENEMY_IN_BST_PICNUM CULTIST
+		state isenemyinbestiary
+		ife ENEMY_IN_BST 1 set ei_icon 19 else set ei_icon 0
+		rotatesprite ei_x ei_y 12288 0 3288 0 ei_icon 0 0 0 xdim ydim
+		}
+	ifand ps_cults 4
+		{
+		state icon_pos
+		set CHK_ENEMY_IN_BST_PICNUM DARKAVATAR
+		state isenemyinbestiary
+		ife ENEMY_IN_BST 1 set ei_icon 35 else set ei_icon 243
+		rotatesprite ei_x ei_y 12288 0 3288 0 ei_icon 0 0 0 xdim ydim
+		}
+	ifand ps_cults 8
+		{
+		state icon_pos
+		set CHK_ENEMY_IN_BST_PICNUM 10752
+		state isenemyinbestiary
+		ife ENEMY_IN_BST 1 set ei_icon 134 else set ei_icon 0
+		rotatesprite ei_x ei_y 12288 0 3288 0 ei_icon 0 0 0 xdim ydim
+		}
+	ifand ps_cults 32
+		{
+		state icon_pos
+		set CHK_ENEMY_IN_BST_PICNUM LOST
+		state isenemyinbestiary
+		ife ENEMY_IN_BST 1 set ei_icon 27 else set ei_icon 243
+		rotatesprite ei_x ei_y 12288 0 3288 0 ei_icon 0 0 0 xdim ydim
+		}
+	ifand ps_cults 64
+		{
+		state icon_pos
+		set CHK_ENEMY_IN_BST_PICNUM LILITH
+		state isenemyinbestiary
+		ife ENEMY_IN_BST 1 set ei_icon 28 else set ei_icon 0
+		rotatesprite ei_x ei_y 12288 0 3288 0 ei_icon 0 0 0 xdim ydim
+		}
+	ifand ps_cults 128
+		{
+		state icon_pos
+		set CHK_ENEMY_IN_BST_PICNUM DOCTORJ
+		state isenemyinbestiary
+		ife ENEMY_IN_BST 1 set ei_icon 36 else set ei_icon 0
+		rotatesprite ei_x ei_y 12288 0 3288 0 ei_icon 0 0 0 xdim ydim
+		}
+	ifand ps_cults 256
+		{
+		state icon_pos
+		set CHK_ENEMY_IN_BST_PICNUM MISTERH
+		state isenemyinbestiary
+		ife ENEMY_IN_BST 1 set ei_icon 34 else set ei_icon 0
+		rotatesprite ei_x ei_y 12288 0 3288 0 ei_icon 0 0 0 xdim ydim
+		}
+	ifand ps_cults 512
+		{
+		state icon_pos
+		set CHK_ENEMY_IN_BST_PICNUM SHAMBLER
+		state isenemyinbestiary
+		ife ENEMY_IN_BST 1 set ei_icon 101 else set ei_icon 0
+		rotatesprite ei_x ei_y 12288 0 3288 0 ei_icon 0 0 0 xdim ydim
+		}
+	ifand ps_cults 1024
+		{
+		state icon_pos
+		set CHK_ENEMY_IN_BST_PICNUM SORCERER
+		state isenemyinbestiary
+		ife ENEMY_IN_BST 1 set ei_icon 29 else set ei_icon 243
+		rotatesprite ei_x ei_y 12288 0 3288 0 ei_icon 0 0 0 xdim ydim
+		}
+	ifand ps_cults 2048
+		{
+		state icon_pos
+		set CHK_ENEMY_IN_BST_PICNUM SPIRIT
+		state isenemyinbestiary
+		ife ENEMY_IN_BST 1 set ei_icon 79 else set ei_icon 243
+		rotatesprite ei_x ei_y 12288 0 3288 0 ei_icon 0 0 0 xdim ydim
+		}
+	ifand ps_cults 4096
+		{
+		state icon_pos
+		set CHK_ENEMY_IN_BST_PICNUM CULT_CHAINSAW
+		state isenemyinbestiary
+		ife ENEMY_IN_BST 1 set ei_icon 32 else set ei_icon 0
+		rotatesprite ei_x ei_y 12288 0 3288 0 ei_icon 0 0 0 xdim ydim
+		}
+	ifand ps_cults 8192
+		{
+		state icon_pos
+		set CHK_ENEMY_IN_BST_PICNUM CULT_FLAME
+		state isenemyinbestiary
+		ife ENEMY_IN_BST 1 set ei_icon 94 else set ei_icon 0
+		rotatesprite ei_x ei_y 12288 0 3288 0 ei_icon 0 0 0 xdim ydim
+		}
+	ifand ps_cults 16384
+		{
+		state icon_pos
+		set CHK_ENEMY_IN_BST_PICNUM CULT_HMG
+		state isenemyinbestiary
+		ife ENEMY_IN_BST 1 set ei_icon 93 else set ei_icon 240
+		rotatesprite ei_x ei_y 12288 0 3288 0 ei_icon 0 0 0 xdim ydim
+		}
+	}
+ifn ps_misc 0
+	{
+	ifand ps_misc 1
+		{
+		state icon_pos
+		set CHK_ENEMY_IN_BST_PICNUM CYBERCULTIST
+		state isenemyinbestiary
+		ife ENEMY_IN_BST 1 set ei_icon 72 else set ei_icon 0
+		rotatesprite ei_x ei_y 12288 0 3288 0 ei_icon 0 0 0 xdim ydim
+		}
+	ifand ps_misc 2
+		{
+		state icon_pos
+		set CHK_ENEMY_IN_BST_PICNUM CHRYSSALID
+		state isenemyinbestiary
+		ife ENEMY_IN_BST 1 set ei_icon 100 else set ei_icon 244
+		rotatesprite ei_x ei_y 12288 0 3288 0 ei_icon 0 0 0 xdim ydim
+		}
+	ifand ps_misc 4
+		{
+		state icon_pos
+		set CHK_ENEMY_IN_BST_PICNUM CONSERVATOR
+		state isenemyinbestiary
+		ife ENEMY_IN_BST 1 set ei_icon 81 else set ei_icon 0
+		rotatesprite ei_x ei_y 12288 0 3288 0 ei_icon 0 0 0 xdim ydim
+		}
+	ifand ps_misc 8
+		{
+		state icon_pos
+		set CHK_ENEMY_IN_BST_PICNUM GORILLA
+		state isenemyinbestiary
+		ife ENEMY_IN_BST 1 set ei_icon 88 else set ei_icon 0
+		rotatesprite ei_x ei_y 12288 0 3288 0 ei_icon 0 0 0 xdim ydim
+		}
+	ifand ps_misc 16
+		{
+		state icon_pos
+		set CHK_ENEMY_IN_BST_PICNUM GORILLA_BESTIARY_PAL13
+		state isenemyinbestiary
+		ife ENEMY_IN_BST 1 set ei_icon 159 else set ei_icon 240
+		rotatesprite ei_x ei_y 12288 0 3288 0 ei_icon 0 0 0 xdim ydim
+		}
+	ifand ps_misc 32
+		{
+		state icon_pos
+		set CHK_ENEMY_IN_BST_PICNUM LIL_SCORP
+		state isenemyinbestiary
+		ife ENEMY_IN_BST 1 set ei_icon 83 else set ei_icon 0
+		rotatesprite ei_x ei_y 12288 0 3288 0 ei_icon 0 0 0 xdim ydim
+		}
+	ifand ps_misc 64
+		{
+		state icon_pos
+		set CHK_ENEMY_IN_BST_PICNUM NAZI
+		state isenemyinbestiary
+		ife ENEMY_IN_BST 1 set ei_icon 90 else set ei_icon 0
+		rotatesprite ei_x ei_y 12288 0 3288 0 ei_icon 0 0 0 xdim ydim
+		}
+	ifand ps_misc 256
+		{
+		state icon_pos
+		set CHK_ENEMY_IN_BST_PICNUM PITFIEND
+		state isenemyinbestiary
+		ife ENEMY_IN_BST 1 set ei_icon 42 else set ei_icon 0
+		rotatesprite ei_x ei_y 12288 0 3288 0 ei_icon 0 0 0 xdim ydim
+		}
+	ifand ps_misc 512
+		{
+		state icon_pos
+		set CHK_ENEMY_IN_BST_PICNUM SPIDER2
+		state isenemyinbestiary
+		ife ENEMY_IN_BST 1 set ei_icon 96 else set ei_icon 0
+		rotatesprite ei_x ei_y 12288 0 3288 0 ei_icon 0 0 0 xdim ydim
+		}
+	ifand ps_misc 1024
+		{
+		state icon_pos
+		set CHK_ENEMY_IN_BST_PICNUM TERMINATOR
+		state isenemyinbestiary
+		ife ENEMY_IN_BST 1 set ei_icon 106 else set ei_icon 242
+		rotatesprite ei_x ei_y 12288 0 3288 0 ei_icon 0 0 0 xdim ydim
+		}
+	ifand ps_misc 2048
+		{
+		state icon_pos
+		set CHK_ENEMY_IN_BST_PICNUM WASP_DRONE
+		state isenemyinbestiary
+		ife ENEMY_IN_BST 1 set ei_icon 45 else set ei_icon 0
+		rotatesprite ei_x ei_y 12288 0 3288 0 ei_icon 0 0 0 xdim ydim
+		}
+	ifand ps_misc 4096
+		{
+		state icon_pos
+		set CHK_ENEMY_IN_BST_PICNUM MAKARA
+		state isenemyinbestiary
+		ife ENEMY_IN_BST 1 set ei_icon 86 else set ei_icon 0
+		rotatesprite ei_x ei_y 12288 0 3288 0 ei_icon 0 0 0 xdim ydim
+		}
+	ifand ps_misc 8192
+		{
+		state icon_pos
+		set CHK_ENEMY_IN_BST_PICNUM SENTRY
+		state isenemyinbestiary
+		ife ENEMY_IN_BST 1 set ei_icon 151 else set ei_icon 242
+		rotatesprite ei_x ei_y 12288 0 3288 0 ei_icon 0 0 0 xdim ydim
+		}
+	}
+ifn ps_shadow 0
+	{
+	ifand ps_shadow 1
+		{
+		state icon_pos
+		set CHK_ENEMY_IN_BST_PICNUM GUARDIAN
+		state isenemyinbestiary
+		ife ENEMY_IN_BST 1 set ei_icon 65 else set ei_icon 0
+		rotatesprite ei_x ei_y 12288 0 3288 0 ei_icon 0 0 0 xdim ydim
+		}
+	ifand ps_shadow 2
+		{
+		state icon_pos
+		set CHK_ENEMY_IN_BST_PICNUM MAMANO
+		state isenemyinbestiary
+		ife ENEMY_IN_BST 1 set ei_icon 59 else set ei_icon 244
+		rotatesprite ei_x ei_y 12288 0 3288 0 ei_icon 0 0 0 xdim ydim
+		}
+	ifand ps_shadow 4
+		{
+		state icon_pos
+		set CHK_ENEMY_IN_BST_PICNUM NINJA
+		state isenemyinbestiary
+		ife ENEMY_IN_BST 1 set ei_icon 51 else set ei_icon 0
+		rotatesprite ei_x ei_y 12288 0 3288 0 ei_icon 0 0 0 xdim ydim
+		}
+	ifand ps_shadow 8
+		{
+		state icon_pos
+		set CHK_ENEMY_IN_BST_PICNUM RIPPER
+		state isenemyinbestiary
+		ife ENEMY_IN_BST 1 set ei_icon 63 else set ei_icon 0
+		rotatesprite ei_x ei_y 12288 0 3288 0 ei_icon 0 0 0 xdim ydim
+		}
+	ifand ps_shadow 16
+		{
+		state icon_pos
+		set CHK_ENEMY_IN_BST_PICNUM SERPENT_GOD
+		state isenemyinbestiary
+		ife ENEMY_IN_BST 1 set ei_icon 61 else set ei_icon 0
+		rotatesprite ei_x ei_y 12288 0 3288 0 ei_icon 0 0 0 xdim ydim
+		}
+	ifand ps_shadow 32
+		{
+		state icon_pos
+		set CHK_ENEMY_IN_BST_PICNUM TRIAD
+		state isenemyinbestiary
+		ife ENEMY_IN_BST 1 set ei_icon 8 else set ei_icon 0
+		rotatesprite ei_x ei_y 12288 0 3288 0 ei_icon 0 0 0 xdim ydim
+		}
+	ifand ps_shadow 64
+		{
+		state icon_pos
+		set CHK_ENEMY_IN_BST_PICNUM YUKI_ONNA
+		state isenemyinbestiary
+		ife ENEMY_IN_BST 1 set ei_icon 75 else set ei_icon 0
+		rotatesprite ei_x ei_y 12288 0 3288 0 ei_icon 0 0 0 xdim ydim
+		}
+	}
+ifn ps_paradigm 0
+	{
+	ifand ps_paradigm 2
+		{
+		state icon_pos
+		set CHK_ENEMY_IN_BST_PICNUM PE_ELDER
+		state isenemyinbestiary
+		ife ENEMY_IN_BST 1 set ei_icon 66 else set ei_icon 240
+		rotatesprite ei_x ei_y 12288 0 3288 0 ei_icon 0 0 0 xdim ydim
+		}
+	ifand ps_paradigm 4
+		{
+		state icon_pos
+		set CHK_ENEMY_IN_BST_PICNUM PE_TROOP
+		state isenemyinbestiary
+		ife ENEMY_IN_BST 1 set ei_icon 48 else set ei_icon 0
+		rotatesprite ei_x ei_y 12288 0 3288 0 ei_icon 0 0 0 xdim ydim
+		}
+	ifand ps_paradigm 8
+		{
+		state icon_pos
+		set CHK_ENEMY_IN_BST_PICNUM PE_SHOTGUNNER
+		state isenemyinbestiary
+		ife ENEMY_IN_BST 1 set ei_icon 135 else set ei_icon 0
+		rotatesprite ei_x ei_y 12288 0 3288 0 ei_icon 0 0 0 xdim ydim
+		}
+	ifand ps_paradigm 32
+		{
+		state icon_pos
+		set CHK_ENEMY_IN_BST_PICNUM PE_SENTRY
+		state isenemyinbestiary
+		ife ENEMY_IN_BST 1 set ei_icon 67 else set ei_icon 242
+		rotatesprite ei_x ei_y 12288 0 3288 0 ei_icon 0 0 0 xdim ydim
+		}
+	ifand ps_paradigm 64
+		{
+		state icon_pos
+		set CHK_ENEMY_IN_BST_PICNUM TRENTON_SOLARI
+		state isenemyinbestiary
+		ife ENEMY_IN_BST 1 set ei_icon 49 else set ei_icon 0
+		rotatesprite ei_x ei_y 12288 0 3288 0 ei_icon 0 0 0 xdim ydim
+		}
+	}
+ifn ps_mj12 0
+	{
+	ifand ps_mj12 1
+		{
+		state icon_pos
+		set CHK_ENEMY_IN_BST_PICNUM MJ12_ASSASSIN
+		state isenemyinbestiary
+		ife ENEMY_IN_BST 1 set ei_icon 68 else set ei_icon 0
+		rotatesprite ei_x ei_y 12288 0 3288 0 ei_icon 0 0 0 xdim ydim
+		}
+	ifand ps_mj12 2
+		{
+		state icon_pos
+		set CHK_ENEMY_IN_BST_PICNUM MJ12_TROOP
+		state isenemyinbestiary
+		ife ENEMY_IN_BST 1 set ei_icon 53 else set ei_icon 240
+		rotatesprite ei_x ei_y 12288 0 3288 0 ei_icon 0 0 0 xdim ydim
+		}
+	ifand ps_mj12 16
+		{
+		state icon_pos
+		set CHK_ENEMY_IN_BST_PICNUM PATCOS
+		state isenemyinbestiary
+		ife ENEMY_IN_BST 1 set ei_icon 70 else set ei_icon 0
+		rotatesprite ei_x ei_y 12288 0 3288 0 ei_icon 0 0 0 xdim ydim
+		}
+	}
+ifn ps_egypt 0
+	{
+	ifand ps_egypt 1
+		{
+		state icon_pos
+		set CHK_ENEMY_IN_BST_PICNUM ALUDRAN
+		state isenemyinbestiary
+		ife ENEMY_IN_BST 1 set ei_icon 85 else set ei_icon 0
+		rotatesprite ei_x ei_y 12288 0 3288 0 ei_icon 0 0 0 xdim ydim
+		}
+	ifand ps_egypt 2
+		{
+		state icon_pos
+		set CHK_ENEMY_IN_BST_PICNUM ANUBIS_MUMMY
+		state isenemyinbestiary
+		ife ENEMY_IN_BST 1 set ei_icon 41 else set ei_icon 243
+		rotatesprite ei_x ei_y 12288 0 3288 0 ei_icon 0 0 0 xdim ydim
+		}
+	ifand ps_egypt 4
+		{
+		state icon_pos
+		set CHK_ENEMY_IN_BST_PICNUM COBRA
+		state isenemyinbestiary
+		ife ENEMY_IN_BST 1 set ei_icon 89 else set ei_icon 0
+		rotatesprite ei_x ei_y 12288 0 3288 0 ei_icon 0 0 0 xdim ydim
+		}
+	ifand ps_egypt 8
+		{
+		state icon_pos
+		set CHK_ENEMY_IN_BST_PICNUM LAVA_BEAST
+		state isenemyinbestiary
+		ife ENEMY_IN_BST 1 set ei_icon 80 else set ei_icon 0
+		rotatesprite ei_x ei_y 12288 0 3288 0 ei_icon 0 0 0 xdim ydim
+		}
+	ifand ps_egypt 16
+		{
+		state icon_pos
+		set CHK_ENEMY_IN_BST_PICNUM SCORPIONESS
+		state isenemyinbestiary
+		ife ENEMY_IN_BST 1 set ei_icon 84 else set ei_icon 244
+		rotatesprite ei_x ei_y 12288 0 3288 0 ei_icon 0 0 0 xdim ydim
+		}
+	ifand ps_egypt 32
+		{
+		state icon_pos
+		set CHK_ENEMY_IN_BST_PICNUM SCARAB_DEMON
+		state isenemyinbestiary
+		ife ENEMY_IN_BST 1 set ei_icon 138 else set ei_icon 244
+		rotatesprite ei_x ei_y 12288 0 3288 0 ei_icon 0 0 0 xdim ydim
+		}
+	ifand ps_egypt 64
+		{
+		state icon_pos
+		set CHK_ENEMY_IN_BST_PICNUM SIREN
+		state isenemyinbestiary
+		ife ENEMY_IN_BST 1 set ei_icon 82 else set ei_icon 0
+		rotatesprite ei_x ei_y 12288 0 3288 0 ei_icon 0 0 0 xdim ydim
+		}
+	ifand ps_egypt 128
+		{
+		state icon_pos
+		set CHK_ENEMY_IN_BST_PICNUM THOTH
+		state isenemyinbestiary
+		ife ENEMY_IN_BST 1 set ei_icon 39 else set ei_icon 0
+		rotatesprite ei_x ei_y 12288 0 3288 0 ei_icon 0 0 0 xdim ydim
+		}
+	ifand ps_egypt 256
+		{
+		state icon_pos
+		set CHK_ENEMY_IN_BST_PICNUM LESANG
+		state isenemyinbestiary
+		ife ENEMY_IN_BST 1 set ei_icon 30 else set ei_icon 0
+		rotatesprite ei_x ei_y 12288 0 3288 0 ei_icon 0 0 0 xdim ydim
+		}
+	}
+ifn ps_necro 0
+	{
+	ifand ps_necro 1
+		{
+		state icon_pos
+		set CHK_ENEMY_IN_BST_PICNUM ARCHER
+		state isenemyinbestiary
+		ife ENEMY_IN_BST 1 set ei_icon 98 else set ei_icon 0
+		rotatesprite ei_x ei_y 12288 0 3288 0 ei_icon 0 0 0 xdim ydim
+		}
+	ifand ps_necro 2
+		{
+		state icon_pos
+		set CHK_ENEMY_IN_BST_PICNUM BEHOLDER
+		state isenemyinbestiary
+		ife ENEMY_IN_BST 1 set ei_icon 119 else set ei_icon 0
+		rotatesprite ei_x ei_y 12288 0 3288 0 ei_icon 0 0 0 xdim ydim
+		}
+	ifand ps_necro 4
+		{
+		state icon_pos
+		set CHK_ENEMY_IN_BST_PICNUM BERSERKER
+		state isenemyinbestiary
+		ife ENEMY_IN_BST 1 set ei_icon 38 else set ei_icon 0
+		rotatesprite ei_x ei_y 12288 0 3288 0 ei_icon 0 0 0 xdim ydim
+		}
+	ifand ps_necro 8
+		{
+		state icon_pos
+		set CHK_ENEMY_IN_BST_PICNUM DRAGON
+		state isenemyinbestiary
+		ife ENEMY_IN_BST 1 set ei_icon 118 else set ei_icon 0
+		rotatesprite ei_x ei_y 12288 0 3288 0 ei_icon 0 0 0 xdim ydim
+		}
+	ifand ps_necro 16
+		{
+		state icon_pos
+		set CHK_ENEMY_IN_BST_PICNUM SKNIGHT
+		state isenemyinbestiary
+		ife ENEMY_IN_BST 1 set ei_icon 112 else set ei_icon 0
+		rotatesprite ei_x ei_y 12288 0 3288 0 ei_icon 0 0 0 xdim ydim
+		}
+	ifand ps_necro 32
+		{
+		state icon_pos
+		set CHK_ENEMY_IN_BST_PICNUM SSQUIRE
+		state isenemyinbestiary
+		ife ENEMY_IN_BST 1 set ei_icon 112 else set ei_icon 0
+		rotatesprite ei_x ei_y 12288 0 3288 0 ei_icon 0 0 0 xdim ydim
+		}
+	ifand ps_necro 64
+		{
+		state icon_pos
+		set CHK_ENEMY_IN_BST_PICNUM GOBLINBROS
+		state isenemyinbestiary
+		ife ENEMY_IN_BST 1 set ei_icon 132 else set ei_icon 0
+		rotatesprite ei_x ei_y 12288 0 3288 0 ei_icon 0 0 0 xdim ydim
+		}
+	ifand ps_necro 128
+		{
+		state icon_pos
+		set CHK_ENEMY_IN_BST_PICNUM GOLEM
+		state isenemyinbestiary
+		ife ENEMY_IN_BST 1 set ei_icon 147 else set ei_icon 0
+		rotatesprite ei_x ei_y 12288 0 3288 0 ei_icon 0 0 0 xdim ydim
+		}
+	ifand ps_necro 256
+		{
+		state icon_pos
+		set CHK_ENEMY_IN_BST_PICNUM HYDRA
+		state isenemyinbestiary
+		ife ENEMY_IN_BST 1 set ei_icon 110 else set ei_icon 0
+		rotatesprite ei_x ei_y 12288 0 3288 0 ei_icon 0 0 0 xdim ydim
+		}
+	ifand ps_necro 512
+		{
+		state icon_pos
+		set CHK_ENEMY_IN_BST_PICNUM JEDRIK
+		state isenemyinbestiary
+		ife ENEMY_IN_BST 1 set ei_icon 115 else set ei_icon 0
+		rotatesprite ei_x ei_y 12288 0 3288 0 ei_icon 0 0 0 xdim ydim
+		}
+	ifand ps_necro 1024
+		{
+		state icon_pos
+		set CHK_ENEMY_IN_BST_PICNUM KRAKEN
+		state isenemyinbestiary
+		ife ENEMY_IN_BST 1 set ei_icon 121 else set ei_icon 0
+		rotatesprite ei_x ei_y 12288 0 3288 0 ei_icon 0 0 0 xdim ydim
+		}
+	ifand ps_necro 2048
+		{
+		state icon_pos
+		set CHK_ENEMY_IN_BST_PICNUM MONGUR
+		state isenemyinbestiary
+		ife ENEMY_IN_BST 1 set ei_icon 109 else set ei_icon 0
+		rotatesprite ei_x ei_y 12288 0 3288 0 ei_icon 0 0 0 xdim ydim
+		}
+	ifand ps_necro 4096
+		{
+		state icon_pos
+		set CHK_ENEMY_IN_BST_PICNUM NAALDIR
+		state isenemyinbestiary
+		ife ENEMY_IN_BST 1 set ei_icon 108 else set ei_icon 243
+		rotatesprite ei_x ei_y 12288 0 3288 0 ei_icon 0 0 0 xdim ydim
+		}
+	ifand ps_necro 8192
+		{
+		state icon_pos
+		set CHK_ENEMY_IN_BST_PICNUM NMIND
+		state isenemyinbestiary
+		ife ENEMY_IN_BST 1 set ei_icon 143 else set ei_icon 243
+		rotatesprite ei_x ei_y 12288 0 3288 0 ei_icon 0 0 0 xdim ydim
+		}
+	ifand ps_necro 16384 // riot shield pigcop
+		{
+		state icon_pos
+		set CHK_ENEMY_IN_BST_PICNUM NSOUL
+		state isenemyinbestiary
+		ife ENEMY_IN_BST 1 set ei_icon 144 else set ei_icon 0
+		rotatesprite ei_x ei_y 12288 0 3288 0 ei_icon 0 0 0 xdim ydim
+		}
+	ifand ps_necro 32768
+		{
+		state icon_pos
+		set CHK_ENEMY_IN_BST_PICNUM NETHERBRUTE
+		state isenemyinbestiary
+		ife ENEMY_IN_BST 1 set ei_icon 55 else set ei_icon 0
+		rotatesprite ei_x ei_y 12288 0 3288 0 ei_icon 0 0 0 xdim ydim
+		}
+	ifand ps_necro 65536
+		{
+		state icon_pos
+		set CHK_ENEMY_IN_BST_PICNUM OGRE
+		state isenemyinbestiary
+		ife ENEMY_IN_BST 1 set ei_icon 40 else set ei_icon 241
+		rotatesprite ei_x ei_y 12288 0 3288 0 ei_icon 0 0 0 xdim ydim
+		}
+	ifand ps_necro 131072
+		{
+		state icon_pos
+		set CHK_ENEMY_IN_BST_PICNUM SUCCUBUS
+		state isenemyinbestiary
+		ife ENEMY_IN_BST 1 set ei_icon 69 else set ei_icon 0
+		rotatesprite ei_x ei_y 12288 0 3288 0 ei_icon 0 0 0 xdim ydim
+		}
+	ifand ps_necro 262144 // mechaliz
+		{
+		state icon_pos
+		set CHK_ENEMY_IN_BST_PICNUM SVEDR
+		state isenemyinbestiary
+		ife ENEMY_IN_BST 1 set ei_icon 116 else set ei_icon 0
+		rotatesprite ei_x ei_y 12288 0 3288 0 ei_icon 0 0 0 xdim ydim
+		}
+	ifand ps_necro 524288
+		{
+		state icon_pos
+		set CHK_ENEMY_IN_BST_PICNUM ORC
+		state isenemyinbestiary
+		ife ENEMY_IN_BST 1 set ei_icon 102 else set ei_icon 0
+		rotatesprite ei_x ei_y 12288 0 3288 0 ei_icon 0 0 0 xdim ydim
+		}
+	ifand ps_necro 1048576
+		{
+		state icon_pos
+		set CHK_ENEMY_IN_BST_PICNUM TROLL
+		state isenemyinbestiary
+		ife ENEMY_IN_BST 1 set ei_icon 113 else set ei_icon 0
+		rotatesprite ei_x ei_y 12288 0 3288 0 ei_icon 0 0 0 xdim ydim
+		}
+	ifand ps_necro 2097152 // lizard sniper
+		{
+		state icon_pos
+		set CHK_ENEMY_IN_BST_PICNUM WOOFER
+		state isenemyinbestiary
+		ife ENEMY_IN_BST 1 set ei_icon 120 else set ei_icon 0
+		rotatesprite ei_x ei_y 12288 0 3288 0 ei_icon 0 0 0 xdim ydim
+		}
+	}
+ifn ps_beyond 0
+	{
+	ifand ps_beyond 1
+		{
+		state icon_pos
+		set CHK_ENEMY_IN_BST_PICNUM BEYONDER
+		state isenemyinbestiary
+		ife ENEMY_IN_BST 1 set ei_icon 154 else set ei_icon 245
+		rotatesprite ei_x ei_y 12288 0 3288 0 ei_icon 0 0 0 xdim ydim
+		}
+	}
+ends

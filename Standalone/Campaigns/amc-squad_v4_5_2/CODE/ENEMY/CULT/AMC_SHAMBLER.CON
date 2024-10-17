@@ -1,0 +1,283 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+
+--------------------------------------------------------------------------------
+*/
+
+damageeventtile SHAMBLER
+
+action ASHAMBLER_IDLE 0 1 5 1 30
+action ASHAMBLER_MOVE 5 4 5 1 12
+action ASHAMBLER_DIE 75 7 1 1 15
+action ASHAMBLER_MELEE 25 6 5 1 12
+action ASHAMBLER_CHARGE 55 2 5 1 8
+action ASHAMBLER_FIRE 65 1 5 1 2
+action ASHAMBLER_PAIN 70 1 5 1 10
+action ASHAMBLER_DEAD 81 1 1 1 10
+
+move SHAMBLER_MOVE 196 0
+
+ai AISHAMBLER_IDLE ASHAMBLER_IDLE STOP
+ai AISHAMBLER_MOVE ASHAMBLER_MOVE SHAMBLER_MOVE seekplayer
+ai AISHAMBLER_MELEE ASHAMBLER_MELEE STOP faceplayer
+ai AISHAMBLER_CHARGE ASHAMBLER_CHARGE STOP faceplayer
+ai AISHAMBLER_FIRE ASHAMBLER_FIRE STOP faceplayer
+ai AISHAMBLER_PAIN ASHAMBLER_PAIN STOP
+ai AISHAMBLER_DIE ASHAMBLER_DIE STOP
+
+useractor enemystayput SHAMBLER_STAYPUT 3000 ASHAMBLER_IDLE state monst_glow cactor SHAMBLER enda
+
+spriteshadow SHAMBLER
+
+useractor enemy SHAMBLER 3000 ASHAMBLER_IDLE
+fall
+
+ifai 0
+{
+	cstat 257
+	spawn SHOOTME
+	globalsound SHAMB_SIGHT
+	ai AISHAMBLER_MOVE
+	state monst_glow
+	spriteflags NORMAL_ENEMY
+	ifspritepal 42
+	{
+	sizeat 32 32
+	strength 1200
+	}
+	else
+	{
+	sizeat 40 40
+	set CURBOSS THISACTOR
+	strength 3000
+	}
+}
+
+state enemyfloordamage
+state enemy_fire_damage
+
+ifaction ASHAMBLER_DEAD
+{
+move STOP
+    strength 0
+    ifhitweapon
+      ifwasweapon RADIUSEXPLOSION
+    {
+      state squish_sounds
+      state standard_jibs
+	  state standard_jibs
+	  state monst_body_jibs
+      killit
+    }
+}
+else
+ifai AISHAMBLER_DIE
+{
+move STOP
+ifactioncount 7
+	{
+	quake 26
+	sound BOSSFALL
+	action ASHAMBLER_DEAD
+	}
+}
+else
+ifai AISHAMBLER_IDLE
+{
+move STOP
+ifp palive ai AISHAMBLER_MOVE
+}
+else
+ifai AISHAMBLER_MOVE
+{
+ifrnd 4 sound SHAMB_ROAM
+ifp pdead ai AISHAMBLER_IDLE
+ifpdistl 2048
+ ifrnd 96
+   ifp palive
+		{
+		soundonce SHAMB_MELEE
+		ai AISHAMBLER_MELEE
+		}
+	else
+	{
+	state correctcansee
+	ife sightvar YES
+		ifrnd 16
+			{
+			ai AISHAMBLER_CHARGE
+			}
+		else ifrnd 8 ai AISHAMBLER_MOVE
+	}
+}
+else
+ifai AISHAMBLER_CHARGE
+{
+soundonce SPELL2AMB
+soundonce SHAMB_ATTACK
+ife SKILL_LEVEL 1 ifactioncount 15 ai AISHAMBLER_FIRE
+ife SKILL_LEVEL 2 ifactioncount 10 ai AISHAMBLER_FIRE
+ife SKILL_LEVEL 3 ifactioncount 8 ai AISHAMBLER_FIRE
+ife SKILL_LEVEL 4 ifactioncount 6 ai AISHAMBLER_FIRE
+ife SKILL_LEVEL 5 ifactioncount 4 ai AISHAMBLER_FIRE
+}
+else
+ifai AISHAMBLER_FIRE
+{
+stopactorsound THISACTOR SPELL2AMB
+ifactioncount 2
+	{
+	ifpdistg 16384
+		{
+		flash
+		shoot SPARK2
+		shoot SPARK2
+		shoot SPARK2
+		shoot SPARK2
+        globalsound SHAMB_BOOM
+		globalsound LIGHTNING_SLAP2
+		shoot 20943
+		}
+	else
+		{
+		shoot SPARK2
+		shoot SPARK2
+		shoot SPARK2
+		globalsound SHAMB_BOOM
+		shoot 22610
+		shoot 22610
+		shoot 22610
+		shoot 22610
+		shoot 22610
+		shoot 22610
+		shoot 22610
+		}
+	}
+ifactioncount 5 ai AISHAMBLER_MOVE
+}
+else
+ifai AISHAMBLER_MELEE
+{
+ifactioncount 4 nullop
+ else ifactioncount 3
+	{
+	sound SHAMB_SCRATCH
+	eshoot 17849
+	resetactioncount
+	}
+ifpdistg 1536 ai AISHAMBLER_MOVE
+}
+else
+ifai AISHAMBLER_PAIN
+{
+    ifrnd 128 guts JIBS6 2
+   sub PAIN_AMOUNT 1
+    ifl PAIN_AMOUNT 1 ai AISHAMBLER_MOVE
+}
+
+geta[].htextra temp
+ifg temp 0
+	{
+	ifwasweapon RPG
+		{
+		divvar temp 2
+		set hit_indic_pal 126
+		seta[].htextra temp
+		set PAIN_AMOUNT 0
+    	}
+	ifwasweapon RADIUSEXPLOSION
+		{
+		divvar temp 2
+		set hit_indic_pal 126
+		seta[].htextra temp
+		set PAIN_AMOUNT 0
+    	}
+	ifwasweapon 6826 // Nails do x2 damage
+		{
+		mulvar temp 2
+		seta[].htextra temp
+		set hit_indic_pal 32
+		set PAIN_AMOUNT 0
+    	}
+	ifwasweapon 6816 // Aura Nails do x3 damage
+		{
+		mulvar temp 3
+		seta[].htextra temp
+		set hit_indic_pal 32
+		set PAIN_AMOUNT 0
+    	}
+	}
+
+ifhitweapon
+{
+ifspritepal 42 nullop else set CURBOSS THISACTOR
+state NEWGUNEFFECTS
+    ifrnd 32 guts JIBS6 1
+
+	ifai AISHAMBLER_IDLE ai AISHAMBLER_MOVE
+	ifdead
+	{
+		sound SHAMB_DIE
+		ifg fire_damage 0
+		{
+		shoot NJIB2 shoot NJIB2 shoot NJIB2
+		sound ENGULF_FIRE
+		shoot SPARK shoot SPARK shoot SPARK shoot SPARK shoot SPARK
+
+
+			state rf
+			ai AISHAMBLER_DIE
+			break
+    	}
+		ifwasweapon RPG
+		{
+		shoot NJIB2 shoot NJIB2 shoot NJIB2
+			state rf
+			ai AISHAMBLER_DIE
+			break
+    	}
+		ifwasweapon RADIUSEXPLOSION
+		{
+		shoot NJIB2 shoot NJIB2 shoot NJIB2
+			state rf
+			ai AISHAMBLER_DIE
+			break
+    	}
+		add TREASURE_FOUND 5
+		addkills 1
+
+		ai AISHAMBLER_DIE
+		cstat 0
+		break
+	}
+	else ifai AISHAMBLER_MELEE nullop else ifai AISHAMBLER_CHARGE nullop else
+		{
+		ifg PAIN_AMOUNT 0 ai AISHAMBLER_PAIN
+		else ifrnd 16 { state PAIN_SKILL_LEVELADJUST sound SHAMB_PAIN ai AISHAMBLER_PAIN }
+		}
+}
+
+enda

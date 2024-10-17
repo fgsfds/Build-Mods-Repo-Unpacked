@@ -1,0 +1,243 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+
+--------------------------------------------------------------------------------
+*/
+
+damageeventtile PITFIEND
+
+action APITFBREETH  0  1  5  1  40
+action APITFFROZEN  0  1  5
+action APITFSPIN    0  1  5  1  12
+action APITFGET     0  1  5  1  30
+action APITFSHOOT  5 1  5   1 35
+action APITFABOUTTOSHOOT 5 1 5 1 30
+action APITFDYING  10  1  1  1  12
+action APITFDEAD   10  1  1  1  1
+
+move PITFGETUPVELS 128 -64
+move PITFGETVELS 128 64
+move PITFSLOW 64 24
+move PITFSTOPPED 0
+move PITFDODGE 180
+move PITFSEEK 128 0
+
+ai AIPITFWAIT APITFBREETH PITFSEEK seekplayer
+ai AIPITFGET APITFGET PITFSEEK seekplayer
+ai AIPITFSHOOT APITFSHOOT PITFSTOPPED faceplayerslow
+ai AIPITFABOUTTOSHOOT APITFABOUTTOSHOOT PITFSTOPPED faceplayerslow
+ai AIPITFSPIN APITFSPIN PITFGETVELS spin
+ai AIPITFDYING APITFDYING PITFSTOPPED faceplayer
+ai AIPITFDODGE APITFGET PITFDODGE dodgebullet geth
+ai AIPITFSHRUNK APITFGET PITFSLOW furthestdir
+ai AIPITFGROW APITFGET PITFSTOPPED furthestdir
+
+defstate checkPITFhitstate
+    ifhitweapon
+    {
+        ifwasweapon RPG seta[].xvel 0
+        ifwasweapon RADIUSEXPLOSION seta[].xvel 0
+        guts JIBS6 2
+        state NEWGUNEFFECTS
+        ifdead
+        {
+            addkills 1
+
+            globalsound BLOOD_EXPLOSION
+            spawn BIG_BLOOD_EXE
+
+            ifwasweapon RADIUSEXPLOSION { spawn BLOODPOOL state squish_sounds state standard_jibs state standard_jibs killit }
+            else ifwasweapon RPG { state squish_sounds spawn BLOODPOOL state standard_jibs state standard_jibs killit }
+
+            shoot NJIB shoot NJIB shoot NJIB
+            sound PITF_DYING
+            ai AIPITFDYING
+        }
+        else ifwasweapon SHRINKSPARK
+        {
+            sound ACTOR_SHRINKING
+            ai AIPITFSHRUNK
+        }
+        else ifwasweapon GROWSPARK
+            sound EXPANDERHIT
+        else
+        {
+            soundonce PITF_PAIN
+            ifrnd 24 ai AIPITFABOUTTOSHOOT
+        }
+    }
+ends
+
+useractor enemystayput PITFIEND_STAYPUT 350 APITFBREETH cactor PITFIEND cstator 257 sizeat 26 26 spawn SHOOTME ai AIPITFABOUTTOSHOOT enda
+useractor enemy PITFIEND 350 APITFBREETH
+
+  ifsquished
+  {
+    addkills 1
+
+    state squish_sounds
+    state standard_jibs
+  ifrnd 128
+    spawn OOZ2
+  else
+    spawn OOZ
+    killit
+  }
+
+state ENEMYKNOCKBACKS
+state enemy_fire_damage
+state enemy_ice_damage
+state enemy_spirit_damage
+
+
+iffloordistl 8 seta[].z sector[].floorz
+
+    ifaction APITFFROZEN
+    {
+        fall
+
+        ifcount THAWTIME { getlastpal ai AIPITFWAIT }
+        else ifcount FROZENDRIPTIME { ifactioncount 26 { spawn WATERDRIP resetactioncount } }
+
+        ifhitweapon
+        {
+            ifwasweapon FREEZEBLAST { strength 0 break }
+            addkills 1
+
+            ifrnd 84 spawn BLOODPOOL
+            lotsofglass 20
+			  shoot ICE_DEBRIS shoot ICE_DEBRIS shoot ICE_DEBRIS shoot ICE_DEBRIS shoot ICE_DEBRIS
+			  shoot ICE_DEBRIS shoot ICE_DEBRIS shoot ICE_DEBRIS shoot ICE_DEBRIS shoot ICE_DEBRIS
+			  sound ICE_SMASH
+            killit
+        }
+        ifp pfacing ifpdistl FROZENQUICKKICKDIST ife MELEE_WEAPON_LOADOUT[CHAR] 0 pkick
+        break
+    }
+
+    ifai 0
+		{
+		state monst_glow
+		spriteflags NORMAL_ENEMY
+		set actor_type TYPE_CASE_SPECIFIC
+		soundonce PITF_RECOG
+		cstat 257
+		sizeat 26 26
+		spawn SHOOTME
+		ai AIPITFSHOOT
+		}
+    else ifai AIPITFABOUTTOSHOOT
+    {
+        ifactioncount 1 { ifcansee ai AIPITFSHOOT else { ai AIPITFGET break } }
+    }
+    else ifai AIPITFSHOOT
+    {
+        ifcanshoottarget
+        {
+            ifrnd 2 ai AIPITFGET
+            ifactioncount 2
+				{
+				sound ERPG_SHOOT
+				shoot MICRO_MISSILE
+				resetactioncount
+				}
+        }
+        else ai AIPITFGET
+    }
+    else ifai AIPITFGET
+    {
+        ifnotmoving operate
+        ifpdistl 1024 ifp palive { sound COMM_SPIN ai AIPITFSPIN break }
+
+          ifp phigher move PITFGETUPVELS getv geth faceplayer
+
+        ifactioncount 8 ifrnd 2 ai AIPITFABOUTTOSHOOT
+    }
+	else
+    ifai AIPITFSHRUNK
+  {
+    ifcount SHRUNKDONECOUNT
+      ai AIPITFGET
+    else
+      ifcount SHRUNKCOUNT
+	    {
+		sound ACTOR_UNSHRINK
+        sizeto 48 40
+		}
+    else
+      state genericshrunkcode
+  }
+  else
+    ifai AIPITFGROW
+      state genericgrowcode
+    else ifai AIPITFSPIN
+    {
+        soundonce COMM_SPIN
+        ifcount 16
+        {
+            ifpdistl 1280 { addphealth CAPTSPINNINGPLAYER sound PLYR_GRUNT palfrom 32 16 resetcount }
+            else ifpdistg 2300 ai AIPITFGET
+        }
+        ifactioncount 52 ai AIPITFGET
+        ifnotmoving ifrnd 32 operate
+    }
+
+    ifai AIPITFDYING
+    {
+        fall
+        strength 0
+
+
+	ifg ice_damage 0
+      {
+        sound SOMETHINGFROZE
+        spritepal 1
+        move 0
+        action APITFFROZEN
+        strength 0
+        break
+      }
+      else
+        ifwasweapon GROWSPARK
+      {
+        soundonce ACTOR_GROWING
+        ai AIPITFGROW
+        break
+      }
+
+
+
+        ifhitweapon ifwasweapon RADIUSEXPLOSION
+            { state squish_sounds spawn BLOODPOOL state standard_jibs state standard_jibs killit }
+
+        ifaction APITFDYING { iffloordistl 8 sound THUD cstat 0 action APITFDEAD }
+    }
+    else
+    {
+        ifrnd 2 soundonce PITF_ROAM
+        state checkPITFhitstate
+    }
+enda

@@ -1,0 +1,885 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+
+--------------------------------------------------------------------------------
+*/
+
+// Smartpoint variables
+array smartpoints 4000 // Max 4000 smartpoints
+var smartpoint_index 0 0
+var smartpoint_see_player -1 2
+var smartpoint_player_hops 0 2
+var smartpoint_dist 0 2
+var smartpoint_lotag_handled 0 2 // smartpoint users must set this to properly follow lotagged points
+var smartpoint_lotag_xydist -1 2 // by default a smartpoint lotag node will be seen as "handled" if actor is within 2048 units, set this variable to modify that
+var cur_point -1 2
+var cur_lowest_hops 0 2
+var cur_lowest_dist 0 2
+var tmp_point_index 0 2
+var next_point -1 2 // next point from current smart point
+var smartpoint_track_sub 0 2
+
+// Sector checker variables
+// check for pits or damaging sectors etc..
+array sec_checkers 1000 // Max 1000 checkers
+var sec_chk_idx 0 0
+var tmp_sec_chk_idx 0 2
+var sec_chk_cur -1 2
+var sec_chk_pntA -1 2
+var sec_chk_pntB -1 2
+var sec_chk_prevZ -1 2 // previous Z coordinate, can be floor or spritebridge
+var sec_chk_prevSec -1 2 // previous sector, for debugging
+var sec_chk_bad 0 2 // bad is set to 1 if a bad sector is encountered
+var sec_chk_prev_bad -1 2 // keep previous value if rerunning check
+var sec_chk_done 0 2 // mark done
+
+appendevent EVENT_SPAWN
+	ifactor SMARTPOINT
+	{
+		setarray smartpoints[smartpoint_index] THISACTOR
+		add smartpoint_index 1
+	}
+endevent
+
+// everytime a waypoint goes from seeing the player to not seeing the player, or vice versa, clear all scores and recalculate
+defstate clearAllScores
+	set tmp_point_index 0
+	for tmp_point_index range smartpoint_index
+	{
+		set cur_point smartpoints[tmp_point_index]
+		setav[cur_point].smartpoint_player_hops 0
+		setav[cur_point].smartpoint_dist 0
+	}
+ends
+
+defstate doSectorCheck
+
+	set tmp_sec_chk_idx 0
+	set temp6 -1
+	for tmp_sec_chk_idx range sec_chk_idx
+	{
+		ife temp6 -1 // if not -1 => found the sector checker belonging to these actors
+		{
+			set sec_chk_cur sec_checkers[tmp_sec_chk_idx]
+
+			getav[sec_chk_cur].sec_chk_pntA sec_chk_pntA
+			getav[sec_chk_cur].sec_chk_pntB sec_chk_pntB
+
+			set temp7 0
+
+			ife sec_chk_pntA THISACTOR
+			{
+				ife sec_chk_pntB cur_point
+				{
+					set temp7 1
+				}
+			}
+			else ife sec_chk_pntB THISACTOR
+			{
+				ife sec_chk_pntA cur_point
+				{
+					set temp7 1
+				}
+			}
+
+			// the current sector checker is relevant to THISACTOR and cur_point
+			ife temp7 1
+			{
+				getav[sec_chk_cur].sec_chk_done sec_chk_done
+				getav[sec_chk_cur].sec_chk_prev_bad sec_chk_prev_bad
+
+				// the sector checker is ready
+				ife sec_chk_done 1
+				{
+					getav[sec_chk_cur].sec_chk_bad temp6
+
+					// flip values
+					ife temp6 1
+						set temp6 0
+					else ife temp6 0
+						set temp6 1
+
+					// The sector checker must restart occasionally.
+					set temp7 0
+
+					// If we're checking the player
+					ife cur_point PLAYER_IDENTITY
+					{
+						// always restart if player not on floor of their sector
+						// otherwise only randomly
+						geta[PLAYER_IDENTITY].sectnum temp8
+						geta[PLAYER_IDENTITY].z my_z
+						gets[temp8].floorz mz
+
+						ifl my_z mz
+							set temp7 1
+						else ifrnd 32
+							set temp7 1
+					}
+					else ifrnd 64
+						set temp7 1
+
+					ife temp7 1
+					{
+						// restart at point A
+						getav[sec_chk_cur].sec_chk_pntA temp7
+
+						geta[temp7].x my_x
+						geta[temp7].y my_y
+						geta[temp7].z my_z
+
+						sub my_z 8192 // move up a bit for proper spritebridge check
+
+						seta[sec_chk_cur].x my_x
+						seta[sec_chk_cur].y my_y
+						seta[sec_chk_cur].z my_z
+
+						setav[sec_chk_cur].sec_chk_done 0
+						setav[sec_chk_cur].sec_chk_bad 0
+					}
+				}
+				// Restarted sector checkers that target the player must cache and reuse the previous result, for fluent movement.
+				else ife sec_chk_prev_bad 0
+					set temp6 1
+				else
+					set temp6 0
+			}
+		}
+	}
+
+	ife temp6 -1
+	{
+		espawn POINTSECTORCHECKER
+		geta[RETURN].z mz
+		sub mz 8192
+		seta[RETURN].z mz
+		setav[RETURN].sec_chk_pntA THISACTOR
+		setav[RETURN].sec_chk_pntB cur_point
+	}
+ends
+
+defstate findLowestScore
+	set cur_lowest_hops 0
+	set cur_lowest_dist 0
+
+	set tmp_point_index 0
+
+	for tmp_point_index range smartpoint_index
+	{
+		set cur_point smartpoints[tmp_point_index]
+
+		// skip self
+		ifn cur_point THISACTOR
+		{
+			ldist xydist THISACTOR cur_point
+
+			ifl xydist 40000 // skip hitscan check on faraway points
+			{
+				set HITSCAN_TO_ACTOR cur_point
+				state hitscanTo
+
+				ife hitsprite cur_point  // no different sprite in between
+				{
+					// temp5 = 1 when cur_point needs to replace next_point value
+					set temp5 -1
+
+					getav[cur_point].smartpoint_player_hops temp
+					getav[cur_point].smartpoint_dist temp2
+
+					ife cur_lowest_hops 0
+					{
+						ifn temp 0
+							set temp5 1
+					}
+					else ifl temp cur_lowest_hops
+					{
+						ifn temp 0
+							set temp5 1
+					}
+					else ife temp cur_lowest_hops
+					{
+						ife cur_lowest_dist 0
+						{
+							ifn temp2 0
+								set temp5 1
+						}
+						else ifl temp2 cur_lowest_dist
+						{
+							ifn temp2 0
+								set temp5 1
+						}
+					}
+
+					ife temp5 1
+					{
+						// one final thing to check
+						set temp5 0 // temp5 = 1 if sector check must be done
+						set temp6 0 // temp6 = 1 if point is finally allowed
+						
+						ifactor SMARTPOINT ife XVELSAVED 1
+							set temp5 1
+						else ifactor VLADMIR
+							set temp5 1
+						else ifactor CULT_CHAINSAW
+							set temp5 1
+
+						ife temp5 1
+							state doSectorCheck
+						else
+							set temp6 1
+
+						ife temp6 1
+						{
+							set next_point cur_point
+							set cur_lowest_hops temp
+							set cur_lowest_dist temp2
+						}
+					}
+				}
+			}
+		}
+	}
+ends
+
+defstate calculateScore
+	// cur_lowest_hops = lowest player hops that current smartpoint can see
+	// cur_lowest_dist = lowest player distance on lowest player hops that current smartpoint can see
+	// next_point = sprite id of that point (-1 if no point found)
+	state findLowestScore
+
+	// if cur_lowest_hops is 0 we can't see any route to the player
+	// if hops or distance is greater it doesn't count (unless we're at 0)
+	// if hops or dist is greater than our own score, it doesn't count (unless we're at 0)
+	ife cur_lowest_hops 0
+	{
+		spritepal 0
+		set smartpoint_player_hops 0
+		set smartpoint_dist 0
+	}
+	else
+	{
+		set temp 0
+
+		ife smartpoint_player_hops 0
+			set temp 1
+		else ifl cur_lowest_hops smartpoint_player_hops
+			set temp 1
+		else ifl cur_lowest_dist smartpoint_dist
+			set temp 1
+		else ife XVELSAVED 1
+			set temp 1
+
+		ife temp 1
+		{
+			ife cur_lowest_hops 1
+			{
+				spritepal 8
+			}
+			else
+			{
+				spritepal 7
+			}
+
+			add cur_lowest_hops 1
+			set smartpoint_player_hops cur_lowest_hops
+
+			ldist xydist THISACTOR PLAYER_IDENTITY
+			set smartpoint_dist xydist
+
+			// smartpoint_dist contains the distance to the player but must also include the distance to the point
+			ldist xydist THISACTOR next_point
+			add smartpoint_dist xydist
+		}
+	}
+ends
+
+defstate handle_cannotseeplayer
+	ife smartpoint_see_player 1
+		state clearAllScores
+
+	set smartpoint_see_player 0
+	state calculateScore
+ends
+
+defstate smartpoint_handlePlayerPathCalculations
+	// performance:
+	// it's pointless to write code to have smartpoints update only if they change from seeing to not seeing the player, cause we can expect this to happen almost constantly
+	// instead make it so that updates are spread over time. Ie the lower the tic count the lower the chance of triggering an update, until we reach a point where it's forced
+	// XVELSAVED 1 checks for sprite bridges though and in order for that to work properly it must check more frequently
+	add INTERNALCOUNT 1
+	set temp 0
+
+	ife XVELSAVED 1 ifcansee
+	{
+		set temp 1
+	}
+	ifl INTERNALCOUNT 30
+	{
+		ifn XVELSAVED 1 ifrnd 5
+			set temp 1
+		else ifrnd 16
+			set temp 1
+	}
+	else ifl INTERNALCOUNT 60
+	{
+		ifn XVELSAVED 1 ifrnd 6
+			set temp 1
+		else ifrnd 24
+			set temp 1
+	}
+	else ifl INTERNALCOUNT 90
+	{
+		ifn XVELSAVED 1 ifrnd 7
+			set temp 1
+		else ifrnd 48
+			set temp 1
+	}
+	else ifl INTERNALCOUNT 120
+	{
+		ifn XVELSAVED 1 ifrnd 8
+			set temp 1
+		else ifrnd 96
+			set temp 1
+	}
+	else
+		set temp 1
+
+	ife temp 1
+	{
+		set INTERNALCOUNT 0
+		set temp 0
+
+		geta[].x my_x
+		geta[].y my_y
+		geta[].z my_z
+
+		ldist xydist THISACTOR PLAYER_IDENTITY
+		ifl xydist 40000
+			set temp 1
+		else
+			set temp 2 // cannot see player
+
+		ife temp 1
+		{
+			set HITSCAN_TO_ACTOR PLAYER_IDENTITY
+			state hitscanTo
+
+			ife hitsprite PLAYER_IDENTITY
+			{
+				ife XVELSAVED 1
+				{
+					set cur_point PLAYER_IDENTITY
+					state doSectorCheck
+				}
+				else
+					set temp6 1
+
+				ife temp6 1
+				{
+					ife smartpoint_see_player 0
+						state clearAllScores
+
+					set smartpoint_see_player 1
+					set smartpoint_player_hops 1
+					ldist xydist THISACTOR PLAYER_IDENTITY
+					set smartpoint_dist xydist
+
+					spritepal 1
+				}
+				else
+					state handle_cannotseeplayer
+			}
+			else
+				state handle_cannotseeplayer
+		}
+		else ife temp 2
+			state handle_cannotseeplayer
+	}
+ends
+
+defstate findNextLotag
+	set tmp_point_index 0
+
+	for tmp_point_index range smartpoint_index
+	{
+		ife next_point -1
+		{
+			set cur_point smartpoints[tmp_point_index]
+
+			// skip self
+			ifn cur_point THISACTOR
+			{
+				getav[cur_point].YVELSAVED temp
+
+				ife temp 1
+				{
+					set temp3 0
+					getav[cur_point].LOTAGSAVED temp2
+					getav[cur_point].ZVELSAVED temp5
+
+					ife temp5 ZVELSAVED // if on same track
+					{
+						ifn HITAGSAVED 0
+							ife temp2 HITAGSAVED
+						{
+							set temp3 1
+						}
+						else ife HITAGSAVED 0
+						{
+							set temp4 LOTAGSAVED
+							add temp4 1
+
+							ife temp2 temp4
+								set temp3 1
+						}
+
+						ife temp3 1
+						{
+							set next_point cur_point
+							getav[next_point].LOTAGSAVED temp
+						}
+					}
+				}
+			}
+		}
+	}
+ends
+
+defstate findNextPointForLotag
+	set tmp_point_index 0
+
+	for tmp_point_index range smartpoint_index
+	{
+		set cur_point smartpoints[tmp_point_index]
+
+		ife next_point -1
+		{
+			// find the first point, assume lotag 1
+			ifle smartpoint_lotag_handled 0
+			{
+				getav[cur_point].LOTAGSAVED temp
+				getav[cur_point].ZVELSAVED temp2
+
+				ife temp 1
+				 ife temp2 smartpoint_track_sub
+						set next_point cur_point
+
+			}
+
+			// otherwise find the point we just handled (= arrived at)
+			// then get the next_point it has in store
+			else
+			{
+				getav[cur_point].LOTAGSAVED temp
+				getav[cur_point].ZVELSAVED temp2
+
+				ife temp smartpoint_lotag_handled
+				  ife temp2 smartpoint_track_sub
+				{
+					getav[cur_point].next_point next_point
+				}
+			}
+		}
+	}
+ends
+
+// This state is called when we want to force a lotag point
+// The requested point is set in smartpoint_lotag_handled (not a great name, but appropriate enough without adding another new variable)
+defstate findForcedPointForLotag
+	set tmp_point_index 0
+	set next_point -1
+	
+	for tmp_point_index range smartpoint_index
+	{
+		set cur_point smartpoints[tmp_point_index]
+
+		ife next_point -1
+		{
+			getav[cur_point].LOTAGSAVED temp
+			ife temp smartpoint_lotag_handled
+				set next_point cur_point
+		}
+	}
+ends
+
+// If an actor was following a lotag path but got interrupted and is now returning back to it,
+// it should go to the first visible lotag - at the moment this is only used for the floating phantasm balls so it's with a naive line of sight check
+// This will not work for enemies that need to take into account pits etc.
+defstate findFirstVisiblePointForLotag
+	set tmp_point_index 0
+	set next_point -1
+	
+	for tmp_point_index range smartpoint_index
+	{
+		ife next_point -1
+		{
+			set cur_point smartpoints[tmp_point_index]
+			getav[cur_point].LOTAGSAVED temp
+			getav[cur_point].ZVELSAVED temp2
+			
+			ifg temp 0
+			  ife temp2 smartpoint_track_sub
+			{
+				set HITSCAN_TO_ACTOR cur_point
+				state hitscanTo
+
+				ife hitsprite cur_point
+				{
+					set next_point cur_point
+					set smartpoint_lotag_handled temp
+					sub smartpoint_lotag_handled 1
+				}
+			}
+		}
+	}
+ends
+
+defstate smartpoint_handleLotagPathCalculations
+	ife next_point -1
+		state findNextLotag
+ends
+
+appendevent EVENT_LOADACTOR
+	ifactor SMARTPOINT
+		state GETALLTAGS
+endevent
+
+/*
+ * Smartpoint settings:
+ * XVEL => if 1, will account for pits & spritebridges etc
+ * YVEL => if 0, points will calculate path to player.
+ *      => if 1, use lotags only (ie. work like locators)
+ * lotags => used with YVEL 1.
+ * hitags => used with YVEL 1. Acts as a lotag hint: If left at 0, smartpoint will guide to the next lotag. If has value, smartpoint will guide to lotag with the hitag value. Used for wrapping back around to start.
+ * ZVEL => used with YVEL 1. Use to indicate a track number. Useful if multiple actors need to follow lotags in the same area, but on a different track.
+ */
+useractor notenemy SMARTPOINT
+	ife debug_stuff 1
+	{
+		sizeat 50 50
+		cstat 0
+	}
+	else
+	{
+		sizeat 50 50
+		cstat 32768 // invisible
+	}
+
+	ife YVELSAVED 0
+		state smartpoint_handlePlayerPathCalculations
+	else ife YVELSAVED 1
+		state smartpoint_handleLotagPathCalculations
+enda
+
+defstate anglePathToPlayer
+	// cur_lowest_hops = lowest player hops that current smartpoint can see
+	// cur_lowest_dist = lowest player distance on lowest player hops that current smartpoint can see
+	// next_point = sprite id of that point (-1 if no point found)
+	state findLowestScore
+
+	ifn next_point -1
+	{
+		// We have a point, angle to it
+		geta[next_point].x mx
+		geta[next_point].y my
+
+		geta[].x my_x
+		geta[].y my_y
+
+		sub mx my_x
+		sub my my_y
+		getangle angvar mx my
+	}
+ends
+
+// for lotag users
+defstate anglePathToLotagPoint
+	ifn next_point -1
+	{
+		// We have a point, angle to it
+		geta[next_point].x mx
+		geta[next_point].y my
+
+		geta[].x my_x
+		geta[].y my_y
+
+		sub mx my_x
+		sub my my_y
+		getangle angvar mx my
+
+		// Are we near the point, then lotag as handled
+		dist xydist THISACTOR next_point
+		
+		ife smartpoint_lotag_xydist -1
+		  ifl xydist 2048
+		{
+			getav[next_point].LOTAGSAVED temp
+			set smartpoint_lotag_handled temp
+			set next_point -1 // recalculate
+		}
+		else ifl xydist smartpoint_lotag_xydist
+		{
+			getav[next_point].LOTAGSAVED temp
+			set smartpoint_lotag_handled temp
+			set next_point -1 // recalculate
+		}
+
+	}
+ends
+
+defstate anglePathToNextLotag
+	state findNextPointForLotag
+	state anglePathToLotagPoint
+ends
+
+defstate anglePathToForcedLotag
+	state findForcedPointForLotag
+	state anglePathToLotagPoint
+ends
+
+defstate anglePathToNextLotag_accurate
+	state findNextPointForLotag
+
+	ifn next_point -1
+	{
+		// We have a point, angle to it
+		geta[next_point].x mx
+		geta[next_point].y my
+
+		geta[].x my_x
+		geta[].y my_y
+
+		sub mx my_x
+		sub my my_y
+		getangle angvar mx my
+
+		// Are we near the point, then lotag as handled
+		dist xydist THISACTOR next_point
+		ifl xydist 128
+		{
+			getav[next_point].LOTAGSAVED temp
+			set smartpoint_lotag_handled temp
+			ifg actorvar[next_point].EXTRASAVED 0 { set poi actorvar[next_point].EXTRASAVED seta[].ang sprite[next_point].ang }
+			set next_point -1 // recalculate
+		}
+
+	}
+ends
+
+appendevent EVENT_SPAWN
+	ifactor POINTSECTORCHECKER
+	{
+		setarray sec_checkers[sec_chk_idx] THISACTOR
+		add sec_chk_idx 1
+	}
+endevent
+
+var a_actualZ 0 2
+var my_actualZ 0 2
+useractor notenemy POINTSECTORCHECKER // AKA PIT CHECK
+	ife debug_stuff 1
+	{
+		sizeat 10 10
+		cstat 0
+	}
+	else
+	{
+		sizeat 10 10
+		cstat 32768 // invisible
+	}
+
+	ifn sec_chk_pntA -1 // point A is used for querying by A, not for the movement of this actor
+		ifn sec_chk_pntB -1
+	{
+		ifn sec_chk_done 1
+		{
+			geta[].x my_x
+			geta[].y my_y
+
+			geta[sec_chk_pntB].x mx
+			geta[sec_chk_pntB].y my
+
+			sub mx my_x
+			sub my my_y
+			getangle angvar mx my
+
+			seta[].ang angvar
+
+			set target sec_chk_pntB
+			set PROJECTILE_VEL 1024 // might need tweaking
+
+			set temp 0 // set to 1 if we need to calc zvel
+
+			ife sec_chk_pntB PLAYER_IDENTITY
+				set temp 1
+			else ife sprite[sec_chk_pntA].picnum 18102
+			{
+				// we're both smartpoints yay, only calculate if not calculated yet
+				ife sprite[sec_chk_pntB].picnum 18102
+				{
+					ife movesprite_zvel 0
+						set temp 1
+				}
+				else
+					set temp 1
+			}
+			else
+				set temp 1
+
+			ife temp 1
+			{
+				set CALCZ_TARGET_OFFSET 8192
+				state calczvel
+				set movesprite_zvel temp3
+			}
+
+			geta[].ang movesprite_angvar
+			set movesprite_shift 4
+			state movesprite_state
+
+			// if wall hit, mark bad
+			ifl RETURN 49152
+				ifg RETURN 32767
+			{
+				set sec_chk_bad 1
+			}
+
+			// calc path has bad sector (if not already bad)
+			ifn sec_chk_bad 1
+			{
+				geta[].sectnum temp2
+
+				// get the sectnum to compare to, put in temp
+				// if just starting out this is point A's sector, otherwise it's the previous sector this actor passed through
+				ife sec_chk_prevZ -1
+				{
+					geta[sec_chk_pntA].sectnum temp
+					gets[temp].floorz temp5
+					set a_actualZ temp5
+				}
+				else
+				{
+					set temp sec_chk_prevSec
+					set temp5 sec_chk_prevZ
+					set a_actualZ temp5
+				}
+
+				// If slope, skip check, don't wanna bother with angle of slope calculations, and it shouldn't matter most of the time
+				gets[temp].floorslope temp3
+				gets[temp2].floorslope temp4
+
+				ife temp3 0
+					ife temp4 0
+				{
+					set sec_chk_prevSec temp2
+
+					// Check for height difference, temp5 already contains the height of previous sector or spritebridge
+					set mysector temp2
+					state gettrorawarefloorz
+					set temp6 z
+					set my_actualZ temp6
+
+					sub temp5 temp6
+
+					// check if it's the same sector or if the floor difference is large enough
+					abs temp5
+					ifn temp temp2 ifl temp5 6140 set sec_chk_prevZ my_actualZ
+					else
+					{
+						set SPRITEBRIDGE_ACTOR_CHECK THISACTOR
+						state check_spritebridge
+
+						// ignore faulty checks
+						ifn temp -2
+						{
+							ifg temp -1
+								set my_actualZ sprite[temp].z
+
+							set SPRITEBRIDGE_ACTOR_CHECK sec_chk_pntA
+							state check_spritebridge
+
+							ifn temp -2
+							{
+								ifg temp -1
+									set a_actualZ sprite[temp].z
+								else
+								{
+									geta[sec_chk_pntA].sectnum temp
+									gets[temp].floorz temp
+									set a_actualZ temp
+								}
+
+								// now compare the actual Z heights
+								sub a_actualZ my_actualZ
+								abs a_actualZ
+
+								ifge a_actualZ 6140
+								{
+									set sec_chk_bad 1
+								}
+							}
+
+							set sec_chk_prevZ my_actualZ
+						}
+						// false check, keep point A as Z value
+						else
+							set sec_chk_prevZ a_actualZ
+					}
+				}
+			}
+
+			// bad sector detected, no need to continue check
+			ife sec_chk_bad 1
+			{
+				set sec_chk_done 1
+				set sec_chk_prev_bad sec_chk_bad
+				set sec_chk_prevZ -1
+				set sec_chk_prevSec -1
+			}
+			else
+			{
+				// Finish the check if we are in the same sector as point B and within 1024 units
+				// If a sector doesn't have enough space for 1024 units then tough shit for now
+				// It NEEDS to be 1024 units or sometimes checks don't get finished correctly
+				geta[THISACTOR].sectnum temp
+				geta[sec_chk_pntB].sectnum temp2
+
+				ife temp temp2
+				{
+					dist xydist THISACTOR sec_chk_pntB
+					ifl xydist 1024
+					{
+						set sec_chk_done 1
+						set sec_chk_prev_bad sec_chk_bad
+						set sec_chk_prevZ -1
+						set sec_chk_prevSec -1
+					}
+				}
+			}
+		}
+	}
+enda
+

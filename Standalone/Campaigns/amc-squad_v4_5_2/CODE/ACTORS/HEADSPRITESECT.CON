@@ -1,0 +1,96 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+
+--------------------------------------------------------------------------------
+*/
+
+
+// Lotag = picnum to count
+// Hitag = amount to count
+// Extra = activator to call when counted
+// Kills itself as soon as it has finished the count
+useractor notenemy HEADSPRITESECTCHECK
+	cstat 32768
+
+	set temp 0
+
+	headspritesect spriteid sprite[].sectnum
+
+	whilevarn spriteid -1
+	{
+		// 1) pal check
+		set temp3 0
+		ifn sprite[].pal 0
+			ife sprite[].pal sprite[spriteid].pal
+		{
+			set temp3 1
+		}
+		else ife sprite[].pal 0
+			set temp3 1
+
+		ife temp3 1
+		{
+			// 1) picnum check
+			geta[spriteid].picnum temp2
+			ife temp2 LOTAGSAVED
+			{
+				add temp 1
+
+				// if this is one of a few items the player can hold then force drop it
+				// don't do this for every item (atm)
+				ife player_holding spriteid
+				{
+					set temp3 0
+					ife temp2 17978 // flask
+						set temp3 1
+					else ife temp2 25252 // tree root
+						set temp3 1
+
+					ife temp3 1
+					{
+						// mark as force drop (logic handled by sprite itself)
+						// also must drop in specified x/y/z coordinate to not just instadrop on the edge of the sector
+						setav[spriteid].drop_forced 1
+						setav[spriteid].drop_force_x sprite[].x
+						setav[spriteid].drop_force_y sprite[].y
+						setav[spriteid].drop_force_z sprite[].z
+					}
+				}
+			}
+		}
+
+		nextspritesect spriteid spriteid
+	}
+
+	ifge temp HITAGSAVED
+	{
+		operateactivators EXTRASAVED THISACTOR
+		operatemasterswitches EXTRASAVED
+		operaterespawns EXTRASAVED
+
+		killit
+	}
+enda

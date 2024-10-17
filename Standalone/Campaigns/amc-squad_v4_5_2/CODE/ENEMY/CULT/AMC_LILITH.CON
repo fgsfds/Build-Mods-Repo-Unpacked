@@ -1,0 +1,238 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+
+--------------------------------------------------------------------------------
+*/
+
+damageeventtile LILITH
+
+spritenoshade 10828
+spritenopal 10828
+
+useractor notenemy 10828 // Souls
+ifaction 0
+{
+ifspawnedby MINERVA
+	{
+	sizeat 16 16
+	spritepal 27
+	seta[].blend 255
+	cstat 130
+	}
+else
+	{
+	sizeat 48 48
+	seta[].blend 255
+	cstat 130
+	}
+}
+
+ifspawnedby MINERVA
+	{
+	ifand spells_cast 2 nullop else killit
+	}
+
+ife STORY_TRIGGER3 1 killit
+
+seta[].shade -127
+
+checkactivatormotion temp7
+ife RETURN 1
+	{
+	sub NUMBER_OF_SOULS 1
+	getav[myowner].myowner temp4
+	setactorvar[temp4].temp9 1
+	killit
+	}
+
+geta[myowner].x temp
+geta[myowner].y temp2
+
+set temp3 temp
+ifspawnedby MINERVA add temp3 128 else
+add temp3 1024
+
+rotatepoint temp temp2 temp3 temp2 temp4 temp5 temp6
+
+ifg temp4 2048 sub temp4 2048
+
+seta[].x temp5
+seta[].y temp6
+geta[myowner].z temp8
+ifspawnedby MINERVA sub temp8 10240 else
+sub temp8 1754
+seta[].z temp8
+
+ifcount 1 { ifspawnedby MINERVA add temp4 16 else add temp4 32 resetcount }
+
+enda
+
+useractor notenemy 9750 // Protection sphere
+
+ife STORY_TRIGGER3 1 killit
+
+ifaction 0
+{
+sizeat 48 48
+seta[].blend 255
+cstat 642
+}
+
+ife NUMBER_OF_SOULS 0
+{
+palfrom 40 0 0 40
+operateactivators 1205 THISACTOR
+killit
+}
+
+geta[myowner].extra temp2
+ifl temp2 1
+	killit
+
+geta[myowner].x temp
+geta[myowner].y temp2
+geta[myowner].z temp3
+sub temp3 4096
+setsprite THISACTOR temp temp2 temp3
+
+enda
+
+action LILITH_IDLE 0 1 5 1 10
+action LILITH_HOSTILE 0 1 5 1 10
+action LILITH_ATTACK 5 3 5 1 10
+
+useractor enemy LILITH
+
+ifaction 0
+{
+spawn 9750
+set STORY_TRIGGER2 1
+sizeat 23 23
+cstat 257
+strength 500
+set NUMBER_OF_SOULS 4
+espawn 10828
+setactorvar[RETURN].temp7 1201
+setactorvar[RETURN].temp4 0
+espawn 10828
+setactorvar[RETURN].temp7 1202
+setactorvar[RETURN].temp4 512
+espawn 10828
+setactorvar[RETURN].temp7 1203
+setactorvar[RETURN].temp4 1024
+espawn 10828
+setactorvar[RETURN].temp7 1204
+setactorvar[RETURN].temp4 1536
+action LILITH_IDLE
+}
+
+geta[myowner].x temp
+geta[myowner].y temp2
+geta[myowner].z temp3
+sub temp3 80096
+setsprite THISACTOR temp temp2 temp3
+geta[myowner].ang temp
+seta[].ang temp
+
+ife STORY_TRIGGER3 1 killit
+
+ifaction LILITH_HOSTILE
+ifrnd 16
+	{
+	action LILITH_ATTACK
+	}
+
+ifaction LILITH_ATTACK
+	{
+	ifactioncount 3
+		{
+		shoot PRIEST_BLAST
+		action LILITH_HOSTILE
+		}
+	}
+
+ifhitweapon
+	{
+	ifg NUMBER_OF_SOULS 0
+		{
+		seta[].extra 500
+		seta[].htextra -1
+		}
+	else
+		{
+		geta[].htpicnum temp
+			ife temp 9376 // If you hit her with the MIA Gun, 'teleport' her away to safety instead
+			{
+				  globalsound SAVE_PERSON
+				  espawn TRANSPORTERBEAM
+				  seta[RETURN].pal 17
+				  cstat 32768
+				  seta[myowner].htextra 10000
+				  setactorvar[myowner].temp8 1
+				  killit
+			}
+
+		ifaction LILITH_IDLE action LILITH_HOSTILE
+		spawn BLOOD
+		guts JIBS6 1
+		setactorvar[myowner].temp8 1
+		ifdead
+			{
+			set STORY_TRIGGER2 0 // If lilith is killed, set the story trigger 2 to 0
+			palfrom 62 62 0 0
+			spawn SKULLEXPLOSION
+            guts JIBS6 8 guts JIBS5 3 guts JIBS2 2 guts JIBS4 2 guts JIBS4 1
+			seta[myowner].htextra 10000
+			setactorvar[myowner].temp8 1
+			killit
+			}
+		}
+	}
+
+enda
+
+
+useractor notenemy 9752
+ifaction 0 action DUMMY
+
+ifspritepal 150
+	{
+	ife SAVED_LILITH 0 killit
+	ifn MYSTICAL_RESEARCH[7] 2 cstat 32768 else cstat 0
+	}
+else
+ifspritepal 9
+	{
+		ife SAVED_LILITH 0 killit
+	}
+else
+ifspritepal 3 nullop else
+	{
+		checkactivatormotion HITAGSAVED
+		ife RETURN 1 killit
+	}
+
+enda

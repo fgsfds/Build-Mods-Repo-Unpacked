@@ -1,0 +1,633 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+
+--------------------------------------------------------------------------------
+*/
+
+
+// ******************************************************************************
+// Eschaton Paradigm mook
+// ******************************************************************************
+
+spriteshadow 14222
+
+useractor notenemy 14222 100 0 ifaction 0 { sizeat 24 24 action FIVE_ANG } enda
+
+spriteshadow 18744
+
+useractor notenemy 18744 100 0 ifaction 0 { sizeat 24 24 action FIVE_ANG } enda
+
+// ************************************************************************************
+// PARADIGM ESCHATON GRUNT
+// ************************************************************************************
+
+damageeventtile PE_TROOP
+
+action A_PEGRUNT_IDLE 0 1 5 1 20
+
+action A_PEGRUNT_DEAD 34 1 1 1 10
+action A_PEGRUNT_HEADDEAD 40 1 1 1 10
+action A_PEGRUNT_HEADSHOT 35 5 1 1 16
+action A_PEGRUNT_DYING 30 5 1 1 16
+
+action A_PEGRUNT_BIDIE 11725 2 1 1 16
+action A_PEGRUNT_BIDEAD 11726
+
+action A_PEGRUNT_FREEZE 0 1 5 1 10
+action A_PEGRUNT_GROW 41 1 1 1 10
+action A_PEGRUNT_SHRUNK  0 4 5 1 12
+action A_PEGRUNT_PAIN 30 1 1 1 10
+action A_PEGRUNT_SEEK  0 4 5 1 12
+action A_PEGRUNT_FIRE 20 2 5 1 12
+
+move M_PEGRUNT_WALK 120
+
+defstate pegrunt_recog_sound
+	ife GENDER MALE
+	{
+		ifrnd 32 set npc_sound PE_OVERTHERE
+		else ifrnd 32 set npc_sound PE_AMCSQUAD
+		else ifrnd 32 set npc_sound PE_FORTHEPE1
+		else ifrnd 32 set npc_sound PE_FORTHEPE2
+		else ifrnd 96
+		{
+			ife CHAR 0 set npc_sound PE_JAMES
+			else ife CHAR 1 set npc_sound PE_ZAXTOR
+			else ife CHAR 2 set npc_sound PE_MERLIJN
+			else ife CHAR 3 set npc_sound PE_HIGHWIRE
+			else ife CHAR 4 set npc_sound PE_SANG
+			else ife CHAR 5 set npc_sound PE_RUSTY
+			else ife CHAR 6 set npc_sound PE_GEOFFREY
+			else ife CHAR 7 set npc_sound PE_MIKKO
+			else ife CHAR 13 set npc_sound PE_MICKY
+		}
+	}
+	else ife GENDER FEMALE
+	{
+		ifrnd 32 set npc_sound PE_F_OVERT
+		else ifrnd 32 set npc_sound PE_F_AMCS
+		else ifrnd 32 ifg VOLUME 1 set npc_sound PE_F_AMCS2
+		else ifrnd 32 set npc_sound PE_F_FTP1
+		else ifrnd 32 set npc_sound PE_F_FTP2
+		else ifrnd 96
+		{
+			ife CHAR 0 set npc_sound PE_F_JAMES
+			else ife CHAR 1 set npc_sound PE_F_ZAXT
+			else ife CHAR 2 set npc_sound PE_F_MERL
+			else ife CHAR 3 set npc_sound PE_F_HIGHW
+			else ife CHAR 4 set npc_sound PE_F_SANG
+			else ife CHAR 5 set npc_sound PE_F_RUSTY
+			else ife CHAR 6 set npc_sound PE_F_GEOFF
+			else ife CHAR 7 set npc_sound PE_F_MIKKO
+			else ife CHAR 10 set npc_sound PE_F_BSHEL
+			else ife CHAR 11 set npc_sound PE_F_MAART
+			else ife CHAR 12 set npc_sound PE_F_JANE
+			else ife CHAR 13 set npc_sound PE_F_MICKY
+			else ife CHAR 15 set npc_sound PE_F_MICKY
+			else ife CHAR 17 set npc_sound PE_F_KAGI
+		}
+		else ifg VOLUME 2 ifrnd 128
+			{
+			ifn ALLYSLOT1 -1 set npc_sound PE_F_DONTN
+			else ife P_GENDER MALE set npc_sound PE_F_DONTM
+		    else set npc_sound PE_F_DONTF
+			}
+		else ifrnd 1
+			{
+			ife CHAR 1 set npc_sound PE_F_FFUCK
+			}
+	}
+	soundoncevar npc_sound
+	ifactor PE_ELDER { setactorsoundpitch THISACTOR npc_sound -128 }
+ends
+
+defstate pegrunt_torsofly
+	state random_trigger_showoff
+	sound TORS_BISEC
+	setprojectile[PARAD_TORSO_FLY].pal sprite[].pal
+	ezshoot -4096 PARAD_TORSO_FLY
+	setprojectile[PARAD_TORSO_FLY].pal 0
+	geta[].htang temp4
+	seta[RETURN].ang temp4
+	spawn BIG_BLOOD_EXE
+	action A_PEGRUNT_BIDIE
+ends
+
+defstate pegrunt_flyback
+	state random_trigger_showoff
+	ife GENDER MALE { ifrnd 128 sound PE_PAIN1 else sound PE_PAIN2 }
+	else { ifrnd 128 sound PE_F_PAIIN1 else sound PE_F_PAIN2 }
+	setprojectile[PARAD_CORPSE_FLY].pal sprite[].pal
+	eshoot PARAD_CORPSE_FLY
+	setprojectile[PARAD_CORPSE_FLY].pal 0
+	geta[].htang temp4
+	seta[RETURN].ang temp4
+	killit
+ends
+
+defstate pegrunt_dead
+	cstat 0
+	move STOP
+    ifhitweapon
+	{
+		ifwasweapon RADIUSEXPLOSION
+		{
+			state squish_sounds
+			ife INVASION 0
+			{
+				state standard_jibs
+				state human_jibs
+			}
+		killit
+		}
+	}
+ends
+
+defstate pegrunt_chat_underfire
+	ifbulletnear
+	  ifrnd 16
+	{
+		ife GENDER MALE
+		{
+			ifrnd 128 set npc_sound PE_LOOKOUT
+			else set npc_sound PE_TAKECOVER
+		}
+		else
+		{
+			ifrnd 128 set npc_sound PE_F_LOOKO
+			else set npc_sound PE_F_TAKEC
+		}
+		soundoncevar npc_sound
+		set npc_talking 300
+	}
+	else ifand npc_killed 32
+	 ifrnd 96
+	{
+		ife GENDER MALE
+		{
+			ifrnd 96 set npc_sound PE_OHSHIT
+			else ifrnd 96 set npc_sound PE_FIGHTEND
+			else
+				{
+				ife CHAR 10 set npc_sound PE_WIPES
+				else ife CHAR 12 set npc_sound PE_WIPES
+				else ife CHAR 17 set npc_sound PE_WIPES
+				else set npc_sound PE_WIPE
+				}
+		}
+		else
+		{
+			ifrnd 96 set npc_sound PE_F_OHSHIT
+			else ifrnd 96 set npc_sound PE_F_FIGHT
+			else ifrnd 96 ifg VOLUME 2 set npc_sound PE_F_KILLU // paradigm start to get mad after episode 3
+			else
+			{
+				ife CHAR 10 set npc_sound PE_F_WIPES
+				else ife CHAR 12 set npc_sound PE_F_WIPES
+				else ife CHAR 17 set npc_sound PE_F_WIPES
+				else set npc_sound PE_F_WIPE
+			}
+		}
+		set npc_killed 0
+		soundoncevar npc_sound
+		set npc_talking 300
+	}
+ends
+
+defstate pegrunt_chat_target
+	ife GENDER MALE
+	{
+		ifrnd 16 set npc_sound PE_LEAVENOSURV
+		else ifrnd 16 set npc_sound PE_FORTHEPE1
+		else ifrnd 16 set npc_sound PE_FORTHEPE2
+		else ifrnd 16 set npc_sound PE_MOREBLOOD
+	}
+	else
+	{
+		ifrnd 16 set npc_sound PE_F_LNOS
+		else ifrnd 16 set npc_sound PE_F_FTP1
+		else ifrnd 16 set npc_sound PE_F_FTP2
+		else ifrnd 16 set npc_sound PE_F_MBLOOD
+	}
+	soundoncevar npc_sound
+	set npc_talking 300
+ends
+
+defstate pegrunt_chat_seek
+	ifcansee nullop else ife npc_talking 0
+	{
+		ife GENDER MALE
+		{
+			ifrnd 8 set npc_sound PE_STAYALERT
+			else ifrnd 8 set npc_sound PE_SALES
+			else ifrnd 8 set npc_sound PE_SHOWYOURSELF
+		}
+		else
+		{
+			ifrnd 8 set npc_sound PE_F_SALE
+			else ifrnd 8 set npc_sound PE_F_SALES
+			else ifrnd 8 set npc_sound PE_F_SHOW
+		}
+		soundoncevar npc_sound
+		set npc_talking 300
+	}
+ends
+
+defstate pegrunt_chat_stop
+	ifg npc_talking 0
+	{
+		ife GENDER MALE
+		{
+			set temp2 3174
+			whilevarn temp2 3202 // This loops through and stops all possible speech from this actor
+			{
+				stopactorsound THISACTOR temp2
+				add temp2 1
+			}
+		}
+		else
+		{
+			set temp2 4729
+			whilevarn temp2 4767 // This loops through and stops all possible speech from this actor
+			{
+				stopactorsound THISACTOR temp2
+				add temp2 1
+			}
+		}
+	}
+ends
+
+defstate pegrunt_chat_onfire
+	ife GENDER MALE
+	{
+		ifrnd 64 sound MALE_ONFIRE1
+		else ifrnd 64 sound MALE_ONFIRE2
+		else ifrnd 64 sound MALE_ONFIRE3
+		else sound MALE_ONFIRE4
+	}
+	else
+	{
+		ifrnd 64 sound PE_F_HIT1
+		else ifrnd 64 sound PE_F_HIT2
+		else ifrnd 64 sound PE_F_HIT3
+		else sound PE_F_HIT4
+	}
+ends
+
+useractor enemystayput PE_TROOP_STAYPUT 75
+	state monst_glow
+	cactor PE_TROOP
+enda
+
+useractor enemy PE_TROOP 75
+	fall
+
+	ifaction 0
+	{
+		cstator 257
+		ifspritepal 24 { strength 200 sizeat 26 26 }
+		else { strength 75 ifrnd 128 { sizeat 22 23 set GENDER FEMALE } else { sizeat 24 24 set GENDER MALE } }
+		state monst_glow
+		spawn SHOOTME
+
+		set MONSTER_FLAGS 2
+		set npc_talking 0
+		spriteflags NORMAL_ENEMY
+		set ally_mag 30
+
+		action A_PEGRUNT_IDLE
+	}
+
+	ifg npc_talking 0 sub npc_talking 1
+
+	state ENEMYKNOCKBACKS
+	state enemyfloordamage
+	state enemy_fire_damage
+	state enemy_ice_damage
+	state enemy_spirit_damage
+
+	ifaction A_PEGRUNT_IDLE
+	{
+		move STOP
+		state checkfortarget
+
+		ifn my_target -1
+		{
+			ifcansee
+				state pegrunt_recog_sound
+
+			action A_PEGRUNT_SEEK
+		}
+	}
+	else ifaction A_PEGRUNT_BIDEAD
+		state pegrunt_dead
+	else ifaction A_PEGRUNT_DEAD
+		state pegrunt_dead
+	else ifaction A_PEGRUNT_HEADDEAD
+		state pegrunt_dead
+	else ifaction A_PEGRUNT_HEADSHOT
+	{
+		strength 0
+		ifactioncount 5 { state BODY_FALL_NOISES spawn BLOODPOOL action A_PEGRUNT_HEADDEAD }
+	}
+	else ifaction A_PEGRUNT_DYING
+	{
+		strength 0
+		ifactioncount 5 { state BODY_FALL_NOISES spawn BLOODPOOL action A_PEGRUNT_DEAD }
+	}
+	else ifaction A_PEGRUNT_BIDIE
+	{
+		strength 0
+		ifactioncount 2 { state BODY_FALL_NOISES spawn BLOODPOOL action A_PEGRUNT_BIDEAD }
+	}
+	else ifaction A_PEGRUNT_FREEZE
+		state frozen_code
+	else ifaction A_PEGRUNT_GROW
+	{
+		move STOP
+		state genericgrowcode
+	}
+	else ifaction A_PEGRUNT_SHRUNK
+	{
+		ifmove M_PEGRUNT_WALK nullop
+		else move M_PEGRUNT_WALK geth fleeenemy
+
+		ifl SHRUNK_TIME SHRUNKCOUNT // keep shrunk
+			state new_shrunkcode
+		else ifl SHRUNK_TIME SHRUNKDONECOUNT // regrow
+		{
+			state unshrink
+
+			ifspritepal 24 { sizeto 26 26 }
+			else
+			{
+				ife GENDER FEMALE
+					sizeto 22 23
+				else ife GENDER MALE
+					sizeto 24 24
+			}
+		}
+		else // after regrow, switch back to regular action
+		{
+			state endshrunkenstate
+			action A_PEGRUNT_SEEK
+		}
+	}
+	else ifaction A_PEGRUNT_PAIN
+	{
+		move STOP
+		sub PAIN_AMOUNT 1
+		ife PAIN_AMOUNT 0 action A_PEGRUNT_SEEK
+	}
+	else ifaction A_PEGRUNT_SEEK
+	{
+		ifmove M_PEGRUNT_WALK nullop
+		else move M_PEGRUNT_WALK geth
+
+		ifl ally_mag 0 add ally_mag 1
+		ifg ally_mag 0 sub ally_mag 1
+
+		ife npc_talking 0
+			state pegrunt_chat_underfire
+
+		ifnotmoving ifrnd 32 operate
+
+		state checkfortarget
+
+		ifn my_target -1
+			ife ally_mag 0
+		{
+			state SKILL_SHOOT_LEVELADJUST
+			ifl RANDOM_CHANCE SKILLCHANCE
+			{
+				ife npc_talking 0
+					state pegrunt_chat_target
+
+				action A_PEGRUNT_FIRE
+			}
+		}
+
+		ife my_target -1
+		  ifrnd 4
+			state pegrunt_chat_seek
+	}
+	else ifaction A_PEGRUNT_FIRE
+	{
+		move STOP
+		state new_validatetarget
+
+		ife my_target -1
+		{
+			ifrnd 32 ife npc_talking 0 { ife GENDER MALE set npc_sound PE_HAHAHA else set npc_sound PE_F_HAHA soundoncevar npc_sound }
+			action A_PEGRUNT_SEEK
+		}
+		state fronttowardstarget
+		{
+			ifactioncount 1
+			{
+				add ally_mag 1
+				ifspritepal 24
+				{
+					set PROJECTILE_STRENGTH 12
+					set PROJECTILE_TO_SHOOT ENEMY_BULLET
+					set PROJECTILE_FIRING_SOUND M16_FIRE
+					state sang_enemyShootProjectile
+				}
+				else
+				{
+					state DARKNESS_TARGET_ACCURACY
+					set PROJECTILE_TO_SHOOT ENEMY_BULLET
+					set PROJECTILE_FIRING_SOUND M960_FIRE
+					state sang_enemyShootProjectile
+				}
+
+				ife HITSCAN_SHOT_FIRED 1
+				{
+					ifrnd 2 zshoot temp3 13215
+					globalsound DISTANT_RIFLE
+				}
+
+				ife PERFMODE 1
+				 ifcansee
+				  ife INVASION 0
+				{
+					set gunsmoke_z 8244
+					set gunsmoke_angle 128
+					state spawn_gunsmoke_z
+					set gunsmoke_z 6344
+					espawn 16115
+					state spawn_muzzleflash
+					state npc_pistolshell
+				}
+				ifg ally_mag 8 { action A_PEGRUNT_SEEK set ally_mag -30 }
+				resetactioncount
+			}
+		}
+	}
+
+	ifhitweapon
+	{
+	state NEWGUNEFFECTS
+	ife INVASION 0
+	ifcansee
+		state random_wall_jibs
+
+	ifdead
+	{
+		ifn npc_sound 0 stopactorsound THISACTOR npc_sound
+		ifand npc_killed 32 nullop else xorvar npc_killed 32
+		addkills 1
+
+		ifwasweapon RADIUSEXPLOSION
+		{
+			geta[].extra temp
+		    ifg temp -50 state pegrunt_flyback
+			state squish_sounds
+			state standard_jibs
+			state human_jibs
+			killit
+		}
+		ifwasweapon RPG
+		{
+			geta[].extra temp
+		    ifg temp -50 state pegrunt_flyback
+			state squish_sounds
+			state standard_jibs
+			state human_jibs
+			killit
+		}
+		ifand PROJ_UDATA PROJ_GIB
+		{
+		    geta[].extra temp
+		    ifg temp -50 state pegrunt_flyback
+			state squish_sounds
+			state standard_jibs
+			state human_jibs
+			killit
+		}
+		ifand PROJ_UDATA 8192
+		 {
+			 ifrnd 4 ife GENDER MALE { spawn ELECTROCUTE_MARV soundonce MALE_ELECT1 } else spawn ELECTROCUTE_GUY
+			 shoot SPARK2 shoot SPARK2 shoot SPARK2
+			 killit
+		 }
+		else ifwasweapon SAWBLADE state pegrunt_torsofly
+		else ifwasweapon SAWBLADE_BOUNCE state pegrunt_torsofly
+		else ifwasweapon SNOWFALL_DISC state pegrunt_torsofly
+		else ifwasweapon 6875 ife CHAR 2 state pegrunt_torsofly
+		else ifwasweapon GROWSPARK { cstat 0 sound ACTOR_GROWING action A_PEGRUNT_GROW break }
+		else ifg ice_damage 0 { spritepal 1 strength 1 sound SOMETHINGFROZE action A_PEGRUNT_FREEZE }
+		else
+		{
+			state rf
+			ife HEADSHOT 2
+			{
+				ifl sprite[].extra -100
+					state pegrunt_torsofly
+					else
+					{
+					ifg fire_damage 0 set fire_damage 0
+					state random_trigger_showoff
+					state jib_sounds
+					state decap_sounds
+					shoot NJIB
+					shoot NJIB
+					guts JIBS6 3
+					guts JIBS2 2
+					action A_PEGRUNT_HEADSHOT
+					}
+			}
+			else ifwasweapon CHAINSAW_PROJ
+				{
+				set npc_chainsaw_struggle 54
+				set npc_chainsaw_id 7
+				set cultist_pal sprite[].pal
+				ife GENDER MALE { ifrnd 128 sound PE_PAIN1 else sound PE_PAIN2 }
+				else { ifrnd 128 sound PE_F_PAIIN1 else sound PE_F_PAIN2 }
+				action A_PEGRUNT_DYING
+				}
+			else ifg spirit_damage 0
+			{
+				shoot SPARK2 shoot SPARK2 shoot SPARK2
+				spritepal 1
+				guts JIBS3 6
+				spawn SPIRIT_DEATH_GUY
+				killit
+			}
+			else ifg fire_damage 0
+			{
+				state pegrunt_chat_onfire
+				set PLAYER_VOICEOVER 21
+				spawn ONFIREGUY
+				killit
+			}
+			else ifg energy_damage 0
+			{
+				shoot SPARK2 shoot SPARK2 shoot SPARK2
+				spritepal 4
+				guts JIBS3 6
+				spawn DISINTIGRATE_GUY
+				killit
+			}
+			else
+			{
+				ifstrength -35 ifpdistl 4096
+					{
+					ifl sprite[].extra -100
+					state pegrunt_torsofly
+					else
+					state pegrunt_flyback
+					}
+				else ifwasweapon KNEE state pegrunt_flyback
+				else ifwasweapon SHOTGUN ifpdistl 1536 state pegrunt_flyback
+				else
+					{
+					ife GENDER MALE { ifrnd 128 sound PE_PAIN1 else sound PE_PAIN2 }
+					else { ifrnd 128 sound PE_F_PAIIN1 else sound PE_F_PAIN2 }
+					action A_PEGRUNT_DYING
+					}
+			}
+			ifrnd 48 { espawn M960_SPRITE randvar temp 50 setactorvar[RETURN].YVELSAVED temp }
+		}
+
+		ifphealthl 50
+		{
+			state SKILL_LEVELADJUST
+			ifl RANDOM_CHANCE SKILLCHANCE spawn HYPOSPRAY
+		}
+	}
+	else // not dead
+	{
+		ifg PAIN_AMOUNT 0 action A_PEGRUNT_PAIN
+		else ifrnd 16 { state PAIN_SKILL_LEVELADJUST action A_PEGRUNT_PAIN }
+		else ifwasweapon SHRINKSPARK { sound ACTOR_SHRINKING action A_PEGRUNT_SHRUNK }
+		else ifaction A_PEGRUNT_IDLE { state PAIN_SKILL_LEVELADJUST action A_PEGRUNT_PAIN }
+	}
+}
+
+state checksquished
+
+enda

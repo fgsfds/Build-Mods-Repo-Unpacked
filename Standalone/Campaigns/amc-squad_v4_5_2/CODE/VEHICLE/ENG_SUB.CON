@@ -1,0 +1,544 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+This file defines behavior for the driveable Cycloid Space Fighter vehicle.
+--------------------------------------------------------------------------------
+*/
+
+// *************************************************
+// CYCLOID FIGHTER
+// *************************************************
+
+action ENG_SUB_IDLE 0 1 1 1 10
+action ENG_SUB_INACTION 1 1 1 1 10
+
+defstate engsub_setspeeds
+	state vehicle_getbasespeed
+
+	// increase speeds based on forward_accelerate value
+	// increase in blocks of 50 to be somewhat smooth
+	set temp3 forward_accelerate
+	abs temp3
+	ifge temp3 50
+	{
+		whilevarn temp3 0
+		{
+			state vehicle_speedup
+			sub temp3 50
+
+			// can get below 0, then go 0..
+			ifle temp3 0
+				set temp3 0
+		}
+
+		// if not underwater, half speed
+		ifinwater nullop
+		else
+		{
+			div movesprite_xvel 2
+			div movesprite_yvel 2
+		}
+	}
+ends
+
+defstate engsub_correctplayercoords
+	geta[].x temp
+	setp[].posx temp
+	geta[].y temp2
+	setp[].posy temp2
+	setp[].falling_counter 0
+	geta[].z temp3
+	sub temp3 16394
+
+	// If TROR ceiling but not blocking, it's water, do nothing in that case
+	// Otherwise, need to some stuff
+	gets[].ceilingstat temp4
+
+	set temp 0
+
+	ifand temp4 1024
+	{
+		ifxor temp4 512 // if this matches then the ceiling is not blocking
+			nullop
+		else
+			set temp 1
+	}
+	else
+		set temp 1
+
+	ife temp 1
+	{
+		gets[].ceilingz temp4
+
+		// Stay x units away from ceiling. That's gonna bump you down a bit but better than the alternative
+		ifle temp3 temp4
+		{
+			set temp3 temp4
+			add temp3 16394
+			seta[].z temp3
+		}
+	}
+
+	setp[].posz temp3
+	geta[].sectnum upd_sect
+	updatesectorz temp temp2 temp3 upd_sect
+	ifn upd_sect -1 // Make sure it's a a valid sector
+	{
+		changespritesect APLAYER upd_sect
+		setp[].cursectnum upd_sect
+	}
+ends
+
+defstate engsub_strafeleft
+	geta[].ang movesprite_angvar
+	sub movesprite_angvar 512
+	set movesprite_customvels 1
+	state engsub_setspeeds
+	set movesprite_clipmask CLIPMASK0
+	state movesprite_state
+ends
+
+defstate engsub_straferight
+	geta[].ang movesprite_angvar
+	add movesprite_angvar 512
+	set movesprite_customvels 1
+	state engsub_setspeeds
+	set movesprite_clipmask CLIPMASK0
+	state movesprite_state
+ends
+
+defstate engsub_forward
+	set temp2 forward_accelerate
+	divvar temp2 2
+	setactorsoundpitch THISACTOR SUBM_ENGINE temp2
+
+	geta[].ang movesprite_angvar
+	set movesprite_customvels 1
+	state engsub_setspeeds
+
+	ifinwater
+		set movesprite_zvel 1
+	else
+		set movesprite_zvel 0
+
+	set movesprite_clipmask CLIPMASK0
+	state movesprite_state
+
+	// if return is between 16384 and 32767 then we've hit a ceiling or floor, but we need to discard that information if it is a non-blocking TROR layer
+	ifge RETURN 16384
+		ifl RETURN 32768
+	{
+		set temp RETURN
+		sub temp 16384
+		gets[temp].ceilingstat temp2
+		gets[temp].floorstat temp3
+
+		ifand temp2 1024
+		{
+			ifand temp2 512
+				nullop
+			else
+				set RETURN 0
+		}
+		else ifand temp3 1024
+		{
+			ifand temp3 512
+				nullop
+			else
+				set RETURN 0
+		}
+	}
+
+	// There are many false positives with hitting walls, turn off for those
+	ifge RETURN 32768
+		ifl RETURN 49152
+	{
+		set RETURN 0
+	}
+
+	ifg RETURN 0 // hit something
+		ifg forward_accelerate 128
+	{
+		set CUS_WACK 3
+		ifg forward_accelerate 800
+			soundonce CARSMASH
+		else
+			soundonce CAR_HIT
+		set forward_accelerate 0
+	}
+ends
+
+defstate engsub_reverse
+	soundonce SUBM_ENGINE
+
+	geta[].ang movesprite_angvar
+	set movesprite_customvels 1
+	state engsub_setspeeds
+
+	// we're reversing so we need to invert the velocities
+	inv movesprite_xvel
+	inv movesprite_yvel
+
+	ifinwater
+		set movesprite_zvel 1
+	else
+		set movesprite_zvel 0
+
+	set movesprite_clipmask CLIPMASK0
+	state movesprite_state
+
+	// if return is between 16384 and 32767 then we've hit a ceiling or floor, but we need to discard that information if it is a non-blocking TROR layer
+	ifge RETURN 16384
+		ifl RETURN 32767
+	{
+		set temp RETURN
+		sub temp 16384
+		gets[temp].ceilingstat temp2
+		gets[temp].floorstat temp3
+
+		ifand temp2 1024
+		{
+			ifand temp2 512
+				nullop
+			else
+				set RETURN 0
+		}
+		else ifand temp3 1024
+		{
+			ifand temp3 512
+				nullop
+			else
+				set RETURN 0
+		}
+	}
+
+	ifg RETURN 0 // hit something
+		ifl forward_accelerate -128
+	{
+		set CUS_WACK 3
+		soundonce CAR_HIT
+		set forward_accelerate 0
+	}
+ends
+
+useractor notenemy ENGINEER_SUB
+	ifaction 0
+    {
+		spawn 9302
+		cstat 257
+		strength 5000
+		clipdist 220
+		sizeat 80 80
+		ife HITAGSAVED 0 action ENG_SUB_IDLE
+		else action ZERO
+    }
+
+	ifinwater
+	 ifrnd 16
+	{
+		spawn WATERBUBBLE
+	}
+
+	ifstrength 1000
+    {
+		espawn BIG_SMOKE
+		setactorvar[RETURN].YVELSAVED 1
+		seta[RETURN].pal 17
+    }
+
+	ifaction ZERO
+    {
+		fall
+		checkactivatormotion HITAGSAVED
+		 ife RETURN 1 action ENG_SUB_IDLE
+    }
+
+	else ifaction ENG_SUB_IDLE
+	{
+		seta[].pal sector[].floorpal
+
+		ifinwater nullop else fall
+
+		ifpdistl 3096
+		 ifp palive
+		  ifp pfacing
+		   ife player_in_vehicle 0
+		{
+			ifg scope 0 break
+			ifand gun_firemode 16384 break
+
+			set player_use 0
+			ife use_action_allowed 1
+			{
+				// Disable the player being blocking
+				getp[].i temp
+				geta[temp].cstat player_cstat_backup
+				seta[temp].cstat 0
+
+				set hit_key 30
+				state fade_out_black
+				soundonce CY_FIGHTER_STARTUP
+				set player_in_vehicle 1
+				set hc_gear 2
+				set control_display 150
+				set player_using_submarine THISACTOR
+				action ENG_SUB_INACTION
+				cstat 32768
+				state setIgnoreUse
+			}
+		}
+
+		ifstrength 4999
+		{
+			soundonce VEH_REP
+			ife CHAR 13 addstrength 5 else
+			addstrength 2
+		}
+	}
+
+	else ifaction ENG_SUB_INACTION
+	{
+		state engsub_correctplayercoords
+
+		geta[].ang vehicle_ang
+		setp[].ang vehicle_ang
+
+		// Handle turning via mouse movement or turn left/right key
+		getinput[].avel temp3
+		ifn temp3 0
+			state vehicle_turn
+		else ifand EXTBITS_PRESS 16 // turn left input
+			state vehicle_turn
+		else ifand EXTBITS_PRESS 32 // turn right input
+			state vehicle_turn
+
+		// Strafing
+		ifand EXTBITS_PRESS 4 // strafe left
+			state engsub_strafeleft
+		else ifand EXTBITS_PRESS 8 // strafe right
+			state engsub_straferight
+			
+		// If underwater, can go up or down
+		ifinwater
+		{
+			ifand BITS_PRESS 1 // go up
+			{
+				state thisactor_getzrange
+				gets[].ceilingz temp3
+				add temp3 8192 // stay a little bit away from ceiling
+
+				geta[].z temp2
+				sub temp2 4096
+
+				gets[].ceilingstat temp4
+				ifand temp4 1024
+				{
+					// if blocking, stay away
+					ifand temp4 512
+					{
+					  ifg temp2 temp3
+						seta[].z temp2
+					}
+					else
+						seta[].z temp2
+				}
+				else ifg temp2 temp3
+					seta[].z temp2
+
+				geta[].sectnum upd_sect
+				updatesectorz sprite[].x sprite[].y sprite[].z upd_sect
+				ifn upd_sect -1 // Make sure it's a a valid sector
+					changespritesect THISACTOR upd_sect
+			}
+			else ifand BITS_PRESS 2 // go down
+			{
+				state thisactor_getzrange
+				gets[].floorz temp3
+				geta[].z temp2
+				add temp2 4096
+
+				gets[].floorstat temp4
+				ifand temp4 1024
+					seta[].z temp2
+				else ifl temp2 temp3
+					seta[].z temp2
+
+				geta[].sectnum upd_sect
+				updatesectorz sprite[].x sprite[].y sprite[].z upd_sect
+				ifn upd_sect -1 // Make sure it's a a valid sector
+					changespritesect THISACTOR upd_sect
+			}
+		}
+		else ifonwater // on water can only go down
+		{
+			ifand BITS_PRESS 2
+			{
+				state thisactor_getzrange
+				gets[].floorz temp3
+				geta[].z temp2
+				add temp2 4096
+				seta[].z temp2
+
+				geta[].sectnum upd_sect
+				updatesectorz sprite[].x sprite[].y sprite[].z upd_sect
+				ifn upd_sect -1 // Make sure it's a a valid sector
+					changespritesect THISACTOR upd_sect
+			}
+		}
+
+		ife sector[].lotag 1 // ifonwater wasn't cutting it, not sure why
+		{
+			ifl sprite[].z sector[].floorz
+			{
+				seta[].z sector[].floorz
+
+				geta[].sectnum upd_sect
+				updatesectorz sprite[].x sprite[].y sprite[].z upd_sect
+				ifn upd_sect -1 // Make sure it's a a valid sector
+					changespritesect THISACTOR upd_sect
+			}
+		}
+
+		ifonwater
+		  ifl sprite[].zvel 0
+			setactor[].zvel 0
+
+		// Allow changing Z position by looking up/down
+		ifg forward_accelerate 300
+		{
+			state thisactor_getzrange
+			getp[].horiz temp
+			sub temp 100 // 100 horiz equals straight ahead, so take away 100 and make 0 'straight ahead' for this
+			mulvar temp -60
+			geta[].z temp2
+			ifinwater
+			{
+				add temp2 temp
+				seta[].z temp2
+			}
+		}
+
+		ifand EXTBITS_PRESS 1 // Move forward
+		{
+			set temp4 hc_gear
+			mulvar temp4 200
+			ifl forward_accelerate temp4 add forward_accelerate 4
+			ifg forward_accelerate temp4 sub forward_accelerate 8
+		}
+		else ifg forward_accelerate 0 // If moving forward isn't pressed, gradually lose speed
+			sub forward_accelerate 8
+
+		ifand EXTBITS_PRESS 2 // Move backward
+		{
+			ifg forward_accelerate -400 sub forward_accelerate 4
+		}
+		else ifl forward_accelerate 0  // If moving backward isn't pressed, gradually "increase forward speed" until still
+			add forward_accelerate 4
+
+		soundonce SUBM_ENGINE
+		ifg forward_accelerate 0
+			state engsub_forward
+		else ifl forward_accelerate -1
+			state engsub_reverse
+
+		// exit
+		else ifle forward_accelerate 100
+		  ifge forward_accelerate -100
+	      ife use_action_allowed 1
+		{
+			set forward_accelerate 0
+			state fade_out_black
+			move 0
+			set player_in_vehicle 0
+			set player_using_submarine -1
+			soundonce SUBM_CLOSE
+			stopactorsound THISACTOR SUBM_ENGINE
+			setp[].over_shoulder_on 0
+			setp[].movement_lock 0
+			set just_changed 1
+			action ENG_SUB_IDLE
+			cstat 257
+			state setIgnoreUse
+
+			getp[].i temp
+			seta[temp].cstat player_cstat_backup
+		}
+
+		ifvarvarn player_using_submarine THISACTOR // if player has been removed from vehicle by force
+		{
+			set player_in_vehicle 0
+			set player_using_submarine -1
+			set just_changed 1
+			stopactorsound THISACTOR SUBM_ENGINE
+			action ENG_SUB_IDLE
+
+			getp[].i temp
+			seta[temp].cstat player_cstat_backup
+		}
+
+		ifp pdead
+		{
+			move 0
+			set player_in_vehicle 0
+			set player_using_submarine -1
+			setp[].over_shoulder_on 0
+			setp[].movement_lock 0
+			set just_changed 1
+			stopactorsound THISACTOR SUBM_ENGINE
+			action ENG_SUB_IDLE
+
+			getp[].i temp
+			seta[temp].cstat player_cstat_backup
+		}
+
+		ifdead
+		{
+			set player_in_vehicle 0
+			set player_using_submarine -1
+			setp[].over_shoulder_on 0
+			setp[].movement_lock 0
+			set just_changed 1
+			stopactorsound THISACTOR SUBM_ENGINE
+			addphealth -1000
+			spawn EXPLOSION2
+			quake 26
+			globalsound BLOWUP
+			shoot SPARK shoot SPARK shoot SPARK shoot SPARK shoot SPARK shoot SPARK
+			shoot LAVABALL shoot LAVABALL shoot LAVABALL shoot LAVABALL shoot LAVABALL
+			strength 1
+			action ENG_SUB_IDLE
+
+			getp[].i temp
+			seta[temp].cstat player_cstat_backup
+		}
+
+		ifhitweapon
+		{
+			sound ALARM
+			set gun_recoil 4
+			palfrom 10 10 0 0
+		}
+	}
+enda

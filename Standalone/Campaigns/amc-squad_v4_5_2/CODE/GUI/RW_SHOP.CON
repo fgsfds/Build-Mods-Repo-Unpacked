@@ -1,0 +1,311 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+
+--------------------------------------------------------------------------------
+*/
+
+
+// =====================================================================================================================
+// RINGWORLD SHOPKEEPER
+// ======================================================================================================================
+
+defstate cemendi_thanks
+ifrnd 96 sound DSK_THANKS1
+else ifrnd 96 sound DSK_THANKS2
+else sound DSK_THANKS3
+ends
+
+defstate RINGWORLD_SHOP_INTERFACE
+rotatesprite 162 103 43690 0 28311 0 0 8 0 0 xdim ydim
+
+		qputs 409 Orbs: %ld
+		qsprintf 409 409 ORBS_FOUND
+		gametextz 2822 480 20 409 0 1 0 0 0 xdim ydim HALFSIZE
+
+	set gui_pos_x 70
+	set gui_pos_y 50
+	state CURSOR_OVER_ITEM
+	qputs 409 Alchemy Table
+	gametextz 2822 gui_pos_x gui_pos_y 409 0 1 0 0 0 xdim ydim HALFSIZE
+
+	ifl gui_pos_x_temp 50
+	 ifg gui_pos_x_temp -50
+	  ifl gui_pos_y_temp 5
+	   ifg gui_pos_y_temp -5
+		{
+		gametextz 2822 gui_pos_x gui_pos_y 409 disp_pulse 2 0 0 0 xdim ydim HALFSIZE
+
+		ifand BITS_PRESS 4
+			{
+				ife BASE_RESEARCH[8] 2 soundonce COMP_INVALID
+				else
+				ifl ORBS_FOUND 3 { soundonce COMP_INVALID ifrnd 32 sound DSK_NUFF1 }
+				else
+					{
+					sub ORBS_FOUND 3
+					savegamevar ORBS_FOUND
+					setarray BASE_RESEARCH[8] 2
+					writearraytofile BASE_RESEARCH F_BASE_AMCTC
+					sound CASHREG
+					state cemendi_thanks
+					}
+			}
+
+		ife BASE_RESEARCH[8] 2 qstrcpy 409 3080
+		else qputs 409 Cost: 3 Orbs
+		gametextz 2822 326 98 409 0 0 0 0 0 xdim ydim HALFSIZE
+		rotatesprite 210 61 28000 0 29308 0 0 8 0 0 xdim ydim
+
+		qputs 409 With this well crafted device
+		gametextz 2822 326 120 409 0 0 0 0 0 xdim ydim HALFSIZE
+		qputs 409 you'll be able to increase potion's
+		gametextz 2822 326 126 409 0 0 0 0 0 xdim ydim HALFSIZE
+		qputs 409 effectivness; Merlijn's health
+		gametextz 2822 326 132 409 0 0 0 0 0 xdim ydim HALFSIZE
+		qputs 409 elixer can carry 50% more inside it,
+		gametextz 2822 326 138 409 0 0 0 0 0 xdim ydim HALFSIZE
+		qputs 409 Sang's blood potion regenerates
+		gametextz 2822 326 144 409 0 0 0 0 0 xdim ydim HALFSIZE
+		qputs 409 his health, and Kagura's potions
+		gametextz 2822 326 150 409 0 0 0 0 0 xdim ydim HALFSIZE
+		qputs 409 are improved as well.
+		gametextz 2822 326 156 409 0 0 0 0 0 xdim ydim HALFSIZE
+		}
+
+	add gui_pos_y 10
+	state CURSOR_OVER_ITEM
+	qputs 409 Mana Lantern
+	gametextz 2822 gui_pos_x gui_pos_y 409 0 1 0 0 0 xdim ydim HALFSIZE
+
+	ifl gui_pos_x_temp 50
+	 ifg gui_pos_x_temp -50
+	  ifl gui_pos_y_temp 5
+	   ifg gui_pos_y_temp -5
+		{
+		gametextz 2822 gui_pos_x gui_pos_y 409 disp_pulse 2 0 0 0 xdim ydim HALFSIZE
+
+		ifand BASE_COSMETICS 8 qstrcpy 409 3080
+		else qputs 409 Cost: 2 Orbs
+		gametextz 2822 326 98 409 0 0 0 0 0 xdim ydim HALFSIZE
+		rotatesprite 209 61 28000 0 29309 0 0 8 0 0 xdim ydim
+
+		ifand BITS_PRESS 4
+					{
+					ifand BASE_COSMETICS 8 soundonce COMP_INVALID
+					else
+					ifl ORBS_FOUND 2 { soundonce COMP_INVALID ifrnd 32 sound DSK_NUFF1 }
+					else
+						{
+						sub ORBS_FOUND 2
+						savegamevar ORBS_FOUND
+						xorvar BASE_COSMETICS 8
+						savegamevar BASE_COSMETICS
+						sound CASHREG
+						state cemendi_thanks
+						break
+						}
+					}
+
+		qputs 409 Mana lanterns are almost standard
+		gametextz 2822 326 120 409 0 0 0 0 0 xdim ydim HALFSIZE
+		qputs 409 equipment for aspiring magicians
+		gametextz 2822 326 126 409 0 0 0 0 0 xdim ydim HALFSIZE
+		qputs 409 on Elysion; this simple artifact
+		gametextz 2822 326 132 409 0 0 0 0 0 xdim ydim HALFSIZE
+		qputs 409 increases an agent's maximum
+		gametextz 2822 326 138 409 0 0 0 0 0 xdim ydim HALFSIZE
+		qputs 409 mana holding capacity by 50%
+		gametextz 2822 326 144 409 0 0 0 0 0 xdim ydim HALFSIZE
+		}
+
+	add gui_pos_y 10
+	state CURSOR_OVER_ITEM
+	qputs 409 Arcane Spellbook
+	gametextz 2822 gui_pos_x gui_pos_y 409 0 1 0 0 0 xdim ydim HALFSIZE
+
+	ifl gui_pos_x_temp 50
+	 ifg gui_pos_x_temp -50
+	  ifl gui_pos_y_temp 5
+	   ifg gui_pos_y_temp -5
+		{
+		gametextz 2822 gui_pos_x gui_pos_y 409 disp_pulse 2 0 0 0 xdim ydim HALFSIZE
+
+		ifand BASE_COSMETICS 16 qstrcpy 409 3080
+		else qputs 409 Cost: 4 Orbs
+		gametextz 2822 326 98 409 0 0 0 0 0 xdim ydim HALFSIZE
+		rotatesprite 209 61 28000 0 29319 0 0 8 0 0 xdim ydim
+
+		ifand BITS_PRESS 4
+					{
+					ifand BASE_COSMETICS 16 soundonce COMP_INVALID
+					else
+					ifl ORBS_FOUND 4 { soundonce COMP_INVALID ifrnd 32 sound DSK_NUFF1 }
+					else
+						{
+						sub ORBS_FOUND 4
+						savegamevar ORBS_FOUND
+						xorvar BASE_COSMETICS 16
+						savegamevar BASE_COSMETICS
+						sound CASHREG
+						state cemendi_thanks
+						break
+						}
+					}
+
+		qputs 409 This well crafted spellbook, made
+		gametextz 2822 326 120 409 0 0 0 0 0 xdim ydim HALFSIZE
+		qputs 409 with the finest enchanted leather and
+		gametextz 2822 326 126 409 0 0 0 0 0 xdim ydim HALFSIZE
+		qputs 409 ink, will allow Sang to store all his
+		gametextz 2822 326 132 409 0 0 0 0 0 xdim ydim HALFSIZE
+		qputs 409 slot two spells on his person; you can
+		gametextz 2822 326 138 409 0 0 0 0 0 xdim ydim HALFSIZE
+		qputs 409 now toggle through them with the
+		gametextz 2822 326 144 409 0 0 0 0 0 xdim ydim HALFSIZE
+		qputs 409 weapon 2 selection key.
+		gametextz 2822 326 150 409 0 0 0 0 0 xdim ydim HALFSIZE
+		}
+
+rotatespritea 208 60 NNORMALSIZE 0 11232 0 0 0 -255 0 0 xdim ydim
+ends
+
+useractor notenemy 26055 // Cemendi Bheneir
+
+ifaction 0
+{
+strength 250
+espawn 12263
+seta[RETURN].owner THISACTOR
+geta[RETURN].z temp
+sub temp 16384
+seta[RETURN].z temp
+action ZERO
+}
+
+
+
+ifaction ZERO
+{
+
+ifspritepal 3
+{
+ifg npc_talking 0 sub npc_talking 1
+
+ifpdistl 16384
+ifcansee
+ ifrnd 4
+  ife npc_talking 0
+   ife camerasprite -1
+	{
+	ifrnd 96 sound DSK_CHAT1
+	else ifrnd 96 sound DSK_CHAT2
+	set npc_talking 600
+	}
+}
+
+ifp palive
+ ife player[].newowner -1 // prevent viewscreen bugs
+  ifp pfacing
+   ifpdistl 1526
+    ifspritepal 3
+  {
+  ife MOUSEUP 0 set player_use 0
+   ifhitspace
+	{
+		ife MOUSEUP 0
+		ifcount 13
+			{
+			soundonce CONVERSATION
+			readarrayfromfile BASE_RESEARCH F_BASE_AMCTC
+			getp[].horiz PHORIZ
+			getp[].ang PANG
+			set PCINTER 11
+			set INFO_SEL 26
+			set MOUSEUP 1
+			resetcount
+			}
+		else
+		ife MOUSEUP 1
+		ifcount 13
+			{
+			set PCINTER 0
+			set MOUSEUP 0
+			ifrnd 128 sound DSK_BYE1
+			else sound DSK_BYE2
+			resetcount
+			}
+	}
+
+	ife PCINTER 11 // Talking to the shopkeeper?
+		{
+		ifcount 13
+			{
+			getinput[].bits temp
+			shiftvarr temp 8
+			andvar temp 0xF
+			switch temp
+				case 1:
+					ifpdistl 2048
+					{
+					ifrnd 64 sound DSK_HELLO1
+					else ifrnd 64 sound DSK_HELLO2
+					else ifrnd 64 sound DSK_HELLO3
+					else ifrnd 64 sound DSK_HELLO4
+					else sound DSK_HELLO5
+					}
+					ife INFO_SEL 26 { set INFO_SEL CHAR set PCINTER 17 }
+					ife INFO_SEL 27 { set INFO_SEL CHAR set PCINTER 17 }
+					ife INFO_SEL 28 { set INFO_SEL CHAR set PCINTER 17 }
+					resetcount
+					break
+				case 2:
+					soundonce CONVERSATION
+					ife INFO_SEL 26 set INFO_SEL 27
+					resetcount
+					break
+				case 3:
+					soundonce CONVERSATION
+					ife INFO_SEL 26 set INFO_SEL 28
+					resetcount
+					break
+				case 10:
+					set PCINTER 0
+					set MOUSEUP 0
+					ifpdistl 2048
+					{
+					ifrnd 128 sound DSK_BYE1
+					else sound DSK_BYE2
+					}
+					resetcount
+					break
+			endswitch
+			}
+		}
+
+   }
+
+}
+enda

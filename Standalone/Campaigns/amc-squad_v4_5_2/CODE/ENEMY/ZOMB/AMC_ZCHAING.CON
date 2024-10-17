@@ -1,0 +1,287 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+
+--------------------------------------------------------------------------------
+*/
+
+// ************************************************************************************
+// ZOMBIE CHAINGUN SOLDIER
+// ************************************************************************************
+
+action AZCHAING_FROZE 0 1 5 1 10
+action AZCHAING_GROW 30 1 1 1 10
+
+action AZCHAING_IDLE 0 1 5 1 20
+
+action AZCHAINGRUN     0  4 5 1 20
+action AZCHAINGFIRE    20 2 5 1 4
+action AZCHAINGFLINCH 31 1 1 1 10
+action AZCHAINGDYING 31 6 1 1 10
+action AZCHAINGDEAD 36 1 1 1 10
+
+action AZCHAING_HEADSHOT 37 6 1 1 10
+action AZCHAING_HEADDEAD 42 1 1 1 10
+
+move ZCHAINGWALKVELS 60
+move ZCHAINGRUNVELS 80
+
+ai AIZCHAINGSEEKENEMY AZCHAINGRUN
+ai AIZCHAINGSHOOTENEMY AZCHAINGFIRE STOP
+ai AIZCHAINGDEAD AZCHAINGDEAD STOP faceplayer
+ai AIZCHAING_HEADDEAD AZCHAING_HEADDEAD STOP faceplayer
+ai AIZCHAINGSHRUNK AZCHAINGRUN ZCHAINGRUNVELS furthestdir
+ai AIZCHAING_GROW AZCHAING_GROW STOP faceplayer
+
+damageeventtile ZCHAING
+
+useractor enemystayput ZCHAINGSTAYPUT 125 AZCHAING_IDLE
+state monst_glow
+cactor ZCHAING
+enda
+
+useractor enemy ZCHAING 125 AZCHAING_IDLE
+fall
+
+ifai 0
+{
+	state monst_glow
+	spawn SHOOTME
+	ife actor_pal 0 geta[].pal actor_pal
+	ife actor_pal 43 { set actor_type TYPE_BODY_ARMOUR strength 250 sizeat 26 26 }
+	else ife actor_pal 24 { set actor_type TYPE_BODY_ARMOUR strength 150 sizeat 24 24 }
+	else { spritepal 10 strength 125 sizeat 24 24 }
+	spriteflags NORMAL_ENEMY
+	action AZCHAINGRUN
+	ai AIZCHAINGSEEKENEMY
+	sound ZSOLD_SIGHT
+	cstator 257
+}
+
+
+state ENEMYKNOCKBACKS
+state enemyfloordamage
+state enemy_fire_damage
+state enemy_ice_damage
+state enemy_spirit_damage
+
+ifaction AZCHAING_FROZE state frozen_code
+else
+ifai AIZCHAINGDEAD
+	{
+	move STOP
+		ifhitweapon
+			{
+			ifwasweapon RADIUSEXPLOSION state zombie_jibs
+			break
+			}
+	}
+else
+ifai AIZCHAING_HEADDEAD
+	{
+	move STOP
+		ifhitweapon
+			{
+			ifwasweapon RADIUSEXPLOSION state zombie_jibs
+			break
+			}
+	}
+else
+ifaction AZCHAINGDYING
+	{
+		strength 0
+		ifactioncount 6 { state BODY_FALL_NOISES spawn BLOODPOOL ai AIZCHAINGDEAD }
+	}
+else
+ifaction AZCHAING_HEADSHOT
+	{
+		strength 0
+		ifactioncount 6 { state BODY_FALL_NOISES spawn BLOODPOOL ai AIZCHAING_HEADDEAD }
+	}
+else
+ifai AIZCHAING_GROW state genericgrowcode
+else
+ifai AIZCHAINGSHRUNK
+	{
+		ifcount SHRUNKDONECOUNT
+		  ai AIZCHAINGSEEKENEMY
+		else ifcount SHRUNKCOUNT
+		  {
+		  sound ACTOR_UNSHRINK
+		  sizeto 55 55
+		  }
+		else
+		  state genericshrunkcode
+		break
+	}
+else
+ifaction AZCHAINGFLINCH
+	{
+		ifdead { strength 0 set PAIN_AMOUNT 0 }
+		sub PAIN_AMOUNT 1
+		move STOP
+		ife PAIN_AMOUNT 0 ai AIZCHAINGSEEKENEMY
+	}
+else
+ifai AIZCHAINGSEEKENEMY
+	{
+		ifmove ZCHAINGWALKVELS { }
+		else
+			move ZCHAINGWALKVELS geth
+
+	state checkfortarget
+
+	state SKILL_SHOOT_LEVELADJUST
+	ifg shoot_countdown 0 sub shoot_countdown 1
+
+		ife shoot_countdown 0 ifn my_target -1 ifl RANDOM_CHANCE SKILLCHANCE { soundonce MINIGUN3_START ai AIZCHAINGSHOOTENEMY }
+
+		ifrnd 16 soundonce ZSOLD_ROAM
+	}
+else
+ifai AIZCHAINGSHOOTENEMY
+	{
+	state fronttowardstarget
+	ife my_target -1 ai AIZCHAINGSEEKENEMY
+	else
+		ifactioncount 1
+		{
+			ife actor_pal 24
+			{
+			state SKILL_ENEMY_ACCURACY
+			set PROJECTILE_TO_SHOOT ENEMY_BULLET
+			set PROJECTILE_FIRING_SOUND BOS1_ATTACK1
+			state sang_enemyShootProjectile
+			state sang_enemyShootProjectile
+			}
+		else
+			{
+			state SKILL_ENEMY_ACCURACY
+			set PROJECTILE_TO_SHOOT ENEMY_BULLET
+			set PROJECTILE_FIRING_SOUND ZCHAING_FIRE
+			state sang_enemyShootProjectile
+			}
+			ife PERFMODE 1
+			 ifcansee
+				{
+				set gunsmoke_z 7644
+				set gunsmoke_angle 256
+				state spawn_gunsmoke_z
+				set gunsmoke_z 6044
+				espawn 16115
+				state spawn_muzzleflash
+				state npc_rifleshell
+				}
+			ifrnd 4 { soundonce MINIGUN3_STOP ai AIZCHAINGSEEKENEMY }
+			resetactioncount
+		}
+	}
+
+ifhitweapon
+{
+ifaction AZCHAINGDYING break
+ifaction AZCHAING_HEADSHOT break
+	state NEWGUNEFFECTS
+	//spawn BLOOD
+	//guts JIBS6 4
+	state random_wall_jibs
+	ifdead
+		{
+		ifwasweapon GROWSPARK { cstat 0 sound ACTOR_GROWING ai AIZCHAING_GROW break }
+		else ifg ice_damage 0 { spritepal 1 strength 1 sound SOMETHINGFROZE action AZCHAING_FROZE }
+		else
+			{
+			state rf
+			addkills 1
+
+			ifwasweapon RADIUSEXPLOSION state zombie_jibs
+			ifwasweapon RPG state zombie_jibs
+			ifand PROJ_UDATA PROJ_GIB state zombie_jibs
+			ifand PROJ_UDATA 8192
+			 {
+			 ifrnd 4 soundonce MALE_ELECT1
+			 spawn ELECTROCUTE_BIGGUY
+			 shoot SPARK2 shoot SPARK2 shoot SPARK2
+			 killit
+			 }
+			ifg fire_damage 0
+				{
+				shoot SPARK2 shoot SPARK2 shoot SPARK2
+				ifrnd 128 sound ZSOLD_DIE1 else sound ZSOLD_DIE2
+				spawn ONFIREGUY
+				killit
+				}
+			else
+			ife HEADSHOT 2
+			{
+			ifg fire_damage 0 set fire_damage 0
+				state random_trigger_showoff
+				state jib_sounds
+				state decap_sounds
+				shoot NJIB
+				shoot NJIB
+				guts JIBS6 3
+				guts JIBS2 2
+				action AZCHAING_HEADSHOT
+			}
+			else
+			ifg energy_damage 0
+				{
+				shoot SPARK2 shoot SPARK2 shoot SPARK2
+				spritepal 4
+				guts JIBS3 6
+				spawn DISINTIGRATE_BIG_GUY
+				killit
+				}
+			else ifg spirit_damage 0
+			{
+			shoot SPARK2 shoot SPARK2 shoot SPARK2
+			spritepal 1
+			guts JIBS3 6
+			spawn SPIRIT_DEATH_GUY
+			killit
+			}
+			else
+				{
+				ifrnd 128 sound ZSOLD_DIE1 else sound ZSOLD_DIE2
+				action AZCHAINGDYING
+				}
+			}
+		ifrnd 24 { espawn ZCHAINGUN_SPRITE randvar temp 100 add temp 50 setactorvar[RETURN].YVELSAVED temp }
+		ifphealthl 50
+			{
+			state SKILL_LEVELADJUST
+			ifl RANDOM_CHANCE SKILLCHANCE spawn HYPOSPRAY
+			}
+		}
+else
+	ifg PAIN_AMOUNT 0 action AZCHAINGFLINCH
+	else ifrnd 16 { sound ZSCI_PAIN state PAIN_SKILL_LEVELADJUST action AZCHAINGFLINCH }
+	else ifwasweapon SHRINKSPARK { sound ACTOR_SHRINKING ai AIZCHAINGSHRUNK }
+}
+
+state checksquished
+
+enda

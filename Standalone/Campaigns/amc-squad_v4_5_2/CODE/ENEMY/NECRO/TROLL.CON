@@ -1,0 +1,539 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+
+--------------------------------------------------------------------------------
+*/
+
+damageeventtile TROLL
+
+move M_TROLL_FIRE 450
+spritenopal TROLLFIREWALL
+
+defstate firewall_detecthit
+	// expected input temp9 = actor to check
+	// output => temp8 = 1 if hits
+	set temp8 0
+
+	// disregard hits on trolls
+	geta[temp9].picnum temp2
+	ifspawnedby APLAYER ife temp2 APLAYER nullop else
+	ife temp2 TROLL
+		nullop
+	else
+	{
+		dist temp2 temp9 THISACTOR
+		// temp8 = 1 if firewall hits
+		ifl temp2 1500
+		{
+			// get the angle to the actor. If difference with current angle is > 512 the actor is behind the firewall so shouldn't hit
+			set my_target temp9
+			state angvartotarget // output = angvar
+
+			geta[].ang temp2
+			set MAX_ANGLE_DIFF 512
+			set ANGLE_A temp2
+			set ANGLE_B angvar
+			state check_max_angle_diff
+			// Return 0 means we're within 512 angle units, so the firewall hits
+			ife RETURN 0
+			{
+				// get height - thanks to Dan's santa hats mod for this snippet
+				set temp tiledata[sprite[].picnum].ysize
+				mul temp sprite[].yrepeat
+				mul temp 7
+				div temp 2
+
+				sub my_z temp
+
+				geta[temp9].z mz
+				sub mz my_z // mz is now the difference between the actor's feet and the top of the firewall
+
+				ifg mz 1500
+					set temp8 1
+			}
+		}
+	}
+ends
+
+action TFIREW_DIE 11587 3 1 1 16
+
+useractor notenemy TROLLFIREWALL
+
+ifaction 0
+{
+	seta[].xrepeat 64
+	// seta[].yrepeat 64
+	cstat 2066
+	set INTERNALCOUNT 0
+	action ZERO
+}
+
+ifaction TFIREW_DIE
+{
+cstat 2
+sizeto 1 1
+ifactioncount 2
+	{
+	spawn ENERGY_EXPLOSION
+	shoot SPARK2 shoot SPARK2 shoot SPARK2
+	killit
+	}
+}
+else
+ifaction ZERO
+{
+	move M_TROLL_FIRE geth
+
+	// force to ground on slopes
+	geta[].x my_x
+	geta[].y my_y
+	geta[].sectnum temp
+	getflorzofslope temp my_x my_y my_z
+	seta[].z my_z
+
+	add INTERNALCOUNT 1
+
+	set temp8 0
+	ifspawnedby APLAYER nullop
+	else
+	{
+		ifcanseetarget
+		{
+			set temp9 PLAYER_IDENTITY
+			state firewall_detecthit
+		}
+
+		// Apply fire damage to the player
+		ife temp8 1
+		{
+			set fire_damage 96
+			state playerincurfiredamage
+
+			wackplayer
+			sound TROLL_EXP
+			action TFIREW_DIE
+		}
+	}
+	// Apply fire damage on other actors
+	findnearactor3d TARGETFX 2048 temp9 ifn temp9 -1
+	{
+		state firewall_detecthit
+		ife temp8 1
+		{
+			getav[temp9].myowner temp8
+			getav[temp8].fire_damage temp
+			add temp 96
+			setactorvar[temp8].fire_damage temp
+			sound TROLL_EXP
+			action TFIREW_DIE
+		}
+	}
+
+	findnearactor3d SHOOTME 2048 temp9 ifn temp9 -1
+	{
+		state firewall_detecthit
+		ife temp8 1
+		{
+			getav[temp9].myowner temp8
+			getav[temp8].fire_damage temp
+			add temp 96
+			setactorvar[temp8].fire_damage temp
+			sound TROLL_EXP
+			action TFIREW_DIE
+		}
+	}
+
+	findnearactor3d SHOOTME2 2048 temp9 ifn temp9 -1
+	{
+		state firewall_detecthit
+		ifspawnedby APLAYER set temp8 0
+		ife temp8 1
+		{
+			getav[temp9].myowner temp8
+			ifn temp8 player[].i
+				{
+				getav[temp8].fire_damage temp
+				add temp 96
+				setactorvar[temp8].fire_damage temp
+				}
+			sound TROLL_EXP
+			action TFIREW_DIE
+		}
+	}
+
+	// max range
+	ifg INTERNALCOUNT 125
+		action TFIREW_DIE
+
+	ifnotmoving
+	{
+		sound TROLL_EXP
+		action TFIREW_DIE
+	}
+}
+enda
+
+action A_TROLL_IDLE 68 1 5 1 12
+action A_TROLL_CRUSH 73
+action A_TROLL_DEAD 67
+action A_TROLL_DYING 60 8 1 1 16
+action A_TROLL_PAIN 35 1 1 1 8
+action A_TROLL_SEEK 0 4 5 1 24
+action A_TROLL_ATTACK_OVERHEAD_CHARGE 20 3 5 1 12
+action A_TROLL_ATTACK_OVERHEAD_HOLD 30 1 5 1 12
+action A_TROLL_ATTACK_OVERHEAD_RELEASE 35 2 5 1 12
+action A_TROLL_ATTACK_SOMETHING 45 3 5 1 18
+action A_TROLL_ATTACK_SOMETHING_WAIT 55 1 5 1 12
+
+move M_TROLL_WALK 250
+
+defstate troll_overheadparticlespawn
+	geta[].x x
+	geta[].y y
+	geta[].z z
+	ifspritepal 51 sub z 32000 else
+	sub z 45000
+	set temp 1
+	state spawn_particle_at // (x, y, z) with pal 1
+	geta[].z z
+	ifspritepal 51 sub z 31000 else
+	sub z 44000
+	state spawn_particle_at
+	geta[].z z
+	ifspritepal 51 sub z 30000 else
+	sub x 43000
+	state spawn_particle_at
+ends
+
+defstate troll_isoverheadattacking // returns RETURN = 1 if troll is overhead attacking
+	set RETURN 0
+	ifaction A_TROLL_ATTACK_OVERHEAD_CHARGE
+		set RETURN 1
+	else ifaction A_TROLL_ATTACK_OVERHEAD_HOLD
+		set RETURN 1
+	else ifaction A_TROLL_ATTACK_OVERHEAD_RELEASE
+		set RETURN 1
+ends
+
+defstate troll_overheadattack
+	ifaction A_TROLL_ATTACK_OVERHEAD_CHARGE
+	{
+		move STOP
+		state fronttowardstarget
+
+		ifactioncount 3
+			action A_TROLL_ATTACK_OVERHEAD_HOLD
+	}
+	else ifaction A_TROLL_ATTACK_OVERHEAD_HOLD
+	{
+		// you can tie this actioncount to difficulty if you like, determines how long the troll will charge his attack
+		state fronttowardstarget
+		state troll_overheadparticlespawn
+
+		ifactioncount 4
+		{
+			sound TROLL_ROAM2
+			action A_TROLL_ATTACK_OVERHEAD_RELEASE
+		}
+	}
+	else ifaction A_TROLL_ATTACK_OVERHEAD_RELEASE
+	{
+		ifactioncount 2
+		{
+			sound TROLL_SLAM
+			quake 26
+
+			findnearactor3d ENEMY_TARGET 4096 temp9 ifn temp9 -1
+			{
+				geta[temp9].extra temp4
+				sub temp4 500
+				seta[temp9].extra temp4
+			}
+
+			// Temporary projectile
+			// What I would like to happen is to have a cone of blue (or whatever) "fire" emanating from where the tip cracks down towards where the player is
+			// so that the player needs to roll or otherwise break line of sight to avoid damage
+			// A bit like the firewall in ROTT
+
+			// projectile shots default from the center of the sprite + x offset
+			// I want the projectile to start from the floor
+			// so, it's the "particle" spawner that will shoot the projectile, after spawning on the floor..
+			geta[].x x
+			geta[].y y
+			geta[].z z
+			set temp 2
+			state spawn_particle_at // (x, y, z) with pal 1
+
+			action A_TROLL_SEEK
+		}
+	}
+ends
+
+defstate troll_crush_player
+	cstat 32768
+	move 0
+	geta[].x temp
+	geta[].y temp2
+	set temp3 temp
+	add temp3 512 // distance
+	ifrnd 64 addphealth -8
+	geta[].ang temp4
+	rotatepoint temp temp2 temp3 temp2 temp4 temp5 temp6
+	setp[].posx temp5
+	setp[].posy temp6
+	state lower_weapon
+
+	geta[].x mx
+	geta[].y my
+	getp[].posx x
+	getp[].posy y
+	sub mx x
+	sub my y
+	getangle temp8 mx my
+	setp[].ang temp8
+
+	ifl troll_struggle 1 { cstat 257 action A_TROLL_SEEK break }
+
+	ifp pdead { cstat 257 action A_TROLL_IDLE set troll_struggle -1 }
+ends
+
+
+useractor enemystayput TROLL_STAYPUT cactor TROLL enda
+
+useractor enemy TROLL 3000
+fall
+
+ifaction 0
+{
+	cstat 257
+	set blood_type 8
+	ifspritepal 51
+		{
+		strength 1500
+		sizeat 36 36
+		}
+	else
+		{
+		strength 3000
+		sizeat 48 48
+		ifspritepal 3 nullop else
+		set CURBOSS THISACTOR
+		}
+	geta[].pal PALSAVED
+	state monst_glow
+	action A_TROLL_IDLE
+}
+
+	ifg silence_damage 0
+		{
+		sub silence_damage 1
+		state spawn_curse_particles
+		}
+
+state ENEMYKNOCKBACKS
+state enemyfloordamage
+state enemy_fire_damage
+state enemy_ice_damage
+state enemy_spirit_damage
+
+ifaction A_TROLL_DEAD move STOP
+else ifaction A_TROLL_DYING
+{
+	move STOP
+	strength 0
+	ifactioncount 8
+	{
+		state BODY_FALL_NOISES
+		espawn BLOODPOOL
+		seta[RETURN].pal 8
+		quake 52 // shake for 2 seconds
+		action A_TROLL_DEAD
+	}
+}
+else ifaction A_TROLL_CRUSH state troll_crush_player
+else ifaction A_TROLL_IDLE
+{
+	move STOP
+	state checkfortarget
+	ifn my_target -1
+	{
+		// play alert sound here
+		sound TROLL_RECOG
+		set INTERNALCOUNT 0
+		action A_TROLL_SEEK
+	}
+}
+else ifaction A_TROLL_SEEK
+{
+	ifmove M_TROLL_WALK nullop
+	else move M_TROLL_WALK geth
+
+	ifactioncount 3
+	{
+		resetactioncount
+		ifpdistl 12000
+		{
+			quake 6
+			ifrnd 76 sound TROLL_W1 else
+			ifrnd 76 sound TROLL_W2 else
+			ifrnd 76 sound TROLL_W3 else
+			sound TROLL_W4
+		}
+	}
+
+	// random roaming sound
+	ifrnd 16
+	{
+		ifsound TROLL_ROAM1 nullop
+		else ifsound TROLL_ROAM2 nullop
+		else
+		{
+			ifrnd 128 sound TROLL_ROAM1
+			else sound TROLL_ROAM2
+		}
+	}
+
+	state checkfortarget
+
+	ifle INTERNALCOUNT 50
+		add INTERNALCOUNT 1
+
+	ifg INTERNALCOUNT 50
+		ifrnd 64
+		ifn my_target -1
+	{
+		dist temp THISACTOR my_target // if found, get distance
+
+		ifl temp 16384
+		{
+			set INTERNALCOUNT 0
+			ifrnd 128 ife silence_damage 0 action A_TROLL_ATTACK_OVERHEAD_CHARGE
+			else action A_TROLL_ATTACK_SOMETHING
+		}
+	}
+}
+else ifaction A_TROLL_PAIN
+{
+	sound TROLL_PAIN
+	sub PAIN_AMOUNT 1
+	move STOP
+	ife PAIN_AMOUNT 0
+	{
+		ifdead break
+		action A_TROLL_SEEK
+	}
+}
+else ifaction A_TROLL_ATTACK_SOMETHING
+{
+	move STOP
+	state fronttowardstarget
+
+	ifactioncount 3
+		action A_TROLL_ATTACK_SOMETHING_WAIT
+
+	ifactioncount 2
+	{
+		set CALCZ_TARGET_OFFSET -9500
+		set PROJECTILE_TO_SHOOT HADESBLAST
+		set PROJECTILE_FIRING_SOUND -1
+		state sang_enemyShootProjectile
+	}
+}
+else ifaction A_TROLL_ATTACK_SOMETHING_WAIT
+{
+	move STOP
+	state fronttowardstarget
+
+	ifsound TROLL_RECOG nullop
+	else sound TROLL_RECOG
+
+	ifactioncount 6
+		action A_TROLL_SEEK
+}
+
+state troll_overheadattack // this only does something if we're in the overhead attack actions
+
+ifhitweapon
+{
+	ifspritepal 51 nullop else ifspritepal 3 nullop else set CURBOSS THISACTOR
+	ifwasweapon VOID_PLAYER_BOLT { sound EN_CURSE set silence_damage 75 }
+	ifwasweapon VOID_BOLT { sound EN_CURSE ifspritepal 51 set silence_damage 300 else set silence_damage 150 }
+	ifwasweapon VOID_BLAST { sound EN_CURSE ifspritepal 51 set silence_damage 900 else set silence_damage 450 }
+	state NEWGUNEFFECTS
+	spritepal 8
+	espawn BLOOD
+	seta[].pal 8
+	guts JIBS6 1
+	state random_wall_jibs
+	getlastpal
+
+	ifdead
+	{
+		ifaction A_TROLL_DEAD break
+		add TREASURE_FOUND 3
+		addkills 1
+		ifn HITAGSAVED 0
+			{
+			operateactivators HITAGSAVED THISACTOR
+			operaterespawns HITAGSAVED
+			operatemasterswitches HITAGSAVED
+			}
+		// I don't think status effects should instakill this dude, but feel free to readd them here if needed
+		state rf
+		ifspritepal 0 set voice_cooldown 0
+		state jib_sounds
+		sound TROLL_DIE
+		action A_TROLL_DYING
+	}
+	// else ifg PAIN_AMOUNT 0 { state troll_isoverheadattacking ife RETURN 0 action A_TROLL_PAIN }
+	else ifrnd 4 { state troll_isoverheadattacking ife RETURN 0 { state PAIN_SKILL_LEVELADJUST action A_TROLL_PAIN } }
+	else ifaction A_TROLL_IDLE { state PAIN_SKILL_LEVELADJUST action A_TROLL_PAIN }
+}
+
+ifdead nullop
+else
+  ifn CHAR 2
+  ifp palive
+	ifspritepal 0
+	ifpdistl 1280
+	 ifcansee
+	  ife troll_struggle -1
+	   ife opt_qte_disable NO
+{
+		ifaction A_TROLL_CRUSH break
+		action A_TROLL_CRUSH
+		set PLAYER_VOICEOVER 53
+		sound GRABTHROAT
+		getactor[].pal cultist_pal
+		ife SKILL_LEVEL 1 set troll_struggle 26
+		else ife SKILL_LEVEL 2 set troll_struggle 52
+		else ife SKILL_LEVEL 3 set troll_struggle 76
+		else set troll_struggle 104
+}
+
+state checksquished
+
+enda

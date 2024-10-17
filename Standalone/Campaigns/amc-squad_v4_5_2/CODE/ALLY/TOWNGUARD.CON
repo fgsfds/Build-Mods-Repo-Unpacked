@@ -1,0 +1,686 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+
+--------------------------------------------------------------------------------
+*/
+
+damageeventtile TOWN_GUARD
+
+// *************************************************
+// TOWN GUARD
+// *************************************************
+
+defstate friend_towng_fight
+	ifn sprite[].pal 42
+	 ifn sprite[].pal 63
+	  ife npc_talking 0
+		{
+		ife GENDER MALE
+			{
+			ife INVASION 1
+				{
+				ifspritepal 21
+					{
+					ifrnd 96 sound TGL_CHARGE1
+					else ifrnd 96 sound TGL_CHARGE2
+					else ifrnd 96 sound TGL_CHARGE3
+					else ifrnd 96 sound TGL_CHARGE4
+					else sound TGL_CHARGE5
+					}
+				else
+					{
+					ifrnd 96 sound TG_CHARGE1
+					else ifrnd 96 sound TG_CHARGE2
+					else ifrnd 96 sound TG_CHARGE3
+					else sound TG_CHARGE4
+					}
+				}
+				else
+				{
+				ifspritepal 21
+					{
+					ifrnd 96 sound TGL_SHOUT1
+					else ifrnd 96 sound TGL_SHOUT2
+					else sound TGL_SHOUT3
+					}
+				else
+					{
+					ifrnd 96 sound TG_SHOUT1
+					else ifrnd 96 sound TG_SHOUT2
+					else sound TG_SHOUT3
+					}
+				}
+			}
+		else // female guard?
+			{
+			ife INVASION 1
+				{
+				ifrnd 96 sound FTG_LAUGH1
+				else ifrnd 96 sound FTG_LAUGH2
+				}
+			else
+				{
+				ifrnd 96 sound FTG_SIGHT1
+				else ifrnd 96 sound FTG_SIGHT2
+				else ifrnd 96 sound FTG_SIGHT3
+				else sound FTG_SIGHT4
+				}
+			}
+		set npc_talking 60
+		}
+ends
+
+action A_TOWNGUARD_GUARD 0 1 5 1 11
+action A_TOWNGUARD_IDLE 0 1 5 1 11
+action A_TOWNGUARD_MOVE 5 4 5 1 12
+action A_TOWNGUARD_ATTACK 25 3 5 1 24
+
+action A_TOWNGUARD_PAIN 40 1
+
+action A_TOWNGUARD_DYING 40 5 1 1 12
+action A_TOWNGUARD_DEAD 45 1 1 1 1
+
+action A_TOWNGUARD_RESS 45 5 1 -1 12
+
+action A_TOWNGUARD_HEADS 46 5 1 1 12
+action A_TOWNGUARD_HEAD_DEAD 50
+
+spriteshadow TOWN_GUARD
+spritenopal TOWN_GUARD
+
+move GUARD_MOVE 128
+
+defstate spawnsquadtownguard
+	set squad_leader THISACTOR
+	set squad_id next_squad_id
+	add next_squad_id 1
+
+	// Spawn <temp2> buddies
+	set temp 1
+	set temp2 5
+	for temp range temp2 {
+		add temp 1
+		espawn TOWN_GUARD // TODO spawn around me and not in me
+		setav[RETURN].squad_leader THISACTOR
+		setav[RETURN].squad_id squad_id
+	}
+ends
+
+appendevent EVENT_LOADACTOR
+	ifactor TOWN_GUARD
+	{
+		geta[].extra EXTRASAVED
+		geta[].pal PALSAVED
+
+		ife EXTRASAVED 1
+			state spawnsquadtownguard
+	}
+endevent
+
+defstate towng_ress
+	strength 250
+	spawn 13949
+	spritepal 63
+	ifge necro_ress 0 sub necro_ress 1
+	ifrnd 128 sound ZORC_SIG1
+	else sound ZORC_SIG2
+	action A_TOWNGUARD_RESS
+ends
+
+useractor notenemy TOWN_GUARD
+fall
+
+ifaction 0
+{
+	seta[].htwaterzoffset 8
+	ifspritepal 3 set INVASION 1
+	sizeat 24 24
+	seta[].mdflags 16
+	clipdist 60
+	set npc_talking 0
+	set actor_type TYPE_CASE_SPECIFIC
+	ifspritepal 42 // nasty bad mean town guard
+	{
+		strength 150
+		// TODO remove shootme refs
+		seta[].htflags 1056771
+		spawn SHOOTME
+	}
+	else
+	ifspritepal 63 // zombie townguard
+	{
+		strength 250
+		// TODO remove shootme refs
+		seta[].htflags 1056771
+		spawn SHOOTME
+	}
+	else
+	{
+		ifrnd 96
+			{
+			sizeat 20 24
+			set GENDER FEMALE
+			}
+			else set GENDER MALE
+		strength 125
+		// TODO remove shootme refs
+		spawn SHOOTME2
+	}
+
+	cstat 257
+	action A_TOWNGUARD_GUARD
+}
+
+ifg npc_talking 0 sub npc_talking 1
+
+state spawn_cold_breathe
+
+state ENEMYKNOCKBACKS
+state enemyfloordamage
+
+state enemy_fire_damage
+state enemy_ice_damage
+state enemy_spirit_damage
+
+ifaction A_TOWNGUARD_DEAD
+	{
+	move STOP
+	ifhitweapon
+		{
+		ifwasweapon RADIUSEXPLOSION
+			{
+			state squish_sounds
+			state standard_jibs
+			state human_jibs
+			killit
+			}
+		}
+
+	ife necro_ress -1
+			 ifn sprite[].pal 63 // not already resurrected?
+				state towng_ress
+
+	ifg necro_ress 0
+		ifpdistl 8192
+			ifrnd 32
+			 ifn sprite[].pal 63 // not already resurrected?
+				state towng_ress
+	}
+else
+ifaction A_TOWNGUARD_HEAD_DEAD
+	{
+	move STOP
+	ifhitweapon
+		{
+		ifwasweapon RADIUSEXPLOSION
+			{
+			state squish_sounds
+			state standard_jibs
+			state human_jibs
+			killit
+			}
+		}
+	}
+else ifaction A_TOWNGUARD_RESS
+	{
+	ifactioncount 5
+		{
+			set INTERNALCOUNT 80
+			cstat 257
+			set faction_flag 1
+			state addtotargetarray
+			espawn SHOOTME seta[RETURN].pal 1
+			action A_TOWNGUARD_MOVE
+		}
+	}
+else
+ifaction A_TOWNGUARD_DYING
+	{
+	strength 0
+	ifactioncount 5 { state BODY_FALL_NOISES action A_TOWNGUARD_DEAD ifrnd 76 spawn BLOODPOOL  }
+	}
+else
+ifaction A_TOWNGUARD_HEADS
+	{
+	strength 0
+	ifactioncount 5 { state BODY_FALL_NOISES action A_TOWNGUARD_HEAD_DEAD ifrnd 76 spawn BLOODPOOL  }
+	}
+else
+ifaction A_TOWNGUARD_PAIN
+	{
+	ifactioncount 0
+	{
+	ifspritepal 63 ifrnd 96 sound ZSCI_PAIN
+	else
+	 ifspritepal 21
+		{
+		ifrnd 96 sound TGL_PAIN1
+		else ifrnd 96 sound TGL_PAIN2
+		else sound TGL_PAIN3
+		}
+	else
+	ife GENDER FEMALE
+		{
+		ifrnd 128 sound FTG_PAIN1
+		else sound FTG_PAIN2
+		}
+	}
+	else { }
+	move STOP
+	ifdead action A_TOWNGUARD_DYING else
+	ifactioncount 4 action A_TOWNGUARD_MOVE
+	}
+else
+ifaction A_TOWNGUARD_ATTACK
+{
+	move STOP
+	state checkfortarget
+
+	add INTERNALCOUNT 1
+
+	ifn my_target -1
+	{
+		// swing sound only once
+		ife INTERNALCOUNT 1
+			{
+			ifspritepal 21
+				{
+				ifrnd 96 sound TGL_GRUNT1
+				else ifrnd 96 sound TGL_GRUNT2
+				else sound TGL_GRUNT3
+				}
+			soundonce BERSERK_SWING
+			}
+
+		ifactioncount 3
+		{
+			set INTERNALCOUNT 0
+			resetactioncount
+		}
+		else ifactioncount 2
+		{
+			ife INTERNALCOUNT 3
+			{
+				state fronttowardstarget
+				ldist temp THISACTOR my_target
+
+				ifg temp 1024
+					action A_TOWNGUARD_MOVE
+
+				geta[].z temp2
+				sub temp2 8192 // Offset the Z. Assumes the center of the actor is the same as the player
+				geta[my_target].z temp3
+				ife actorvar[my_target].ally_mag 1 sub temp3 256 else
+				sub temp3 8592 // Offset the Z. assumes the center of the actor is the same as the player
+				sub temp3 temp2
+				shiftvarl temp3 8
+				ifn temp 0 divvarvar temp3 temp
+				ifrnd 96 { shoot SPARK shoot SPARK sound SWORD_CLASH }
+				sound BERSERK_SWING
+
+				setprojectile[11742].WORKSLIKE 2125890
+				zshoot temp3 11742
+				setprojectile[11742].WORKSLIKE 2129986
+
+				add INTERNALCOUNT 1
+			}
+		}
+		else ifactioncount 1
+			set INTERNALCOUNT 2
+	}
+	else {
+		action A_TOWNGUARD_MOVE
+	}
+}
+else
+ifaction A_TOWNGUARD_MOVE
+{
+	move GUARD_MOVE geth
+
+	state checkfortarget
+
+	ifn my_target -1
+	{
+	ifrnd 1
+		ifn sprite[].pal 42 // bad townguard?
+		 ifn sprite[].pal 63 // zombie townguard?
+		  ife npc_talking 0
+			{
+			ife GENDER MALE
+				{
+				ifspritepal 21
+					{
+					ifrnd 96 sound TGL_CHARGE1
+					else ifrnd 96 sound TGL_CHARGE2
+					else ifrnd 96 sound TGL_CHARGE3
+					else ifrnd 96 sound TGL_CHARGE4
+					else sound TGL_CHARGE5
+					}
+				else
+					{
+					ifrnd 96 sound TG_SHOUT1
+					else ifrnd 96 sound TG_SHOUT2
+					else ifrnd 96 sound TG_SHOUT3
+					else sound TG_FORWARD
+					}
+				set npc_talking 300
+				}
+			else ife GENDER FEMALE
+				{
+				ifrnd 64 sound FTG_ATTACK1
+				else ifrnd 64 sound FTG_ATTACK2
+				else ifrnd 64 sound FTG_ATTACK3
+				set npc_talking 600
+				}
+			}
+
+		ldist temp THISACTOR my_target
+		ifl temp 768
+		{
+			set INTERNALCOUNT 0
+			action A_TOWNGUARD_ATTACK
+		}
+
+	}
+	else ifn my_previous_target -1
+	{
+		// is this previous target dead? go to idle state
+		geta[my_previous_target].extra temp8
+
+		ifl temp8 1
+			{
+			ife npc_talking 0
+				{
+				ifspritepal 42
+					{
+					ifrnd 16 soundonce BG_KILL1
+					else ifrnd 16 soundonce BG_KILL2
+					}
+				else
+				ife GENDER FEMALE
+					{
+					ifrnd 16 soundonce FTG_KILL1
+					else ifrnd 16 soundonce FTG_KILL2
+					else ifrnd 16 soundonce FTG_KILL3
+					else ifrnd 16 soundonce FTG_KILL4
+					else ifrnd 16 soundonce FTG_KILL5
+					}
+				else
+				ifspritepal 21
+					{
+					ifrnd 16 soundonce TGL_KILL1
+					else ifrnd 16 soundonce TGL_KILL2
+					else ifrnd 16 soundonce TGL_KILL3
+					}
+				set npc_talking 300
+				}
+			action A_TOWNGUARD_IDLE
+			}
+	}
+	else // where would we run to? go idle
+		action A_TOWNGUARD_IDLE
+
+
+	ifactioncount 3
+	{
+		state npc_footsteps
+		resetactioncount
+	}
+	ifnotmoving operate
+}
+else
+ifaction A_TOWNGUARD_IDLE
+	{
+	move STOP
+	state rand_lookaround
+	sleeptime 0
+	state checkfortarget
+	ifn my_target -1
+		{
+		state friend_towng_fight
+		ifspritepal 63 ifrnd 96 sound ZSOLD_SIGHT
+		ifspritepal 42
+		 ife npc_talking 0
+			{
+			ife my_target PLAYER_IDENTITY ifrnd 64 soundonce BG_PLAYER1
+			else ifrnd 64 soundonce BG_SIGHT1
+			else ifrnd 64 soundonce BG_SIGHT2
+			else ifrnd 64 soundonce BG_SIGHT3
+			else ifrnd 64 soundonce BG_SIGHT4
+			set npc_talking 90
+			}
+		action A_TOWNGUARD_MOVE
+		}
+
+	ifg targetlock 0 sub targetlock 1
+
+	ifn sprite[].pal 42 ifn sprite[].pal 63 ifstrength 300 ifcount 6 { addstrength 1 resetcount }
+	}
+else
+ifaction A_TOWNGUARD_GUARD
+	{
+		move STOP
+		sleeptime 0
+		state checkfortarget
+		ifn my_target -1
+			{
+			state friend_towng_fight
+			ifspritepal 42
+			 ife npc_talking 0
+				{
+				ife my_target PLAYER_IDENTITY ifrnd 64 soundonce BG_PLAYER1
+				else ifrnd 64 soundonce BG_SIGHT1
+				else ifrnd 64 soundonce BG_SIGHT2
+				else ifrnd 64 soundonce BG_SIGHT3
+				else ifrnd 64 soundonce BG_SIGHT4
+				set npc_talking 90
+				}
+			action A_TOWNGUARD_MOVE
+			}
+
+		ifpdistl 1536
+		 ifp pfacing
+		  ifp palive
+		   ifhitspace
+		    ife npc_talking 0
+				{
+				ife GENDER FEMALE
+					{
+					ifrnd 96 soundonce FTG_GREET1 else
+					ifrnd 96 soundonce FTG_GREET2 else
+					soundonce FTG_GREET3
+					}
+				else
+					{
+					ifspritepal 21
+						{
+						ife P_GENDER FEMALE
+							{
+							ifrnd 128 soundonce TGL_GREET3
+							else soundonce TGL_GREET4
+							}
+							else
+							{
+							ifrnd 128 soundonce TGL_GREET1
+							else soundonce TGL_GREET2
+							}
+						}
+					else
+						{
+						ifrnd 128 soundonce TG_READY else
+						soundonce TG_GREET
+						}
+					}
+				set npc_talking 120
+				}
+
+		ifg targetlock 0 sub targetlock 1
+
+		ifstrength 300 ifcount 6 { addstrength 1 resetcount }
+	}
+
+ifdead nullop else ife npc_talking 0
+	{
+	ifspritepal 42 nullop // will do stuff laters
+	else
+	ifspritepal 63 nullop
+	else
+		{
+		ifand npc_killed 64 /// friendly killed?
+			{
+			ife GENDER FEMALE ifrnd 32 sound FTG_MAND1
+			else
+			ife GENDER MALE
+				{
+				ifrnd 96 sound TG_MAND1
+				else ifrnd 96 sound TG_MAND2
+				else ifrnd 96 sound TG_MAND3
+				else sound TG_MAND4
+				}
+			set npc_talking 60
+			set npc_killed 0
+			}
+		}
+	}
+
+ifhitweapon
+	{
+	spawn BLOOD
+	ifspritepal 42 state NEWGUNEFFECTS
+	ifspritepal 63 state NEWGUNEFFECTS
+	state random_wall_jibs
+	ifdead
+		{
+		ifspritepal 63
+			{
+			ifrnd 128 sound ZSOLD_DIE1 else sound ZSOLD_DIE2
+			shoot SPARK2 shoot SPARK2 shoot SPARK2
+			spritepal 1
+			guts JIBS3 6
+			spawn SPIRIT_DEATH_GUY
+			killit
+			}
+		ifspritepal 42 { ifand npc_killed 128 nullop else xorvar npc_killed 128 }
+		else { ifand npc_killed 64 nullop else xorvar npc_killed 64 }
+		state rf
+		ifwasweapon RPG
+			{
+			  state squish_sounds
+			  state human_jibs
+			  state standard_jibs
+			  killit
+			}
+		  ifwasweapon RADIUSEXPLOSION
+			{
+			  state squish_sounds
+			  state human_jibs
+			  state standard_jibs
+			  killit
+			}
+		  ifand PROJ_UDATA PROJ_GIB
+			{
+			  state squish_sounds
+			  state human_jibs
+			  state standard_jibs
+			  killit
+			}
+			ifg energy_damage 0
+				{
+				shoot SPARK2 shoot SPARK2 shoot SPARK2
+				spritepal 4
+				guts JIBS3 6
+				spawn DISINTIGRATE_GUY
+				killit
+				}
+			ifg spirit_damage 0
+				{
+				shoot SPARK2 shoot SPARK2 shoot SPARK2
+				spritepal 1
+				guts JIBS3 6
+				spawn SPIRIT_DEATH_GUY
+				killit
+				}
+			ifg fire_damage 0
+				{
+				ife GENDER MALE
+					{
+					ifrnd 64 sound MALE_ONFIRE1
+					else ifrnd 64 sound MALE_ONFIRE2
+					else ifrnd 64 sound MALE_ONFIRE3
+					else sound MALE_ONFIRE4
+					}
+				spawn ONFIREGUY
+				killit
+				}
+			ifg HEADSHOT 0
+				{
+				state rf
+				ifg fire_damage 0 set fire_damage 0
+				state jib_sounds
+				ifrnd 128 sound HEL_HS1 else sound HEL_HS2
+				shoot NJIB
+				shoot NJIB
+				guts JIBS6 3
+				guts JIBS2 2
+				action A_TOWNGUARD_HEADS
+				resetactioncount
+				}
+			else
+			{
+			ifspritepal 42
+				{
+				ifrnd 128 sound BG_DIE1 else
+				sound BG_DIE2
+				}
+			else
+				{
+				ifpdistl 8192 set PLAYER_VOICEOVER 1
+				ife GENDER MALE
+					{
+					ifspritepal 21
+						{
+						ifrnd 32 sound TGL_DIE1
+						else ifrnd 32 sound TGL_DIE2
+						else ifrnd 32 sound TGL_DIE3
+						else sound TGL_PAIN1
+						}
+						else
+					sound TG_DIE
+					}
+				else
+					{
+					ifrnd 96 sound FTG_DIE1
+					else ifrnd 96 sound FTG_DIE2
+					else sound FTG_DIE3
+					}
+				}
+			action A_TOWNGUARD_DYING
+			resetactioncount
+			}
+		}
+		else ifrnd 64 action A_TOWNGUARD_PAIN
+	}
+enda

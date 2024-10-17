@@ -1,0 +1,350 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+
+--------------------------------------------------------------------------------
+*/
+
+damageeventtile SHADE
+
+action A_SHADE_IDLE  0 1 5 1 20
+action A_SHADE_DYING 40 5 1 1 10
+action A_SHADE_FREEZE 45 1 1 1 10
+action A_SHADE_GROW 35 1 5 1 10
+action A_SHADE_SHRUNK 0 4 5 1 20
+action A_SHADE_PAIN 35 1 5 1 10
+action A_SHADE_SEEK 0 4 5 1 20
+action A_SHADE_ATTACK 20 3 5 1 25
+action A_SHADE_RUSH 0  4 5 1 11
+action A_SHADE_TELEPORT 35 1 5 1 10 // Teleport = find a dark sector near the player and teleport to it
+action A_SHADE_TELEWAIT 35 1 5 1 10 // Wait for a few seconds after teleporting
+
+move M_SHADE_WALK 80
+move M_SHADE_RUN 108
+
+defstate shade_prep_teleport // RETURN = 1 if needs to teleport
+	set RETURN 0
+
+	geta[my_target].x temp
+	geta[my_target].y temp2
+	set temp3 temp
+	add temp3 1024
+	randvar temp4 2048
+	rotatepoint temp temp2 temp3 temp2 temp4 x y
+
+	geta[].sectnum SECT_NUM
+	updatesector x y SECT_NUM
+
+	ifn SECT_NUM -1
+	{
+		gets[SECT_NUM].floorshade temp8
+		ife MYSTICAL_RESEARCH[RS_M_SHADE] 2 sub temp8 3 // tracking protection?
+		ifg SKILL_LEVEL 2 // they can do it in slightly brighter areas on Expert or Professional
+			ifg temp8 14
+		{
+			set INTERNALCOUNT 0
+			set RETURN 1
+			resetcount
+		}
+		else ifg temp8 19
+		{
+			set INTERNALCOUNT 0
+			set RETURN 1
+			resetcount
+		}
+	}
+ends
+
+defstate shade_end_teleport
+	cstat 259
+
+	ifspritepal 24 { sizeat 30 30 }
+	else { sizeat 24 24 }
+
+	set INTERNALCOUNT 0
+
+	action A_SHADE_TELEWAIT
+ends
+
+defstate shade_teleport
+	add INTERNALCOUNT 1
+	spawn FRAMEEFFECT1
+
+	ifg INTERNALCOUNT 4 ifl INTERNALCOUNT 26 sizeto 2 24
+
+	ife INTERNALCOUNT 4 { cstat 2 soundonce DEMON_TELEPORT }
+	ife INTERNALCOUNT 26
+	{
+		cstat 32768
+
+		ifn SECT_NUM -1
+		{
+			seta[].x x
+			seta[].y y
+			gets[].floorz temp8
+			seta[].z temp8
+			espawn PENTAGRAM
+			spawn BURNING2
+			seta[RETURN].z temp8
+		}
+		else { state shade_end_teleport }
+	}
+	ife INTERNALCOUNT 27 { soundonce DEMON_TELEPORT cstat 2 sizeto 24 24 spawn 8433 }
+	ife INTERNALCOUNT 40 { state shade_end_teleport }
+ends
+
+useractor enemystayput SHADESTAYPUT
+	state monst_glow
+	cactor SHADE
+enda
+
+useractor enemy SHADE 75
+fall
+
+ifaction 0
+{
+	cstat 259
+	espawn SHOOTME seta[RETURN].pal 1
+	state monst_glow
+
+
+	ifspritepal 4
+		spritepal 0
+
+	ifspritepal 24 { strength 200 sizeat 30 30 }
+	else { strength 75 sizeat 24 24 }
+
+	action A_SHADE_IDLE
+}
+
+state ENEMYKNOCKBACKS
+state enemy_ice_damage
+state enemy_spirit_damage
+
+ifaction A_SHADE_IDLE
+{
+	move STOP
+	state checkfortarget
+	ifn my_target -1
+	{
+		sound SHADE_ALERT
+		action A_SHADE_SEEK
+	}
+}
+else ifaction A_SHADE_DYING
+{
+	strength 0
+	ifactioncount 5
+		killit
+}
+else ifaction A_SHADE_FREEZE state frozen_code
+else ifaction A_SHADE_GROW
+{
+	move STOP
+	state genericgrowcode
+}
+else ifaction A_SHADE_SHRUNK
+{
+	ifmove M_SHADE_RUN nullop
+	else move M_SHADE_RUN geth fleeenemy
+
+	ifl SHRUNK_TIME SHRUNKCOUNT // keep shrunk
+		state new_shrunkcode
+	else ifl SHRUNK_TIME SHRUNKDONECOUNT // regrow
+	{
+		state unshrink
+
+		ifspritepal 24 sizeto 30 30
+		else sizeto 24 24
+	}
+	else // after regrow, switch back to regular action
+	{
+		state endshrunkenstate
+		action A_SHADE_SEEK
+	}
+}
+else ifaction A_SHADE_PAIN
+{
+	move STOP
+	sub PAIN_AMOUNT 1
+
+	ife PAIN_AMOUNT 0
+		action A_SHADE_SEEK
+}
+else ifaction A_SHADE_SEEK
+{
+	ifmove M_SHADE_WALK nullop
+	else move M_SHADE_WALK geth
+
+	state checkfortarget
+
+	ifn my_target -1
+	{
+		dist temp THISACTOR my_target
+		ifl temp 8012
+			action A_SHADE_RUSH
+		else ifg temp 8012
+		{
+			state SKILL_SHOOT_LEVELADJUST
+
+			ifactornotstayput
+			  ifl RANDOM_CHANCE SKILLCHANCE
+			  ife camerasprite -1
+			   ife silence_damage 0
+			{
+				state shade_prep_teleport
+
+				ife RETURN 1
+					action A_SHADE_TELEPORT
+			}
+		}
+	}
+}
+else ifaction A_SHADE_ATTACK
+{
+	move STOP
+	state new_validatetarget
+
+	ife my_target -1
+		action A_SHADE_SEEK
+	else
+	{
+		state fronttowardstarget
+
+		ifactioncount 3
+		{
+			set PROJECTILE_FIRING_SOUND DEMON_THROWFIRE
+			set PROJECTILE_TO_SHOOT 7526
+			state sang_enemyShootProjectile
+
+			ifspritepal 24
+			{
+				state sang_enemyShootProjectile
+				geta[RETURN].ang temp add temp 128 seta[RETURN].ang temp
+				state sang_enemyShootProjectile
+				geta[RETURN].ang temp sub temp 128 seta[RETURN].ang temp
+			}
+
+			resetactioncount
+			action A_SHADE_RUSH
+		}
+	}
+}
+else ifaction A_SHADE_RUSH
+{
+	ifmove M_SHADE_RUN nullop
+	else move M_SHADE_RUN geth
+
+	state checkfortarget
+	ifn my_target -1
+	{
+		state fronttowardstarget
+		dist temp THISACTOR my_target
+		ifl temp 8192
+		{
+			state SKILL_SHOOT_LEVELADJUST
+			ifl RANDOM_CHANCE SKILLCHANCE
+			action A_SHADE_ATTACK
+		}
+		else ifrnd 64 action A_SHADE_ATTACK
+		else ifrnd 2 action A_SHADE_SEEK
+	}
+	else
+		action A_SHADE_SEEK
+}
+else ifaction A_SHADE_TELEPORT
+{
+	move STOP
+	state shade_teleport
+}
+else ifaction A_SHADE_TELEWAIT
+{
+	move STOP
+	add INTERNALCOUNT 1
+
+	ifge INTERNALCOUNT 10
+		action A_SHADE_SEEK
+}
+
+ifg silence_damage 0
+	{
+	sub silence_damage 1
+	state spawn_curse_particles
+	}
+
+ifhitweapon
+{
+	state NEWGUNEFFECTS
+	state random_wall_jibs
+	ifwasweapon VOID_PLAYER_BOLT { sound EN_CURSE set silence_damage 150 }
+	ifwasweapon VOID_BOLT { sound EN_CURSE set silence_damage 300 }
+	ifwasweapon VOID_BLAST { sound EN_CURSE set silence_damage 900 }
+	ifdead
+	{
+		ifwasweapon GROWSPARK { cstat 0 sound ACTOR_GROWING action A_SHADE_GROW break }
+		else ifg ice_damage 0 { spritepal 1 strength 1 sound SOMETHINGFROZE action A_SHADE_FREEZE }
+		else
+		{
+			state rf
+			sound SHADE_DIE
+			addkills 1
+			action A_SHADE_DYING
+		}
+	}
+	else
+	{
+		set temp 0 // set to 1 if can go to pain action
+
+		ifg PAIN_AMOUNT 0
+		{
+			sound SHADE_PAIN
+
+			ifaction A_SHADE_TELEPORT nullop else set temp 1
+		}
+		else ifrnd 64
+		{
+			ifspritepal 24 nullop
+			else
+			{
+				state PAIN_SKILL_LEVELADJUST
+				sound SHADE_PAIN
+
+				ifaction A_SHADE_TELEPORT nullop else set temp 1
+			}
+		}
+
+		ife temp 1
+			action A_SHADE_PAIN
+
+		ifwasweapon SHRINKSPARK
+		{
+			sound ACTOR_SHRINKING
+
+			ifaction A_SHADE_TELEPORT nullop else action A_SHADE_SHRUNK
+		}
+	}
+}
+
+enda

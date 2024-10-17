@@ -1,0 +1,90 @@
+defstate drawacidhudring
+	// Atm ths is just the emp damage thing but drawn in green :V
+	set disp_temp 30
+	sub disp_temp acid_damage
+	clamp disp_temp -127 30
+	set disp_temp2 56250
+	set disp_temp3 256
+	mul disp_temp3 acid_damage
+	sub disp_temp2 disp_temp3
+	clamp disp_temp2 32768 DOUBLESIZE
+	guniqhudid 71
+	rotatespritea 160 100 disp_temp2 0 23422 disp_temp 0 5120 -255 0 0 xdim ydim
+	guniqhudid 0
+ends
+
+defstate handleaciddamage
+	palfrom 20 20 0 0
+
+	ifrnd 16
+	{
+		espawn 14040
+		setactorvar[RETURN].myowner THISACTOR
+	}
+
+	ifle acid_damage 2
+	{
+	stopsound ACID_BURN
+	soundonce ACID_END
+	}
+	else
+	soundonce ACID_BURN
+
+	state player_pain_sounds
+
+	// Eat through armor fast
+	ifrnd 196
+	{
+		ifg player[].shield_amount 0
+		{
+			getp[].shield_amount armour_temp
+			set temp armour_temp
+			sub temp 5
+			clamp temp 0 armour_temp
+			setp[].shield_amount temp
+		}
+		else // No armor, then you lose more health
+			addphealth -1
+
+		ifrnd 32
+			addphealth -1
+	}
+
+	sub acid_damage 1
+	ife ARTIFACTS_LOADOUT[CHAR] 13 { set artifact_used 15 sub acid_damage 1 } // is this right?
+
+	ifphealthl 1 set acid_damage 0
+ends
+
+defstate checkadjustaciddamage
+	// Currently, I am not aware of any buff or nerf cases to acid, but if they exist, specify them here.
+	// input: acid_damage
+	// modify according to whatever the rules are
+	// set acid_damage to the result
+ends
+
+defstate playerincuraciddamage
+	state checkadjustaciddamage // adjust the added acid damage based on buffs/nerfs etc
+
+	// Add this adjusted damage to player
+	getp[].i temp4
+	getav[temp4].acid_damage temp5
+	add temp5 acid_damage
+
+	// Limit the TOTAL acid damage to max 75% of HP at any time
+	// Maybe this could be tweaked to not happen on higher difficulties
+	set temp7 pmax_health
+	div temp7 100
+
+	// if max hp < 100, just force to max 60 (not 75 as that's an instakill on sang)
+	ife temp7 0
+		set temp7 60
+	else
+		mul temp7 75
+
+	clamp temp5 0 temp7
+	setav[temp4].acid_damage temp5
+
+	// make sure our variable is clean cause it shouldn't be set
+	set acid_damage 0
+ends

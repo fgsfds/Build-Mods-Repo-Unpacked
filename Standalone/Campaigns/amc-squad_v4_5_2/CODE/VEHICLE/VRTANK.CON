@@ -1,0 +1,269 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+This file defines behavior and controls for the VR variant of the Hovertank
+--------------------------------------------------------------------------------
+*/
+
+
+// *************************************************
+// VR HOVERTANK
+// *************************************************
+
+spritenoshade VRTANK
+
+useractor notenemy VRTANK
+	ifaction 0
+	{
+		spawn 9302
+		ifspritepal 9 break
+		cstat 257
+		strength 30000
+		clipdist 220
+		sizeat 64 64
+		ife HITAGSAVED 0 action HOVERTANK_IDLE
+		else action ZERO
+	}
+
+	seta[].shade sector[].floorshade
+
+	ifstrength 1000
+	{
+		espawn BIG_SMOKE
+		setactorvar[RETURN].YVELSAVED 1
+		seta[RETURN].pal 17
+	}
+
+	ifaction ZERO
+	{
+		fall
+		checkactivatormotion HITAGSAVED
+		 ife RETURN 1 action HOVERTANK_IDLE
+	}
+
+	else ifaction HOVERTANK_IDLE
+	{
+		fall
+		ifpdistl 3096
+		 ifp palive
+		 ifp pfacing
+		 ife player_in_vehicle 0
+		{
+			ifg scope 0 break
+			ifand gun_firemode 16384 break
+
+			set player_use 0
+			ife use_action_allowed 1
+
+			{
+				state fade_out_black
+				soundonce VR_TANK_START
+				seta[].htextra -1
+				set hc_gear 2
+				set player_in_vehicle 1
+				set control_display 150
+				set player_using_VR_tank THISACTOR
+				action HOVERTANK_INACTION
+				set PLAYER_VOICEOVER 32
+				state setIgnoreUse
+			}
+		}
+
+		ifstrength 30000
+		{
+			soundonce VEH_REP
+			ife CHAR 13 addstrength 5 else
+			addstrength 2
+		}
+	}
+
+	else ifaction HOVERTANK_INACTION
+	{
+		// Bind player's X and Y coordinates to the tank
+		seta[].htextra -1
+		geta[].x temp
+		setp[].posx temp
+		geta[].y temp2
+		setp[].posy temp2
+		setp[].falling_counter 0
+		
+		// Put the player above the "clipping detection" point for the Hovertank voxel.
+		gets[].floorz temp6
+		ifonwater sub temp6 2048
+		else sub temp6 1024
+		seta[].z temp6
+		cstat 0
+		sub temp6 16394
+		setp[].posz temp6
+		geta[].sectnum upd_sect
+		updatesectorz temp temp2 temp3 upd_sect
+		ifn upd_sect -1 // Make sure it's a a valid sector
+		{
+			changespritesect APLAYER upd_sect
+			setp[].cursectnum upd_sect
+		}
+
+		geta[].ang vehicle_ang
+		setp[].ang vehicle_ang
+
+		// Handle turning via mouse movement or turn left/right key
+		getinput[].avel temp3
+		ifn temp3 0
+			state vehicle_turn
+		else ifand EXTBITS_PRESS 16 // turn left input
+			state vehicle_turn
+		else ifand EXTBITS_PRESS 32 // turn right input
+			state vehicle_turn
+
+
+		// The VRTank is essentially just a reskin of the hovertank, except with no gravity shenanigans. So just reuse hovertank states for now.
+		// Handle strafing
+		ifand EXTBITS_PRESS 4 // strafe left
+		{
+			soundonce EBIKE_RUN
+			state hovertank_strafeleft
+		}
+		else ifand EXTBITS_PRESS 8 // strafe right
+		{
+			soundonce EBIKE_RUN
+			state hovertank_straferight
+		}
+
+		ifg forward_accelerate 300
+		{
+			state thisactor_getzrange
+
+			set temp8 0
+			findnearsprite3d SHOOTME 2048 temp9
+
+			ifn temp9 -1
+			{
+				getav[temp9].myowner temp8
+				seta[temp8].htextra 250
+			}
+		}
+
+		// Increase forward_accelerate value to a maximum
+		ifand EXTBITS_PRESS 1
+		{
+			set temp4 hc_gear
+			mulvar temp4 200
+			ifl forward_accelerate temp4 add forward_accelerate 4
+			ifg forward_accelerate temp4 sub forward_accelerate 8
+		}
+		else ifg forward_accelerate 0 sub forward_accelerate 8
+
+		// Decrease up to a minimum
+		ifand EXTBITS_PRESS 2
+		{
+			ifg forward_accelerate -400 sub forward_accelerate 4
+		}
+		else ifl forward_accelerate 0 add forward_accelerate 4
+
+		soundonce HOVERTANK_ACTIVE
+
+		ifg forward_accelerate 0
+			state hovertank_forward
+
+		else ifl forward_accelerate -1
+			state hovertank_reverse
+
+		// Exit
+		ifle forward_accelerate 100
+		ifge forward_accelerate -100
+		  ife use_action_allowed 1
+		{
+			set forward_accelerate 0
+			state fade_out_black
+			move 0
+			set player_in_vehicle 0
+			set player_using_VR_tank -1
+			soundonce VR_TANK_STOP
+			stopactorsound THISACTOR HOVERTANK_ACTIVE
+			geta[].z temp
+			sub temp 8192
+			setp[].posz temp
+			setp[].jetpack_on 0
+			setp[].over_shoulder_on 0
+			setp[].movement_lock 0
+			set just_changed 1
+			action HOVERTANK_IDLE
+			cstat 257
+			state setIgnoreUse
+		}
+
+		ifvarvarn player_using_VR_tank THISACTOR // if player has been removed from vehicle by force
+		{
+			move 0
+			set player_in_vehicle 0
+			set player_using_VR_tank -1
+			setp[].jetpack_on 0
+			set just_changed 1
+			stopactorsound THISACTOR HOVERTANK_ACTIVE
+			action HOVERTANK_IDLE
+		}
+
+		ifp pdead
+		{
+			move 0
+			set player_in_vehicle 0
+			set player_using_VR_tank -1
+			setp[].jetpack_on 0
+			setp[].over_shoulder_on 0
+			setp[].movement_lock 0
+			set just_changed 1
+			stopactorsound THISACTOR HOVERTANK_ACTIVE
+			action HOVERTANK_IDLE
+		}
+
+			ifdead
+			{
+				move 0
+				set player_in_vehicle 0
+				set player_using_VR_tank -1
+				setp[].jetpack_on 0
+				setp[].over_shoulder_on 0
+				setp[].movement_lock 0
+				set just_changed 1
+				stopactorsound THISACTOR HOVERTANK_ACTIVE
+				addphealth -1000
+				spawn EXPLOSION2
+				quake 26
+				globalsound RETRO_DEAD
+				shoot SPARK shoot SPARK shoot SPARK shoot SPARK shoot SPARK shoot SPARK
+				shoot LAVABALL shoot LAVABALL shoot LAVABALL shoot LAVABALL shoot LAVABALL
+				strength 1
+				action HOVERTANK_IDLE
+			}
+
+			ifhitweapon
+			{
+				sound ALARM
+				set gun_recoil 10
+				palfrom 10 10 0 0
+			}
+		}
+
+enda

@@ -1,0 +1,511 @@
+// Click handle state, returns clicked only once until the mouse button is no longer pressed
+// Use this instead of simple ifand bits_press 4 check in places where that matters...
+defstate handle_click
+	set clicked 0
+
+	ifand BITS_PRESS 4
+	{
+		ife click_handled 0
+			set clicked 1
+		else
+			set clicked 0
+
+		set click_handled 1
+	}
+	else
+	{
+		set clicked 0
+		set click_handled 0
+	}
+ends
+
+defstate showuicursor
+	ifg MOUSEUP 0
+	{
+		// Sets the pal if I'm not mistaken
+		ifl mouse_hint_timer 8
+		  ifn mouse_hint -1
+		{
+			ife opt_vis_cursor YES set disp_temp4 6 else set disp_temp4 0
+		}
+		else
+		{
+			ife opt_vis_cursor YES set disp_temp4 32 else set disp_temp4 0
+		}
+
+		// Display cursor
+		guniqhudid 254 // CURSORID
+
+		// A few interfaces have specific cursors
+		ife PCINTER 14
+		{
+			ife opt_big_cursor YES rotatesprite16 Q16_MOUSEX Q16_MOUSEY NORMALSIZE 0 22714 0 disp_temp4 4112 0 0 xdim ydim
+			else rotatesprite16 Q16_MOUSEX Q16_MOUSEY HALFSIZE 0 22714 0 disp_temp4 6160 0 0 xdim ydim
+		}
+		else ife PCINTER 17
+		{
+			ife opt_big_cursor YES rotatesprite16 Q16_MOUSEX Q16_MOUSEY NORMALSIZE 0 22714 0 disp_temp4 4112 0 0 xdim ydim
+			else rotatesprite16 Q16_MOUSEX Q16_MOUSEY HALFSIZE 0 22714 0 disp_temp4 6160 0 0 xdim ydim
+		}
+		else ife PCINTER 18
+		{
+			ife opt_big_cursor YES rotatesprite16 Q16_MOUSEX Q16_MOUSEY NORMALSIZE 0 22714 0 disp_temp4 4112 0 0 xdim ydim
+			else rotatesprite16 Q16_MOUSEX Q16_MOUSEY HALFSIZE 0 22714 0 disp_temp4 6160 0 0 xdim ydim
+		}
+		// Default cursor = tile 5149
+		else
+		{
+			ife opt_big_cursor YES rotatesprite16 Q16_MOUSEX Q16_MOUSEY NORMALSIZE 0 5149 0 disp_temp4 4112 0 0 xdim ydim
+			else rotatesprite16 Q16_MOUSEX Q16_MOUSEY HALFSIZE 0 5149 0 disp_temp4 6160 0 0 xdim ydim
+		}
+
+		// Display tooltip
+		ifl mouse_hint_timer 8
+		  ifn mouse_hint -1
+		{
+			guniqhudid 0
+
+			set disp_temp MOUSEX
+			ifg MOUSEX 160 sub disp_temp 100
+			else add disp_temp 15
+
+			rotatesprite disp_temp MOUSEY HALFSIZE 0 13347 mouse_hint_timer 0 4097 0 0 xdim ydim // start of button
+
+			set disp_temp6 0
+			qstrlen disp_temp2 mouse_hint
+
+			ifn disp_temp2 -1
+			{
+				whilevarvarn disp_temp6 disp_temp2
+				{
+					add disp_temp 4
+					rotatesprite disp_temp MOUSEY HALFSIZE 0 13348 mouse_hint_timer 0 4097 0 0 xdim ydim // button mid-section
+					add disp_temp6 1
+				}
+			}
+			add disp_temp 4
+			rotatesprite disp_temp MOUSEY HALFSIZE 0 13349 mouse_hint_timer 0 4097 0 0 xdim ydim // End of button
+
+			set disp_temp MOUSEX
+			ifg MOUSEX 160 sub disp_temp 100
+			else add disp_temp 15
+			add disp_temp4 5
+			minitext disp_temp MOUSEY mouse_hint 0 4
+			sub disp_temp 1
+			minitext disp_temp MOUSEY mouse_hint 0 2
+		}
+
+		guniqhudid 0
+
+		ife MOUSEUP 3
+		{
+			qsprintf 1011 1200 MOUSEX
+			minitext 11 11 1011 0 4
+			minitext 10 10 1011 0 10
+			qsprintf 1011 1201 MOUSEY
+			minitext 11 18 1011 0 4
+			minitext 10 17 1011 0 10
+		}
+	}
+ends
+
+defstate CURSOR_OVER_ITEM
+	set gui_pos_x_temp gui_pos_x
+	set gui_pos_y_temp gui_pos_y
+
+	sub gui_pos_x_temp MOUSEX
+	sub gui_pos_y_temp MOUSEY
+ends
+
+defstate CURSOR_OVER_ITEM2
+	set gui_pos_x_temp2 gui_pos_x2
+	set gui_pos_y_temp2 gui_pos_y2
+
+	sub gui_pos_x_temp2 MOUSEX
+	sub gui_pos_y_temp2 MOUSEY
+ends
+
+// Common information for new style interfaces
+defstate disp_interface_header
+
+	ifn ui_help_tab -1
+	{
+		// help button
+		set disp_temp 0
+		qputs 7505 Help
+
+		set gui_pos_x 148
+		set gui_pos_y 20
+
+		ife g_scroll_hold 0
+		  ifn ui_popup_shown 1
+		{
+			state CURSOR_OVER_ITEM
+			ifl gui_pos_x_temp 20
+			 ifg gui_pos_x_temp -75
+			  ifl gui_pos_y_temp 1
+			   ifg gui_pos_y_temp -5
+			{
+				set disp_temp 1
+
+				state handle_click
+
+				ife clicked 1
+				{
+					screensound RES_INT3
+					set ui_tab ui_help_tab
+				}
+			}
+		}
+	}
+
+	ife disp_temp 0
+		screentext STARTALPHANUM gui_pos_x gui_pos_y 35000 0 0 7505 0 2 16 0 2 0 1 1 8192 0 0 xdim ydim
+	else ife disp_temp 1
+		screentext STARTALPHANUM gui_pos_x gui_pos_y 38000 0 0 7505 disp_pulse 7 16 0 2 0 1 1 8192 0 0 xdim ydim
+
+	// close button
+	set gui_pos_x 300
+	set gui_pos_y 15
+	state CURSOR_OVER_ITEM
+
+	ifl gui_pos_x_temp 7
+	  ifg gui_pos_x_temp -7
+	  ifl gui_pos_y_temp 7
+	  ifg gui_pos_y_temp -7
+	{
+		rotatespritea gui_pos_x gui_pos_y 20000 1024 14655 0 0 4 -255 0 0 xdim ydim
+
+		state handle_click
+
+		ife clicked 1
+		{
+			sound EXITMENUSOUND
+			set show_rs_ui 0
+			set show_bst_ui 0
+			set MOUSEUP 0 // Go from "cursor" mode back to regular gameplay mode
+		}
+	}
+	else
+		rotatespritea gui_pos_x gui_pos_y 20000 1024 14654 0 0 4 -255 0 0 xdim ydim
+ends
+
+// generic scroll stuff
+// expected incoming argument gui_pos_y to be the starting point of the scroll button (ie. the top of the scroll)
+// an offset based on scroll position will be applied to it here
+// Parameters (defined in variables.con):
+// gui_pos_x & y => coordinate, Y axis is the default start coordinate (ie scroll pos at the top)
+// g_scroll_pos => the offset to apply to the y axis
+// g_scrol_y_pos_end => the final coordinate scroll should have when at the bottom of the list
+// g_scroll_baryvel => y velocity per scroll
+defstate putscrollbar // shortcoming atm, one screen have only one scrollbar
+	// update the y coordinate based on scroll position
+	set disp_temp4 gui_pos_y
+	set disp_temp3 g_scroll_pos
+
+	// apply an extra velocity to the scroller based on the size of what's being scrolled
+	ifg g_scroll_baryvel 0
+		mul disp_temp3 g_scroll_baryvel
+
+	add disp_temp4 disp_temp3
+	set gui_pos_y disp_temp4
+
+	// if the scroller is being held with click but the cursor moves away, we still count it as scrolling
+	ifand BITS_PRESS 4
+	  ife g_scroll_hold 1
+	{
+		nullop
+	}
+	else
+	{
+		state CURSOR_OVER_ITEM
+		ifl gui_pos_x_temp 10
+		 ifg gui_pos_x_temp -10
+		  ifl gui_pos_y_temp 13
+		   ifg gui_pos_y_temp -13
+		{
+			// pulsating scroller
+			rotatesprite gui_pos_x disp_temp4 8192 0 13717 disp_pulse 0 4096 0 0 xdim ydim // disp_pulse can be trusted to always be a pulsating value, handled in player.con
+
+			ifand BITS_PRESS 4
+				set g_scroll_hold 1
+			else
+				set g_scroll_hold 0
+		}
+		else // not hovering over
+		{
+			set g_scroll_hold 0
+			// regular scroller
+			rotatesprite gui_pos_x disp_temp4 8192 0 13717 0 0 4096 0 0 xdim ydim
+		}
+	}
+
+	ife g_scroll_hold 1
+	{
+		// held down scroller
+		rotatesprite gui_pos_x disp_temp4 7492 0 13717 0 16 4096 0 0 xdim ydim
+
+		ifg input[].horz 0
+		  ifg g_scroll_pos 0
+		{
+			ifcount 2
+			{
+				sub g_scroll_pos 1
+				resetcount
+			}
+		}
+		else ifl input[].horz 0
+		  ifl gui_pos_y g_scroll_y_pos_end
+		{
+			ifcount 2
+			{
+				add g_scroll_pos 1
+				resetcount
+			}
+		}
+	}
+	else // not holding the scroller, but we can still be using scrollwheel
+	{
+		// Handle scrolling via scroll wheel
+		getinput[].bits disp_temp2
+		shiftvarr disp_temp2 8
+		andvar disp_temp2 0xF // what's dis
+
+		switch disp_temp2
+			case 11 // scroll up
+				ifg g_scroll_pos 0
+					sub g_scroll_pos 1
+				break
+			case 12 // scroll down
+				ifl gui_pos_y g_scroll_y_pos_end
+					add g_scroll_pos 1
+				break
+		endswitch
+	}
+ends
+
+// putgenericbutton => returns 1 if button is hovered over, 2 if pressed
+var ui_btn_return -1 0
+var ui_btn_size 20000 0 // customizable button size
+var ui_btn_active 0 0 // set this button to active to display it as active even if it's not being hovered over
+var ui_btn_mousehint -1 0 // set this to display a mouse hint on hover
+var ui_btn_fontsize -1 0 // custom font size (text zoom)
+// Expected input:
+// gui_pos_x and gui_pos_y for the button
+// text to put on the button in string 7505 (via qputs)
+// ui_btn_mousehint (optional, set to -1 to not display one) => displays a tooltip with some information
+// TODO Custom zoom level, the setting is now 20 000 but this doesn't allow for much text to fit inside the button.
+// Probably will code this so hover detection and font size is variable based on the passed in zoom
+defstate putgenericbutton
+	set ui_btn_return -1
+	set disp_temp 0
+
+	// Cursor over item subtracts the mouse x/y from the position of the current button.
+	// The resulting temp values are constants and basically indicate the dimensions of the button.
+	ifn ui_popup_shown 1
+	{
+		state CURSOR_OVER_ITEM
+
+		ifl gui_pos_x_temp 25
+		 ifg gui_pos_x_temp -25
+		  ifl gui_pos_y_temp 10
+		   ifg gui_pos_y_temp -10
+		{
+			ife g_scroll_hold 0
+			{
+				set disp_temp 1
+				set ui_btn_return 1
+
+				state handle_click
+				ife clicked 1
+				{
+					sound RES_INT2
+					set ui_btn_return 2
+				}
+			}
+		}
+	}
+
+	set disp_temp4 1 // text pal
+
+	ife ui_btn_active 1
+	{
+		set disp_temp4 2 // text pal
+		rotatespritea gui_pos_x gui_pos_y ui_btn_size 0 GENERICBUTTONACTIVE 0 0 0 0 0 0 xdim ydim
+	}
+	else ife disp_temp 0
+	{
+		rotatespritea gui_pos_x gui_pos_y ui_btn_size 0 GENERICBUTTON 0 0 0 0 0 0 xdim ydim
+	}
+	else ife disp_temp 1
+	{
+		set disp_temp4 2 // text pal
+		rotatespritea gui_pos_x gui_pos_y ui_btn_size 0 GENERICBUTTONACTIVE 0 0 0 0 0 0 xdim ydim
+
+		ifn ui_btn_mousehint -1
+		{
+			// Copy requested mouse hint into current mouse hint string
+			qstrcpy 7513 ui_btn_mousehint
+			set mouse_hint 7513
+			sub mouse_hint_timer 2
+		}
+	}
+
+	// Make text print inside the button...
+	// TODO derive a formula or something to keep btn size into account at any size. But for now it's softcoded
+	set disp_temp2 gui_pos_x
+	set disp_temp3 gui_pos_y
+
+	ife ui_btn_size 20000
+	{
+		set disp_temp5 31864 // text zoom
+		sub disp_temp2 20
+		sub disp_temp3 4
+	}
+	else ife ui_btn_size 15000
+	{
+		set disp_temp5 23000
+		sub disp_temp2 14
+		sub disp_temp3 2
+	}
+	else ife ui_btn_size 8000
+	{
+		set disp_temp5 18000
+		sub disp_temp2 8
+		sub disp_temp3 2
+	}
+	
+	ifn ui_btn_fontsize -1
+		set disp_temp5 ui_btn_fontsize
+
+	screentext STARTALPHANUM disp_temp2 disp_temp3 disp_temp5 0 0 7505 0 disp_temp4 16 0 2 0 1 1 8192 0 0 xdim ydim
+
+	// set some variables back to default
+	set ui_btn_size 20000
+	set ui_btn_active 0
+	set ui_btn_fontsize -1
+ends
+
+// expected input:
+// Popup text, max 5 lines via qputs 7507 thru 7511
+var ui_popup_return -1 0 // 1 if user pressed YES, 0 if no
+defstate showyesnopopup
+	set ui_popup_shown 1
+	set ui_popup_return -1
+
+	// x: 160 and y: 100 seems to be center screen pretty much
+	rotatesprite 160 100 49152 0 GENERICPOPUP 0 0 0 0 0 xdim ydim
+
+	// YES
+	set gui_pos_x 150
+	set gui_pos_y 125
+	qputs 7505 YES
+	set ui_btn_mousehint -1
+	set ui_popup_shown 0
+	state putgenericbutton
+	set ui_popup_shown 1
+
+	ife ui_btn_return 2
+		set ui_popup_return 1
+
+	// NO
+	set gui_pos_x 210
+	set gui_pos_y 125
+	qputs 7505 NO
+	set ui_btn_mousehint -1
+	set ui_popup_shown 0
+	state putgenericbutton
+	set ui_popup_shown 1
+
+	ife ui_btn_return 2
+		set ui_popup_return 0
+
+	// Popup text
+	screentext STARTALPHANUM 90 70 30000 0 0 7507 0 0 16 0 2 0 1 1 0 0 0 xdim ydim
+	screentext STARTALPHANUM 90 76 30000 0 0 7508 0 0 16 0 2 0 1 1 0 0 0 xdim ydim
+	screentext STARTALPHANUM 90 82 30000 0 0 7509 0 0 16 0 2 0 1 1 0 0 0 xdim ydim
+	screentext STARTALPHANUM 90 88 30000 0 0 7510 0 0 16 0 2 0 1 1 0 0 0 xdim ydim
+	screentext STARTALPHANUM 90 94 30000 0 0 7511 0 0 16 0 2 0 1 1 0 0 0 xdim ydim
+
+	// Assumption: caller clears the popup
+	ifn ui_popup_return -1
+		set ui_popup_shown 0
+ends
+
+defstate showokpopup
+	set ui_popup_return -1
+
+	// x: 160 and y: 100 seems to be center screen pretty much
+	rotatesprite 160 100 49152 0 GENERICPOPUP 0 0 0 0 0 xdim ydim
+
+	// OK
+	set gui_pos_x 150
+	set gui_pos_y 125
+	qputs 7505 OK
+	set ui_btn_mousehint -1
+	set ui_popup_shown 0
+	state putgenericbutton
+	set ui_popup_shown 1
+
+	ife ui_btn_return 2
+		set ui_popup_return 1
+
+	// Popup text
+	screentext STARTALPHANUM 90 70 30000 0 0 7507 0 0 16 0 2 0 1 1 0 0 0 xdim ydim
+	screentext STARTALPHANUM 90 76 30000 0 0 7508 0 0 16 0 2 0 1 1 0 0 0 xdim ydim
+	screentext STARTALPHANUM 90 82 30000 0 0 7509 0 0 16 0 2 0 1 1 0 0 0 xdim ydim
+	screentext STARTALPHANUM 90 88 30000 0 0 7510 0 0 16 0 2 0 1 1 0 0 0 xdim ydim
+	screentext STARTALPHANUM 90 94 30000 0 0 7511 0 0 16 0 2 0 1 1 0 0 0 xdim ydim
+
+	// Assumption: caller clears the popup
+	ifn ui_popup_return -1
+		set ui_popup_shown 0
+ends
+
+defstate putpreviousbutton
+	set ui_btn_return -1
+
+	state CURSOR_OVER_ITEM
+	ifl gui_pos_x_temp 7
+	 ifg gui_pos_x_temp -7
+	  ifl gui_pos_y_temp 20
+	   ifg gui_pos_y_temp -20
+	{
+		set ui_btn_return 1
+		rotatesprite gui_pos_x gui_pos_y 16384 1024 13576 disp_pulse 0 12 0 0 xdim ydim
+
+		state handle_click
+
+		ife clicked 1
+		{
+			sound RES_INT2
+			set ui_btn_return 2
+		}
+	}
+	else
+		rotatesprite gui_pos_x gui_pos_y 16384 1024 13575 0 0 12 0 0 xdim ydim
+ends
+
+defstate putnextbutton
+	set ui_btn_return -1
+	
+	state CURSOR_OVER_ITEM
+	ifl gui_pos_x_temp 7
+	 ifg gui_pos_x_temp -7
+	  ifl gui_pos_y_temp 20
+	   ifg gui_pos_y_temp -20
+	{
+		set ui_btn_return 1
+		rotatesprite gui_pos_x gui_pos_y 16384 0 13576 disp_pulse 0 8 0 0 xdim ydim
+
+		state handle_click
+
+		ife clicked 1
+		{
+			sound RES_INT2
+			set ui_btn_return 2
+		}
+	}
+	else
+		rotatesprite gui_pos_x gui_pos_y 16384 0 13575 0 0 8 0 0 xdim ydim
+ends

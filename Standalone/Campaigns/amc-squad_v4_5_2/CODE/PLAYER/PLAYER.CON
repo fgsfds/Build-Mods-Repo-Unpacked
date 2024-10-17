@@ -1,0 +1,7213 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+This file contains all the code for the main player actor
+--------------------------------------------------------------------------------
+*/
+
+// Check for infinite stamina
+var HAS_INFINITE_STAMINA 0 1
+defstate p_hasinfinitestamina
+	// TODO needs to be expanded
+	ifand EGYPT_ARTIFACTS 4
+		set HAS_INFINITE_STAMINA 1
+	else
+		set HAS_INFINITE_STAMINA 0
+ends
+
+// USE key detection
+// set use_action_allowed to 1 if the player is holding use and the key is not being ignored
+defstate checkUseAllowed
+	ifhitspace
+	{
+		ife ignore_current_use 1
+			set use_action_tics 0
+		else
+		{
+			ifl use_action_tics 0
+				set use_action_tics 0
+
+			add use_action_tics 1
+		}
+
+		ife ignore_current_use 0
+			set use_action_allowed 1
+		else
+			set use_action_allowed 0
+	}
+	else
+	{
+		// Set to minus value to detect if we pressed the key shortly but then let go of it.
+		// It'll add back up to 0 over time
+		ife ignore_current_use 1
+			set use_action_tics 0
+		else
+		{
+			ifg use_action_tics 0
+				set use_action_tics -60
+
+			ifl use_action_tics 0
+				add use_action_tics 1
+		}
+
+		set use_action_allowed 0
+		set ignore_current_use 0
+	}
+ends
+
+defstate ki_prot
+sound KI_PROTECT divvar temp 2 seta[].htextra temp palfrom 20 0 20 20
+ends
+
+// TODO: FOR DEMONSTRATION PURPOSES, REMOVE ME LATER
+var profilecounter 0 0
+
+
+// original mantling code by Dan Gaskil, modifications by Sang
+define MANTDIST 480
+
+var mantle_tics 0 1
+defstate check_do_mantle
+	// mantling will be set to 1 if the answer is yes, 0 otherwise
+	set mantling 0
+
+	getp[].i temp
+	geta[temp].x x
+	geta[temp].y y
+	geta[temp].z z
+	geta[temp].sectnum mysector
+	geta[temp].ang angvar
+	set zdist 0
+	cos mycos angvar
+	sin mysin angvar
+
+	// Calculate roughly from the player's middle
+	sub z 6500
+
+	// Keep trying to mantle while mantle_tics is above 0
+	set mantle_tics 10
+	whilevarn mantle_tics 0
+	{
+		set temp6 1
+
+		// Given current player position and angle check if in front of us is a sprite
+		// Calculate the distance using pythagoras
+		hitscan x y z mysector mycos mysin zdist hitsector hitwall hitsprite hitx hity hitz clipmask
+		state pythagoras
+		set xydist2 xydist // back up value
+
+		// Move up a bit, same check - key difference is hitwall vs hitwall2. We check if there's a wall in front of us at 2 coordinates
+		// Only if these are different walls, we might possibly be able to mantle
+		subvar z 512
+		hitscan x y z mysector mycos mysin zdist hitsector hitwall2 hitsprite hitx hity hitz clipmask
+		state pythagoras
+
+		// If hitting a sprite, save the cstat
+		ifn hitsprite -1
+		  ifl xydist MANTDIST
+			geta[hitsprite].cstat temp6
+
+		// If wall in front, get hitscan bit
+		ifn hitwall -1
+			getw[hitwall].cstat temp8
+		else
+			set temp8 1
+
+		// Save difference
+		set temp xydist2
+		sub temp xydist
+
+		// nullop means no mantling allowed
+		ifand temp8 1 // hitscan set
+			nullop
+		else ifg xydist2 MANTDIST // coordinate too far away
+			nullop
+		else ife hitwall -1 ife hitsprite -1 // not hitting anything we can mantle onto
+			nullop
+		else ife hitwall2 -1 ife hitsprite -1 ife hitsector -1 // also not hitting anything we can mantle onto (hitsector => can hit a sloped floor, which is not a wall, we should be able to mantle)
+			nullop
+		else ifn hitwall -1 ife hitwall hitwall2 // the wall is too high for mantling
+			nullop
+		else ifn hitwall -1 ifand wall[hitwall].hitag 4 // hitag 4 disables mantling, apparently
+			nullop
+		else ifl temp 248 ife hitsector -1 // the distance between the 2 coordinates means there wouldn't be room to stand => not allowed (unless we're hitting a sector cause then we're hitting a sloped floor...)
+			nullop
+		else ifand temp6 1 ifand temp6 32768 // we're hitting an invisible sprite
+			nullop
+		else ifand temp6 1 // either catch-all check or in front of us is a blocking sprite
+			set mantling 1
+
+		ife mantling 1
+			set mantle_tics 0
+		else
+			sub mantle_tics 1
+
+		sub z 1024
+	}
+ends
+
+defstate mantlingcode
+ifvarg mantcheck 0 subvar mantcheck 1
+
+ifp ponground ifvare jumped 1 setvar jumped 0
+ifvarl mantling 0 addvar mantling 1
+ifvare mantling 1 addvar mantwait 1 else setvar mantwait 0
+
+// ifvarn onladder 0 { setvar mantling 0 break }
+// ifvarg dodge 0 { setvar mantling 0 break }
+// ifvarn holding -1 { setvar mantling 0 break }
+ifp pjetpack { setvar mantling 0 break }
+
+ifvare mantling 0
+ ife player_in_vehicle 0
+  ife camerasprite -1
+{
+	getplayer[THISACTOR].posx x
+	getplayer[THISACTOR].posy y
+	getactor[THISACTOR].z z
+	getplayer[THISACTOR].cursectnum mysector
+	ifvare mysector -1 getsector[THISACTOR].floorz mz else
+	getflorzofslope mysector x y mz // mz is the return var
+	subvarvar mz z // mz is now the distance to the ground
+	setvar temp 0
+	ifvarg mz 6144 setvar temp 1
+	ifinwater set temp 0
+	ifvare temp 1
+	{
+		getplayer[THISACTOR].poszv temp3
+		ifvare jumped 1 setvar temp2 0 else setvar temp2 1536
+		//ifonwater setvar zvel 2048
+		//ifinwater setvar zvel 2048
+		ifvarvarg temp3 temp2
+		{
+			state check_do_mantle
+			ifvare mantling 1
+			{
+				getplayer[THISACTOR].posz mantz
+				sound JLAND
+				ifrnd 32 set PLAYER_VOICEOVER 2
+				wackplayer
+				getplayer[THISACTOR].posz z
+				subvar z 128
+				setplayer[THISACTOR].posz z
+			}
+
+		}
+	}
+
+}
+
+ifvarg mantling 0
+{
+	ifvare mantling 1 // hanging there, possibly strafing
+	{
+		state lower_weapon
+		setplayer[THISACTOR].falling_counter 0
+		getplayer[THISACTOR].posxv xvel
+		divvar xvel 2
+		setplayer[THISACTOR].posxv xvel
+		getplayer[THISACTOR].posyv yvel
+		divvar yvel 2
+		setplayer[THISACTOR].posyv yvel
+		setplayer[THISACTOR].posz mantz
+		setplayer[THISACTOR].poszv -256 // 0
+		state check_do_mantle
+		ifvare mantling 0
+		{
+			ifvarg mantcheck 0 setvar mantling 1
+		} else setvar mantcheck 6 // 6 ticks grace period
+	}
+	else
+	{
+		setplayer[THISACTOR].poszv -2048
+		getplayer[THISACTOR].ang angvar
+		cos xvel angvar
+     	sin yvel angvar
+        mulvar xvel 64
+        mulvar yvel 64
+		setplayer[THISACTOR].posxv xvel
+		setplayer[THISACTOR].posyv yvel
+		getactor[THISACTOR].z z
+		getactor[THISACTOR].x x
+		getactor[THISACTOR].y y
+		getactor[THISACTOR].sectnum mysector
+		getactor[THISACTOR].ang angvar
+		setvar zdist 0
+		cos mycos angvar
+		sin mysin angvar
+		hitscan x y z mysector mycos mysin zdist hitsector hitwall hitsprite hitx hity hitz clipmask
+		state pythagoras
+		ifvarg xydist 384 ifvarg mantling 5 setvar mantling -10
+		//addvar mantling 1
+		else
+			{
+			ifvarand BITS_PRESS 1 addvar mantling 1
+			else ifvarand EXTBITS_PRESS 1 addvar mantling 1
+			else setvar mantling -10
+			}
+		ifvarg mantling 23 setvar mantling -10
+		setplayer[THISACTOR].jumping_toggle 1
+	}
+
+}
+
+ends
+
+defstate slide_sound
+ife STEPSOUNDFX 8 sound SNOW_SLD2
+else ife STEPSOUNDFX 26 sound ICE_SLD2
+else ife STEPSOUNDFX 28 sound SNOW_SLD2
+else ife STEPSOUNDFX 27 sound GRAVL_SLD2
+else ife STEPSOUNDFX 33 sound GRAVL_SLD2
+ends
+
+defstate skid_sound
+ife STEPSOUNDFX 8 sound SNOW_SLD1
+else ife STEPSOUNDFX 26 sound ICE_SLD1
+else ife STEPSOUNDFX 28 sound SNOW_SLD1
+else ife STEPSOUNDFX 27 sound GRAVL_SLD1
+else ife STEPSOUNDFX 33 sound GRAVL_SLD1
+ends
+
+defstate standard_pjibs
+ife player_jib 0
+  {
+  guts JIBS1 1
+  guts JIBS3 2
+  guts JIBS4 1
+  guts JIBS5 1
+  guts JIBS6 2
+  guts HUMAN_TORSO 1
+  // guts DUKELEG 2
+  guts HUMAN_ARM 1
+  set player_jib 1
+  }
+ends
+
+
+defstate handle_dead_player
+
+ifactor 6424
+{
+  sizeat 22 22
+ ifspritepal 0 spritepal 21
+}
+else
+ifactor 6124
+	{
+  sizeat 30 30
+ ifspritepal 0 spritepal 11
+	}
+	else
+sizeat 22 22
+
+  fall
+  ifmove 0   // 1st time initializiation...
+  {
+    ifrnd 128
+      cstat 4
+    else
+      cstat 0
+    move STOP
+  }
+
+  ifsquished
+  {
+    state squish_sounds
+    state random_ooz
+    killit
+  }
+  else
+  {
+    strength 0
+    ifhitweapon
+      ifwasweapon RADIUSEXPLOSION
+    {
+      state standard_jibs
+      killit
+    }
+  }
+ends
+
+action PLYINGFRAMES 0
+
+actor DUKELYINGDEAD 0 PLYINGFRAMES
+  state handle_dead_player
+enda
+
+defstate spawnbackpack
+	ife COOP 1 // If they're playing co-op
+		{
+	    espawn 176
+		getp[].ammo_amount 1 temp
+		setactorvar[RETURN].temp3 temp
+		getp[].ammo_amount 2 temp
+		setactorvar[RETURN].temp4 temp
+		getp[].ammo_amount 3 temp
+		setactorvar[RETURN].temp5 temp
+		getp[].ammo_amount 4 temp
+		setactorvar[RETURN].temp6 temp
+		getp[].ammo_amount 5 temp
+		setactorvar[RETURN].temp7 temp
+		getp[].palookup temp
+		seta[RETURN].pal temp
+		}
+ends
+
+defstate rescam // change camera back, and spawn the ammo backpack
+ifmultiplayer
+	{
+	setp[].over_shoulder_on 0
+	state spawnbackpack
+	}
+ends
+
+useractor notenemy 5358 0 PLYINGFRAMES
+  state handle_dead_player
+enda
+
+useractor notenemy 25730 0 PLYINGFRAMES
+  state handle_dead_player
+enda
+
+useractor notenemy 6361 0 PLYINGFRAMES
+  state handle_dead_player
+enda
+
+useractor notenemy 5610 0 PLYINGFRAMES
+  state handle_dead_player
+enda
+
+useractor notenemy 6124 0 PLYINGFRAMES
+  state handle_dead_player
+enda
+
+useractor notenemy 6424 0 PLYINGFRAMES
+  state handle_dead_player
+enda
+
+useractor notenemy 6702 0 PLYINGFRAMES
+  state handle_dead_player
+enda
+
+useractor notenemy 6455 0 PLYINGFRAMES
+  state handle_dead_player
+enda
+
+useractor notenemy 6943 0 PLYINGFRAMES
+  state handle_dead_player
+enda
+
+useractor notenemy 7782 0 PLYINGFRAMES
+  state handle_dead_player
+enda
+
+useractor notenemy 9934 0 PLYINGFRAMES
+  state handle_dead_player
+enda
+
+useractor notenemy 26400 0 PLYINGFRAMES
+  state handle_dead_player
+enda
+
+useractor notenemy 12876 0 PLYINGFRAMES
+  state handle_dead_player
+enda
+
+useractor notenemy 16424 0 PLYINGFRAMES
+  state handle_dead_player
+enda
+
+useractor notenemy 20886 0 PLYINGFRAMES
+  state handle_dead_player
+enda
+
+useractor notenemy 36036 0 PLYINGFRAMES
+  state handle_dead_player
+enda
+
+move PSTOPED
+move PSHRINKING // used as a var only
+
+onevent EVENT_CHANGEWEAPON
+set gunsmoke_disp 40
+set gunsmoke_disp2 40
+set firekey_indicator 30
+set kickbackpic_2 0
+set kickbackpic_3 0
+ife temp_weap 40 stopsound ZRAILGUN_IDLE
+ife temp_weap 17 stopsound CHAINSAW_IDLE
+ife CHAR 6 stopsound RAILGUN_AMB
+ife CHAR 12 stopsound PLASRG_AMB
+ife CHAR 14 stopsound SF_LG_HUM
+state STOP_WEAPON_CHANGE
+
+ifg fire_mode_menu 0 set RETURN -1
+ifn gl_countd 0 set RETURN -1
+
+ifn RETURN -1 set weap_show 130
+
+set AMMO_TYPE AMMO_TYPES[cur_weap]
+
+ife hide_xhair 1 set hide_xhair 0
+
+ife RUSTY_BAYONET 1 set RUSTY_BAYONET 0
+ifand gun_firemode 16384 { set hide_xhair 0 xorvar gun_firemode 16384 }
+ifand gun_firemode 131072 { set hide_xhair 0 xorvar gun_firemode 131072 }
+ifand gun_firemode 32768 xorvar gun_firemode 32768
+
+endevent
+
+move PGROWINGPOP        // Used only as a variable
+
+appendevent EVENT_LOADGAME
+set current_inittimer 120
+inittimer 120
+ifge music_fade 1 set music_vol 0 else set music_vol 100
+setmusicvolume music_vol
+endevent
+
+defstate CHECKSTEPSOUNDS
+ife player[].spritebridge 1 // IF THE PLAYER IS ON A FLAT SPRITE
+	{
+	getp[].sbs temp2 // GET THE FLATSPRITE'S ID TAG
+	set FLOORTEX sprite[temp2].picnum // SET THE VARIABLE FLOORTEX TO IT'S TEXTURE
+	state CHECKSTEPS // AND CHECK THE STEP DEFINES
+	}
+else
+ifand sector[].floorstat 65536 set STEPSOUNDFX 9
+else
+state CHECKSTEPS
+ends
+
+defstate PLAYER_FROZECODE
+    cstat 257
+	spritepal 1
+	state lower_weapon
+
+    fall
+	set screen_pal 1
+    palfrom 16 0 0 24
+
+    ifmove 0
+    {
+      ifhitweapon
+      {
+        ifwasweapon FREEZEBLAST
+          break
+        lotsofglass 60
+        ifrnd 84
+          spawn BLOODPOOL
+
+        sound GLASS_BREAKING
+        spawn GOLD_AMULET
+
+        getlastpal
+
+        move 1
+        break
+      }
+    }
+    else
+    {
+      cstat 32768
+      quote 13
+      ifhitspace
+      {
+        action 0
+        resetplayer
+      }
+      break
+    }
+
+    ifactioncount THAWTIME
+    {
+      getlastpal
+      strength 1
+      move 0
+      action 0
+    }
+    else
+      ifactioncount FROZENDRIPTIME
+    {
+      ifrnd 32
+      spawn WATERDRIP
+    }
+
+    ifp pfacing   // assumes another other player  (multiplayer)
+      ifpdistl FROZENQUICKKICKDIST
+       ifn COOP 1
+        pkick
+
+    break
+ends
+
+
+// Added because of the mouse input changes. Acts as a replacement for lockplayer when mouse input is still needed.
+defstate customlockplayer
+    ifg lockp_countdown 0
+    {
+        setp[].movement_lock 15
+        sub lockp_countdown 1
+    }
+    else ife lockp_countdown 0
+    {
+        setp[].movement_lock 0
+        set lockp_countdown -1
+    }
+ends
+
+defstate roll_stam_drain
+	ife CHAR 2
+		{
+		ife PERSONNEL_RESEARCH[30] 2 sub p_stamina 5 else
+		sub p_stamina 15
+		}
+	else
+		{
+		ife PERSONNEL_RESEARCH[30] 2 sub p_stamina 25 else
+		sub p_stamina 50
+		}
+ends
+
+/* APlayer actor */
+
+// contains all variables that count down
+defstate countdown_timers
+ifg airdrop_cooldown 0 sub airdrop_cooldown 1
+ifl player_swap 26 add player_swap 1
+ifl player_use 26 add player_use 1
+ifl player_fire 26 add player_fire 1
+ifl player_door 26 add player_door 1
+ifl player_unlock 26 add player_unlock 1
+ifl player_ship 26 add player_ship 1
+ifl player_bipod 26 add player_bipod 1
+ifl door_locked 26 add door_locked 1
+ifl player_ninja 26 add player_ninja 1
+ifg mindshield_cooldown 0 sub mindshield_cooldown 1
+ifg firekey_indicator 0 sub firekey_indicator 1
+ifg shield_reg_disp 0 sub shield_reg_disp 1
+ifl shield_reg_disp 0 add shield_reg_disp 1
+ifg runspeed_reduced_tics 0 sub runspeed_reduced_tics 1
+ifg room_type_reset 0 // reverb gun sound
+	{
+	sub room_type_reset 1
+	ifl room_type_reset 2 set room_type 0
+	}
+ifg stamina_shake 0 subvar stamina_shake 1
+ifg artifact_used 0 subvar artifact_used 1 // cooldown on artifact use display
+ifg IFF_COOLD 0 subvar IFF_COOLD 1 // cooldown on drone device
+ifg FORTUNE_TIMER 0 sub FORTUNE_TIMER 1 // cooldown on fortune cookie display
+
+ifg rs_fmv_counter 0 sub rs_fmv_counter 1
+
+ifg screen_shake 0 sub screen_shake 1 // screen shaking
+ifl screen_shake shake_strength set shake_strength screen_shake // reduces shaking strength as shake diminishes
+ifg gun_recoil 0 sub gun_recoil 1
+ifg switch_laser 0 sub switch_laser 1
+ifg char_sel_anim 0  // character select animation stuff
+	{
+	sub char_sel_anim 1
+	set shield_up 0
+	set merl_shieldup 0
+	state lower_weapon
+	}
+ifg ds_location 0 sub ds_location 1 // ringworld location text
+ifg voice_cooldown 0 sub voice_cooldown 1 // player voiceover cooldown
+ifg player_ability_1 0 sub player_ability_1 1
+ifn CUS_WACK 0 // custom wack code
+{
+	// store original wack value
+	ife PREV_CUS_WACK 0
+		set PREV_CUS_WACK CUS_WACK
+
+	// cus wack above 0 => wack up
+	// cus wack below 0 => wack down
+	ifg CUS_WACK 0
+	{
+		getp[].horiz temp
+		add temp 20
+		ifg temp 298 { set CUS_WACK -28 } else sub CUS_WACK 1
+		setp[].horiz temp
+
+		// if we got to 0 we need to reset view
+		// multiply by 4 and flip to below 0
+		ife CUS_WACK 0
+		{
+			set temp PREV_CUS_WACK
+			mul temp 4
+			mul temp -1
+			set CUS_WACK temp
+		}
+	}
+	else ifl CUS_WACK 0
+	{
+		getp[].horiz temp
+		sub temp 5
+		setp[].horiz temp
+
+		add CUS_WACK 1
+
+		ife CUS_WACK 0
+			set PREV_CUS_WACK 0 // cleanup for next wack
+	}
+}
+ifg saving 0 // save wheel display
+	{
+    sub saving 1
+    ife saving AUTOSAVE_END
+		{
+			// cycle through save slots 0 to 9 -- I have no idea if this actually does anything, but it's worth a try
+			readgamevar saveslotcycle
+			// save does not accept variables
+			switch saveslotcycle
+				case 0 save 0 break
+				case 1 save 1 break
+				case 2 save 2 break
+				case 3 save 3 break
+				case 4 save 4 break
+				case 5 save 5 break
+				case 6 save 6 break
+				case 7 save 7 break
+				case 8 save 8 break
+				case 9 save 9 break
+				default echo 507 break
+			endswitch
+			add saveslotcycle 1
+			mod saveslotcycle 10
+			savegamevar saveslotcycle
+		}
+	}
+ifg cameraend 0 sub cameraend 1 // camera ender
+ifn gp_subt 0 // gameplay subtitle cooldown
+{
+ifg gp_subt 0 // countdown timer for subtitles
+	{
+	ifn cuts_txt -1 { set gp_subt 0 stopsoundvar playsound }
+	else sub gp_subt 1
+	}
+ifl gp_subt 0 set gp_subt 0
+}
+ife gp_subt 0 ifn subt_id 0 set subt_id 0 // resets subtitle id when timer is zero
+ifg ally_subt 0 sub ally_subt 1 // countdown timer for ally subtitles
+ifg disp_pulse 0 // display pulse for HUD stuff
+	{
+	sub disp_pulse 1
+	ifl disp_pulse 2 set disp_pulse 16
+	}
+ifg button_counter 0 sub button_counter 1
+ifg CURSED 0 sub CURSED 1 // cursed reducer
+ifl enemies_cleared 150
+	{
+	add enemies_cleared 1
+	}
+ends
+
+damageeventtile APLAYER
+
+actor APLAYER MAXPLAYERHEALTH 0 0 0
+state checkUseAllowed
+
+//profilenanostart 0 // TODO: FOR DEMONSTRATION PURPOSES, REMOVE ME LATER
+set faction_flag ALLIED_FACTION_FLAG // Identifies the player as "Allied" faction
+set max_weight 20 // if in a battle with allies, this ensures more monsters will attack the player
+state addplayertarget
+
+clamp p_stamina -100 pmax_stamina
+
+clamp p_blue_mana 0 max_blue_mana
+clamp p_green_mana 0 max_green_mana
+clamp p_orange_mana 0 max_orange_mana
+clamp p_purple_mana 0 p_purple_mana
+
+// A firstaid pickup will always give 100 "charge" to that inventory item
+set pmax_firstaid_onpickup 100
+
+// The total charge it can hold is at least 100 and goes up to pmax health (which is usually 100 as well)
+// This means that characters with a max health lower than 100 (eg snowfall) will still have a medkit that goes up to at least 100...
+set pmax_firstaid_total 100
+
+// has the blood storage unit research?
+ife PERSONNEL_RESEARCH[42] 2 set pmax_firstaid_total 150
+
+ifl pmax_firstaid_total pmax_health
+	set pmax_firstaid_total pmax_health
+
+ifge player[].last_pissed_time 5720 { sound ZIPPER set taken_piss 1 }
+ife player[].last_pissed_time 5662 sound ZIPPER
+
+switch CHAR
+	// Handle characters who can take 50% more
+	case C_MERLIJN
+	case C_KAGURA
+		ife BASE_RESEARCH[8] 2 // alchemy table
+		{
+			set temp2 pmax_firstaid_total
+			div temp2 2
+			add pmax_firstaid_total temp2
+
+			set temp2 pmax_firstaid_onpickup
+			div temp2 2
+			add pmax_firstaid_onpickup temp2
+		}
+		break
+	case C_HIGHWIRE
+		set temp2 pmax_firstaid_total
+		div temp2 2
+		add pmax_firstaid_total temp2
+
+		set temp2 pmax_firstaid_onpickup
+		div temp2 2
+		add pmax_firstaid_onpickup temp2
+		break
+	endswitch
+
+set allow_fire YES
+
+ifn player_in_vehicle 0 set allow_fire NO
+
+ifg p_dazed_count 0
+	{
+	ife start_daze 0
+		{
+		sound DAZED
+		setactorsoundpitch THISACTOR DAZED 256
+		state spawn_dazed
+		set start_daze 1
+		}
+	setp[].weapon_pos 10
+	sub p_dazed_count 1
+	}
+
+	ife p_dazed_count 0
+	 ifn start_daze 0
+		set start_daze 0
+
+ife opt_photosensitivity_mode 1 setp[].pals_time 0
+
+getp[].i PLAYER_IDENTITY
+gets[].floorpicnum FLOORTEX
+getp[].curr_weapon cur_weap
+getp[].ammo_amount cur_weap cur_ammo
+getp[].shield_amount PARMOUR
+geta[].extra PHEALTH
+getp[].kickback_pic kickbackpic
+getp[].max_player_health pmax_health
+setp[].weaponswitch 0
+geta[].htextra HIT_DAMAGE
+ife player[].toggle_key_flag 1 ife player_hitspace 0 set player_hitspace 1 else ife player[].toggle_key_flag 0 set player_hitspace 0
+set P_CHAR CHAR
+
+ife PERSONNEL_RESEARCH[30] 2 set player_dodge 1
+else ife CHAR 2 set player_dodge 1
+else set player_dodge 0
+
+ife player[].footprintpal 8 nullop else
+setp[].footprintshade sector[].floorshade
+
+
+ife IN_DREAM 0
+ifand BITS_PRESS 524288
+{
+	ifinwater nullop
+	else
+	{
+		add scanner_toggle 1
+		ifg scanner_toggle 10 { soundonce PU_OPEN set MISSIONSCREEN 5 } else set MISSIONSCREEN 0
+	}
+}
+else ifg scanner_toggle 0
+	sub scanner_toggle 2
+clamp scanner_toggle 0 10
+
+state countdown_timers
+
+state customlockplayer
+
+ifand sector[].floorstat 2
+{
+state sector_slope
+}
+
+ifn ALLYSLOT2 -1 { ife ALLYSLOT1 -1 { set ALLYSLOT1 ALLYSLOT2 set ALLYSLOT2 -1 } }
+ifn ALLYSLOT3 -1 { ife ALLYSLOT2 -1 { set ALLYSLOT2 ALLYSLOT3 set ALLYSLOT3 -1 } }
+ifn ALLYSLOT4 -1 { ife ALLYSLOT3 -1 { set ALLYSLOT3 ALLYSLOT4 set ALLYSLOT4 -1 } }
+ifn ALLYSLOT5 -1 { ife ALLYSLOT4 -1 { set ALLYSLOT4 ALLYSLOT5 set ALLYSLOT5 -1 } }
+ifn ALLYSLOT6 -1 { ife ALLYSLOT5 -1 { set ALLYSLOT5 ALLYSLOT6 set ALLYSLOT6 -1 } }
+ifn ALLYSLOT7 -1 { ife ALLYSLOT6 -1 { set ALLYSLOT6 ALLYSLOT7 set ALLYSLOT7 -1 } }
+ifn ALLYSLOT8 -1 { ife ALLYSLOT7 -1 { set ALLYSLOT7 ALLYSLOT8 set ALLYSLOT8 -1 } }
+
+ifhitspace setp[].crack_time 6
+
+ife player[].player_par 1
+	{
+	ife VOLUME 3
+		{
+		ife LEVEL 5 { set ds_picnum 21197 set ds_location 181 }
+		ife LEVEL 6 { set ds_picnum 21196 set ds_location 181 }
+		ife LEVEL 7 { set ds_picnum 21198 set ds_location 181 }
+		ife LEVEL 8 { set ds_picnum 21200 set ds_location 181 }
+		ife LEVEL 10 { set ds_picnum 21199 set ds_location 181 }
+		ife LEVEL 11 { set ds_picnum 21201 set ds_location 181 }
+		ife LEVEL 12 { set ds_picnum 21208 set ds_location 181 }
+		ife LEVEL 15 { set ds_picnum 21206 set ds_location 181 }
+		ife LEVEL 16 { set ds_picnum 21202 set ds_location 181 }
+		ife LEVEL 17 { set ds_picnum 21205 set ds_location 181 }
+		ife LEVEL 19 { set ds_picnum 21150 set ds_location 181 }
+		ife LEVEL 20 { set ds_picnum 21207 set ds_location 181 }
+		ife LEVEL 21 { set ds_picnum 21209 set ds_location 181 }
+		ife LEVEL 22 { set ds_picnum 21149 set ds_location 181 }
+		ife LEVEL 23 { set ds_picnum 21154 set ds_location 181 }
+		ife LEVEL 25 { set ds_picnum 21203 set ds_location 181 }
+		ife LEVEL 27 { set ds_picnum 21204 set ds_location 181 }
+		ife LEVEL 33 { set ds_picnum 21146 set ds_location 181 }
+		ife LEVEL 34 { set ds_picnum 21147 set ds_location 181 }
+		ife LEVEL 35 { set ds_picnum 21148 set ds_location 181 }
+		ife LEVEL 39 { set ds_picnum 21151 set ds_location 181 }
+		ife LEVEL 40 { set ds_picnum 21152 set ds_location 181 }
+		ife LEVEL 56 { set ds_picnum 21153 set ds_location 181 }
+		}
+	ifg loading 0 set loading 0
+	}
+
+ifg shield_up 0 ife riot_shield 0 set shield_up 0
+
+ife amc_base 1
+	{
+	// this clears map triggers
+	resizearray MAP_TRIGGERS 0
+	resizearray MAP_TRIGGERS 16384
+	set shuffle_safety 0
+	// AMC BASE MUSIC PLAYER
+	ife play_base_music 0
+		{
+		ife PLAY_SHUFFLE YES
+			{
+			readgamevar SHUFFLE_BASE_MUSIC
+			readgamevar SHUFFLE_BASE_LIST
+			getcurraddress jump_target_addr
+			// incase something screws up with the selection, will reset the shuffle list
+			add shuffle_safety 1
+			ifge shuffle_safety 32 set SHUFFLE_BASE_LIST 0
+			ife SHUFFLE_BASE_LIST 0 set SHUFFLE_BASE_LIST SHUFFLE_BASE_MUSIC
+			randvar shuffle_list 180
+			ifand SHUFFLE_BASE_MUSIC 1 ifle shuffle_list 10 { ifand SHUFFLE_BASE_LIST 1 { xorvar SHUFFLE_BASE_LIST 1 set BASE_MUSIC 1 } else jump jump_target_addr }
+			else ifand SHUFFLE_BASE_MUSIC 2 ifle shuffle_list 20 { ifand SHUFFLE_BASE_LIST 2 { xorvar SHUFFLE_BASE_LIST 2 set BASE_MUSIC 2 } else jump jump_target_addr }
+			else ifand SHUFFLE_BASE_MUSIC 4 ifle shuffle_list 30 { ifand SHUFFLE_BASE_LIST 4 { xorvar SHUFFLE_BASE_LIST 4 set BASE_MUSIC 4 } else jump jump_target_addr }
+			else ifand SHUFFLE_BASE_MUSIC 8 ifle shuffle_list 40 { ifand SHUFFLE_BASE_LIST 8 { xorvar SHUFFLE_BASE_LIST 8 set BASE_MUSIC 8 } else jump jump_target_addr }
+			else ifand SHUFFLE_BASE_MUSIC 16 ifle shuffle_list 50 { ifand SHUFFLE_BASE_LIST 16 { xorvar SHUFFLE_BASE_LIST 16 set BASE_MUSIC 16 } else jump jump_target_addr }
+			else ifand SHUFFLE_BASE_MUSIC 32 ifle shuffle_list 60 { ifand SHUFFLE_BASE_LIST 32 { xorvar SHUFFLE_BASE_LIST 32 set BASE_MUSIC 32 } else jump jump_target_addr }
+			else ifand SHUFFLE_BASE_MUSIC 64 ifle shuffle_list 70 { ifand SHUFFLE_BASE_LIST 64 { xorvar SHUFFLE_BASE_LIST 64 set BASE_MUSIC 64 } else jump jump_target_addr }
+			else ifand SHUFFLE_BASE_MUSIC 1024 ifle shuffle_list 80 { ifand SHUFFLE_BASE_LIST 1024 { xorvar SHUFFLE_BASE_LIST 1024 set BASE_MUSIC 1024 } else jump jump_target_addr }
+			else ifand SHUFFLE_BASE_MUSIC 2048 ifle shuffle_list 90 { ifand SHUFFLE_BASE_LIST 2048 { xorvar SHUFFLE_BASE_LIST 2048 set BASE_MUSIC 2048 } else jump jump_target_addr }
+			else ifand SHUFFLE_BASE_MUSIC 4096 ifle shuffle_list 100 { ifand SHUFFLE_BASE_LIST 4096 { xorvar SHUFFLE_BASE_LIST 4096 set BASE_MUSIC 4096 } else jump jump_target_addr }
+			else ifand SHUFFLE_BASE_MUSIC 8192 ifle shuffle_list 110 { ifand SHUFFLE_BASE_LIST 8192 { xorvar SHUFFLE_BASE_LIST 8192 set BASE_MUSIC 8192 } else jump jump_target_addr }
+			else ifand SHUFFLE_BASE_MUSIC 16384 ifle shuffle_list 120 { ifand SHUFFLE_BASE_LIST 16384 { xorvar SHUFFLE_BASE_LIST 16384 set BASE_MUSIC 16384 } else jump jump_target_addr }
+			else ifand SHUFFLE_BASE_MUSIC 32768 ifle shuffle_list 130 { ifand SHUFFLE_BASE_LIST 32768 { xorvar SHUFFLE_BASE_LIST 32768 set BASE_MUSIC 32768 } else jump jump_target_addr }
+			else ifand SHUFFLE_BASE_MUSIC 65536 ifle shuffle_list 140 { ifand SHUFFLE_BASE_LIST 65536 { xorvar SHUFFLE_BASE_LIST 65536 set BASE_MUSIC 65536 } else jump jump_target_addr }
+			else ifand SHUFFLE_BASE_MUSIC 131072 ifle shuffle_list 150 { ifand SHUFFLE_BASE_LIST 131072 { xorvar SHUFFLE_BASE_LIST 131072 set BASE_MUSIC 131072 } else jump jump_target_addr }
+			else ifand SHUFFLE_BASE_MUSIC 262144 ifle shuffle_list 160 { ifand SHUFFLE_BASE_LIST 262144 { xorvar SHUFFLE_BASE_LIST 262144 set BASE_MUSIC 262144 } else jump jump_target_addr }
+			else ifand SHUFFLE_BASE_MUSIC 524288 ifle shuffle_list 170 { ifand SHUFFLE_BASE_LIST 524288 { xorvar SHUFFLE_BASE_LIST 524288 set BASE_MUSIC 524288 } else jump jump_target_addr }
+			else ifand SHUFFLE_BASE_MUSIC 1048576 ifle shuffle_list 180 { ifand SHUFFLE_BASE_LIST 1048576 { xorvar SHUFFLE_BASE_LIST 1048576 set BASE_MUSIC 1048576 } else jump jump_target_addr }
+			al SHUFFLE_BASE_LIST
+			savegamevar SHUFFLE_BASE_LIST
+			}
+		ifn BASE_MUSIC 0
+			{
+			ife BASE_MUSIC 1 starttrackslot 0 1
+			ife BASE_MUSIC 2 starttrackslot 0 8
+			ife BASE_MUSIC 4 starttrackslot 1 4
+			ife BASE_MUSIC 8 starttrackslot 1 50
+			ife BASE_MUSIC 16 starttrackslot 2 26
+			ife BASE_MUSIC 32 starttrackslot 3 58
+			ife BASE_MUSIC 64 starttrackslot 1 1
+			ife BASE_MUSIC 1024 starttrackslot 7 24
+			ife BASE_MUSIC 2048 starttrackslot 7 17
+			ife BASE_MUSIC 4096 starttrackslot 7 19
+			ife BASE_MUSIC 8192 starttrackslot 7 20
+			ife BASE_MUSIC 16384 starttrackslot 7 21
+			ife BASE_MUSIC 32768 starttrackslot 7 22
+			ife BASE_MUSIC 65536 starttrackslot 7 23
+			ife BASE_MUSIC 131072 starttrackslot 4 1
+			ife BASE_MUSIC 262144 starttrackslot 7 26
+			ife BASE_MUSIC 524288 starttrackslot 7 27
+			ife BASE_MUSIC 1048576 starttrackslot 7 28
+			}
+		gettimedate temp temp temp temp2 temp3 temp temp temp
+		ife temp3 11 ife temp2 25 starttrackslot 7 25
+		set play_base_music 1
+		}
+	set shield_up 0
+	set merl_shieldup 0
+	set hide_xhair 1
+	state lower_weapon
+	}
+
+ifn player[].somethingonplayer -1
+{
+    ife HELMET_LOADOUT[CHAR] 1 // if wearing ballistic mask
+    {
+        setp[].somethingonplayer -1
+        sound HITARMOUR2
+    }
+    else
+    {
+        getp[].somethingonplayer temp
+        ife sprite[temp].pal 3
+        {
+            addphealth -100
+        }
+    }
+}
+
+ife JET_TOGGLE 1
+	{
+	ifand BITS_PRESS 1 nullop else
+		{
+		sound PLYR_JETPACK_OFF
+		setp[].falling_counter 6
+		setp[].poszv 0
+		setp[].jetpack_on 0
+		set JET_TOGGLE 0
+		}
+	}
+
+ifg PHEALTH pmax_health
+	{
+	add pmax_hp_countd 1
+	ifg PHEALTH 400 { ifge pmax_hp_countd 30 { sub PHEALTH 1 seta[].extra PHEALTH set pmax_hp_countd 0 } }
+	else ifg PHEALTH 300 { ifge pmax_hp_countd 60 { sub PHEALTH 1 seta[].extra PHEALTH set pmax_hp_countd 0 } }
+	else ifg PHEALTH 200 { ifge pmax_hp_countd 90 { sub PHEALTH 1 seta[].extra PHEALTH set pmax_hp_countd 0 } }
+	else ifge pmax_hp_countd 120 { sub PHEALTH 1 seta[].extra PHEALTH set pmax_hp_countd 0 }
+	}
+else
+ifl pmax_hp_countd 0 add pmax_hp_countd 1
+
+ifg userdef[].screen_size 4 setuserdef[].screen_size 4
+
+ife opt_dynamic_music YES
+{
+ife userdef[].musictoggle 1
+	{
+	ife VOLUME 0
+	 ife LEVEL 7
+		{
+		set temp6 pmax_health
+		divvar temp6 4
+		ife music_level 0
+			{
+			ifsound ACTIONM_LVL1 set music_play 1 else
+			ifsound ACTIONM_LVL2 set music_play 1 else
+			ifsound ACTIONM_LVL3 set music_play 2 else
+			ifsound ACTIONM_BOSS set music_play 2 else
+				{
+				ife music_play 1 { soundonce ACTIONM_SMALLSTOP set music_play 0 }
+				else ife music_play 2 { soundonce ACTIONM_BIGSTOP set music_play 0 }
+				soundonce ACTIONM_CALM
+				ifvarvarl PHEALTH temp6 setactorsoundpitch THISACTOR ACTIONM_CALM -96
+				}
+			}
+		else ife music_level 1
+			{
+			stopsound ACTIONM_CALM
+			soundonce ACTIONM_LVL1
+			ifvarvarl PHEALTH temp6  setactorsoundpitch THISACTOR ACTIONM_LVL1 96
+			}
+		else ife music_level 2
+			{
+			stopsound ACTIONM_CALM stopsound ACTIONM_LVL1
+			soundonce ACTIONM_LVL2
+			ifvarvarl PHEALTH temp6  setactorsoundpitch THISACTOR ACTIONM_LVL2 96
+			}
+		else ife music_level 3
+			{
+			stopsound ACTIONM_CALM stopsound ACTIONM_LVL1 stopsound ACTIONM_LVL2
+			soundonce ACTIONM_LVL3
+			ifvarvarl PHEALTH temp6  setactorsoundpitch THISACTOR ACTIONM_LVL3 96
+			}
+		else ife music_level 4
+			{
+			stopsound ACTIONM_CALM stopsound ACTIONM_LVL1 stopsound ACTIONM_LVL2 stopsound ACTIONM_LVL3
+			soundonce ACTIONM_BOSS
+			ifvarvarl PHEALTH temp6  setactorsoundpitch THISACTOR ACTIONM_BOSS 96
+			}
+		}
+
+	ifl music_check 160
+		{
+		add music_check 1
+		ifg music_check 158 set music_level 0
+		}
+	}
+}
+
+
+ifge music_fade 1
+{
+ ifg music_vol 0
+	{
+	sub music_vol 1
+	setmusicvolume music_vol
+	}
+ife music_fade 2 // fade to nothing, than play null.ogg - this stops the track from playing again when loading a save
+ ife music_vol 0
+	{
+	starttrackslot 0 34 // null.ogg
+	set music_fade 1
+	}
+}
+
+ifn COMBAT_CHECK -1
+{
+ifn CC_MUSIC 0 soundoncevar CC_MUSIC
+}
+
+ife weather_type 2 // low gravity
+	{
+	getp[].poszv temp8
+	ifg temp8 0 divvar temp8 2
+	setp[].poszv temp8
+	}
+else
+ife weather_type 3 // zero gravity
+	{
+	setp[].autostep 4096
+	getp[].poszv temp8
+	setp[].falling_counter 0
+	ifl temp8 -1000 set ZERO_G_ZVEL 1
+
+	ife ZERO_G_ZVEL 1 // up
+	  {
+	  setp[].poszv -1200
+	  ifand BITS_PRESS 2
+	   ifcount 6
+		{
+		screensound SPACESUIT_THRUSTER
+		set ZERO_G_ZVEL 0
+		setp[].poszv 0
+		resetcount
+		}
+	  }
+	 else
+	 ife ZERO_G_ZVEL 0 // 'stable'
+	  {
+	  setp[].poszv 0
+	  ifand BITS_PRESS 2
+	   ifcount 6
+		{
+		screensound SPACESUIT_THRUSTER
+		set ZERO_G_ZVEL 3
+		setp[].poszv 2400
+		resetcount
+		}
+	   ifand BITS_PRESS 1
+	    ifcount 6
+		{
+		screensound SPACESUIT_THRUSTER
+		set ZERO_G_ZVEL 1
+		setp[].poszv -1200
+		resetcount
+		}
+	  }
+	else
+	 ife ZERO_G_ZVEL 3 // down
+	  {
+	  setp[].poszv 2400
+	  ifand BITS_PRESS 1
+	   ifcount 6
+		{
+		screensound SPACESUIT_THRUSTER
+		set ZERO_G_ZVEL 0
+		setp[].poszv -1200
+		resetcount
+		}
+	  }
+	else
+	ifg temp8 0 { divvar temp8 20 setp[].poszv temp8 }
+	}
+else
+ifand sector[].ceilingstat 32768 // zero gravity
+	{
+	setp[].autostep 4096
+	getp[].poszv temp8
+	setp[].falling_counter 0
+	ifl temp8 -1000 set ZERO_G_ZVEL 1
+
+	ife ZERO_G_ZVEL 1 // up
+	  {
+	  setp[].poszv -1200
+	  ifand BITS_PRESS 2
+	   ifcount 6
+		{
+		screensound SPACESUIT_THRUSTER
+		set ZERO_G_ZVEL 0
+		setp[].poszv 0
+		resetcount
+		}
+	  }
+	 else
+	 ife ZERO_G_ZVEL 0 // 'stable'
+	  {
+	  setp[].poszv 0
+	  ifand BITS_PRESS 2
+	   ifcount 6
+		{
+		screensound SPACESUIT_THRUSTER
+		set ZERO_G_ZVEL 3
+		setp[].poszv 2400
+		resetcount
+		}
+	   ifand BITS_PRESS 1
+	    ifcount 6
+		{
+		screensound SPACESUIT_THRUSTER
+		set ZERO_G_ZVEL 1
+		setp[].poszv -1200
+		resetcount
+		}
+	  }
+	else
+	 ife ZERO_G_ZVEL 3 // down
+	  {
+	  setp[].poszv 2400
+	  ifand BITS_PRESS 1
+	   ifcount 6
+		{
+		screensound SPACESUIT_THRUSTER
+		set ZERO_G_ZVEL 0
+		setp[].poszv -1200
+		resetcount
+		}
+	  }
+	else
+	ifg temp8 0 { divvar temp8 20 setp[].poszv temp8 }
+	}
+else
+ifand sector[].ceilingstat 16384 // low gravity
+	{
+	getp[].poszv temp8
+	ifg temp8 0 divvar temp8 2
+	setp[].poszv temp8
+	}
+
+ifg gun_spread 0
+{
+ife CHAR 1 ifand CHAR_APP 2048 sub gun_spread 1
+ife CHAR 2 ifand CHAR_APP 4 sub gun_spread 1
+ife CHAR 3 ifand CHAR_APP 16 sub gun_spread 1
+ife CHAR 4 ifand CHAR_APP 1024 sub gun_spread 1
+ife CHAR 6 ifand CHAR_APP 4096 sub gun_spread 1
+ife CHAR 7 ifand CHAR_APP 8 sub gun_spread 1
+ife CHAR 13 ifand CHAR_APP 256 sub gun_spread 1
+sub gun_spread 1
+ife CHAR 0 sub gun_spread 1
+ifp pstanding sub gun_spread 1
+ifg SKILL_LEVEL 2
+	{
+	set temp2 GUN_MAX_SPREAD
+	ifg AGENT_FATIGUE[CHAR] 20000 add temp2 24
+	else ifg AGENT_FATIGUE[CHAR] 10000 add temp2 12
+	else ifg AGENT_FATIGUE[CHAR] 5000 add temp2 4
+	ifvarvarg gun_spread temp2 set gun_spread temp2
+	}
+else
+	ifvarvarg gun_spread GUN_MAX_SPREAD set gun_spread GUN_MAX_SPREAD
+}
+else ifl gun_spread 0 set gun_spread 0
+
+ifn npc_killed 0
+{
+ifrnd 16 set npc_killed 0
+}
+
+ifn DEATH_CAM -1
+	{
+	operateactivators DEATH_CAM THISACTOR
+	operatemasterswitches DEATH_CAM
+	operaterespawns DEATH_CAM
+	set DEATH_CAM -1
+	}
+
+    // must remain because god mode and noclip may carry over maps
+    ife userdef[].player_skill 5
+    {
+        setu[].god 0
+        setu[].clipping 0
+    }
+    ife cheated 0
+    {
+        ife userdef[].god 1 set cheated 1
+        ife userdef[].clipping 1 set cheated 1
+        ife cheated 1 userquote 25
+    }
+
+
+ifn FORCEFIELD_TURNOFF -1
+{
+			set temp3 0
+				whilevarvarn temp3 NUMWALLS
+					{
+						getwall[temp3].lotag temp5
+						ifvarvare temp5 FORCEFIELD_TURNOFF
+							{
+							setwall[temp3].overpicnum 0
+							setwall[temp3].cstat 0
+							}
+					ifl FORCEFIELD_TURNOFF -1
+						{
+						set temp6 FORCEFIELD_TURNOFF
+						inv temp6
+						ifvarvare temp5 temp6
+							{
+							setwall[temp3].cstat 1
+							}
+						}
+					add temp3 1
+					}
+				set FORCEFIELD_TURNOFF -1
+}
+
+// player self-damage stuff
+
+ifg HIT_DAMAGE 0                            // if the actor is set to take some damage from a weapon...
+{
+ife PLAYER_PROTECTED 1 seta[].htextra -1
+geta[].htpicnum temp3
+  geta[].htowner temp2      // gets the owner of the weapon into temp
+  ife temp2 THISACTOR              // if the owner of the weapon IS this actor
+	{
+	switch temp3
+	case GORO_FLAME
+	case GORO_EXPLODING_FLAME
+	case 7056
+	case 7163 // fire materia
+	case 7160 // ice materia
+	case 27367 // Kagura blast right
+	case 27368 // Kagura blast left
+	case 19 // Dragonslayer
+	case 27364 // Talisman
+	case 27365 // Talisman
+	case 27366 // Talisman
+	set HIT_DAMAGE 0
+    seta[].htextra -1       // set the damage to 0
+	break
+	endswitch
+	ife PERSONNEL_RESEARCH[14] 2 // blast padding?
+	 ifg HIT_DAMAGE 0
+		{
+		divvar HIT_DAMAGE 2
+		ifg HIT_DAMAGE 0 seta[].htextra HIT_DAMAGE
+		}
+	}
+}
+
+ifg flash_banged 0
+	{
+	soundonce FLASH_BANGED
+	ifand player[].player_par 1 setp[].rotscrnang 64
+	else setp[].rotscrnang 0
+	set cus_fade_duration flash_banged
+	ife HELMET_LOADOUT[CHAR] 1 div flash_banged 2
+	sub flash_banged 1
+	}
+
+ifl flash_banged 0 set flash_banged 0
+
+ife userdef[].althud 0 set weap_show 30
+
+ifg mission_update 0 sub mission_update 1
+ifl mission_update 0 add mission_update 1
+
+ife GUN_HANDS 2 set HANDS_DRAW 2 else ife GUN_HANDS 1 set HANDS_DRAW 1
+
+ifg GUN_HEAT[cur_weap] 0
+	{
+	set temp9 GUN_HEAT[cur_weap]
+	sub temp9 1
+	ifinwater sub temp9 1
+	ife weather_type 1 sub temp9 1
+	setarray GUN_HEAT[cur_weap] temp9
+	}
+ifl GUN_HEAT[cur_weap] 0 setarray GUN_HEAT[cur_weap] 0
+
+switch CHAR
+	default // non-magic characters
+		ifand BASE_COSMETICS 8
+			{
+			set max_blue_mana 150
+			set max_green_mana 75
+			set max_orange_mana 37
+			set max_purple_mana 15
+			}
+		else
+			{
+			set max_blue_mana 100
+			set max_green_mana 50
+			set max_orange_mana 25
+			set max_purple_mana 10
+			}
+		break
+	case 2
+	case 4
+	case 5
+	case 11
+	case 17
+		ifand BASE_COSMETICS 8
+			{
+			set max_blue_mana 300
+			set max_green_mana 150
+			set max_orange_mana 75
+			set max_purple_mana 30
+			}
+		else
+			{
+			set max_blue_mana 200
+			set max_green_mana 100
+			set max_orange_mana 50
+			set max_purple_mana 20
+			}
+		break
+endswitch
+
+	ife PERSONNEL_RESEARCH[34] 2 // orc bandolier?
+		{
+		smaxammo 5 30
+		smaxammo 8 15
+		}
+	else
+		{
+		smaxammo 5 20
+		smaxammo 8 10
+		}
+
+	ife PERSONNEL_RESEARCH[35] 2 // quiver
+	set bolt_cap 75 else set bolt_cap 50
+
+ife just_init 0
+	{
+	set actor_type TYPE_CASE_SPECIFIC
+	spawn SOUNDSCAPE
+
+
+
+	// Autosave on map start, except in autosave_playtest, cause I'm getting too many saves lol
+	state is_autosave_playtest
+
+	ifn temp2 0
+	  ifn CHAR 8
+		save 9
+
+	setvar DISP_MAINMENU 0
+	setarray INVENTORY_SLOTS[1] 1
+	setarray INVENTORY_SLOTS[2] 2
+	setarray INVENTORY_SLOTS[3] 3
+	setarray INVENTORY_SLOTS[4] 4
+	setarray INVENTORY_SLOTS[5] 5
+	setarray INVENTORY_SLOTS[6] 6
+	setarray INVENTORY_SLOTS[7] 7
+	set MISSIONPOS 320
+	readgamevar POLYMERS
+	readarrayfromfile MAGIC_UPGRADE F_MAGIC_UPGRADE
+	readarrayfromfile CHIBIS_FOUND F_CHIBI_AMCTC
+	readarrayfromfile SKILL_MEDALS F_SKILL_MEDALS_AMCTC
+	readarrayfromfile SPECIALIST_CUSTOM F_SPECIALIST_CUSTOM_AMCTC
+	readarrayfromfile AGENT_FATIGUE F_AGENT_FATIGUE_AMCTC
+	readarrayfromfile TUTORIAL_DONE F_TUTORIAL_DONE
+	readarrayfromfile ENEMIES_BESTIARY F_ENEMIES_BESTIARY
+	readarrayfromfile ENEMIES_MIAD F_ENEMIES_MIAD
+	ife ORBS_FOUND 0 readgamevar ORBS_FOUND
+	ife JAMES_UPGRADE 0 readgamevar JAMES_UPGRADE
+	ife ZAXTOR_UPGRADE 0 readgamevar ZAXTOR_UPGRADE
+	ife MERLIJN_UPGRADE 0 readgamevar MERLIJN_UPGRADE
+	ife HIGHWIRE_UPGRADE 0 readgamevar HIGHWIRE_UPGRADE
+	ife SANG_UPGRADE 0 readgamevar SANG_UPGRADE
+	ife RUSTY_UPGRADE 0 readgamevar RUSTY_UPGRADE
+	ife GEOFFREY_UPGRADE 0 readgamevar GEOFFREY_UPGRADE
+	ife MIKKO_UPGRADE 0 readgamevar MIKKO_UPGRADE
+	ife MICKY_UPGRADE 0 readgamevar MICKY_UPGRADE
+	ife SNOWFALL_UPGRADE 0 readgamevar SNOWFALL_UPGRADE
+	ife KAGURA_UPGRADE 0 readgamevar KAGURA_UPGRADE
+
+	readarrayfromfile WEAPONS_RESEARCH F_WEAPONS_AMCTC
+	readarrayfromfile EQUIPMENT_RESEARCH F_EQUIPMENT_AMCTC
+	readarrayfromfile BASE_RESEARCH F_BASE_AMCTC
+	readarrayfromfile WEAPONS_FOUND F_WEAPON_FOUND_AMCTC
+	getp[].horiz PHORIZ
+	getp[].ang PANG
+
+	readarrayfromfile BEAT_EPISODES F_BEAT_EPISODES_AMCTC
+	ife BEAT_EPISODES[0] 0
+	{
+		readgamevar BEATEP1 // old legacy stuff
+		readgamevar BEATEP2 // old legacy stuff
+		setarray BEAT_EPISODES[1] BEATEP1
+		setarray BEAT_EPISODES[2] BEATEP2
+
+		setarray BEAT_EPISODES[0] 1
+		writearraytofile BEAT_EPISODES F_BEAT_EPISODES_AMCTC
+	}
+
+	ife VOLUME 0
+	{
+	readarrayfromfile BEAT_EPISODES F_BEAT_EPISODES_AMCTC
+	ife LEVEL 7 // usermap slot
+		{
+		set airdrop_available 1
+		set ep2_new_char 1
+		set ep3_new_char 1
+		set ep4_new_char 1
+		}
+	else
+		{
+		set ep2_new_char 0
+		set ep3_new_char 0
+		set ep4_new_char 0
+		}
+
+	ifand BEAT_EPISODES[2] 1024 set ep2_new_char 1 // If EP2 beaten, allow Mick selection
+	ifand BEAT_EPISODES[3] 65536 set ep3_new_char 1 // If EP3 beaten, allow Snowfall selection
+	ifand BEAT_EPISODES[4] 131072 set ep4_new_char 1 // If EP4 beaten, allow Kagura selection
+
+		readgamevar EP1_GOT_GOLD
+		ifn EP1_GOT_GOLD 1
+			{
+			ifg SKILL_MEDALS[1] 2
+			 ifg SKILL_MEDALS[2] 2
+			  ifg SKILL_MEDALS[3] 2
+			   ifg SKILL_MEDALS[4] 2
+				ifg SKILL_MEDALS[5] 2
+				  ifg SKILL_MEDALS[7] 2
+					{
+					set EP1_GOT_GOLD 1
+					savegamevar EP1_GOT_GOLD
+					}
+			}
+		readgamevar EP1_GOT_PLATINUM
+		ifn EP1_GOT_PLATINUM 1
+			{
+			ifg SKILL_MEDALS[1] 3
+			 ifg SKILL_MEDALS[2] 3
+			  ifg SKILL_MEDALS[3] 3
+			   ifg SKILL_MEDALS[4] 3
+				ifg SKILL_MEDALS[5] 3
+				  ifg SKILL_MEDALS[7] 3
+					{
+					set EP1_GOT_PLATINUM 1
+					savegamevar EP1_GOT_PLATINUM
+					}
+			}
+		}
+
+
+
+// 8 = City Under Siege
+// 9 = Big Trouble in Little China
+// 10 = Wharf
+// 11 = Chisland
+// 12 = Tower of Life
+// 13 = Hidden Dojo
+// 14 = Oilrig
+// 20 = Repent
+// 21 = Ghost Ship
+// 24 = Xuglop Train
+// 25 = Far mountain reaches
+// 26 = Space Station
+// 27 = Mars Colony
+// 29 = Jungle Base
+// 30 = Shadow Realm
+
+	ife VOLUME 1
+	{
+	set ep2_new_char 1
+
+	ifand BEAT_EPISODES[3] 65536 set ep3_new_char 1 // If EP3 beaten, allow Snowfall selection
+	else set ep3_new_char 0
+
+	ifand BEAT_EPISODES[4] 131072 set ep4_new_char 1 // If EP4 beaten, allow Kagura selection
+	else set ep4_new_char 0
+
+		readgamevar EP2_GOT_GOLD
+		ifn EP2_GOT_GOLD 1
+			{
+			ifg SKILL_MEDALS[8] 2
+			 ifg SKILL_MEDALS[9] 2
+			  ifg SKILL_MEDALS[10] 2
+			   ifg SKILL_MEDALS[11] 2
+				ifg SKILL_MEDALS[12] 2
+				 ifg SKILL_MEDALS[21] 2
+				  ifg SKILL_MEDALS[25] 2
+				   ifg SKILL_MEDALS[26] 2
+				    ifg SKILL_MEDALS[27] 2
+					 ifg SKILL_MEDALS[30] 2
+					{
+					set EP2_GOT_GOLD 1
+					savegamevar EP2_GOT_GOLD
+					}
+			}
+		readgamevar EP2_GOT_PLATINUM
+		ifn EP2_GOT_PLATINUM 1
+			{
+			ifg SKILL_MEDALS[8] 3
+			 ifg SKILL_MEDALS[9] 3
+			  ifg SKILL_MEDALS[10] 3
+			   ifg SKILL_MEDALS[11] 3
+				ifg SKILL_MEDALS[12] 3
+				 ifg SKILL_MEDALS[21] 3
+				  ifg SKILL_MEDALS[25] 3
+				   ifg SKILL_MEDALS[26] 3
+				    ifg SKILL_MEDALS[27] 3
+					 ifg SKILL_MEDALS[30] 3
+					{
+					set EP2_GOT_PLATINUM 1
+					savegamevar EP2_GOT_PLATINUM
+					}
+			}
+		}
+
+// 40 = X64-2
+
+// 43 = Egypt
+// 44 = Le Sang
+// 45 = Micky Begins
+// 46 = Base Invasion
+// 50 = Neutrino
+// 51 = Spookycut
+// 52 = Jungle Pyramid
+// 53 = Eviction Notice
+// 55 = Xuglop Combined Assault
+// 57 = Amazon Rainforest
+// 58 = Fake
+// 59 = Charon
+
+	ife VOLUME 2
+	{
+	set ep3_new_char 1
+
+	ifand BEAT_EPISODES[4] 131072 set ep4_new_char 1 // If EP4 beaten, allow Kagura selection
+	else set ep4_new_char 0
+
+		readgamevar EP3_GOT_GOLD
+		ifn EP3_GOT_GOLD 1
+			{
+			ifg SKILL_MEDALS[40] 2
+			 ifg SKILL_MEDALS[43] 2
+			  ifg SKILL_MEDALS[44] 2
+			   ifg SKILL_MEDALS[45] 2
+				ifg SKILL_MEDALS[50] 2
+				 ifg SKILL_MEDALS[51] 2
+				  ifg SKILL_MEDALS[53] 2
+				    ifg SKILL_MEDALS[55] 2
+					  ifg SKILL_MEDALS[57] 3
+					   ifg SKILL_MEDALS[58] 2
+					{
+					set EP3_GOT_GOLD 1
+					savegamevar EP3_GOT_GOLD
+					}
+			}
+		readgamevar EP3_GOT_PLATINUM
+		ifn EP3_GOT_PLATINUM 1
+			{
+			ifg SKILL_MEDALS[40] 3
+			 ifg SKILL_MEDALS[43] 3
+			  ifg SKILL_MEDALS[44] 3
+			   ifg SKILL_MEDALS[45] 3
+				ifg SKILL_MEDALS[50] 3
+				 ifg SKILL_MEDALS[51] 3
+				  ifg SKILL_MEDALS[53] 3
+				    ifg SKILL_MEDALS[55] 3
+					  ifg SKILL_MEDALS[57] 3
+					   ifg SKILL_MEDALS[58] 3
+					{
+					set EP3_GOT_PLATINUM 1
+					savegamevar EP3_GOT_PLATINUM
+					}
+			}
+		}
+
+// 61 = micky levels
+// 62 = kagura levels
+// 63 = james levels
+// 64 = merlijn levels
+// 65 = sang levels
+// 66 = rusty levels
+// 67 = snowfall levels
+// 68 = mikko levels
+// 72 = palace of rowgar
+// 73 = sky islands
+// 74 = Sky caves
+// 75 = necro keep
+
+	ife VOLUME 3
+	{
+	set ep3_new_char 4
+		readgamevar EP4_GOT_GOLD
+		ifn EP4_GOT_GOLD 1
+			{
+			 ifg SKILL_MEDALS[61] 2
+			  ifg SKILL_MEDALS[62] 2
+			   ifg SKILL_MEDALS[63] 2
+				ifg SKILL_MEDALS[64] 2
+				 ifg SKILL_MEDALS[65] 2
+				  ifg SKILL_MEDALS[66] 2
+				    ifg SKILL_MEDALS[67] 2
+					  ifg SKILL_MEDALS[72] 3
+					   ifg SKILL_MEDALS[73] 2
+					   	 ifg SKILL_MEDALS[74] 2
+						  ifg SKILL_MEDALS[75] 2
+					{
+					set EP4_GOT_GOLD 1
+					savegamevar EP4_GOT_GOLD
+					}
+			}
+		readgamevar EP4_GOT_PLATINUM
+		ifn EP4_GOT_PLATINUM 1
+			{
+			 ifg SKILL_MEDALS[61] 3
+			  ifg SKILL_MEDALS[62] 3
+			   ifg SKILL_MEDALS[63] 3
+				ifg SKILL_MEDALS[64] 3
+				 ifg SKILL_MEDALS[65] 3
+				  ifg SKILL_MEDALS[66] 3
+				    ifg SKILL_MEDALS[67] 3
+					  ifg SKILL_MEDALS[72] 3
+					   ifg SKILL_MEDALS[73] 3
+					   	 ifg SKILL_MEDALS[74] 3
+						  ifg SKILL_MEDALS[75] 3
+					{
+					set EP4_GOT_PLATINUM 1
+					savegamevar EP4_GOT_PLATINUM
+					}
+			}
+		}
+
+	ifg VOLUME 0 set ep2_new_char 1
+	ifg VOLUME 1 set ep3_new_char 1
+	ifg VOLUME 2 set ep4_new_char 1
+
+	resizearray temp_WEAPON_LOADOUT MAX_WEAPONS_LOADOUT
+	resizearray MELEE_WEAPON_LOADOUT MAX_MELEE_LOADOUT
+	resizearray SPECIALIST_EQUIPMENT MAX_SPECIAL_LOADOUT
+	espawn SHOOTME2
+	setactorvar[RETURN].IS_PLAYER 1
+	getu .player_skill SKILL_LEVEL
+	resizearray PERSONNEL_RESEARCH MAX_PERSONNEL_RESEARCH
+	readarrayfromfile PERSONNEL_RESEARCH F_PERSONNEL_AMCTC
+	readarrayfromfile MYSTICAL_RESEARCH F_MYSTIC_AMCTC
+	readarrayfromfile MELEE_RESEARCH F_DOJO_AMCTC
+	ife loading_hint 0 displayrandvar loading_hint NUMBER_OF_HINTS
+	ife CHAR 4 state spawn_bat
+	set just_init 1
+	}
+
+ife player[].holster_weapon 1 setp[].weapon_pos -9
+
+ife SPACE_SUIT 1
+ ifn CHAR 12
+  ifn CHAR 13
+   ifn CHAR 14
+	{
+	ife cur_weap 0 ifand weap_special[0] 64 nullop else
+		{
+		set allow_fire NO
+		setp[].weapon_pos -9
+		}
+	ifg inspace 0
+	 ife PLAYER_VOICEOVER 0
+		{
+		ife CHAR 0 soundonce JGASMASK
+		ife CHAR 1 soundonce ZGASMASK
+		ife CHAR 4 soundonce SGASMASK
+		}
+	}
+
+ifg inspace 0
+	{
+	ife CHAR 14
+		{
+		ifg LIFE_SUPPORT 0
+			{
+			soundonce LIFE_SUPPORT_ACT
+			ife camerasprite -1 sub LIFE_SUPPORT 1
+			}
+		state SPACESUIT_BEEPS
+		ife LIFE_SUPPORT 0
+		 ife camerasprite -1
+			{
+			palfrom 20 64 64 64
+			set CUS_WACK 2
+			ifg PARMOUR 0 { getp[].shield_amount temp sub temp 1 setp[].shield_amount temp }
+			else addphealth -1
+			}
+		}
+	else
+	ife CHAR 13
+		{
+		ifg LIFE_SUPPORT 0
+			{
+			soundonce LIFE_SUPPORT_ACT
+			ife camerasprite -1 sub LIFE_SUPPORT 2
+			}
+		state SPACESUIT_BEEPS
+		ife LIFE_SUPPORT 0
+		 ife camerasprite -1
+			{
+			palfrom 20 64 64 64
+			set CUS_WACK 2
+			ifg PARMOUR 0 { getp[].shield_amount temp sub temp 1 setp[].shield_amount temp }
+			else addphealth -2
+			}
+		}
+	else
+	ife CHAR 12
+		{
+		ifg LIFE_SUPPORT 0
+			{
+			soundonce LIFE_SUPPORT_ACT
+			ife camerasprite -1 sub LIFE_SUPPORT 2
+			}
+		state SPACESUIT_BEEPS
+		ife LIFE_SUPPORT 0
+		 ife camerasprite -1
+			{
+			palfrom 20 64 64 64
+			set CUS_WACK 2
+			ifg PARMOUR 0 { getp[].shield_amount temp sub temp 1 setp[].shield_amount temp }
+			else addphealth -2
+			}
+		}
+	else
+		{
+		ife SPACE_SUIT 0
+		 ife camerasprite -1
+			{
+			palfrom 20 64 64 64
+			set CUS_WACK 2
+			addphealth -2
+			}
+		else
+		ife SPACE_SUIT 1
+			{
+			ife PERSONNEL_RESEARCH[27] 2 { ifg LIFE_SUPPORT 21600 set LIFE_SUPPORT 21600 }
+			else ifg LIFE_SUPPORT 14400 set LIFE_SUPPORT 14400
+			state SPACESUIT_BEEPS
+			ifg LIFE_SUPPORT 0
+				{
+				soundonce LIFE_SUPPORT_ACT
+				ife camerasprite -1 sub LIFE_SUPPORT 2
+				}
+			ife LIFE_SUPPORT 0
+			 ife camerasprite -1
+				{
+				palfrom 20 64 64 64
+				ifand player[].player_par 1 setp[].rotscrnang 64
+				else setp[].rotscrnang 0
+				addphealth -2
+				}
+			}
+		}
+	}
+
+ifg ingas 0
+	{
+	ifl ingas 27 state lower_weapon
+	ife weaponcount 0 sub ingas 1
+	ife ingas 1 { setp[].sound_pitch 0 setgamepalette 0 }
+	}
+
+ifinwater nullop else
+ifg PLAYER_VOICEOVER 0 state PLAYER_VOICES
+
+ifg COUNTER 0 sub COUNTER 1
+ifg COUNTER_2 0 sub COUNTER_2 1
+
+	getu .idplayers temp
+	ife temp 1
+	{
+
+	ifg ALARM_COUNTER 0 sub ALARM_COUNTER 1
+	ifg ALARM_ACTIVE 0 sub ALARM_ACTIVE 1
+
+	ifg ALARM_DETECT 0
+		{
+		sub ALARM_DETECT 1
+
+		ife COUNTER_2 0
+		ife ALARM_ACTIVE 0
+			{
+			ifg ALARM_COUNTER 30 soundonce ALARM_L2
+			else ifg ALARM_COUNTER 0 soundonce ALARM_L1
+			set COUNTER_2 26
+			}
+		}
+
+	}
+
+ifand player[].gm 8
+{
+	switch VOLUME
+	case 0
+	 ifn LEVEL 0
+	 ifn LEVEL 1
+	 ifn LEVEL 2
+	 ifn LEVEL 6
+	 ifn LEVEL 17
+		state save_arrays
+		state fatigue_system
+		state budget_system
+	break
+	case 6
+	 ifn LEVEL 0
+	 ifn LEVEL 5
+	 ifn LEVEL 10
+	 ifn LEVEL 15
+	 ifn LEVEL 20
+	 ifn LEVEL 25
+		state save_arrays
+		state fatigue_system
+		state budget_system
+	break
+	endswitch
+}
+
+
+ife cur_weap 0
+{
+set gun_mag -1
+}
+
+ifmultiplayer
+{
+ife COOP 1
+	{
+	ife player[].reloading 1
+	ife kickbackpic 10
+		{
+			ifpdistl 8000
+			{
+			ife CHAR 0 soundonce J_RELOAD
+			ife CHAR 1 soundonce Z_RELOAD
+			ife CHAR 2 soundonce M_RELOAD
+			ife CHAR 3 soundonce R_RELOAD
+			ife CHAR 4 soundonce S_RELOAD
+			ife CHAR 5 soundonce RN_RELOAD
+			ife CHAR 6 soundonce G_RELOAD
+			ife CHAR 7 soundonce MS_RELOAD
+			qgetsysstr 356 STR_PLAYERNAME
+			qstrcat 356 645
+			userquote 356
+			}
+		}
+	}
+}
+
+ifg HACKING_PROGRESS 0
+	{
+	set lockp_countdown 10
+	sub HACKING_PROGRESS 1
+	}
+else ife HACKING_PROGRESS 0
+	{
+	set HACKING_PROGRESS -1
+	}
+
+ifg SWORD_RAMP 2
+{
+    soundonce SWORD_RAMP_M
+	sub SWORD_RAMP 1
+	ife SWORD_RAMP 60 soundonce GO_SLOW
+
+	ife SWORD_RAMP 30 screensound POWERUP_LOW
+	ife SWORD_RAMP 60 screensound POWERUP_LOW
+	ife SWORD_RAMP 90 screensound POWERUP_LOW
+	ife SWORD_RAMP 120 screensound POWERUP_LOW
+	ife SWORD_RAMP 150 screensound POWERUP_LOW
+
+	ife cur_weap 0
+	{
+	switch temp_weap
+		case 19 // katana
+		case 20 // mop
+		case 36 // SW sword
+		case 37 // beam sabre
+		set screen_pal 5
+		 ifg HIT_DAMAGE -1 { seta[].htextra -1 set HIT_DAMAGE -1 }
+		break
+		default
+		 set screen_pal 4
+		 palfrom 20 20 0 0
+		 break
+		endswitch
+	}
+	else
+	ife CHAR 17
+	 ife cur_weap 1
+		{
+		set screen_pal 5
+		ifg HIT_DAMAGE -1 { seta[].htextra -1 set HIT_DAMAGE -1 }
+		}
+	else
+		{
+		set screen_pal 4
+		palfrom 20 20 0 0
+		}
+}
+else
+ifg SWORD_RAMP 0
+{
+	stopsound SWORD_RAMP_M
+	palfrom 40 40 40 40
+	sub SWORD_RAMP 1
+	setgamepalette 0
+}
+
+ifp palive // improved jumping code by Dan Gaskil
+	{
+	ifp pducking nullop else
+	ifn player[].cursectnum -1
+		{
+			getp[].cursectnum mysector
+			ifn sector[mysector].floorslope 0
+			{
+				getflorzofslope mysector player[].posx player[].posy z // temp is the return var
+				// posz is normally 9748 higher (less z) than surface
+				// the diff is reduced by about 512 for 1st tic of jump, then increases
+				// after landing, the diff is reduced again for a few tics
+				// when fully crouched, the diff is 4609
+				getp[].posz temp
+				add temp 9748
+				sub temp z
+				// we want to allow jumping when temp is slightly negative
+				ifand BITS_PRESS 1
+				ife player[].jumping_counter 0
+				ifg temp -3804
+				ife player[].jumping_toggle 0
+				{
+					setp[].jumping_counter 1
+				}
+			}
+		}
+	}
+
+
+ife force_taunt 13
+{
+ifinwater break
+	ife CHAR 0
+  	{
+		ife cur_weap 0
+		 ife temp_weap 19
+		{
+		randvar swear_random 160
+		ifl swear_random 20 set playsound J_SWORD_TAUNT1 else
+		ifl swear_random 40 set playsound J_SWORD_TAUNT2 else
+		ifl swear_random 60 set playsound J_SWORD_TAUNT3 else
+		ifl swear_random 80 set playsound J_SWORD_TAUNT4 else
+		ifl swear_random 100 set playsound J_SWORD_TAUNT5 else
+		ifl swear_random 120 set playsound J_SWORD_TAUNT6 else
+		ifl swear_random 140 set playsound J_SDRAW_TAUNT1 else
+		ifl swear_random 160 set playsound J_SDRAW_TAUNT2
+		}
+		else
+		{
+		randvar swear_random 160
+		ifl swear_random 20 set playsound JFIREHOLE else
+		ifl swear_random 40 set playsound JBLEACH else
+		ifl swear_random 60 set playsound JGAS else
+		ifl swear_random 80 set playsound JMASTER else
+		ifl swear_random 100 set playsound JSUGAR else
+		ifl swear_random 120 set playsound JWANTSOME else
+		ifl swear_random 140 set playsound J_SMALLTIME else
+		ifl swear_random 160 set playsound J_PEEK
+		}
+  	}
+  else
+  	ife CHAR 1
+  	{
+	randvar swear_random 280
+	ifl swear_random 20 set playsound ZGUYSUCK else
+	ifl swear_random 40 set playsound ZGOOD else
+	ifl swear_random 60 set playsound ZGROSS else
+	ifl swear_random 80 set playsound ZGOD else
+	ifl swear_random 100 set playsound ZDEADS else
+	ifl swear_random 120 set playsound ZLAUGHTER else
+	ifl swear_random 140 set playsound ZCAKE else
+	ifl swear_random 160 set playsound ZSOB else
+	ifl swear_random 180 set playsound ZOUCH else
+	ifl swear_random 200 set playsound ZSWEETJESUS else
+	ifl swear_random 220 set playsound ZEATSHIT else
+	ifl swear_random 240 set playsound ZNOMATCH else
+	ifl swear_random 260 set playsound ZGOODFOSSA else
+	set playsound ZROTINHELL
+  	}
+  else
+  	ife CHAR 2
+  	{
+		ife cur_weap 3 ifrnd 64 set playsound M_AXE1 else
+		ife cur_weap 3 ifrnd 64 set playsound M_AXE2 else
+		ife cur_weap 3 ifrnd 64 set playsound M_AXE3 else
+		ife cur_weap 5 ifrnd 64 set playsound M_HALLELUJA else
+			{
+			randvar swear_random 220
+			ifl swear_random 20 set playsound MTAUNT1 else
+			ifl swear_random 40 set playsound MTAUNT2 else
+			ifl swear_random 60 set playsound MTAUNT3 else
+			ifl swear_random 80 set playsound MTAUNT4 else
+			ifl swear_random 100 set playsound MTAUNT5 else
+			ifl swear_random 120 set playsound MTAUNT6 else
+			ifl swear_random 140 set playsound MTAUNT7 else
+			ifl swear_random 160 set playsound MTAUNT8 else
+			ifl swear_random 180 set playsound MTAUNT9 else
+			ifl swear_random 200 set playsound MTAUNT10 else
+			set playsound MTAUNT11
+			}
+  	}
+  else
+  	ife CHAR 3
+  	{
+		randvar swear_random 140
+		ifl swear_random 20 set playsound RTAUNT1 else
+		ifl swear_random 40 set playsound RTAUNT2 else
+		ifl swear_random 60 set playsound RTAUNT3 else
+		ifl swear_random 80 set playsound RTAUNT4 else
+		ifl swear_random 100 set playsound RTAUNT5 else
+		ifl swear_random 120 set playsound RTAUNT6 else
+		ifl swear_random 140 set playsound RTAUNT7
+  	}
+  else
+  	ife CHAR 4
+  	{
+		ife cur_weap 0
+		 ife temp_weap 19
+		{
+		randvar swear_random 140
+		ifl swear_random 20 set playsound S_SWORD_TAUNT1 else
+		ifl swear_random 40 set playsound S_SWORD_TAUNT2 else
+		ifl swear_random 60 set playsound S_SWORD_TAUNT3 else
+		ifl swear_random 80 set playsound S_SWORD_TAUNT4 else
+		ifl swear_random 100 set playsound S_SWORD_TAUNT5 else
+		ifl swear_random 120 set playsound S_SDRAW_TAUNT1 else
+		ifl swear_random 140 set playsound S_SDRAW_TAUNT2
+		}
+	else
+		{
+		randvar swear_random 180
+		ifl swear_random 20 set playsound STAUNT1 else
+		ifl swear_random 40 set playsound STAUNT2 else
+		ifl swear_random 60 set playsound STAUNT3 else
+		ifl swear_random 80 set playsound STAUNT4 else
+		ifl swear_random 100 set playsound STAUNT5 else
+		ifl swear_random 120 set playsound STAUNT6 else
+		ifl swear_random 140 set playsound STAUNT7 else
+		ifl swear_random 160 set playsound STAUNT8 else
+		set playsound STAUNT9
+		}
+  	}
+  else
+  	ife CHAR 5
+  	{
+	ife cur_weap 0
+	 ife temp_weap 19
+		{
+		randvar swear_random 100
+		ifl swear_random 20 set playsound RN_SWORD_TAUNT1 else
+		ifl swear_random 40 set playsound RN_SWORD_TAUNT2 else
+		ifl swear_random 60 set playsound RN_SWORD_TAUNT3 else
+		ifl swear_random 80 set playsound RN_SWORD_TAUNT4 else
+		ifl swear_random 100 set playsound RN_SWORD_TAUNT5
+		}
+	else
+		{
+		randvar swear_random 220
+		ifl swear_random 20 set playsound RNTAUNT1 else
+		ifl swear_random 40 set playsound RNTAUNT2 else
+		ifl swear_random 60 set playsound RNTAUNT3 else
+		ifl swear_random 80 set playsound RNTAUNT4 else
+		ifl swear_random 100 set playsound RNTAUNT5 else
+		ifl swear_random 120 set playsound RNTAUNT6 else
+		ifl swear_random 140 set playsound RNTAUNT7 else
+		ifl swear_random 160 set playsound RNTAUNT8 else
+		ifl swear_random 180 set playsound RNTAUNT9 else
+		ifl swear_random 200 set playsound RNTAUNT10 else
+		set playsound RNTAUNT11
+		}
+  	}
+  else
+  	ife CHAR 6
+  	{
+		randvar swear_random 120
+		ifl swear_random 20 set playsound GTAUNT1 else
+		ifl swear_random 40 set playsound GTAUNT2 else
+		ifl swear_random 60 set playsound GTAUNT3 else
+		ifl swear_random 80 set playsound GTAUNT4 else
+		ifl swear_random 100 set playsound GTAUNT5 else
+		ifl swear_random 120 set playsound GTAUNT6
+  	}
+  else
+  	ife CHAR 7
+  	{
+	randvar swear_random 120
+	ifl swear_random 20 set playsound MSTAUNT1 else
+	ifl swear_random 40 set playsound MSTAUNT2 else
+	ifl swear_random 60 set playsound MSTAUNT3 else
+	ifl swear_random 80 set playsound MSTAUNT4 else
+	ifl swear_random 100 set playsound MSTAUNT5 else
+	ifl swear_random 120 set playsound MSTAUNT6
+  	}
+  else
+  	ife CHAR 9
+  	{
+	randvar temp 120
+	ifl temp 20 set playsound CULTIST_TAUNT1 else
+	ifl temp 40 set playsound CULTIST_TAUNT2 else
+	ifl temp 60 set playsound CULTIST_TAUNT3 else
+	ifl temp 80 set playsound CULTIST_TAUNT4 else
+	ifl temp 100 set playsound CULTIST_TAUNT5 else
+	ifl temp 120 set playsound CULTIST_TAUNT6
+  	}
+  else
+   ife CHAR 12
+  	{
+	randvar swear_random 120
+	ifl swear_random 20 set playsound JA_TAUNT_1 else
+	ifl swear_random 40 set playsound JA_TAUNT_2 else
+	ifl swear_random 60 set playsound JA_TAUNT_3 else
+	ifl swear_random 80 set playsound JA_TAUNT_4 else
+	ifl swear_random 100 set playsound JA_TAUNT_5 else
+	set playsound JA_TAUNT_6
+  	}
+  else
+  	ife CHAR 13
+  	{
+	randvar swear_random 120
+	ifl swear_random 20 set playsound MC_TAUNT1 else
+	ifl swear_random 40 set playsound MC_TAUNT2 else
+	ifl swear_random 60 set playsound MC_TAUNT3 else
+	ifl swear_random 80 set playsound MC_TAUNT4 else
+	ifl swear_random 100 set playsound MC_TAUNT5 else
+	ifl swear_random 120 set playsound MC_TAUNT6
+  	}
+else
+	ife CHAR 14
+	{
+	randvar swear_random 160
+	ifl swear_random 20 set playsound SF_TAUNT1 else
+	ifl swear_random 40 set playsound SF_TAUNT2 else
+	ifl swear_random 60 set playsound SF_TAUNT3 else
+	ifl swear_random 80 set playsound SF_TAUNT4 else
+	ifl swear_random 100 set playsound SF_TAUNT5 else
+	ifl swear_random 120 set playsound SF_TAUNT6 else
+	ifl swear_random 140 set playsound SF_TAUNT7 else
+	set playsound SF_TAUNT8
+	}
+  globalsoundvar playsound
+  ife fake_shrunk 1 setactorsoundpitch THISACTOR playsound 512
+  set swear_random 0
+}
+
+ifg force_taunt 0 sub force_taunt 1
+
+ifg INTERNALCOUNT 0 sub INTERNALCOUNT 1
+ifg INTERNALCOUNT_2 0 sub INTERNALCOUNT_2 1
+ifg INTERNALCOUNT_3 0 sub INTERNALCOUNT_3 1
+
+
+  seta[].mdflags 16
+
+ifg drop_counter 0 sub drop_counter 1
+
+ifn screen_pal 0
+ ifvarvarn player[].palette screen_pal
+	{
+	ifinwater nullop
+	else
+	ife player[].heat_on 0
+	 ifn GAS_MASK 2
+		{
+		ife screen_pal 10 { setgamepalette 0 set screen_pal 0 } // 10 = reset
+		else setgamepalette screen_pal
+		}
+	}
+
+
+state MEDIKIT_USE
+
+ifg SLO_MO_SHOWOFF 0
+	{
+	getu .idplayers temp
+	ife temp 1 sub SLO_MO_SHOWOFF 1
+	ifl SLO_MO_SHOWOFF 5
+		{
+		setp[].sound_pitch 0
+		set hud_disp 1
+		palfrom 32 64 64 64
+		ifinwater setgamepalette 1 else
+		setgamepalette 0
+        set current_inittimer 120
+		inittimer 120
+		state SLOMO_QUOTES
+		ife SLO_MO_SHOWOFF 3 ife FISSION_MAILED 1 { addphealth -1000 resetplayer }
+		}
+	else
+	ifl SLO_MO_SHOWOFF 10
+		{
+		setp[].sound_pitch -256
+        set current_inittimer 90
+		inittimer 90
+		}
+	else
+	ifl SLO_MO_SHOWOFF 20
+		{
+		setp[].sound_pitch -512
+        set current_inittimer 60
+		inittimer 60
+		}
+	else
+		{
+		ife SLO_MO_SHOWOFF 25 screensound GO_SLOW
+		ife FISSION_MAILED 1 setgamepalette 4 else
+		setgamepalette 3
+		setp[].sound_pitch -1024
+        set current_inittimer 30
+		inittimer 30
+		}
+	}
+
+ifl SHOTGUNMAG 0 set SHOTGUNMAG 0
+ifl SHOTGUNBOXMAG 0 set SHOTGUNBOXMAG 0
+ifl PISTOLMAG 0 set PISTOLMAG 0
+ifl slot6_mag 0 set slot6_mag 0
+ifl SLUGSHOTMAG 0 set SLUGSHOTMAG 0
+ifl rifle_mag 0 set rifle_mag 0
+ifvarvarg PISTOLMAG MAXPISTOLMAG set PISTOLMAG MAXPISTOLMAG
+ifl MGUNMAG 0 set MGUNMAG 0
+ifvarvarg MGUNMAG MAXMGUNMAG set MGUNMAG MAXMGUNMAG
+
+ifn player_using_horse -1
+{
+action BOAT_USE
+state spawn_cold_breathe
+setp[].over_shoulder_on 0
+}
+
+ifn player_using_hovercraft -1
+{
+action BOAT_USE
+getp[].horiz temp
+clamp temp 25 299
+setp[].horiz temp
+geta[].htextra temp
+ifg temp -1
+	{
+	geta[player_using_hovercraft].extra temp2
+	sub temp2 temp
+	seta[player_using_hovercraft].extra temp2
+	seta[].htextra -1
+	}
+
+ifg hc_missile_fire 0 sub hc_missile_fire 1
+
+	ifand BITS_PRESS 4
+	{
+	espawn SOUND_SPRITE
+	state SPAWN_IN_PLAYER_FRONT
+	setactorvar[RETURN].temp AUTOTURRET_FIRE
+	set temp3 player[].posx
+	add temp3 1024
+	rotatepoint player[].posx player[].posy temp3 player[].posy player[].ang temp5 temp6
+	getp[].cursectnum upd_sect
+	updatesector temp5 temp6 upd_sect
+	getp[].posz temp
+	sub temp 3048
+	seta[].z temp
+	eshoot FIRELASER
+	ife upd_sect -1 action ZERO else
+		{
+		setsprite RETURN temp5 temp6 temp
+		}
+	}
+
+	ifand BITS_PRESS 16384
+	ifcount 13
+	{
+	sound WEAP_FIRE_MODE
+	xorvar gun_firemode 262144
+	resetcount
+	}
+
+	ifand BITS_PRESS 64
+	 ife hc_missile_fire 0
+	{
+	sound MISSILE_LAUNCH
+	set temp3 player[].posx
+	add temp3 512
+	rotatepoint player[].posx player[].posy temp3 player[].posy player[].ang temp5 temp6
+	getp[].cursectnum upd_sect
+	updatesector temp5 temp6 upd_sect
+	getp[].posz temp
+	sub temp 2048
+	seta[].z temp
+	ifand gun_firemode 262144
+		{
+		eshoot MISSILE
+		setthisprojectile[RETURN].hitradius 4500
+		setthisprojectile[RETURN].workslike 98306
+		setthisprojectile[RETURN].pal 14
+		setthisprojectile[RETURN].vel 975
+		setthisprojectile[RETURN].xrepeat 40
+		setthisprojectile[RETURN].yrepeat 40
+		setthisprojectile[RETURN].extra 500
+		seta[RETURN].extra 500
+		setthisprojectile[RETURN].extra_rand 125
+		setthisprojectile[RETURN].isound EXPLOSION_BIG
+		setthisprojectile[RETURN].spawns BIG_EXPLOSION
+		}
+	else
+		{
+		eshoot HOMING_MISSILE
+		seta[RETURN].extra 300
+		setthisprojectile[RETURN].extra 300
+		}
+	ife upd_sect -1 action ZERO else
+		{
+		setsprite RETURN temp5 temp6 temp
+		}
+	set hc_missile_fire 20
+	}
+
+}
+
+// HOVERTANK FIRING CODE
+ifn player_using_hovertank -1
+{
+	action HOVERTANK_USE
+	set fire_damage 0
+	state lower_weapon
+	setp[].movement_lock 15
+
+	setp[].jumping_toggle 0
+	setp[].jumping_counter 0
+	setp[].hard_landing 0
+	setp[].jetpack_on 11
+
+	ifg hc_missile_fire 0 sub hc_missile_fire 1
+	ifg mech_maingun_fire 0 sub mech_maingun_fire 1
+
+		ifand BITS_PRESS 4
+		ife mech_maingun_fire 0
+		{
+			sound HOVERTANK_FIRE
+			set gun_recoil 4
+			set temp3 player[].posx
+			add temp3 2048
+			rotatepoint player[].posx player[].posy temp3 player[].posy player[].ang temp5 temp6
+			getp[].cursectnum upd_sect
+			updatesector temp5 temp6 upd_sect
+			getp[].posz temp
+			// Uncommenting this means projectiles fly above smaller enemy's heads, which is really annoying
+			// sub temp 4096
+			seta[].z temp
+			eshoot CYCLOID_PLASMA
+			seta[RETURN].extra 1600
+			setthisprojectile[RETURN].hitradius 4096
+			setthisprojectile[RETURN].extra 1600
+			setthisprojectile[RETURN].velmult 8
+			ife upd_sect -1 action ZERO else
+			{
+				setsprite RETURN temp5 temp6 temp
+			}
+			ife CHAR 18 set mech_maingun_fire 30 else
+			set mech_maingun_fire 40
+		}
+
+		ifand BITS_PRESS 64
+		 ife hc_missile_fire 0
+		{
+			sound HOVERTANK_MISSILE
+			set temp3 player[].posx
+			add temp3 2048
+			rotatepoint player[].posx player[].posy temp3 player[].posy player[].ang temp5 temp6
+			updatesector temp5 temp6 temp7
+			getp[].posz temp
+			sub temp 2048
+			seta[].z temp
+			eshoot HOMING_MISSILE
+			setthisprojectile[RETURN].hitradius 4096
+			seta[RETURN].extra 200
+			setthisprojectile[RETURN].extra 200
+			setthisprojectile[RETURN].velmult 4
+			ife temp7 -1 action ZERO else
+			{
+			setsprite RETURN temp5 temp6 temp
+			}
+			ife CHAR 18 set hc_missile_fire 6 else
+			set hc_missile_fire 8
+		}
+}
+
+ifn player_using_VR_tank -1
+{
+action VR_TANK_USE
+set fire_damage 0
+state lower_weapon
+setp[].movement_lock 15
+seta[].htextra -1
+
+setp[].jumping_toggle 0
+setp[].jumping_counter 0
+setp[].hard_landing 0
+setp[].jetpack_on 11
+
+ifg hc_missile_fire 0 sub hc_missile_fire 1
+ifg mech_maingun_fire 0 sub mech_maingun_fire 1
+
+	ifand BITS_PRESS 4
+	ife mech_maingun_fire 0
+	{
+	sound RETRO_DOORC
+	set gun_recoil 4
+	set temp3 player[].posx
+	add temp3 2048
+	rotatepoint player[].posx player[].posy temp3 player[].posy player[].ang temp5 temp6
+	updatesector temp5 temp6 temp7
+	getp[].posz temp
+	sub temp 4096
+	seta[].z temp
+	eshoot CYCLOID_PLASMA
+	seta[RETURN].extra 1600
+	setthisprojectile[RETURN].hitradius 4096
+	setthisprojectile[RETURN].isound RETRO_BOOM
+	setthisprojectile[RETURN].velmult 2
+	ife temp7 -1 action ZERO else
+		{
+		setsprite RETURN temp5 temp6 temp
+		}
+	ife CHAR 18 set mech_maingun_fire 30 else
+	set mech_maingun_fire 40
+	}
+
+	ifand BITS_PRESS 64
+	 ife hc_missile_fire 0
+	{
+	sound RETRO_DOORC
+	set temp3 player[].posx
+	add temp3 2048
+	rotatepoint player[].posx player[].posy temp3 player[].posy player[].ang temp5 temp6
+	updatesector temp5 temp6 temp7
+	getp[].posz temp
+	sub temp 2048
+	seta[].z temp
+	eshoot HOMING_MISSILE
+	setthisprojectile[RETURN].hitradius 4096
+	seta[RETURN].extra 200
+	setthisprojectile[RETURN].extra 200
+	setthisprojectile[RETURN].velmult 4
+	ife temp7 -1 action ZERO else
+	{
+	setsprite RETURN temp5 temp6 temp
+	}
+	ife CHAR 18 set hc_missile_fire 6 else
+	set hc_missile_fire 8
+	}
+
+}
+
+ifn player_using_fighter -1
+{
+action FIGHTER_USE
+set fire_damage 0
+state lower_weapon
+setp[].movement_lock 15
+geta[].htextra temp
+ifg temp -1
+	{
+	geta[player_using_fighter].extra temp2
+	sub temp2 temp
+	seta[player_using_fighter].extra temp2
+	seta[].htextra -1
+	}
+
+setp[].jumping_toggle 0
+setp[].jumping_counter 0
+setp[].hard_landing 0
+setp[].jetpack_on 11
+
+ifg hc_missile_fire 0 sub hc_missile_fire 1
+ifg mech_maingun_fire 0 sub mech_maingun_fire 1
+
+	ifand BITS_PRESS 4
+	ife mech_maingun_fire 0
+	{
+	sound CY_FIGHTER_FIRE
+
+	set temp3 player[].posx
+	add temp3 2048
+	rotatepoint player[].posx player[].posy temp3 player[].posy player[].ang temp5 temp6
+	updatesector temp5 temp6 temp7
+	getp[].posz temp
+	sub temp 4096
+	seta[].z temp
+	eshoot MDF_PLASMA
+	setthisprojectile[RETURN].velmult 8
+	setthisprojectile[RETURN].pal 8
+	ife temp7 -1 action ZERO else
+		{
+		setsprite RETURN temp5 temp6 temp
+		}
+	set mech_maingun_fire 2
+	}
+
+	ifand BITS_PRESS 64
+	 ife hc_missile_fire 0
+	{
+	sound CY_FIGHTER_MISSILE
+	set temp3 player[].posx
+	add temp3 2048
+	rotatepoint player[].posx player[].posy temp3 player[].posy player[].ang temp5 temp6
+	updatesector temp5 temp6 temp7
+	getp[].posz temp
+	sub temp 2048
+	seta[].z temp
+	eshoot HOMING_MISSILE
+	seta[RETURN].extra 300
+	setthisprojectile[RETURN].hitradius 4096
+	setthisprojectile[RETURN].extra 300
+	setthisprojectile[RETURN].velmult 4
+	ife temp7 -1 action ZERO else
+		{
+		setsprite RETURN temp5 temp6 temp
+		}
+	ife CHAR 18 set hc_missile_fire 16 else
+	set hc_missile_fire 32
+	}
+
+}
+
+ifn player_using_submarine -1
+{
+	action SUBMARINE_USE
+	set fire_damage 0
+	state lower_weapon
+	setp[].movement_lock 15
+	setp[].airleft 390
+	geta[].htextra temp
+	ifg temp -1
+	{
+		geta[player_using_submarine].extra temp2
+		sub temp2 temp
+		seta[player_using_submarine].extra temp2
+		seta[].htextra -1
+	}
+
+	setp[].jumping_toggle 0
+	setp[].jumping_counter 0
+	setp[].hard_landing 0
+
+	ifg hc_missile_fire 0 sub hc_missile_fire 1
+	ifg mech_maingun_fire 0 sub mech_maingun_fire 1
+
+	ifand BITS_PRESS 4
+	  ife mech_maingun_fire 0
+	{
+		sound ENGY_SMG_FIRE
+
+		set temp3 player[].posx
+		add temp3 2048
+		rotatepoint player[].posx player[].posy temp3 player[].posy player[].ang temp5 temp6
+		updatesector temp5 temp6 temp7
+		getp[].posz temp
+
+		// if not underwater, z pos needs to be manipulated a bit
+		gets[].lotag temp2
+		ife temp2 2
+			nullop
+		else
+			sub temp 4096
+
+		seta[].z temp
+		eshoot MDF_PLASMA
+		getp[].posz temp
+		seta[].z temp
+
+		setthisprojectile[RETURN].velmult 12
+		setthisprojectile[RETURN].pal 8
+		ife temp7 -1 action ZERO else
+		{
+			setsprite RETURN temp5 temp6 temp
+		}
+		set mech_maingun_fire 2
+	}
+
+	ifand BITS_PRESS 64
+	  ife hc_missile_fire 0
+	{
+		sound SUBM_FIRE
+		set temp3 player[].posx
+		add temp3 2048
+		rotatepoint player[].posx player[].posy temp3 player[].posy player[].ang temp5 temp6
+		updatesector temp5 temp6 temp7
+		getp[].posz temp
+
+		// if not underwater, z pos needs to be manipulated a bit
+		gets[].lotag temp2
+		ife temp2 2
+			nullop
+		else
+			sub temp 2048
+
+		seta[].z temp
+
+		eshoot TORPEDO
+		getp[].posz temp
+		seta[].z temp
+
+		seta[RETURN].extra 300
+		setthisprojectile[RETURN].hitradius 4096
+		setthisprojectile[RETURN].extra 300
+		setthisprojectile[RETURN].velmult 4
+		ife temp7 -1 action ZERO else
+		{
+			setsprite RETURN temp5 temp6 temp
+		}
+		ife CHAR 18 set hc_missile_fire 16 else
+		set hc_missile_fire 32
+	}
+}
+
+state player_tank_code
+
+ifn player_using_mech -1
+{
+ifg mech_hud_shake 0 sub mech_hud_shake 1
+action PMECH_IDLE
+set fire_damage 0
+ifg sprite[].htextra -1
+	{
+	geta[player_using_mech].extra temp2
+	sub temp2 sprite[].htextra
+	seta[player_using_mech].extra temp2
+	seta[].htextra -1
+	}
+setp[].falling_counter 0
+ifg hc_missile_fire 0 sub hc_missile_fire 1
+ifg mech_maingun_fire 0 sub mech_maingun_fire 1
+
+// can't fire guns whilst sprinting
+ifand BITS_PRESS P_SPRINTING nullop else
+	{
+	ifand BITS_PRESS 4
+	ife mech_maingun_fire 0
+		ife hc_missile_fire 0
+		{
+		sound MELTAGUN_FIRE
+		set gun_recoil 8
+		shoot 9359 shoot 9359 shoot 9359 shoot 9359 shoot 9359 shoot 9359 shoot 9359 shoot 9359
+		shoot 9359 shoot 9359 shoot 9359 shoot 9359 shoot 9359 shoot 9359 shoot 9359 shoot 9359
+		set mech_maingun_fire 27
+		}
+
+		ifand BITS_PRESS 2
+		{
+		set gun_recoil 2
+		espawn SOUND_SPRITE state SPAWN_IN_PLAYER_FRONT setactorvar[RETURN].temp AUTOTURRET_FIRE
+		shoot FIRELASER
+		}
+
+		ifand BITS_PRESS 64
+		 ife hc_missile_fire 0
+		  ife mech_maingun_fire 0
+		{
+		sound MISSILE_LAUNCH
+		eshoot MISSILE
+
+			set temp3 sprite[].x
+			add temp3 256
+			geta[].ang temp4
+			add temp4 256
+			rotatepoint sprite[].x sprite[].y temp3 sprite[].y temp4 temp5 temp6
+			seta[RETURN].x temp5
+			seta[RETURN].y temp6
+			geta[].z temp
+			sub temp 14096
+			seta[RETURN].z temp
+
+		sound MISSILE_LAUNCH
+		eshoot MISSILE
+
+			set temp3 sprite[].x
+			add temp3 256
+			geta[].ang temp4
+			sub temp4 256
+			rotatepoint sprite[].x sprite[].y temp3 sprite[].y temp4 temp5 temp6
+			seta[RETURN].x temp5
+			seta[RETURN].y temp6
+
+			geta[].z temp
+			sub temp 14096
+			seta[RETURN].z temp
+
+		ife CHAR 18 set hc_missile_fire 16 else
+		set hc_missile_fire 32
+		}
+	}
+
+}
+
+state mantlingcode
+
+ife just_changed 1
+	{
+	ife FIRE_SUIT 1 action ES_STAND
+	else ife SPACE_SUIT 1 ifn CHAR 12 ifn CHAR 13 ifn CHAR 14 action SS_STAND
+	else ife CHAR 0
+		{
+		ifand CHAR_APP 64 action J3STAND
+		else ifand CHAR_APP 2 action J2STAND
+		else action JSTAND
+		}
+	else ife CHAR 1 action ZSTAND
+	else ife CHAR 2
+		{
+		ifand CHAR_APP 4 action MP2_STAND
+		else action PSTAND
+		}
+	else ife CHAR 3
+		{
+		ifand CHAR_APP 16 action R2_STAND
+		else action RSTAND
+		}
+	else ife CHAR 4
+		{
+		ifand CHAR_APP 2 action S2STAND
+		else action SSTAND
+		}
+	else ife CHAR 5
+		{
+		ifand CHAR_APP 32 action RN2STAND
+		else action RNSTAND
+		}
+	else ife CHAR 6 action GSTAND
+	else ife CHAR 7 action MSTAND
+	else ife CHAR 9 action PCSTAND
+	else ife CHAR 10 action SHELLY_STAND
+	else ife CHAR 11 action M2STAND
+	else ife CHAR 12 action LSTAND
+	else ife CHAR 13 action MC_STAND
+	else ife CHAR 14
+		{
+		ife TIMEZONE 6 action CIV_ASTAND else
+		action SF_STAND
+		}
+	else ife CHAR 15 action MCNS_STAND
+	else ife CHAR 17 action KT_STAND
+	else ife CHAR 20 action CSTAND
+	set just_changed 0
+	}
+
+ifn DOCUMENT -1
+ {
+ set lockp_countdown 13
+ ifp pjumping set DOCUMENT -1
+
+ ifn MAXPAGES 0
+	{
+	ifand EXTBITS_PRESS 4 // Left
+	ifcount 13
+		{
+		ife PAGENUMBER 0 nullop else
+			{ sub DOCUMENT 1 sub PAGENUMBER 1 ifn PAGETURNSOUND 0 soundvar PAGETURNSOUND }
+		resetcount
+		}
+	ifand EXTBITS_PRESS 8 // Right
+	ifcount 13
+		{
+		ifvarvare PAGENUMBER MAXPAGES nullop else
+			{ add DOCUMENT 1 add PAGENUMBER 1 ifn PAGETURNSOUND 0 soundvar PAGETURNSOUND }
+		resetcount
+		}
+	}
+
+ }
+
+ifp ponground
+  ifp pstanding
+    ifhitspace
+	{
+        set temp3 LEAN_COUNT
+        mulvar temp3 16
+        setp[].rotscrnang temp3
+
+        ifn LEAN_COUNT 0 lockplayer 5
+
+        ifand EXTBITS_PRESS 16
+            {
+            ifl LEAN_COUNT 8 add LEAN_COUNT 1
+            state lower_weapon
+            }
+        else ifand EXTBITS_PRESS 32
+            {
+            ifg LEAN_COUNT -8 sub LEAN_COUNT 1
+            state lower_weapon
+            }
+        else ifl LEAN_COUNT 0 add LEAN_COUNT 1
+        else ifg LEAN_COUNT 0 sub LEAN_COUNT 1
+	}
+else ifn LEAN_COUNT 0 set LEAN_COUNT 0
+
+
+
+
+// WILDLANDS
+
+ifvarvarl p_stamina pmax_stamina
+	ifg SLIDE_KICK 25
+		{
+		ifand BITS_PRESS P_SPRINTING nullop else
+		ife CHAR 3 { ifand player[].player_par 1 add p_stamina 1 } else
+		add p_stamina 1
+		}
+
+ife cur_weap 5
+{
+switch CHAR
+case 0
+case 1
+case 2
+case 4
+case 6
+case 11
+case 13
+case 14
+ife kickbackpic 6
+ ifl bomb_throw_power 256
+	add bomb_throw_power 4
+ife kickbackpic 13 set bomb_throw_power 0
+break
+case 5
+case 9
+ife kickbackpic 6
+ ifl bomb_throw_power 256
+	add bomb_throw_power 4
+ife kickbackpic 21 set bomb_throw_power 0
+break
+case 3
+case 7
+case 10
+ife kickbackpic 18
+ ifl bomb_throw_power 256
+    add bomb_throw_power 4
+	ife kickbackpic 24 set bomb_throw_power 0
+break
+default
+set bomb_throw_power 0
+break
+endswitch
+}
+else
+ife cur_weap 8
+{
+ ife CHAR 0
+	{
+	ife SPECIALIST_EQUIPMENT[112] 2
+		{
+		ife kickbackpic 2 shoot ROCKET_PUNCH
+		}
+	else
+		{
+		ife kickbackpic 3
+			{
+			 ifand BITS_PRESS 4 setp[].kickback_pic 2
+			 ifl bomb_throw_power 256
+				add bomb_throw_power 4
+			}
+		ife kickbackpic 4 { ifg bomb_throw_power 96 soundonce JEXERT shoot PROXBUNDLE }
+		ife kickbackpic 13 set bomb_throw_power 0
+		}
+	}
+ ife CHAR 2
+	{
+	ife kickbackpic 4 shoot M_TRAP_THROW
+	ife kickbackpic 13 set bomb_throw_power 0
+	}
+ife CHAR 4
+	{
+	ife kickbackpic 4 spawn HEARTLEECHFLOAT
+	}
+ ife CHAR 5
+	{
+	ife kickbackpic 4 shoot R_TRAP_THROW
+	ife kickbackpic 13 set bomb_throw_power 0
+	}
+ ife CHAR 6
+	{
+	ife kickbackpic 3
+		{
+		 ifand BITS_PRESS 4 setp[].kickback_pic 2
+		 ifl bomb_throw_power 256
+			add bomb_throw_power 4
+		}
+	ife kickbackpic 6 shoot DISCBOMB2
+	ife kickbackpic 13 set bomb_throw_power 0
+	}
+ ife CHAR 7
+	ife SPECIALIST_EQUIPMENT[114] 2
+		{
+		ife kickbackpic 8 shoot GOLD_MIKKO
+		}
+ ife CHAR 11
+	{
+	ife kickbackpic 4 shoot M_TRAP_THROW
+	ife kickbackpic 13 set bomb_throw_power 0
+	}
+ ife CHAR 13
+	{
+	ife SPECIALIST_EQUIPMENT[113] 2
+		{
+		ife kickbackpic 2
+			{
+			shoot ICE_BEAM shoot ICE_BEAM shoot ICE_BEAM shoot ICE_BEAM shoot ICE_BEAM shoot ICE_BEAM shoot ICE_BEAM shoot ICE_BEAM shoot ICE_BEAM shoot ICE_BEAM
+			}
+		}
+	else
+		{
+		ife kickbackpic 11 shoot MC_TRAP_THROW
+		ife kickbackpic 13 set bomb_throw_power 0
+		}
+	}
+ ife CHAR 14
+	ife SPECIALIST_EQUIPMENT[115] 2
+		{
+		ife kickbackpic 7 shoot SNOWFALL_DISC
+		}
+
+// KAGURA CARD ATTACKS
+ ife CHAR 17
+	{
+		ife kickbackpic 8
+		{
+			sound SERPGOD_MAGIC
+
+			// tmp_proj = projectile to fire
+			ifand gun_firemode_two 64
+				set temp2 27366
+			else ifand gun_firemode_two 32
+				set temp2 27365
+			else
+				set temp2 27364
+
+			sound SIREN_ATTACK
+			shoot temp2
+			eshoot temp2 geta[RETURN].ang temp add temp 128 seta[RETURN].ang temp
+			eshoot temp2 geta[RETURN].ang temp add temp 256 seta[RETURN].ang temp
+			eshoot temp2 geta[RETURN].ang temp add temp 384 seta[RETURN].ang temp
+			eshoot temp2 geta[RETURN].ang temp add temp 512 seta[RETURN].ang temp
+			eshoot temp2 geta[RETURN].ang temp add temp 640 seta[RETURN].ang temp
+			eshoot temp2 geta[RETURN].ang temp add temp 768 seta[RETURN].ang temp
+			eshoot temp2 geta[RETURN].ang temp add temp 896 seta[RETURN].ang temp
+			eshoot temp2 geta[RETURN].ang temp add temp 1024 seta[RETURN].ang temp
+			eshoot temp2 geta[RETURN].ang temp add temp 1152 seta[RETURN].ang temp
+			eshoot temp2 geta[RETURN].ang temp add temp 1280 seta[RETURN].ang temp
+			eshoot temp2 geta[RETURN].ang temp add temp 1408 seta[RETURN].ang temp
+			eshoot temp2 geta[RETURN].ang temp add temp 1536 seta[RETURN].ang temp
+			eshoot temp2 geta[RETURN].ang temp add temp 1664 seta[RETURN].ang temp
+			eshoot temp2 geta[RETURN].ang temp add temp 1792 seta[RETURN].ang temp
+			eshoot temp2 geta[RETURN].ang temp add temp 1920 seta[RETURN].ang temp
+		}
+	}
+}
+else set bomb_throw_power 0
+
+ife SKILL_LEVEL 5 // increase player damage if on Armageddon
+	{
+	ifmultiplayer nullop else
+		{
+		geta[].htextra temp
+		ifg temp 0 { mulvar temp 2 seta[].htextra temp }
+		}
+	}
+else
+ife SKILL_LEVEL 1 // third player damage if on easy
+	{
+	ifmultiplayer nullop else
+		{
+		geta[].htextra temp
+		ifg temp 0 { divvar temp 3 ifl temp 0 set temp -1 seta[].htextra temp }
+		}
+	}
+
+
+ife player_spooked -1
+			{
+                    set temp 0
+                    whilevarvarn temp NUMWALLS
+                    {
+                        setwall[temp].xpanning WALL_X[temp]
+                        setwall[temp].ypanning WALL_Y[temp]
+                        add temp 1
+                    }
+                    set temp3 0
+                    whilevarvarn temp3 NUMSECTORS
+                    {
+                        sets[temp3].floorxpanning FLOOR_X[temp3]
+                        sets[temp3].ceilingxpanning CEILING_X[temp3]
+                        sets[temp3].floorypanning FLOOR_Y[temp3]
+                        sets[temp3].ceilingypanning CEILING_Y[temp3]
+                        add temp3 1
+                    }
+			set player_spooked 0
+			}
+else
+ifg player_spooked 0
+    {
+        soundonce SPOOKED
+
+		ifand player[].player_par 1 setp[].rotscrnang 64
+		else setp[].rotscrnang 0
+
+        // temp variable which detects whether to run the spook effect
+        set temp5 1
+
+        // if this is set, ignore the defenses
+        ifn override_spook_protection 0
+            set temp5 1
+        // If the player has Minerva's amulet on, don't mess with his vision
+        else ife ARTIFACTS_LOADOUT[CHAR] 3
+        {
+            set artifact_used 60
+            stopsound SPOOKED
+			set temp5 0
+            set player_spooked 0
+        }
+        // If the player has the Spirit Shawl on, don't mess with his vision
+        else ife ARTIFACTS_LOADOUT[CHAR] 9
+        {
+            set artifact_used 60
+            stopsound SPOOKED
+			set temp5 0
+            set player_spooked 0
+        }
+        // Snowfall's psionic shield is on
+        else ife CHAR 14 ifn player[].holoduke_on -1
+        {
+            stopsound SPOOKED
+			set temp5 0
+            set player_spooked -1
+        }
+        // have ghost goggles on?
+        else ife HELMET_LOADOUT[CHAR] 4 ife player[].heat_on 1
+        {
+            stopsound SPOOKED
+			set temp5 0
+            set player_spooked -1
+        }
+        // if they're playing on easy
+        else ifle SKILL_LEVEL 1
+			{
+			set temp5 0
+            set player_spooked 0
+			}
+
+        // do spook
+        ifn temp5 0
+        {
+            ife override_spook_protection 0
+            {
+                // Mikko is a cyborg and less vulnerable to mindattacks
+                ife CHAR 7 nullop
+                // Sang is a warlock and less vulnerable to mindattacks
+                else ife CHAR 4 nullop
+                // Zaxtor is dimensionally shifted and less vulnerable to mindattacks
+                else ife CHAR 1 nullop
+                else
+                {
+                    state lower_weapon
+                    ifrnd 2 { addphealth -5 palfrom 20 20 set CUS_WACK 1 }
+                    // James' revelion blood is vulnerible to psychic attack
+                    ife CHAR 0 ifrnd 2 { addphealth -2 palfrom 20 40 set CUS_WACK 1 }
+                }
+            }
+            else
+            {
+                state lower_weapon
+                ifrnd 2 { addphealth -5 palfrom 20 20 set CUS_WACK 1 }
+                // James' revelion blood is vulnerible to psychic attack
+                ife CHAR 0 ifrnd 2 { addphealth -2 palfrom 20 40 set CUS_WACK 1 }
+            }
+
+            ife opt_photosensitivity_mode 0
+            {
+                ife player_spooked 96
+                {
+                    set temp 0
+                    whilevarvarn temp NUMWALLS
+                    {
+                      getwall[temp].xpanning tex_temp_x
+                      setarray WALL_X[temp] tex_temp_x
+                      getwall[temp].ypanning tex_temp_y
+                      setarray WALL_Y[temp] tex_temp_y
+                      add temp 1
+                    }
+                    set temp3 0
+                    whilevarvarn temp3 NUMSECTORS
+                    {
+                        gets[temp3].floorxpanning tex_temp_sx
+                        gets[temp3].ceilingxpanning tex_temp_x
+                        setarray FLOOR_X[temp3] tex_temp_sx
+                        setarray CEILING_X[temp3] tex_temp_x
+
+                        gets[temp3].floorypanning tex_temp_sy
+                        gets[temp3].ceilingypanning tex_temp_y
+                        setarray FLOOR_Y[temp3] tex_temp_sy
+                        setarray CEILING_Y[temp3] tex_temp_y
+
+                        add temp3 1
+                    }
+                }
+                else ifl player_spooked 96 ifg player_spooked 2
+                {
+                    set temp 0
+                    whilevarvarn temp NUMWALLS
+                    {
+                      getwall[temp].xpanning temp2
+                      randvar temp4 128
+                      ifrnd 128 mulvar temp4 -1
+                      add temp2 temp4
+                      setwall[temp].xpanning temp2
+
+                      getwall[temp].ypanning temp2
+                      randvar temp4 128
+                      ifrnd 128 mulvar temp4 -1
+                      add temp2 temp4
+                      setwall[temp].ypanning temp2
+
+                      add temp 1
+                    }
+                    set temp3 0
+                    whilevarvarn temp3 NUMSECTORS
+                    {
+                        gets[temp3].floorxpanning temp2
+                        randvar temp4 128
+                        ifrnd 128 mulvar temp4 -1
+                        add temp2 temp4
+                        sets[temp3].floorxpanning temp2
+                        sets[temp3].ceilingxpanning temp2
+
+                        gets[temp3].floorypanning temp2
+                        randvar temp4 128
+                        ifrnd 128 mulvar temp4 -1
+                        add temp2 temp4
+                        sets[temp3].floorypanning temp2
+                        sets[temp3].ceilingypanning temp2
+
+                        add temp3 1
+                    }
+                }
+                else ifle player_spooked 2 set player_spooked -1
+            }
+        }
+
+
+        ifdead nullop else soundonce HEARTBEAT
+        ife CHAR 0 soundonce JBREATHE
+        //else ife CHAR 3 soundonce R_SCARED // oh damnit, oh damnit, oh damnit, oh damnit, oh damnit (sounds dumb)
+        else ife CHAR 4 soundonce SBREATHE
+        else ife CHAR 12 soundonce JA_BREATH
+        set MISSIONSCREEN 0
+        set mission_scare 1
+
+        ifg player_spooked 0 sub player_spooked 1
+        set temp 0
+
+        // If player has been spooked for a number of tics, do stuff. In the case of playing with Cassandra: execute 947 lotag activator to trigger whatever cutscene.
+        // This is used in E2 and E3 intros
+
+        ife IN_DREAM 1 ifl VOLUME 4 ifl player_spooked 40
+            set temp 1
+        else ifl player_spooked 2
+            set temp 1
+
+        ife temp 1
+        {
+            stopsound SPOOKED
+            ifrnd 64 set PLAYER_VOICEOVER 31
+            setgamepalette 0
+
+            // reset spook protection override
+            ifn override_spook_protection 0
+                set override_spook_protection 0
+
+            // don't execute dream operators if cheated spook
+            ife cheat_spook 1
+            {
+                palfrom 32 0 0 0
+                set cheat_spook 0
+            }
+            else ife IN_DREAM 1 ifl VOLUME 4
+            {
+                state fade_out_white
+                operateactivators 947 THISACTOR
+                set IN_DREAM 0
+            }
+            else
+                palfrom 32 0 0 0
+        }
+        else setgamepalette 3
+    }
+
+ifg vr_glitched 0
+	{
+	state lower_weapon
+	ifand player[].player_par 1 setp[].rotscrnang 64
+	else setp[].rotscrnang 0
+
+	ife vr_glitched 96
+		{
+	stopallsounds
+	screensound VR_GLITCH
+	set temp 0
+	whilevarvarn temp NUMWALLS
+			{
+			  getwall[temp].xpanning temp2
+			  setarray WALL_X[temp] temp2
+			  getwall[temp].ypanning temp9
+			  setarray WALL_Y[temp] temp9
+			  setarray WALL_PICNUMA[temp] wall[temp].picnum
+			  setarray MASK_PICNUMA[temp] wall[temp].overpicnum
+			  add temp 1
+			}
+	set temp3 0
+	whilevarvarn temp3 NUMSECTORS
+			{
+			  gets[temp3].floorxpanning temp2
+			  gets[temp3].ceilingxpanning temp5
+			  setarray FLOOR_X[temp3] temp2
+			  setarray CEILING_X[temp3] temp5
+			  setarray FLOOR_PICNUM[temp3] sector[temp3].floorpicnum
+			  setarray CEILING_PICNUM[temp3] sector[temp3].ceilingpicnum
+
+			  gets[temp3].floorypanning temp2
+			  gets[temp3].ceilingypanning temp5
+			  setarray FLOOR_Y[temp3] temp2
+			  setarray CEILING_Y[temp3] temp5
+
+
+			  add temp3 1
+			}
+		}
+		else
+		ifl vr_glitched 96
+		ifg vr_glitched 2
+		{
+	set temp 0
+	whilevarvarn temp NUMWALLS
+			{
+			  getwall[temp].xpanning temp2
+			  randvar temp4 128
+			  ifrnd 128 mulvar temp4 -1
+			  add temp2 temp4
+			  setwall[temp].xpanning temp2
+
+			  getwall[temp].ypanning temp9
+			  randvar temp4 128
+			  ifrnd 128 mulvar temp4 -1
+			  add temp9 temp4
+			  setwall[temp].ypanning temp9
+			  setwall[temp].picnum 23658
+			  setwall[temp].overpicnum 23658
+			  add temp 1
+			}
+	set temp3 0
+	whilevarvarn temp3 NUMSECTORS
+			{
+			  gets[temp3].floorxpanning temp2
+			  randvar temp4 128
+			  ifrnd 128 mulvar temp4 -1
+			  add temp2 temp4
+			  sets[temp3].floorxpanning temp2
+			  sets[temp3].ceilingxpanning temp2
+			  sets[temp3].floorpicnum 23658
+			  sets[temp3].ceilingpicnum 23658
+
+			  gets[temp3].floorypanning temp2
+			  randvar temp4 128
+			  ifrnd 128 mulvar temp4 -1
+			  add temp2 temp4
+			  sets[temp3].floorypanning temp2
+			  sets[temp3].ceilingypanning temp2
+
+			  add temp3 1
+			}
+		}
+	else
+	ife vr_glitched 2
+		{
+	set temp 0
+	whilevarvarn temp NUMWALLS
+			{
+			  setwall[temp].xpanning WALL_X[temp]
+			  setwall[temp].ypanning WALL_Y[temp]
+			  setwall[temp].picnum WALL_PICNUMA[temp]
+			  setwall[temp].overpicnum MASK_PICNUMA[temp]
+			  add temp 1
+			}
+	set temp3 0
+	whilevarvarn temp3 NUMSECTORS
+			{
+			  sets[temp3].floorxpanning FLOOR_X[temp3]
+			  sets[temp3].ceilingxpanning CEILING_X[temp3]
+			  sets[temp3].floorypanning FLOOR_Y[temp3]
+			  sets[temp3].ceilingypanning CEILING_Y[temp3]
+			  sets[temp3].floorpicnum FLOOR_PICNUM[temp3]
+			  sets[temp3].ceilingpicnum CEILING_PICNUM[temp3]
+			  add temp3 1
+			}
+		}
+
+	sub vr_glitched 1
+	ifl vr_glitched 2
+		{
+		stopsound SPOOKED
+		ifrnd 64 set PLAYER_VOICEOVER 31
+		setgamepalette 0
+
+		palfrom 32 0 0 0
+		}
+	else setgamepalette 2
+}
+
+
+ife GAS_MASK 2
+	{
+	ife ingas 24 sound EQUIPMENT_OFF
+	ife CHAR 0 soundonce JGASMASK
+	ife CHAR 1 soundonce ZGASMASK
+	ife CHAR 4 soundonce SGASMASK
+	ife ingas 0 set GAS_MASK 1
+	}
+
+ifl GAS_MASK_PUTON 26 { state lower_weapon add GAS_MASK_PUTON 1 }
+
+ifl water_screen 30 add water_screen 1
+
+ife water_submerge 1
+	{
+	ifinwater nullop else
+		{
+		ifg DROWN_COUNT 0
+			{
+			ife CHAR 0 screensound J_BREATHE
+			ife CHAR 1 screensound Z_GULP
+			ife CHAR 5 screensound RN_BREATHE
+			ife CHAR 12 screensound JA_OXYGEN
+			set DROWN_COUNT 0
+			}
+		globalsound SURFACE
+		set water_screen -30
+		set water_submerge 0
+		}
+	}
+
+ifinwater
+{
+ife player[].jetpack_on 1 setp[].jetpack_on 0
+set WEP0_BLOODY 0
+set WEP1_BLOODY 0
+set WEP2_BLOODY 0
+set WEP3_BLOODY 0
+set WEP9_BLOODY 0
+switch sector[].ceilingpicnum
+case 7396
+case 10526
+	state lower_weapon
+	getp[].posxv temp6
+	divvar temp6 4
+	setp[].posxv temp6
+	getp[].posyv temp6
+	divvar temp6 4
+	setp[].posyv temp6
+	setgamepalette 5
+	ifg FIRE_SUIT 0 nullop else addphealth -5
+	soundonce BRUISER_FLAME
+	break
+endswitch
+
+ife PERSONNEL_RESEARCH[17] 2 // scuba research
+{
+ifand EGYPT_ARTIFACTS 2 nullop else
+	{
+	ifg player[].airleft 1
+	 ifg player[].scuba_amount 0
+		{
+		setp[].scuba_on 0
+		getp[].airleft air_left
+		sub air_left 1
+		setp[].airleft air_left
+		setp[].scuba_on 0
+		}
+	}
+}
+
+	ife player[].scuba_on 1
+			{
+			ife CHAR 0 set itemsound WEARSCUBAGEAR
+			else ife CHAR 5 set itemsound WEARSCUBAGEAR2
+			else ife CHAR 7 set itemsound WEARSCUBAGEAR2
+			else set itemsound WEARSCUBAGEAR3
+			soundoncevar itemsound
+			set temp8 player[].scuba_amount
+			ife CHAR 0 div temp8 256 else
+			div temp8 128
+			setactorsoundpitch THISACTOR itemsound temp8
+			}
+
+state STOPSTEPSOUNDS
+
+ife WEP3_BLOODY 1 set WEP3_BLOODY 0
+
+ife water_submerge 0 { globalsound SUBMERGE set water_screen -30 set water_submerge 1 }
+ife AIR_FILTER 1 setp[].scuba_amount 6400
+ifp prunning
+	{
+	ifand BITS_PRESS P_SPRINTING soundonce PLAYER_SWIM
+	ifand EXTBITS_PRESS 1
+		{
+		getp[].horiz temp
+		sub temp 100 // 100 horiz equals straight ahead, so take away 100 and make 0 'straight ahead' for this
+		mulvar temp -20
+		setp[].poszv temp
+		}
+	}
+}
+
+ifg COMM_COUNTD 0 sub COMM_COUNTD 1
+ifl COMM_COUNTD 0 add COMM_COUNTD 1
+
+ifn wepsway_x 0
+ifl input[].avel 30
+ifg input[].avel -30
+	{
+	ifg wepsway_x 0 sub wepsway_x 2
+	ifl wepsway_x 0 add wepsway_x 2
+	}
+
+ifn wepsway_y 0
+ifl input[].horz 30
+ifg input[].horz -30
+	{
+	ifg wepsway_y 0 sub wepsway_y 2
+	ifl wepsway_y 0 add wepsway_y 2
+	}
+
+clamp wepsway_y -20 20
+clamp wepsway_x -20 20
+
+ifl input[].horz -30 ife player[].invdisptime 0 ifl wepsway_y 12 add wepsway_y 4
+ifg input[].horz 30 ife player[].invdisptime 0 ifg wepsway_y -12 sub wepsway_y 4
+
+ifn CONTROL_VR -1
+	{
+	set allow_fire NO
+	ifg player[].footprintcount 0 setplayer[].footprintcount 0
+	set shield_up 0
+	set merl_shieldup 0
+	set screen_pal 8
+	ife MISSION_UP 1
+	    state reset_PDA
+    setuserdef[].overhead_on 0
+	setp[].kickback_pic 0
+	state lower_weapon
+	seta[].htextra -1
+	}
+
+ifg caught_in_web 0
+	{
+	set allow_fire NO
+	sub caught_in_web 1
+	state lower_weapon
+	getp[].posxv temp
+	divvar temp 4
+	setp[].posxv temp
+	getp[].posyv temp
+	divvar temp 4
+	setp[].posyv temp
+	}
+
+ifg caught_in_net 0
+	{
+	set allow_fire NO
+	ife MISSION_UP 1
+	    state reset_PDA
+	setuserdef[].overhead_on 0
+	setp[].kickback_pic 0
+	ife player_hitspace 1
+	{ ifp pboosted sub caught_in_net 10 else sub caught_in_net 5 set CUS_WACK 2 sound ROPE_CLIMB set player_hitspace 2 }
+	state lower_weapon
+	getp[].posxv temp
+	divvar temp 6
+	setp[].posxv temp
+	getp[].posyv temp
+	divvar temp 6
+	setp[].posyv temp
+	}
+
+ifg phantasm_stick -1
+	{
+	seta[].htextra -1
+	set allow_fire NO
+	ife MISSION_UP 1
+	    state reset_PDA
+	palfrom 0 0 0 0
+	set player_use -1
+	setuserdef[].overhead_on 0
+	setp[].movement_lock 31
+	setp[].kickback_pic 0
+	state lower_weapon
+	soundonce PB_START
+
+	ifcount 2
+		{
+		// ballistic mask will make ball drill slower
+		ife HELMET_LOADOUT[CHAR] 1 set temp 1 else
+		randvar temp 4
+		sub phantasm_struggle temp
+		resetcount
+		}
+	ife player_hitspace 1
+		{
+		randvar temp 3
+		add temp 6
+		ifp pboosted add phantasm_struggle 16 else add phantasm_struggle temp
+		set player_hitspace 2
+		ifrnd 128 setp[].rotscrnang -16 else setp[].rotscrnang 16
+		}
+
+	ifrnd 4
+		{
+		ife CHAR 0 soundonce JSTRUGGLE
+		else ife CHAR 1 sound Z_LONGTERM_PAIN2
+		else ife CHAR 2 sound MHURT
+		else ife CHAR 3 sound RHURT
+		else ife CHAR 4 sound SHURT
+		else ife CHAR 5 sound RNHURT
+		else ife CHAR 7 sound MSHURT
+		else ife CHAR 9 sound CULTIST_PAIN3
+		else ife CHAR 10 sound BS_PAIN1
+		else ife CHAR 12 sound JA_PAIN1
+		else ife CHAR 13 sound MC_HURT
+		else ife CHAR 17 sound KG_PAIN1
+		}
+	ifg phantasm_struggle 50
+		{
+		soundonce PB_STOP
+		setp[].movement_lock 0
+		setactorvar[phantasm_stick].INTERNALCOUNT 52
+		set phantasm_stick -1
+		set phantasm_struggle 0
+		}
+	else
+	ifl phantasm_struggle -10
+		{
+		ife HELMET_LOADOUT[CHAR] 1 // ballistic mask protects from some damage
+			{
+			palfrom 20 64
+			soundonce PB_KILL
+			addphealth -1
+			}
+			else
+			{
+		    set CUS_WACK 3
+			palfrom 40 64
+			soundonce PB_KILL
+			addphealth -3
+			}
+		}
+	else set player_use -1
+
+	ifp pdead { set phantasm_stick -1 set phantasm_struggle 0 setp[].movement_lock 0 }
+
+	}
+
+ifg shotgun_struggle -1
+	{
+	seta[].htextra -1
+	set allow_fire NO
+	palfrom 0 0 0 0
+	ife MISSION_UP 1
+	    state reset_PDA
+	setuserdef[].overhead_on 0
+	setp[].kickback_pic 0
+	state lower_weapon
+	ifcount 2
+		{
+		randvar temp 3
+		sub shotgun_struggle_num temp
+		resetcount
+		}
+	ife player_hitspace 1
+		{
+		randvar temp 3
+		add temp 6
+		ifp pboosted add shotgun_struggle_num 16 else add shotgun_struggle_num temp
+		set player_hitspace 2
+		ifrnd 128 setp[].rotscrnang -16 else setp[].rotscrnang 16
+		}
+
+	ifrnd 4
+		{
+		ife CHAR 0 soundonce JSTRUGGLE
+		else ife CHAR 1 sound Z_LONGTERM_PAIN2
+		else ife CHAR 2 sound MHURT
+		else ife CHAR 3 sound RHURT
+		else ife CHAR 4 sound SHURT
+		else ife CHAR 5 sound RNHURT
+		else ife CHAR 7 sound MSHURT
+		else ife CHAR 9 sound CULTIST_PAIN3
+		else ife CHAR 13 sound MC_HURT
+		}
+	ifg shotgun_struggle_num 75
+		{
+		set player_use 26 set player_fire 0
+		ifand BITS_PRESS 4
+			{
+			ife CHAR 0 stopsound JSTRUGGLE
+			flash
+			soundonce SAWNOFF_FIRE
+			wackplayer
+			set shotgun_struggle 0
+			shoot 3761
+			shoot 3761
+			set gunsmoke_angle 0
+			state spawn_gunsmoke
+			set shotgun_struggle_num -100
+			setp[].movement_lock 0
+			}
+		}
+	else
+	ifl shotgun_struggle_num -25
+		{
+		ifrnd 128
+			{
+			flash
+			soundonce SAWNOFF_FIRE
+			palfrom 62 62 0 0
+			wackplayer
+			ife HELMET_LOADOUT[CHAR] 1 seta[].extra 1 else
+			seta[].extra 0
+			set shotgun_struggle -1
+			set shotgun_struggle_num 0
+			setp[].movement_lock 0
+			}
+		}
+	else { set player_use -1 set player_fire 26 }
+
+	ifp pdead set shotgun_struggle -1
+
+	}
+
+ifg cameratype 1
+	{
+	set allow_fire NO
+	ifg sprite[].htextra -1 seta[].htextra -1
+	state lower_weapon
+	}
+
+set HANDS_DRAW 2
+
+ife on_tripwire 1
+	{
+	set allow_fire NO
+	set shield_up 0 set merl_shieldup 0
+	ife GUN_HANDS 2 state lower_weapon else ife GUN_HANDS 1 set HANDS_DRAW 1
+	}
+
+ifg fpress 0 sub fpress 1
+ifg bpress 0 sub bpress 1
+ifl onladder 0 add onladder 1
+
+ifg onladder 0 state laddercode
+
+state player_hitscan_check
+ifn hitwall -1
+	{
+	getwall[hitwall].shade temp
+	getwall[hitwall].pal wall_pal
+	ifl temp 0 set temp 0
+	sub temp sprite[].shade
+	ifvarvarg player_shade_diff temp sub player_shade_diff 1
+	else ifvarvarl player_shade_diff temp add player_shade_diff 1
+	// set player_shade_diff temp
+	}
+set xhair_col 0
+ ifn hitsprite -1
+	 {
+	 getav[hitsprite].faction_flag temp4
+	 ifg temp4 0
+		 {
+		 ife temp4 1024 set xhair_col 8
+		 else set xhair_col 2
+		 }
+	 }
+ife auto_room_type 1
+	{
+	state pythagoras
+	ifg xydist 4096
+		{
+		ifoutside set room_type 3 else set room_type 2
+		}
+	else
+		{
+		ifoutside set room_type 1 else set room_type 4
+		}
+	}
+
+ifg chainsaw_struggle -1
+	{
+	set allow_fire NO
+	soundonce SAWDEATH
+	setp[].horiz 100
+	setp[].weapon_pos 10
+	lockplayer 10
+	setuserdef[].overhead_on 0
+	palfrom 10 63
+	sub chainsaw_struggle 1
+	ife CHAR 1 soundonce Z_SCREAM
+	ifrnd 96
+		{
+		ifrnd 96 sound BLD_SPLASH3 else ifrnd 96 sound BLD_SPLASH2 else sound BLD_SPLASH1
+		palfrom 40 63
+		wackplayer
+		addphealth -2
+
+		state player_pain_sounds
+		}
+	ife TIMEZONE 13
+		ifphealthl 15
+			{
+			state fade_out_black
+			operateactivators 261 THISACTOR
+			stopallsounds
+			set chainsaw_struggle -1
+			}
+	state STOPSTEPSOUNDS
+	ife chainsaw_struggle 1 { palfrom 63 63 0 0 addphealth -1000 sound HUGE_GIB }
+	ifp pdead set chainsaw_struggle -1
+	ifl chainsaw_struggle 1 set chainsaw_struggle -128
+	}
+else ifl chainsaw_struggle -1 add chainsaw_struggle 1
+
+ifg npc_chainsaw_struggle -1
+	{
+	set allow_fire NO
+	set gun_recoil 10
+	soundonce SAWDEATH
+	seta[].htextra -1
+	lockplayer 10
+	setp[].weapon_pos 10
+	setuserdef[].overhead_on 0
+	palfrom 10 63
+	sub npc_chainsaw_struggle 3
+	ifle npc_chainsaw_struggle 3 { palfrom 32 63 0 0 addphealth 8 soundonce HUGE_GIB setp[].horiz 100 }
+	else setp[].horiz 140
+	state STOPSTEPSOUNDS
+	ifp pdead set npc_chainsaw_struggle -1
+	ifl npc_chainsaw_struggle 1 set npc_chainsaw_struggle -128
+	}
+else
+clamp npc_chainsaw_struggle -1 50
+
+
+ifg troll_struggle -1
+{
+set allow_fire NO
+set player_use -1
+setp[].horiz 100
+setuserdef[].overhead_on 0
+palfrom 20 20
+ife player_hitspace 1 { sub troll_struggle 10 wackplayer set player_hitspace 2 }
+soundonce CHOKING
+state STOPSTEPSOUNDS
+ifp pdead set troll_struggle -1
+ifl troll_struggle 1 set troll_struggle -128
+}
+else ifl troll_struggle -1 add troll_struggle 1
+
+ifg succubus_struggle -1
+{
+set allow_fire NO
+set player_use -1
+setp[].horiz 100
+setuserdef[].overhead_on 0
+palfrom 20 20
+ife player_hitspace 1 { sub succubus_struggle 10 wackplayer set player_hitspace 2 }
+soundonce CHOKING
+state STOPSTEPSOUNDS
+ifp pdead set succubus_struggle -1
+ifl succubus_struggle 1 set succubus_struggle -128
+}
+else ifl succubus_struggle -1 add succubus_struggle 1
+
+ifg CHOKE 0
+{
+set allow_fire NO
+set player_use -1
+setuserdef[].overhead_on 0
+palfrom 20 20
+
+ife player_hitspace 1 { sub CHOKE 10 wackplayer set player_hitspace 2 }
+ife CHAR 10 soundonce JA_CHOKE else
+ife CHAR 12 soundonce JA_CHOKE else
+ife CHAR 17 soundonce JA_CHOKE else
+ife CHAR 20 soundonce JA_CHOKE else
+soundonce CHOKING
+state STOPSTEPSOUNDS
+sub CHOKE 1
+
+ifp pdead set CHOKE 0
+
+}
+
+state temporary_weapons_code // TODO split up state, maybe
+
+ifg FCHOKESTOP 0 sub FCHOKESTOP 1
+
+ifg FCHOKE 0
+{
+set allow_fire NO
+set player_use -1
+palfrom 20 20
+lockplayer 10
+ifhitspace { wackplayer sub CHOKE 20 }
+soundonce CHOKING
+state STOPSTEPSOUNDS
+ifg P_SPIRIT_ARMOUR 0 sub FCHOKE 4 else sub FCHOKE 1
+ifp pdead set FCHOKE 0
+}
+
+ifg camera_bars -18 sub camera_bars 2
+ife camera_bars -2 set hud_disp 1
+
+ife player[].player_par 1
+{
+	set raining rainstart
+	set rainstart 0
+}
+
+ifg control_display 0 sub control_display 1
+
+
+ife CONTROL_VR -1
+ife player_in_vehicle 0
+	ifn CHAR 14 // Snowfall has a full helmet
+	 ifn CHAR 13 // Micky has a full helmet
+	  ifn CHAR 12 // Jane has a full helmet
+state spawn_cold_breathe
+
+ifg raining 0
+{
+  ife camerasprite -1
+	 {
+	ifand NOISE_SAID 16 nullop else
+	ifoutside
+	 ifrnd 1
+		{
+		set PLAYER_VOICEOVER 43
+		xorvar NOISE_SAID 16
+		}
+	}
+
+ife RAINREPLACE 1
+	{
+	ifoutside soundonce RAIN else soundonce RAININ
+	}
+}
+
+ife RAINREPLACE 1 ife raining 0 set RAINREPLACE 0
+
+ifn camerasprite -1
+	{
+	set allow_fire NO
+	set voice_comm_menu 0
+	ife MISSION_UP 1
+	    state reset_PDA
+	setuserdef[].overhead_on 0
+	}
+
+ife player[].knee_incs 2 set QUICKK 1
+
+		 ifp ponground
+		  ife player_in_vehicle 0
+		    ifn FIRE_SUIT 1
+			ifn JUGGERN_SUIT 1
+			ifn SPACE_SUIT 1
+			ife INTERNALCOUNT_3 0
+			ife SLIDE_KICK 27
+			ife MISSION_UP 0
+			ife shotgun_struggle -1
+			ife troll_struggle -1
+			ife ninja_struggle -1
+			ife camerasprite -1
+			ifp palive
+			ife PCINTER 0
+			ifn CHAR 20
+			{
+			ifg p_stamina 20
+					{
+					 ifand BITS_PRESS P_SPRINTING
+					  {
+					  ifand EXTBITS_PRESS 1 nullop else
+					  ifand EXTBITS_PRESS 4 // strafes left
+						{
+						ifg runspeed_reduced_tics 0 break
+						ifgapzl 16 break
+						ifinwater break
+						ifl ROLL_LEFT 13 break
+						ife PERSONNEL_RESEARCH[30] 2 sound MUSCLE_MOVE else
+						ife CHAR 12 soundonce SERVO else
+						soundonce JMOVE5
+						getp[].ang temp3
+						sub temp3 512
+						set knockbackang temp3
+						set knockbackheight 2048
+						set knockback2 8
+						setp[].quick_kick 0
+						set ROLL_LEFT 0
+						set INTERNALCOUNT_3 26
+						state roll_stam_drain
+						}
+						else
+					  ifand EXTBITS_PRESS 8 // strafes right
+						{
+						ifg runspeed_reduced_tics 0 break
+						ifgapzl 16 break
+						ifand EXTBITS_PRESS 1 break
+						ifinwater break
+						ifl ROLL_RIGHT 13 break
+						ife PERSONNEL_RESEARCH[30] 2 sound MUSCLE_MOVE else
+						ife CHAR 12 soundonce SERVO else
+						ife CHAR 2 soundonce H_ARMOUR_ROLL else
+						soundonce JMOVE5
+						getp[].ang temp3
+						sub temp3 -512
+						set knockbackang temp3
+						set knockbackheight 2048
+						set knockback2 8
+						setp[].quick_kick 0
+						set ROLL_RIGHT 0
+						set INTERNALCOUNT_3 26
+						state roll_stam_drain
+						}
+					 else
+					  ifand EXTBITS_PRESS 2 // moves backwards
+							{
+							ifg runspeed_reduced_tics 0 break
+							ifgapzl 16 break
+							ifinwater break
+							ifl ROLL_BACKWARDS 26 break
+							ife PERSONNEL_RESEARCH[30] 2 sound MUSCLE_MOVE else
+							ife CHAR 12 soundonce SERVO else
+							ife CHAR 2 soundonce H_ARMOUR_ROLL else
+							soundonce JMOVE5
+							getp[].ang temp3
+							sub temp3 1024
+							set knockbackang temp3
+							set knockbackheight 2048
+							set knockback2 8
+							setp[].quick_kick 0
+							set ROLL_BACKWARDS 0
+							set INTERNALCOUNT_3 26
+							state roll_stam_drain
+							}
+						}
+					}
+
+			}
+
+	ife player_dodge 2
+		  ife player_in_vehicle 0
+		    ifn FIRE_SUIT 1
+			ifn JUGGERN_SUIT 1
+			ifn SPACE_SUIT 1
+			ife INTERNALCOUNT_3 0
+			ife SLIDE_KICK 27
+			ife MISSION_UP 0
+			ife shotgun_struggle -1
+			ife troll_struggle -1
+			ife ninja_struggle -1
+			ife camerasprite -1
+			ifp palive
+			ife PCINTER 0
+			ifn CHAR 20
+			{
+			ifg p_stamina 20
+					{
+					 ifand BITS_PRESS P_SPRINTING
+					  {
+					  ifand EXTBITS_PRESS 4 // strafes left
+						{
+						ifg runspeed_reduced_tics 0 break
+						ifgapzl 16 break
+						ifinwater break
+						ifl ROLL_LEFT 13 break
+						ife PERSONNEL_RESEARCH[30] 2 sound MUSCLE_MOVE else
+						ife CHAR 12 soundonce SERVO else
+						soundonce JMOVE5
+						getp[].ang temp3
+						sub temp3 512
+						set knockbackang temp3
+						set knockbackheight -512
+						set knockback2 4
+						setp[].quick_kick 0
+						set ROLL_LEFT 0
+						set INTERNALCOUNT_3 26
+						state roll_stam_drain
+						}
+						else
+					  ifand EXTBITS_PRESS 8 // strafes right
+						{
+						ifg runspeed_reduced_tics 0 break
+						ifgapzl 16 break
+						ifand EXTBITS_PRESS 1 break
+						ifinwater break
+						ifl ROLL_RIGHT 13 break
+						ife PERSONNEL_RESEARCH[30] 2 sound MUSCLE_MOVE else
+						ife CHAR 12 soundonce SERVO else
+						ife CHAR 2 soundonce H_ARMOUR_ROLL else
+						soundonce JMOVE5
+						getp[].ang temp3
+						sub temp3 -512
+						set knockbackang temp3
+						set knockbackheight -512
+						set knockback2 4
+						setp[].quick_kick 0
+						set ROLL_RIGHT 0
+						set INTERNALCOUNT_3 26
+						state roll_stam_drain
+						}
+					 else
+					  ifand EXTBITS_PRESS 2 // moves backwards
+							{
+							ifg runspeed_reduced_tics 0 break
+							ifgapzl 16 break
+							ifinwater break
+							ifl ROLL_BACKWARDS 26 break
+							ife PERSONNEL_RESEARCH[30] 2 sound MUSCLE_MOVE else
+							ife CHAR 12 soundonce SERVO else
+							ife CHAR 2 soundonce H_ARMOUR_ROLL else
+							soundonce JMOVE5
+							getp[].ang temp3
+							sub temp3 1024
+							set knockbackang temp3
+							set knockbackheight -512
+							set knockback2 4
+							setp[].quick_kick 0
+							set ROLL_BACKWARDS 0
+							set INTERNALCOUNT_3 26
+							state roll_stam_drain
+							}
+						}
+					}
+
+			}
+
+ife player[].quick_kick 13
+ife MISSION_UP 0
+	{
+	ifn camerasprite -1 break
+	ifinwater set QUICKK 1 else
+		{
+		ifand BITS_PRESS 1 // If the player jumps
+		 iffloordistl 14
+				{
+				setp[].jumping_counter 1441
+				setp[].quick_kick 0
+				ife CHAR 12 soundonce SERVO else soundonce JMOVE5
+				set ROUNDHOUSE_KICK 0
+				}
+			else
+		ifand BITS_PRESS 1 // If the player jumps
+			ifand EXTBITS_PRESS 1 // If the player presses forward
+			 ifg sprite[].xvel 60 // If the player's moving fast enough
+				{
+				setp[].quick_kick 0
+				wackplayer
+				ife player[].jumping_counter 721 setp[].jumping_counter 0
+				ife CHAR 12 soundonce SERVO else soundonce JMOVE5
+				ifand BITS_PRESS P_SPRINTING
+				 ifg sprite[].xvel 100 set DROP_KICK 0 else
+				set FLYING_KICK 0
+				}
+		else
+		ifg sprite[].xvel 120 // player speed
+		 ifand BITS_PRESS P_SPRINTING // if the player's sprinting
+		  ifand EXTBITS_PRESS 1
+		   ifg p_stamina 20
+		    ifp ponground
+			{
+			ifinwater break
+			ifonwater break
+			ifp pstanding nullop else
+				{
+				ife CHAR 12 soundonce SERVO else
+				ife CHAR 2 soundonce H_ARMOUR_ROLL
+				soundonce PSLIDE_KICK
+				state slide_sound
+				getp[].ang knockbackang
+				set knockbackheight 4096
+				set knockback_slide 16
+				setp[].quick_kick 0
+				set SLIDE_KICK 0
+				}
+			}
+		else
+		ifand EXTBITS_PRESS 2
+		 ifp pducking
+		  ifp ponground
+			{
+			ifinwater break
+							ife CHAR 12 soundonce SERVO else
+							ife CHAR 2 soundonce H_ARMOUR_ROLL else
+							soundonce JMOVE5
+			setp[].quick_kick 0
+			set TWIRL_KICK 0
+			}
+		else
+		ifand EXTBITS_PRESS 2
+		  ifp ponground
+			{
+			ifinwater break
+							ife CHAR 12 soundonce SERVO else
+							ife CHAR 2 soundonce H_ARMOUR_ROLL else
+							soundonce JMOVE5
+			setp[].quick_kick 0
+			set SPIN_KICK 0
+			}
+		else
+		ifp pjumping set QUICKK 0 else
+		ife on_tripwire 1 set QUICKK 0 else
+		ife temp2 1 set QUICKK 0 else
+		ifn kickbackpic 0 set QUICKK 0 else
+		ifand gun_firemode 16384 nullop else
+		ifn scope 0 nullop else
+		ifl UPPER_CUT 20 set QUICKK 0 else
+		ifp ponground ife injured 0 ifg GOT_KNIFE 0 ife kickbackpic 0 ifg p_stamina 20 set KNIFE_ATTACK 0
+		else set QUICKK 0
+		}
+	}
+else
+ife player[].quick_kick 8 // wall kick
+	{
+	ifinwater break
+	iffloordistl 8 break
+	espawn 3587
+	seta[RETURN].x hitx
+	seta[RETURN].y hity
+	seta[RETURN].z hitz
+
+	dist xydist THISACTOR RETURN
+
+	ifg xydist 750 nullop else
+			{
+			sub p_stamina 40
+			set WALL_KICK 20
+			ifl p_stamina 0 break
+			ifg player[].falling_counter 16 break
+			getp[].ang temp5
+			sub temp5 1024
+			set knockbackang temp5
+			ifand BITS_PRESS 1 setp[].ang temp5
+			ife PERSONNEL_RESEARCH[30] 2 { sound MUSCLE_MOVE set knockback 6 } else
+			ifp pboosted set knockback 8 else set knockback 4
+			}
+	}
+
+
+ife hold_breathe 1
+	{
+	set current_inittimer 30
+    inittimer 30
+	soundonce HEARTBEAT
+	setp[].sound_pitch -1024
+	ife CHAR 3 sub p_stamina 2 // Highwire is good at sniping
+	else ife CHAR 5 sub p_stamina 3 // So is Rusty
+	else ife CHAR 7 sub p_stamina 2 // So is Mikko
+	else sub p_stamina 4
+	ifl p_stamina 4
+		{
+		set stamina_shake 10
+		set p_stamina -60
+		wackplayer
+		setp[].sound_pitch 0
+        set current_inittimer 120
+		inittimer 120
+		}
+	}
+else
+ife hold_breathe 2
+	{
+	setp[].sound_pitch 0
+    set current_inittimer 120
+	inittimer 120
+	set hold_breathe 0
+	}
+
+ifn player[].falling_counter 0
+ife player_in_vehicle 0
+{
+ifl player[].falling_counter 60
+ ifg player[].falling_counter 7
+	{
+	ife CHAR 14 // Snowfall is a cat so he takes 1/2 fall damage
+		{
+		iffloordistl 24
+			{
+			getp[].falling_counter temp5
+			divvar temp5 2
+			setp[].falling_counter temp5
+			}
+		}
+	ife CHAR 2
+	 ife player_ability_1 0
+	  ife MYSTICAL_RESEARCH[9] 2 // troll ground pound unlocked?
+	   ifp palive
+		{
+		iffloordistl 24
+		 ifge ROLL_FORWARDS 26
+			{
+			 ifand BITS_PRESS 4194304
+				{
+					sound BIGDOORSLAM3
+					quake 26
+					getp[].falling_counter temp5 divvar temp5 2 setp[].falling_counter temp5
+					getp[].posx x
+					getp[].posy y
+					getp[].posz z
+					set temp 3
+					set temp2 240
+					set temp3 8
+					state shoot_trollfirewall
+					set temp2 192
+					set temp3 16
+					state shoot_trollfirewall
+					set temp2 144
+					set temp3 24
+					state shoot_trollfirewall
+					set temp2 96
+					set temp3 48
+					state shoot_trollfirewall
+					set temp2 48
+					set temp3 64
+					state shoot_trollfirewall
+					set player_ability_1 1800 // 1 minute cooldown
+				}
+		}
+	}
+	ifand EGYPT_ARTIFACTS 1 nullop else
+	 ife FIRE_SUIT 1 nullop else
+	  ifinwater nullop else
+	   ifp palive
+		{
+		iffloordistl 24
+		 ifge ROLL_FORWARDS 26
+		  ife MELEE_RESEARCH[7] 2
+			{
+			set player_ninja 0
+			 ifand BITS_PRESS 2
+				{
+				sub p_stamina 80
+				getp[].falling_counter temp5 divvar temp5 2 setp[].falling_counter temp5
+				ife CHAR 2 soundonce H_ARMOUR_ROLL
+				soundonce NINJA_ROLL
+				getp[].ang knockbackang
+				set knockbackheight 2048
+				set knockback2 8
+				setp[].quick_kick 0
+				set ROLL_FORWARDS 0
+				state landsounds
+				set INTERNALCOUNT_3 26
+				}
+			}
+		}
+	}
+ifg player[].falling_counter 62
+	{
+	soundonce WIND_FALL_RAPID
+	ifg FALLING 0 sub FALLING 1 else add FALLING 1
+	ife FALLING 1
+		{
+		getp[].horiz temp6
+		add temp6 1
+		setp[].horiz temp6
+		set FALLING -5
+		}
+	else
+	ife FALLING -1
+		{
+		getp[].horiz temp6
+		sub temp6 1
+		setp[].horiz temp6
+		set FALLING 5
+		}
+	}
+	else
+	ifsound WIND_FALL_RAPID stopsound WIND_FALL_RAPID
+}
+
+ifg HEAL_COUNT 0 sub HEAL_COUNT 1
+else
+ifl HEAL_COUNT 0 add HEAL_COUNT 1
+
+
+ ifp palive
+  ifge HEAL_COUNT 0
+	{
+	set temp2 pmax_health
+	ife CHAR 16 div temp2 2 else
+	div temp2 10
+
+	ifvarvarl PHEALTH temp2
+		ife HEAL_COUNT 0
+			{
+			ife CHAR 16 set HEAL_COUNT 15 else
+			set HEAL_COUNT 30
+			addphealth 1
+			}
+		ife CHAR 0
+			{
+			 ifphealthl 20
+				 ife HEAL_COUNT 0
+					{
+					set HEAL_COUNT 30
+					addphealth 1
+					}
+			}
+	}
+
+ // INVENTORY WHEEL
+ife opt_old_item_sel NO
+{
+    ifand BITS_PRESS 1048576 setp[].invdisptime 26
+    ifand BITS_PRESS 134217728 setp[].invdisptime 26
+    ifg player[].invdisptime 0
+    {
+    ife P_SWHEEL 1 // only do this if the player turned on the wheel
+        {
+        ifand BITS_PRESS 135266304 nullop else
+            {
+            setp[].invdisptime 0
+            set P_SWHEEL 0
+            }
+
+        // add x axis diff
+        getp[].q16ang temp
+        sub temp player[].oq16ang
+        shiftr temp 12
+        // sanity check -- angle overrun from 2047 to 0
+        ifl temp -30000 add temp 32767
+        else ifg temp 30000 sub temp 32767
+        add invwheel_x temp
+
+        // add y axis diff
+        getp[].oq16horiz temp2
+        sub temp2 player[].q16horiz
+        shiftr temp2 12
+        mul temp2 2
+        add invwheel_y temp2
+
+        // lock the player view and move the y-axis view enough so that the wheel can be used
+        getp[].oq16horiz temp3
+        clamp temp3 -3932160 17039360
+        setp[].q16horiz temp3
+        setp[].q16ang player[].oq16ang
+
+        // get angle and compute cursor position
+        getangle temp9 invwheel_x invwheel_y
+        cos temp4 temp9
+        sin temp5 temp9
+        scalevar invwheel_x temp4 INVWHEEL_RADIUS 16384
+        scalevar invwheel_y temp5 INVWHEEL_RADIUS 16384
+
+        // Integer divide angle by 256 to get index for the 8 slices. Add 128 to shift the wheel, modulo 8.
+        add temp9 128
+        div temp9 256
+        mod temp9 8
+
+        // item selection
+        switch temp9
+            case 0:
+                // holoduke slot
+                ifg player[].holoduke_amount 0
+                    setp[].inven_icon 3
+                break
+            case 1:
+                // jetpack slot
+                ifg player[].jetpack_amount 0
+                    setp[].inven_icon 4
+                break
+            case 2:
+                // heat slot
+                ifg player[].heat_amount 0
+                    setp[].inven_icon 5
+                break
+            case 3:
+                // scuba slot
+                ifg player[].scuba_amount 0
+                    setp[].inven_icon 6
+                break
+            case 4:
+                // boot slot
+                ifg player[].boot_amount 0
+                    setp[].inven_icon 7
+                break
+            case 5:
+                // empty slot
+                setp[].inven_icon 0
+                break
+            case 6:
+                // medkit slot
+                ifg player[].firstaid_amount 0
+                    setp[].inven_icon 1
+                break
+            case 7:
+                // steroids slot
+                ifg player[].steroids_amount 0
+                    setp[].inven_icon 2
+                break
+        endswitch
+        /*
+        // legacy wheel code // DELETEME LATER
+        getinput[].bits temp
+        shiftvarr temp 8
+        andvar temp 0xF
+        switch temp
+            case 11: // prev weapon
+                getp[].inven_icon temp3
+                sub temp3 1
+                ifl temp3 0 set temp3 7
+                ife temp3 7 ife player[].boot_amount 0 sub temp3 1
+                ife temp3 6 ife player[].scuba_amount 0 sub temp3 1
+                ife temp3 5 ife player[].heat_amount 0 sub temp3 1
+                ife temp3 4 ife player[].jetpack_amount 0 sub temp3 1
+                ife temp3 3 ife player[].holoduke_amount 0 sub temp3 1
+                ife temp3 2 ife player[].steroids_amount 0 sub temp3 1
+                ife temp3 1 ife player[].firstaid_amount 0 sub temp3 1
+
+                setp[].inven_icon temp3
+                break
+            case 12: // next weapon
+                getp[].inven_icon temp3
+                add temp3 1
+                ife temp3 1 ife player[].firstaid_amount 0 add temp3 1
+                ife temp3 2 ife player[].steroids_amount 0 add temp3 1
+                ife temp3 3 ife player[].holoduke_amount 0 add temp3 1
+                ife temp3 4 ife player[].jetpack_amount 0 add temp3 1
+                ife temp3 5 ife player[].heat_amount 0 add temp3 1
+                ife temp3 6 ife player[].scuba_amount 0 add temp3 1
+                ife temp3 7 ife player[].boot_amount 0 add temp3 1
+                ifg temp3 7 set temp3 0
+                setp[].inven_icon temp3
+                break
+        endswitch
+        */
+        }
+    }
+}
+
+ifg MOUSEUP 0
+{
+set allow_fire NO
+set lockp_countdown 13
+setp[].ang PANG
+setp[].horiz PHORIZ
+state lower_weapon
+getinput[].q16horz temp
+// shiftvarr temp 16
+getu .mouseflip temp2
+ife temp2 1 sub Q16_MOUSEY temp else ife temp2 0 add Q16_MOUSEY temp
+getinput[].q16avel temp
+// shiftvarr temp 16
+add Q16_MOUSEX temp
+
+ifand gun_firemode 16384 xorvar gun_firemode 16384
+ifg scope 0 set scope 0
+
+set MOUSEX Q16_MOUSEX
+set MOUSEY Q16_MOUSEY
+
+clamp Q16_MOUSEX 0 20971520
+clamp Q16_MOUSEY 0 13107200
+
+shiftvarr MOUSEX 16
+shiftvarr MOUSEY 16
+
+clamp MOUSEX 0 320
+clamp MOUSEY 0 200
+
+ifand BITS_PRESS 64 set mouse_hint_timer 0
+
+	ifl mouse_hint_timer 32
+	{
+	ifl mouse_hint_timer 0 set mouse_hint_timer 0
+	add mouse_hint_timer 1
+	ife mouse_hint_timer 1 set mouse_hint -1
+	}
+
+
+}
+
+ifn MISSION_UP 0
+{
+clamp MISSION_UP 0 320
+getinput[].bits temp
+shiftvarr temp 8
+andvar temp 0xF
+switch temp
+    case 11: // prev weapon
+	ifl INTERNALCOUNT 1
+		{
+		sound PDU_MOVE
+		ife MISSIONSCREEN 5 { soundonce PU_CLOSE stopsound PU_SCAN }
+		sub MISSIONSCREEN 1
+		ifl MISSIONSCREEN 0
+			{ soundonce PU_OPEN set MISSIONSCREEN 5 }
+		set INTERNALCOUNT 3
+		}
+        break
+    case 12: // next weapon
+	ifl INTERNALCOUNT 1
+		{
+		sound PDU_MOVE
+		add MISSIONSCREEN 1
+		ifg MISSIONSCREEN 5 { soundonce PU_CLOSE stopsound PU_SCAN set MISSIONSCREEN 0 }
+		ifg MISSIONSCREEN 4
+			{
+			set MISSIONSCREEN 5 soundonce PU_OPEN
+			}
+		set INTERNALCOUNT 3
+		}
+        break
+endswitch
+
+// abort mission button
+	ifg MOUSEX 30
+	 ifl MOUSEX 74
+	    ifg MOUSEY 165
+		 ifl MOUSEY 175
+			{
+			ife amc_base 0
+			ifand BITS_PRESS 4
+			 ifand BITS_PRESS 64
+				{
+				state fade_out_black
+	            state reset_PDA
+				state save_arrays
+				ifn amcbase_level -1 ifn amcbase_volume -1 startlevel amcbase_volume amcbase_level // takes them to the base level they were on
+				else startlevel VOLUME 1
+				}
+			}
+
+ife MISSION_UP 0 set MISSIONPOS 320
+ife MISSION_UP 1
+{
+ifinwater set MISSION_UP 2
+ifp pjumping set MISSION_UP 2
+set hud_disp 0
+getp[].horiz PHORIZ
+getp[].ang PANG
+state lower_weapon
+ ifg MISSIONPOS 100
+	sub MISSIONPOS 40
+
+	clamp MISSIONPOS 100 320
+
+	ife MISSIONSCREEN 5
+	{
+	set MOUSEUP 0
+	ife MISSIONPOS 120 soundonce PU_OPEN
+	else ife MISSIONPOS 100 soundonce PU_SCAN
+
+	ifand BITS_PRESS 64
+	 ife switch_laser 0
+	  ifn airdrop_available 0
+		{
+		sound PU_SCAN
+		ife scan_mode 0 set scan_mode 1
+		else ife scan_mode 1 set scan_mode 2
+		else set scan_mode 0
+		set switch_laser 15
+		}
+
+   ife scan_mode 0
+		{
+		ifand BITS_PRESS 4
+		 ife switch_laser 0
+			{
+			set GUN_ACCURACY 1
+			sound SC_LASR
+			shoot GREY_LASERSHOT
+			set switch_laser 30
+			}
+		}
+	else
+	ifge scan_mode 1
+	 ife airdrop_available 1
+	  ife airdrop_cooldown 0
+		{
+			ifg hold_down 0 { ifand BITS_PRESS 4 nullop else sub hold_down 1 }
+			ife hold_down -1 // don't reset until fire is let go
+			{
+				ifand BITS_PRESS 4 nullop else set hold_down 0
+			}
+
+			ifand BITS_PRESS 4 ifn hold_down -1
+			{
+				ifand sector[hitsect].ceilingstat 1
+				ifge SUPPLY_LEVEL 30
+					{
+					soundonce AIRDR_01
+					add hold_down 2
+					ifge hold_down 60
+						{
+						soundonce AIRDR_02
+						ife BASE_RESEARCH[7] 2 globalsound AMCSHIP2_FLYBY
+						else globalsound AMCSHIP_FLYBY
+						ife scan_mode 1 // supply drop
+							{
+							ifrnd 46 globalsound FG_DROP1
+							else ifrnd 46 globalsound FG_DROP2
+							else ifrnd 46 globalsound FG_DROP3
+							else ifrnd 46 globalsound FG_DROP4
+							espawn 3707
+							setsprite RETURN hitx hity hitz
+							espawn 3063
+							setsprite RETURN hitx hity hitz
+							set airdrop_cooldown 300
+							}
+						else
+						ife scan_mode 2 // airstrike
+							{
+							ifrnd 128 globalsound FG_STRIKE1
+							else globalsound FG_STRIKE2
+							espawn 3709
+							setsprite RETURN hitx hity hitz
+							set airdrop_cooldown 300
+							}
+						set hold_down -1
+						}
+					}
+				else soundonce COMP_INVALID
+			}
+			else
+			{
+				set hold_down 0
+				stopsound AIRDR_01
+			}
+		}
+	}
+	else
+	ifp pstanding
+	{
+	ifg EXTBITS_PRESS 0  // any movement key
+		set MOUSEUP 0
+	else
+		set MOUSEUP 1
+	}
+	ife TIMEZONE 13 ife MISSIONPOS 300 sound JMOVE2 else
+	ifge MISSIONPOS 280 ifle MISSIONPOS 320 soundonce PDU_OPEN
+}
+else
+ife MISSION_UP 2
+ {
+ set MOUSEUP 0
+ set hud_disp 1
+ ifn mission_scare 0 set mission_scare 0
+  setp[].movement_lock 0
+	stopsound PU_SCAN
+	ifge MISSIONPOS 160
+	 ifle MISSIONPOS 180
+		{
+		ife TIMEZONE 13 soundonce JMOVE2 else
+		ife MISSIONSCREEN 5 soundonce PU_CLOSE
+		ifn TIMEZONE 13 soundonce PDU_CLOSE
+		}
+ ifl MISSIONPOS 320 add MISSIONPOS 40
+ else ife MISSIONPOS 320 set MISSION_UP 0
+ else ifg MISSIONPOS 320 set MISSIONPOS 320
+ }
+}
+
+ifg OXYGEN_HIT 0
+ifge player[].airleft 1
+	{
+	add DROWN_COUNT 1
+	ifg DROWN_COUNT 60 { palfrom 4 4 4 4 addphealth 20 sub OXYGEN_HIT 20 set DROWN_COUNT 0 }
+	}
+
+ifl player[].airleft 1
+{
+ifand EGYPT_ARTIFACTS 2 nullop else
+	{
+	add DROWN_COUNT 1
+	ifand player[].player_par 1
+		{
+		ifg PHEALTH 100 setp[].rotscrnang 4
+		else ifg PHEALTH 75 setp[].rotscrnang 8
+		else ifg PHEALTH 50 setp[].rotscrnang 16
+		else ifg PHEALTH 25 setp[].rotscrnang 32
+		else setp[].rotscrnang 64
+		}
+	else setp[].rotscrnang 0
+	ifg DROWN_COUNT 30
+		{
+		ifp pdead nullop else
+			{
+			palfrom 16 0 0 64
+			ife CHAR 0 soundonce J_DROWNING else
+			ife CHAR 5 soundonce RN_DROWNING else
+			ife CHAR 12 soundonce JA_DROWN else
+			soundonce DROWNING
+			set temp2 pmax_health
+			ife ARTIFACTS_LOADOUT[CHAR] 13 { set artifact_used 15 divvar temp2 10 } else
+			divvar temp2 5
+			add OXYGEN_HIT temp2
+			geta[].extra temp3
+			sub temp3 temp2
+			seta[].extra temp3
+			}
+		set DROWN_COUNT 0
+		}
+	ifpinventory GET_SCUBA 0 setp[].airleft 390
+	}
+}
+
+ife STEPSOUNDFX 29
+ ife player_in_vehicle 0
+  ife FIRE_SUIT 0
+   ifn player[].sbs -1
+	{
+	ifrnd 16
+		{
+		getplayer[THISACTOR].boot_amount temp
+		ifvarg temp 0 { quote 75 sub temp 1 setplayer[THISACTOR].boot_amount temp } else
+			{
+			palfrom 16 0 0 16
+			sound ELECTROCUTE
+			randvar temp 2048
+			setvarvar knockbackang temp
+			setvar knockback 10
+			wackplayer
+			switch CHAR
+				case 12
+				case 13
+				case 14
+				ifg PARMOUR 0 { getp[].shield_amount temp sub temp 1 setp[].shield_amount temp }
+				else addphealth -1
+			break
+				default
+				addphealth -1
+			break
+			endswitch
+			}
+		}
+	}
+
+    // effects that execute when hardcoded quotes are triggered
+    ifge player[].fta 99
+    {
+        // blue keycard indicator
+        ife player[].ftq 70
+        {
+            setp[].fta 0
+            set door_locked 0 set key_icon KEY_CARD set key_pal 0
+        }
+        // red keycard indicator
+        else ife player[].ftq 71
+        {
+            setp[].fta 0
+            set door_locked 0 set key_icon KEY_CARD set key_pal 21
+        }
+        // yellow keycard indicator
+        else ife player[].ftq 72
+        {
+            setp[].fta 0
+            set door_locked 0 set key_icon KEY_CARD set key_pal 23
+        }
+        // "secret found" sound
+        else ife player[].ftq 9
+			{
+			qputs 9
+			ife player[].secret_rooms player[].max_secret_rooms
+				{
+				qputs 9 ^32All secret areas found!
+				soundonce ALL_SECRETF
+				}
+			else ife VOLUME 4
+				{
+				qputs 9 Secret %d out of %d found!
+				qsprintf 9 9 player[].secret_rooms player[].max_secret_rooms
+				soundonce SECRETFOUND2
+				}
+			else
+				{
+				qputs 9 Secret %d out of %d found!
+				qsprintf 9 9 player[].secret_rooms player[].max_secret_rooms
+				soundonce SECRETFOUND
+				}
+			}
+        // manual hack to stop unlocked message showing in tunnel explosion
+        else ife player[].ftq 8
+        {
+            ife VOLUME 1
+              ife LEVEL 32
+                setp[].fta 0
+        }
+    }
+
+ife MELEE_RESEARCH[2] 2
+ife cur_weap 0
+state player_block_sword
+
+ifg fire_protect 0 sub fire_protect 1
+
+// FIRE DAMAGE
+ifg fire_damage 0
+ ife INVINC 0
+  ife fire_protect 0
+	{
+	state checkadjustfiredamage
+	state handlefiredamage
+	}
+
+	// ACID DAMAGE
+	ifg acid_damage 0
+	 ife INVINC 0
+	{
+		state checkadjustaciddamage
+		state handleaciddamage
+	}
+
+ifg ice_damage 0
+ ife INVINC 0
+{
+	palfrom 20 0 20 0
+	ifrnd 96 state char_freeze
+	soundonce SOMETHINGFROZE
+	ifl ice_damage 5 { ifinwater nullop else { /* setp[].palette 0 */ set screen_pal 10 } }
+	else ifg ice_damage 4 { ifn player[].palette 1 set screen_pal 1 }
+
+	getp[].posxv temp
+	divvar temp 2
+	setp[].posxv temp
+	getp[].posyv temp
+	divvar temp 2
+	setp[].posyv temp
+
+	sub ice_damage 1
+	ife MEAL_BUFF[CHAR] 4 sub ice_damage 1
+	ife ARTIFACTS_LOADOUT[CHAR] 13 { set artifact_used 15 sub ice_damage 1 }
+
+	ife CHAR 7 // Mikko's protection suit protects against all elemental damage
+		{
+		getp[].boot_amount temp2
+		ifg temp2 0
+			{
+			sub ice_damage 1
+			sub temp2 3
+			setp[].boot_amount temp2
+			}
+		}
+}
+
+ifg emp_damage 0
+	{
+	ife emp_damage 1
+		{
+		stopsound EMP_DAM
+		sound EMP_STP
+		}
+	else
+	soundonce EMP_DAM
+	sub emp_damage 1
+	set P_REC_DELAY 450
+	set P_ENERGYSHIELD 0
+	}
+
+geta[].htextra temp
+ifg temp 0
+ifn CHAR -1
+{
+ife SKILL_LEVEL 1 set HEAL_COUNT -30
+else ife SKILL_LEVEL 2 set HEAL_COUNT -60
+else ife SKILL_LEVEL 3 set HEAL_COUNT -90
+else ife SKILL_LEVEL 4 set HEAL_COUNT -120
+else ife SKILL_LEVEL 5 set HEAL_COUNT -150
+
+ife ARTIFACTS_LOADOUT[CHAR] 1 // Good luck amulet?
+	{
+	ifrnd 2 { set artifact_used 60 seta[].htextra -1 } // very rare chance of negating all damage
+	}
+ife ARTIFACTS_LOADOUT[CHAR] 2 // Good luck amulet?
+	{
+	ifrnd 2 { set artifact_used 60 seta[].htextra -1 } // very rare chance of negating all damage
+	}
+ife ARTIFACTS_LOADOUT[CHAR] 5 // lucky golden lighter?
+	{
+	ifrnd 2 { set artifact_used 60 seta[].htextra -1 } // very rare chance of negating all damage
+	}
+ife CHAR 17 // Kagura?
+	{
+	ifl ROUNDHOUSE_KICK 27  state ki_prot
+	ifl SLIDE_KICK 27 state ki_prot
+	ifl SPIN_KICK 20 state ki_prot
+	ifl TWIRL_KICK 20 state ki_prot
+	ifl FLYING_KICK 27 state ki_prot
+	ifl DROP_KICK 27 state ki_prot
+	ifl UPPER_CUT 20 state ki_prot
+
+	ife MELEE_RESEARCH[1] 2 // Ki shield?
+		{
+		ife cur_weap 0 ifg kickbackpic 0 state ki_prot
+		ife cur_weap 2 ife SPECIALIST_EQUIPMENT[103] 2
+			{
+			ifg kickbackpic 0 state ki_prot
+			else ifg kickbackpic_2 0 state ki_prot
+			else ifg kickbackpic_3 0 state ki_prot
+			}
+		}
+	}
+ife MELEE_RESEARCH[1] 2 // Ki shield?
+	{
+	ifl ROUNDHOUSE_KICK 27  state ki_prot
+	ifl SLIDE_KICK 27 state ki_prot
+	ifl SPIN_KICK 20 state ki_prot
+	ifl TWIRL_KICK 20 state ki_prot
+	ifl FLYING_KICK 27 state ki_prot
+	ifl DROP_KICK 27 state ki_prot
+	ifl UPPER_CUT 20 state ki_prot
+	}
+
+}
+
+// ARMOUR STUFF
+
+ifg INVINC 2
+{
+	soundonce INVULN_DRUMS
+	setuserdef[].const_visibility 0
+	ife INVINC 60 soundonce GO_SLOW
+	sub INVINC 1
+	ife INVINC 30 screensound POWERUP_LOW
+	ife INVINC 60 screensound POWERUP_LOW
+	ife INVINC 90 screensound POWERUP_LOW
+	ife INVINC 120 screensound POWERUP_LOW
+	ife INVINC 150 screensound POWERUP_LOW
+	ifg HIT_DAMAGE -1 { seta[].htextra -1 set HIT_DAMAGE -1 }
+}
+else
+ifg INVINC 0
+{
+	stopsound INVULN_DRUMS
+	palfrom 40 40 40 40
+	sub INVINC 1
+}
+
+ife CHAR 4 // Mirror orb?
+{
+	ifn player[].holoduke_on -1
+	{
+	stopsound TELEPORTER
+	palfrom 5 5 0 5
+	ifg sprite[].htextra -1
+		{
+		geta[].htowner temp4
+		seta[temp4].htextra sprite[].htextra
+		palfrom 30 30 0 30
+		seta[].htextra -1
+		globalsound WHOOSH
+		}
+	}
+}
+
+ife CHAR 9 // Mirror orb?
+{
+	ifn player[].holoduke_on -1
+	{
+	stopsound TELEPORTER
+	palfrom 5 5 0 5
+	ifg sprite[].htextra -1
+		{
+		geta[].htowner temp4
+		seta[temp4].htextra sprite[].htextra
+		palfrom 30 30 0 30
+		seta[].htextra -1
+		globalsound WHOOSH
+		}
+	}
+}
+
+ife P_HAS_SHIELD 0 ifg P_ENERGYSHIELD 0 set P_ENERGYSHIELD 0
+
+ifg P_HAS_SHIELD 0 // player has energy shield?
+ifg totalclock 10
+ife camerasprite -1 // cutscene not rolling?
+ifp palive
+{
+
+	ife PERSONNEL_RESEARCH[23] 2 // energy shield upgrade?
+		{
+		// only apply upgrade if player has also equipped shield
+		ife CHEST_LOADOUT[CHAR] 5 set P_MAX_SHIELD 50
+		else set P_MAX_SHIELD 25
+		}
+		else set P_MAX_SHIELD 25
+
+clamp P_ENERGYSHIELD 0 P_MAX_SHIELD
+ifg P_ENERGYSHIELD 0
+	{
+	geta[].htextra temp6
+	ifg temp6 0
+		{
+		geta[].htpicnum PROJ_HIT_TYPE
+		ifand tiledata[PROJ_HIT_TYPE].gameflags 8 getprojectile[PROJ_HIT_TYPE].userdata PROJ_UDATA
+		else ife temp2 COOLEXPLOSION1 set PROJ_UDATA 16384
+		else set PROJ_UDATA 0
+		ifand PROJ_UDATA 2097152 state emp_hitstuff
+		ifand PROJ_UDATA 1 mul temp6 2
+	   state HIT_IND_ARM
+	   geta[].htang temp
+	   sub temp sprite[].ang
+	   set PHITANGLE temp
+	   // spirit and curse attacks go through energy shields
+	   ifand PROJ_UDATA 16384 nullop else
+	   ifand PROJ_UDATA 262144 nullop else
+			{
+			seta[].htextra -1
+			set shield_reg_disp -10
+
+			// plasma/energy and electrical attacks do x2 damage to shields
+			ifand PROJ_UDATA 8193 mul temp6 2
+
+			sub P_ENERGYSHIELD temp6
+			ifl P_ENERGYSHIELD 1
+				{
+				screensound ESHIELD_BREAK
+				set shield_reg_disp -25
+				set P_ENERGYSHIELD 0
+				set PLAYER_VOICEOVER 55
+				}
+			set P_REC_DELAY 450
+			}
+		}
+	}
+ifl P_ENERGYSHIELD P_MAX_SHIELD
+	{
+	ifg P_REC_DELAY 0
+		{
+		ife PERSONNEL_RESEARCH[24] 2
+			{
+			geta[THISACTOR].xvel temp3
+			divvar temp3 75
+			ifl temp3 1 set temp3 1
+			sub P_REC_DELAY temp3
+			}
+		else
+		 sub P_REC_DELAY 1
+		}
+	else ifl P_REC_DELAY 1
+		{
+		ifp pstanding nullop else
+		soundonce ESHEILD_CHARGING
+		add P_ENERGYSHIELD 1
+		ife P_ENERGYSHIELD P_MAX_SHIELD
+			{
+			set shield_reg_disp 30
+			stopsound ESHEILD_CHARGING
+			sound ESHIELD_RECHARGE
+			}
+		}
+	}
+}
+
+ife JUGGERN_SUIT 1 // Juggernaut suit reduces damage by a quarter, removes it if less than 20
+	{
+	set temp_weap 44
+	ifp pducking setp[].movement_lock 31
+	setplayer[].ammo_amount 0 999
+	setplayer[].curr_weapon 0
+	ifg player[].jumping_counter 721 setp[].jumping_counter 721
+	getactor[].htextra temp
+	ifg temp 0
+		{
+		divvar temp 4
+		ifl temp 20 set temp -1
+		setactor[].htextra temp
+		}
+	}
+
+state ARMOUR_STUFF // found in PSTATS.CON
+
+
+  ife player[].heat_on 1
+    {
+	ife kickbackpic 1 ifn GUN_VOLUME -1 palfrom 20 20 20 20
+	ife HEAT_GOGGLES 1 // using heat vision?
+		{
+		ifn player[].palette 5 setgamepalette 5
+		}
+	else
+	ife HELMET_LOADOUT[CHAR] 4 // using ghost vision?
+		{
+		ifn player[].palette 4 setgamepalette 4
+		setuserdef[].const_visibility 256
+		}
+	else // using night vision
+		{
+		setuserdef[].const_visibility 0
+		}
+	ife player[].heat_amount 660 set PLAYER_VOICEOVER 40
+	ife PERSONNEL_RESEARCH[11] 2 // turn off NVG if less than 1% charge and player has recharge item
+		{
+		ifl player[].heat_amount 48
+			state TURNOFF_NVG
+		}
+	 }
+  else
+	{
+    setuserdef[].const_visibility DEFAULTVISIBILITY
+	   ifg player[].heat_amount 0 // if player has heat/night vision
+		ife PERSONNEL_RESEARCH[11] 2 // if player has research recharging battery
+			{
+			getp[].heat_amount temp2
+			ifl temp2 640 { add temp2 1 setp[].heat_amount temp2 }
+			}
+	}
+
+ife scope 2 setuserdef[].const_visibility 0
+ifg INVINC 2 setuserdef[].const_visibility 0
+
+ifand spells_cast 2 setuserdef[].const_visibility 256
+
+
+ifg BLINDED 0
+	{
+	ifand player[].player_par 1 setp[].rotscrnang 64
+	else setp[].rotscrnang 0
+	ifg BLINDED 119 set PLAYER_VOICEOVER 54
+	sub BLINDED 1
+	ife ARTIFACTS_LOADOUT[CHAR] 13 { set artifact_used 15 sub BLINDED 1 }
+	setuserdef[].const_visibility 4096
+	}
+
+ifg knockback 0
+{
+	ifgapzl 24 { set knockback 0 break }
+	 sub knockback 1
+	 cos xvel knockbackang
+     sin yvel knockbackang
+     mulvar xvel 352
+     mulvar yvel 352
+	 setp[].poszv -1536
+	 setp[].posxv xvel
+	 setp[].posyv yvel
+}
+
+
+ifg knockback2 0
+{
+	ifgapzl 24 { set knockback2 0 break }
+	ifceilingdistl 8 { set knockback2 0 sound BODY_DROP wackplayer }
+	setp[].jumping_counter 1261
+	 sub knockback2 1
+	 cos xvel knockbackang
+     sin yvel knockbackang
+     mulvar xvel 512
+     mulvar yvel 512
+	 setp[].poszv knockbackheight
+	 setp[].posxv xvel
+	 setp[].posyv yvel
+}
+
+// Knockback for sliding
+ifg knockback_slide 0
+{
+	ifand sector[].floorstat 2
+		{
+		state sector_slope
+		getincangle temp6 player[].ang angvar
+		gets[].floorslope temp7
+		ifl temp7 0 inv temp7
+		ifl temp6 0 inv temp6
+		}
+	else
+		{
+		set temp6 -1
+		set temp7 0
+		}
+	ifg temp7 1024 // greater than a small angle?
+		{
+		 ifn temp6 -1 ifl temp6 128 add knockback_slide 1
+		 ifg temp6 384 sub knockback_slide 1
+		 ifg temp6 750 sub knockback_slide 1
+		}
+     sub knockback_slide 1
+     cos xvel knockbackang
+     sin yvel knockbackang
+     mulvar xvel 512
+     mulvar yvel 512
+     setp[].poszv knockbackheight
+     setp[].posxv xvel
+     setp[].posyv yvel
+}
+clamp knockback_slide 0 128
+
+// Using Mounted minigun
+
+ifn using_turret -1
+	{
+	ife turret_type 0 // minigun
+		{
+		getav[using_turret].stationary_gun_ammo current_sg_ammo
+		state lower_weapon
+		setp[].kickback_pic 0
+		setp[].movement_lock 15
+		ifand BITS_PRESS 4
+		 ifg current_sg_ammo 0
+			{
+			flash
+			setprojectile[ARMOUR_PIERCING_SHOT].decal -1
+			shoot ARMOUR_PIERCING_SHOT
+			shoot ARMOUR_PIERCING_SHOT
+			shoot ARMOUR_PIERCING_SHOT
+			shoot ARMOUR_PIERCING_SHOT
+			shoot ARMOUR_PIERCING_SHOT
+			setprojectile[ARMOUR_PIERCING_SHOT].decal BULLETHOLE
+			soundonce MINIGUN_FIRE
+			setprojectile[RIFLESHELL].spawns -1
+			setprojectile[RIFLESHELL].bounces 2
+			shoot RIFLESHELL
+			shoot RIFLESHELL
+			shoot RIFLESHELL
+			setprojectile[RIFLESHELL].spawns RIFLESHELLF
+			setprojectile[RIFLESHELL].bounces 6
+			ifl firing_count 128 add firing_count 1
+			sub current_sg_ammo 3
+			ifl current_sg_ammo 0 set current_sg_ammo 0
+			setactorvar[using_turret].stationary_gun_ammo current_sg_ammo
+			set gun_recoil 6
+			}
+		else { stopactorsound THISACTOR MINIGUN_FIRE set temp6 0 ifg firing_count 0 sub firing_count 1 }
+		}
+	else
+	ife turret_type 1 // 50cal
+		{
+		getav[using_turret].stationary_gun_ammo current_sg_ammo
+		getav[using_turret].gun_turret_shield gun_turret_sh_temp
+		state lower_weapon
+		setp[].kickback_pic 0
+		setp[].movement_lock 15
+
+		setp[].posx sprite[using_turret].x
+		setp[].posy sprite[using_turret].y
+		geta[using_turret].z temp4
+		sub temp4 8192
+		setp[].posz temp4
+		geta[].htextra damage_temp
+		ifg damage_temp -1
+				{
+				ifg gun_turret_sh_temp 0
+						{
+						ifrnd 128 sound SHIELDHIT2 else sound SHIELDHIT
+						sub gun_turret_sh_temp damage_temp
+						setactorvar[using_turret].gun_turret_shield gun_turret_sh_temp
+						div damage_temp 2
+						ifg damage_temp 10 set damage_temp 10
+						set shield_shake damage_temp
+						set damage_temp 0
+						seta[].htextra -1
+						ifl gun_turret_shield 1
+							{
+							wackplayer
+							globalsound SHIELD_DESTROY
+							palfrom 20 20 0 0
+							setactorvar[using_turret].gun_turret_shield 0
+							}
+						}
+				}
+			ifand BITS_PRESS 4
+			 ifg current_sg_ammo 0
+			  ife firing_count 0
+				{
+				flash
+				shoot 22442
+				sound FIFTY_T_FIRE
+				set shield_shake 5
+				set gun_recoil 10
+				shoot RIFLESHELL
+				shoot RIFLESHOT
+				set firing_count 5
+				sub current_sg_ammo 1
+				ifl current_sg_ammo 0 set current_sg_ammo 0
+				setactorvar[using_turret].stationary_gun_ammo current_sg_ammo
+				set gun_recoil 10
+				}
+			else { ifg firing_count 0 sub firing_count 1 ifl firing_count 0 set firing_count 0 }
+		}
+	else
+	ife turret_type 2 // magic ballista
+		{
+		getav[using_turret].stationary_gun_ammo current_sg_ammo
+		getav[using_turret].gun_turret_shield gun_turret_sh_temp
+		state lower_weapon
+		setp[].kickback_pic 0
+		setp[].movement_lock 15
+
+		setp[].posx sprite[using_turret].x
+		setp[].posy sprite[using_turret].y
+		geta[using_turret].z temp4
+		sub temp4 8192
+		setp[].posz temp4
+		geta[using_turret].sectnum upd_sect
+		updatesectorz sprite[using_turret].x sprite[using_turret].y sprite[].z upd_sect
+			ifn upd_sect -1 changespritesect THISACTOR upd_sect
+
+			ifand BITS_PRESS 4
+			 ifg current_sg_ammo 0
+			  ife firing_count 0
+				{
+				sound VOID_FIRE
+				set gun_recoil 10
+				setprojectile[VOID_BOLT].offset 14354
+				setprojectile[VOID_BOLT].extra 200
+				shoot VOID_BOLT
+				setprojectile[VOID_BOLT].extra 75
+				setprojectile[VOID_BOLT].offset 224
+				set firing_count 5
+				sub current_sg_ammo 1
+				ifl current_sg_ammo 0 set current_sg_ammo 0
+				setactorvar[using_turret].stationary_gun_ammo current_sg_ammo
+				set gun_recoil 6
+				}
+			else { ifg firing_count 0 sub firing_count 1 ifl firing_count 0 set firing_count 0 }
+		}
+	else
+	ife turret_type 3 // big ballista
+		{
+		getav[using_turret].stationary_gun_ammo current_sg_ammo
+		getav[using_turret].gun_turret_shield gun_turret_sh_temp
+		state lower_weapon
+		setp[].kickback_pic 0
+		setp[].movement_lock 15
+
+		setp[].posx sprite[using_turret].x
+		setp[].posy sprite[using_turret].y
+		geta[using_turret].z temp4
+		sub temp4 8192
+		setp[].posz temp4
+			ifand BITS_PRESS 4
+			 ifg current_sg_ammo 0
+			  ife firing_count 0
+				{
+				sound BALLIST_FIRE
+				setprojectile[BALLIST_BOLT].offset 14354
+				shoot BALLIST_BOLT
+				setprojectile[BALLIST_BOLT].offset 224
+				set firing_count 25
+				sub current_sg_ammo 1
+				ifl current_sg_ammo 0 set current_sg_ammo 0
+				setactorvar[using_turret].stationary_gun_ammo current_sg_ammo
+				set gun_recoil 16
+				}
+			else
+				{
+				ifg firing_count 0 sub firing_count 1
+				ifl firing_count 0 set firing_count 0
+				ife firing_count 20 sound BALLIST_LOAD
+				}
+		}
+	else
+	ife turret_type 4 // cannon
+		{
+		getav[using_turret].stationary_gun_ammo current_sg_ammo
+		getav[using_turret].gun_turret_shield gun_turret_sh_temp
+		state lower_weapon
+		setp[].kickback_pic 0
+		setp[].movement_lock 15
+
+		setp[].posx sprite[using_turret].x
+		setp[].posy sprite[using_turret].y
+
+			ifand BITS_PRESS 4
+			 ifg current_sg_ammo 0
+			  ife firing_count 0
+				{
+				sound CANN_FIRE
+				setprojectile[CANNONBALL].offset 14354
+				shoot CANNONBALL
+				setprojectile[CANNONBALL].offset 224
+				set firing_count 15
+				sub current_sg_ammo 1
+				ifl current_sg_ammo 0 set current_sg_ammo 0
+				setactorvar[using_turret].stationary_gun_ammo current_sg_ammo
+				set gun_recoil 30
+				}
+			else
+				{
+				ifg firing_count 0 sub firing_count 1
+				ifl firing_count 0 set firing_count 0
+				}
+		}
+	}
+
+ifn player[].access_incs 0
+ife CUSTOMKEYCARDPOS 0
+	{
+	getp[].access_spritenum temp
+	geta[temp].pal CKEYCARDPAL
+	set KEYCARDTYPE 0
+	set CUSTOMKEYCARDPOS 21
+	}
+	ifg CUSTOMKEYCARDPOS 0
+		{ state lower_weapon setp[].kickback_pic 0 sub CUSTOMKEYCARDPOS 1 }
+
+	ife CUSTOMKEYCARDPOS 9 set PLAYER_VOICEOVER 50
+
+ifn EGYPT_ARTIFACTS 0
+{
+	ifand EGYPT_ARTIFACTS 1 // high jump
+	{
+	ifinwater nullop else
+		{
+		ifg player[].jumping_counter 0 { soundonce NINJA_JUMP setp[].poszv -6536 }
+
+		ife player[].jumping_counter 0
+		ifvarl player[].falling_counter 61
+			{
+			setplayer[THISACTOR].falling_counter 8
+			}
+		}
+	}
+
+ifand EGYPT_ARTIFACTS 2 // air mask
+	{
+	ifinwater
+		{
+		setp[].airleft 390
+		ife player[].scuba_on 1 setp[].scuba_on 0
+		setp[].airleft 390
+		}
+	}
+
+	ifand EGYPT_ARTIFACTS 8 // fall protection feather
+	{
+	ifg player[].falling_counter 0
+		{
+		ifand BITS_PRESS 1
+			{
+			state STOPSTEPSOUNDS
+			soundonce WING_FLAP
+			setp[].falling_counter 0
+			getp[].poszv temp
+			divvar temp 3
+			setp[].poszv temp
+			}
+		}
+	}
+}
+
+// WALL JUMP
+/*
+ifg player[].jumping_counter 721
+ ifg p_stamina 0
+	{
+	state checkwall_2
+	ife WALL_CLOSE 1
+		{
+		ifand BITS_PRESS 1
+			{
+			getwall[hitwall].picnum FLOORTEX
+			state CHECKSTEPS
+			state landsounds
+			getp[].ang temp3
+			ifand EXTBITS_PRESS 4 add temp3 256 else ifand EXTBITS_PRESS 8 sub temp3 256
+			set knockbackang temp3
+			set knockbackheight -2048
+			geta[].xvel temp4
+			div temp4 30
+			clamp temp4 0 10
+			sub p_stamina 15
+			set knockback2 temp4
+			set WALL_CLOSE 0
+			}
+		}
+	}
+*/
+
+// JUMP BOOTS LOGIC
+// Does a double jump if used after a jump, or jumps once if we just started falling (eg after running off a cliff)
+ife JUMP_BOOTS 1
+{
+	ifinwater nullop
+	else
+	{
+		getp[].on_ground temp
+
+		ife temp 1
+			set JUMP_BOOTS_USED 0
+
+		ife player[].jumping_counter 0
+		  ifg player[].falling_counter 8
+		  ifl player[].falling_counter 61
+		{
+			setplayer[THISACTOR].falling_counter 8
+		}
+
+		// falling_counter is not a good check here, need to rely on poszv
+		getp[].poszv temp
+
+		ifge temp 768 // "falling" in a way that feels good for a double jump
+			ife JUMP_BOOTS_USED 0
+			ifand BITS_PRESS 1 // jump pressed
+		{
+			soundonce J_BOOT_USE
+			setp[].poszv -3268
+
+			// take away some fall damage
+			ifl player[].falling_counter 60
+				setp[].falling_counter 0
+
+			set JUMP_BOOTS_USED 1
+		}
+	}
+}
+
+state PLAYERSTATS
+
+ife JUGGERN_SUIT 1 set CKNEE 23964
+
+ife INVEN_REPLACE 1 // Vacation stuff
+{
+set c_medikit 20160
+}
+
+ifinwater mulvar GUN_ACCURACY 2
+
+
+ifp pstanding
+ ifp pducking
+	{
+	ifinwater nullop else
+		{
+		ife GUN_SIZE 0 nullop else
+		ife GUN_SIZE 1 nullop else
+		divvar GUN_ACCURACY 2
+		}
+	}
+	else
+	ife CROUCH 1 { sub wepsway_y 10 set CROUCH 0 }
+
+ife AUTORUN_STATUS -1 getu .auto_run AUTORUN_STATUS
+
+ife player[].ftq 86 set AUTORUN_STATUS 1 else ife player[].ftq 85 set AUTORUN_STATUS 0
+
+ife AUTORUN_STATUS 0
+{
+ifand BITS_PRESS P_SPRINTING nullop else
+	{
+	setuserdef[].auto_run 0
+	}
+}
+
+ife scope 0 ifg scope_pal 0 { ifinwater setgamepalette 1 else setgamepalette 0 set scope_pal 0 }
+else
+ifg scope 0
+	{
+	ife scope_pal 1 setgamepalette 2 // NVG
+	}
+
+// HANDLE SPRINTING
+ifand BITS_PRESS P_SPRINTING // sprint key
+  ife player_in_vehicle 0
+  ife runspeed_reduced_tics 0 // if runspeed is forced reduced, don't handle it
+  ife scope 0
+   ifp ponground
+		{
+				ifp prunning nullop else
+					ife AUTORUN_STATUS 0
+					{
+					setuserdef[].auto_run 1
+					}
+
+				ifand gun_firemode 16384 setp[].runspeed 42100
+				else ifand gun_firemode 131072 setp[].runspeed 42100
+				else
+				ifg p_stamina 0
+				ifp prunning
+				{
+				setp[].movement_lock 12
+				ife SPACE_SUIT 1 soundonce SPACESUIT_THRUSTER
+				else
+					{
+					ife CHAR 0 soundonce JACKET_SPRINT
+					ife CHAR 3 soundonce JACKET_SPRINT
+					ife CHAR 4 soundonce JACKET_SPRINT
+					ife CHAR 5 soundonce JACKET_SPRINT
+					ife CHAR 10 soundonce JACKET_SPRINT
+					}
+				ife PERSONNEL_RESEARCH[30] 2 // player has muscle suit
+					{
+					ifl GUN_SIZE 2 nullop else
+					ife GUN_SIZE 2 mulvar GUN_ACCURACY 2 else
+					ife GUN_SIZE 3 mulvar GUN_ACCURACY 3
+					}
+				else
+					{
+					ife GUN_SIZE 0 nullop else
+					ife GUN_SIZE 1 mulvar GUN_ACCURACY 2 else
+					ife GUN_SIZE 2 mulvar GUN_ACCURACY 3 else
+					ife GUN_SIZE 3 { mulvar GUN_ACCURACY 4 state lower_weapon setp[].kickback_pic 0 }
+					}
+
+				getp[].angvel temp3
+				divvar temp3 2
+				mulvar temp3 -1
+				setp[].rotscrnang temp3
+				ifn CONTROL_VR -1 nullop else
+				ifinwater ife GOT_FLIPPER 1 nullop else
+				ifand EGYPT_ARTIFACTS 4 nullop else
+					{
+					ife CHAR 2 ifand CHAR_APP 4 set movement_level 1
+					else ife CHAR 7 ifand CHAR_APP 8 set movement_level 1
+					else ife CHAR 3 ifand CHAR_APP 16 set movement_level 1
+					else ife CHAR 5 ifand CHAR_APP 32 set movement_level 1
+					else ife CHAR 13 ifand CHAR_APP 256 set movement_level 1
+					else ife CHAR 1 ifand CHAR_APP 2048 set movement_level 1
+					else ife CHAR 6 ifand CHAR_APP 4096 set movement_level 1
+					else ife CHAR 4 ifand CHAR_APP 8192 set movement_level 1
+					else ife CHAR 14 ifand CHAR_APP 16384 set movement_level 1
+					else ife CHAR 17 ifand CHAR_APP 32768 set movement_level 1
+					else set movement_level 0
+					ife PERSONNEL_RESEARCH[30] 2 add movement_level 1
+
+					ife movement_level 2
+						{
+						ife GUN_SIZE 3 sub p_stamina 1
+						}
+					else
+					ife movement_level 1
+						{
+						ifg amc_base 0 sub p_stamina 0 else
+						ife player[].holster_weapon 1 sub p_stamina 0 else
+						ife cur_weap 0 ife temp_weap 0 sub p_stamina 0 else
+						ife GUN_SIZE 3 sub p_stamina 2 else
+						sub p_stamina 1
+						}
+					else
+						{
+						ifg amc_base 0 sub p_stamina 0 else
+						ife player[].holster_weapon 1 sub p_stamina 0 else
+						ife cur_weap 0 ife temp_weap 0 sub p_stamina 1 else
+						ife GUN_SIZE 3 sub p_stamina 3 else
+						ife GUN_SIZE 2 sub p_stamina 2 else
+						sub p_stamina 1
+						}
+					}
+				ifg AGENT_FATIGUE[CHAR] 10000 ifg SKILL_LEVEL 2 sub p_stamina 1
+				setp[].runspeed SPRINTSPEED
+				}
+				else
+				 ifg p_stamina -2
+				  ifl p_stamina 2
+				   {
+					state skid_sound
+					set stamina_shake 10
+				   stopactorsound THISACTOR JACKET_SPRINT
+
+				   // Play drowning/gasp for air sound
+				   ifinwater
+						{
+						ife CHAR 0 soundonce J_DROWNING else
+						ife CHAR 10 sound BS_GASP else
+						ife CHAR 12 sound JA_GASP else
+						ife CHAR 17 sound KG_GASP else
+						ife CHAR 18 sound WH_DROWN else
+						ife CHAR 20 sound BS_GASP else
+						sound DROWNING
+						}
+					else
+						{
+							ife player_using_submarine -1
+							{
+								ife CHAR 10 sound BS_GASP2 else
+								ife CHAR 12 sound JA_GASP else
+								ife CHAR 17 sound KG_GASP else
+								ife CHAR 18 sound WH_GASP2 else
+								ife CHAR 20 sound BS_GASP2 else
+								sound PLYR_GASP
+							}
+						}
+
+					   ifp ponground  // Don't whack and slow down the player if he's in the air (inertia)
+					   {
+						 set CUS_WACK 3
+					  setp[].runspeed 42100
+					   }
+				   set p_stamina -20
+				   }
+				else ifl p_stamina -2
+				{
+					ifp ponground setp[].runspeed 42100
+					set p_stamina -20
+				}
+		}
+else ifl p_stamina 0 setp[].runspeed 42100
+else ifand gun_firemode 16384 setp[].runspeed 42100
+else ifand gun_firemode 512 setp[].runspeed 4096
+else ifand gun_firemode 131072 setp[].runspeed 42100
+else
+{
+	ife sprint_holster 1
+		{
+		ifand BITS_PRESS P_SPRINTING nullop else
+			{
+			setplayer[].holster_weapon 0
+			set sprint_holster 0
+			}
+		}
+	ifactorsound THISACTOR JACKET_SPRINT
+		{
+		soundonce JMOVE1
+		stopactorsound THISACTOR JACKET_SPRINT
+		}
+	ifl MOUSEUP 1 ife DOCUMENT -1 { setp[].movement_lock 0 }
+
+	ife runspeed_reduced_tics 0
+		{
+		ifn CHAR -1 ife MEAL_BUFF[CHAR] 2 setp[].runspeed 51660
+		else setp[].runspeed RUNNINGSPEED
+		}
+
+	ifinwater ife GOT_FLIPPER 1
+		{
+		ifp prunning soundonce PLAYER_SWIM
+		setp[].runspeed SPRINTSPEED
+		}
+}
+
+ifg WALL_KICK 0
+{
+	sub WALL_KICK 1
+	setp[].movement_lock 3
+}
+
+ifmultiplayer set allow_temp_characters 31 // multi allows all characters
+else ife VOLUME 0 ife LEVEL 7 set allow_temp_characters 31 // usermap exception
+else
+{
+	// change to 0
+    set allow_temp_characters 16
+    ifand BEAT_EPISODES[7] 2 { orvar allow_temp_characters 1 } // Unlock Cultist
+    ifand BEAT_EPISODES[7] 4 { orvar allow_temp_characters 2 } // Unlock Bombshell
+    ifand BEAT_EPISODES[7] 8 { orvar allow_temp_characters 8 } // Unlock Jane
+	ifand BEAT_EPISODES[4] 32768
+		{
+		orvar allow_temp_characters 4 // Unlock Maartn
+		ifand allow_temp_characters 8 nullop else orvar allow_temp_characters 8 // Unlock Jane if not unlocked already
+		}
+}
+
+state charselectionmenu_logic
+
+ife AUTOAIM_STATUS -1 getplayer[].auto_aim AUTOAIM_STATUS
+
+// player lockon stuff
+		ifn hitsprite -1
+		ifn player_in_vehicle 1
+		 ifg sprite[hitsprite].extra 0
+			geta[hitsprite].picnum temp6
+			switch temp6
+			case PIGCOP
+			case FASCIST
+			case CULTIST
+			case TRIAD
+			case NINJA
+            case LIZMAN
+            case LIZTROOP
+			case LIZTROOPONTOILET
+			case LIZTROOPJUSTSIT
+			case ZOMBIE
+			case SATYR
+            case COMMANDER
+			case ADV_COMMANDER
+            case OCTABRAIN
+		    case EGG
+            case NEWBEAST
+            case BATTLELORD
+            case BOSS2
+            case BOSS3
+            case BOSS4
+			case BOSS5
+		    case BRUISER
+		    case ZSCIEN
+			case ZCHAING
+			case ZSOLDIER
+			case ZSOLDIER2
+			case Z_GRENADEL
+			case SHADE
+		    case SHARK
+		    case MERC
+			case MERC2
+			case HADESPHERE
+			case DOCTORJ
+			case MISTERH
+			case DARKAVATAR
+			case SORCERER
+			case FLESHWIZARD
+			case ABYSS_DESPOT
+			case BERSERKER
+			case OGRE
+			case PITFIEND
+			case APLAYER
+			case MAEPHISTO
+			case CYBERDEMON
+			case CYBERTOUR
+			case SCARAB_DEMON
+		    case DRONE
+		    case ROTATEGUN
+		    case TANK
+		    case RECON
+			case HPOWERSUIT
+			case LPOWERSUIT
+			case PIGBOSS
+			case TERMINATOR
+			case TERMINATORCRAWLING
+			case MS_CORP_MECH
+			case VILMOS_ROBOT
+			case 3899
+			case RIPPER
+			case GUARDIAN
+			case MJ12_TROOP
+			case PE_TROOP
+			case PE_SHOTGUNNER
+			case PE_ELDER
+			case PE_SENTRY
+			case SENTRY
+			case SPIRIT
+			case MJ12_ASSASSIN
+			case CYBERALIEN
+			case GORILLA
+			case NAZI
+			case THOTH
+			case ANUBIS_MUMMY
+			case SIREN
+			case ALUDRAN
+			case SHAMBLER
+			case CHRYSSALID
+			case ORC
+			case ARCHER
+			 ife cur_weap 0
+			  ife temp_weap 0
+				{
+				 ifand BITS_PRESS 64
+				 ifcount 13
+					{
+					ife MELEE_LOCKED_ON -1
+						{
+						soundonce PLYR_CRACK_FIRST
+						state MELEE_LOCKON_QUOTES
+						set MELEE_LOCKED_ON hitsprite
+						}
+					else set MELEE_LOCKED_ON -1
+					resetcount
+					}
+				}
+			else
+			ifn AUTOAIM_STATUS 0
+					{
+					setplayer[].auto_aim 0
+					}
+				break
+			default
+			ifn AUTOAIM_STATUS 0
+				{
+				setplayer[].auto_aim AUTOAIM_STATUS
+				}
+			break
+			endswitch
+
+ifg CHARSHADE 0 sub CHARSHADE 1
+
+ifg INEBRIATION 0
+	{
+	sub INEBRIATION 1
+	ifg INEBRIATION 600
+		{
+		ife CHAR 0 soundonce J_DRUNK
+		ife CHAR 1 soundonce ZN_DRUNK
+		ife CHAR 2 soundonce ML_DRUNK1
+		ife CHAR 3 soundonce HW_DRUNK
+		ife CHAR 4 soundonce S_DRUNK
+		ife CHAR 6 soundonce G_DRUNK
+		ife CHAR 7 soundonce MS_DRUNK1
+		ife CHAR 12 soundonce JA_DRUNK
+		ife CHAR 14 soundonce SF_DRUNK
+		ife CHAR 17 soundonce KG_DRUNK
+		ifp pstanding ifp pducking sub INEBRIATION 2
+		palfrom 20 0 0 0
+		state lower_weapon
+		ife INEBRIATION 601
+			{
+			ife CHAR 17 stopsound KG_DRUNK
+			ife CHAR 10 sound VOMIT_F // Bombshell
+			else ife CHAR 12 sound VOMIT_F // Jane
+			else ife CHAR 17 sound VOMIT_F // Kagura
+			else ife CHAR 20 sound VOMIT_F // Cassandra
+			else sound VOMIT
+			wackplayer
+			spawn PUKE
+			}
+			set temp player[].player_par
+			set temp2 THISACTOR
+			ifand temp2 1 add temp2 4096
+			add temp temp2
+			shiftvarl temp 6
+			sin temp2 temp
+			shiftvarr temp2 8
+			getp[].rotscrnang temp3
+			add temp3 temp2
+			setp[].rotscrnang temp3
+		}
+	}
+
+ife player[].quick_kick 7 operate
+
+ifl INEBRIATION 0 set INEBRIATION 0
+ifl QUICKK 14 add QUICKK 1
+ife QUICKK 6 sound KICK_SWING
+
+ifl ROLL_LEFT 13
+	{
+	ifg scope 0 set scope 0
+	ifl ROLL_LEFT 13
+	 ife player_dodge 0
+	  ifn CHAR 2
+		{
+		ife ROLL_LEFT 1 soundonce P_ROLL
+		state lower_weapon
+		ife player[].over_shoulder_on 0
+			{
+			set temp ROLL_LEFT
+			mulvar temp 100
+			setp[].rotscrnang temp
+			}
+		}
+	ifg fire_damage 10 sub fire_damage 10
+	setp[].knee_incs 0
+	setp[].actorsqu -1
+	setp[].quick_kick 0
+	add ROLL_LEFT 1
+	}
+else ifl ROLL_LEFT 20
+{
+  ife player_dodge 0
+	  ifn CHAR 2
+		ife player[].over_shoulder_on 0
+			{
+			set temp ROLL_LEFT
+			mulvar temp 100
+			setp[].rotscrnang temp
+			}
+  add ROLL_LEFT 1
+}
+else ifl ROLL_LEFT 21
+{
+    ife player_dodge 0
+	  ifn CHAR 2
+		ife player[].over_shoulder_on 0
+			{
+                // fix shitty snapback issue
+                setp[].rotscrnang 0
+            }
+    add ROLL_LEFT 1
+}
+
+ifl ROLL_RIGHT 13
+	{
+	ifg scope 0 set scope 0
+	ifl ROLL_RIGHT 13
+	 ife player_dodge 0
+	  ifn CHAR 2
+		{
+		ife ROLL_RIGHT 1 soundonce P_ROLL
+		state lower_weapon
+			ife player[].over_shoulder_on 0
+			{
+			set temp ROLL_RIGHT
+			mulvar temp -100
+			setp[].rotscrnang temp
+			}
+		}
+	ifg fire_damage 10 sub fire_damage 10
+
+	setp[].knee_incs 0
+	setp[].actorsqu -1
+	setp[].quick_kick 0
+	add ROLL_RIGHT 1
+	}
+else ifl ROLL_RIGHT 20
+{
+  ife player_dodge 0
+	  ifn CHAR 2
+		ife player[].over_shoulder_on 0
+			{
+			set temp ROLL_RIGHT
+			mulvar temp -100
+			setp[].rotscrnang temp
+			}
+  add ROLL_RIGHT 1
+}
+else ifl ROLL_RIGHT 21
+{
+    ife player_dodge 0
+	  ifn CHAR 2
+		ife player[].over_shoulder_on 0
+			{
+                // fix shitty snapback issue
+                setp[].rotscrnang 0
+            }
+    add ROLL_RIGHT 1
+}
+
+ifl ROLL_BACKWARDS 26
+	{
+	ifl ROLL_BACKWARDS 26
+	 ife player[].over_shoulder_on 0
+	  ife player_dodge 0
+	   ifn CHAR 2
+		{
+        set p_isbfrolling 1
+		ife ROLL_BACKWARDS 7 soundonce P_ROLL
+		state lower_weapon
+		switch ROLL_BACKWARDS
+		case 0
+            set p_rollhoriz_goal 150
+			break
+		case 1
+            set p_rollhoriz_goal 200
+			break
+		case 2
+            set p_rollhoriz_goal 250
+			break
+		case 3
+            set p_rollhoriz_goal 300
+			break
+		case 4
+			setp[].rotscrnang 256
+            set p_rollhoriz_goal 300
+			break
+		case 5
+			getp[].ang temp4
+			sub temp4 1024
+			setp[].ang temp4
+			setp[].rotscrnang 512
+            set p_rollhoriz_goal 300
+			break
+		case 6
+			setp[].rotscrnang 768
+            set p_rollhoriz_goal 250
+		case 7
+			setp[].rotscrnang 1023
+            set p_rollhoriz_goal 200
+			break
+		case 8
+			setp[].rotscrnang 1023
+            set p_rollhoriz_goal 150
+			break
+		case 9
+			setp[].rotscrnang 1023
+            set p_rollhoriz_goal 100
+			break
+		case 10
+			setp[].rotscrnang 1023
+            set p_rollhoriz_goal 50
+			break
+		case 11
+			setp[].rotscrnang 1023
+            set p_rollhoriz_goal 0
+			break
+		case 12
+			setp[].rotscrnang 768
+            set p_rollhoriz_goal -50
+			break
+		case 13
+			getp[].ang temp4
+			add temp4 1024
+			setp[].ang temp4
+			setp[].rotscrnang 512
+            set p_rollhoriz_goal -100
+			break
+		case 14
+			setp[].rotscrnang 256
+            set p_rollhoriz_goal -100
+			break
+		case 15
+			setp[].rotscrnang 0
+            set p_rollhoriz_goal -50
+			break
+		case 16
+		case 17
+            set p_rollhoriz_goal 0
+			break
+		case 18
+		case 19
+            set p_rollhoriz_goal 50
+			break
+		case 20
+		case 21
+            set p_rollhoriz_goal 100
+			break
+		endswitch
+		}
+    else set p_isbfrolling 0
+	ifg fire_damage 10 sub fire_damage 1
+	setp[].knee_incs 0
+	setp[].actorsqu -1
+	setp[].quick_kick 0
+	add ROLL_BACKWARDS 1
+	}
+
+else ifl ROLL_BACKWARDS 27
+{
+    set p_isbfrolling 0
+    add ROLL_BACKWARDS 1
+}
+ifl ROLL_FORWARDS 26
+	{
+	state lower_weapon
+	ifl ROLL_FORWARDS 26
+	 ife player[].over_shoulder_on 0
+		{
+        set p_isbfrolling 1
+		switch ROLL_FORWARDS
+		case 0
+            set p_rollhoriz_goal 100
+			break
+		case 1
+            set p_rollhoriz_goal 50
+			break
+		case 2
+            set p_rollhoriz_goal 0
+			break
+		case 3
+			setp[].rotscrnang 0
+            set p_rollhoriz_goal -50
+			break
+		case 4
+			setp[].rotscrnang 256
+            set p_rollhoriz_goal -100
+			break
+		case 5
+			getp[].ang temp4
+			add temp4 1024
+			setp[].ang temp4
+			setp[].rotscrnang 512
+            set p_rollhoriz_goal -100
+			break
+		case 6
+			setp[].rotscrnang 768
+            set p_rollhoriz_goal -50
+			break
+		case 7
+			setp[].rotscrnang 1023
+            set p_rollhoriz_goal 0
+			break
+		case 8
+			setp[].rotscrnang 1023
+            set p_rollhoriz_goal 50
+			break
+		case 9
+			setp[].rotscrnang 1023
+            set p_rollhoriz_goal 100
+			break
+		case 10
+			setp[].rotscrnang 1023
+            set p_rollhoriz_goal 150
+			break
+		case 11
+			setp[].rotscrnang 1023
+            set p_rollhoriz_goal 200
+			break
+		case 12
+			setp[].rotscrnang 768
+            set p_rollhoriz_goal 250
+			break
+		case 13
+			getp[].ang temp4
+			sub temp4 1024
+			setp[].ang temp4
+			setp[].rotscrnang 512
+            set p_rollhoriz_goal 300
+			break
+		case 14
+			setp[].rotscrnang 256
+            set p_rollhoriz_goal 300
+			break
+		case 15
+            set p_rollhoriz_goal 300
+			break
+		case 16
+            set p_rollhoriz_goal 275
+			break
+		case 17
+            set p_rollhoriz_goal 250
+			break
+		case 18
+            set p_rollhoriz_goal 200
+			break
+		case 19
+            set p_rollhoriz_goal 150
+			break
+		case 20
+            set p_rollhoriz_goal 100
+			break
+		endswitch
+		}
+	else set p_isbfrolling 0
+    ifg fire_damage 10 sub fire_damage 1
+	ife ROLL_FORWARDS 7 soundonce P_ROLL
+	setp[].knee_incs 0
+	setp[].actorsqu -1
+	setp[].quick_kick 0
+	add ROLL_FORWARDS 1
+	}
+else ifl ROLL_FORWARDS 27
+{
+    set p_isbfrolling 0
+    add ROLL_FORWARDS 1
+}
+
+ifl SLIDE_KICK 27
+	{
+	state p_hasinfinitestamina
+
+	ife HAS_INFINITE_STAMINA 0
+		sub p_stamina 1
+
+	ife SLIDE_KICK 20 state skid_sound
+    ifl SLIDE_KICK 25 seta[player[].i].yrepeat 35
+    else seta[player[].i].yrepeat 36
+
+    ifl SLIDE_KICK 19
+            setp[].rotscrnang 48
+
+	setp[].knee_incs 0
+	setp[].actorsqu -1
+	setp[].quick_kick 0
+    setp[].hard_landing 0
+
+    // spawn "kick" projectiles in this range
+    ifg SLIDE_KICK 4 ifl SLIDE_KICK 18 shoot KNEE
+
+	add SLIDE_KICK 1
+    }
+ifl ROUNDHOUSE_KICK 27
+	{
+	getp[].posxv temp2 divvar temp2 4 setp[].posxv temp2
+	getp[].posyv temp2 divvar temp2 4 setp[].posyv temp2
+	setp[].knee_incs 0
+	setp[].actorsqu -1
+	setp[].quick_kick 0
+
+	setp[].rotscrnang 64
+	ifl ROUNDHOUSE_KICK 17 state lower_weapon
+	ifg ROUNDHOUSE_KICK 17 setp[].rotscrnang -12
+	getp[].ang temp5
+	ife ROUNDHOUSE_KICK 1 { sub temp5 32 setp[].ang temp5 }
+	ife ROUNDHOUSE_KICK 2 { sub temp5 32 setp[].ang temp5 }
+	ife ROUNDHOUSE_KICK 3 { sub temp5 32 setp[].ang temp5 }
+	ife ROUNDHOUSE_KICK 4 { sub temp5 32 setp[].ang temp5 }
+	ife ROUNDHOUSE_KICK 5 { sub temp5 32 setp[].ang temp5 }
+	ife ROUNDHOUSE_KICK 6 { sound KICK_SWING shoot KNEE }
+	ife ROUNDHOUSE_KICK 7 { add temp5 32 setp[].ang temp5 }
+	ife ROUNDHOUSE_KICK 8 { add temp5 32 setp[].ang temp5 shoot KNEE }
+	ife ROUNDHOUSE_KICK 9 { add temp5 32 setp[].ang temp5 }
+	ife ROUNDHOUSE_KICK 10 { add temp5 32 setp[].ang temp5 shoot KNEE  }
+	ife ROUNDHOUSE_KICK 11
+		{
+		 add temp5 32 setp[].ang temp5
+		state KUNGFU_SOUNDS
+		}
+	ife ROUNDHOUSE_KICK 12 { add temp5 32 setp[].ang temp5 shoot KNEE }
+	ife ROUNDHOUSE_KICK 13 { add temp5 32 setp[].ang temp5 }
+	ife ROUNDHOUSE_KICK 14 { add temp5 32 setp[].ang temp5 shoot KNEE }
+	ife ROUNDHOUSE_KICK 15 { add temp5 32 setp[].ang temp5 }
+	ife ROUNDHOUSE_KICK 16 { add temp5 32 setp[].ang temp5 shoot KNEE }
+	ife ROUNDHOUSE_KICK 17 { sub temp5 32 setp[].ang temp5 }
+	ife ROUNDHOUSE_KICK 18 { sub temp5 32 setp[].ang temp5 }
+	ife ROUNDHOUSE_KICK 19 { sub temp5 32 setp[].ang temp5 }
+	ife ROUNDHOUSE_KICK 20 { sub temp5 32 setp[].ang temp5 }
+	ife ROUNDHOUSE_KICK 21 { sub temp5 32 setp[].ang temp5 }
+	add ROUNDHOUSE_KICK 1
+	}
+ifl KNIFE_ATTACK 27
+	{
+	ife GOT_KNIFE 3 sub p_stamina 6 else sub p_stamina 3
+	getp[].posxv temp2 divvar temp2 4 setp[].posxv temp2
+	getp[].posyv temp2 divvar temp2 4 setp[].posyv temp2
+
+	// apply damage to facehugger
+	getp[].somethingonplayer temp2
+	ifn temp2 -1
+	{
+		seta[temp2].htextra 1
+        seta[temp2].htg_t 0 0
+        setp[].somethingonplayer -1
+	}
+
+	setp[].knee_incs 0
+	setp[].actorsqu -1
+	setp[].quick_kick 0
+
+	ife GOT_KNIFE 1 set temp7 4963 // standard knife
+	else ife GOT_KNIFE 2 set temp7 12203 // silver knife
+	else ife GOT_KNIFE 3 set temp7 12204 // combat shovel
+	else ife GOT_KNIFE 4 set temp7 12204 // ice axe
+	else ife GOT_KNIFE 5 set temp7 20194 // frying pan
+	else ife GOT_KNIFE 10 set temp7 19027 // beam sabre
+
+	ifl KNIFE_ATTACK 17 state lower_weapon
+	ife KNIFE_ATTACK 0
+		{
+		ife GOT_KNIFE 10 sound BEAMSABRE_SWING else
+		ife GOT_KNIFE 5 sound SHOVEL_SWING else
+		ife GOT_KNIFE 3 sound SHOVEL_SWING else
+		sound KNIFE_SWING
+		}
+	ife KNIFE_ATTACK 2 { eshootvar temp7 geta[RETURN].ang temp8 sub temp8 96 seta[RETURN].ang temp8 }
+	ife KNIFE_ATTACK 4 { eshootvar temp7 geta[RETURN].ang temp8 sub temp8 48 seta[RETURN].ang temp8 }
+	ife KNIFE_ATTACK 6 { eshootvar temp7 geta[RETURN].ang temp8 sub temp8 16 seta[RETURN].ang temp8 }
+	ife KNIFE_ATTACK 8 { eshootvar temp7 geta[RETURN].ang temp8 add temp8 16 seta[RETURN].ang temp8 }
+	ife KNIFE_ATTACK 10 { eshootvar temp7 geta[RETURN].ang temp8 add temp8 48 seta[RETURN].ang temp8 }
+	ife KNIFE_ATTACK 12 { eshootvar temp7 geta[RETURN].ang temp8 add temp8 96 seta[RETURN].ang temp8 }
+	add KNIFE_ATTACK 2
+	}
+ifl SPIN_KICK 20
+	{
+	lockplayer 5
+	setp[].knee_incs 0
+	setp[].actorsqu -1
+	setp[].quick_kick 0
+	state lower_weapon
+	ifl SPIN_KICK 10 setp[].rotscrnang -128 else
+	ifl SPIN_KICK 13 setp[].rotscrnang -64 else
+	ifl SPIN_KICK 16 setp[].rotscrnang 64
+	getp[].ang temp5
+	ife SPIN_KICK 1 { sub temp5 256 setp[].ang temp5 }
+	ife SPIN_KICK 2 { sub temp5 256 setp[].ang temp5 }
+	ife SPIN_KICK 3 { sub temp5 256 setp[].ang temp5 }
+	ife SPIN_KICK 4 { sub temp5 256 setp[].ang temp5 }
+	ife SPIN_KICK 5 { sub temp5 256 setp[].ang temp5 }
+	ife SPIN_KICK 6 { sub temp5 256 setp[].ang temp5 }
+	ife SPIN_KICK 7 { sub temp5 256 setp[].ang temp5 }
+	ife SPIN_KICK 8 { sub temp5 256 setp[].ang temp5 }
+	ife SPIN_KICK 10 state KUNGFU_SOUNDS
+	ife SPIN_KICK 13 sound KICK_SWING
+	ife SPIN_KICK 14 { shoot KNEE shoot KNEE shoot KNEE }
+	ife SPIN_KICK 15 { shoot KNEE shoot KNEE shoot KNEE }
+	add SPIN_KICK 1
+	}
+ifl TWIRL_KICK 20
+	{
+	lockplayer 5
+	setp[].knee_incs 0
+	setp[].actorsqu -1
+	setp[].quick_kick 0
+	state lower_weapon
+	ifl TWIRL_KICK 16 setp[].rotscrnang -128 else
+	ifl TWIRL_KICK 18 setp[].rotscrnang -64 else
+	ifl TWIRL_KICK 20 setp[].rotscrnang 64
+	getp[].ang temp5
+	ife TWIRL_KICK 1 { sub temp5 128 setp[].ang temp5 shoot KNEE }
+	ife TWIRL_KICK 2 { sub temp5 128 setp[].ang temp5 shoot KNEE }
+	ife TWIRL_KICK 3 { sub temp5 128 setp[].ang temp5 shoot KNEE }
+	ife TWIRL_KICK 4 { sub temp5 128 setp[].ang temp5 shoot KNEE }
+	ife TWIRL_KICK 5 { sub temp5 128 setp[].ang temp5 shoot KNEE }
+	ife TWIRL_KICK 6 { sub temp5 128 setp[].ang temp5 shoot KNEE }
+	ife TWIRL_KICK 7 { sub temp5 128 setp[].ang temp5 shoot KNEE }
+	ife TWIRL_KICK 8 { sub temp5 128 setp[].ang temp5 shoot KNEE }
+	ife TWIRL_KICK 9 { sub temp5 128 setp[].ang temp5 shoot KNEE }
+	ife TWIRL_KICK 10 { sub temp5 128 setp[].ang temp5 shoot KNEE }
+	ife TWIRL_KICK 11 { sub temp5 128 setp[].ang temp5 shoot KNEE }
+	ife TWIRL_KICK 12 { sub temp5 128 setp[].ang temp5 shoot KNEE }
+	ife TWIRL_KICK 13 { sub temp5 128 setp[].ang temp5 shoot KNEE }
+	ife TWIRL_KICK 14 { sub temp5 128 setp[].ang temp5 shoot KNEE }
+	ife TWIRL_KICK 15 { sub temp5 128 setp[].ang temp5 shoot KNEE }
+	ife TWIRL_KICK 16 { sub temp5 128 setp[].ang temp5 shoot KNEE }
+	add TWIRL_KICK 1
+	}
+ifl FLYING_KICK 27
+	{
+	setp[].knee_incs 0
+	setp[].actorsqu -1
+	setp[].quick_kick 0
+	ifl FLYING_KICK 13 setp[].rotscrnang -96 else
+	ifl FLYING_KICK 20 setp[].rotscrnang -16
+	ifg FLYING_KICK 4
+	 ifl FLYING_KICK 13
+	 {
+	  shoot KNEE
+	  }
+
+		ife FLYING_KICK 8
+		{
+		ife CHAR 0
+			{
+			ifrnd 32 soundonce J_KUNGFU_1
+			else ifrnd 32 soundonce J_KUNGFU_2
+			}
+		}
+
+	add FLYING_KICK 1
+	}
+ifl DROP_KICK 27
+	{
+	state lower_weapon
+	setp[].knee_incs 0
+	setp[].actorsqu -1
+	setp[].quick_kick 0
+	ifl DROP_KICK 13 setp[].rotscrnang -96 else
+	ifl DROP_KICK 20 setp[].rotscrnang -16
+	ifg DROP_KICK 4
+	 ifl DROP_KICK 13
+	 {
+	  shoot KNEE
+	  shoot KNEE
+	  }
+
+		ife DROP_KICK 8 state KUNGFU_SOUNDS
+
+	add DROP_KICK 1
+	}
+ifl UPPER_CUT 20
+	{
+	add UPPER_CUT 1
+	setp[].knee_incs 0
+	setp[].actorsqu -1
+	setp[].quick_kick 0
+	getp[].horiz temp4
+	set temp5 UPPER_CUT
+	mulvar temp5 8
+	sub temp5 40
+	setp[].horiz temp5
+	ife UPPER_CUT 2 // 50% reduced chance
+        ifrnd 128 ifcansee state random_trigger_showoff
+	ife UPPER_CUT 1
+		{
+		ife CHAR 0
+			{
+			ifand CHAR_APP 1 soundonce BIONIC_MOVE
+			ifrnd 96 soundonce J_MELEE_1
+			else ifrnd 96 soundonce J_MELEE_2
+			else ifrnd 96 soundonce J_MELEE_3
+			else ifrnd 96 soundonce J_MELEE_4
+			}
+		ife CHAR 2
+			{
+			ifrnd 96 soundonce M_MELEE_1
+			else ifrnd 96 soundonce M_MELEE_2
+			}
+		ife CHAR 12
+			{
+			ifrnd 32 soundonce JA_KUNGFU1
+			else ifrnd 32 soundonce JA_KUNGFU2
+			}
+		ife CHAR 13
+			{
+			ifrnd 96 soundonce MC_MELEE_1
+			}
+		soundonce PUNCH
+		}
+	ife UPPER_CUT 12 ifrnd 128 ifn MELEE_LOCKED_ON -1 setactorvar[MELEE_LOCKED_ON].HEADSHOT 1
+	ife UPPER_CUT 14 { shoot KNEE shoot KNEE shoot KNEE shoot KNEE shoot KNEE shoot KNEE shoot KNEE shoot KNEE shoot KNEE }
+	ife UPPER_CUT 16 wackplayer
+	}
+
+ifp ponground getp[].runspeed jump_speed else
+	{
+	getp[].runspeed temp4
+	// this keeps the player's minimum speed as what they jumped at
+	clamp temp jump_speed 131072
+	setp[].runspeed jump_speed
+	}
+
+
+ife player[].over_shoulder_on NO
+{
+ife player[].jumping_counter 181
+	{
+	set gun_recoil 5
+	}
+}
+
+ifonwater { ifsound ZAXTOR_SCREAM stopsound ZAXTOR_SCREAM state STOPSTEPSOUNDS }
+
+ifp pfalling state STOPSTEPSOUNDS
+
+ife JUGGERN_SUIT 1
+ ifn CHAR 12
+  ifn CHAR 13
+   ifn CHAR 14
+	{
+		getp[].posxv temp
+		mulvar temp 10
+		ifand BITS_PRESS P_SPRINTING
+		 ifg p_stamina 0 divvar temp 12 else divvar temp 15
+		setp[].posxv temp
+		getp[].posyv temp
+		mulvar temp 10
+		ifand BITS_PRESS P_SPRINTING
+		 ifg p_stamina 0 divvar temp 12 else divvar temp 15
+		setp[].posyv temp
+		ife player[].jumping_counter 721
+		{
+			setp[].jumping_counter 0
+		}
+	}
+
+ife FIRE_SUIT 1
+	{
+	set allow_fire NO
+	ifinwater
+		{
+		setp[].scuba_on 0
+		setp[].airleft 390
+		soundonce WEARSCUBAGEAR
+		}
+		getp[].posxv temp
+		mulvar temp 10
+		ifand BITS_PRESS P_SPRINTING
+		 ifg p_stamina 0 divvar temp 12 else divvar temp 15
+		setp[].posxv temp
+		getp[].posyv temp
+		mulvar temp 10
+		ifand BITS_PRESS P_SPRINTING
+		 ifg p_stamina 0 divvar temp 12 else divvar temp 15
+		setp[].posyv temp
+		ife player[].jumping_counter 721
+		{
+			setp[].jumping_counter 0
+		}
+		state lower_weapon
+		ife CHAR 0 soundonce JGASMASK
+		ife CHAR 1 soundonce ZGASMASK
+		ife CHAR 4 soundonce SGASMASK
+
+
+		ifand BITS_PRESS 4
+		ifp pstanding
+		{
+		espawn 3587
+		seta[RETURN].x hitx
+		seta[RETURN].y hity
+		seta[RETURN].z hitz
+
+		dist xydist THISACTOR RETURN
+		ifg xydist 750 nullop else
+			{
+			shoot MELTA_BEAM
+			soundonce MELTA_START
+			set INTERNALCOUNT_2 3
+			}
+		}
+
+		  ifg INTERNALCOUNT_2 0
+			{
+			ife INTERNALCOUNT_2 2 { getp[].horiz temp add temp 5 setp[].horiz temp }
+			ife INTERNALCOUNT_2 1 { getp[].horiz temp sub temp 5 setp[].horiz temp }
+			sub INTERNALCOUNT_2 1
+			}
+
+	}
+
+
+
+ifand sector[].floorstat 16384 // electric
+{
+ifrnd 16
+	{
+	getp[].boot_amount temp
+	ifg temp 0 { quote 75 sub temp 1 setp[].boot_amount temp } else
+		{
+		palfrom 32 0 0 32
+		sound ELECTROCUTE
+		randvar temp2 2048
+		set knockbackang temp2
+		set knockback 10
+		wackplayer
+		switch CHAR
+			case 12
+			case 13
+			case 14
+				ifg PARMOUR 0 { getp[].shield_amount temp sub temp 5 setp[].shield_amount temp }
+				else addphealth -5
+			break
+			default
+				addphealth -5
+			break
+		endswitch
+		}
+	}
+}
+
+ifp prunning
+state CHECKSTEPSOUNDS
+
+ifp pwalking
+state CHECKSTEPSOUNDS
+
+ifaction JFROZEN state PLAYER_FROZECODE
+ifaction ZFROZEN state PLAYER_FROZECODE
+ifaction PFROZEN state PLAYER_FROZECODE
+ifaction RFROZEN state PLAYER_FROZECODE
+ifaction SFROZEN state PLAYER_FROZECODE
+ifaction RNFROZEN state PLAYER_FROZECODE
+ifaction GFROZEN state PLAYER_FROZECODE
+ifaction MFROZEN state PLAYER_FROZECODE
+ifaction PCFROZEN state PLAYER_FROZECODE
+ifaction SHELLY_FROZEN state PLAYER_FROZECODE
+ifaction M2FROZEN state PLAYER_FROZECODE
+ifaction LFROZEN state PLAYER_FROZECODE
+ifaction KT_FROZEN state PLAYER_FROZECODE
+
+  ifdead
+  {
+  setp[].kickback_pic 0
+  set scope 0
+  set MOUSEUP 0
+  set PCINTER 0
+  ifstrength 0 nullop else spawn SHOOTME2
+  ifsound WIND_FALL_RAPID stopsound WIND_FALL_RAPID
+	ifn camerasprite -1 resetplayer
+
+
+    ifaction PGROWING
+    {
+      ifmove PGROWINGPOP
+      {
+        quote 13
+        ifhitspace
+        {
+          action 0
+		  state spawnbackpack
+          resetplayer
+        }
+        break
+      }
+      else
+      {
+        ifcount 32
+        {
+          state squish_sounds
+          palfrom 48 64
+
+          state standard_pjibs
+
+          guts JIBS4 20
+          guts JIBS6 20
+          move PGROWINGPOP
+          cstat 32768
+          tossweapon
+
+          hitradius 2048 60 70 80 90
+
+        }
+        else
+          sizeto MAXXSTRETCH MAXYSTRETCH
+      }
+      break
+    }
+
+    ifsquished
+      palfrom 32 63 63 63
+    else
+      fall
+
+    ifactioncount 7
+      move 0
+    else
+      ifactioncount 6
+    {
+      ifmultiplayer nullop
+      else
+      {
+        ifrnd 32
+          { ife CHAR 0 sound JPISSED ife CHAR 1 sound ZPISSED ife CHAR 3 sound RPISSED
+		  ife CHAR 4 sound SDEATH1 ife CHAR 12 sound JA_DIE1 ife CHAR 14 sound SF_DEAD1 }
+        else
+          ifrnd 32
+            { ife CHAR 0 sound JSPONGE ife CHAR 1 sound ZPISSED ife CHAR 3 sound ROHSHIT
+			ife CHAR 4 sound SDEATH2 ife CHAR 12 sound JA_DIE2 ife CHAR 14 sound SF_DEAD2 }
+        else
+          ifrnd 32
+            { ife CHAR 0 sound JOHSHIT ife CHAR 1 sound ZPISSED ife CHAR 3 sound RPISSED
+			ife CHAR 4 sound SHURT4 ife CHAR 12 sound JA_DIE1 ife CHAR 14 sound SF_DEAD3 }
+        else
+          ifrnd 32
+            { ife CHAR 0 sound JOHSHIT ife CHAR 1 sound ZPISSED ife CHAR 3 sound ROHSHIT
+			ife CHAR 4 sound SDISGUST ife CHAR 12 sound JA_DIE2 ife CHAR 14 sound SF_DEAD4 }
+      }
+    }
+
+    ifaction PLYINGDEAD { ifactioncount 3 move PSTOPED quote 13 ifhitspace { state rescam action 0 resetplayer } break }
+    ifaction JLYINGDEAD { ifactioncount 3 move PSTOPED quote 13 ifhitspace { state rescam action 0 resetplayer } break }
+    ifaction SLYINGDEAD { ifactioncount 3 move PSTOPED quote 13 ifhitspace { state rescam action 0 resetplayer } break }
+    ifaction ZLYINGDEAD { ifactioncount 3 move PSTOPED quote 13 ifhitspace { state rescam action 0 resetplayer } break }
+    ifaction RLYINGDEAD { ifactioncount 3 move PSTOPED quote 13 ifhitspace { state rescam action 0 resetplayer } break }
+    ifaction RNLYINGDEAD { ifactioncount 3 move PSTOPED quote 13 ifhitspace { state rescam action 0 resetplayer } break }
+    ifaction GLYINGDEAD { ifactioncount 3 move PSTOPED quote 13 ifhitspace { state rescam action 0 resetplayer } break }
+    ifaction MLYINGDEAD { ifactioncount 3 move PSTOPED quote 13 ifhitspace { state rescam action 0 resetplayer } break }
+    ifaction PCLYINGDEAD { ifactioncount 3 move PSTOPED quote 13 ifhitspace { state rescam action 0 resetplayer } break }
+    ifaction SHELLY_LYINGDEAD { ifactioncount 3 move PSTOPED quote 13 ifhitspace { state rescam action 0 resetplayer } break }
+    ifaction M2LYINGDEAD { ifactioncount 3 move PSTOPED quote 13 ifhitspace { state rescam action 0 resetplayer } break }
+
+    ifaction STHROWNBACK
+	{ ifactioncount 5 { spawn BLOODPOOL action SLYINGDEAD espawn 6361 seta[RETURN].pal player[].palookup } else ifactioncount 1 move 0 break }
+    ifaction JTHROWNBACK
+	{ ifactioncount 5 { spawn BLOODPOOL action JLYINGDEAD espawn 5358 seta[RETURN].pal player[].palookup } else ifactioncount 1 move 0 break }
+    ifaction J2THROWNBACK
+	{ ifactioncount 5 { spawn BLOODPOOL action JLYINGDEAD espawn 25730 seta[RETURN].pal player[].palookup } else ifactioncount 1 move 0 break }
+    ifaction PTHROWNBACK
+	{ ifactioncount 5 { spawn BLOODPOOL action PLYINGDEAD espawn 6424 seta[RETURN].pal player[].palookup } else ifactioncount 1 move 0 break }
+    ifaction ZTHROWNBACK
+	{ ifactioncount 5 { spawn BLOODPOOL action ZLYINGDEAD espawn 5610 seta[RETURN].pal player[].palookup } else ifactioncount 1 move 0 break }
+    ifaction RTHROWNBACK
+	{ ifactioncount 5 { spawn BLOODPOOL action RLYINGDEAD espawn 6124 seta[RETURN].pal player[].palookup } else ifactioncount 1 move 0 break }
+    ifaction RNTHROWNBACK
+	{ ifactioncount 5 { spawn BLOODPOOL action RNLYINGDEAD espawn 6702 seta[RETURN].pal player[].palookup } else ifactioncount 1 move 0 break }
+    ifaction GTHROWNBACK
+	{ ifactioncount 5 { spawn BLOODPOOL action GLYINGDEAD espawn 6455 seta[RETURN].pal player[].palookup } else ifactioncount 1 move 0 break }
+    ifaction MTHROWNBACK
+	{ ifactioncount 6 { spawn BLOODPOOL action MLYINGDEAD espawn 6943 seta[RETURN].pal player[].palookup } else ifactioncount 1 move 0 break }
+    ifaction PCTHROWNBACK
+	{ ifactioncount 8 { spawn BLOODPOOL action PCLYINGDEAD espawn 7782 seta[RETURN].pal player[].palookup } else ifactioncount 1 move 0 break }
+    ifaction SHELLY_THROWNBACK
+	{ ifactioncount 5 { spawn BLOODPOOL action SHELLY_LYINGDEAD espawn 9934 seta[RETURN].pal player[].palookup } else ifactioncount 1 move 0 break }
+	ifaction M2THROWNBACK
+	{ ifactioncount 5 { spawn BLOODPOOL action M2LYINGDEAD espawn 26400 seta[RETURN].pal player[].palookup } else ifactioncount 1 move 0 break }
+	ifaction LTHROWNBACK
+	{ ifactioncount 5 { spawn BLOODPOOL action LLYINGDEAD espawn 12876 seta[RETURN].pal player[].palookup } else ifactioncount 1 move 0 break }
+	ifaction MC_THROWNBACK
+	{ ifactioncount 6 { spawn BLOODPOOL action MC_LYINGDEAD espawn 16424 seta[RETURN].pal player[].palookup } else ifactioncount 1 move 0 break }
+	ifaction SF_THROWNBACK
+	{ ifactioncount 5 { spawn BLOODPOOL action SF_LYINGDEAD espawn 20886 seta[RETURN].pal player[].palookup } else ifactioncount 1 move 0 break }
+
+    ifaction PEXPLODEAD { quote 13 ifhitspace { state spawnbackpack resetplayer action 0 } break }
+
+    ifaction PEXPLODE { ifactioncount 5 { action PEXPLODEAD spawn BLOODPOOL } break }
+
+    ifp pshrunk
+    {
+      state standard_pjibs
+      spawn BLOODPOOL
+
+      state squish_sounds
+      ife CHAR 1 sound ZDEATH ife CHAR 2 sound PLYR_DEAD
+
+      cstat 32768         // Hide the sprite
+
+      action PLYINGDEAD
+    }
+    else
+    {
+      ifinwater
+      {
+        action PLYINGDEAD
+        spawn WATERBUBBLE
+        spawn WATERBUBBLE
+      }
+      else
+      {
+        action PEXPLODE
+        state standard_pjibs
+        cstat 32768
+        state squish_sounds
+      ife CHAR 1 sound ZDEATH ife CHAR 2 sound PLYR_DEAD
+      }
+    }
+    tossweapon
+    break
+  }
+
+  ifsquished
+  {
+    strength -1
+    state squish_sounds
+    state random_ooz
+		ifand NOISE_SAID 128 nullop
+		else
+			{
+			ife CHAR 0 screensound JS_BLEH
+			ife CHAR 5 screensound RN_BLEH
+			ife CHAR 6 screensound G_BLEH
+			ife CHAR 12 screensound JA_BLEH
+			ife CHAR 17 screensound KG_BLEH
+			xor NOISE_SAID 128
+			}
+    break
+  }
+
+  ifp pboosted
+  {
+  getp[].steroids_amount PBOOST
+
+  // Disable Steroid speedboost (update as character items are implemented)
+
+  }
+  else set PBOOST 0
+
+  geta[].htextra HIT_DAMAGE
+
+  ifmove PSHRINKING
+  {
+  setp[].footprintcount 0
+  set fake_shrunk 1
+  state lower_weapon
+  setp[].kickback_pic 0
+  ifand gun_firemode 16384 xorvar gun_firemode 16384
+
+  ifand BITS_PRESS 64
+   ife kickbackpic 0
+    {
+	ife temp_weap 43
+		{
+		sound RED_COMPBEEP
+		count SHRUNKCOUNT
+		}
+	ife temp_weap 1
+		{
+		sound RED_COMPBEEP
+		count SHRUNKCOUNT
+		}
+	ife CHAR 1
+	 ife cur_weap 6
+	  ife kickbackpic 0
+		{
+		sound RED_COMPBEEP
+		count SHRUNKCOUNT
+		}
+	}
+
+
+    ifcount 32
+    {
+      ifcount SHRUNKDONECOUNT
+      {
+	  set fake_shrunk 0
+        move 0
+        cstat 257
+      }
+      else
+        ifcount SHRUNKCOUNT
+      {
+	  soundonce ACTOR_UNSHRINK
+        sizeto 42 36
+        ifgapzl 24
+        {
+          strength 0
+          state squish_sounds
+          palfrom 48 64
+          break
+        }
+      }
+      else
+        ifp pboosted
+          count SHRUNKCOUNT
+    }
+    else
+    {
+      ifp pboosted
+        count SHRUNKCOUNT
+      else
+      {
+        sizeto 8 9
+        spawn FRAMEEFFECT1
+      }
+    }
+  }
+  else ifhitweapon
+  {
+
+	/* This isn't working I dunno
+
+	// water projectile
+
+	getp[].i temp3
+	geta[temp3].htpicnum temp3
+	al temp3
+
+	geta[].htpicnum temp
+	al temp
+	ifwasweapon 29020
+	{
+		set water_screen -30
+		al water_screen
+	}
+	*/
+
+  set temp3 HIT_DAMAGE
+  ifl temp3 10 set temp3 10
+  ifg temp3 25 ife HELMET_LOADOUT[CHAR] 1 set temp3 25
+  setp[].pals_time temp3
+  ifg temp3 45 set temp3 45
+  ifl temp3 20 set temp3 20
+  ifg temp3 25 ifn HELMET_LOADOUT[CHAR] 1 set CUS_WACK 3
+
+  setp[].pals 0 temp3
+  setp[].pals 1 0
+  setp[].pals 2 0
+
+  ifwasweapon SPIT { sound ACID_HIT set acid_damage 25 }
+
+  state NEWGUNEFFECTS
+
+   state HIT_IND
+   geta[].htang temp
+   sub temp sprite[].ang
+   set PHITANGLE temp
+
+    // PLAYER HITWEAPON SHIT
+
+    ifwasweapon 3781
+	{
+      ifrnd 32
+        spawn BLOOD
+      ifdead
+        state standard_pjibs
+      palfrom 48 52
+      break
+    }
+
+
+    ifdead
+    {
+	palfrom 60 60
+
+      ifwasweapon GROWSPARK
+      {
+        palfrom 48 48
+        action PGROWING
+        count 0
+        move 0
+        sound ACTOR_GROWING
+        cstat 0
+        break
+      }
+
+		set MEDIKIT_USING 0
+		state drop_tempweapon
+		ifn CONTROL_VR -1 set CONTROL_VR -1
+		setp[].kickback_pic 0
+		ife on_tripwire 1 set on_tripwire 0
+		set STORY_TRIGGER1 0
+		set STORY_TRIGGER2 0
+		set STORY_TRIGGER3 0
+		// getp[].wackedbyactor temp
+		  ife CHAR 0 action JTHROWNBACK else ife CHAR 1 action ZTHROWNBACK else ife CHAR 3 action RTHROWNBACK else
+		ife CHAR 4 action STHROWNBACK else ife CHAR 5 action RNTHROWNBACK else ife CHAR 6 action GTHROWNBACK
+		else ife CHAR 7 action MTHROWNBACK else ife CHAR 9 { sound CULTIST_DIE1 action PCTHROWNBACK }
+		else ife CHAR 10 action SHELLY_THROWNBACK else ife CHAR 11 action M2THROWNBACK else
+		ife CHAR 12 action LTHROWNBACK else ife CHAR 13 action MC_THROWNBACK else ife CHAR 14 action SF_THROWNBACK
+		else ife CHAR 17 { ifinwater sound KG_DROWN else ifrnd 128 sound KG_DIE else sound KG_DIE2 set PLAYER_VOICEOVER 60 action KT_THROWNBACK }
+		else action PTHROWNBACK
+		tossweapon
+
+    }
+    else
+    state player_pain_sounds
+
+    ifwasweapon RPG
+    {
+      ifrnd 32
+        spawn BLOOD
+      ifdead
+        state standard_pjibs
+      palfrom 48 52
+      break
+    }
+    ifwasweapon RADIUSEXPLOSION
+    {
+      ifrnd 32
+        spawn BLOOD
+      ifdead
+        state standard_pjibs
+      palfrom 48 52
+      break
+    }
+    ifwasweapon FIREEXT
+    {
+      ifrnd 32
+        spawn BLOOD
+      ifdead
+        state standard_pjibs
+      palfrom 48 52
+      break
+    }
+    ifwasweapon GROWSPARK
+    {
+      palfrom 48 52
+      sound EXPANDERHIT
+      break
+    }
+    ifwasweapon SHRINKSPARK
+    {
+	geta[].htowner temp
+	geta[temp].htpicnum temp2
+	ife ARTIFACTS_LOADOUT[CHAR] 4 ifn temp2 1405 { seta[].htextra -1 set artifact_used 60 palfrom 10 0 10 0 soundonce GET_MAGIC } else
+			{
+		  palfrom 48 0 48
+		  move PSHRINKING // used as a var only.
+		  sound ACTOR_SHRINKING
+		  cstat 0
+		  break
+		   }
+    }
+    ifwasweapon SHOTSPARK1 palfrom 24 48
+    ifwasweapon FIRELASER palfrom 32 32
+    ifwasweapon FREEZEBLAST
+    {
+      palfrom 48 0 0 48
+      ifdead
+      {
+        sound SOMETHINGFROZE
+		seta[].pal 1
+        spritepal 1
+        move 0
+		ife CHAR 0 action JFROZEN
+		ife CHAR 1 action ZFROZEN
+		ife CHAR 2 action PFROZEN
+		ife CHAR 3 action RFROZEN
+		ife CHAR 4 action SFROZEN
+		ife CHAR 5 action RNFROZEN
+		ife CHAR 6 action GFROZEN
+		ife CHAR 7 action MFROZEN
+		ife CHAR 9 action PCFROZEN
+		ife CHAR 10 action SHELLY_FROZEN
+		ife CHAR 11 action M2FROZEN
+		ife CHAR 12 action LFROZEN
+		ife CHAR 13 action MC_FROZEN
+		ife CHAR 14 action SF_FROZEN
+		ife CHAR 17 action KT_FROZEN
+        break
+      }
+    }
+    ifwasweapon 7160
+    {
+      palfrom 48 0 0 48
+      ifdead
+      {
+        sound SOMETHINGFROZE
+        spritepal 1
+        move 0
+		ife CHAR 0 action JFROZEN
+		ife CHAR 1 action ZFROZEN
+		ife CHAR 2 action PFROZEN
+		ife CHAR 3 action RFROZEN
+		ife CHAR 4 action SFROZEN
+		ife CHAR 5 action RNFROZEN
+		ife CHAR 6 action GFROZEN
+		ife CHAR 7 action MFROZEN
+		ife CHAR 9 action PCFROZEN
+		ife CHAR 10 action SHELLY_FROZEN
+		ife CHAR 11 action M2FROZEN
+		ife CHAR 12 action LFROZEN
+		ife CHAR 13 action MC_FROZEN
+		ife CHAR 14 action SF_FROZEN
+		ife CHAR 17 action KT_FROZEN
+        break
+      }
+    }
+    ifwasweapon COOLEXPLOSION1
+      { ife CHAR 4 nullop else ife CHAR 6 nullop else palfrom 48 48 0 48 set CUS_WACK 3 }
+    ifwasweapon KNEE
+      palfrom 16 32
+
+    state random_wall_jibs
+
+    break
+  }
+
+ife player_in_vehicle 0
+state PLAYERANIMS
+
+ifg player_bike 0 state PLAYERANIMS
+
+ifactioncount 3
+ife player_in_vehicle 0
+ife camerasprite -1
+iffloordistl 8
+	{
+	ifinwater nullop else
+	ifg sprite[].xvel 5 state RUNSOUNDS
+	}
+else set footstep_count -1
+
+ifand BITS_PRESS P_SPRINTING
+{
+	ifactioncount 2
+	ife player_in_vehicle 0
+	ife camerasprite -1
+	iffloordistl 8
+	{
+	ifinwater nullop else
+	ifg sprite[].xvel 5 state RUNSOUNDS
+	}
+	else set footstep_count -1
+}
+
+// disable weapon flashing
+set temp WEAPON0_FLAGS ifand temp 256 nullop else { xor temp 256 set WEAPON0_FLAGS temp }
+set temp WEAPON1_FLAGS ifand temp 256 nullop else { xor temp 256 set WEAPON1_FLAGS temp }
+set temp WEAPON2_FLAGS ifand temp 256 nullop else { xor temp 256 set WEAPON2_FLAGS temp }
+set temp WEAPON3_FLAGS ifand temp 256 nullop else { xor temp 256 set WEAPON3_FLAGS temp }
+set temp WEAPON4_FLAGS ifand temp 256 nullop else { xor temp 256 set WEAPON4_FLAGS temp }
+set temp WEAPON5_FLAGS ifand temp 256 nullop else { xor temp 256 set WEAPON5_FLAGS temp }
+set temp WEAPON6_FLAGS ifand temp 256 nullop else { xor temp 256 set WEAPON6_FLAGS temp }
+set temp WEAPON7_FLAGS ifand temp 256 nullop else { xor temp 256 set WEAPON7_FLAGS temp }
+set temp WEAPON8_FLAGS ifand temp 256 nullop else { xor temp 256 set WEAPON8_FLAGS temp }
+set temp WEAPON9_FLAGS ifand temp 256 nullop else { xor temp 256 set WEAPON9_FLAGS temp }
+set temp WEAPON10_FLAGS ifand temp 256 nullop else { xor temp 256 set WEAPON10_FLAGS temp }
+set temp WEAPON11_FLAGS ifand temp 256 nullop else { xor temp 256 set WEAPON11_FLAGS temp }
+
+// This appears twice to ensure no screen pal effect takes place
+ife opt_photosensitivity_mode 1 setp[].pals_time 0
+
+// TODO: FOR DEMONSTRATION PURPOSES, REMOVE ME LATER
+/*profilenanoend 0
+add profilecounter 1
+ife profilecounter 30
+{
+    profilenanolog 0
+    profilenanoreset 0
+    set profilecounter 0
+}
+*/
+enda

@@ -1,0 +1,64 @@
+
+
+
+defstate tw_zchaingun_code
+    setarray WEAPON_TILE[0] ZCHAINGUN_SPRITE
+    set weapon_type 0
+    set gun_mag -1
+    set GUN_SIZE 2
+    set GUN_HANDS 2
+    set GUN_VOLUME 16
+    set GUN_ACCURACY 16
+    set GUN_MAX_SPREAD 24
+    set GUN_AMMO_TYPES 0
+    set WEAPON0_WORKSLIKE 0
+    set WEAPON0_TOTALTIME 50
+    set WEAPON0_HOLDDELAY 57
+    set WEAPON0_FIREDELAY 27
+    set WEAPON0_FIRESOUND 4
+    set WEAPON0_INITIALSOUND MINIGUN3_START
+    set WEAPON0_SHOTSPERBURST 1
+    set WEAPON0_SHOOTS CHAINGUN
+    set WEAPON0_FLAGS 6
+    set WEAPON0_SELECTSOUND SELECT_HT_BIGGUN
+    setarray weap_special[0] 16384
+
+    ife kickbackpic 27 { espawn SOUND_SPRITE state SPAWN_IN_PLAYER_FRONT setactorvar[RETURN].temp ZCHAING_FIRE }
+    ife kickbackpic 28 set gun_recoil 4
+        ife kickbackpic 27
+        { add gun_spread 5 shoot RIFLESHELL
+        set gunsmoke_angle 64 state spawn_gunsmoke }
+
+        ife player[].ammo_amount 0 0 stopsound ZCHAING_FIRE
+
+        // auto-spin stuff
+        ifn player[].weapon_pos 0 setp[].kickback_pic 0
+        ifand gun_firemode_two 16
+            {
+            ife kickbackpic 0 setp[].kickback_pic 1
+            ife kickbackpic 25
+                {
+                ifand BITS_PRESS 4 setp[].kickback_pic 26
+                else { soundonce MINIGUN_SPIN setactorsoundpitch THISACTOR MINIGUN_SPIN 256 setp[].kickback_pic 30 }
+                }
+            ife player[].ammo_amount 0 0 { setp[].kickback_pic 30 stopsound ZCHAING_FIRE sound MINIGUN3_STOP xorvar gun_firemode_two 16 }
+            ife kickbackpic 31 setp[].kickback_pic 24
+            }
+
+
+        ife kickbackpic 3 sound MINIGUN3_START
+        ife kickbackpic 29 { stopsound ZCHAING_FIRE sound MINIGUN3_STOP }
+        ife kickbackpic 27
+            {
+            soundonce ZCHAING_FIRE
+            set gunsmoke_angle 64 state spawn_gunsmoke
+            set gun_pushback_power -16 state gun_pushback
+            set gun_recoil 4
+            }
+        ife kickbackpic 28
+            {
+            getp[].ammo_amount 0 temp2
+            ifand BITS_PRESS 4 ifg temp2 0 setp[].kickback_pic 26
+            }
+		ifg kickbackpic 30 ifand BITS_PRESS 4 ifg cur_ammo 0 setp[].kickback_pic 26
+ends

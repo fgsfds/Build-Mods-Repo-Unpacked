@@ -1,0 +1,156 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Based on the Duke3D CON files by 3DRealms, released under the GPL2 at:
+https://github.com/videogamepreservation/dukenukem3d/blob/ef609159bd352985a0c63734a11241d86c873fe5/testdata/GAME.CON
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+Protozoid Egg
+--------------------------------------------------------------------------------
+*/
+
+damageeventtile EGG
+
+action EGGOPEN1 1 1 1 1 4
+action EGGOPEN2 2 1 1 1 4
+action EGGOPEN3 2 1 1 1 4
+action EGGWAIT  0
+action EGGFROZEN 1
+action EGGGROW 1
+action EGGSHRUNK 1
+
+actor EGG TOUGH
+  fall
+  state enemy_fire_damage
+  ifaction 0
+  {
+  sizeat 20 20
+    ifcount 64
+    {
+      ifrnd 128
+      {
+	  spawn SHOOTME
+        action EGGWAIT
+        move 0
+      }
+      else
+      {
+	  spawn SHOOTME
+        sound SLIM_HATCH
+        action EGGOPEN1
+      }
+    }
+  }
+  else
+    ifaction EGGOPEN1
+      ifactioncount 4
+        action EGGOPEN2
+  else
+    ifaction EGGOPEN2
+      ifactioncount 4
+    {
+      spawn GREENSLIME
+      action EGGOPEN3
+    }
+  else
+    ifaction EGGGROW
+      state genericgrowcode
+  else
+    ifaction EGGSHRUNK
+      state genericshrunkcode
+  else
+    ifaction EGGFROZEN
+	  {
+	  state frozen_code
+	  break
+	  }
+
+  ifhitweapon
+  {
+	state NEWGUNEFFECTS
+    ifdead
+    {
+      ifwasweapon FREEZEBLAST
+      {
+        sound SOMETHINGFROZE
+        spritepal 1
+        move 0
+        action EGGFROZEN
+        strength 0
+        break
+      }
+      else
+      ifwasweapon 7159
+      {
+        sound SOMETHINGFROZE
+        spritepal 1
+        move 0
+        action EGGFROZEN
+        strength 0
+        break
+      }
+      else
+        ifwasweapon GROWSPARK
+      {
+        cstat 0
+        move 0
+        sound ACTOR_GROWING
+        action EGGGROW
+        break
+      }
+
+      addkills 1
+
+      state squish_sounds
+
+	spritepal 7
+      state standard_jibs
+      killit
+    }
+    else
+      ifwasweapon SHRINKSPARK
+      {
+        move 0
+        sound ACTOR_SHRINKING
+        action EGGSHRUNK
+        break
+      }
+
+      ifwasweapon GROWSPARK
+        sound EXPANDERHIT
+  }
+  else
+    ifaction EGGWAIT
+  {
+    ifcount 512
+      ifrnd 2
+    {
+      ifaction EGGSHRUNK
+        break
+      sound SLIM_HATCH
+      action EGGOPEN1
+    }
+  }
+
+enda

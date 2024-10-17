@@ -1,0 +1,649 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+
+--------------------------------------------------------------------------------
+*/
+
+// ATTACK =>
+
+// **************************************************************************************************
+// MAJESTIC 12 TROOPER
+// **************************************************************************************************
+
+action A_MJ12TROOP_IDLE 0 1 5 1 10
+action A_MJ12TROOP_DEAD 51
+action A_MJ12TROOP_HEADDEAD 58
+action A_MJ12TROOP_HEADSHOT 52 7 1 1 10
+action A_MJ12TROOP_DYING 45 7 1 1 10
+action A_MJ12TROOP_FREEZE 51 1 1 1 10
+action A_MJ12TROOP_BIDIE 15427 2 1 1 16
+action A_MJ12TROOP_BIDEAD 15428
+
+action A_MJ12TROOP_GROW 45 1 1 1 10
+action A_MJ12TROOP_SHRUNK 0 4 5 1 16
+action A_MJ12TROOP_PAIN 45 1 1 1 10
+action A_MJ12TROOP_SEEK 0 4 5 1 16
+
+action A_MJ12TROOP_ATTACK 35 2 5 1 10
+action A_MJ12TROOP_ATTACK_NADE 40 1 1 1 10
+action A_MJ12TROOP_RUSH 0 4 5 1 10
+action A_MJ12TROOP_PREPARE 35 1 1 1 10
+
+move M_MJ12TROOP_WALK 104
+move M_MJ12TROOP_RUSH 144
+
+defstate mj12_torsofly
+	state random_trigger_showoff
+	sound TORS_BISEC
+	setprojectile[MJ12_TORSO_FLY].pal sprite[].pal
+	ezshoot -4096 MJ12_TORSO_FLY
+	setprojectile[MJ12_TORSO_FLY].pal 0
+	geta[].htang temp4
+	seta[RETURN].ang temp4
+	spawn BIG_BLOOD_EXE
+	action A_MJ12TROOP_BIDIE
+ends
+
+defstate MJ12_TALK_WAKEUP
+	ifrnd 96 sound MJ12_ENGAGE1
+	else ifrnd 96 sound MJ12_CONTACT
+	else ifrnd 96 sound MJ12_ENGAGE2
+ends
+
+defstate MJ12_TALK_ENGAGING
+	ife npc_talking 0
+	{
+		geta[my_target].picnum temp2
+
+		switch temp2
+			case 1405
+				ifrnd 32 sound MJ12_ENGAGE1
+				else ifrnd 32
+				{
+					ife CHAR 7 ifrnd 32 sound MJ12_CYB
+					else ife CHAR 14 ifrnd 32 sound MJ12_CYB
+					else ife CHAR 17 ifrnd 32 sound MJ12_CYB
+					else ifn CHAR 9 ifn CHAR 10 ifn CHAR 11 ifn CHAR 12 sound MJ12_AMCSQUAD // ugly but fuck it
+					else sound MJ12_SECONDARY
+				}
+				else ifrnd 32 sound MJ12_ENGAGE2
+				break
+
+			case AMC_ASOLDIER_ACTIVE
+			case AMCSOLDIER_ACTIVE
+				ifrnd 64 sound MJ12_AMCSQUAD
+				else ifrnd 64 sound MJ12_SECONDARY
+				break
+
+			case BEYONDER
+				ifrnd 64 sound MJ12_UNKNOWN
+				break
+		endswitch
+
+		set npc_talking 90
+	}
+ends
+
+defstate MJ12_TALK_FLUSHOUT
+	ife npc_talking 0
+	{
+		ifrnd 128 soundonce MJ12_FLUSH_OUT
+		else soundonce MJ12_FIRE_IN_HOLE
+
+		set npc_talking 60
+	}
+ends
+
+defstate MJ12_TALK_SEEKCHATTER
+	ife npc_talking 0
+	{
+		ifand npc_killed 16
+			ifrnd 96
+		{
+			sound MJ12_MANDOWN
+			set npc_killed 0
+			set npc_talking 60
+		}
+
+		ifrnd 4
+			ifcansee
+				ifg P_ENERGYSHIELD 0
+		{
+			sound MJ12_ENERGYSH
+			set npc_talking 60
+		}
+
+		ifrnd 64
+			ifg SLO_MO_SHOWOFF 0
+		{
+			sound MJ12_TOOFAST
+			set npc_talking 60
+		}
+	}
+ends
+
+defstate MJ12_SHOOT_PREP
+	ifn my_target -1
+	{
+		state MJ12_TALK_ENGAGING
+
+		ifrnd 16
+		{
+			state MJ12_TALK_FLUSHOUT
+			action A_MJ12TROOP_PREPARE
+		}
+		else
+			action A_MJ12TROOP_ATTACK
+	}
+	else
+		action A_MJ12TROOP_SEEK
+ends
+
+defstate mj12troopexplode
+	shoot MJ12_HEAD
+	state squish_sounds
+	state standard_jibs
+	state human_jibs
+
+	ifpdistg 16384
+	{
+		ifrnd 96 globalsound MJ12_DIE_DISTANT1
+		else ifrnd 96 globalsound MJ12_DIE_DISTANT2
+		else globalsound MJ12_DIE_DISTANT3
+	}
+
+	killit
+ends
+
+defstate mj12troopdeadcode
+	strength 0
+	move STOP
+	ifhitweapon
+	{
+		ifwasweapon RADIUSEXPLOSION
+		{
+			state mj12troopexplode
+		}
+	}
+ends
+
+damageeventtile MJ12_TROOP
+
+useractor enemystayput MJ12_TROOP_STAYPUT
+cactor MJ12_TROOP
+enda
+
+useractor enemy MJ12_TROOP
+fall
+
+ifaction 0
+{
+	set MONSTER_FLAGS 2
+	state monst_glow
+	geta[].pal actor_pal
+	set actor_type TYPE_FULL_BODY_ARMOUR
+	sizeat 25 25
+	strength 200
+	ife actor_pal 0
+	{
+		strength 200
+		set NPC_SHIELD 0
+		spritepal 12
+	}
+	ife actor_pal 21
+	{
+		strength 400
+		set NPC_SHIELD 200
+	}
+	cstat 257
+	spriteflags NORMAL_ENEMY_TRU
+	set npc_talking 60
+
+	// TODO REMOVE
+	spawn SHOOTME
+
+	action A_MJ12TROOP_IDLE
+}
+
+ife actor_pal 21 state ENEMY_SHIELD_STUFF
+ifg npc_talking 0 sub npc_talking 1
+state enemyfloordamage
+state enemy_fire_damage
+state enemy_ice_damage
+state enemy_spirit_damage
+
+ifaction A_MJ12TROOP_IDLE {
+	move STOP
+	state checkfortarget
+	ifn my_target -1
+	{
+		state MJ12_TALK_WAKEUP
+		action A_MJ12TROOP_SEEK
+	}
+}
+
+// Death & dying
+else ifaction A_MJ12TROOP_DEAD state mj12troopdeadcode
+else ifaction A_MJ12TROOP_HEADDEAD state mj12troopdeadcode
+else ifaction A_MJ12TROOP_BIDEAD state mj12troopdeadcode
+else ifaction A_MJ12TROOP_BIDIE
+{
+	move STOP
+	cstat 0
+	strength 0
+	ifactioncount 2 state BODY_FALL_NOISES_SOUNDONCE
+	ifactioncount 2 action A_MJ12TROOP_BIDEAD
+}
+else ifaction A_MJ12TROOP_HEADSHOT
+{
+	move STOP
+	strength 0
+	ifactioncount 6 state BODY_FALL_NOISES_SOUNDONCE
+	ifactioncount 7 action A_MJ12TROOP_HEADDEAD
+}
+else ifaction A_MJ12TROOP_DYING
+{
+	move STOP
+	strength 0
+	ifactioncount 7 state BODY_FALL_NOISES_SOUNDONCE
+	ifactioncount 7 action A_MJ12TROOP_DEAD
+}
+
+// Status effects
+else ifaction A_MJ12TROOP_FREEZE state frozen_code
+else ifaction A_MJ12TROOP_GROW
+{
+	move STOP
+	state genericgrowcode
+}
+else ifaction A_MJ12TROOP_SHRUNK
+{
+	ifmove M_MJ12TROOP_WALK { }
+	else
+		move M_MJ12TROOP_WALK geth fleeenemy
+
+	ifl SHRUNK_TIME SHRUNKCOUNT // keep shrunk
+		state new_shrunkcode
+	else ifl SHRUNK_TIME SHRUNKDONECOUNT // regrow
+	{
+		state unshrink
+		sizeto 25 25
+	}
+	else // after regrow, switch back to regular action
+	{
+		state endshrunkenstate
+		action A_MJ12TROOP_SEEK
+	}
+}
+
+else ifaction A_MJ12TROOP_PAIN
+{
+	sub PAIN_AMOUNT 1
+	move STOP
+	ife PAIN_AMOUNT 0
+	{
+		ifdead { state rf action A_MJ12TROOP_DYING }
+		else action A_MJ12TROOP_SEEK
+	}
+}
+else ifaction A_MJ12TROOP_SEEK
+{
+	ifnotmoving operate
+
+	ifmove M_MJ12TROOP_WALK { }
+	else
+		move M_MJ12TROOP_WALK geth
+
+	state MJ12_TALK_SEEKCHATTER
+	state checkfortarget
+
+	ifn my_target -1
+	{
+		ldist temp THISACTOR my_target
+
+		// Skill level can affect decision to shoot
+		state SKILL_SHOOT_LEVELADJUST
+		ifl RANDOM_CHANCE SKILLCHANCE
+		{
+			ifl temp 8012
+			{
+				ifrnd 4 ife npc_talking 0 { soundonce MJ12_CLOSE_1 set npc_talking 30 }
+				action A_MJ12TROOP_RUSH
+			}
+			else ifrnd 64 action A_MJ12TROOP_PREPARE
+			else ifrnd 16 action A_MJ12TROOP_ATTACK
+		}
+	}
+}
+
+else ifaction A_MJ12TROOP_ATTACK
+{
+	move STOP
+	state new_validatetarget
+
+	ife my_target -1
+		action A_MJ12TROOP_SEEK
+
+	state fronttowardstarget
+
+	ifactioncount 1
+	{
+		set PROJECTILE_TO_SHOOT ENEMY_BULLET
+		set PROJECTILE_FIRING_SOUND MJ12_SHOOT
+		state sang_enemyShootProjectile
+		globalsound DISTANT_RIFLE
+
+		// Don't spawn smoke and shells if the player can't see it
+		ife PERFMODE 1
+			ifcansee
+		{
+			set gunsmoke_z 8844
+			set gunsmoke_angle 256
+			state spawn_gunsmoke_z
+			state npc_rifleshell
+			set gunsmoke_z 8000
+			state spawn_enemy_ARFLASH
+			state spawn_muzzleflash
+		}
+
+		ifrnd 16 action A_MJ12TROOP_RUSH
+		resetactioncount
+		add ally_mag 1
+	}
+	ifg ally_mag 10 { action A_MJ12TROOP_SEEK set ally_mag 0 }
+}
+else ifaction A_MJ12TROOP_ATTACK_NADE
+{
+	ifactioncount 0
+		ife my_target PLAYER_IDENTITY
+	{
+		ldist temp THISACTOR my_target
+
+		ifge temp 8012
+			move STOP faceplayersmart
+		else
+		{
+			move STOP
+			state fronttowardstarget
+		}
+	}
+	else
+	{
+		move STOP
+		state fronttowardstarget
+	}
+
+	state new_validatetarget
+
+	ife my_target -1
+		action A_MJ12TROOP_SEEK
+	else ifactioncount 0
+	{
+		ldist temp THISACTOR my_target
+
+		ifl temp 8012
+		{
+			state fronttowardstarget
+			sound MERC_SHOTGUN
+			set PROJECTILE_TO_SHOOT ENEMY_SHOTGUN
+			set PROJECTILE_FIRING_SOUND 4
+			state sang_enemyShootProjectile
+			state sang_enemyShootProjectile
+			state sang_enemyShootProjectile
+			state sang_enemyShootProjectile
+			state sang_enemyShootProjectile
+
+			flash
+			
+
+			ife PERFMODE 1
+				ifcansee
+			{
+			set gunsmoke_z 8844
+			set gunsmoke_angle 256
+				state spawn_gunsmoke_z
+				set gunsmoke_z 8000
+				espawn 16115
+				state spawn_muzzleflash
+				shoot 3761
+			}
+		}
+		else
+		{
+			set PROJECTILE_TO_SHOOT FORTYMM_NADE
+			set PROJECTILE_FIRING_SOUND M203_GL
+			state sang_enemyShootProjectile
+
+			ifn RETURN -1
+			{
+				flash
+				setthisprojectile[RETURN].extra 50
+
+				ife PERFMODE 1
+					ifcansee
+				{
+			set gunsmoke_z 8844
+			set gunsmoke_angle 256
+					state spawn_gunsmoke_z
+					set gunsmoke_z 7500
+					espawn 16115
+					state spawn_muzzleflash
+					shoot SHELL_40MM
+				}
+			}
+		}
+		action A_MJ12TROOP_SEEK
+	}
+}
+
+else ifaction A_MJ12TROOP_RUSH
+{
+	ifnotmoving operate
+
+	ifmove M_MJ12TROOP_RUSH { }
+	else
+		move M_MJ12TROOP_RUSH geth
+
+	ifand npc_killed 16
+		ife npc_talking 0
+		ifrnd 128
+	{
+		sound MJ12_MANDOWN
+		set npc_killed 0
+		set npc_talking 60
+	}
+
+	state checkfortarget
+
+	ifn my_target -1
+	{
+		state SKILL_SHOOT_LEVELADJUST
+		ifl RANDOM_CHANCE SKILLCHANCE
+		{
+			ldist temp THISACTOR my_target
+
+			ifg temp 8012
+				ifrnd 16
+			{
+				ifrnd 16 ife npc_talking 0 { soundonce MJ12_CLOSE_1 set npc_talking 30 }
+				action A_MJ12TROOP_SEEK
+			}
+			else ifl temp 8012 state MJ12_SHOOT_PREP
+
+			ifrnd 64 action A_MJ12TROOP_PREPARE
+			else ifrnd 16 action A_MJ12TROOP_ATTACK
+		}
+	}
+	else
+		action A_MJ12TROOP_SEEK
+}
+
+else ifaction A_MJ12TROOP_PREPARE
+{
+	ifrnd 128 // reduces shotgun spam
+	{
+		// if we're in this state, we know there is a visible target, no sightvar check needed
+		ifactioncount 3
+			sound GL_RELOAD action A_MJ12TROOP_ATTACK_NADE
+	}
+	else
+		action A_MJ12TROOP_ATTACK
+}
+
+ifhitweapon
+{
+	state NEWGUNEFFECTS
+
+	ifwasweapon RPG seta[].xvel 0
+	ifwasweapon RADIUSEXPLOSION seta[].xvel 0
+
+	state random_wall_jibs
+
+	// TODO why not call dying/dead action?
+	ifwasweapon RADIUSEXPLOSION
+		ifstrength 0
+	{
+		state mj12troopexplode
+	}
+
+	ife npc_talking 0
+		ifrnd 16
+	{
+		sound MJ12_UNDERFIRE
+		set npc_talking 60
+	}
+
+	ifdead
+	{
+		stopsound MJ12_UNDERFIRE
+		xorvar npc_killed 16
+		addkills 1
+		spawn BLOODPOOL
+		ifwasweapon RADIUSEXPLOSION state mj12troopexplode
+		ifwasweapon RPG state mj12troopexplode
+		ifand PROJ_UDATA PROJ_GIB state mj12troopexplode
+		ifand PROJ_UDATA 8192
+			 {
+			 ifrnd 8 { spawn ELECTROCUTE_MARV soundonce MALE_ELECT1 } else spawn ELECTROCUTE_GUY
+			 shoot SPARK2 shoot SPARK2 shoot SPARK2
+			 killit
+			 }
+		ifwasweapon SAWBLADE state mj12_torsofly
+		else ifwasweapon SAWBLADE_BOUNCE state mj12_torsofly
+		else ifwasweapon SNOWFALL_DISC state mj12_torsofly
+		else ifwasweapon 6875 ife CHAR 2 state mj12_torsofly
+		else ifg ice_damage 0 { spritepal 1 strength 1 sound SOMETHINGFROZE action A_MJ12TROOP_FREEZE }
+		else ifwasweapon GROWSPARK { cstat 0 sound ACTOR_GROWING action A_MJ12TROOP_GROW break }
+		else ifwasweapon 7163
+		{
+			sound MJ12_FLAME_DIE
+			spawn ONFIREGUY
+			killit
+		}
+		else ifg spirit_damage 0
+		{
+			shoot SPARK2 shoot SPARK2 shoot SPARK2
+			spritepal 1
+			guts JIBS3 6
+			spawn SPIRIT_DEATH_GUY
+			killit
+		}
+		else ifg energy_damage 0
+		{
+			shoot SPARK2 shoot SPARK2 shoot SPARK2
+			spritepal 4
+			guts JIBS3 6
+			spawn DISINTIGRATE_GUY
+			killit
+		}
+		else ifg fire_damage 0
+		{
+			sound MJ12_FLAME_DIE
+			spawn ONFIREGUY
+			set PLAYER_VOICEOVER 21
+			killit
+		}
+		else
+			ifl sprite[].extra -125 state mj12_torsofly
+		else
+			ife HEADSHOT 2
+			ifg sprite[].extra -30
+		{
+			state rf
+			ifg fire_damage 0 set fire_damage 0
+			eshoot MJ12_HEAD
+
+			geta[].htang temp
+			seta[RETURN].ang temp
+
+			geta[RETURN].z temp
+			sub temp 1200
+			seta[RETURN].z temp
+
+			geta[].pal temp
+			seta[RETURN].pal temp
+
+			state random_trigger_showoff
+			state jib_sounds
+			ifrnd 128 sound HEL_HS1 else sound HEL_HS2
+			shoot NJIB
+			shoot NJIB
+			guts JIBS6 3
+			guts JIBS2 2
+			action A_MJ12TROOP_HEADSHOT
+		}
+		else
+		{
+			ifpdistg 16384
+			{
+				ifrnd 96 globalsound MJ12_DIE_DISTANT1
+				else ifrnd 96 globalsound MJ12_DIE_DISTANT2
+				else globalsound MJ12_DIE_DISTANT3
+			}
+			else
+			{
+				ifrnd 96 sound MJ12_DIE1
+				else ifrnd 96 sound MJ12_DIE2
+				else sound MJ12_DIE3
+			}
+			state rf
+			action A_MJ12TROOP_DYING
+		}
+
+	}
+
+	else {
+		ifwasweapon SHRINKSPARK { sound ACTOR_SHRINKING action A_MJ12TROOP_SHRUNK }
+
+		ifg PAIN_AMOUNT 0 action A_MJ12TROOP_PAIN
+		else ifrnd 4 { state PAIN_SKILL_LEVELADJUST action A_MJ12TROOP_PAIN }
+		else ifaction A_MJ12TROOP_IDLE { state PAIN_SKILL_LEVELADJUST action A_MJ12TROOP_PAIN }
+	}
+}
+
+state checksquished
+
+enda

@@ -1,0 +1,2987 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+
+--------------------------------------------------------------------------------
+*/
+
+// *************************************************
+// AMC SQUAD ENEMY CODE
+// *************************************************
+
+defstate npc_rifleshell
+	setprojectile[RIFLESHELL].spawns -1
+	setprojectile[RIFLESHELL].bounces 2
+	shoot RIFLESHELL
+	setprojectile[RIFLESHELL].spawns RIFLESHELLF
+	setprojectile[RIFLESHELL].bounces 6
+ends
+
+defstate npc_pistolshell
+	setprojectile[NINEMM_SHELL].spawns -1
+	setprojectile[NINEMM_SHELL].bounces 2
+	shoot NINEMM_SHELL
+	setprojectile[NINEMM_SHELL].spawns NINEMM_SHELLF
+	setprojectile[NINEMM_SHELL].bounces 6
+ends
+
+
+defstate npc_footsteps
+	ifonwater
+		{
+		ifrnd 128 sound WADE1 else sound WADE2
+		}
+	else
+		{
+		gets[].floorpicnum FLOORTEX
+		state CHECKSTEPS
+		switch STEPSOUNDFX
+			case 1
+			case 23
+				ifrnd 64 sound NPC_WOOD1
+				else ifrnd 64 sound NPC_WOOD2
+				else ifrnd 64 sound NPC_WOOD3
+				else sound NPC_WOOD4
+				break
+			case 2
+			case 3
+			case 24
+			case 31
+				ifrnd 64 sound NPC_METAL1
+				else ifrnd 64 sound NPC_METAL2
+				else ifrnd 64 sound NPC_METAL3
+				else sound NPC_METAL4
+				break
+			case 10
+			case 12
+			case 20
+			case 21
+			case 27
+			case 33
+				ifrnd 64 sound NPC_DIRT1
+				else ifrnd 64 sound NPC_DIRT2
+				else ifrnd 64 sound NPC_DIRT3
+				else sound NPC_DIRT4
+				break
+			case 4
+			case 22
+				ifrnd 64 sound NPC_GRASS1
+				else ifrnd 64 sound NPC_GRASS2
+				else ifrnd 64 sound NPC_GRASS3
+				else sound NPC_GRASS4
+				break
+			case 8
+				ifrnd 64 sound NPC_SNOW1
+				else ifrnd 64 sound NPC_SNOW2
+				else ifrnd 64 sound NPC_SNOW3
+				else sound NPC_SNOW4
+				break
+			case 28
+				ifrnd 64 sound NPC_SAND1
+				else ifrnd 64 sound NPC_SAND2
+				else ifrnd 64 sound NPC_SAND3
+				else sound NPC_SAND4
+				break
+			default
+				ifactor MINERVA
+					{
+					ifrnd 128 sound HEELS_2
+					else sound HEELS_1
+					}
+				else
+				ifactor AMCSCIENTIST_ACTIVE2
+					{
+					ifrnd 128 sound HEELS_2
+					else sound HEELS_1
+					}
+				else
+				ifactor AMCSCIENTIST_ACTIVE3
+					{
+					ifrnd 128 sound HEELS_2
+					else sound HEELS_1
+					}
+				else
+					{
+					ifrnd 64 sound NPC_STEP1
+					else ifrnd 64 sound NPC_STEP2
+					else ifrnd 64 sound NPC_STEP3
+					else sound NPC_STEP4
+					}
+				break
+		endswitch
+		}
+ends
+
+move SHRUNKVELS 32
+
+defstate spawned_by_choppers
+ifspawnedby MI_24_HIND
+	{
+	add INTERNALCOUNT 1
+	ifg INTERNALCOUNT 130 cstat 2
+	ifg INTERNALCOUNT 260 cstat 514
+	ifg INTERNALCOUNT 320 killit
+	}
+ends
+
+// FORCEFIELD HIT EFFECT ==========================================================
+
+defstate shield_bubble
+ifaction 0
+	{
+	ifle sprite[].xrepeat 1 sizeat 32 32
+	seta[].shade 0
+	seta[].blend 255
+	cstat 130
+	action ZERO
+	}
+else
+ifaction ZERO
+	{
+	add INTERNALCOUNT 1
+	ifspritepal 23
+		{
+		sizeto 1 1
+		sizeto 1 1
+		sizeto 1 1
+		}
+	else
+		{
+		sizeto 128 128
+		sizeto 128 128
+		sizeto 128 128
+		}
+	geta[].shade temp
+	add temp 2
+	ifge temp 35 killit
+	seta[].shade temp
+	ifge INTERNALCOUNT 35 killit
+	}
+ends
+
+spritenopal ENERGY_SHIELD
+spritenoshade ENERGY_SHIELD
+
+useractor notenemy ENERGY_SHIELD state shield_bubble enda
+
+spritenopal SUPERN_SHIELD
+spritenoshade SUPERN_SHIELD
+
+useractor notenemy SUPERN_SHIELD state shield_bubble enda
+
+defstate ENEMY_SHIELD_STUFF
+		geta[].htextra temp
+		ifg temp 0
+		 ifg NPC_SHIELD 0
+			{
+			geta[].htpicnum PROJ_HIT_TYPE
+			ifand tiledata[PROJ_HIT_TYPE].gameflags 8 getprojectile[PROJ_HIT_TYPE].userdata PROJ_UDATA
+			else set PROJ_UDATA 0
+			ifand PROJ_UDATA 1 mul temp 2
+			ifand PROJ_UDATA 16384 nullop else
+			ifand PROJ_UDATA 262144 nullop else
+				{
+				seta[].htextra -1
+				seta[].htpicnum 0
+				sound SOMETHINGHITFORCE
+				espawn ENERGY_SHIELD
+				seta[RETURN].xrepeat sprite[].xrepeat
+				seta[RETURN].yrepeat sprite[].yrepeat
+				seta[RETURN].ang sprite[].htang
+				sub NPC_SHIELD temp
+				set NPC_REC_DELAY 90
+				ifl NPC_SHIELD 1
+					{
+					ifle SKILL_LEVEL 2 set NPC_REC_DELAY 150
+					else ife SKILL_LEVEL 3 set NPC_REC_DELAY 120
+					else ife SKILL_LEVEL 4 set NPC_REC_DELAY 90
+					else ife SKILL_LEVEL 5 set NPC_REC_DELAY 60
+					espawn ENERGY_EXPLOSION
+					geta[].z temp2
+					sub temp2 4096
+					seta[RETURN].z temp2
+					seta[RETURN].pal 32
+					stopsound SOMETHINGHITFORCE
+					screensound ENEMY_SH_BREAK
+					shoot SPARK shoot SPARK shoot SPARK shoot SPARK shoot SPARK
+					shoot SPARK shoot SPARK shoot SPARK shoot SPARK shoot SPARK
+					}
+				}
+			resetcount
+			}
+	ifl NPC_SHIELD 200
+		{
+		ifg NPC_REC_DELAY 0
+			{
+			ife NPC_REC_DELAY 1
+				{
+				sound ESHEILD_CHARGING
+				setactorsoundpitch THISACTOR ESHEILD_CHARGING -256
+				espawn ENERGY_SHIELD
+				seta[RETURN].xrepeat 64
+				seta[RETURN].yrepeat 64
+				seta[RETURN].ang sprite[THISACTOR].ang
+				seta[RETURN].pal 23
+				}
+			sub NPC_REC_DELAY 1
+			}
+		else
+			{
+			add NPC_SHIELD 2
+			ifg NPC_SHIELD 199
+				{
+				espawn ENERGY_SHIELD
+				seta[RETURN].xrepeat sprite[].xrepeat
+				seta[RETURN].yrepeat sprite[].yrepeat
+				seta[RETURN].ang sprite[THISACTOR].ang
+				seta[RETURN].pal 7
+				sound ENEMY_SH_RECHARGE
+				}
+			}
+		}
+	ends
+
+// check smartpoints =====================================================
+defstate smartpoint_angletoplayer
+	ifg smartpoint_index 0 // are smartpoints present in the map?
+	{
+		set my_target PLAYER_IDENTITY // force player, will cause it to ignore other actors but having both is just not currently compatible with the smartpoint system
+
+		set HITSCAN_TO_ACTOR PLAYER_IDENTITY
+		state hitscanTo
+
+		ife hitsprite PLAYER_IDENTITY
+		{
+			// run sector check, pretend the player is a smartpoint
+			set cur_point PLAYER_IDENTITY
+			state doSectorCheck // output => if temp6 = 1 => route to player does not cross any pits
+
+			ife temp6 1
+			{
+				set smartpoint_lotag_handled 0
+
+				// just to avoid repeating code...
+				set next_point 0
+			}
+			else
+				state anglePathToPlayer
+		}
+		else
+			state anglePathToPlayer
+
+		ifn next_point -1
+		{
+			seta[].ang angvar
+		}
+	}
+	else
+	{
+		state checkfortarget
+	}
+
+
+ends
+
+defstate newcansee
+	geta[].z mz
+	sub mz 8192
+	seta[].z mz
+	geta[].xrepeat temp_size
+	seta[].xrepeat 200
+	ifn my_target -1
+	{
+		canseespr THISACTOR my_target RETURN
+		ife RETURN 1 set sightvar YES else set sightvar NO
+	}
+	else
+		set sightvar NO
+	seta[].xrepeat temp_size
+	add mz 8192
+	seta[].z mz
+ends
+
+// TODO this needs to disappear
+defstate correctcansee
+	geta[].z mz
+	sub mz 8192
+	seta[].z mz
+	geta[].xrepeat temp_size
+	seta[].xrepeat 200
+	ifcansee set sightvar YES else set sightvar NO
+	seta[].xrepeat temp_size
+	add mz 8192
+	seta[].z mz
+ends
+
+
+defstate ENEMYKNOCKBACKS
+geta[].htextra xvel
+ifg xvel 0
+	{
+	mulvar xvel ENEMYKNOCKBACK
+	ife sprite[].htpicnum KNEE
+		{
+		ifl ROUNDHOUSE_KICK 27 break
+		ifl DROP_KICK 27 mulvar xvel 8 else
+		mulvar xvel 4
+		ifstrength 30 seta[].htactorstayput -1
+		}
+	ife sprite[].htpicnum KICK_2
+		{
+		mulvar xvel 4
+		ifstrength 30 seta[].htactorstayput -1
+		}
+	ife sprite[].htpicnum 4964 // shield bash
+		{
+		mulvar xvel 8
+		set PAIN_AMOUNT 60
+		ifstrength 30 seta[].htactorstayput -1
+		}
+	clamp xvel -800 0
+	ife sprite[].htpicnum 4960 nullop else
+	ife sprite[].htpicnum 4963 nullop else
+	seta[].xvel xvel
+	}
+ends
+
+defstate genericgrowcode
+  ifcount 32
+  {
+    guts JIBS4 24
+    guts JIBS6 28
+    addkills 1
+
+    state squish_sounds
+    sound PIPEBOMB_EXPLODE
+    hitradius 2048 60 70 80 90
+    spawn BLOODPOOL
+    spawn EXPLOSION2
+    killit
+  }
+  else
+  {
+    ifactor COMMANDER
+      sizeto 100 100
+    else
+      ifactor SHARK
+        sizeto 84 84
+    else
+      sizeto MAXXSTRETCH MAXYSTRETCH
+    break
+  }
+ends
+
+// *************************************************
+// BATTLE CODE - HUGE THANKS TO DEEPERTHOUGHT FOR HIS HELP HERE
+// *************************************************
+
+defstate calczdist
+
+ife target -1 break
+
+geta[].z z
+ifactor BATTLELORD sub z 4596
+
+geta[target].z mz
+set zdist mz
+sub zdist z // zdist now holds how far up or down you would have to go from THISACTOR's position to get to target's position
+geta[target].picnum temp
+
+ifl zdist -8192 sub zdist 4096 // aim for the head when shooting up into windows
+
+ends
+
+defstate visibilitycheck // ALSO CHECKS FOR TRANSPARENT WALLS
+ifn target -1 geta[target].statnum temp8
+ife temp8 1024 set target -1
+
+ifn THISACTOR -1 ifn target -1 ldist xydist THISACTOR target
+
+state calczdist
+
+geta[].x x
+geta[].y y
+geta[].z z
+sub z 8192
+geta[].sectnum mysector
+geta[].ang angvar
+cos mycos angvar
+sin mysin angvar
+shiftvarl zdist 14
+
+ife xydist 0 set xydist 1
+divvarvar zdist xydist
+hitscan x y z mysector mycos mysin zdist hitsector hitwall hitsprite hitx hity hitz 4294901808
+getp[].i temp8
+
+ife hitsprite target
+{
+	set targetlock 26
+}
+else set targetlock 26
+
+add z 4096
+hitscan x y z mysector mycos mysin zdist hitsector hitwall hitsprite hitx hity hitz 4294901808
+ifvarvarn hitsprite target
+{
+	ifn targetlock 0 break
+	set target -1
+}
+
+ends
+
+defstate checksight
+	geta[].z z
+	sub z 8192
+	seta[].z z
+	geta[target].z mz
+	sub mz 8192
+	seta[target].z mz
+	canseespr THISACTOR target temp2
+	add z 8192
+	seta[].z z
+	add mz 8192
+	seta[target].z mz
+	ife temp2 0 { set target -1 break }
+ends
+
+defstate validatetarget
+
+
+ifn target -1
+{
+	geta[target].statnum temp8
+	ife temp8 1024 set target -1
+
+	state checksight
+
+	ifn target -1
+	{
+		geta[target].x mx
+		geta[target].y my
+	}
+	geta[].x x
+	geta[].y y
+	sub mx x
+	sub my y
+	getangle angvar mx my
+	seta[].ang angvar
+
+	state visibilitycheck
+}
+else break
+
+ends
+
+// TODO phase out this state, the name is confusing and the calculated result is not correct anyway
+// However I don't want to just remove it now cause it'll probably break tons of other stuff if I do that
+defstate shoot_target
+ifn target -1
+	{
+	ldist temp THISACTOR target
+	geta[].z temp2
+	sub temp2 4096 // Offset the Z. Assumes the center of the actor is the same as the player
+	geta[target].z temp3
+	sub temp3 4096 // Offset the Z. assumes the center of the actor is the same as the player
+	sub temp3 temp2
+	shiftvarl temp3 8
+	ifn temp3 0 ifn temp 0 divvarvar temp3 temp
+	}
+ends
+
+defstate enemyfindtarget // find target only enemies shoot at
+	set target -1
+
+	findnearactorz SHOOTME2 2048 16384 target
+	ifn target -1 state validatetarget
+	ifn target -1 break
+	findnearactorz SHOOTME2 4096 32768 target
+	ifn target -1 state validatetarget
+	ifn target -1 break
+	findnearactorz SHOOTME2 8192 65536 target
+	ifn target -1 state validatetarget
+	ifn target -1 break
+	findnearactorz SHOOTME2 12288 98304 target
+	ifn target -1 state validatetarget
+	ifn target -1 break
+	findnearactorz SHOOTME2 18432 147456 target
+	ifn target -1 state validatetarget
+	ifn target -1 break
+	findnearactorz SHOOTME2 32768 262144 target
+	ifn target -1 state validatetarget
+	ifn target -1 break
+ends
+
+defstate enemyfindtarget3 // find target only allies shoot at? this state might be unnecessary?
+	set target -1
+	findnearactorz SHOOTME 2048 16384 target
+	ifn target -1 state validatetarget
+	ifn target -1 break
+	findnearactorz SHOOTME 4096 32768 target
+	ifn target -1 state validatetarget
+	ifn target -1 break
+	findnearactorz SHOOTME 8192 65536 target
+	ifn target -1 state validatetarget
+	ifn target -1 break
+	findnearactorz SHOOTME 12288 98304 target
+	ifn target -1 state validatetarget
+	ifn target -1 break
+	findnearactorz SHOOTME 18432 147456 target
+	ifn target -1 state validatetarget
+	ifn target -1 break
+	findnearactorz SHOOTME 32768 262144 target
+	ifn target -1 state validatetarget
+	ifn target -1 break
+ends
+
+defstate enemyLocateAnyTarget // Find either an "enemy-only" target or an "everybody" target
+	state enemyfindtarget
+ends
+
+/// <summary>
+/// The enemy that calls this state will check if it can hit a target (based on SHOOTME stuff, this is not necessarily the player).
+/// If so, it will shoot a projectile with the appropriate ZVEL and firing sound.
+/// <summary>
+/// <remarks>
+/// Does NOT work for hardcoded projectiles (such as SPIT, CHAINGUN etc) or hitscan
+/// <remarks>
+/// <params name="PROJECTILE_TO_SHOOT">Should be set to the picnum of the projectile to shoot</params>
+/// <params name="PROJECTILE_STRENGTH">Can be set to over-ride the original projectile's damage</params>
+/// <params name="PROJECTILE_FIRING_SOUND">Should be set to the index of the sound to play when firing. Set to -1 for no sound.</params>
+var PROJECTILE_TO_SHOOT 0 2
+var PROJECTILE_FIRING_SOUND 0 2
+var PROJECTILE_DISABLEAUTOAIM 0 2
+
+var PROJECTILE_OFFSET -1 2
+var PROJECTILE_ORIG_OFFSET -1 2
+
+var PROJECTILE_STRENGTH -1 2
+var PROJECTILE_ORIG_STRENGTH -1 2
+
+var PROJECTILE_PAL -1 2
+var PROJECTILE_ORIG_PAL -1 2
+
+defstate sang_enemyShootProjectile
+	set RETURN -1
+
+	ife faction_flag 0
+		state enemyLocateAnyTarget // target == the sprite to shoot at
+	else
+		state checkfortarget // my_target == the sprite to shoot at
+
+	// TODO Temp Compatibility fix
+	ifn my_target -1
+		setvarvar target my_target
+
+	ifn target -1
+	{
+		// Some projectiles are hardcoded, and won't be found via getprojectile. For those I looked up the hardcoded value.
+		ife PROJECTILE_TO_SHOOT FIRELASER
+			set PROJECTILE_VEL 840 // see player.cpp A_ShootHardcoded for where I got this value from
+		else ife PROJECTILE_TO_SHOOT FREEZEBLAST
+			set PROJECTILE_VEL 600 // see player.cpp A_ShootHardcoded for where I got this value from
+		else ife PROJECTILE_TO_SHOOT RPG
+			set PROJECTILE_VEL 644 // player.cpp
+		else
+			getprojectile[PROJECTILE_TO_SHOOT].vel PROJECTILE_VEL
+
+		ifn PROJECTILE_STRENGTH -1 // changing the projectile's damage after it's been fired doesn't work so changing the base projectile's damage before shooting is neccesary
+			{
+			getprojectile[PROJECTILE_TO_SHOOT].extra PROJECTILE_ORIG_STRENGTH
+			setprojectile[PROJECTILE_TO_SHOOT].extra PROJECTILE_STRENGTH
+			}
+
+		ifn PROJECTILE_PAL -1 // changing the projectile's pal after it's been fired doesn't work so changing the base projectile's pal before shooting is neccesary
+			{
+			getprojectile[PROJECTILE_TO_SHOOT].pal PROJECTILE_ORIG_PAL
+			setprojectile[PROJECTILE_TO_SHOOT].pal PROJECTILE_PAL
+			}
+
+		ifn PROJECTILE_OFFSET -1 // changing the projectile's damage after it's been fired doesn't work so changing the base projectile's damage before shooting is neccesary
+			{
+			getprojectile[PROJECTILE_TO_SHOOT].offset PROJECTILE_ORIG_OFFSET
+			setprojectile[PROJECTILE_TO_SHOOT].offset PROJECTILE_OFFSET
+			}
+
+		state calczvel_attackers // temp3 == ZVEL
+
+		ifn PROJECTILE_FIRING_SOUND -1
+			sound PROJECTILE_FIRING_SOUND
+
+		// if temp = 1 then we adjust the angle for the projectile to what the angle of the actor is. This needs to be done after shooting.
+		// This is the proper fix to make adjusting workslike unnecessary
+		set temp 0
+		ifn my_target PLAYER_IDENTITY
+			set temp 1
+		else ife PROJECTILE_DISABLEAUTOAIM 1
+			set temp 1
+
+		ezshoot temp3 PROJECTILE_TO_SHOOT
+
+		ifn PROJECTILE_ORIG_STRENGTH -1 // reset the projectile's original damage value
+			{
+			setprojectile[PROJECTILE_TO_SHOOT].extra PROJECTILE_ORIG_STRENGTH
+			set PROJECTILE_ORIG_STRENGTH -1
+			}
+
+		ifn PROJECTILE_ORIG_PAL -1 // reset the projectile's original damage value
+			{
+			setprojectile[PROJECTILE_TO_SHOOT].pal PROJECTILE_ORIG_PAL
+			set PROJECTILE_ORIG_PAL -1
+			}
+
+		ifn PROJECTILE_ORIG_OFFSET -1 // reset the projectile's original damage value
+			{
+			setprojectile[PROJECTILE_TO_SHOOT].offset PROJECTILE_ORIG_OFFSET
+			set PROJECTILE_ORIG_OFFSET -1
+			}
+
+		ife temp 1
+		{
+			geta[].ang angvar
+
+			ifn RETURN -1 // don't know why but I've seen it happen
+				seta[RETURN].ang angvar
+		}
+	}
+ends
+
+/// <summary>
+/// Acts like sang_enemyShootProjectile except this handles hitscanners specifically.
+/// The state assumes a target check has been done, and the actor is angled properly to shoot at whatever.
+/// <summary>
+/// <params name="HITSCAN_TO_SHOOT">Should be set to the hitscan "projectile" to shoot</params>
+/// <params name="HITSCAN_FIRING_SOUND">Should be set to the index of the sound to play when firing. Set to -1 for no sound.</params>
+var HITSCAN_TO_SHOOT 0 2
+var HITSCAN_FIRING_SOUND 0 2
+var HITSCAN_SHOT_FIRED 0 2
+defstate sang_enemyShootHitscanNoTargetSeek
+	set HITSCAN_SHOT_FIRED 0
+
+	set PROJECTILE_VEL 256
+	state calczvel_attackers // temp3 == ZVEL
+
+	ifn HITSCAN_FIRING_SOUND -1
+		sound HITSCAN_FIRING_SOUND
+
+	// If there is a target, shoot with proper ZVEL and such, otherwise use normal shoot command
+	// cause we can't calculate an appropriate ZVEL in that case and normal shoot is still better than zshoot 0
+	ifn target -1
+		zshoot temp3 HITSCAN_TO_SHOOT
+	else
+		shoot HITSCAN_TO_SHOOT
+
+
+	set HITSCAN_SHOT_FIRED 1
+ends
+
+// Same as above except target check happens first
+defstate sang_enemyShootHitscan
+	ife faction_flag 0
+		state enemyLocateAnyTarget // target == the sprite to shoot at
+	else
+		state checkfortarget // my_target = the sprite to shoot at
+	// compatibility
+	ifn my_target -1
+		setvarvar target my_target
+
+	state sang_enemyShootHitscanNoTargetSeek
+ends
+
+defstate frozen_code
+fall
+spritepal 102
+move 0
+cstator 257
+ifstrength 0 strength 1
+set ice_damage -1
+
+    ifp pfacing
+      ifpdistl FROZENQUICKKICKDIST ife MELEE_WEAPON_LOADOUT[CHAR] 0
+        pkick
+
+ ifhitweapon
+    {
+      ifwasweapon FREEZEBLAST break
+	  ifwasweapon 7160 break
+
+      lotsofglass 20
+	  shoot ICE_DEBRIS shoot ICE_DEBRIS shoot ICE_DEBRIS shoot ICE_DEBRIS shoot ICE_DEBRIS
+	  shoot ICE_DEBRIS shoot ICE_DEBRIS shoot ICE_DEBRIS shoot ICE_DEBRIS shoot ICE_DEBRIS
+      sound ICE_SMASH
+	  set PLAYER_VOICEOVER 20
+      addkills 1
+
+		ifactor BATTLELORD
+			ifn XVELSAVED 0
+			{
+			operateactivators XVELSAVED THISACTOR
+			operatemasterswitches XVELSAVED
+			operaterespawns XVELSAVED
+			set XVELSAVED 0
+			}
+      killit
+    }
+ends
+
+// TODO old shrunk code, use new states and remove this
+defstate genericshrunkcode
+  ifcount 32
+  {
+    ifpdistl SQUISHABLEDISTANCE
+	{
+    pstomp
+	ifactor BATTLELORD
+	    ifn XVELSAVED 0
+		{
+		operateactivators XVELSAVED THISACTOR
+		operatemasterswitches XVELSAVED
+		operaterespawns XVELSAVED
+		set XVELSAVED 0
+		}
+	}
+  }
+  else
+  {
+    sizeto MINXSTRETCH MINYSTRETCH
+    spawn FRAMEEFFECT1
+  }
+ends
+
+defstate new_shrunkcode
+	sizeto MINXSTRETCH MINYSTRETCH
+
+	ifl SHRUNK_TIME 40
+	{
+		spawn FRAMEEFFECT1
+	}
+
+    ifpdistl SQUISHABLEDISTANCE
+	{
+		pstomp
+		ifactor BATTLELORD
+			ifn XVELSAVED 0
+		{
+			operateactivators XVELSAVED THISACTOR
+			operatemasterswitches XVELSAVED
+			operaterespawns XVELSAVED
+			set XVELSAVED 0
+		}
+	}
+
+	add SHRUNK_TIME 1
+ends
+
+defstate unshrink
+	// there's no "ifnotsound" or whatever, lol
+	ifsound ACTOR_UNSHRINK nullop
+	else sound ACTOR_UNSHRINK
+	add SHRUNK_TIME 1
+ends
+
+defstate endshrunkenstate
+	set SHRUNK_TIME 0
+ends
+
+spritenoshade 14040
+spritenopal 14040
+
+useractor notenemy 14040
+ifaction 0
+	{
+	geta[].htflags temp2
+	orvar temp2 2048
+	seta[].htflags temp2
+	seta[].blend 255
+	ifspawnedby 7392 sizeat 12 12 else
+	ifspawnedby 10078 sizeat 14 14 else
+	ifspawnedby 11651 sizeat 14 14 else
+	ifspawnedby 7936 sizeat 10 10 else
+	sizeat 24 24
+  ifrnd 128
+    cstat 6
+  else
+    cstat 2
+	action ZERO
+	resetcount
+	}
+else
+ifaction ZERO
+	{
+	ifspawnedby 7392
+		{
+		seta[].shade -127
+		ifrnd 1 { espawn GUNSMOKE geta[RETURN].z temp sub temp 1024 seta[RETURN].z temp seta[RETURN].pal 2 }
+		sizeto 10 10
+		ifcount 5 cstator 2
+		ifcount 9 cstator 512
+		ifcount 14 killit
+		}
+	else
+	ifspawnedby 23625
+		{
+		seta[].shade -127
+		ifrnd 1 { espawn GUNSMOKE geta[RETURN].z temp sub temp 2048 seta[RETURN].z temp seta[RETURN].pal 2 }
+		sizeto 10 10
+		ifcount 5 cstator 2
+		ifcount 9 cstator 512
+		ifcount 14 killit
+		}
+	else
+	ifspawnedby 10074
+		{
+		seta[].shade -127
+		ifrnd 1 { espawn GUNSMOKE geta[RETURN].z temp sub temp 1024 seta[RETURN].z temp seta[RETURN].pal 2 }
+		sizeto 20 20
+		ifcount 5 cstator 2
+		ifcount 9 cstator 512
+		ifcount 14 killit
+		}
+	else
+	ifspawnedby 11651
+		{
+		seta[].shade -127
+		ifrnd 1 { espawn GUNSMOKE geta[RETURN].z temp sub temp 1024 seta[RETURN].z temp seta[RETURN].pal 2 }
+		sizeto 20 20
+		ifcount 5 cstator 2
+		ifcount 9 cstator 512
+		ifcount 14 killit
+		}
+	else
+	ifspawnedby 10078
+		{
+		seta[].shade -127
+		ifrnd 1 { espawn GUNSMOKE geta[RETURN].z temp sub temp 1024 seta[RETURN].z temp seta[RETURN].pal 2 }
+		sizeto 12 12
+		ifcount 5 cstator 2
+		ifcount 9 cstator 512
+		ifcount 14 killit
+		}
+	else
+	ifspawnedby 7936
+		{
+		seta[].shade -127
+		ifrnd 1 { espawn GUNSMOKE geta[RETURN].z temp sub temp 1024 seta[RETURN].z temp seta[RETURN].pal 2 }
+		sizeto 8 8
+		ifcount 5 cstator 2
+		ifcount 9 cstator 512
+		ifcount 14 killit
+		}
+	else
+	ifspawnedby 8002
+		{
+		seta[].shade -127
+		sizeto 4 4
+		ifcount 5 cstator 2
+		ifcount 9 cstator 512
+		ifcount 14 killit
+		}
+	else
+		{
+		seta[].shade -127
+		ifrnd 4 { shoot SPARK espawn BIG_SMOKE geta[RETURN].z temp sub temp 8096 seta[RETURN].z temp seta[RETURN].pal 17 }
+		sizeto 1 1
+		ifcount 5 cstator 2
+		ifcount 9 cstator 512
+		ifcount 14 killit
+		}
+	}
+enda
+
+defstate enemy_spirit_damage
+ifg spirit_damage 0
+{
+	ifrnd 96
+		{
+		espawn 14040
+		geta[].x temp
+		randvar temp2 128
+		ifrnd 128 add temp temp2 else sub temp temp2
+		seta[RETURN].x temp
+		seta[RETURN].pal 1
+
+		geta[].y temp
+		randvar temp2 128
+		ifrnd 128 add temp temp2 else sub temp temp2
+		seta[RETURN].y temp
+
+		geta[].z temp
+		sub temp 4096
+		randvar temp2 2048
+		sub temp temp2
+		seta[RETURN].z temp
+		}
+	sub spirit_damage 1
+	ifl sprite[].htextra 1 seta[].htextra 1
+	soundonce FLESH_BURNING
+	ifdead
+	{
+		set spirit_damage 0
+	}
+}
+ends
+
+defstate handle_cosmetic_flame
+	ifg COSMETIC_FLAME 0
+	{
+		sub COSMETIC_FLAME 1
+		ifrnd 128
+			{
+			espawn 14040
+			geta[].x temp
+			randvar temp2 128
+			ifrnd 128 add temp temp2 else sub temp temp2
+			seta[RETURN].x temp
+
+			geta[].y temp
+			randvar temp2 128
+			ifrnd 128 add temp temp2 else sub temp temp2
+			seta[RETURN].y temp
+
+			geta[].z temp
+			ifactor SPIDER2 sub temp 1024 else
+			sub temp 4096
+			randvar temp2 2048
+			sub temp temp2
+			seta[RETURN].z temp
+			}
+	}
+ends
+
+defstate enemy_fire_damage
+	state handle_cosmetic_flame
+	ifg fire_damage 0
+	{
+		ifdead break
+		ifg sprite[].extra 0 set COSMETIC_FLAME 30
+		ifinwater set fire_damage 0
+		sub fire_damage 4
+		ifonwater sub fire_damage 8
+		geta[].extra temp
+		ifg temp 0 sub temp 4
+		// if this is not an allied actor, add more fire damage with the Bruiser Abyssal Fire research
+		ifn faction_flag ALLIED_FACTION_FLAG ife MYSTICAL_RESEARCH[RS_M_BRUISER] 2 sub temp 2
+		ifl temp 1 { ifl sprite[].htextra 1 seta[].htextra 1 set temp 0 }
+		seta[].extra temp
+		soundonce FLESH_BURNING
+		ifdead ife fire_damage 0 set PLAYER_VOICEOVER 21
+		ifonwater { set fire_damage 0 soundonce STEAM_HISSING spawn BIG_SMOKE }
+		ifinwater { set fire_damage 0 soundonce STEAM_HISSING spawn BIG_SMOKE }
+	}
+ends
+
+defstate enemy_ice_damage
+ifg ice_damage 0
+{
+	ifdead { ifspritepal 102 nullop else spritepal 102 }
+	else ifg ice_damage 1 { ifspritepal 60 nullop else spritepal 60 }
+	geta[].xvel temp2
+	divvar temp2 8
+	seta[].xvel temp2
+	geta[].yvel temp2
+	divvar temp2 8
+	seta[].yvel temp2
+	espawn BIG_SMOKE
+	seta[RETURN].pal 1
+	geta[RETURN].z temp4
+		sub temp4 4096
+		randvar temp2 2048
+		sub temp4 temp2
+	seta[RETURN].z temp4
+	sub ice_damage 1
+	soundonce SOMETHINGFROZE
+	ifdead { spritepal 1 set ice_damage 0 }
+	else { ife ice_damage 1 getlastpal }
+}
+ends
+
+defstate enemyfloordamage
+state getfloordist
+ifl z 5
+	{
+	ifstrength 0 break else
+		{
+		gets[].floorpicnum temp
+		ife temp PURPLELAVA
+			{
+			seta[].htextra 3
+			}
+		else
+	ife temp FLOORPLASMA
+			{
+			ifrnd 32
+				{
+				randvar temp8 10
+				seta[].htextra temp8
+				}
+			}
+		else
+	ife temp FLOORSLIME
+			{
+			ifrnd 64
+				{
+				randvar temp8 5
+				seta[].htextra temp8
+				}
+			}
+		else
+	ife temp HURTRAIL
+			{
+			ifrnd 64
+				{
+				spawn FIRE2
+				randvar temp8 5
+				seta[].htextra temp8
+				}
+			}
+		else
+	ife temp 7387
+			{
+			ifrnd 64
+				{
+				randvar temp8 5
+				seta[].htextra temp8
+				}
+			}
+		else
+	ife temp 7396
+			{
+			ifrnd 32
+				{
+				spawn FIRE2
+				randvar temp8 10
+				seta[].htextra temp8
+				}
+			}
+		else
+	ife temp 10526
+			{
+			ifrnd 32
+				{
+				spawn FIRE2
+				randvar temp8 10
+				seta[].htextra temp8
+				}
+			}
+		}
+	}
+ends
+
+defstate troop_body_jibs
+  ifrnd 128
+    guts HEADJIB1 1 else guts JIBS2 2
+  ifrnd 128
+    guts LEGJIB1 2
+  ifrnd 128
+    guts ARMJIB1 1
+  ifrnd 64
+    spawn BLOODPOOL
+ends
+
+defstate liz_body_jibs
+  ifrnd 128
+    guts LIZMANHEAD1 1
+  ifrnd 128
+    guts LIZMANLEG1 2
+  ifrnd 128
+    guts LIZMANARM1 1
+  ifrnd 64
+    spawn BLOODPOOL
+ends
+
+defstate human_jibs
+	guts HUMAN_TORSO 1
+	guts HUMAN_ARM 2
+  	shoot NJIB2
+  	shoot NJIB2
+	shoot NJIB3
+    // 50% reduced chance
+	ifrnd 127 ifcansee state random_trigger_showoff
+  state jib_sounds
+ends
+
+defstate monst_body_jibs
+  	shoot NJIB2
+  	shoot NJIB2
+  	shoot NJIB2
+  	shoot NJIB3
+  	shoot NJIB3
+  	shoot NJIB3
+    // 50% reduced chance
+	ifrnd 127 ifcansee state random_trigger_showoff
+  state jib_sounds
+ends
+
+defstate generic_dead
+	move STOP
+	strength 0
+		ifhitweapon
+		{
+		  ifwasweapon RADIUSEXPLOSION
+		  {
+			state squish_sounds
+			state human_jibs
+			ife INVASION 1  nullop else
+			{
+		  state standard_jibs
+			}
+		  ifrnd 128 shoot NJIB4
+		  ifrnd 128 shoot NJIB4
+			killit
+		  }
+		  break
+		}
+ends
+
+defstate zombie_jibs
+	spritepal 61
+	state squish_sounds
+	state standard_jibs
+	state human_jibs
+	killit
+ends
+
+defstate rf_or
+  ifrnd 128
+    cstator 4
+  else
+    cstator 0
+ends
+
+defstate random_wall_jibs
+geta[].sectnum mysector
+updatesectorz sprite[].x sprite[].y sprite[].z mysector
+ifn mysector -1
+ ifn mysector 4096
+	{
+		// sometimes we get error sectnum 4096 but I haven't been able to reliably reproduce it
+		// in fact whenever I uncomment this log it seems to not happen :'(
+		// al mysector
+	  ifrnd 96
+		shoot BLOODSPLAT1
+	  ifrnd 96
+		shoot BLOODSPLAT2
+	  ifrnd 96
+		shoot BLOODSPLAT3
+	  ifrnd 96
+		shoot BLOODSPLAT4
+	  ifrnd 96
+		shoot BLOODSPLAT1
+	}
+ends
+
+defstate random_ooz
+  ifrnd 128
+    spawn OOZ2
+  else
+    spawn OOZ
+ends
+
+
+defstate checksquished
+  ifsquished
+  {
+    addkills 1
+
+    state squish_sounds
+    state standard_jibs
+    state random_ooz
+    killit
+  }
+ends
+
+defstate check_metal_squished
+  ifsquished
+  {
+    addkills 1
+
+    sound METAL_CRUSH
+    killit
+  }
+ends
+
+// NEW GUN EFFECTS
+spritenopal 9375
+useractor enemy 9375
+move STOP
+cstat 32768
+ife camerasprite -1 add INTERNALCOUNT 1
+ifand gun_firemode 2147483648
+	{
+	set INTERNALCOUNT 519
+	xor gun_firemode 2147483648
+	}
+ifge INTERNALCOUNT 520
+	{
+      set INTERNALCOUNT 0
+	  globalsound MIAGUN_APPEAR
+	  espawn TRANSPORTERBEAM
+	  seta[RETURN].pal 12
+	  seta[].cstat temp9
+	  seta[].extra MIA_HEALTH
+	  spawn SHOOTME
+	  set PAIN_AMOUNT 90
+	  seta[].picnum temp7
+	  }
+enda
+
+defstate WEP0_BLOOD_STUFF
+set WEP0_BLOODY blood_type
+ife WEP0_BLOODY 0 set WEP0_BLOODY 21
+ends
+
+defstate WEP1_BLOOD_STUFF
+set WEP1_BLOODY blood_type
+ife WEP1_BLOODY 0 set WEP1_BLOODY 21
+ends
+
+defstate WEP2_BLOOD_STUFF
+set WEP2_BLOODY blood_type
+ife WEP2_BLOODY 0 set WEP2_BLOODY 21
+ends
+
+defstate WEP3_BLOOD_STUFF
+set WEP3_BLOODY blood_type
+ife WEP3_BLOODY 0 set WEP3_BLOODY 21
+ends
+
+defstate WEP9_BLOOD_STUFF
+set WEP9_BLOODY blood_type
+ife WEP9_BLOODY 0 set WEP9_BLOODY 21
+ends
+
+defstate ENEMY_RES_STUFF
+	globalsound RESEARCH_DATA
+	palfrom 20 63 63 63
+	quote 1025
+	ife RADIO_CONTACT YES
+		{
+		ifrnd 64 globalsound MSCI_RES1
+		else ifrnd 64 globalsound MSCI_RES2
+		else ifrnd 64 globalsound MSCI_RES3
+		else ifrnd 64 globalsound MSCI_RES4
+		}
+ends
+
+defstate STAB_SOUND
+randvar temp 50
+ifl temp 10 sound STAB_01
+else ifl temp 20 sound STAB_02
+else ifl temp 30 sound STAB_03
+else ifl temp 40 sound STAB_04
+else sound STAB_05
+ends
+
+defstate BIGSTAB_SOUND
+randvar temp 30
+ifl temp 10 sound BIGST_01
+else ifl temp 20 sound BIGST_02
+else sound BIGST_03
+ends
+
+defstate WEP_MELEE_HIT
+stopsound METSWIPE
+stopsound METSWIPE2
+stopsound METSWIPE3
+ife cur_weap 0 state WEP0_BLOOD_STUFF else
+ife cur_weap 1 state WEP1_BLOOD_STUFF else
+ife cur_weap 2 state WEP2_BLOOD_STUFF else
+ife cur_weap 9 state WEP9_BLOOD_STUFF else
+state WEP3_BLOOD_STUFF
+set gun_pushb_disp 30
+state STAB_SOUND
+ends
+
+defstate BODY_FALL_NOISES
+ifonwater sound WATER_SPLASH
+else
+{
+getsector[].floorpicnum FLOORTEX
+ state CHECKSTEPS
+ switch STEPSOUNDFX
+ case 1
+ case 23
+	ifrnd 96 sound WOOD_DROP
+	else ifrnd 96 sound WOOD_DROP2
+	else sound WOOD_DROP3
+	break
+ case 2
+ case 3
+ case 14
+ case 17
+ case 31
+	ifrnd 96 sound METAL_F1
+	else ifrnd 96 sound METAL_F2
+	else sound METAL_F3
+	break
+ case 4
+ case 10
+ case 20
+ case 21
+ case 22
+ case 27
+ 	ifrnd 96 sound DIRT_DROP
+	else ifrnd 96 sound DIRT_DROP2
+	else sound DIRT_DROP3
+	break
+ case 8
+ case 28
+ case 33
+ 	ifrnd 96 sound SAND_DROP
+	else ifrnd 96 sound SAND_DROP2
+	else sound SAND_DROP3
+	break
+ default
+	ifrnd 96 sound BODY_DROP
+	else ifrnd 96 sound BODY_DROP2
+	else sound BODY_DROP3
+	break
+endswitch
+}
+ends
+
+defstate NAIL_HITBODY_SOUNDS
+randvar temp8 50
+ifl temp8 10 sound NAIL_HITBOD1
+else ifl temp8 20 sound NAIL_HITBOD2
+else ifl temp8 30 sound NAIL_HITBOD3
+else ifl temp8 40 sound NAIL_HITBOD4
+else sound NAIL_HITBOD5
+ends
+
+defstate BODY_FALL_NOISES_SOUNDONCE
+getsector[].floorpicnum FLOORTEX
+ state CHECKSTEPS
+ switch STEPSOUNDFX
+ case 1
+ case 23
+	ifrnd 96 soundonce WOOD_DROP
+	else ifrnd 96 soundonce WOOD_DROP2
+	else soundonce WOOD_DROP3
+ case 2
+ case 3
+ case 14
+ case 17
+ case 31
+	ifrnd 96 soundonce METAL_F1
+	else ifrnd 96 soundonce METAL_F2
+	else soundonce METAL_F3
+	break
+ case 4
+ case 10
+ case 20
+ case 21
+ case 22
+ case 27
+ 	ifrnd 96 soundonce DIRT_DROP
+	else ifrnd 96 soundonce DIRT_DROP2
+	else soundonce DIRT_DROP3
+ case 8
+ case 28
+ case 33
+ 	ifrnd 96 soundonce SAND_DROP
+	else ifrnd 96 soundonce SAND_DROP2
+	else soundonce SAND_DROP3
+ default
+	ifrnd 96 soundonce BODY_DROP
+	else ifrnd 96 soundonce BODY_DROP2
+	else soundonce BODY_DROP3
+	break
+endswitch
+ends
+
+defstate addKaguraCharge
+	geta[].htpicnum PROJ_HIT_TYPE
+	ife PROJ_HIT_TYPE 27370
+    {
+        ifdead ifl KAGURA_CHARGE 10
+        {
+			add KAGURA_CHARGE kag_charge_inc
+            state Yo_taunts
+        }
+        ife KAGURA_CHARGE 10
+        {
+            screensound YO_CHARGE
+            palfrom 20 64 64 64
+        }
+        state WEP_MELEE_HIT
+        sound SLASH
+    }
+ends
+
+defstate bullet_data
+    geta[].htpicnum PROJ_HIT_TYPE
+
+    // if the htpicnum is actually a projectile, get the damage type
+    ifand tiledata[PROJ_HIT_TYPE].gameflags 8
+        getprojectile[PROJ_HIT_TYPE].userdata PROJ_UDATA
+    else set PROJ_UDATA 0
+ends
+
+defstate melee_hit_effects
+    ife PROJ_HIT_TYPE 12053 { ife cur_weap 0 state WEP_MELEE_HIT sound SLASH }
+    ife PROJ_HIT_TYPE 12054 { ife cur_weap 0 state WEP_MELEE_HIT }
+    ife PROJ_HIT_TYPE CHAINSAW_PROJ { ife cur_weap 0 state WEP_MELEE_HIT }
+    ife PROJ_HIT_TYPE 4961 state WEP_MELEE_HIT
+    ife PROJ_HIT_TYPE 16076 state WEP_MELEE_HIT
+	ife PROJ_HIT_TYPE 11741 state WEP_MELEE_HIT
+    ife PROJ_HIT_TYPE 19802 state WEP_MELEE_HIT
+    ife PROJ_HIT_TYPE 13404 state WEP_MELEE_HIT
+    ife PROJ_HIT_TYPE 13383 state WEP_MELEE_HIT
+    ife PROJ_HIT_TYPE 13386 state WEP_MELEE_HIT
+    ife PROJ_HIT_TYPE 4960 state WEP_MELEE_HIT
+    ife PROJ_HIT_TYPE 6874 state WEP_MELEE_HIT
+    ife PROJ_HIT_TYPE 6875 state WEP_MELEE_HIT
+    ife PROJ_HIT_TYPE 18067 { ifrnd 128 sound KNIF_IMP_01 else sound KNIF_IMP_02 stopsound KNIFE_IMPACT }
+    ife PROJ_HIT_TYPE 18072 { ifrnd 128 sound KNIF_IMP_01 else sound KNIF_IMP_02 stopsound KNIFE_IMPACT }
+    ife PROJ_HIT_TYPE 4963 { state STAB_SOUND stopsound KNIFE_IMPACT }
+    ife PROJ_HIT_TYPE 14604 { state WEP_MELEE_HIT stopsound KNIFE_IMPACT }
+    ife PROJ_HIT_TYPE 14605 { state WEP_MELEE_HIT stopsound KNIFE_IMPACT }
+    ife PROJ_HIT_TYPE 12203 { state STAB_SOUND stopsound KNIFE_IMPACT }
+    ife PROJ_HIT_TYPE 12204 { state BIGSTAB_SOUND stopsound SHOVEL_IMPACT }
+    // shovel
+    ife PROJ_HIT_TYPE 20194
+    {
+        stopsound SHOVEL_IMPACT
+        stopsound SHOVEL_SWING
+        set gun_recoil 4
+        sound PAN_IMPACT
+        ife WEP0_BLOODY 0 set SLO_MO_SHOWOFF 70
+        ifactor ORC set WEP0_BLOODY 1
+        ifactor ZOMBIE set WEP0_BLOODY 2
+        ifactor MERC set WEP0_BLOODY 2
+        ifactor MERC2 set WEP0_BLOODY 2
+        ifactor FASCIST set WEP0_BLOODY 2
+        ifactor CULTIST set WEP0_BLOODY 2
+        ifactor ZOMBIE set WEP0_BLOODY 2
+        ifactor LIZTROOP set WEP0_BLOODY 3
+        ifactor PIGCOP set WEP0_BLOODY 4
+        ifactor PIG_SF set WEP0_BLOODY 4
+        ifactor PE_TROOP set WEP0_BLOODY 5
+		ifactor PE_SHOTGUNNER set WEP0_BLOODY 5
+        ifactor PE_ELDER set WEP0_BLOODY 5
+        ifactor SHADE set WEP0_BLOODY 6
+        ifactor SPIRIT set WEP0_BLOODY 6
+        ifactor LOST set WEP0_BLOODY 6
+        ifactor SKNIGHT set WEP0_BLOODY 6
+		ifactor SSQUIRE set WEP0_BLOODY 6
+    }
+    // kagura blade
+	state addKaguraCharge
+ends
+
+include CODE/ENEMY/ENEMY_MIA.CON
+
+defstate NEWGUNEFFECTS
+	state bullet_data
+    // melee weapon effects
+	state melee_hit_effects
+
+
+    // arrow and bolts
+    ife PROJ_HIT_TYPE ARROW_PROJ sound BOLT_HIT
+    ife PROJ_HIT_TYPE XBOW_BOLT sound BOLT_HIT
+
+    // hardcoded projectiles
+    ife PROJ_HIT_TYPE GROWSPARK sound EXPANDERHIT
+    ife PROJ_HIT_TYPE FREEZEBLAST { set ice_damage 26 seta[].htpicnum 0 }
+
+    // damage type checks
+	state MIA_GUN_STATE
+
+    ifand PROJ_UDATA 1 { set energy_damage 26 seta[].htpicnum 0 } // energy
+    ifand PROJ_UDATA 2 { set fire_damage 16 seta[].htpicnum 0 } // fire
+    ifand PROJ_UDATA 4 { set ice_damage 26 seta[].htpicnum 0 } // ice
+    ifand PROJ_UDATA 16384 { set spirit_damage 16 seta[].htpicnum 0 } // spirit
+    ifand PROJ_UDATA 131072 ife PAIN_AMOUNT 0 set PAIN_AMOUNT 20 // melee
+    ifand PROJ_UDATA 8192 // electric
+    {
+        ifinwater
+        {
+            addstrength -25
+            sound LIGHT_CONDUCT
+            spawn LIGHT_SPREAD
+            palfrom 10 10 10 10
+        }
+
+        iffloordistl 8
+        {
+            gets[].floorpicnum FLOORTEX
+            state CHECKSTEPS
+            ife STEPSOUNDFX 2
+            {
+                addstrength -15
+                sound LIGHT_CONDUCT
+                spawn LIGHT_SPREAD
+                palfrom 10 10 10 10
+            }
+            ife STEPSOUNDFX 3
+            {
+                addstrength -15
+                sound LIGHT_CONDUCT
+                spawn LIGHT_SPREAD
+                palfrom 10 10 10 10
+            }
+        }
+        ifdead set PLAYER_VOICEOVER 34
+    }
+    else ife PROJ_HIT_TYPE 7056 // REDM_BLAST
+    {
+        espawn SHRINKEREXPLOSION
+        set energy_damage 72
+        seta[RETURN].pal 2
+        seta[RETURN].cstat 130
+        seta[RETURN].xrepeat 40
+        seta[RETURN].yrepeat 40
+    }
+    else ife PROJ_HIT_TYPE 5378 // Petrifygun
+    {
+        ifdead
+        {
+            // don't break the player
+            ifactor APLAYER break
+
+            // simulate the green freeze effect from Oblivion TC by spawning paletted glass
+            spritepal 7
+            lotsofglass 30
+            soundonce GLASS_HEAVYBREAK
+
+            // operate activators and spawn stuff
+            ifactor CULTIST { ifn YVELSAVED 0 espawnvar YVELSAVED }
+            ifactor BATTLELORD
+              ifn XVELSAVED 0
+            {
+                operateactivators XVELSAVED THISACTOR
+                operatemasterswitches XVELSAVED
+                operaterespawns XVELSAVED
+                set XVELSAVED 0
+            }
+            ifactor COMMANDER
+              ifn XVELSAVED 0
+            {
+                operateactivators XVELSAVED THISACTOR
+                operatemasterswitches XVELSAVED
+                operaterespawns XVELSAVED
+                set XVELSAVED 0
+            }
+            ifactor ADV_COMMANDER
+              ifn XVELSAVED 0
+            {
+                operateactivators XVELSAVED THISACTOR
+                operatemasterswitches XVELSAVED
+                operaterespawns XVELSAVED
+                set XVELSAVED 0
+            }
+
+            addkills 1
+            killit
+        }
+    }
+    else ife PROJ_HIT_TYPE SPELL8 // Nemesis Staff
+    {
+        set spirit_damage 64
+        ifdead
+        {
+            state jib_sounds
+            geta[].htang temp2
+            eshoot SPELL8
+            seta[RETURN].ang temp2
+        }
+    }
+    else ife PROJ_HIT_TYPE 3790 // Ninja Star 2
+    {
+        // penetrate on kill
+        ifdead
+        {
+            state jib_sounds
+            geta[].htang temp2
+            eshoot 3790
+            seta[RETURN].ang temp2
+        }
+    }
+    else ife PROJ_HIT_TYPE 14509 // Dart (above water)
+    {
+        stopsound METALCLINK
+        state NAIL_HITBODY_SOUNDS
+    }
+    else ife PROJ_HIT_TYPE 14510 // Dart (underwater)
+    {
+        stopsound METALCLINK
+        state NAIL_HITBODY_SOUNDS
+    }
+    else ife PROJ_HIT_TYPE 6826 // Nail Guns
+    {
+        stopsound METALCLINK
+        stopsound METSWIPE
+        stopsound METSWIPE2
+        stopsound METSWIPE3
+        state NAIL_HITBODY_SOUNDS
+
+        // penetrate bodies with lessened damage
+        geta[].htang temp2
+        eshoot 6826
+        geta[RETURN].extra temp3
+        div temp3 2
+        setav[RETURN].ally_mag 4
+        seta[RETURN].extra temp3
+        seta[RETURN].ang temp2
+    }
+    else ife PROJ_HIT_TYPE 29076 // Slicing page
+    {
+        stopsound HITCARDB
+        state NAIL_HITBODY_SOUNDS
+
+        // penetrate bodies with lessened damage
+        geta[].htang temp2
+        eshoot 29076
+        geta[RETURN].extra temp3
+        div temp3 2
+        setav[RETURN].ally_mag 4
+        seta[RETURN].extra temp3
+        seta[RETURN].ang temp2
+    }
+    else ife PROJ_HIT_TYPE 6816 // Enchanted Nails
+    {
+        stopsound METALCLINK
+        stopsound METSWIPE
+        stopsound METSWIPE2
+        stopsound METSWIPE3
+        state NAIL_HITBODY_SOUNDS
+
+        // penetrate bodies with lessened damage
+        geta[].htang temp2
+        // copy paste error? are penetarting nails supposed to loose their enchanted property?
+        eshoot 6826
+        geta[RETURN].extra temp3
+        div temp3 2
+        setav[RETURN].ally_mag 4
+        seta[RETURN].extra temp3
+        seta[RETURN].ang temp2
+    }
+	else ife PROJ_HIT_TYPE SAWBLADE
+	{
+	stopsound SAWBL_IMP
+	soundonce SAWBL_HITF
+        spawn BLOOD
+        spawn BLOOD
+        spawn BLOOD
+        guts JIBS6 1
+        geta[].htang temp2
+        eshoot SAWBLADE
+        seta[RETURN].ang temp2
+	}
+	else ife PROJ_HIT_TYPE SAWBLADE_BOUNCE
+	{
+	stopsound SAWBL_IMP2
+	soundonce SAWBL_HITF
+        spawn BLOOD
+        spawn BLOOD
+        spawn BLOOD
+        guts JIBS6 1
+        eshoot SAWBLADE_BOUNCE
+		randvar temp 2048
+        seta[RETURN].ang temp2
+	}
+    else ife PROJ_HIT_TYPE 19 // Dragon Slayer
+    {
+        stopsound DRAGONSLAYERHIT
+		state WEP9_BLOOD_STUFF
+		set gun_pushb_disp 30
+        spawn BLOOD
+        spawn BLOOD
+        spawn BLOOD
+        guts JIBS6 1
+        sound DRAGONSLAYERHB
+        // penetrate enemies on kill
+        ifdead
+        {
+            state jib_sounds
+            geta[].htang temp2
+            eshoot 19
+            seta[RETURN].ang temp2
+            setthisprojectile[RETURN].range 3
+        }
+    }
+    else ife PROJ_HIT_TYPE 5125 // slug
+    {
+        sound HITFLESH
+        sound HITFLESH2
+        sound HITFLESH
+        sound HITFLESH2
+        sound HITFLESH
+        // penetrate enemies on kill
+        ifdead
+        {
+            state jib_sounds
+            geta[].htang temp2
+            eshoot 5125
+            seta[RETURN].ang temp2
+        }
+    }
+    else ife PROJ_HIT_TYPE 6273 // ANIMAL TRANSFORMATION SPELL
+    {
+        // if player hit, do lots of damage
+        ifactor APLAYER
+        {
+            ifg P_SPIRIT_ARMOUR 0
+            {
+                sub P_SPIRIT_ARMOUR 50
+                seta[].htextra -1
+                palfrom 20 0 0 40
+                soundonce SPARM_PROTECT
+                ifl P_SPIRIT_ARMOUR 0 set P_SPIRIT_ARMOUR 0
+            }
+            else addphealth -1000
+        }
+        else
+        {
+            // prevent transformation of these actors
+            ifactor BATTLELORD ifspritepal 0 break
+            ifactor BOSS2 ifspritepal 0 break
+            ifactor BOSS3 ifspritepal 0 break
+            ifactor BOSS4 ifspritepal 0 break
+            ifactor BOSS5 ifspritepal 0 break
+            ifactor SERPENT_GOD ifspritepal 0 break
+            ifactor BRUISER ifspritepal 24 break
+            ifactor DOCTORJ break
+            ifactor TROLL break
+            ifactor MISTERH break
+
+            // operate activators, drop items, etc.
+            ifactor CULTIST
+                ifn YVELSAVED 0 espawnvar YVELSAVED
+
+            ifactor BATTLELORD
+              ifn XVELSAVED 0
+            {
+                operateactivators XVELSAVED THISACTOR
+                operatemasterswitches XVELSAVED
+                operaterespawns XVELSAVED
+                set XVELSAVED 0
+            }
+            ifactor COMMANDER
+              ifn XVELSAVED 0
+            {
+                operateactivators XVELSAVED THISACTOR
+                operatemasterswitches XVELSAVED
+                operaterespawns XVELSAVED
+                set XVELSAVED 0
+            }
+            ifactor ADV_COMMANDER
+              ifn XVELSAVED 0
+            {
+                operateactivators XVELSAVED THISACTOR
+                operatemasterswitches XVELSAVED
+                operaterespawns XVELSAVED
+                set XVELSAVED 0
+            }
+
+            // spawn an animal in place of the actor (TODO: could be expanded)
+			switch sprite[].picnum
+			case SORCERER
+				ife CHAR 4 spawn GROWAMMO else spawn SKULLEXPLOSION
+				break
+			case LOST
+			case SPIRIT
+				ife CHAR 4 spawn HOLODUKE else spawn SKULLEXPLOSION
+				break
+			case PIGCOP
+			case PIG_SF
+			case PIGCOP_RIOT
+			case PIGBOSS
+				spawn PIG
+				break
+			default
+				ifg sprite[].extra 200 spawn SHEEP
+				else
+				{
+				ifrnd 32 spawn FROG
+				else ifrnd 96 spawn RABBIT
+				else ifrnd 128 spawn SQUIRREL
+				else spawn 6283
+				}
+				break
+			endswitch
+
+            // misc effects
+            globalsound TRANSFORM
+            espawn EXPLOSION2
+            seta[RETURN].pal 17
+            addkills 1
+
+            // remove the original actor
+            killit
+        }
+    }
+    else ife PROJ_HIT_TYPE 6272 // OBJECT TRANSFORMATION SPELL
+    {
+        // if player hit, do lots of damage
+        ifactor APLAYER
+        {
+            ifg P_SPIRIT_ARMOUR 0
+            {
+                sub P_SPIRIT_ARMOUR 50
+                seta[].htextra -1
+                palfrom 20 0 0 40
+                soundonce SPARM_PROTECT
+                ifl P_SPIRIT_ARMOUR 0 set P_SPIRIT_ARMOUR 0
+            }
+            else addphealth -1000
+        }
+        // else, transform
+        else
+        {
+            // prevent transformation of these actors
+            ifactor BATTLELORD ifspritepal 0 break
+            ifactor BOSS2 ifspritepal 0 break
+            ifactor BOSS3 ifspritepal 0 break
+            ifactor BOSS4 ifspritepal 0 break
+            ifactor BOSS5 ifspritepal 0 break
+            ifactor SERPENT_GOD ifspritepal 0 break
+            ifactor BRUISER ife actor_pal 24 break
+            ifactor SCORPIONESS ifspritepal 42 break
+            ifactor ALUDRAN ife actor_pal 10 break
+            ifactor SHAMBLER break
+            ifactor TROLL break
+            ifactor DOCTORJ break
+            ifactor MISTERH break
+
+            // operate activators
+            ifactor BATTLELORD
+              ifn XVELSAVED 0
+            {
+                operateactivators XVELSAVED THISACTOR
+                operatemasterswitches XVELSAVED
+                operaterespawns XVELSAVED
+                set XVELSAVED 0
+            }
+            ifactor COMMANDER
+              ifn XVELSAVED 0
+            {
+                operateactivators XVELSAVED THISACTOR
+                operatemasterswitches XVELSAVED
+                operaterespawns XVELSAVED
+                set XVELSAVED 0
+            }
+            ifactor ADV_COMMANDER
+              ifn XVELSAVED 0
+            {
+                operateactivators XVELSAVED THISACTOR
+                operatemasterswitches XVELSAVED
+                operaterespawns XVELSAVED
+                set XVELSAVED 0
+            }
+
+            // spawn morphed item (depends on actor)
+			ifactor LOST ife CHAR 4 spawn HOLODUKE
+			else ifactor SPIRIT ife CHAR 4 spawn HOLODUKE
+			else ifactor SORCERER ife CHAR 4 spawn GROWAMMO
+            else ifactor COBRA spawn BOOTS
+            else ifactor CULTIST
+            {
+                // drop item
+                ifn YVELSAVED 0 espawnvar YVELSAVED
+                // then morph
+                ifrnd 96 { espawn 8045 seta[RETURN].xrepeat 32 seta[RETURN].yrepeat 32 }
+                else ifrnd 96 { espawn 8046 seta[RETURN].xrepeat 32 seta[RETURN].yrepeat 32 }
+                else ifrnd 96 { espawn 8047 seta[RETURN].xrepeat 32 seta[RETURN].yrepeat 32 }
+                else ifrnd 96 { espawn 8048 seta[RETURN].xrepeat 32 seta[RETURN].yrepeat 32 }
+                else { espawn 8049 seta[RETURN].xrepeat 32 seta[RETURN].yrepeat 32 }
+            }
+            else ifactor ZSCIEN
+            {
+                ifrnd 96 { espawn 8131 seta[RETURN].xrepeat 32 seta[RETURN].yrepeat 32 seta[RETURN].pal 22 }
+                else ifrnd 96 { espawn 8127 seta[RETURN].xrepeat 32 seta[RETURN].yrepeat 32 seta[RETURN].pal 22 }
+                else ifrnd 96 { espawn 8129 seta[RETURN].xrepeat 32 seta[RETURN].yrepeat 32 seta[RETURN].pal 22 }
+                else ifrnd 96 { espawn 8132 seta[RETURN].xrepeat 32 seta[RETURN].yrepeat 32 }
+                else { espawn 8133 seta[RETURN].xrepeat 32 seta[RETURN].yrepeat 32 }
+            }
+            else
+            {
+                ifrnd 32 { espawn HATRACK seta[RETURN].xrepeat 32 seta[RETURN].yrepeat 32 }
+                else ifrnd 32 { espawn DESKLAMP seta[RETURN].xrepeat 32 seta[RETURN].yrepeat 32 }
+                else ifrnd 32 { espawn COFFEEMACHINE seta[RETURN].xrepeat 32 seta[RETURN].yrepeat 32 }
+                else ifrnd 32 { espawn TEDDYBEAR seta[RETURN].xrepeat 32 seta[RETURN].yrepeat 32 }
+                else ifrnd 32 { espawn 4444 seta[RETURN].xrepeat 32 seta[RETURN].yrepeat 32 }
+                else ifrnd 32 { espawn GUMBALLMACHINE seta[RETURN].xrepeat 32 seta[RETURN].yrepeat 32 }
+                else ifrnd 32 { espawn BROOM seta[RETURN].xrepeat 32 seta[RETURN].yrepeat 32 }
+                else { espawn MOP seta[RETURN].xrepeat 32 seta[RETURN].yrepeat 32 }
+            }
+
+            // kill effects
+            globalsound TRANSFORM
+            espawn EXPLOSION2
+            seta[RETURN].pal 17
+            addkills 1
+            state jib_sounds
+
+            // remove the original actor
+            killit
+        }
+    }
+    else ife PROJ_HIT_TYPE 6857 // Pulse rifle
+    {
+        // on kill
+        ifdead
+        {
+            // don't gib these
+            ifactor BATTLELORD ifspritepal 0 break
+            ifactor BOSS2 break
+            ifactor BOSS3 break
+            ifactor BOSS4 break
+            ifactor BOSS5 break
+            ifactor SERPENT_GOD break
+            ifactor DOCTORJ break
+            ifactor MISTERH break
+
+            // spawn item for cultist (probably needed for other actors too)
+            ifactor CULTIST
+              ifn YVELSAVED 0
+                espawnvar YVELSAVED
+
+            // operate stuff on death (probably needs to be applied to other actors too)
+            ifactor BATTLELORD
+              ifn XVELSAVED 0
+            {
+                operateactivators XVELSAVED THISACTOR
+                operatemasterswitches XVELSAVED
+                operaterespawns XVELSAVED
+                set XVELSAVED 0
+            }
+            ifactor COMMANDER
+              ifn XVELSAVED 0
+            {
+                operateactivators XVELSAVED THISACTOR
+                operatemasterswitches XVELSAVED
+                operaterespawns XVELSAVED
+                set XVELSAVED 0
+            }
+            ifactor ADV_COMMANDER
+              ifn XVELSAVED 0
+            {
+                operateactivators XVELSAVED THISACTOR
+                operatemasterswitches XVELSAVED
+                operaterespawns XVELSAVED
+                set XVELSAVED 0
+            }
+
+            // explosion
+            sound PULSE_EX
+            espawn EXPLOSION2
+            hitradius 2048 16 32 64 96
+            seta[RETURN].pal 2
+            seta[RETURN].xrepeat 60
+            seta[RETURN].yrepeat 60
+
+            // gibs
+            ifactor LIZTROOP
+                state troop_body_jibs
+            state standard_jibs
+
+            // misc
+            addkills 1
+            palfrom 20 20
+
+            // remove the actor
+            ifactor APLAYER nullop
+            else killit
+        }
+    }
+    else ife PROJ_HIT_TYPE 6276 // UNMAKER
+    {
+        // heals player on hit (maybe this should check who the owner of the projectile is?)
+        addphealth 1
+
+        // on kill
+        ifdead
+        {
+            ifactor APLAYER
+            {
+                geta[].htowner temp7
+                geta[temp7].extra temp8
+                add temp8 50
+                seta[temp7].extra temp8
+            }
+            else
+            {
+                // increase player health (again, this should check owner of the projectile)
+                ifactor BATTLELORD
+                {
+                    addphealth 100
+                    ifspritepal 0 ife VOLUME 0 ife LEVEL 7 endofgame 52
+                }
+                else ifactor BOSS2
+                {
+                    addphealth 100
+                    ifspritepal 0 ife VOLUME 0 ife LEVEL 7 endofgame 52
+                }
+                else ifactor BOSS3
+                {
+                    addphealth 100
+                    ifspritepal 0 ife VOLUME 0 ife LEVEL 7 endofgame 52
+                }
+                else ifactor BOSS4
+                {
+                    addphealth 100
+                    ifspritepal 0 ife VOLUME 0 ife LEVEL 7 endofgame 52
+                }
+                else
+                    addphealth 20
+
+                // spawn item for cultist (probably needed for other actors too)
+                ifactor CULTIST
+                  ifn YVELSAVED 0
+                    espawnvar YVELSAVED
+
+                // activator operation
+                ifactor BATTLELORD
+                  ifn XVELSAVED 0
+                {
+                    operateactivators XVELSAVED THISACTOR
+                    operatemasterswitches XVELSAVED
+                    operaterespawns XVELSAVED
+                    set XVELSAVED 0
+                }
+                ifactor COMMANDER
+                  ifn XVELSAVED 0
+                {
+                    operateactivators XVELSAVED THISACTOR
+                    operatemasterswitches XVELSAVED
+                    operaterespawns XVELSAVED
+                    set XVELSAVED 0
+                }
+				ifactor ADV_COMMANDER
+				  ifn XVELSAVED 0
+				{
+					operateactivators XVELSAVED THISACTOR
+					operatemasterswitches XVELSAVED
+					operaterespawns XVELSAVED
+					set XVELSAVED 0
+				}
+
+                // gibs
+                ifactor LIZTROOP
+                    state troop_body_jibs
+                state standard_jibs
+
+                // misc
+                globalsound UNMADE
+                espawn SKULLEXPLOSION
+                addkills 1
+                seta[RETURN].pal 2
+
+                // remove the actor
+                ifactor SERPENT_GOD nullop
+                else killit
+            }
+        }
+    }
+
+	// HANDLE NSOUL STUFF
+	ifge OWNERSAVED 0
+	{
+		geta[].extra temp2
+		geta[].htextra temp3
+
+		geta[OWNERSAVED].picnum temp4
+
+		ife temp4 NSOUL_SPAWNER
+			ifle temp2 0
+		{
+			spawn SKULLEXPLOSION
+
+			// add new token
+			getav[OWNERSAVED].OWNERSAVED temp2
+			getav[temp2].enemy_spawn_tokens temp3
+			add temp3 1
+			setav[temp2].enemy_spawn_tokens temp3
+			addkills 1
+			killit
+		}
+	}
+ends
+
+// Common code for enemies that use points
+
+// This cleanup code must run in the context where the enemy currently using the point system dies
+// Otherwise old points can remain cached incorrectly for a next enemy that uses it...
+defstate clearAllEnemyPoints
+	for tmp_enemypoint_index range enemypoints_max_idx
+	{
+		setarray enemypoints[tmp_enemypoint_index] -1
+	}
+ends
+
+defstate enemyPointsAdd
+	ife enemypoint_handled 0
+	{
+		setarray enemypoints[enemypoint_index] THISACTOR
+		add enemypoint_index 1
+		cstat 32768
+		set enemypoint_handled 1
+	}
+ends
+
+defstate enemyInvalidateCurrentPoint
+	ifn cur_enemypoint -1 // can be -1 on map load or something
+		setav[cur_enemypoint].cur_point_enemy -1
+ends
+
+defstate enemySetPoint
+	ifn cur_enemypoint -1
+	{
+		setav[cur_enemypoint].cur_point_enemy THISACTOR
+		geta[cur_enemypoint].x x
+		geta[cur_enemypoint].y y
+		geta[cur_enemypoint].z z
+
+		seta[].x x
+		seta[].y y
+		seta[].z z
+
+		set enemypoint_handled 1
+		set prev_enemypoint cur_enemypoint
+	}
+ends
+
+array tmp_enemypoints 30
+defstate enemyFindPoint
+	// Clear our temp array
+	for tmp_enemypoint_index range 30
+		setarray tmp_enemypoints[tmp_enemypoint_index] -1
+
+	// Fill it up with indexes of points that are available
+	set temp2 0
+
+	for tmp_enemypoint_index range enemypoint_index
+	{
+		set tmp_cur_enemypoint enemypoints[tmp_enemypoint_index]
+		ifg tmp_cur_enemypoint 0
+		{
+			getav[tmp_cur_enemypoint].cur_point_enemy temp
+
+			ife temp -1 // not already used
+				ifn prev_enemypoint tmp_cur_enemypoint // don't reuse points
+			{
+				setarray tmp_enemypoints[temp2] tmp_cur_enemypoint
+				add temp2 1
+			}
+		}
+	}
+
+	// Now pick a point randomly from the "temp" array
+	// If there are non available we DO reuse the current point
+	ifg temp2 0
+	{
+		set temp temp2
+		sub temp 1
+		randvarvar tmp_enemypoint_index temp
+
+		set cur_enemypoint tmp_enemypoints[tmp_enemypoint_index]
+	}
+	else
+		set cur_enemypoint prev_enemypoint
+ends
+
+defstate invalidateCurrentEnemyPoints
+	for tmp_enemypoint_index range enemypoint_index
+		setarray enemypoints[tmp_enemypoint_index] -1
+
+	set enemypoint_index 0
+ends
+
+
+// Add enemies to bestiary when killed
+defstate is_legacy_style_enemy
+	// Some vanilla enemies are still defined using "actor" which means they will not have SFLAG_BADGUY set, we'll handle that here
+	switch sprite.picnum
+		case BOSS2
+		case DRONE
+		case COMMANDER
+		case LIZTROOP
+		case OCTABRAIN
+		case BOSS3
+		case PIGCOP
+		case EGG
+		case BOSS4
+		case ROTATEGUN
+		case SHARK
+		case RECON
+			set temp 1
+			break
+		default
+			set temp 0
+			break
+	endswitch
+ends
+
+// input: temp3
+// output: temp3
+defstate getenemypicnumforbestiary
+	// For most enemies we put their picnum in the bestiary
+	// But there are exceptions for some pal variants that have unique MIA researches. These get their own entries
+	ife temp3 BATTLELORD
+	{
+		ife actor_pal 0 set temp3 BLORD_BESTIARY_PAL0
+	}
+
+	ife temp3 GORILLA
+	{
+		ife actor_pal 13 set temp3 GORILLA_BESTIARY_PAL13
+	}
+
+	ife temp3 LIZTROOP
+	{
+		ife actor_pal 10
+			set temp3 LIZTROOP_BESTIARY_PAL10
+		else ife actor_pal 23
+			set temp3 LIZTROOP_BESTIARY_PAL23
+	}
+ends
+
+var CHK_ENEMY_IN_BST_PICNUM 0 1
+var CHK_ENEMY_IN_BST_PAL 0 1
+var ENEMY_IN_BST 0 1 // output
+defstate isenemyinbestiary
+	set temp 0
+	set ENEMY_IN_BST 0
+	set actor_pal CHK_ENEMY_IN_BST_PAL
+	whilel temp MAX_BESTIARY_COUNT
+	{
+		set temp2 ENEMIES_BESTIARY[temp]
+		set temp3 CHK_ENEMY_IN_BST_PICNUM
+		state getenemypicnumforbestiary // output = temp3
+
+		ife temp2 temp3
+		{
+			set ENEMY_IN_BST 1
+			set temp MAX_BESTIARY_COUNT
+		}
+
+		add temp 1
+	}
+	
+	// RESET input argument
+	set CHK_ENEMY_IN_BST_PAL 0
+	set CHK_ENEMY_IN_BST_PICNUM 0
+ends
+
+defstate addenemytobestiary
+	// Add the picnum of the enemy to the bestiary array
+	set temp 0
+	whilel temp MAX_BESTIARY_COUNT
+	{
+		set temp2 ENEMIES_BESTIARY[temp]
+		geta[].picnum temp3
+		state getenemypicnumforbestiary // output = temp3
+
+		ife temp2 temp3 // Already in bestiary, stop looping
+		{
+			set temp MAX_BESTIARY_COUNT
+		}
+		else ife temp2 0 // Reached the end of defined enemies in the bestiary, didn't encounter this one => add it!
+		{
+			setarray ENEMIES_BESTIARY[temp] temp3
+			writearraytofile ENEMIES_BESTIARY F_ENEMIES_BESTIARY
+
+			// If this enemy has an associated research item that we haven't unlocked yet, add it to the list
+			set ui_query_id temp3
+			state bst_get_def_anytab
+
+			ife bst_hasdef 1
+			  ifn bst_item_research -1
+			{
+				switch bst_item_res_cat
+					case RS_TAB_WEAPONS
+						ife WEAPONS_RESEARCH[bst_item_research] 0
+						{
+							setarray WEAPONS_RESEARCH[bst_item_research] 4
+							writearraytofile WEAPONS_RESEARCH F_WEAPONS_AMCTC
+						}
+						break
+					case RS_TAB_EQUIPMENT
+						ife EQUIPMENT_RESEARCH[bst_item_research] 0
+						{
+							setarray EQUIPMENT_RESEARCH[bst_item_research] 4
+							writearraytofile EQUIPMENT_RESEARCH F_EQUIPMENT_AMCTC
+						}
+						break
+					case RS_TAB_PERSONNEL
+						ife PERSONNEL_RESEARCH[bst_item_research] 0
+						{
+							setarray PERSONNEL_RESEARCH[bst_item_research] 4
+							writearraytofile PERSONNEL_RESEARCH F_PERSONNEL_AMCTC
+						}
+						break
+					case RS_TAB_BASE
+						ife BASE_RESEARCH[bst_item_research] 0
+						{
+							setarray BASE_RESEARCH[bst_item_research] 4
+							writearraytofile BASE_RESEARCH F_BASE_AMCTC
+						}
+						break
+					case RS_TAB_MYSTIC
+						ife MYSTICAL_RESEARCH[bst_item_research] 0
+						{
+							setarray MYSTICAL_RESEARCH[bst_item_research] 4
+							writearraytofile MYSTICAL_RESEARCH F_MYSTIC_AMCTC
+						}
+						break
+					case RS_TAB_DOJO
+						ife MELEE_RESEARCH[bst_item_research] 0
+						{
+							setarray MELEE_RESEARCH[bst_item_research] 4
+							writearraytofile MELEE_RESEARCH F_DOJO_AMCTC
+						}
+						break
+				endswitch
+			}
+
+			set temp MAX_BESTIARY_COUNT
+		}
+
+		add temp 1
+	}
+	
+	// RESET input argument
+	set CHK_ENEMY_IN_BST_PAL 0
+	set CHK_ENEMY_IN_BST_PICNUM 0
+ends
+
+defstate addenemytomiad
+	// Add the picnum of the enemy to the mia'd array
+	set temp 0
+	whilel temp MAX_BESTIARY_COUNT
+	{
+		set temp2 ENEMIES_MIAD[temp]
+		geta[].picnum temp3
+		state getenemypicnumforbestiary // output = temp3
+		ife temp2 temp3 // Already in, stop looping
+		{
+			set temp MAX_BESTIARY_COUNT
+		}
+		else ife temp2 0 // Reached the end of defined enemies, didn't encounter this one => add it!
+		{
+			setarray ENEMIES_MIAD[temp] temp3
+			writearraytofile ENEMIES_MIAD F_ENEMIES_MIAD
+
+			set temp MAX_BESTIARY_COUNT
+		}
+
+		add temp 1
+	}
+ends
+
+appendevent EVENT_POSTACTORDAMAGE
+	// Is the actor an enemy?
+	set temp 0
+
+	ifand tiledata[sprite.picnum].gameflags SFLAG_BADGUY
+		set temp 1
+	else
+		state is_legacy_style_enemy
+
+	ife temp 1
+	{
+		// If hit by MIA gun or dead, add to bestiary
+		ife sprite.htpicnum 9376
+		{
+			state addenemytobestiary
+			state addenemytomiad
+		}
+		// are they dead?
+		else ifle sprite[].extra 0
+			state addenemytobestiary
+	}
+endevent
+
+appendevent EVENT_KILLIT
+	// Is the actor an enemy?
+	set temp 0
+
+	ifand sprite.htflags SFLAG_BADGUY
+		set temp 1
+	else
+		state is_legacy_style_enemy
+
+	ife temp 1
+		state addenemytobestiary
+endevent
+
+// ENEMY ART/FOG OFFSETS ===============================================================================================================================================================================
+
+var enemy_art_offset 0 2
+
+appendevent EVENT_ANIMATESPRITES
+switch sprite[].picnum
+	case ARCHER
+	case ARCHER_STAYPUT
+		ifn tspr[].tsprpal 4 // not the actor's shadow?
+			{
+			ife actor_pal 15 ife sector[].floorpal 129 settspr[].tsprpal 169
+			}
+		break
+	case NINJA
+	case NINJASTAYPUT
+		ifn tspr[].tsprpal 4 // not the actor's shadow?
+			{
+			ifspritepal 21 ife sector[].floorpal 129 { settspr[].tsprpal 173 settspr[].tsprshade sector[].floorshade }
+			ifspritepal 21 ife sector[].floorpal 128 { settspr[].tsprpal 168 settspr[].tsprshade sector[].floorshade }
+			ifspritepal 21 ife sector[].floorpal 131 { settspr[].tsprpal 171 settspr[].tsprshade sector[].floorshade }
+			}
+		break
+	case NEWBEAST
+	case NEWBEASTSTAYPUT
+	case NEWBEASTJUMP
+	case NEWBEASTHANG
+	case NEWBEASTHANGDEAD
+		ifn tspr[].tsprpal 4 // not the actor's shadow?
+			{
+			ifspritepal 15 ife sector[].floorpal 130 settspr[].tsprpal 175
+			}
+		break
+	case ZCHAING
+	case ZCHAINGSTAYPUT
+		ifn tspr[].tsprpal 4 // not the actor's shadow?
+			{
+			ifspritepal 10 ife sector[].floorpal 145 settspr[].tsprpal 167
+			}
+		break
+	case RIPPER
+		ifn tspr[].tsprpal 4 // not the actor's shadow?
+			{
+			ife actor_pal 50 ife sector[].floorpal 131 settspr[].tsprpal 162
+			else ife sector[].floorpal 131 settspr[].tsprpal 131
+			else ife sector[].floorpal 140 settspr[].tsprpal 140
+			}
+		break
+	case GUARDIAN
+		ifn tspr[].tsprpal 4 // not the actor's shadow?
+			{
+			ife actor_pal 11 ife sector[].floorpal 140 settspr[].tsprpal 166
+			else ife actor_pal 11 ife sector[].floorpal 129 settspr[].tsprpal 172
+			else ife actor_pal 11 ife sector[].floorpal 140 settspr[].tsprpal 166
+			else ife actor_pal 36 ife sector[].floorpal 131 settspr[].tsprpal 161
+			}
+		break
+	// art offsets ==================================================================================
+	case SPIDER2
+		ife actor_pal 12 // spider momma?
+			{
+				ifge sprite[].htdispicnum 23490
+				 ifle sprite[].htdispicnum 23532
+					{
+					gettspr[].tsprpicnum enemy_art_offset
+					add enemy_art_offset 13310
+					settspr[].tsprpicnum enemy_art_offset
+					}
+			}
+		break
+	case CYBERCULTIST
+	case CYBERCULTIST_STAYPUT
+		ife actor_pal 21 // shielded minigunner?
+			{
+				ifge sprite[].htdispicnum 19969
+				 ifle sprite[].htdispicnum 20019
+					{
+					gettspr[].tsprpicnum enemy_art_offset
+					add enemy_art_offset 16586
+					settspr[].tsprpicnum enemy_art_offset
+					}
+			}
+		break
+	case GORILLA
+	case GORILLA_STAYPUT
+		ife actor_pal 13 // Gorilla boss?
+			{
+				ifge sprite[].htdispicnum 22785
+				 ifle sprite[].htdispicnum 22826
+					{
+					gettspr[].tsprpicnum enemy_art_offset
+					add enemy_art_offset 13728
+					settspr[].tsprpicnum enemy_art_offset
+					}
+			}
+		break
+	case TERMINATOR
+  	case TERMINATORSTAYPUT
+	case TERMINATORDUCKING
+	case TERMINATORCRAWLING
+	case TERMHEAD
+	case TERMTORSO
+		ife actor_pal 3 set param 1
+		else ife actor_pal 9 set param 2
+		else ife actor_pal 16 set param 2
+		else set param 0
+		ife param 1 // EAF droid
+			{
+				ifge sprite[].htdispicnum 24731
+				 ifle sprite[].htdispicnum 24826
+					{
+					gettspr[].tsprpicnum enemy_art_offset
+					add enemy_art_offset 11877
+					settspr[].tsprpicnum enemy_art_offset
+					}
+			}
+		ife param 2 // EDF droid
+			{
+				ifge sprite[].htdispicnum 24731
+				 ifle sprite[].htdispicnum 24826
+					{
+					gettspr[].tsprpicnum enemy_art_offset
+					add enemy_art_offset 11973
+					settspr[].tsprpicnum enemy_art_offset
+					}
+			}
+		break
+	case BLORD_STAYPUT
+  	case BATTLELORD
+		ife actor_pal 0
+			{
+				ifge sprite[].htdispicnum 2630
+				 ifle sprite[].htdispicnum 2685
+					{
+					gettspr[].tsprpicnum enemy_art_offset
+					add enemy_art_offset 33078
+					settspr[].tsprpicnum enemy_art_offset
+					}
+			}
+		break
+	 case LIZTROOP_CORPSE_FLY
+	 case 28898
+		ifspritepal 23 set param 1
+		else ifspritepal 10 set param 1
+		else ifspritepal 35 set param 1
+		else set param 0
+		 ife param 1
+			{
+			gettspr[].tsprpicnum enemy_art_offset
+			add enemy_art_offset 6795
+			settspr[].tsprpicnum enemy_art_offset
+			}
+		break
+	 case LIZTROOP
+	 case LIZTROOPSTAYPUT
+	 case LIZTROOPJETPACK
+	 case LIZTROOPDUCKING
+	 case LIZTROOPSHOOT
+	 case LIZTROOPRUNNING
+	 case LIZTROOPONTOILET
+	 case LIZTROOPJUSTSIT
+		ife actor_pal 23 set param 1
+		else ife actor_pal 10 set param 1
+		else ife actor_pal 35 set param 1
+		else set param 0
+		 ife param 1
+			{
+				ifge sprite[].htdispicnum 1680
+				 ifle sprite[].htdispicnum 1755
+					{
+					gettspr[].tsprpicnum enemy_art_offset
+					add enemy_art_offset 33904
+					settspr[].tsprpicnum enemy_art_offset
+					}
+				ifge sprite[].htdispicnum 1766
+				 ifle sprite[].htdispicnum 1767
+					{
+					gettspr[].tsprpicnum enemy_art_offset
+					add enemy_art_offset 33894
+					settspr[].tsprpicnum enemy_art_offset
+					}
+				ifge sprite[].htdispicnum 1780
+				 ifle sprite[].htdispicnum 1799
+					{
+					gettspr[].tsprpicnum enemy_art_offset
+					add enemy_art_offset 33882
+					settspr[].tsprpicnum enemy_art_offset
+					}
+				ifge sprite[].htdispicnum 16775
+				 ifle sprite[].htdispicnum 16784
+					{
+					gettspr[].tsprpicnum enemy_art_offset
+					add enemy_art_offset 18923
+					settspr[].tsprpicnum enemy_art_offset
+					}
+				ifge sprite[].htdispicnum 16809
+				 ifle sprite[].htdispicnum 16814
+					{
+					gettspr[].tsprpicnum enemy_art_offset
+					add enemy_art_offset 18873
+					settspr[].tsprpicnum enemy_art_offset
+					}
+			}
+		break
+	 case ALUDRAN
+	 case ALUDRAN_STAYPUT
+	 ife actor_pal 10
+			{
+			ifge sprite[].htdispicnum 22200
+			 ifle sprite[].htdispicnum 22260
+				{
+				gettspr[].tsprpicnum enemy_art_offset
+				add enemy_art_offset 13128
+				settspr[].tsprpicnum enemy_art_offset
+				}
+			}
+		break
+	 case BERSERKER
+	 case BERSERKER_STAYPUT
+	 ife actor_pal 3
+			{
+			ifge sprite[].htdispicnum 11696
+			 ifle sprite[].htdispicnum 11740
+				{
+				gettspr[].tsprpicnum enemy_art_offset
+				add enemy_art_offset 23693
+				settspr[].tsprpicnum enemy_art_offset
+				}
+			}
+		break
+	 case BRUISER
+	 case BRUISERSTAYPUT
+	 ife actor_pal 24
+			{
+			ifge sprite[].htdispicnum 7535
+			 ifle sprite[].htdispicnum 7599
+				{
+				gettspr[].tsprpicnum enemy_art_offset
+				add enemy_art_offset 27691
+				settspr[].tsprpicnum enemy_art_offset
+				}
+			}
+		break
+	 case SATYR
+	 case SATYR_STAYPUT
+		 ife actor_pal 47
+				{
+				ifge sprite[].htdispicnum 7424
+				 ifle sprite[].htdispicnum 7469
+						 {
+						gettspr[].tsprpicnum enemy_art_offset
+						add enemy_art_offset 27648
+						settspr[].tsprpicnum enemy_art_offset
+						}
+				ifge sprite[].htdispicnum 7817
+				 ifle sprite[].htdispicnum 7822
+						 {
+						gettspr[].tsprpicnum enemy_art_offset
+						add enemy_art_offset 27301
+						settspr[].tsprpicnum enemy_art_offset
+						}
+				ifge sprite[].htdispicnum 11008
+				 ifle sprite[].htdispicnum 11012
+						 {
+						gettspr[].tsprpicnum enemy_art_offset
+						add enemy_art_offset 24116
+						settspr[].tsprpicnum enemy_art_offset
+						}
+				}
+		break
+	 case CYBERTOUR
+	 case CYBERTOURSTAYPUT
+		 ife actor_pal 24
+				{
+				ifge sprite[].htdispicnum 8258
+				 ifle sprite[].htdispicnum 8307
+						 {
+						gettspr[].tsprpicnum enemy_art_offset
+						add enemy_art_offset 26871
+						settspr[].tsprpicnum enemy_art_offset
+						}
+				}
+		break
+	 case HADESPHERE
+	 case HADESPHERESTAYPUT
+		 ife actor_pal 24
+				{
+				ifge sprite[].htdispicnum 8192
+				 ifle sprite[].htdispicnum 8238
+						 {
+						gettspr[].tsprpicnum enemy_art_offset
+						add enemy_art_offset 26987
+						settspr[].tsprpicnum enemy_art_offset
+						}
+				}
+		break
+	 case LPOWERSUIT
+	 case LPOWERSUITSTAYPUT
+		 ife actor_pal 10
+				{
+				ifge sprite[].htdispicnum 8489
+				 ifle sprite[].htdispicnum 8491
+						 {
+						gettspr[].tsprpicnum enemy_art_offset
+						add enemy_art_offset 26573
+						settspr[].tsprpicnum enemy_art_offset
+						}
+				ifge sprite[].htdispicnum 8704
+				 ifle sprite[].htdispicnum 8738
+						 {
+						gettspr[].tsprpicnum enemy_art_offset
+						add enemy_art_offset 26323
+						settspr[].tsprpicnum enemy_art_offset
+						}
+				}
+		break
+	 case CULTIST
+	 case CULTISTSTAYPUT
+	 case CULTISTJUMP
+	 case CULTISTSHOTGUNSTRUGGLE
+	 case CULTIST_TORSO_FLY
+	 case 30426
+	 case CULTIST_CORPSE_FLY
+	 case 28848
+		geta[].pal actor_pal
+		ife actor_pal 20 set param 1
+		else ife actor_pal 16 set param 1
+		else ife actor_pal 49 set param 1
+		else set param 0
+		 ife param 1
+			{
+				ifge sprite[].htdispicnum 7680
+				 ifle sprite[].htdispicnum 7788
+					{
+					gettspr[].tsprpicnum enemy_art_offset
+					add enemy_art_offset 28672
+					settspr[].tsprpicnum enemy_art_offset
+					}
+				ifge sprite[].htdispicnum 7875
+				 ifle sprite[].htdispicnum 7878
+					{
+					gettspr[].tsprpicnum enemy_art_offset
+					add enemy_art_offset 28586
+					settspr[].tsprpicnum enemy_art_offset
+					}
+				ifge sprite[].htdispicnum 15230
+				 ifle sprite[].htdispicnum 15260
+					{
+					gettspr[].tsprpicnum enemy_art_offset
+					add enemy_art_offset 21235
+					settspr[].tsprpicnum enemy_art_offset
+					}
+				ifge sprite[].htdispicnum 28843
+				 ifle sprite[].htdispicnum 28852
+					{
+					gettspr[].tsprpicnum enemy_art_offset
+					add enemy_art_offset 7660
+					settspr[].tsprpicnum enemy_art_offset
+					}
+				ifge sprite[].htdispicnum 30420
+				 ifle sprite[].htdispicnum 30426
+					{
+					gettspr[].tsprpicnum enemy_art_offset
+					add enemy_art_offset 6076
+					settspr[].tsprpicnum enemy_art_offset
+					}
+			}
+		break
+endswitch
+
+endevent
+
+// ======================================================================================================================
+// ENEMY EXTERNAL FILES
+// ======================================================================================================================
+
+// CYCLOID ENEMIES
+
+include CODE/ENEMY/CYCLOID/AMC_LIZTROOP.CON // Lizard Trooper
+include CODE/ENEMY/CYCLOID/AMC_LIZMAN.CON // Lizman and Elite Lizman
+include CODE/ENEMY/CYCLOID/AMC_PIGS.CON // Pigcops and riotshield pigcops
+include CODE/ENEMY/CYCLOID/AMC_SF_PIGS.CON // Special Forces pig
+include CODE/ENEMY/CYCLOID/AMC_PIGTANK.CON // Pigcop tank
+
+include CODE/ENEMY/CYCLOID/AMC_OCTAB.CON // Octabrain
+include CODE/ENEMY/CYCLOID/AMC_FATC.CON // Fat Commander
+include CODE/ENEMY/CYCLOID/ADVFATC.CON // Plasma Commander
+include CODE/ENEMY/CYCLOID/AMC_PDRONE.CON // Protector Drone
+include CODE/ENEMY/CYCLOID/AMC_DRONE.CON // Kamikaze Drone
+
+include CODE/ENEMY/CYCLOID/AMC_ROTGUN.CON // Turrets
+include CODE/ENEMY/CYCLOID/AMC_PROTOZ.CON // Slimer + Egg
+include CODE/ENEMY/CYCLOID/AMC_SPACELIZTROOP.CON // Charon spaceliztroop
+include CODE/ENEMY/CYCLOID/AMC_BATTLELORD.CON // Battlelord
+
+include CODE/ENEMY/CYCLOID/AMC_OVERLORD.CON // Overlord
+include CODE/ENEMY/CYCLOID/AMC_CYCLOID.CON // Cycloid Emperor
+include CODE/ENEMY/CYCLOID/AMC_QUEEN.CON // Alien Queen
+include CODE/ENEMY/CYCLOID/AMC_HCYCL.CON // Cycloid High Emperor
+
+include CODE/ENEMY/CYCLOID/AMC_CYALIEN.CON // Cyber Alien
+include CODE/ENEMY/CYCLOID/AMC_PIGBOSS.CON // Swinelord
+include CODE/ENEMY/CYCLOID/AMC_LIZBOSS.CON // Cyberlizard boss
+include CODE/ENEMY/CYCLOID/LIZ_SNIPER.CON // Lizard Sniper
+
+// SHADOW ENEMIES
+
+include CODE/ENEMY/SHADOW/AMC_TRIAD.CON // Triad gangster
+include CODE/ENEMY/SHADOW/AMC_NINJA.CON // Ninja
+include CODE/ENEMY/SHADOW/AMC_RIPPER.CON // Ripper
+
+include CODE/ENEMY/SHADOW/AMC_MAMANO.CON // Mamano
+include CODE/ENEMY/SHADOW/AMC_GORO.CON // Guardian
+include CODE/ENEMY/SHADOW/AMC_SERPGOD.CON // Serpent God
+
+include CODE/ENEMY/SHADOW/YUKI_ONNA.CON // Yuki Onna
+
+// DEMON ENEMIES
+
+include CODE/ENEMY/DEMON/AMC_SATYR.CON // Satyr
+include CODE/ENEMY/DEMON/AMC_SHADE.CON // Shade
+include CODE/ENEMY/DEMON/AMC_INFERNAL.CON // Infernal (orange skinny demon who throws fireballs)
+
+include CODE/ENEMY/DEMON/AMC_BRUISER.CON // Bruiser demon
+include CODE/ENEMY/DEMON/AMC_CYBERTOUR.CON // Cybertour
+include CODE/ENEMY/DEMON/AMC_CYBERD.CON // Cyyberdemon
+
+include CODE/ENEMY/DEMON/AMC_FLESHW.CON // Flesh Wizard
+include CODE/ENEMY/DEMON/AMC_HADES.CON // Hadesphere
+include CODE/ENEMY/DEMON/AMC_ABYSSDES.CON // Abyss Despot
+include CODE/ENEMY/DEMON/AMC_MAEPHISTO.CON // Maephisto
+
+// ZOMBIE ENEMIES
+
+include CODE/ENEMY/ZOMB/AMC_ZSCIEN.CON // Zombie scientist
+include CODE/ENEMY/ZOMB/AMC_ZCHAING.CON // Zombie chaingunner
+include CODE/ENEMY/ZOMB/AMC_ZSOLDIER.CON // Zombie soldier (both female and male variant)
+include CODE/ENEMY/ZOMB/AMC_ZGRENL.CON // Zombie grenade launcher
+
+include CODE/ENEMY/ZOMB/AMC_ZOMBIE.CON // normal zombie
+
+// CULT ENEMIES
+
+include CODE/ENEMY/CULT/AMC_CULTIST.CON
+include CODE/ENEMY/CULT/AMC_DARKAV.CON // Dark avatar
+include CODE/ENEMY/CULT/AMC_SORCERER.CON // Sorcerer
+include CODE/ENEMY/CULT/AMC_LOST.CON // Lost
+
+include CODE/ENEMY/CULT/AMC_JEKYL.CON // Dr. Jekyl
+include CODE/ENEMY/CULT/AMC_HYDE.CON // Mr. Hyde
+include CODE/ENEMY/CULT/AMC_LILITH.CON // Lilith
+include CODE/ENEMY/CULT/AMC_ENTITY.CON // The Entity
+
+include CODE/ENEMY/CULT/AMC_SPIRIT.CON // Spirit
+include CODE/ENEMY/CULT/AMC_SHAMBLER.CON // Shambler
+include CODE/ENEMY/CULT/CULT_HMG.CON // Cultist HMG
+include CODE/ENEMY/CULT/CULT_FLAME.CON // Cultist Flamer/Energy
+include CODE/ENEMY/CULT/CULT_CHAINS.CON // Cultist Chainsaw
+
+// EGYPTIAN ENEMIES
+
+include CODE/ENEMY/EGYPT/AMC_COBRA.CON // Egypt Cobra
+include CODE/ENEMY/EGYPT/AMC_SIREN.CON // Siren
+include CODE/ENEMY/EGYPT/AMC_ALUDRAN.CON // Aludran
+include CODE/ENEMY/EGYPT/AMC_SCORP.CON // Scorpioness
+
+include CODE/ENEMY/EGYPT/AMC_LAVAB.CON // Lava beast
+include CODE/ENEMY/EGYPT/AMC_THOTH.CON // Thoth
+include CODE/ENEMY/EGYPT/AMC_ANUBMUM.CON // Anubis Mummy
+include CODE/ENEMY/EGYPT/AMC_SCARABD.CON // Scarabdemon
+include CODE/ENEMY/EGYPT/AMC_LESANG.CON // Le Sang
+
+// MAJESTIC 12 ENEMIES
+
+include CODE/ENEMY/MJ12/AMC_MJ12TROOP.CON // MJ12 TROOPER
+include CODE/ENEMY/MJ12/AMC_PATCOS.CON // PATCOS specific code
+include CODE/ENEMY/MJ12/AMC_ALTJS.CON // Semaj
+include CODE/ENEMY/MJ12/AMC_ASSASSIN.CON // Assassin
+
+// PARADIGN ESCHATON ENEMIES
+
+include CODE/ENEMY/PARAD/AMC_PEGRUNT.CON // Paradigm Eschaton Grunt
+include CODE/ENEMY/PARAD/AMC_PEELDER.CON // Paradigm Eschaton Elder
+include CODE/ENEMY/PARAD/AMC_PESHOTG.CON // Paradigm Eschaton Shotgunner
+include CODE/ENEMY/PARAD/AMC_TRENTON.CON // Trenton Solari
+include CODE/ENEMY/PARAD/AMC_PESENTRY.CON // Paradigm Sentry
+
+// NECROMANCER ENEMIES
+
+include CODE/ENEMY/NECRO/BEHOLDER.CON // Beholder
+include CODE/ENEMY/NECRO/BERSERKER.CON // Berserker
+include CODE/ENEMY/NECRO/OGRE.CON // Ogre
+include CODE/ENEMY/NECRO/ARCHER.CON // Archer
+include CODE/ENEMY/NECRO/ORC.CON // Orc
+include CODE/ENEMY/NECRO/TROLL.CON // Troll
+
+include CODE/ENEMY/NECRO/NBRUTE.CON // Netherbrute
+include CODE/ENEMY/NECRO/S_KNIGHT.CON // Skull Knight
+include CODE/ENEMY/NECRO/S_SQUIRE.CON // Skull Squire
+include CODE/ENEMY/NECRO/GOLEM.CON // Golem
+
+include CODE/ENEMY/NECRO/VEGUNTH.CON // Vegunth the dragon
+include CODE/ENEMY/NECRO/SVEDR.CON // Svedr the ice knight
+include CODE/ENEMY/NECRO/MONGUR.CON // Mongur the minotaur general
+include CODE/ENEMY/NECRO/HYDRA.CON // Hydra
+include CODE/ENEMY/NECRO/DRAGON.CON // Regular dragon
+include CODE/ENEMY/NECRO/SUCCUBUS.CON // Succubus
+
+include CODE/ENEMY/NECRO/SBOSS1.CON // Maartn
+include CODE/ENEMY/NECRO/SBOSS2.CON // Jedrik
+include CODE/ENEMY/NECRO/CONSERVATOR.CON // Engineer conservator
+include CODE/ENEMY/NECRO/KRAKEN.CON // Kraken
+
+include CODE/ENEMY/NECRO/NAALDIR.CON // Naaldir
+include CODE/ENEMY/NECRO/NMIND.CON // Naaldir
+include CODE/ENEMY/NECRO/NSOUL.CON // Naaldir
+include CODE/ENEMY/NECRO/GOBLINBROS.CON // Goblin stuff
+
+// BEYONDERS
+
+include CODE/ENEMY/BEYOND/BEYONDER.CON // Beyonder
+
+// MERCENARY
+
+include CODE/ENEMY/MERC/AMC_MERC1.CON // Shotgun mercenary
+include CODE/ENEMY/MERC/AMC_MERC2.CON // Rifle mercenary
+include CODE/ENEMY/MERC/AMC_LPOWERSUIT.CON // Light powersuit
+include CODE/ENEMY/MERC/AMC_HPOWERSUIT.CON // Heavy powersuit
+
+include CODE/ENEMY/MERC/AMC_FASCIST.CON // Revolution & CNC boys
+include CODE/ENEMY/MERC/AMC_VILBOT.CON // Vilmos' robot
+
+include CODE/ENEMY/MERC/JUGGERN.CON // Juggernaut suit
+
+include CODE/ENEMY/MERC/AMC_MADRAX.CON // Madrax
+include CODE/ENEMY/MERC/AMC_CHOPPER.CON // Helicopters
+
+// MISC ENEMIES
+
+include CODE/ENEMY/MISC/AMC_GORILLA.CON // Gorilla (meaning RAINF.map boys)
+include CODE/ENEMY/MISC/AMC_NAZI.CON // Nazi
+include CODE/ENEMY/MISC/AMC_TERMINATOR.CON // Terminator
+include CODE/ENEMY/MISC/SENTRY.CON // Sentry Drone
+
+include CODE/ENEMY/MISC/AMC_PITFIEND.CON // IW Pitfiend
+include CODE/ENEMY/MISC/AMC_CYBCULT.CON // Cyber Cultists
+include CODE/ENEMY/MISC/AMC_CHRYSS.CON // Chryssalids
+include CODE/ENEMY/MISC/AMC_MISC.CON // Very minor enemies
+
+include CODE/ENEMY/MISC/AMC_SPIDER.CON // Spider
+include CODE/ENEMY/MISC/AMC_GSHIPBOSS.CON // Ghost Ship boss
+include CODE/ENEMY/MISC/AMC_WASPDRONE.CON // Wasp Drone
+
+include CODE/ENEMY/MISC/WOOFER.CON // Angry woofer
+include CODE/ENEMY/MISC/VRDUDE.CON // VR DUDE (panama)
+include CODE/ENEMY/MISC/MAKARA.CON // Makara, fish dude

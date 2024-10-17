@@ -1,0 +1,612 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Based on the Duke3D CON files by 3DRealms, released under the GPL2 at:
+https://github.com/videogamepreservation/dukenukem3d/blob/ef609159bd352985a0c63734a11241d86c873fe5/testdata/GAME.CON
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+
+--------------------------------------------------------------------------------
+*/
+
+damageeventtile BATTLELORD
+
+action ABOSS1_START        0  1  5  1  12
+action ABOSS1WALK        0  4  5  1  12
+action ABOSS1FROZEN        30 1  5
+action ABOSS1RUN         0  4  5  1  5
+action ABOSS1PREPARE       25 1 5 1 4
+action ABOSS1SHOOT         30 2  5  1  4
+action ABOSS1LOB         40 2  5  1  35
+action ABOSS1DYING        50 5  1  1  35
+action BOSS1FLINTCH       50 1  1  1  1
+action ABOSS1DEAD         55
+
+move PALBOSS1SHRUNKRUNVELS 32
+move PALBOSS1RUNVELS 128
+move BOSS1WALKVELS 208
+move BOSS1RUNVELS 296
+
+ai AIBOSS1SEEKENEMY ABOSS1WALK BOSS1WALKVELS geth
+ai AIBOSS1RUNENEMY ABOSS1RUN BOSS1RUNVELS geth
+ai AIBOSS1PREPARE ABOSS1PREPARE STOP
+ai AIBOSS1SHOOTENEMY ABOSS1SHOOT STOP
+ai AIBOSS1LOBBED ABOSS1LOB STOP
+ai AIBOSS1DYING ABOSS1DYING STOP
+ai AIBOSS1PALSHRINK ABOSS1WALK PALBOSS1SHRUNKRUNVELS furthestdir
+
+appendevent EVENT_RECOGSOUND
+
+ife sprite[THISACTOR].picnum BATTLELORD
+	{
+	ifn sprite[].pal 0 
+		{
+		set RETURN 1
+		globalsound BOS1MRG
+		}
+	else quake 26
+	}
+
+endevent
+
+defstate boss1palshrunkstate
+  ifcount SHRUNKDONECOUNT
+    ai AITROOPSEEKENEMY
+  else
+    ifcount SHRUNKCOUNT
+	  {
+	  sound ACTOR_UNSHRINK
+      sizeto 30 30
+	  }
+  else
+    state genericshrunkcode
+ends
+
+defstate checkboss1seekstate
+  state checkfortarget
+  ai AIBOSS1SEEKENEMY
+    ifn actor_pal 0 move PALBOSS1RUNVELS geth
+ends
+
+defstate boss1prepare
+soundonce MINIGUN2_START
+add INTERNALCOUNT 1
+ifg INTERNALCOUNT 30
+	{
+    state checkfortarget
+	ifn my_target -1
+		ai AIBOSS1SHOOTENEMY
+		else
+      ai AIBOSS1SEEKENEMY
+	set INTERNALCOUNT 0
+    }
+ends
+
+defstate boss1runenemystate
+state checkfortarget
+ife my_target -1 ai AIBOSS1SEEKENEMY else
+	{
+	state fronttowardstarget
+	ldist temp THISACTOR my_target
+	  ifl temp 2048
+	  ai AIBOSS1PREPARE
+	  else
+	  {
+		ifactioncount 6
+		{
+		  ifcanshoottarget
+		  {
+		 ifpdistl 8192 { quake 6 }
+			resetactioncount
+			sound BOS1_WALK
+		  }
+		  else
+			ai AIBOSS1SEEKENEMY
+		}
+	  }
+	 }
+ends
+
+defstate boss1seekenemystate
+  ifrnd 2
+	{
+	ife actor_pal 0 { quake 6 soundonce BOS1_ROAM }
+	else sound BOS1MRM
+	}
+  else
+    ifactioncount 6
+  {
+	ifpdistl 8192 { quake 6 }
+    resetactioncount
+    sound BOS1_WALK
+  }
+
+  state checkfortarget
+
+  ifn my_target -1
+  {
+  dist temp THISACTOR my_target // if found, get distance
+	  ifl temp 2548
+	  ai AIBOSS1PREPARE
+
+	ifcount 32
+	  {
+		ifrnd 32
+		{
+		 ai AIBOSS1PREPARE
+		}
+		else
+		  ifg temp 2548
+			ifrnd 192
+				{
+				  ifrnd 64
+				   ifactornotstayput
+				  {
+					ai AIBOSS1RUNENEMY
+					ife actor_pal 0 nullop
+					else
+					  move PALBOSS1RUNVELS geth
+				  }
+				  else
+					ai AIBOSS1LOBBED
+				}
+	  }
+  }
+
+ends
+
+defstate boss1dyingstate
+  ifaction ABOSS1DEAD
+  {
+    ife actor_pal 0
+      break
+    {
+      strength 0
+      ifhitweapon
+        ifwasweapon RADIUSEXPLOSION
+      {
+        state squish_sounds
+        guts JIBS2 5              // Instead of the normal "standard_jibs"
+        guts JIBS3 5              // amount, I found that ,because these
+        guts JIBS4 5              // bodies are so huge, they should spawn
+        guts JIBS5 15             // a more realistic amount of gutter!
+        guts JIBS6 15
+        debris SCRAP1 5           // There are also spawned some metal
+        debris SCRAP2 5           // scraps, since this boss has a lot
+        debris SCRAP5 5           // of metalware with him.
+        state standard_jibs
+        killit
+      }
+      break
+    }
+  }
+  ifactioncount 5
+  {
+    iffloordistl 8
+      globalsound BOSSFALL
+    action ABOSS1DEAD
+
+		espawn BOSS1MINIGUN // Spawn the Boss's minigun
+		geta[].x temp
+		geta[].y temp2
+
+		set temp3 temp
+		add temp3 512
+
+		getp[].ang temp4
+		add temp4 1536
+
+		rotatepoint temp temp2 temp3 temp2 temp4 temp5 temp6
+
+		seta[RETURN].x temp5
+		seta[RETURN].y temp6
+		geta[].z temp
+		seta[RETURN].z temp
+
+
+		geta[].xrepeat temp seta[RETURN].xrepeat temp
+	    geta[].yrepeat temp seta[RETURN].yrepeat temp
+
+    state rf
+    ife actor_pal 0
+	{
+	quake 26
+		ife VOLUME 6
+			{
+			readarrayfromfile BEAT_EPISODES F_BEAT_EPISODES_AMCTC
+			ife LEVEL 7 // Tropical Alien Massacre
+				{
+					ifand BEAT_EPISODES[6] 4 nullop else
+						{
+						set temp BEAT_EPISODES[6]
+						xorvar temp 4
+						setarray BEAT_EPISODES[6] temp
+						writearraytofile BEAT_EPISODES F_BEAT_EPISODES_AMCTC
+						}
+				ifn cheated 1
+					{
+					readarrayfromfile SKILL_MEDALS F_SKILL_MEDALS_AMCTC
+					ifl SKILL_MEDALS[203] SKILL_LEVEL setarray SKILL_MEDALS[203] SKILL_LEVEL
+					writearraytofile SKILL_MEDALS F_SKILL_MEDALS_AMCTC
+					}
+				}
+			ife LEVEL 13 // The Beach
+				{
+					ifand BEAT_EPISODES[6] 256 nullop else
+						{
+						set temp BEAT_EPISODES[6]
+						xorvar temp 256
+						setarray BEAT_EPISODES[6] temp
+						writearraytofile BEAT_EPISODES F_BEAT_EPISODES_AMCTC
+						}
+
+				ifn cheated 1
+					{
+					readarrayfromfile SKILL_MEDALS F_SKILL_MEDALS_AMCTC
+					ifl SKILL_MEDALS[209] SKILL_LEVEL setarray SKILL_MEDALS[209] SKILL_LEVEL
+					writearraytofile SKILL_MEDALS F_SKILL_MEDALS_AMCTC
+					}
+				}
+			ife LEVEL 33 // The Final confrontation
+				{
+					ifand BEAT_EPISODES[6] 65536 nullop else
+						{
+						set temp BEAT_EPISODES[6]
+						xorvar temp 65536
+						setarray BEAT_EPISODES[6] temp
+						writearraytofile BEAT_EPISODES F_BEAT_EPISODES_AMCTC
+						}
+
+				ifn cheated 1
+					{
+					readarrayfromfile SKILL_MEDALS F_SKILL_MEDALS_AMCTC
+					ifl SKILL_MEDALS[217] SKILL_LEVEL setarray SKILL_MEDALS[217] SKILL_LEVEL
+					writearraytofile SKILL_MEDALS F_SKILL_MEDALS_AMCTC
+					}
+				}
+			ife LEVEL 39 // The Lost Highway
+				{
+					ifand BEAT_EPISODES[6] 131072 nullop else
+						{
+						set temp BEAT_EPISODES[6]
+						xorvar temp 131072
+						setarray BEAT_EPISODES[6] temp
+						writearraytofile BEAT_EPISODES F_BEAT_EPISODES_AMCTC
+						}
+
+				ifn cheated 1
+					{
+					readarrayfromfile SKILL_MEDALS F_SKILL_MEDALS_AMCTC
+					ifl SKILL_MEDALS[218] SKILL_LEVEL setarray SKILL_MEDALS[218] SKILL_LEVEL
+					writearraytofile SKILL_MEDALS F_SKILL_MEDALS_AMCTC
+					}
+				}
+			state save_arrays
+			state fatigue_system
+			state budget_system
+            set cheated 0
+			ifn amcbase_level -1 ifn amcbase_volume -1 startlevel amcbase_volume amcbase_level
+            else startlevel 6 0
+			}
+		else { ife VOLUME 0 ife LEVEL 7 { state save_arrays state fatigue_system state budget_system endofgame 52 } }
+	}
+  }
+ends
+
+spriteshadow BOSS1MINIGUN
+useractor notenemy BOSS1MINIGUN 50
+
+ifaction 0 { state rf cstator 256 action ZERO }
+fall
+
+ ifhitweapon
+  {
+  state METAL_HIT_SOUNDS
+  soundvar playsound
+	  ifdead
+	  {
+	  sound VENT_BUST
+	  debris SCRAP1 3
+	  debris SCRAP2 3
+	  debris SCRAP5 3
+	  killit
+	  }
+  }
+        // prevent repeated array reads if already found
+        ife WEAPONS_RESEARCH[4] 0
+ 		  ifpdistl 1536
+		    ifp pfacing
+			{
+			readarrayfromfile WEAPONS_RESEARCH F_WEAPONS_AMCTC
+			ife WEAPONS_RESEARCH[4] 0
+					{
+					set player_use 0
+					 ifhitspace
+						{
+						set DISP_RES -240
+						set DISP_RES_PAL 2
+						set DISP_RES_PIC 2687
+						setarray WEAPONS_RESEARCH[4] 1
+						writearraytofile WEAPONS_RESEARCH F_WEAPONS_AMCTC
+						globalsound RESEARCH_DATA
+						palfrom 20 63 63 63
+						quote 1025
+						killit
+						}
+					}
+			}
+
+ enda
+
+defstate boss1lobbedstate
+  ife my_target -1 ai AIBOSS1SEEKENEMY
+else
+  {
+  ldist temp THISACTOR my_target
+	state fronttowardstarget
+    ifactioncount 2
+    {
+      resetactioncount
+
+     sound BOS1_ATTACK2 shoot MORTER
+	 ife actor_pal 0 
+		{
+		eshoot MORTER2
+		geta[RETURN].ang temp
+		add temp 128
+		seta[RETURN].ang temp
+		eshoot MORTER2
+		geta[RETURN].ang temp
+		sub temp 128
+		seta[RETURN].ang temp
+		}
+    }
+    else
+      ifcount 64
+        ifrnd 16
+          state checkboss1seekstate
+  }
+ends
+
+defstate boss1shootenemy
+ move STOP
+ state checkfortarget
+
+ ife my_target -1 { ife actor_pal 0 stopsound MINIGUN_FIRE sound MINIGUN3_STOP ai AIBOSS1SEEKENEMY }
+
+ife actor_pal 0
+{
+  ifg ally_mag 72
+    { sound MINIGUN3_STOP stopsound MINIGUN_FIRE set ally_mag 0 state checkboss1seekstate }
+  else
+    ifaction ABOSS1SHOOT
+      ifactioncount 1
+  {
+    add ally_mag 1
+    sound MINIGUN_SPIN
+    soundonce MINIGUN_FIRE
+	state fronttowardstarget
+	cactor PIGCOP // There's some hardcoded fuckery going on with the BATTLELORD so changing to another actor is neccesary
+	
+	state SKILL_ENEMY_ACCURACY 
+	set CALCZ_TARGET_OFFSET -9500
+	set PROJECTILE_TO_SHOOT ENEMY_BULLET
+	set PROJECTILE_FIRING_SOUND 4
+	set PROJECTILE_STRENGTH 2
+	state sang_enemyShootProjectile
+	shoot FAKE_BULLET
+	state sang_enemyShootProjectile
+	shoot FAKE_BULLET
+	state sang_enemyShootProjectile
+	shoot FAKE_BULLET
+	state sang_enemyShootProjectile
+	shoot FAKE_BULLET
+	state sang_enemyShootProjectile
+	set CALCZ_TARGET_OFFSET 0
+	
+	cactor BATTLELORD
+    resetactioncount
+  }
+}
+else
+{
+  ifg ally_mag 72
+    { sound MINIGUN2_STOP set ally_mag 0 state checkboss1seekstate }
+  else
+    ifaction ABOSS1SHOOT
+      ifactioncount 2
+  {
+	add ally_mag 1
+    sound BOS1_ATTACK1
+	state fronttowardstarget
+	cactor PIGCOP // There's some hardcoded fuckery going on with the BATTLELORD so changing to another actor is neccesary
+	state SKILL_ENEMY_ACCURACY 
+	set PROJECTILE_TO_SHOOT ENEMY_BULLET
+	set PROJECTILE_FIRING_SOUND 4
+	set PROJECTILE_STRENGTH 6
+	state sang_enemyShootProjectile
+	shoot FAKE_BULLET
+	state sang_enemyShootProjectile
+	shoot FAKE_BULLET
+	state sang_enemyShootProjectile
+	cactor BATTLELORD
+    resetactioncount
+  }
+}
+ends
+
+defstate checkboss1hitstate
+ife actor_pal 0 set CURBOSS THISACTOR
+	state NEWGUNEFFECTS
+
+  ifrnd 2
+    spawn BLOODPOOL
+  ifdead
+  {
+  ifactorsound THISACTOR MINIGUN_FIRE stopactorsound THISACTOR MINIGUN_FIRE
+  	ifn XVELSAVED 0
+		{
+		operateactivators XVELSAVED THISACTOR
+		operatemasterswitches XVELSAVED
+		operaterespawns XVELSAVED
+		set XVELSAVED 0
+		}
+
+    ife actor_pal 0
+      nullop
+    else
+    {
+      ifg ice_damage 0
+      {
+        sound SOMETHINGFROZE
+        spritepal 1
+        move 0
+        action ABOSS1FROZEN
+        strength 0
+        break
+      }
+    }
+
+	ife actor_pal 40 sound CYBERDEMON_DIE
+    else sound BOS1_DYING
+
+	ife actor_pal 0 add TREASURE_FOUND 5
+	else add TREASURE_FOUND 1
+    addkills 1
+
+    ai AIBOSS1DYING
+  }
+  else
+  {
+     ifg PAIN_AMOUNT 0
+    {
+      action BOSS1FLINTCH
+      move 0
+    }
+    ifrnd 32
+    {
+      action BOSS1FLINTCH
+      move 0
+    }
+
+	geta[].htowner target
+
+    ife actor_pal 0 nullop
+    else
+      ifwasweapon SHRINKSPARK
+    {
+      sound ACTOR_SHRINKING
+      ai AIBOSS1PALSHRINK
+      cstat 0
+      break
+    }
+
+    soundonce BOS1_PAIN
+
+    debris SCRAP1 1
+    guts JIBS6 1
+  }
+ends
+
+defstate boss1code
+
+  ifaction ABOSS1FROZEN
+	  {
+	  state frozen_code
+	  break
+	  }
+  ifai 0
+  {
+  	state monst_glow
+  spawn SHOOTME
+  ife actor_pal 0 getactor[].pal actor_pal
+    ife actor_pal 0
+	  {
+	  sizeat 52 52
+	  set CURBOSS THISACTOR
+	  set BOSS_TYPE 1
+      ai AIBOSS1RUNENEMY
+	  }
+    else
+    {
+	sizeat 30 30
+	ife actor_pal 24 { sizeat 55 55 strength 2500 } else
+      ife actor_pal 0 strength 4500 else
+	  strength BOSS1PALSTRENGTH
+	  sound MINIGUN3_START
+      ai AIBOSS1SHOOTENEMY
+    }
+  }
+  else
+    ifaction BOSS1FLINTCH
+  {
+  sub PAIN_AMOUNT 2
+    ifl PAIN_AMOUNT 1
+    {
+	state checkfortarget
+	ifn my_target -1
+		{ sound MINIGUN3_START ai AIBOSS1SHOOTENEMY }
+		else ai AIBOSS1SEEKENEMY
+	}
+  }
+  else
+    ifai AIBOSS1SEEKENEMY
+      state boss1seekenemystate
+  else
+    ifai AIBOSS1RUNENEMY
+      state boss1runenemystate
+  else
+    ifai AIBOSS1PREPARE
+      state boss1prepare
+  else
+    ifai AIBOSS1SHOOTENEMY
+      state boss1shootenemy
+  else
+    ifai AIBOSS1LOBBED
+      state boss1lobbedstate
+  else
+    ifai AIBOSS1PALSHRINK
+      state boss1palshrunkstate
+
+  ifai AIBOSS1DYING
+    state boss1dyingstate
+  else
+  {
+  geta[].htextra temp7
+  ifhitweapon
+	state checkboss1hitstate
+    else
+      ifp palive
+        ife actor_pal 0
+          ifpdistl 1280
+		   ifcansee
+    {
+      addphealth -1000
+      palfrom 63 63
+    }
+  }
+ends
+
+useractor enemy BLORD_STAYPUT BOSS1STRENGTH ABOSS1_START ife actor_pal 0 getactor[].pal actor_pal cactor BATTLELORD state monst_glow enda
+useractor enemy BATTLELORD BOSS1STRENGTH ABOSS1_START fall state boss1code state monst_glow enda

@@ -1,0 +1,313 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+
+--------------------------------------------------------------------------------
+*/
+
+damageeventtile NETHERBRUTE
+damageeventtile NETHERBRUTE_STAYPUT
+
+action A_NBRUTE_START 0 1 5 1 12
+action A_NBRUTE_IDLE 0 1 5 1 12
+action A_NBRUTE_WALK 0 4 5 1 12
+action A_NBRUTE_ATTACKPREP 25 1 5 1 12
+action A_NBRUTE_ATTACK 25 2 5 1 12
+
+action A_NBRUTE_PREP 86 3 1 1 20
+action A_NBRUTE_PREPD 88
+action A_NBRUTE_SPIKE 89
+action A_NBRUTE_AFT 88
+action A_NBRUTE_GETUP 88 3 1 -1 12
+
+action A_NBRUTE_PAIN 20 1 1 1 8
+action A_NBRUTE_DIE 35 5 1 1 12
+action A_NBRUTE_FROZEN 90 1 1 1 8
+
+action A_NBRUTE_DEAD 39
+
+move NBRUTE_WALK 126
+
+ai AI_NBRUTE_WALK A_NBRUTE_WALK NBRUTE_WALK seekplayer
+ai AI_NBRUTE_ATTACKPREP A_NBRUTE_ATTACKPREP STOP seekplayer
+ai AI_NBRUTE_ATTACK A_NBRUTE_ATTACK STOP seekplayer
+ai AI_NBRUTE_GROW A_NBRUTE_PAIN STOP
+ai AI_NBRUTE_SHRUNK A_NBRUTE_WALK fleeenemy
+ai AI_NBRUTE_DIE A_NBRUTE_DIE STOP
+
+useractor enemystayput NETHERBRUTE_STAYPUT 500 A_NBRUTE_START
+cstat 257
+sizeat 40 40
+cactor NETHERBRUTE
+enda
+
+spritenopal NETHERBRUTE
+
+useractor enemy NETHERBRUTE 500 A_NBRUTE_START
+fall
+	ifaction A_NBRUTE_START
+	{
+		cstat 257
+		ifspritepal 41
+		{
+			strength 250
+			sizeat 30 30
+		}
+		else
+		{
+			strength 500
+			sizeat 40 40
+		}
+		spriteflags NORMAL_ENEMY
+		geta[].pal PALSAVED
+		sound NBRUTE_SIGHT
+		state monst_glow
+		spawn SHOOTME
+		
+		action A_NBRUTE_IDLE
+	}
+
+	ifg enemy_cooldown1 0 sub enemy_cooldown1 1
+
+	ifg silence_damage 0
+	{
+		sub silence_damage 1
+		state spawn_curse_particles
+	}
+
+state enemyfloordamage
+state enemy_ice_damage
+state enemy_spirit_damage
+
+ifg ice_damage 0 ifg sprite[].extra 15 addstrength -15
+
+ifaction A_NBRUTE_FROZEN
+	{
+	state frozen_code
+	spritepal 0
+	}
+else
+ifai AI_NBRUTE_GROW state genericgrowcode
+else
+ifaction A_NBRUTE_DEAD
+	{
+	move STOP
+    ifhitweapon
+		{
+		  ifwasweapon RADIUSEXPLOSION
+		  {
+			state squish_sounds
+		  state standard_jibs
+		  state monst_body_jibs
+			killit
+		  }
+		  break
+		}
+	}
+else
+ifaction A_NBRUTE_GETUP
+	{
+	move STOP
+	ife SKILL_LEVEL 1 set enemy_cooldown1 300
+	else ife SKILL_LEVEL 2 set enemy_cooldown1 180
+	else ife SKILL_LEVEL 3 set enemy_cooldown1 120
+	else ife SKILL_LEVEL 4 set enemy_cooldown1 90
+	else ife SKILL_LEVEL 5 set enemy_cooldown1 60
+	ifactioncount 3 ai AI_NBRUTE_WALK
+	}
+else
+ifaction A_NBRUTE_AFT
+	{
+	move STOP
+	ifactioncount 3 action A_NBRUTE_GETUP
+	}
+else
+ifaction A_NBRUTE_SPIKE
+	{
+	move STOP
+	ifactioncount 6 { sound NBRUTE_PAIN action A_NBRUTE_AFT }
+	}
+else
+ifaction A_NBRUTE_PREPD
+	{
+	move STOP
+	ifactioncount 6
+		{
+		sound NAILGUN2_FIRE
+		shoot SPIKE_PROJ shoot SPIKE_PROJ shoot SPIKE_PROJ shoot SPIKE_PROJ
+		shoot SPIKE_PROJ shoot SPIKE_PROJ shoot SPIKE_PROJ shoot SPIKE_PROJ
+		action A_NBRUTE_SPIKE
+		}
+	}
+else
+ifaction A_NBRUTE_PREP
+	{
+	move STOP
+	ifactioncount 3 { sound NBRUTE_SIGHT action A_NBRUTE_PREPD }
+	}
+else
+ifai AI_NBRUTE_DIE
+	{
+	strength 0
+	ifactioncount 5 ife ally_mag 0 { quake 26 sound BOSSFALL set ally_mag 1 }
+	ifactioncount 5 action A_NBRUTE_DEAD
+	}
+else
+ifaction A_NBRUTE_PAIN
+	{
+	sub PAIN_AMOUNT 1
+	move STOP
+	ife PAIN_AMOUNT 0
+		{
+		ifdead break
+		ai AI_NBRUTE_WALK
+		}
+	}
+else
+ifai AI_NBRUTE_SHRUNK
+{
+    ifcount SHRUNKDONECOUNT
+      ai AI_NBRUTE_WALK
+    else ifcount SHRUNKCOUNT
+      {
+	sound ACTOR_UNSHRINK
+	sizeto 40 40
+	}
+    else
+      state genericshrunkcode
+    break
+}
+else ifaction A_NBRUTE_IDLE
+	{
+		move STOP
+		state checkfortarget
+		ifn my_target -1 
+			ai AI_NBRUTE_WALK
+	}
+else
+ifai AI_NBRUTE_WALK
+	{
+	ifrnd 8
+		{
+		ifrnd 128 sound NBRUTE_IDLE1
+		else sound NBRUTE_IDLE2
+		}
+	ifrnd 64
+		{
+		state SKILL_SHOOT_LEVELADJUST // run difficulty level check
+		ifl RANDOM_CHANCE SKILLCHANCE // if succesful
+			{
+			state checkfortarget // find enemy target
+			set INTERNALCOUNT 0
+			ifn my_target -1 ldist temp THISACTOR my_target // if found, get distance
+			ifn my_target -1 ifl temp 16384 ai AI_NBRUTE_ATTACKPREP // if target is less than distance, attack
+			else ifcansee ifcanseetarget ai AI_NBRUTE_ATTACKPREP // otherwise if can see player, attack
+			}
+		}
+	else ifpdistl 8192 ifrnd 8 ife silence_damage 0 ife enemy_cooldown1 0 { sound NBRUTE_PREP action A_NBRUTE_PREP }
+	else ifrnd 2 ai AI_NBRUTE_WALK // reset AI routine every now and then
+	}
+else ifai AI_NBRUTE_ATTACKPREP
+{
+	state fronttowardstarget
+	
+	add INTERNALCOUNT 1
+	
+	ife INTERNALCOUNT 10
+		ai AI_NBRUTE_ATTACK
+}
+else
+ifai AI_NBRUTE_ATTACK
+	{
+		state fronttowardstarget
+
+		ifactioncount 2
+		{
+			ifrnd 32
+			{
+				ldist temp THISACTOR my_target
+				ifl temp 1536
+				{
+					set PROJECTILE_FIRING_SOUND NBRUTE_BITE
+					set PROJECTILE_TO_SHOOT 15729
+					state sang_enemyShootProjectile
+				}
+				else
+				{
+					set PROJECTILE_FIRING_SOUND NBRUTE_FIRE
+					set PROJECTILE_TO_SHOOT 15175
+					state sang_enemyShootProjectile
+					ai AI_NBRUTE_WALK // go back to seeking AI
+				}
+			}
+			// lazy copy paste for patch meh
+			else
+			{
+				set PROJECTILE_FIRING_SOUND NBRUTE_FIRE
+				set PROJECTILE_TO_SHOOT 15175
+				state sang_enemyShootProjectile
+				ai AI_NBRUTE_WALK // go back to seeking AI
+			}
+		}
+	}
+
+ifhitweapon
+{
+	state NEWGUNEFFECTS
+	//spawn BLOOD
+	guts JIBS6 1
+	state random_wall_jibs
+
+	ifwasweapon 29020 addstrength -200
+
+	ifwasweapon VOID_PLAYER_BOLT { sound EN_CURSE set silence_damage 150 }
+	ifwasweapon VOID_BOLT { sound EN_CURSE set silence_damage 300 }
+	ifwasweapon VOID_BLAST { sound EN_CURSE set silence_damage 900 }
+
+	ifdead
+		{
+		addkills 1
+		state rf
+
+		ifwasweapon GROWSPARK { cstat 0 sound ACTOR_GROWING ai AI_NBRUTE_GROW break }
+		else ifg ice_damage 0 { spritepal 1 strength 0 sound SOMETHINGFROZE state rf action A_NBRUTE_FROZEN }
+		else
+			{
+			sound NBRUTE_DIE
+			ai AI_NBRUTE_DIE
+			spawn BLOODPOOL
+			}
+		}
+	else ifg PAIN_AMOUNT 0 action A_NBRUTE_PAIN
+	else ifrnd 8 { sound NBRUTE_PAIN state PAIN_SKILL_LEVELADJUST action A_NBRUTE_PAIN }
+	// if they were idle, getting hit ALWAYS wakes them up
+	else ifaction A_NBRUTE_IDLE { al temp state PAIN_SKILL_LEVELADJUST action A_NBRUTE_PAIN }
+			
+	ifwasweapon SHRINKSPARK { sound ACTOR_SHRINKING ai AI_NBRUTE_SHRUNK }
+}
+
+state checksquished
+
+enda

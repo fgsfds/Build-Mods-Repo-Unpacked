@@ -1,0 +1,340 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+
+--------------------------------------------------------------------------------
+*/
+
+damageeventtile ZSCIEN
+
+action AZSCIEN_FROZE 28 1 1 1 10
+action AZSCIEN_GROW 28 1 1 1 10
+action AZSCIENSTAND     0  1 5 1 10
+action AZSCIENWALK      5  4 5 1 24
+action AZSCIENRUN      5  4 5 1 16
+action AZSCIENPREP   -21 1 5 1 12
+action AZSCIENFIRE    -26 1 5 1 4
+action AZSCIENFLINCH 28 1 1 1 10
+
+action AZSCIENDYING 28 5 1 1 12
+action AZSCIENDEAD 33 1 1 1 12
+
+action AZSCIEN_SLASH_DYING 1283 5 1 1 16
+action AZSCIEN_SLASH_DEAD 1287 1 1 1 16
+
+action AZSCIEN_H_DYING -108 5 1 1 10
+action AZSCIEN_H_DEAD -103 1 1 1 10
+
+move ZSCIENWALKVELS 60
+move ZSCIENRUNVELS 80
+move ZSCIENSTOP 0
+
+ai AIZSCIEN_SEEKENEMY AZSCIENWALK ZSCIENWALKVELS faceplayer seekplayer
+ai AIZSCIEN_RUSHENEMY AZSCIENRUN ZSCIENRUNVELS faceplayer
+
+ai AIZSCIEN_PREPSHOOT AZSCIENPREP ZSCIENSTOP faceplayer
+ai AIZSCIEN_SHOOTENEMY AZSCIENFIRE ZSCIENSTOP faceplayerslow
+
+ai AIZSCIEN_SHRUNK AZSCIENRUN ZSCIENRUNVELS furthestdir
+ai AIZSCIEN_GROW AZSCIEN_GROW ZSCIENSTOP furthestdir
+
+
+useractor enemystayput ZSCIENSTAYPUT 50 AZSCIENSTAND
+state monst_glow
+cactor ZSCIEN
+enda
+
+useractor enemy ZSCIEN 50 AZSCIENSTAND
+fall
+
+ifai 0
+{
+	state monst_glow
+	ifspritepal 24
+		{
+		strength 100
+		sizeat 29 29
+		}
+	else
+		{
+		strength 50
+		sizeat 25 25
+		}
+	ifrnd 128 sound ZSCI_SIGHT1 else sound ZSCI_SIGHT2
+	spriteflags NORMAL_ENEMY
+	spawn SHOOTME
+	action AZSCIENRUN
+	ai AIZSCIEN_SEEKENEMY
+	cstator 257
+}
+
+
+state ENEMYKNOCKBACKS
+state enemyfloordamage
+state enemy_fire_damage
+state enemy_ice_damage
+state enemy_spirit_damage
+
+ifaction AZSCIEN_FROZE
+{
+state frozen_code
+}
+else
+ifaction AZSCIENFLINCH
+{
+	sub PAIN_AMOUNT 1
+	move ZSCIENSTOP
+	ife PAIN_AMOUNT 0 ai AIZSCIEN_SEEKENEMY
+}
+else
+ifaction AZSCIENDEAD
+{
+move ZSCIENSTOP
+    ifhitweapon
+	    {
+	    ifwasweapon RADIUSEXPLOSION state zombie_jibs
+		ifwasweapon RPG state zombie_jibs
+	    }
+}
+else
+ifaction AZSCIEN_H_DEAD
+{
+move ZSCIENSTOP
+    ifhitweapon
+	    {
+	    ifwasweapon RADIUSEXPLOSION state zombie_jibs
+		ifwasweapon RPG state zombie_jibs
+	    }
+}
+else
+ifaction AZSCIEN_SLASH_DEAD
+{
+move ZSCIENSTOP
+    ifhitweapon
+	    {
+	    ifwasweapon RADIUSEXPLOSION state zombie_jibs
+		ifwasweapon RPG state zombie_jibs
+	    }
+}
+else
+ifaction AZSCIENDYING
+	{
+	ifactioncount 5 { state BODY_FALL_NOISES strength 0 spawn BLOODPOOL action AZSCIENDEAD }
+	}
+else
+ifaction AZSCIEN_H_DYING
+	{
+	ifactioncount 5 { state BODY_FALL_NOISES strength 0 spawn BLOODPOOL action AZSCIEN_H_DEAD }
+	}
+else
+ifaction AZSCIEN_SLASH_DYING
+	{
+	ifactioncount 5 { state SQUISH_FALL_NOISES strength 0 spawn BLOODPOOL action AZSCIEN_SLASH_DEAD }
+	}
+else
+ifai AIZSCIEN_GROW state genericgrowcode
+else
+ifai AIZSCIEN_SHRUNK
+{
+    ifcount SHRUNKDONECOUNT
+      ai AIZSCIEN_SEEKENEMY
+    else ifcount SHRUNKCOUNT
+	  {
+	  sound ACTOR_UNSHRINK
+      sizeto 25 25
+	  }
+    else
+      state genericshrunkcode
+    break
+}
+else
+ifai AIZSCIEN_SEEKENEMY
+{
+	ifpdistl 8012 ai AIZSCIEN_RUSHENEMY
+}
+else
+ifai AIZSCIEN_RUSHENEMY
+{
+	state SKILL_SHOOT_LEVELADJUST
+	ifpdistg 8012 ai AIZSCIEN_SEEKENEMY
+	else ifcansee ifcanshoottarget ifl RANDOM_CHANCE SKILLCHANCE ai AIZSCIEN_PREPSHOOT
+}
+else
+ifai AIZSCIEN_PREPSHOOT
+{
+move STOP faceplayerslow
+ifcansee nullop else ai AIZSCIEN_SEEKENEMY
+ifrnd 16 ai AIZSCIEN_SEEKENEMY
+ifactioncount 2 { ai AIZSCIEN_SHOOTENEMY resetactioncount }
+}
+else
+ifai AIZSCIEN_SHOOTENEMY
+{
+	ifactioncount 1
+	{
+		ifspritepal 24
+		{
+		set PROJECTILE_PAL 2
+		set PROJECTILE_STRENGTH 18
+		set PROJECTILE_TO_SHOOT ENEMY_BULLET
+		sound SILVER_T_FIRE
+		set PROJECTILE_FIRING_SOUND SILVER_T_FIRE
+		}
+		else
+		{
+		state SKILL_ENEMY_ACCURACY
+		set PROJECTILE_TO_SHOOT ENEMY_BULLET
+		sound PISTOL_FIRE
+		set PROJECTILE_FIRING_SOUND PISTOL_FIRE
+		}
+		geta[].z temp sub temp 2048 seta[].z temp
+		state sang_enemyShootProjectile
+		geta[].z temp add temp 2048 seta[].z temp
+		ife PERFMODE 1
+		 ifcansee
+			{
+			set gunsmoke_z 8244
+			set gunsmoke_angle 64
+			state spawn_gunsmoke_z
+			set gunsmoke_z 8244
+			espawn 16115
+			state spawn_muzzleflash
+			randvar temp 1024
+			zshoot temp NINEMM_SHELL
+			}
+		ifrnd 64 ai AIZSCIEN_SEEKENEMY else
+		ai AIZSCIEN_PREPSHOOT
+		resetactioncount
+	}
+}
+
+ifhitweapon
+{
+	ifai AIZSCIEN_SHRUNK break
+	ifai AIZSCIEN_GROW break
+	state NEWGUNEFFECTS
+	//spawn BLOOD
+	//guts JIBS6 1
+	state random_wall_jibs
+	ifdead
+		{
+			ifwasweapon RADIUSEXPLOSION state zombie_jibs
+			ifwasweapon RPG state zombie_jibs
+			ifand PROJ_UDATA PROJ_GIB state zombie_jibs
+			ifand PROJ_UDATA 8192
+			 {
+			 ifrnd 8 { spawn ELECTROCUTE_MARV soundonce MALE_ELECT1 } else spawn ELECTROCUTE_GUY
+			 shoot SPARK2 shoot SPARK2 shoot SPARK2
+			 killit
+			 }
+
+			ifand PROJ_UDATA 8
+				{
+				state random_trigger_showoff
+				cstat 4
+				state slashed_sounds
+				action AZSCIEN_SLASH_DYING
+				sound ZSCI_DIE
+				}
+			else
+		ifwasweapon GROWSPARK { cstat 0 sound ACTOR_GROWING ai AIZSCIEN_GROW break }
+		else ifg ice_damage 0 { spritepal 1 strength 1 sound SOMETHINGFROZE action AZSCIEN_FROZE }
+		else ifg energy_damage 0
+			{
+			shoot SPARK2 shoot SPARK2 shoot SPARK2
+			spritepal 4
+			guts JIBS3 6
+			spawn DISINTIGRATE_GUY
+			killit
+			}
+		else ifg spirit_damage 0
+		{
+		shoot SPARK2 shoot SPARK2 shoot SPARK2
+		spritepal 1
+		guts JIBS3 6
+		spawn SPIRIT_DEATH_GUY
+		killit
+		}
+		else ifg fire_damage 0
+			{
+			ifrnd 64 sound MALE_ONFIRE1
+			else ifrnd 64 sound MALE_ONFIRE2
+			else ifrnd 64 sound MALE_ONFIRE3
+			else sound MALE_ONFIRE4
+			set PLAYER_VOICEOVER 21
+			spawn ONFIREGUY
+			killit
+			}
+		else
+		{
+		state rf
+
+		addkills 1
+		ife HEADSHOT 2
+			{
+				state random_trigger_showoff
+				state jib_sounds
+				state decap_sounds
+				shoot NJIB
+				shoot NJIB
+				guts JIBS6 3
+				guts JIBS2 2
+				action AZSCIEN_H_DYING
+			}
+			else
+			{
+			sound ZSCI_DIE
+			action AZSCIENDYING
+			}
+		}
+		ifrnd SPAWNAMMOODDS
+			{
+			switch CHAR
+			case 0
+			case 3
+			case 4
+			case 5
+			case 7
+			  spawn AMMO
+			  break
+			default
+			break
+			endswitch
+			}
+		ifphealthl 50
+			{
+			state SKILL_LEVELADJUST
+			ifl RANDOM_CHANCE SKILLCHANCE spawn HYPOSPRAY
+			}
+		}
+else
+    ifg PAIN_AMOUNT 0 { sound ZSCI_PAIN action AZSCIENFLINCH }
+	else ifrnd 64 { sound ZSCI_PAIN state PAIN_SKILL_LEVELADJUST action AZSCIENFLINCH }
+	ifwasweapon SHRINKSPARK { sound ACTOR_SHRINKING ai AIZSCIEN_SHRUNK }
+}
+
+state checksquished
+
+enda

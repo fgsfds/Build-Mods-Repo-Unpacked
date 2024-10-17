@@ -1,0 +1,56 @@
+useractor notenemy CURRENT
+	cstat 32768
+
+	ife LOTAGSAVED 0 set LOTAGSAVED 8
+	geta[].ang movesprite_angvar
+	set movesprite_clipmask CLIPMASK0
+	set movesprite_shift LOTAGSAVED // TODO make dependent on gpspeed
+
+	for temp sprofsec sprite[].sectnum
+	{
+		// don't apply movement to a few types of sprites
+		// this list is incomplete but I'm not sure what all needs to be on it
+		ife sprite[temp].statnum  3 nullop
+		else ife sprite[temp].statnum  4 nullop
+		else ife sprite[temp].statnum  7 nullop
+		else ife sprite[temp].statnum  8 nullop
+		else ife sprite[temp].statnum  9 nullop
+		else ife sprite[temp].statnum  11 nullop
+		else ife sprite[temp].picnum CURRENT nullop
+		else ife sprite[temp].picnum 3347 nullop
+		else ifand sprite[temp].cstat 32768 nullop
+		else ifand sprite[temp].cstat 48 nullop
+		else
+		{
+			ifspritepal 1 // if spritepal is 1, only affect sprites underneath the actor
+			{
+			ifge sprite[temp].z sprite[].z
+				{
+					set movesprite_sprite temp
+					state movesprite_state
+
+					ife sprite[temp].statnum 10 // player needs something extra to have proper movement on this
+					{
+						geta[temp].x x
+						geta[temp].y y
+						setp[].posx x
+						setp[].posy y
+					}
+				}
+			}
+			else
+			{
+				set movesprite_sprite temp
+				state movesprite_state
+
+				ife sprite[temp].statnum 10 // player needs something extra to have proper movement on this
+				{
+					geta[temp].x x
+					geta[temp].y y
+					setp[].posx x
+					setp[].posy y
+				}
+			}
+		}
+	}
+enda

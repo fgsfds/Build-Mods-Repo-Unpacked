@@ -1,0 +1,267 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+
+--------------------------------------------------------------------------------
+*/
+
+damageeventtile ANUBIS_MUMMY
+
+action A_ANUBIS_MUMMY_FROZEN 45 1 5 1 10
+action A_ANUBIS_MUMMY_IDLE 0 1 5 1 8
+action A_ANUBIS_MUMMY_RUN  0 4 5 1 8
+action A_ANUBIS_MUMMY_CHARGE  5 4 5 1 4
+action A_ANUBIS_MUMMY_RUNBACK 20 4 5 -1 20
+action A_ANUBIS_MUMMY_ATTACK 20 4 5 1 10
+action A_ANUBIS_MUMMY_PAIN 40 1 1 1 10
+action A_ANUBIS_MUMMY_DIE 41 5 1 1 12
+
+ai AI_ANUBIS_MUMMY_IDLE A_ANUBIS_MUMMY_IDLE STOP seekplayer
+ai AI_ANUBIS_MUMMY_SEEKENEMY A_ANUBIS_MUMMY_RUN ANUB_RUN seekplayer
+ai AI_ANUBIS_MUMMY_RUSHENEMY A_ANUBIS_MUMMY_CHARGE ANUB_CHARGE seekplayer
+ai AI_ANUBIS_MUMMY_DODGE A_ANUBIS_MUMMY_RUN ANUB_RUN dodgebullet
+ai AI_ANUBIS_MUMMY_WALKBACK A_ANUBIS_MUMMY_RUNBACK TROOPWALKVELSBACK faceplayer
+ai AI_ANUBIS_MUMMY_ATTACK A_ANUBIS_MUMMY_ATTACK STOP shoottarget
+ai AI_ANUBIS_MUMMY_DYING A_ANUBIS_MUMMY_DIE STOP
+ai AI_ANUBIS_MUMMY_SHRINK A_ANUBIS_MUMMY_RUN ANUB_RUN fleeenemy
+ai AI_ANUBIS_MUMMY_GROW A_ANUBIS_MUMMY_PAIN STOP
+ai AI_ANUBIS_MUMMY_FROZEN A_ANUBIS_MUMMY_PAIN STOP
+
+useractor enemystayput ANUBIS_MUMMY_STAYPUT 175 A_ANUBIS_MUMMY_IDLE
+cactor ANUBIS_MUMMY
+enda
+
+useractor enemy ANUBIS_MUMMY 175 A_ANUBIS_MUMMY_IDLE
+fall
+
+ifai 0
+{
+	state monst_glow
+	set actor_type TYPE_SUPERNATURAL
+	spawn SHOOTME
+	spriteflags NORMAL_ENEMY
+	set blood_type 5
+	sound ANUBIS_SIGHT
+	strength 175
+	sizeat 26 26
+	ai AI_ANUBIS_MUMMY_IDLE
+	cstator 257
+}
+
+ifai AI_ANUBIS_MUMMY_FROZEN
+{
+state frozen_code
+}
+else
+ifai AI_ANUBIS_MUMMY_GROW state genericgrowcode
+else
+ifai AI_ANUBIS_MUMMY_SHRINK
+{
+    ifcount SHRUNKDONECOUNT
+      ai AI_ANUBIS_MUMMY_SEEKENEMY
+    else ifcount SHRUNKCOUNT
+	  {
+	  sound ACTOR_UNSHRINK
+      sizeto 16 16
+	  }
+    else
+      state genericshrunkcode
+    break
+}
+else
+ifai AI_ANUBIS_MUMMY_DYING
+{
+move STOP
+	strength 0
+	ifactioncount 3
+		{
+		spawn BIG_SMOKE2
+		}
+	ifactioncount 5 { state jib_sounds killit }
+}
+else
+ifaction A_ANUBIS_MUMMY_PAIN
+{
+sub PAIN_AMOUNT 1
+move 0
+ife PAIN_AMOUNT 0
+	{
+	ife allies_present 1 state enemyfindtarget
+	ai AI_ANUBIS_MUMMY_SEEKENEMY
+	}
+}
+else
+ifai AI_ANUBIS_MUMMY_IDLE
+{
+ state correctcansee
+   ife sightvar YES
+    ai AI_ANUBIS_MUMMY_SEEKENEMY
+}
+else
+ifai AI_ANUBIS_MUMMY_DODGE
+{
+ifactioncount 8 ai AI_ANUBIS_MUMMY_SEEKENEMY
+}
+else
+ifai AI_ANUBIS_MUMMY_RUSHENEMY
+{
+ifpdistl 1536 { ifrnd 128 ai AI_ANUBIS_MUMMY_WALKBACK else ai AI_ANUBIS_MUMMY_ATTACK }
+ifrnd 2 sound ANUBIS_ROAM
+
+ifbulletnear ifrnd 16 ai AI_ANUBIS_MUMMY_DODGE
+
+state SKILL_SHOOT_LEVELADJUST
+  ifl RANDOM_CHANCE SKILLCHANCE
+   ifcanshoottarget
+	{
+	set temp9 0
+	 state correctcansee
+		ife sightvar YES
+     ai AI_ANUBIS_MUMMY_ATTACK
+	}
+
+}
+else
+ifai AI_ANUBIS_MUMMY_SEEKENEMY
+{
+ifpdistl 1536 { ifrnd 128 ai AI_ANUBIS_MUMMY_WALKBACK else ai AI_ANUBIS_MUMMY_ATTACK }
+else ifpdistl 8192 ifrnd 16 { sound ANUBIS_SIGHT ai AI_ANUBIS_MUMMY_RUSHENEMY }
+ifrnd 2 sound ANUBIS_ROAM
+
+ifbulletnear ifrnd 96 ai AI_ANUBIS_MUMMY_DODGE
+
+state SKILL_SHOOT_LEVELADJUST
+  ifl RANDOM_CHANCE SKILLCHANCE
+   ifcanshoottarget
+	{
+	set temp9 0
+	 state correctcansee
+		ife sightvar YES
+     ai AI_ANUBIS_MUMMY_ATTACK
+	}
+
+}
+else
+ifai AI_ANUBIS_MUMMY_WALKBACK
+{
+ifcount 30 ai AI_ANUBIS_MUMMY_ATTACK
+}
+else
+ifai AI_ANUBIS_MUMMY_ATTACK
+{
+ifactioncount 4 { ifpdistl 1536 ai AI_ANUBIS_MUMMY_WALKBACK else ai AI_ANUBIS_MUMMY_SEEKENEMY set temp9 0 }
+ifactioncount 3
+	{
+	ife temp9 0
+		{
+		ifpdistl 1536
+			{
+			sound GUARDIAN_SWING
+			ifn SWORD_BLOCK 0
+			 ifp pfacing
+				{
+				shoot SPARK shoot SPARK shoot SPARK shoot SPARK shoot SPARK
+				sub p_stamina 30
+				wackplayer
+				sound SWORD_CLASH
+				}
+				else
+				{
+				sound RIPPER_SCRATCH
+				shoot 17849
+				}
+			}
+		else
+			{
+			sound THROWSOMET
+			ife target -1 set temp2 1 else
+			getav[target].IS_PLAYER temp2
+			ife temp2 1 // use built in auto-zaim if shooting at the player
+				shoot 12782
+					else
+				ezshoot temp3 12782
+			}
+		set temp9 1
+		}
+	}
+
+}
+
+state enemyfloordamage
+state enemy_fire_damage
+state enemy_ice_damage
+state enemy_spirit_damage
+
+ifhitweapon
+{
+	state NEWGUNEFFECTS
+	soundonce ANUBIS_PAIN
+	spritepal 5
+	//spawn BLOOD
+	guts JIBS6 1
+	state random_wall_jibs
+	spritepal 0
+	ifdead
+		{
+		state rf
+
+		ifwasweapon GROWSPARK { cstat 0 sound ACTOR_GROWING ai AI_ANUBIS_MUMMY_GROW break }
+		else ifg ice_damage 0 { spritepal 1 strength 0 sound SOMETHINGFROZE ai AI_ANUBIS_MUMMY_FROZEN }
+		else ifg energy_damage 0
+			{
+			shoot SPARK2 shoot SPARK2 shoot SPARK2
+			spritepal 4
+			guts JIBS3 6
+			spawn DISINTIGRATE_BIG_GUY
+			killit
+			}
+		else ifg fire_damage 0
+			{
+			sound ANUBIS_DEATH
+			set PLAYER_VOICEOVER 21
+			spawn ONFIREGUY
+			killit
+			}
+		else
+			{
+			addkills 1
+			sound ANUBIS_DEATH
+			spawn SPIRIT_DEATH_GUY
+			ai AI_ANUBIS_MUMMY_DYING
+			}
+
+		ifphealthl 25
+			{
+			state SKILL_LEVELADJUST
+			ifl RANDOM_CHANCE SKILLCHANCE spawn HCUP
+			}
+
+		}
+	else ifg PAIN_AMOUNT 0 { soundonce ANUBIS_PAIN action A_ANUBIS_MUMMY_PAIN }
+	else ifrnd 32 { soundonce ANUBIS_PAIN state PAIN_SKILL_LEVELADJUST action A_ANUBIS_MUMMY_PAIN }
+	ifwasweapon SHRINKSPARK { sound ACTOR_SHRINKING ai AI_ANUBIS_MUMMY_SHRINK }
+}
+
+enda

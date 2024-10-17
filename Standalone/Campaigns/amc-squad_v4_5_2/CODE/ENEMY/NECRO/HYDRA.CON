@@ -1,0 +1,394 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+
+--------------------------------------------------------------------------------
+*/
+
+damageeventtile HYDRA
+
+array hydraheads 30 // or something, I dunno
+// TODO Refactor these variables to not be global. I've seen some overlaps in point selection, possibly due to that.
+var hydra_index 0 0
+var tmp_hydra_index -1 2
+var hydra_boss_stage 0 0
+var hydra_stage_started 0 0
+var hydra_spawn_handled 0 2
+var hydra_spawn_wait 0 2
+
+action A_HYDRA_IDLE 0 3 1 1 12
+action A_HYDRA_PREP 3 1 1 1 12
+action A_HYDRA_CHARGE 4 3 1 1 16
+action A_HYDRA_FIRING 6
+
+action A_HYDRA_RAISE 7 7 1 1 16
+action A_HYDRA_LOWER 13 7 1 -1 16
+action A_HYDRA_HIDDEN 19 // combo with cstat 32768 -> same tile as dead, but different behaviour
+action A_HYDRA_DYING 14 6 1 1 16
+action A_HYDRA_DEAD 19 // combo with cstat 32768
+
+appendevent EVENT_SPAWN
+	ifactor HYDRA
+	{
+		setarray hydraheads[hydra_index] THISACTOR
+		add hydra_index 1
+	}
+endevent
+
+appendevent EVENT_LOADACTOR
+	ifactor HYDRADIRECTOR
+		state GETALLTAGS
+	else ifactor HYDRAPOINT
+		state GETALLTAGS
+endevent
+
+defstate hydraHandlePoint
+	ife enemypoint_handled 0
+	{
+		state enemyInvalidateCurrentPoint
+		state enemyFindPoint
+		state enemySetPoint
+	}
+ends
+
+defstate enumerateHydraHealth
+	set tmp_hydra_index 0
+	set RETURN 0
+	for tmp_hydra_index range hydra_index
+	{
+		set cur_point_enemy hydraheads[tmp_hydra_index]
+		geta[cur_point_enemy].extra temp3
+		ifl temp3 0
+			set temp3 0
+		add RETURN temp3
+	}
+ends
+
+useractor notenemy HYDRAPOINT
+	cstat 32768
+
+	ife hydra_stage_started EXTRASAVED
+		state enemyPointsAdd
+enda
+
+useractor notenemy HYDRADIRECTOR
+	// This actor basically manages the "total" health of the hydra based on the combined health of the currently active heads
+	// The current stage determines how many hydras to spawn, and possibly some other shit...
+	ife hydra_spawn_wait 1
+		set hydra_spawn_wait 0
+
+	ifn LOTAGSAVED 0
+	{
+		set hydra_stage_started -1
+		checkactivatormotion LOTAGSAVED
+		ife RETURN 1
+		{
+			set hydra_stage_started 0
+			set LOTAGSAVED 0
+		}
+	}
+
+	ife hydra_stage_started 0
+	{
+		set hydra_boss_stage 1
+	}
+
+	ife hydra_boss_stage 1
+	{
+		ifl hydra_stage_started 1
+		{
+			espawn HYDRA
+			seta[RETURN].pal sprite[].pal
+			set hydra_stage_started 1
+			set hydra_spawn_wait 1
+		}
+	}
+	else ife hydra_boss_stage 2
+	{
+		ifl hydra_stage_started 2
+		{
+			state invalidateCurrentEnemyPoints
+
+			add INTERNALCOUNT 1
+
+			// a bit of dramatic pause for effect before starting proper
+			ife INTERNALCOUNT 300
+			{
+				set music_fade 0
+				setmusicvolume 100
+				starttrackslot 3 31
+				espawn HYDRA
+				seta[RETURN].pal sprite[].pal
+				espawn HYDRA
+				seta[RETURN].pal sprite[].pal
+				espawn HYDRA
+				seta[RETURN].pal sprite[].pal
+				espawn HYDRA
+				seta[RETURN].pal sprite[].pal
+				espawn HYDRA
+				seta[RETURN].pal sprite[].pal
+				espawn HYDRA
+				seta[RETURN].pal sprite[].pal
+				espawn HYDRA
+				seta[RETURN].pal sprite[].pal
+				espawn HYDRA
+				seta[RETURN].pal sprite[].pal
+				set hydra_stage_started 2
+				set hydra_spawn_wait 1
+				operateactivators EXTRASAVED THISACTOR
+				quake 128
+			}
+			else ife INTERNALCOUNT 280
+				quake 64
+			else ife INTERNALCOUNT 220
+				quake 32
+			else ife INTERNALCOUNT 200
+				quake 26
+			else ife INTERNALCOUNT 120
+				quake 26
+		}
+	}
+
+	// Don't check for active hydras instantly after spawning them, we need to wait for the hydra actor code to run first to set some stuff up.
+	// So we set this wait field to 1 and then back to 0 on the next run
+	ife hydra_spawn_wait 0
+	{
+		state enumerateHydraHealth
+		seta[].extra RETURN // this is for the boss bar
+
+		ifle RETURN 0
+		{
+			ife hydra_boss_stage 1
+			{
+				set music_fade 1
+				set hydra_boss_stage 2
+				set INTERNALCOUNT 0
+			}
+			else ife hydra_stage_started 2
+			{
+				operateactivators HITAGSAVED THISACTOR
+				set hydra_stage_started 3
+				state clearAllEnemyPoints
+			}
+		}
+		else
+			set CURBOSS THISACTOR
+	}
+enda
+
+defstate hydra_checktarget
+	geta[].z z
+	sub z 79860 // seems to be about eye level for the hydra
+	seta[].z z
+
+	state checkfortarget
+
+	add z 79860
+	seta[].z z
+ends
+
+spritenopal HYDRA
+
+useractor enemy HYDRA 2000
+fall
+
+ifaction 0
+{
+	cstat 257
+	strength 2000
+	sizeat 192 192
+
+	set enemy_cooldown1 0 // cooldown 0 => not allowed to hide, 1 = allowed
+
+	ifspawnedby HYDRADIRECTOR
+	{
+		// set hidden
+		set INTERNALCOUNT 0
+		action A_HYDRA_HIDDEN
+	}
+	else
+		action A_HYDRA_IDLE
+}
+else ifaction A_HYDRA_IDLE
+{
+	add INTERNALCOUNT 1
+	set my_target -1
+
+	ife enemy_cooldown1 1
+	  ifrnd 8
+	{
+		action A_HYDRA_LOWER
+	}
+	else ifg INTERNALCOUNT 50 // minimal amount of time between attacks
+	{
+		ifrnd 32
+			state hydra_checktarget
+		else ifg INTERNALCOUNT 300 // force it
+			state hydra_checktarget
+
+		ifn my_target -1
+		{
+			set INTERNALCOUNT 0
+			sound HYD_RCG1
+			action A_HYDRA_PREP
+		}
+	}
+}
+else ifaction A_HYDRA_PREP
+{
+	state fronttowardstarget
+	add INTERNALCOUNT 1
+
+	ifg INTERNALCOUNT 50
+	{
+		sound HYD_RCG2
+		action A_HYDRA_CHARGE
+	}
+}
+else ifaction A_HYDRA_CHARGE
+{
+	state fronttowardstarget
+	set INTERNALCOUNT 0
+
+	ifactioncount 3
+		action A_HYDRA_FIRING
+}
+else ifaction A_HYDRA_FIRING
+{
+	state fronttowardstarget
+
+	add INTERNALCOUNT 1
+	ifg INTERNALCOUNT 10
+	{
+		set INTERNALCOUNT 0
+
+		// the sprite of the hydra is large that its own projectiles can immediately clip into it (so instantly disappear)
+		// to get around this:
+		// use movesprite to get coordinates in front of the hydra, shoot the projectile from there, then move back
+		geta[].x x
+		geta[].y y
+
+		geta[].ang movesprite_angvar
+		set movesprite_shift 5
+		state movesprite_state
+		shoot 29020
+
+		seta[].x x
+		seta[].y y
+	}
+
+	set enemy_cooldown1 1
+	ifactioncount 60
+		action A_HYDRA_IDLE
+}
+else ifaction A_HYDRA_RAISE
+{
+	cstat 257
+	set INTERNALCOUNT 0
+
+	espawn 18138
+	setav[RETURN].temp 1
+	randvar temp 2048
+	seta[RETURN].ang temp
+
+	ifactioncount 7
+		action A_HYDRA_IDLE
+}
+else ifaction A_HYDRA_LOWER
+{
+	set enemypoint_handled 0 // mark point needs to be updated
+	set enemy_cooldown1 0
+
+	espawn 18138
+	setav[RETURN].temp 1
+	randvar temp 2048
+	seta[RETURN].ang temp
+
+	set INTERNALCOUNT 0
+	ifactioncount 7
+	{
+		sound SUBMERGE
+		spawn 18138
+		spawn WATERBUBBLE
+		spawn WATERBUBBLE
+		spawn WATERBUBBLE
+		spawn WATERBUBBLE
+		action A_HYDRA_HIDDEN
+	}
+}
+else ifaction A_HYDRA_HIDDEN
+{
+	cstat 32768
+
+	// find me a new point to arise from
+	ife INTERNALCOUNT 0
+		state hydraHandlePoint
+
+	ifn cur_enemypoint -1
+	{
+		add INTERNALCOUNT 1
+
+		// stay hidden for an amount of time
+		ifg INTERNALCOUNT 120
+			ifrnd 64
+			{
+				sound HYD_RCG3
+				spawn 18138
+				sound SURFACE
+				action A_HYDRA_RAISE
+			}
+			else ifg INTERNALCOUNT 320 // do force it eventually
+			{
+				sound HYD_RCG3
+				spawn 18138
+				sound SURFACE
+				action A_HYDRA_RAISE
+			}
+	}
+}
+else ifaction A_HYDRA_DYING
+{
+	ifactioncount 6
+		{
+		spawn 18138
+		sound WATER_SPLASH
+		action A_HYDRA_DEAD
+		}
+}
+else ifaction A_HYDRA_DEAD
+{
+	state enemyInvalidateCurrentPoint
+	cstat 32768
+}
+
+ifhitweapon
+{
+	ifdead
+	{
+		globalsound HYD_PAIN1
+		action A_HYDRA_DYING
+	}
+}
+enda

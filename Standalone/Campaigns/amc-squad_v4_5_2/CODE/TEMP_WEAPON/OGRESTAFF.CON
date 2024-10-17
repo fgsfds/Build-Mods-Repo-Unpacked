@@ -1,0 +1,60 @@
+appendevent EVENT_LOOKLEFT
+   ife cur_weap 0
+	ife temp_weap 46 // Ogre staff frost blast
+	  ife kickbackpic_2 0
+	  ifg p_blue_mana 0
+	   ife allow_fire YES
+	{
+	    set kickbackpic_2 1
+	}
+endevent
+
+defstate tw_ogrestaff_gunammotypes
+    setarray GUN_AMMO_TYPES_ARR[0] 8192
+ends
+
+defstate tw_ogrestaff_code
+	setarray WEAPON_TILE[0] OGRE_STAFF_SPRITE
+	set weapon_type 8
+	set gun_mag -1
+	set GUN_SIZE 1
+	set GUN_HANDS 2
+	set GUN_VOLUME 12
+	set GUN_ACCURACY 32
+	set GUN_MAX_SPREAD 0
+	set GUN_AMMO_TYPES 8192
+	set WEAPON0_WORKSLIKE 0
+	set WEAPON0_TOTALTIME 6
+	set WEAPON0_HOLDDELAY 3
+	set WEAPON0_FIREDELAY 3
+	set WEAPON0_FIRESOUND 4
+	set WEAPON0_INITIALSOUND 4
+	set WEAPON0_SHOTSPERBURST 2
+	set WEAPON0_SHOOTS 12712
+	set WEAPON0_FLAGS 2
+	set WEAPON0_SELECTSOUND SELECT_MYSTIC
+	setarray weap_special[0] 16384
+
+	ife kickbackpic 3 { espawn SOUND_SPRITE set gun_recoil 5 state SPAWN_IN_PLAYER_FRONT setactorvar[RETURN].temp OGR_STAFF }
+
+	ifg kickbackpic_2 0 // Blue mana mode
+	{
+		add kickbackpic_2 1
+		ife kickbackpic_2 3
+		{
+			espawn SOUND_SPRITE
+			set gun_recoil 5
+			state SPAWN_IN_PLAYER_FRONT
+			setactorvar[RETURN].temp CAT_FIRE
+			shoot ICE_BEAM
+			shoot ICE_BEAM
+			sub p_blue_mana 2
+			// if still pressing the key, and ammo remaining, keep firing
+			ifand BITS_PRESS 64
+				ifg p_blue_mana 1
+					set kickbackpic_2 1
+		}
+		ifg kickbackpic_2 6
+			set kickbackpic_2 0
+	}
+ends

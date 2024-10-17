@@ -1,0 +1,410 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+
+--------------------------------------------------------------------------------
+*/
+
+// ===============================================================================================================================================================
+// MADRAX
+// ===============================================================================================================================================================
+
+action MADRAX_IDLE 0 1 1 1 0
+action MADRAX_READY 1 1 5 1 16
+action MADRAX_FIRE 1 2 5 1 0
+action MADRAX_COAT_THROW 11 6 1 1 20
+
+action MADRAX_NC_IDLE 16 1 1 1 0
+action MADRAX_NC_READY 17 1 5 1 16
+action MADRAX_NC_FIRE 17 2 5 1 0
+
+action MADRAX_NC_HUTHUT 27 1 1 1 1
+action MADRAX_NC_CHARGE 27 2 1 1 16
+action MADRAX_NC_DASH 29 2 1 1 8
+action MADRAX_NC_BASH 31 2 1 1 16
+
+action MADRAX_NC_DIE 33 4 1 1 20
+action MADRAX_NC_DEAD 36
+
+move MADRAX_MOVE 320 0
+
+ai AIMADRAX_STARTUP MADRAX_IDLE STOP
+ai AIMADRAX_IDLE MADRAX_IDLE STOP
+ai AIMADRAX_READY MADRAX_READY STOP faceplayer
+ai AIMADRAX_FIRE MADRAX_FIRE STOP faceplayerslow
+ai AIMADRAX_COAT_THROW MADRAX_COAT_THROW
+
+ai AIMADRAX_NC_IDLE MADRAX_NC_IDLE STOP
+ai AIMADRAX_NC_READY MADRAX_NC_READY STOP faceplayer
+ai AIMADRAX_NC_FIRE MADRAX_NC_FIRE STOP faceplayerslow
+
+ai AIMADRAX_NC_HUTHUT MADRAX_NC_HUTHUT STOP faceplayer
+ai AIMADRAX_NC_CHARGE MADRAX_NC_CHARGE STOP faceplayer
+ai AIMADRAX_NC_DASH MADRAX_NC_DASH MADRAX_MOVE faceplayer
+ai AIMADRAX_NC_BASH MADRAX_NC_BASH STOP faceplayer
+
+ai AIMADRAX_NC_DIE MADRAX_NC_DIE STOP
+ai AIMADRAX_NC_DEAD MADRAX_NC_DEAD STOP
+ai AIMADRAX_NC_DEAD2 MADRAX_NC_DEAD STOP
+
+damageeventtile MADRAX
+
+// ally_mag 1 = coat
+// ally_mag 0 = no coat
+
+useractor enemy MADRAX
+fall
+ifai 0
+	{
+	sizeat 30 30
+	cstat 257
+	state monst_glow
+	strength 5000
+	set actor_type TYPE_BODY_ARMOUR
+	set ally_mag 1
+	spriteflags 1056803 // --> SFLAG_BADGUY = 0
+	ai AIMADRAX_STARTUP
+	}
+	
+ife ally_mag 1 set actor_type TYPE_BODY_ARMOUR
+else set actor_type 0
+
+ifai AIMADRAX_NC_DEAD
+	{
+	cstat 0
+	ifcount 140
+		{
+		operateactivators HITAGSAVED THISACTOR
+		operatemasterswitches HITAGSAVED
+		operaterespawns HITAGSAVED
+		ai AIMADRAX_NC_DEAD2
+		}
+	}
+
+ifai AIMADRAX_NC_DEAD2
+	{
+	cstat 0
+	}
+
+ifai AIMADRAX_NC_DIE
+	{
+	ifactioncount 4
+		{
+		ai AIMADRAX_NC_DEAD
+		sound BOSSFALL
+		quake 13
+		spawn BLOODPOOL
+		}
+	}
+
+ifai AIMADRAX_STARTUP
+	{
+
+	checkactivatormotion 129
+	ife RETURN 1
+		{
+		set CURBOSS THISACTOR
+		set BOSS_TYPE 0
+		seta[].mdflags temp
+		set command 8192
+		spawn SHOOTME
+		set npc_talking 300
+		ai AIMADRAX_IDLE
+		}
+	}
+
+ifai AIMADRAX_COAT_THROW
+	{
+	ifactioncount 3 soundonce BIGTHROW
+	ifactioncount 6 ai AIMADRAX_NC_IDLE
+	}
+
+ifai AIMADRAX_IDLE
+	{
+	ifp pdead break
+	state correctcansee
+	ife sightvar YES
+	 ifcanshoottarget
+	  ifrnd 32
+		{
+		ai AIMADRAX_READY
+		resetcount
+		}
+	}
+
+ifai AIMADRAX_READY
+	{
+
+	ifand ALLY_VOICE 16 nullop else ife npc_talking 0
+		{
+		globalsound MX_ATTACK1
+		ife gp_subt 0
+			{
+			set subt_id 13000
+			set gp_subt 112
+			}
+		xorvar ALLY_VOICE 16
+		set npc_talking 600
+		}
+	ifand ALLY_VOICE 32 nullop else ife npc_talking 0
+		{
+		globalsound MX_ATTACK2
+		ife gp_subt 0
+			{
+			set subt_id 13001
+			set gp_subt 117
+			}
+		xorvar ALLY_VOICE 32
+		set npc_talking 600
+		}
+
+ifg npc_talking 0 sub npc_talking 1
+
+	soundonce MINIGUN3_START
+	state correctcansee
+	ife sightvar YES
+		{
+		ifcount 15 ai AIMADRAX_FIRE
+		}
+		else ai AIMADRAX_IDLE
+	}
+
+
+ifai AIMADRAX_FIRE
+	{
+	soundonce MINIGUN3_FIRE
+	shoot SHOTSPARK1
+	shoot FAKE_BULLET
+
+		ife PERFMODE 1
+		 ifcount 3
+			{
+			set gunsmoke_z 7644
+			set gunsmoke_angle 256
+			state spawn_gunsmoke_z
+			set gunsmoke_z 5044
+			espawn 16115
+			state spawn_muzzleflash
+			state npc_rifleshell
+			resetcount
+			}
+
+	flash
+	ifrnd 2
+		{
+		stopsound MINIGUN3_FIRE
+		soundonce MINIGUN3_STOP
+		ai AIMADRAX_READY
+		}
+	state correctcansee
+	ife sightvar YES
+	 ifcanshoottarget nullop else ifrnd 64
+		{
+		stopsound MINIGUN3_FIRE
+		soundonce MINIGUN3_STOP
+		ai AIMADRAX_READY
+		}
+	ifp pdead ai AIMADRAX_IDLE
+	}
+
+ifai AIMADRAX_NC_IDLE
+	{
+	ifp pdead break
+	state correctcansee
+	ife sightvar YES
+	 ifcanshoottarget
+	  ifrnd 32
+		{
+		ai AIMADRAX_NC_READY
+		resetcount
+		}
+	ifrnd 128 ai AIMADRAX_NC_HUTHUT
+	}
+
+ifai AIMADRAX_NC_READY
+	{
+	soundonce MINIGUN3_START
+	ifcansee ifcanshoottarget
+		{
+		ifcount 15 ai AIMADRAX_NC_FIRE
+		}
+		else ai AIMADRAX_NC_HUTHUT
+	}
+
+
+ifai AIMADRAX_NC_HUTHUT
+	{
+	ifand ALLY_VOICE 1 nullop else ife npc_talking 0
+		{
+		globalsound MX_CHARGE1
+		ife gp_subt 0
+			{
+			set subt_id 13002
+			set gp_subt 112
+			}
+		xorvar ALLY_VOICE 1
+		set npc_talking 300
+		}
+	ifand ALLY_VOICE 2 nullop else ife npc_talking 0
+		{
+		globalsound MX_CHARGE2
+		ife gp_subt 0
+			{
+			set subt_id 13003
+			set gp_subt 117
+			}
+		xorvar ALLY_VOICE 2
+		set npc_talking 300
+		}
+	ifand ALLY_VOICE 4 nullop else ife npc_talking 0
+		{
+		globalsound MX_CHARGE3
+		ife gp_subt 0
+			{
+			set subt_id 13004
+			set gp_subt 82
+			}
+		xorvar ALLY_VOICE 4
+		set npc_talking 300
+		}
+
+	ifactioncount 8 ai AIMADRAX_NC_CHARGE
+	}
+
+	ifg npc_talking 0 sub npc_talking 1
+
+ifai AIMADRAX_NC_CHARGE
+	{
+	ifactioncount 2 ai AIMADRAX_NC_DASH
+	}
+
+ifai AIMADRAX_NC_DASH
+	{
+	ifcount 6
+		{
+		ife footstep_count 0 { sound BOSS_STOMP1 set footstep_count 1 }
+		else { sound BOSS_STOMP2 set footstep_count 0 }
+		quake 13
+		resetcount
+		}
+	ifpdistl 1536
+		{
+		state setknockback
+		wackplayer
+		sound BOSS_WHACK
+		palfrom 20 30 0 0
+		addphealth -15
+		ai AIMADRAX_NC_BASH
+		}
+	else ifnotmoving ai AIMADRAX_NC_READY
+	else ifactioncount 90 ai AIMADRAX_NC_READY
+	}
+
+ifai AIMADRAX_NC_BASH
+	{
+	ifactioncount 2 ai AIMADRAX_NC_READY
+	}
+
+ifai AIMADRAX_NC_FIRE
+	{
+	soundonce MINIGUN3_FIRE
+	shoot SHOTSPARK1
+	shoot FAKE_BULLET
+
+		ife PERFMODE 1
+		 ifcount 3
+			{
+			set gunsmoke_z 7644
+			set gunsmoke_angle 256
+			state spawn_gunsmoke_z
+			set gunsmoke_z 5044
+			espawn 16115
+			state spawn_muzzleflash
+			state npc_rifleshell
+			resetcount
+			}
+
+	flash
+	ifrnd 2
+		{
+		stopsound MINIGUN3_FIRE
+		soundonce MINIGUN3_STOP
+		ai AIMADRAX_NC_HUTHUT
+		}
+	state correctcansee
+	ife sightvar YES
+	 ifcanshoottarget nullop else ifrnd 48
+		{
+		stopsound MINIGUN3_FIRE
+		soundonce MINIGUN3_STOP
+		ai AIMADRAX_NC_READY
+		}
+	ifp pdead ai AIMADRAX_NC_IDLE
+	}
+
+ifhitweapon
+	{
+	set CURBOSS THISACTOR
+	ife ally_mag 0
+		{
+		state random_wall_jibs
+		//spawn BLOOD
+		guts JIBS6 1
+		ifrnd 16 soundonce MX_PAIN2
+		else ifrnd 16 soundonce MX_PAIN3
+		else ifrnd 16 soundonce MX_PAIN4
+		}
+
+	ifstrength 3000 ife ally_mag 1
+		{
+		sound JMOVE3
+		globalsound MX_THROWD
+		ife gp_subt 0
+			{
+			set subt_id 13005
+			set gp_subt 60
+			}
+		xorvar ALLY_VOICE 1
+		set npc_talking 150
+		set SLO_MO_SHOWOFF 45
+		ai AIMADRAX_COAT_THROW
+		resetactioncount
+		set ally_mag 0
+		}
+
+	ifdead
+		{
+		add TREASURE_FOUND 3
+		 addkills 1
+		 globalsound MX_DIE
+
+		 resetcount
+		 resetactioncount
+		 ai AIMADRAX_NC_DIE
+		}
+
+	}
+
+enda

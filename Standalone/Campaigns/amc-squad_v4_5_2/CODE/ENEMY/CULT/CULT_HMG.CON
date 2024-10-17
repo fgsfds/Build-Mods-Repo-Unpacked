@@ -1,0 +1,514 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+
+--------------------------------------------------------------------------------
+*/
+
+damageeventtile CULT_HMG_FALLEN
+damageeventtile CULT_HMG
+
+action A_CULTHMG_FL_IDLE 0
+action A_CULTHMG_FL_SHOOT 1 2 1 1 24
+action A_CULTHMG_FL_DIE -2 2 1 1 24
+action A_CULTHMG_FL_DEAD -1
+
+
+
+useractor enemy CULT_HMG_FALLEN 0
+fall
+ifaction 0
+{
+seta[].shade sector[].floorshade
+move STOP
+set ally_mag 6
+sound CULT_LSTAND
+ifspritepal 0 spritepal 11
+cstat 257
+state monst_glow
+spriteflags NORMAL_ENEMY
+sizeat 28 28
+strength 20
+action A_CULTHMG_FL_IDLE
+}
+
+ifaction A_CULTHMG_FL_DEAD
+{
+seta[].shade sector[].floorshade
+cstat 0
+move STOP
+
+ifhitweapon
+		{
+		  ifwasweapon RADIUSEXPLOSION
+			  {
+			   shoot HMGC_HEAD
+			   state squish_sounds
+			   state standard_jibs
+			   killit
+			  }
+		  ifwasweapon RPG
+			  {
+			   shoot HMGC_HEAD
+			   state squish_sounds
+			   state standard_jibs
+			   killit
+			  }
+		}
+}
+else
+ifaction A_CULTHMG_FL_DIE
+{
+ifactioncount 2 { state BODY_FALL_NOISES action A_CULTHMG_FL_DEAD }
+}
+else
+ifaction A_CULTHMG_FL_IDLE
+	{
+	move STOP
+	ifpdistl 8192
+	 ifrnd 16 ifcansee action A_CULTHMG_FL_SHOOT
+	ifactioncount 300 { strength 0 action A_CULTHMG_FL_DIE }
+	}
+else
+ifaction A_CULTHMG_FL_SHOOT
+	{
+	move STOP faceplayer
+	ifactioncount 0 ife ally_mag 0 { addstrength -4 soundonce DRY_FIRE action A_CULTHMG_FL_IDLE }
+	ifactioncount 2
+		{
+		ifg ally_mag 0
+			{
+			shoot SHOTSPARK1
+			sound REVOLVERFIRE
+			resetactioncount
+			sub ally_mag 1
+			ifrnd 96 action A_CULTHMG_FL_IDLE
+			}
+		}
+	}
+
+	ifdead
+		{
+		ifaction A_CULTHMG_FL_DIE break
+		ifaction A_CULTHMG_FL_DEAD break
+			randvar temp 30
+			ifl temp 10 sound CULTIST_DIE1 else
+			ifl temp 20 sound CULTIST_DIE2 else
+			sound CULTIST_DIE3
+			 action A_CULTHMG_FL_DIE
+		}
+
+ifhitweapon
+	{
+	ifdead
+		{
+		state random_wall_jibs
+		  ifwasweapon RADIUSEXPLOSION
+			  {
+			    shoot HMGC_HEAD
+			   state squish_sounds
+			   state standard_jibs
+			   killit
+			  }
+			ifl temp 10 sound CULTIST_DIE1 else
+			ifl temp 20 sound CULTIST_DIE2 else
+			sound CULTIST_DIE3
+			 action A_CULTHMG_FL_DIE
+		}
+	}
+
+enda
+
+action A_CULT_HMG_START 0 1 5 1 12
+action A_CULT_HMG_IDLE 0 1 5 1 12
+
+action A_CULT_HMG_DEAD 39
+action A_CULT_HMG_DYING 35 5 1 1 16
+action A_CULT_HMG_FALL 35 5 1 1 16
+
+action A_CULT_HMG_HS_DEAD 52
+action A_CULT_HMG_HS_DYING 48 5 1 1 16
+
+action A_CULT_HMG_SLASH_DEAD 47
+action A_CULT_HMG_SLASH_DYING 43 5 1 1 16
+
+action A_CULT_HMG_FREEZE 35 1 1 1 8
+
+action A_CULT_HMG_GROW 35 1 1 1 8
+action A_CULT_HMG_SHRUNK 0 4 5 1 12
+action A_CULT_HMG_PAIN 35 1 1 1 8
+
+action A_CULT_HMG_SEEK 5 4 5 1 12
+action A_CULT_HMG_ATTACK 25 2 5 1 0
+
+move M_CULT_HMG_WALK 126
+
+useractor enemystayput CULT_HMG_STAYPUT 200 A_CULT_HMG_START cactor CULT_HMG enda
+
+useractor enemy CULT_HMG 200 A_CULT_HMG_START
+fall
+ifaction A_CULT_HMG_START
+{
+	set actor_type TYPE_BODY_ARMOUR
+	cstat 257
+	strength 200
+	sizeat 26 26
+	ifspritepal 0 spritepal 11
+	state monst_glow
+	espawn SHOOTME
+	seta[RETURN].pal 1
+	action A_CULT_HMG_IDLE
+}
+
+state ENEMYKNOCKBACKS
+state enemyfloordamage
+state enemy_fire_damage
+state enemy_ice_damage
+state enemy_spirit_damage
+
+
+ifaction A_CULT_HMG_IDLE
+{
+	move STOP
+	state checkfortarget
+	ifn my_target -1
+	{
+		ifrnd 128 sound CULT_SIG1 else sound CULT_SIG2
+		action A_CULT_HMG_SEEK
+	}
+}
+
+// Death & dying
+else ifaction A_CULT_HMG_HS_DEAD
+{
+	move STOP
+	ifhitweapon
+	{
+		ifwasweapon RADIUSEXPLOSION
+		{
+			state squish_sounds
+			state standard_jibs
+			state human_jibs
+			killit
+		}
+	}
+}
+else ifaction A_CULT_HMG_SLASH_DEAD
+{
+	move STOP
+	ifhitweapon
+	{
+		ifwasweapon RADIUSEXPLOSION
+		{
+		    shoot HMGC_HEAD
+			state squish_sounds
+			state standard_jibs
+			state human_jibs
+			killit
+		}
+	}
+}
+else ifaction A_CULT_HMG_DEAD
+{
+	move STOP
+	ifhitweapon
+	{
+		ifwasweapon RADIUSEXPLOSION
+		{
+		    shoot HMGC_HEAD
+			state squish_sounds
+			state standard_jibs
+			state human_jibs
+			killit
+		}
+	}
+}
+else ifaction A_CULT_HMG_HS_DYING
+{
+	move STOP
+	strength 0
+	ifactioncount 5 { state rf state BODY_FALL_NOISES spawn BLOODPOOL action A_CULT_HMG_HS_DEAD }
+}
+else ifaction A_CULT_HMG_SLASH_DYING
+{
+	move STOP
+	strength 0
+	ifactioncount 5 { state rf state SQUISH_FALL_NOISES spawn BLOODPOOL action A_CULT_HMG_SLASH_DEAD }
+}
+else ifaction A_CULT_HMG_DYING
+{
+	move STOP
+	strength 0
+	ifactioncount 5 { state rf state BODY_FALL_NOISES spawn BLOODPOOL action A_CULT_HMG_DEAD }
+}
+else ifaction A_CULT_HMG_FALL
+{
+	move STOP
+	strength 0
+	ifactioncount 5 { state rf state BODY_FALL_NOISES spawn BLOODPOOL action 0 cactor CULT_HMG_FALLEN }
+}
+
+// Status effects
+else ifaction A_CULT_HMG_FREEZE state frozen_code
+else ifaction A_CULT_HMG_GROW
+{
+	move STOP
+	state genericgrowcode
+}
+else ifaction A_CULT_HMG_SHRUNK
+{
+	ifmove M_CULT_HMG_WALK { } // need to do this cause we're not using ai routines anymore
+	else
+		move M_CULT_HMG_WALK geth fleeenemy
+
+	ifl SHRUNK_TIME SHRUNKCOUNT // keep shrunk
+		state new_shrunkcode
+	else ifl SHRUNK_TIME SHRUNKDONECOUNT // regrow
+	{
+		state unshrink
+		sizeto 28 28
+	}
+	else // after regrow, switch back to regular action
+	{
+		state endshrunkenstate
+		action A_CULT_HMG_SEEK
+	}
+}
+
+else ifaction A_CULT_HMG_PAIN
+{
+	sub PAIN_AMOUNT 1
+	move STOP
+	ife PAIN_AMOUNT 0
+	{
+		ifdead action A_CULT_HMG_DYING
+		else action A_CULT_HMG_SEEK
+	}
+}
+
+else ifaction A_CULT_HMG_SEEK
+{
+	ifmove M_CULT_HMG_WALK { }
+	else
+		move M_CULT_HMG_WALK geth
+
+	state checkfortarget
+
+	ifn my_target -1
+	{
+		// Target acquired, skill setting can still affect decision to shoot.
+		state SKILL_SHOOT_LEVELADJUST
+
+		ifl RANDOM_CHANCE SKILLCHANCE
+		{
+			// Assume target still acquired, is rechecked on next tic anyway
+
+			// Optional: apply dist check to target
+			// Basically any check here to decide whether or not to ATTACK goes. But there is no need to check for my_target again.
+			// my_target can be the player or another target, the actor shouldn't care about that (for now)
+			ifrnd 32 soundonce CULT_LAUGH
+			ldist temp THISACTOR my_target
+			ifl temp 16384 action A_CULT_HMG_ATTACK
+		}
+	}
+}
+
+else ifaction A_CULT_HMG_ATTACK
+{
+	move STOP
+	state new_validatetarget
+
+	ife my_target -1
+		action A_CULT_HMG_SEEK
+
+	state fronttowardstarget
+
+	ifactioncount 2
+	{
+		set PROJECTILE_TO_SHOOT ENEMY_BULLET
+		set PROJECTILE_FIRING_SOUND M60_FIRE
+		state sang_enemyShootProjectile
+
+		globalsound DISTANT_RIFLE
+		ife PERFMODE 1
+		 ifcansee
+			{
+			shoot SHELL_LINK
+			set gunsmoke_z 8192
+			set gunsmoke_angle 256
+			state spawn_gunsmoke_z
+			state npc_rifleshell
+			set gunsmoke_z 8192
+			state spawn_enemy_ARFLASH
+			state spawn_muzzleflash
+			}
+		ifrnd 32 action A_CULT_HMG_SEEK
+		resetactioncount
+	}
+}
+
+ifhitweapon
+{
+	state NEWGUNEFFECTS
+	sound BERSERK_PAIN
+	geta[].extra HEAL_COUNT
+	//spawn BLOOD
+	guts JIBS6 1
+	state random_wall_jibs
+	ifdead
+	{
+		addkills 1
+		state rf
+		ifphealthl 50
+			{
+			state SKILL_LEVELADJUST
+			ifl RANDOM_CHANCE SKILLCHANCE spawn HPOWDER
+			}
+		else
+		ifrnd 16
+			{
+			espawn M60_SPRITE randvar temp 70 add temp 15 setactorvar[RETURN].YVELSAVED temp
+			}
+		ifwasweapon RADIUSEXPLOSION
+			{
+			ifg fire_damage 0 set fire_damage 0
+				state squish_sounds
+			  state monst_body_jibs
+			  state human_jibs
+			  killit
+			  }
+		  ifwasweapon RPG
+			  {
+			  ifg fire_damage 0 set fire_damage 0
+			  state squish_sounds
+			  state monst_body_jibs
+			  state human_jibs
+			  killit
+			  }
+		ifand PROJ_UDATA PROJ_GIB
+			  {
+			  ifg fire_damage 0 set fire_damage 0
+			  state squish_sounds
+			  state monst_body_jibs
+			  state human_jibs
+			  killit
+			  }
+		ifand PROJ_UDATA 8192
+			 {
+			 ifrnd 8 { spawn ELECTROCUTE_MARV soundonce MALE_ELECT1 } else spawn ELECTROCUTE_GUY
+			 shoot SPARK2 shoot SPARK2 shoot SPARK2
+			 killit
+			 }
+		ifwasweapon GROWSPARK { cstat 0 sound ACTOR_GROWING action A_CULT_HMG_GROW break }
+		else ifg ice_damage 0 { spritepal 1 strength 0 sound SOMETHINGFROZE action A_CULT_HMG_FREEZE }
+		else ifg fire_damage 0
+		{
+			shoot SPARK2 shoot SPARK2 shoot SPARK2
+			ifrnd 64 sound MALE_ONFIRE1
+			else ifrnd 64 sound MALE_ONFIRE2
+			else ifrnd 64 sound MALE_ONFIRE3
+			else sound MALE_ONFIRE4
+			spawn ONFIREGUY
+			killit
+		}
+		else ifand PROJ_UDATA 8
+			{
+			state random_trigger_showoff
+			cstat 4
+			state slashed_sounds
+			action A_CULT_HMG_SLASH_DYING
+			}
+		else ife HEADSHOT 2
+		{
+			ifg fire_damage 0 set fire_damage 0
+			state random_trigger_showoff
+			state jib_sounds
+			state decap_sounds
+			ifg sprite[].extra -50
+				{
+				eshoot HMGC_HEAD
+                geta[].htang temp
+				seta[RETURN].ang temp
+                geta[RETURN].z temp
+                sub temp 1200
+                seta[RETURN].z temp
+				}
+			else guts JIBS2 2
+			shoot NJIB
+			shoot NJIB
+			guts JIBS6 3
+			action A_CULT_HMG_HS_DYING
+		}
+		else ifg spirit_damage 0
+		{
+			shoot SPARK2 shoot SPARK2 shoot SPARK2
+			spritepal 1
+			guts JIBS3 6
+			spawn SPIRIT_DEATH_GUY
+			killit
+		}
+		else ifg energy_damage 0
+		{
+			shoot SPARK2 shoot SPARK2 shoot SPARK2
+			spritepal 4
+			guts JIBS3 6
+			spawn DISINTIGRATE_GUY
+			killit
+		}
+		else
+		{
+		 ifg HEAL_COUNT -10
+		  ife fire_damage 0
+		   ifn HEADSHOT 2
+			{
+			state random_wall_jibs
+			sound ZSCI_PAIN
+			action A_CULT_HMG_FALL
+			}
+			else
+			{
+			randvar temp 30
+			ifl temp 10 sound CULTIST_DIE1 else
+			ifl temp 20 sound CULTIST_DIE2 else
+			sound CULTIST_DIE3
+			action A_CULT_HMG_DYING
+			}
+		}
+	}
+
+	else // not dead
+	{
+		ifwasweapon SHRINKSPARK { sound ACTOR_SHRINKING action A_CULT_HMG_SHRUNK }
+
+		ifg PAIN_AMOUNT 0 { state cult_pain_sound action A_CULT_HMG_PAIN }
+		else ifrnd 32 { state cult_pain_sound state PAIN_SKILL_LEVELADJUST action A_CULT_HMG_PAIN }
+		// if they were idle, getting hit ALWAYS wakes them up
+		else ifaction A_CULT_HMG_IDLE { state cult_pain_sound state PAIN_SKILL_LEVELADJUST action A_CULT_HMG_PAIN }
+	}
+}
+
+state checksquished
+
+enda

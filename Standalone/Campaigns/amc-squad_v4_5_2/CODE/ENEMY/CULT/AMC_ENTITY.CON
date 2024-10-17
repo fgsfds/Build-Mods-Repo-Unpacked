@@ -1,0 +1,289 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+
+--------------------------------------------------------------------------------
+*/
+
+
+// ******************************************************************************
+// ENTITY
+// ******************************************************************************
+
+spritenoshade 10039
+spritenopal 10039
+useractor notenemy 10039 // Lava trail
+
+ifaction 0
+{
+cstat 1024
+seta[].blend 255
+action ZERO
+}
+
+ifspawnedby 10752
+	{
+	sizeat 128 128
+	geta[myowner].extra temp2
+	ifl temp2 1
+		killit
+	}
+else
+ifspawnedby LAVA_BEAST
+	{
+	ife sprite[myowner].pal 46 
+		{
+		spritepal 1
+		sizeat 40 40
+		cstator 514
+		seta[].blend 255
+		}
+	else
+	sizeat 128 128
+	geta[myowner].extra temp2
+	ifl temp2 1
+	killit
+	}
+else
+ifspawnedby 10547
+	{
+	state getfloordist
+	ifl z 0 cstat 2 else cstat 32768
+	sizeat 48 48
+	geta[myowner].statnum temp2
+	ife temp2 1024
+		killit
+	}
+else
+ifspawnedby 22093 // Lava beast head
+	{
+	ife sprite[myowner].pal 46 
+		{
+		spritepal 1
+		sizeat 40 40
+		cstator 514
+		seta[].blend 255
+		}
+	else
+	sizeat 128 128
+	geta[myowner].statnum temp2
+	ife temp2 1024
+		killit
+	}
+
+
+ifspawnedby LAVA_BEAST
+	{
+	geta[myowner].x temp
+	geta[myowner].y temp2
+	getsector[].floorz temp3
+	geta[myowner].cstat temp4
+	ifand temp4 32768 cstat 32768 else cstat 1024
+	setsprite THISACTOR temp temp2 temp3
+	}
+else
+ifspawnedby 22093
+	{
+	geta[myowner].x temp
+	geta[myowner].y temp2
+	getsector[].floorz temp3
+	cstat 0
+	setsprite THISACTOR temp temp2 temp3
+	}
+else
+	{
+	geta[myowner].x temp
+	geta[myowner].y temp2
+	geta[myowner].z temp3
+	sub temp3 4096
+	setsprite THISACTOR temp temp2 temp3
+	}
+
+enda
+
+action AENTITY_RISE 9730 8 1 1 30
+action AENTITY_IDLE 9737 1 5 1 10
+action AENTITY_MOVE 9737 4 5 1 40
+action AENTITY_FIREBALL 9778 2 5 1 10
+action AENTITY_PAIN 9788 1 5 1 20
+action AENTITY_BIGCAST 9758 4 5 1 40
+action AENTITY_DIE 9793 9 1 1 40
+
+move ENTITY_STOP 0
+move ENTITY_MOVE 96 0
+
+ai AI_ENTITY_IDLE AENTITY_IDLE ENTITY_STOP
+ai AI_ENTITY_SEEK AENTITY_MOVE ENTITY_MOVE seekplayer
+ai AI_ENTITY_THROW_FIREBALL AENTITY_FIREBALL ENTITY_STOP faceplayersmart
+ai AI_ENTITY_BIGCAST AENTITY_BIGCAST ENTITY_STOP faceplayer
+ai AI_ENTITY_PAIN AENTITY_PAIN ENTITY_STOP
+
+damageeventtile E1_BOSS
+
+useractor enemystayput E1_BOSS
+fall
+seta[].htflags 17866787
+
+ifaction AENTITY_DIE
+{
+ifrnd 2 shoot LAVABALL
+ifactioncount 8
+	{
+	set STORY_TRIGGER3 1
+	operateactivators 1305 THISACTOR
+	palfrom 62 62 62 62
+	killit
+	}
+}
+else
+ife temp8 1
+{
+ifdead break else
+	{
+	quake 26
+	ai AI_ENTITY_PAIN
+	}
+set temp8 0
+}
+else
+ife temp9 1
+{
+ifdead break else
+	{
+	globalsound ENTITY_ANGRY
+	quake 26
+	ai AI_ENTITY_BIGCAST
+	}
+set temp9 0
+}
+else
+ifaction 0
+{
+clipdist 255
+set temp6 0
+shoot LAVABALL shoot LAVABALL shoot LAVABALL shoot LAVABALL shoot LAVABALL shoot LAVABALL
+shoot LAVABALL shoot LAVABALL shoot LAVABALL shoot LAVABALL shoot LAVABALL shoot LAVABALL
+globalsound ENTITY_AWAKEN
+quake 52
+set CURBOSS THISACTOR
+set BOSS_TYPE 2
+ife VOLUME 0
+	{
+	starttrackvar 18
+	spawn LILITH
+	}
+else set temp6 4
+spawn 10039
+cstat 257
+sizeat 60 60
+strength 15000
+ife rendmode 0 action AENTITY_RISE else { startcutscene 1304 ai AI_ENTITY_IDLE }
+}
+else
+ifaction AENTITY_RISE
+{
+ifactioncount 8
+	{
+	shoot LAVABALL shoot LAVABALL shoot LAVABALL shoot LAVABALL shoot LAVABALL shoot LAVABALL
+	shoot LAVABALL shoot LAVABALL shoot LAVABALL shoot LAVABALL shoot LAVABALL shoot LAVABALL
+	ai AI_ENTITY_IDLE
+	}
+}
+else
+ifai AI_ENTITY_IDLE
+{
+ifcansee
+ ifcanseetarget
+  ifrnd 96
+	ai AI_ENTITY_SEEK
+	else
+	ifrnd 8 ai AI_ENTITY_THROW_FIREBALL
+}
+else
+ifai AI_ENTITY_SEEK
+{
+ifcanseetarget
+ ifcanshoottarget
+  ifrnd 8
+	{
+	ife temp6 4 ifrnd 128 ai AI_ENTITY_BIGCAST else
+	ai AI_ENTITY_THROW_FIREBALL
+	}
+	else
+ifrnd 16 ai AI_ENTITY_IDLE
+}
+else
+ifai AI_ENTITY_BIGCAST
+{
+ifactioncount 3
+	{
+	quake 13
+	ife temp6 0 { operateactivators 1301 THISACTOR set temp6 1 } else
+	ife temp6 1 { operateactivators 1302 THISACTOR set temp6 2 } else
+	ife temp6 2 { operateactivators 1303 THISACTOR set temp6 3 } else
+	ife temp6 3 { operateactivators 1304 THISACTOR set temp6 4 } else
+	ife temp6 4
+		{
+		sound STYGIAN_FIRE
+		eshoot STYGIAN_ROCK
+		geta[RETURN].z temp
+		sub temp 8196
+		seta[RETURN].z temp
+		}
+	ai AI_ENTITY_IDLE
+	}
+}
+else
+ifai AI_ENTITY_THROW_FIREBALL
+{
+	ifactioncount 2
+		{
+		sound STYGIAN_FIRE
+		eshoot BRUISERFIREBALL
+		geta[RETURN].z temp
+		sub temp 14196
+		seta[RETURN].z temp
+		geta[RETURN].zvel temp
+		add temp 1024
+		seta[RETURN].zvel temp
+		}
+	ifactioncount 3 ai AI_ENTITY_SEEK
+}
+else
+ifai AI_ENTITY_PAIN
+{
+globalsound ENTITY_PAIN
+ifactioncount 5 ai AI_ENTITY_IDLE
+}
+
+ifhitweapon
+	{
+	seta[].xvel 0
+	set CURBOSS THISACTOR
+	ifwasweapon RADIUSEXPLOSION ifrnd 128 ai AI_ENTITY_PAIN
+	ifdead { quake 68 set SLO_MO_SHOWOFF 40 action AENTITY_DIE }
+	}
+
+enda

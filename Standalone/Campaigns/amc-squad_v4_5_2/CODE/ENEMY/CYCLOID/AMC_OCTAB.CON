@@ -1,0 +1,690 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Based on the Duke3D CON files by 3DRealms, released under the GPL2 at:
+https://github.com/videogamepreservation/dukenukem3d/blob/ef609159bd352985a0c63734a11241d86c873fe5/testdata/GAME.CON
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+
+--------------------------------------------------------------------------------
+*/
+
+useractor notenemy 1851 ifinwater { seta[].mdflags 16 set command 32768 } enda
+useractor notenemy 1850 ifinwater { seta[].mdflags 16 set command 32768 } enda
+useractor notenemy 1835 ifinwater { seta[].mdflags 16 set command 32768 } enda
+
+damageeventtile OCTABRAIN
+
+action AOCTAWALK    0   3   5   1   15
+action AOCTASTAND     0   1   5   1   15
+action AOCTASCRATCH   0   4   5   1   15
+action AOCTAHIT    29   1   1   1   10
+action AOCTASHOOT    20   1   5   1   10
+action AOCTASHOOT_2    37  1   5   1   10
+
+action AOCTA_AMC 15339 1 5
+action AOCTA_AMC_FIRE 15339 2 5 1 12
+
+action AOCTA_EDF 15349 1 5
+action AOCTA_EDF_FIRE 15349 2 5 1 12
+
+action AOCTA_PIG 15359 1 5
+action AOCTA_PIG_FIRE 15359 2 5 1 48
+
+action AOCTADYING    30   6   1   1   17
+action AOCTADEAD     35
+
+action AOCTADYING2    51   6   1   1   17
+action AOCTADEAD2     56
+
+action AOCTA_SLASH 17057 8 1 1 12
+action AOCTA_SDEAD 17065
+
+action AOCTAFROZEN    30   1   1
+
+move OCTAWALKVELS 96 -30
+move OCTAUPVELS 96 -70
+move OCTASTOPPED 0 -30
+move OCTAINWATER 96 24
+
+ai AIOCTAGETENEMY AOCTAWALK OCTAWALKVELS seekplayer
+
+ai AIOCTA_AMC AOCTA_AMC OCTAWALKVELS seekplayer
+ai AIOCTA_AMC_FIRE AOCTA_AMC_FIRE OCTAWALKVELS faceplayerslow
+
+ai AIOCTA_EDF AOCTA_EDF OCTAWALKVELS seekplayer
+ai AIOCTA_EDF_FIRE AOCTA_EDF_FIRE OCTAWALKVELS faceplayerslow
+
+ai AIOCTA_PIG AOCTA_PIG OCTAWALKVELS seekplayer
+ai AIOCTA_PIG_FIRE AOCTA_PIG_FIRE OCTAWALKVELS faceplayerslow
+
+ai AIOCTASHOOTENEMY AOCTASHOOT OCTASTOPPED faceplayer
+ai AIOCTASHOOTENEMY_2 AOCTASHOOT_2 OCTASTOPPED faceplayer
+
+ai AIOCTASCRATCHENEMY AOCTASCRATCH OCTASTOPPED faceplayerslow
+ai AIOCTAHIT AOCTAHIT OCTASTOPPED faceplayer
+
+ai AIOCTASHRUNK AOCTAWALK SHRUNKVELS faceplayer
+ai AIOCTAGROW AOCTASTAND OCTASTOPPED faceplayerslow
+
+ai AIOCTADYING AOCTADYING OCTASTOPPED faceplayer
+ai AIOCTADYING2 AOCTADYING2 OCTASTOPPED faceplayer
+ai AIOCTA_SLASH AOCTA_SLASH OCTASTOPPED faceplayer
+
+defstate octa_holdbody
+state correctcansee
+  ife sightvar YES
+  {
+     ifrnd 48
+        ifcanshoottarget
+      {
+       ifai AIOCTA_AMC ai AIOCTA_AMC_FIRE
+	   ifai AIOCTA_EDF ai AIOCTA_EDF_FIRE
+	   ifai AIOCTA_PIG ai AIOCTA_PIG_FIRE
+        break
+      }
+  }
+
+ends
+
+
+defstate octagetenemystate
+state correctcansee
+  ife sightvar YES
+  {
+    ifactioncount 32
+    {
+      ifrnd 48
+        ifcanshoottarget
+      {
+        sound OCTA_ATTACK1
+		ifinwater ifrnd 64 ifpdistl 8024
+			{
+			getp[].cursectnum temp
+			gets[temp].lotag temp2
+			ife temp2 2 ai AIOCTASHOOTENEMY_2 // use air leeching attack if player is in water
+			else ai AIOCTASHOOTENEMY
+			}
+		else
+        ai AIOCTASHOOTENEMY
+        break
+      }
+    }
+    else
+      ifpdistl 1280
+        ai AIOCTASCRATCHENEMY
+  }
+
+ends
+
+defstate octascratchenemystate
+  ifpdistg 1280
+    ai AIOCTAGETENEMY
+  else
+    ifcount 32
+  {
+    resetcount
+    sound OCTA_ATTACK2
+    palfrom 16 32
+	wackplayer
+	addphealth OCTASCRATCHINGPLAYER
+  }
+ends
+
+defstate octa_captivefire
+state checkfortarget
+ifn my_target -1
+{
+ifactioncount 2
+	{
+	ifai AIOCTA_PIG_FIRE
+		{
+		sound PIG_FIRE
+		set PROJECTILE_FIRING_SOUND 4
+		set PROJECTILE_TO_SHOOT ENEMY_SHOTGUN
+		state sang_enemyShootProjectile
+		state sang_enemyShootProjectile
+		state sang_enemyShootProjectile
+		state sang_enemyShootProjectile
+		state sang_enemyShootProjectile
+		}
+	else
+		{
+		ifai AIOCTA_EDF_FIRE set PROJECTILE_FIRING_SOUND M16_2_FIRE
+		else set PROJECTILE_FIRING_SOUND SUP_TMP
+		set PROJECTILE_TO_SHOOT ENEMY_BULLET
+		state sang_enemyShootProjectile
+		}
+
+		ifrnd 2
+		zshoot temp3 13215
+
+		ife PERFMODE 1
+		 ifcansee
+			{
+				ifai AIOCTA_EDF_FIRE state npc_rifleshell
+				ifai AIOCTA_AMC_FIRE state npc_pistolshell
+				ifai AIOCTA_PIG_FIRE shoot 3761
+				set gunsmoke_z 6244
+				set gunsmoke_angle 220
+				state spawn_gunsmoke_z
+				set gunsmoke_z 6344
+				espawn 16115
+				state spawn_muzzleflash
+			}
+	ifai AIOCTA_AMC_FIRE ifrnd 48 ai AIOCTA_AMC
+	ifai AIOCTA_EDF_FIRE ifrnd 48 ai AIOCTA_EDF
+	ifai AIOCTA_PIG_FIRE ifrnd 48 ai AIOCTA_PIG
+	resetactioncount
+	}
+}
+else
+	{
+	ifai AIOCTA_AMC_FIRE ai AIOCTA_AMC
+	ifai AIOCTA_EDF_FIRE ai AIOCTA_EDF
+	ifai AIOCTA_PIG_FIRE ai AIOCTA_PIG
+	}
+ends
+
+defstate octashootenemystate
+ifg SKILL_LEVEL 3 // shoot much faster on higher difficulties
+	{
+	  ifcount 7
+	  {
+		ifcount 9
+		  ai AIOCTAGETENEMY
+	  }
+	  else
+		ifcount 6
+		  shoot COOLEXPLOSION1
+	  else
+		ifactioncount 6
+		  resetactioncount
+	}
+else
+ifg SKILL_LEVEL 1 // shoot much faster on higher difficulties
+	{
+	  ifcount 13
+	  {
+		ifcount 15
+		  ai AIOCTAGETENEMY
+	  }
+	  else
+		ifcount 12
+		  shoot COOLEXPLOSION1
+	  else
+		ifactioncount 6
+		  resetactioncount
+	}
+else
+	{
+	  ifcount 25
+	  {
+		ifcount 27
+		  ai AIOCTAGETENEMY
+	  }
+	  else
+		ifcount 24
+		  shoot COOLEXPLOSION1
+	  else
+		ifactioncount 6
+		  resetactioncount
+	}
+ends
+
+defstate octashootenemystate_2
+  ifcount 25
+  {
+    ifcount 27
+      ai AIOCTAGETENEMY
+  }
+  else
+    ifcount 24
+		{
+		globalsound SUBMERGE
+		ifcanseetarget
+			{
+			getp[].scuba_on temp
+			ife temp 1
+				{
+				globalsound STEAM_HISSING
+				wackplayer
+				palfrom 15 0 0 30
+				getp[].scuba_amount temp2
+				sub temp2 320
+				setp[].scuba_amount temp2
+				}
+			else
+				{
+				globalsound DROWNING
+				wackplayer
+				palfrom 30 0 0 30
+				getp[].airleft temp
+				randvar temp 50
+				add temp 50
+				ifg temp 100 set temp 100
+				setp[].airleft temp
+				}
+			}
+		}
+  else
+    ifactioncount 6
+      resetactioncount
+ends
+
+defstate checkoctahitstate
+	state NEWGUNEFFECTS
+    ifrnd 128 guts JIBS6 2
+  ifwasweapon SHRINKSPARK
+  {
+    sound ACTOR_SHRINKING
+    ai AIOCTASHRUNK
+  }
+  else
+  {
+    ifdead
+    {
+      ifg ice_damage 0
+      {
+        sound SOMETHINGFROZE
+        spritepal 1
+        move 0
+        action AOCTAFROZEN
+        strength 0
+        break
+      }
+
+      addkills 1
+
+      ifwasweapon RPG
+      {
+        state squish_sounds
+        state standard_jibs
+		shoot OCTA_TENT
+		shoot OCTA_TENT
+		shoot OCTA_TENT
+		shoot OCTA_TENT
+		shoot OCTA_TENT
+		shoot OCTA_TENT
+		shoot OCTA_TENT
+		shoot OCTA_TENT
+        killit
+      }
+      else
+        ifwasweapon RADIUSEXPLOSION
+      {
+        state squish_sounds
+        state standard_jibs
+		shoot OCTA_TENT
+		shoot OCTA_TENT
+		shoot OCTA_TENT
+		shoot OCTA_TENT
+		shoot OCTA_TENT
+		shoot OCTA_TENT
+		shoot OCTA_TENT
+		shoot OCTA_TENT
+        killit
+      }
+      else
+        ifand PROJ_UDATA PROJ_GIB
+		  {
+			state squish_sounds
+			state standard_jibs
+			shoot OCTA_TENT
+			shoot OCTA_TENT
+			shoot OCTA_TENT
+			shoot OCTA_TENT
+			shoot OCTA_TENT
+			shoot OCTA_TENT
+			shoot OCTA_TENT
+			shoot OCTA_TENT
+			killit
+		  }
+      else
+		ifg fire_damage 0
+			{
+			sound OCTA_DYING
+			sound ENGULF_FIRE
+			shoot SPARK shoot SPARK shoot SPARK shoot SPARK shoot SPARK
+			spawn 33978
+			killit
+			}
+			else
+		ifand PROJ_UDATA 8
+			{
+			state sword_kill_sounds
+            state random_trigger_showoff
+			guts JIBS6 4
+			guts JIBS2 2
+			guts JIBS5 1
+			cstat 0
+			sound SQUISHED3 ai AIOCTA_SLASH
+			}
+		else
+        ifwasweapon GROWSPARK
+      {
+        cstat 0
+        sound ACTOR_GROWING
+        ai AIOCTAGROW
+        break
+      }
+      else
+      {
+        state rf
+		ifrnd 128 ai AIOCTADYING2 else
+        ai AIOCTADYING
+      }
+      sound OCTA_DYING
+    }
+    else
+    {
+      ifwasweapon RPG
+      {
+        sound OCTA_DYING
+        addkills 1
+
+        state standard_jibs
+		shoot OCTA_TENT
+		shoot OCTA_TENT
+		shoot OCTA_TENT
+		shoot OCTA_TENT
+		shoot OCTA_TENT
+		shoot OCTA_TENT
+		shoot OCTA_TENT
+		shoot OCTA_TENT
+        killit
+      }
+      else
+        ifwasweapon GROWSPARK
+          sound EXPANDERHIT
+
+      sound OCTA_PAIN
+      //spawn BLOOD
+	  ifg PAIN_AMOUNT 0
+	   {
+	   ifai AIOCTA_AMC spawn 9068
+	   ifai AIOCTA_AMC_FIRE spawn 9068
+	   ifai AIOCTA_EDF spawn 10436
+	   ifai AIOCTA_EDF_FIRE spawn 10436
+	   ifai AIOCTA_PIG spawn 2060
+	   ifai AIOCTA_PIG_FIRE spawn 2060
+	   ai AIOCTAHIT
+	   }
+	  else
+      ifrnd 64
+		{
+		state PAIN_SKILL_LEVELADJUST
+		 ifai AIOCTA_AMC spawn 9068
+		 ifai AIOCTA_AMC_FIRE spawn 9068
+		 ifai AIOCTA_EDF spawn 10436
+		 ifai AIOCTA_EDF_FIRE spawn 10436
+	     ifai AIOCTA_PIG spawn 2060
+	     ifai AIOCTA_PIG_FIRE spawn 2060
+        ai AIOCTAHIT
+		}
+    }
+  }
+  state random_wall_jibs
+ends
+
+defstate octashrunkstate
+  ifcount SHRUNKDONECOUNT
+    ai AILIZGETENEMY
+  else
+    ifcount SHRUNKCOUNT
+	  {
+	  sound ACTOR_UNSHRINK
+      sizeto 24 24
+	  }
+  else
+    state genericshrunkcode
+ends
+
+defstate octadyingstate
+  ifactioncount 6
+  {
+    ifrnd 64
+      spawn BLOODPOOL
+    move OCTASTOPPED
+	ifai AIOCTADYING2 action AOCTADEAD2 else
+    action AOCTADEAD
+    break
+  }
+  else
+    ifactioncount 5 nullop
+  else
+    ifactioncount 4
+      iffloordistl 8
+        state BODY_FALL_NOISES
+ends
+
+defstate octaslash_die
+  ifactioncount 8
+  {
+    ifrnd 64
+      spawn BLOODPOOL
+    move OCTASTOPPED
+    action AOCTA_SDEAD
+    break
+  }
+  else
+    ifactioncount 4 ife INTERNALCOUNT 0 { sound SQUISHED2 shoot NJIB shoot NJIB shoot NJIB set INTERNALCOUNT 1 }
+  else
+    ifactioncount 3
+      iffloordistl 8
+        state SQUISH_FALL_NOISES
+ends
+
+actor OCTABRAINSTAYPUT OCTASTRENGTH AOCTASTAND
+  ai AIOCTAGETENEMY
+  sizeat 24 24
+  state monst_glow
+  spawn SHOOTME
+  cactor OCTABRAIN
+enda
+
+actor OCTABRAIN OCTASTRENGTH AOCTASTAND
+  fall
+  state checksquished
+
+ state ENEMYKNOCKBACKS
+ state enemy_ice_damage
+ state enemy_fire_damage
+ state enemy_spirit_damage
+
+ ifaction 0
+	{
+	sizeat 24 24
+	set MONSTER_FLAGS 1
+	state monst_glow
+	}
+
+  ifai 0
+    {
+	state monst_glow
+	spawn SHOOTME
+	ifspritepal 200 { ai AIOCTA_AMC spritepal 0 } else
+	ifspritepal 201 { ai AIOCTA_EDF spritepal 0 } else
+	ifspritepal 202 { ai AIOCTA_PIG spritepal 0 } else
+	ifspritepal 203
+		{
+		ifrnd 85 ai AIOCTA_AMC else
+		ifrnd 170 ai AIOCTA_EDF else
+		ai AIOCTA_PIG
+		spritepal 0
+		}
+	else
+	ai AIOCTAGETENEMY
+	}
+  else
+    ifaction AOCTADEAD
+  {
+    strength 0
+    ifhitweapon
+      ifwasweapon RADIUSEXPLOSION
+    {
+      state standard_jibs
+		shoot OCTA_TENT
+		shoot OCTA_TENT
+		shoot OCTA_TENT
+		shoot OCTA_TENT
+		shoot OCTA_TENT
+		shoot OCTA_TENT
+		shoot OCTA_TENT
+		shoot OCTA_TENT
+      killit
+    }
+    break
+  }
+  else
+    ifaction AOCTADEAD2
+  {
+    strength 0
+    ifhitweapon
+      ifwasweapon RADIUSEXPLOSION
+    {
+      state standard_jibs
+		shoot OCTA_TENT
+		shoot OCTA_TENT
+		shoot OCTA_TENT
+		shoot OCTA_TENT
+		shoot OCTA_TENT
+		shoot OCTA_TENT
+		shoot OCTA_TENT
+		shoot OCTA_TENT
+      killit
+    }
+    break
+  }
+  else
+    ifaction AOCTA_SDEAD
+  {
+    strength 0
+    ifhitweapon
+      ifwasweapon RADIUSEXPLOSION
+		{
+		  state standard_jibs
+			shoot OCTA_TENT
+			shoot OCTA_TENT
+			shoot OCTA_TENT
+			shoot OCTA_TENT
+			shoot OCTA_TENT
+			shoot OCTA_TENT
+			shoot OCTA_TENT
+			shoot OCTA_TENT
+		  killit
+		}
+    break
+  }
+  else ifaction AOCTAFROZEN
+  {
+    state frozen_code
+    break
+  }
+  else
+  {
+    ifrnd 1
+      soundonce OCTA_ROAM
+
+    ifai AIOCTAGETENEMY
+      state octagetenemystate
+    else
+    ifai AIOCTA_AMC
+      state octa_holdbody
+    else
+    ifai AIOCTA_EDF
+      state octa_holdbody
+    else
+    ifai AIOCTA_PIG
+      state octa_holdbody
+    else
+      ifai AIOCTAHIT
+      {
+	  sub PAIN_AMOUNT 1
+        ife PAIN_AMOUNT 0
+          ai AIOCTASHOOTENEMY
+      }
+    else
+      ifai AIOCTADYING
+      {
+        state octadyingstate
+        break
+      }
+    else
+      ifai AIOCTADYING2
+      {
+        state octadyingstate
+        break
+      }
+    else
+      ifai AIOCTA_SLASH
+      {
+	  ifg SLO_MO_SHOWOFF 0 ai AIOCTA_SLASH
+        state octaslash_die
+        break
+      }
+    else
+      ifai AIOCTASCRATCHENEMY
+        state octascratchenemystate
+	else
+	  ifai AIOCTA_AMC_FIRE
+		state octa_captivefire
+	else
+	  ifai AIOCTA_EDF_FIRE
+		state octa_captivefire
+	else
+	  ifai AIOCTA_PIG_FIRE
+		state octa_captivefire
+    else
+      ifai AIOCTASHOOTENEMY
+        state octashootenemystate
+    else
+      ifai AIOCTASHOOTENEMY_2
+        state octashootenemystate_2
+    else
+      ifai AIOCTASHRUNK
+      {
+        state octashrunkstate
+        break
+      }
+    else
+      ifai AIOCTAGROW
+        state genericgrowcode
+
+state thisactor_getzrange
+
+    ifmove OCTAUPVELS nullop
+    else
+      ifp phigher
+        move OCTAUPVELS seekplayer
+    else
+      ifmove OCTAINWATER nullop
+      else
+        ifinwater
+          move OCTAINWATER seekplayer
+
+    ifhitweapon
+      state checkoctahitstate
+  }
+enda

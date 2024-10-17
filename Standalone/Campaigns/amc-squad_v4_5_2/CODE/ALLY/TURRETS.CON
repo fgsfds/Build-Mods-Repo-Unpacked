@@ -1,0 +1,1128 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+
+--------------------------------------------------------------------------------
+*/
+
+damageeventtile AUTO_TURRET // Turret (Ally)
+damageeventtile FLAMER_TURRET // Flamer Turret (Ally)
+damageeventtile MICKY_TURRET 
+damageeventtile SNOWFALL_TURRET
+damageeventtile HIGHWIRE_TURRET
+
+// ========================================================TURRET=====================================================
+
+spriteshadow AUTO_TURRET
+spriteshadow 10605
+
+useractor notenemy 10605 sizeat 24 24 cstator 257 action FIVE_ANG enda
+
+useractor notenemy AUTO_TURRET
+
+ifaction 0
+	{
+	sleeptime 0
+	strength 250
+	spawn SHOOTME2
+	ifn HITAGSAVED 0 set ally_mag HITAGSAVED else
+	set ally_mag 1000
+	ife PERSONNEL_RESEARCH[RS_P_ENHANCED_TARG] 2 mul ally_mag 2
+	sizeat 24 24
+	ifn LOTAGSAVED 0 action FIVE_ANG else
+	action ATURRET_IDLE
+	}
+
+ifg targetlock 0 sub targetlock 1
+
+ifaction FIVE_ANG
+{
+sleeptime 0
+checkactivatormotion LOTAGSAVED
+set faction_flag 0				  
+ife RETURN 1 
+	{
+	set faction_flag ALLIED_FACTION_FLAG									 
+	state checkfortarget
+	action ATURRET_IDLE
+	}
+}
+
+
+ifaction ATURRET_IDLE
+	{
+	spriteflags 33554432
+	ife ally_mag 0 action ATURRET_EMPTY
+	ifspritepal 0 
+		{
+		ifactorsound THISACTOR AUTOTURRET_SCAN nullop else sound AUTOTURRET_SCAN
+		set temp2 -250
+		add temp2 ally_mag 
+		clamp temp2 -250 600
+		setactorsoundpitch THISACTOR AUTOTURRET_SCAN temp2
+		}
+	state checkfortarget
+	ifn my_target -1 ifg ally_mag 0 action ATURRET_FIRE
+	}
+
+ifaction ATURRET_FIRE
+{
+state checkfortarget
+state fronttowardstarget
+	ifactioncount 2
+			{
+			ifle ally_mag 50 sound MAG_LOW
+			set HITSCAN_FIRING_SOUND AUTOTURRET_FIRE
+			ifspritepal 21 set HITSCAN_TO_SHOOT ARMOUR_PIERCING_SHOT
+			else set HITSCAN_TO_SHOOT ZRIFLESHOTU
+			state sang_enemyShootHitscanNoTargetSeek
+			sub ally_mag 1
+			resetactioncount
+			}
+	ife my_target -1
+		{
+		action ATURRET_IDLE
+		}
+}
+
+ifhitweapon
+{
+debris SCRAP1 2
+	ifdead
+	{
+	spawn EXPLOSION2
+	sound PIPEBOMB_EXPLODE
+	debris SCRAP1 4
+	debris SCRAP2 5
+	debris SCRAP3 6
+	killit
+	}
+}
+
+
+enda
+
+// ========================================================MICKY TURRET=====================================================
+
+action ATURRET3 0 1 5
+action ATURRET3_EMPTY 0 1 5
+action ATURRET3_FIRE 5 1 5
+
+spriteshadow MICKY_TURRET
+
+useractor notenemy MICKY_TURRET // micky turret
+fall
+	ifaction 0
+	{
+		sleeptime 0
+		spawn SHOOTME2
+		ife PERSONNEL_RESEARCH[1] 2 xorvar amc_soldier_upgrades 1 // has the player researched laser guns for AMC soldiers?
+		ife PERSONNEL_RESEARCH[2] 2 { spritepal 16 strength 300 } else { spritepal 0 strength 150 } // has the player researched better armour for AMC soldiers?
+		sizeat 18 18
+		action ATURRET3
+	}
+
+	ifaction ATURRET3
+		{
+		ife ally_mag 0 action ATURRET3_EMPTY
+		soundonce AUTOTURRET_SCAN
+		set temp2 -250
+		add temp2 ally_mag 
+		clamp temp2 -250 600
+		setactorsoundpitch THISACTOR AUTOTURRET_SCAN temp2
+		}
+	else ifaction ATURRET3_FIRE
+	{
+		state checkfortarget
+
+		ifactioncount 2
+		ifn my_target -1
+		{
+		state fronttowardstarget
+			
+			ifle ally_mag 50 sound MAG_LOW
+			
+			set PROJECTILE_FIRING_SOUND AUTOTURRET_FIRE
+			set PROJECTILE_TO_SHOOT ENEMY_BULLET
+			ifand amc_soldier_upgrades 1 set PROJECTILE_STRENGTH 10
+			set PROJECTILE_PAL 8
+			geta[].z temp3 sub temp3 1024 seta[].z temp3 // change this actor's height so the projectile comes from the right place
+			state sang_enemyShootProjectile
+			geta[].z temp3 add temp3 1024 seta[].z temp3 // reset height
+			sub ally_mag 1
+			resetactioncount
+			
+			
+				ife PERFMODE 1
+				  ifcansee
+				{
+					set gunsmoke_z 4244
+					set gunsmoke_angle 220
+					state spawn_gunsmoke_z
+					set gunsmoke_z 4144
+					state spawn_enemy_ARFLASH
+					state spawn_muzzleflash
+					state npc_rifleshell
+				}
+			
+		}
+
+		ife my_target -1
+			action ATURRET3
+	}
+
+	ifg SEEK_ENEMY_COUNT 0
+		sub SEEK_ENEMY_COUNT 1
+
+	ife SEEK_ENEMY_COUNT 0
+	{
+		ifaction ATURRET3_EMPTY break
+		state checkfortarget
+		ifn my_target -1 ifg ally_mag 0 action ATURRET3_FIRE
+		set SEEK_ENEMY_COUNT 13
+	}
+
+
+	ifhitweapon
+	{
+		debris SCRAP1 2
+		ifdead
+		{
+			spawn EXPLOSION2
+			sound PIPEBOMB_EXPLODE
+			debris SCRAP1 4
+			debris SCRAP2 5
+			debris SCRAP3 6
+			killit
+		}
+	}
+
+	ifpdistl 1536
+	 ifp pfacing
+	  ifp palive
+	   ife CHAR 13
+		{
+			set player_use 0
+			ife use_action_allowed 1
+			{
+				set hit_key 30
+				stopsound AUTOTURRET_SCAN
+				sound TOOLBOXUSE
+				set temp ally_mag
+				ife PERSONNEL_RESEARCH[RS_P_ENHANCED_TARG] 2 div temp 2
+				ife PERSONNEL_RESEARCH[3] 2 mul temp 6 else
+				mul temp 8
+				clamp temp 0 2400
+				setp[].holoduke_amount temp
+				setarray picked_up_inven[3] 60
+				state PICKUP_DISPLAY
+				getav[PLAYER_IDENTITY].c_holoduke picked_up_tile
+				div temp 24
+				set item_amount temp
+				setp[].invdisptime 60
+				state setIgnoreUse
+				killit
+			}
+		}
+
+enda
+
+// ========================================================SNOWFALL TURRET=====================================================
+
+spriteshadow SNOWFALL_TURRET
+
+action ATURRET2_EMPTY 0 1 5
+
+useractor notenemy SNOWFALL_TURRET
+fall
+ifaction 0
+{
+	ifspritepal 31 // spectral turret?
+	{
+		seta[].blend 255
+		set ally_mag 150
+		cstator 2
+	}
+	sleeptime 0
+	strength 250
+	spawn SHOOTME2
+	sizeat 24 24
+	ifn LOTAGSAVED 0 action FIVE_ANG 
+	else action ATURRET_IDLE
+}
+else ifaction ATURRET_IDLE
+{
+	ife ally_mag 0 action ATURRET2_EMPTY
+	else
+	{	
+		ifspritepal 0 
+			{
+			soundonce AUTOTURRET_SCAN
+			set temp2 -250
+			add temp2 ally_mag 
+			clamp temp2 -250 600
+			setactorsoundpitch THISACTOR AUTOTURRET_SCAN temp2
+			}
+		state checkfortarget
+		
+		ifn my_target -1
+		  ifg ally_mag 0
+			action ATURRET_FIRE
+	}
+	
+}
+else ifaction FIVE_ANG
+{
+	sleeptime 0
+	checkactivatormotion LOTAGSAVED
+	ife RETURN 1
+		action ATURRET_IDLE
+}
+else ifaction ATURRET2_EMPTY 
+  ifspritepal 31
+{
+	globalsound UNMADE
+	spawn SKULLEXPLOSION
+	killit
+}
+else 
+ifaction ATURRET_FIRE
+{
+	ife ally_mag 0
+		action ATURRET2_EMPTY
+	else
+	{
+		state checkfortarget
+		
+		ife my_target -1
+			action ATURRET_IDLE
+		else
+		{
+			state fronttowardstarget
+			
+			ifactioncount 3
+			{
+				set PROJECTILE_FIRING_SOUND SF_HMG
+				set PROJECTILE_TO_SHOOT ENEMY_BULLET
+				set PROJECTILE_PAL 8
+				ifpdistg 4096 globalsound DISTANT_RIFLE
+				
+				ifle ally_mag 50 sound MAG_LOW
+					
+				state sang_enemyShootProjectile
+				
+				sub ally_mag 1
+				ife PERFMODE 1
+				  ifcansee
+				  ifn sprite[].pal 31 // not spectral turret?
+				{
+					set gunsmoke_z 4244
+					set gunsmoke_angle 220
+					state spawn_gunsmoke_z
+					set gunsmoke_z 4144
+					state spawn_enemy_ARFLASH
+					state spawn_muzzleflash
+					state npc_rifleshell
+				}
+				resetactioncount
+			}
+		}
+	}
+}
+
+ifpdistl 1536
+ ifp pfacing
+  ifp palive
+   ife CHAR 14
+    ifn sprite[].pal 31 // not spectral turret?
+	{
+		set player_use 0
+		ife use_action_allowed 1
+		{
+			state setIgnoreUse
+			
+			set hit_key 30
+			stopsound AUTOTURRET_SCAN
+			addweapon FREEZE_WEAPON 0
+			getp[].ammo_amount 9 temp4
+			ife PERSONNEL_RESEARCH[RS_P_ENHANCED_TARG] 2 div ally_mag 2
+			add temp4 ally_mag
+			ifg temp4 500 set temp4 500 // Don't let it go over his max ammo
+			setp[].ammo_amount 9 temp4
+
+			setarray picked_up_gun[9] 30
+			set weap_show 130
+			state PICKUP_DISPLAY
+			set picked_up_tile WEAPON_TILE[9]
+			set item_amount ally_mag
+			globalsound GET_GUN
+			killit
+		}
+	}
+
+ifhitweapon
+{
+	debris SCRAP1 2
+	ifdead
+	{
+		spawn EXPLOSION2
+		sound PIPEBOMB_EXPLODE
+		debris SCRAP1 4
+		debris SCRAP2 5
+		debris SCRAP3 6
+		killit
+	}
+}
+
+enda
+
+// ========================================================HIGHWIRE PKM TURRET=====================================================
+
+spriteshadow HIGHWIRE_TURRET
+
+useractor notenemy HIGHWIRE_TURRET
+fall
+ifaction 0
+{
+	sleeptime 0
+	strength 250
+	spawn SHOOTME2
+	sizeat 24 24
+	ifn LOTAGSAVED 0 action FIVE_ANG 
+	else action ATURRET_IDLE
+}
+else ifaction ATURRET_IDLE
+{
+	ife ally_mag 0 action ATURRET2_EMPTY
+	else
+	{	
+		ifspritepal 0 
+			{
+			soundonce AUTOTURRET_SCAN
+			set temp2 -250
+			add temp2 ally_mag 
+			clamp temp2 -250 600
+			setactorsoundpitch THISACTOR AUTOTURRET_SCAN temp2
+			}
+		state checkfortarget
+		
+		ifn my_target -1
+		  ifg ally_mag 0
+			action ATURRET_FIRE
+	}
+	
+}
+else ifaction FIVE_ANG
+{
+	sleeptime 0
+	checkactivatormotion LOTAGSAVED
+	ife RETURN 1
+		action ATURRET_IDLE
+}
+else 
+ifaction ATURRET_FIRE
+{
+	ife ally_mag 0
+		action ATURRET2_EMPTY
+	else
+	{
+		state checkfortarget
+		
+		ife my_target -1
+			action ATURRET_IDLE
+		else
+		{
+			state fronttowardstarget
+			
+			ifactioncount 3
+			{
+				set PROJECTILE_FIRING_SOUND PKM_FIRE
+				
+				set PROJECTILE_TO_SHOOT ENEMY_BULLET
+				
+				ifpdistg 4096 globalsound DISTANT_RIFLE
+				
+				ifle ally_mag 50 sound MAG_LOW
+					
+				state sang_enemyShootProjectile
+				
+				sub ally_mag 1
+				ife PERFMODE 1
+				  ifcansee
+				{
+					set gunsmoke_z 6244
+					set gunsmoke_angle 220
+					state spawn_gunsmoke_z
+					set gunsmoke_z 6144
+					state spawn_enemy_ARFLASH
+					state spawn_muzzleflash
+					state npc_rifleshell
+				}
+				resetactioncount
+			}
+		}
+	}
+}
+
+ifpdistl 1536
+ ifp pfacing
+  ifp palive
+   ife CHAR 3
+	{
+		set player_use 0
+		ife use_action_allowed 1
+		{
+			state setIgnoreUse
+			
+			set hit_key 30
+			stopsound AUTOTURRET_SCAN
+			addweapon FREEZE_WEAPON 0
+			getp[].ammo_amount 9 temp4
+			ife PERSONNEL_RESEARCH[RS_P_ENHANCED_TARG] 2 div ally_mag 2
+			add temp4 ally_mag
+			clamp temp4 0 400
+			setp[].ammo_amount 9 temp4
+
+			setarray picked_up_gun[9] 30
+			set weap_show 130
+			state PICKUP_DISPLAY
+			set picked_up_tile WEAPON_TILE[9]
+			set item_amount ally_mag
+			globalsound GET_GUN
+			killit
+		}
+	}
+
+ifhitweapon
+{
+	debris SCRAP1 2
+	ifdead
+	{
+		spawn EXPLOSION2
+		sound PIPEBOMB_EXPLODE
+		debris SCRAP1 4
+		debris SCRAP2 5
+		debris SCRAP3 6
+		killit
+	}
+}
+
+enda
+
+//
+// ------------------------------------------------------------
+// FLAMER SENTRY TURRET
+// ------------------------------------------------------------
+//
+
+spriteshadow FLAMER_TURRET
+
+
+action ASTURRET 0 1 5
+action ASTURRET_EMPTY 5 1 5
+action ASTURRET_PICKUP 5 1 5
+
+useractor notenemy FLAMER_TURRET 250
+sizeat 16 16
+fall
+
+ifaction 0
+	{
+	set actor_type TYPE_IGNORE_DAMAGE
+	spawn SHOOTME2
+	ifn LOTAGSAVED 0 set ally_mag LOTAGSAVED else
+	set ally_mag 500
+	ife PERSONNEL_RESEARCH[RS_P_ENHANCED_TARG] 2 mul ally_mag 2
+	action ASTURRET
+	}
+
+ifaction ASTURRET
+	{
+	cstat 257
+	ife ally_mag 0 action ASTURRET_EMPTY
+	add INTERNALCOUNT 1
+
+	ifpdistl 1024
+	 ifp pfacing
+	  ifp palive
+	  {
+	  set temp9 ally_mag
+	  divvar temp9 10
+		qsprintf 1053 1050 temp9
+		quote 1053
+	  set player_use 0
+	   ifhitspace
+		ifcount 13
+			{
+			set hit_key 30
+			set PLAYER_VOICEOVER 2
+			sound METALB_PICKUP
+			action ASTURRET_PICKUP
+			resetcount
+			}
+	  }
+	  
+	  ifspritepal 3 nullop else
+		{
+		ifactorsound THISACTOR AUTOTURRET_SCAN nullop else 
+		ifpdistl 16384
+			{
+			sound AUTOTURRET_SCAN
+			set temp2 -250
+			add temp2 ally_mag 
+			clamp temp2 -250 600
+			setactorsoundpitch THISACTOR AUTOTURRET_SCAN temp2
+			}
+		}
+
+	ifg INTERNALCOUNT 6
+		{
+		
+			findnearactor SHOOTME 3072 temp
+			ifn temp -1
+			{
+					geta[temp].x mx
+					geta[temp].y my
+					geta[].x temp5
+					geta[].y temp6
+					sub mx temp5
+					sub my temp6
+					getangle angvar mx my
+					seta[].ang angvar
+					ifg ally_mag 0
+						{
+						spawn 3296
+						soundonce FLAMETH_START
+						sub ally_mag 1
+						}
+			}
+
+		set INTERNALCOUNT 0
+		}
+	}
+else
+ifaction ASTURRET_EMPTY
+	{
+	cstat 257
+	ifg ally_mag 0 action ASTURRET
+
+	ifpdistl 1024
+	 ifp pfacing
+	  ifp palive
+	  {
+		quote 1051
+	  set player_use 0
+	   ifhitspace
+		ifcount 13
+			{
+			set hit_key 30
+			set PLAYER_VOICEOVER 2
+			sound METALB_PICKUP
+			action ASTURRET_PICKUP
+			resetcount
+			}
+	  }
+
+	}
+else
+ifaction ASTURRET_PICKUP
+	{
+	setp[].runspeed 45200
+	getp[].posx temp
+	getp[].posy temp2
+
+	set temp3 temp
+	add temp3 512
+
+	getp[].ang temp4
+
+	rotatepoint temp temp2 temp3 temp2 temp4 temp5 temp6
+
+	geta[].sectnum upd_sect
+	updatesectorz temp5 temp6 sprite[].z upd_sect
+	ife upd_sect -1 action ASTURRET else
+	{
+	seta[].x temp5
+	seta[].y temp6
+	changespritesect THISACTOR upd_sect
+	}
+	getp[].posz temp
+	add temp 5600
+	seta[].z temp
+	state lower_weapon
+	getp[].ang temp
+	seta[].ang temp
+
+	ifhitspace
+	 ifcount 13
+		{
+		sound METALB_PICKUP
+		setp[].runspeed RUNNINGSPEED
+		action ASTURRET
+		resetcount
+		}
+
+	ifpdistg 1024 { sound METALB_PICKUP setp[].runspeed RUNNINGSPEED action ASTURRET }
+	ifp pjumping { sound METALB_PICKUP setp[].runspeed RUNNINGSPEED action ASTURRET }
+
+}
+
+
+ifhitweapon
+{
+debris SCRAP1 2
+ifdead
+	{
+	spawn EXPLOSION2
+	sound PIPEBOMB_EXPLODE
+	debris SCRAP1 4
+	debris SCRAP2 5
+	debris SCRAP3 6
+	killit
+	}
+}
+
+ifinwater
+{
+spawn EXPLOSION2
+sound PIPEBOMB_EXPLODE
+debris SCRAP1 4
+debris SCRAP2 5
+debris SCRAP3 6
+killit
+}
+
+enda
+
+// ===================================OBLIVION_STAFF_SENTRY====================================
+
+spriteshadow OBLIVION_STAFF_SENTRY
+
+action OB_TURRET_IDLE 0 1 1 1 10
+action OB_TURRET_FIRE 0 1 1 1 2
+
+spritenoshade OBLIVION_STAFF_SENTRY
+
+useractor notenemy OBLIVION_STAFF_SENTRY
+
+ifaction 0
+	{
+	geta[].mdflags temp
+	orvar temp 16
+	seta[].mdflags temp
+	seta[].shade -127
+	set command 32768
+	sizeat 24 24
+	action OB_TURRET_IDLE
+	}
+
+ifg targetlock 0 sub targetlock 1
+
+ifaction OB_TURRET_IDLE
+	{
+	ifl ally_mag 0 set ally_mag 0
+	ifg ally_mag 0 soundonce SPELL8AMB // If it has ammo, make the creepy ambience noise
+	}
+
+
+	ifaction OB_TURRET_FIRE
+		{
+		state checkfortarget
+		ifcount 15
+		ifg ally_mag 0
+				{		
+				state fronttowardstarget
+				set PROJECTILE_FIRING_SOUND SPELL8FIRE
+				set PROJECTILE_TO_SHOOT SPELL8
+				state sang_enemyShootProjectile
+				sub ally_mag 1
+				resetcount
+				}
+		ife my_target -1 action OB_TURRET_IDLE
+		}
+	ifg SEEK_ENEMY_COUNT 0 sub SEEK_ENEMY_COUNT 1
+
+   ife SEEK_ENEMY_COUNT 0
+	ifg ally_mag 0
+		{
+		state checkfortarget
+		ifn my_target -1 { sound SPELL8CHARGE action OB_TURRET_FIRE }
+		set SEEK_ENEMY_COUNT 13
+		}
+
+	ifpdistl 1024
+	 ifp pfacing
+	  ifp palive
+	   ife CHAR 4
+		{
+		set player_use 0
+		ifhitspace
+			{
+			addweapon FREEZE_WEAPON 0
+			divvar ally_mag 3 // Divide the ammo by 3
+			getp[].ammo_amount 9 temp4
+			add temp4 ally_mag
+			stopactorsound THISACTOR SPELL8AMB
+			ifg temp4 20 set temp4 20 // Don't let it go over his max ammo
+			setp[].ammo_amount 9 temp4
+			palfrom 32 0 32
+			globalsound GET_GUN
+			killit
+			}
+		}
+
+enda
+
+// ===================================NEMESIS STAFF SENTRY====================================
+
+spriteshadow 18085
+spritenoshade 18085
+
+useractor notenemy 18085
+
+ifaction 0
+	{
+	 geta[].mdflags temp
+	orvar temp 16
+	seta[].mdflags temp
+	seta[].shade -127
+	set command 32768
+	sizeat 24 24
+	action OB_TURRET_IDLE
+	}
+
+ifaction OB_TURRET_IDLE
+{
+ifl ally_mag 0 set ally_mag 0
+ifpdistl 3072
+ ifg ally_mag 0
+		action ONE
+}
+
+ifaction ONE
+{
+	soundonce PORTAL_AMB2
+	set PLAYER_PROTECTED 1
+		palfrom 10 10 10 10
+	ifcount 30 { sub ally_mag 1 resetcount }
+	ifl ally_mag 1 { action OB_TURRET_IDLE set PLAYER_PROTECTED 0 soundonce MAGIC_FIELD_DOWN stopactorsound THISACTOR PORTAL_AMB2 }
+	ifpdistg 3072 { action OB_TURRET_IDLE set PLAYER_PROTECTED 0 soundonce MAGIC_FIELD_DOWN stopactorsound THISACTOR PORTAL_AMB2 }
+}
+
+ifpdistl 1024
+ ifp pfacing
+  ifp palive
+   ife CHAR 4
+	{
+	set player_use 0
+	ifhitspace
+		{
+		addweapon FREEZE_WEAPON 0
+		set PLAYER_PROTECTED 0
+		getp[].ammo_amount 9 temp4
+		add temp4 ally_mag
+		ifg temp4 60 set temp4 60 // Don't let it go over his max ammo
+		setp[].ammo_amount 9 temp4
+		palfrom 32 0 32
+		globalsound GET_GUN
+		soundonce MAGIC_FIELD_DOWN
+		stopactorsound THISACTOR PORTAL_AMB2
+		killit
+		}
+	}
+
+enda
+
+spriteshadow ZAX_HOLOGRAM
+spritenoshade ZAX_HOLOGRAM
+
+action ZAX_HOLOWALK 20 4 5 1 12
+action ZAX_HOLOTAUNT 12114
+
+move MOVE_ZAXHOLO 120 0
+
+useractor notenemy ZAX_HOLOGRAM // Zaxtor's holoduke
+fall
+ifaction 0
+{
+action FIVE_ANG
+sizeat 2 22
+spritepal 21
+set INTERNALCOUNT 0
+seta[].blend 255
+seta[].shade 30
+strength 2000
+}
+
+ifaction FIVE_ANG
+	{
+	move STOP
+	ifrnd 16 action ZAX_HOLOWALK
+	}
+else
+ifaction ZAX_HOLOTAUNT
+	{
+	move STOP
+	ifrnd 4 action ZAX_HOLOWALK
+	ifnosounds
+		{
+		ifrnd 16 soundonce ZAX_HOLO_TAUNT1
+		else ifrnd 16 soundonce ZAX_HOLO_TAUNT2
+		else ifrnd 16 soundonce ZAX_HOLO_TAUNT3
+		else ifrnd 16 soundonce ZAX_HOLO_TAUNT4
+		}
+	}
+else
+ifaction ZAX_HOLOWALK
+	{
+	move MOVE_ZAXHOLO geth
+	ifrnd 2 move MOVE_ZAXHOLO geth randomangle
+	ifnotmoving move MOVE_ZAXHOLO geth randomangle
+	ifrnd 1 action ZAX_HOLOTAUNT
+	}
+
+geta[].shade temp
+ifl INTERNALCOUNT 0
+	{
+	sizeto 2 22
+	cstat 2 add temp 1 seta[].shade temp
+	ifg temp 35 { killit }
+	}
+else
+	{
+	sizeto 22 22
+	ifg temp sector[].floorshade { cstat 2 sub temp 1 seta[].shade temp }
+	else ife temp sector[].floorshade cstat 0
+	}
+ife player[].holoduke_on -1 set INTERNALCOUNT -1
+
+enda
+
+// PAGE BOOK TORNADO ============================================
+
+move PAGE_TORNADO 96
+
+useractor notenemy 29079 // pages rotating
+
+ifaction 0
+	{
+	setactor[].mdflags 16
+	set command 32768
+	randvar temp9 16384
+	add temp9 8192
+	action ZERO
+	ifrnd 128 set ally_mag 1
+	}
+
+ifaction ZERO
+	{
+	sizeat 16 16
+	geta[myowner].x temp
+	geta[myowner].y temp2
+	spawn FRAMEEFFECT1
+
+	set temp3 temp
+	add temp3 768
+
+	rotatepoint temp temp2 temp3 temp2 temp4 temp5 temp6
+
+	ifg temp4 2048 sub temp4 2048
+	ifl temp4 -2048 add temp4 2048
+
+	seta[].x temp5
+	seta[].y temp6
+	geta[myowner].z temp8
+	sub temp8 temp9
+	seta[].z temp8
+
+	ifcount 1 { ife ally_mag 1 sub temp4 64 else add temp4 64 resetcount }
+	}
+
+	ife sprite[myowner].statnum 1024 { paper 1 killit }
+	ife sprite[myowner].statnum -1 { paper 1 killit }
+
+enda
+
+useractor notenemy 29298
+fall
+ifaction 0
+	{
+	espawn 29079
+	espawn 29079
+	espawn 29079
+	espawn 29079
+	espawn 29079
+	espawn 29079
+	espawn 29079
+	espawn 29079
+	espawn 29079
+	espawn 29079
+	espawn 29079
+	espawn 29079
+	espawn 29079
+	espawn 29079
+	espawn 29079
+	espawn 29079
+
+	cstat 2
+	sizeat 26 26
+	spritepal 15
+	action ZERO
+	set INTERNALCOUNT 0
+	}
+
+add INTERNALCOUNT 1
+ifge INTERNALCOUNT 300
+	{
+	stopactorsound THISACTOR SPELL_TORN
+	sound SPELL_TORN_STOP
+	spawn BIG_SMOKE2
+	paper 10
+	killit
+	}
+
+ifaction ZERO
+	{
+	ifactorsound THISACTOR SPELL_TORN nullop else
+	sound SPELL_TORN
+	state checkfortarget
+	ifn my_target -1
+		{
+		state fronttowardstarget
+		move PAGE_TORNADO geth
+
+		ldist xydist THISACTOR my_target
+
+		ifl xydist 1536
+			ifrnd 32
+		{
+			seta[my_target].htextra 6
+			seta[my_target].htpicnum 29076
+
+			ifsound HITCARDB nullop
+			else sound HITCARDB
+		}
+
+		ifactioncount 16
+			{
+			set PROJECTILE_TO_SHOOT 29076
+			set PROJECTILE_FIRING_SOUND CUTTING_WORD
+
+			state sang_enemyShootProjectile
+			state sang_enemyShootProjectile
+			state sang_enemyShootProjectile
+
+			ife my_target PLAYER_IDENTITY nullop
+			else
+			{
+				state sang_enemyShootProjectile
+				state sang_enemyShootProjectile
+			}
+
+			resetactioncount
+			}
+		}
+	else ifrnd 32 move PAGE_TORNADO geth randomangle
+	ifrnd 8 paper 1
+	}
+
+enda
+
+// Magic vorpal sword
+
+action MAGIC_SWORD_SWING 5 3 5 1 16
+
+useractor notenemy 29814
+ifaction 0
+	{
+	setactor[].mdflags 16
+	set command 32768
+	sizeat 26 26
+	spritepal 49
+	action FIVE_ANG
+	getsector[].floorz temp
+	sub temp 8192
+	seta[].z temp
+	set INTERNALCOUNT 0
+	}
+
+state check_canfloat
+
+add INTERNALCOUNT 1
+ifge INTERNALCOUNT 300
+	{
+	spawn BIG_SMOKE2
+	killit
+	}
+
+espawn FRAMEEFFECT1
+seta[RETURN].mdflags 16
+setav[RETURN].command 32768
+
+ifaction FIVE_ANG
+	{
+	state checkfortarget
+	ifn my_target -1
+		{
+		state fronttowardstarget
+		move PAGE_TORNADO geth
+		ldist temp THISACTOR my_target
+		ifl temp 1536
+			action MAGIC_SWORD_SWING
+		}
+	else ifrnd 32 move PAGE_TORNADO geth randomangle
+	}
+
+ifaction MAGIC_SWORD_SWING
+	{
+	ifactioncount 3
+		{
+		state fronttowardstarget
+		move PAGE_TORNADO geth
+
+				ldist temp THISACTOR my_target
+
+				ifg temp 1536
+					action FIVE_ANG
+
+				geta[].z temp2
+				sub temp2 8192 // Offset the Z. Assumes the center of the actor is the same as the player
+				geta[my_target].z temp3
+				ife actorvar[my_target].ally_mag 1 sub temp3 256 else
+				sub temp3 8592 // Offset the Z. assumes the center of the actor is the same as the player
+				sub temp3 temp2
+				shiftvarl temp3 8
+				ifn temp 0 divvarvar temp3 temp
+				sound BERSERK_SWING
+
+				setprojectile[11742].WORKSLIKE 2125890
+				zshoot temp3 11742
+				setprojectile[11742].WORKSLIKE 2129986
+				resetactioncount
+				action FIVE_ANG
+		}
+	}
+
+enda

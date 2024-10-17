@@ -1,0 +1,437 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+
+--------------------------------------------------------------------------------
+*/
+
+damageeventtile MJ12_ASSASSIN
+
+action A_MJ12_ASSASSIN_IDLE 0 1 5 1 8
+action A_MJ12_ASSASSIN_DEAD 34
+action A_MJ12_ASSASSIN_DYING 28 7 1 1 8
+action A_MJ12_ASSASSIN_FREEZE 28 1 1 1 16
+action A_MJ12_ASSASSIN_GROW 28 1 1 1 16
+action A_MJ12_ASSASSIN_SHRUNK 0 4 5 1 8
+action A_MJ12_ASSASSIN_PAIN 28 1 1 1 16
+action A_MJ12_ASSASSIN_SEEK 0 4 5 1 8
+action A_MJ12_ASSASSIN_ATTACK 24 4 1 1 16
+action A_MJ12_ASSASSIN_IDLEJUMP 20 1 1 1 8
+action A_MJ12_ASSASSIN_JUMP 20 2 1 1 8
+action A_MJ12_ASSASSIN_JUMPING 21 1 1 1 8
+action A_MJ12_ASSASSIN_FALL 22 1 1 1 8
+action A_MJ12_ASSASSIN_LAND 23 1 1 1 8
+
+move M_MJ12_ASSASSIN_MOVE 180 0
+move M_MJ12_ASSASSIN_JUMP 180 -48
+move M_MJ12_ASSASSIN_FALL 180 48
+
+defstate handlecloak
+	ifaction A_MJ12_ASSASSIN_IDLE nullop
+	else ifaction A_MJ12_ASSASSIN_IDLEJUMP nullop
+	else ifaction A_MJ12_ASSASSIN_DYING nullop
+	else
+	{
+		ife INTERNALCOUNT_2 0
+		ife enemy_cooldown1 0
+		{
+			ifdead break
+
+			ifcansee
+				ifrnd 4
+			{
+				soundonce CLOAK
+				ife SKILL_LEVEL 1 set enemy_cooldown1 150
+				else ife SKILL_LEVEL 2 set enemy_cooldown1 300
+				else ife SKILL_LEVEL 3 set enemy_cooldown1 450
+				else ife SKILL_LEVEL 4 set enemy_cooldown1 600
+				else ife SKILL_LEVEL 5 set enemy_cooldown1 900
+				set INTERNALCOUNT_2 1
+			}
+		}
+
+		ifg enemy_cooldown1 0 sub enemy_cooldown1 1
+
+		ife INTERNALCOUNT_2 1
+		{
+			ifdead break
+
+			ifl enemy_cooldown2 254 add enemy_cooldown2 8
+			set alpha enemy_cooldown2
+			state SPRITE_FADE
+			ifg enemy_cooldown2 253 set INTERNALCOUNT_2 2
+		}
+
+		ife INTERNALCOUNT_2 2
+		{
+			ifdead set enemy_cooldown1 0
+
+			ife enemy_cooldown1 1 sound UNCLOAK
+			ife enemy_cooldown1 0
+			{
+				ifdead shoot SPARK2
+
+				ifg enemy_cooldown2 0 sub enemy_cooldown2 8
+				set alpha enemy_cooldown2
+				state SPRITE_FADE
+				ifl enemy_cooldown2 1 set INTERNALCOUNT_2 0
+			}
+		}
+	}
+ends
+
+useractor enemy MJ12_ASSASSIN_JUMP
+
+ifaction 0
+{
+	set MONSTER_FLAGS 6
+	ifspritepal 0 spritepal 12
+	strength 200
+	sizeat 24 24
+	state monst_glow
+	cstat 257
+	spawn SHOOTME // TODO Remove
+	action A_MJ12_ASSASSIN_IDLEJUMP
+	cactor MJ12_ASSASSIN
+}
+enda
+
+useractor enemy MJ12_ASSASSIN
+
+fall
+
+ifaction 0
+{
+	set MONSTER_FLAGS 6
+	ifspritepal 0 spritepal 12
+	strength 200
+	sizeat 24 24
+	state monst_glow
+	set ally_mag SKILL_LEVEL
+	cstat 257
+	spawn SHOOTME // TODO REMOVE
+	action A_MJ12_ASSASSIN_IDLE
+}
+
+state ENEMYKNOCKBACKS
+state enemyfloordamage
+state enemy_fire_damage
+state enemy_ice_damage
+state enemy_spirit_damage
+
+state handlecloak
+
+ifaction A_MJ12_ASSASSIN_IDLE
+{
+	move STOP
+	state checkfortarget
+	ifn my_target -1
+	{
+		action A_MJ12_ASSASSIN_SEEK
+	}
+}
+else ifaction A_MJ12_ASSASSIN_DEAD
+{
+	move STOP
+	seta[].blend 0
+	strength 0
+	ifhitweapon
+	{
+		state standard_jibs
+		state human_jibs
+		sound SQUISHED
+		killit
+	}
+	break
+}
+else ifaction A_MJ12_ASSASSIN_DYING
+{
+	ifactioncount 6
+	{
+		cstat 0
+		state rf
+		seta[].blend 0
+		set enemy_cooldown1 0
+		action A_MJ12_ASSASSIN_DEAD
+		iffloordistl 4 state BODY_FALL_NOISES
+		move STOP
+	}
+}
+// Status effects
+else ifaction A_MJ12_ASSASSIN_FREEZE state frozen_code
+else ifaction A_MJ12_ASSASSIN_GROW
+{
+	move STOP
+	state genericgrowcode
+}
+else ifaction A_MJ12_ASSASSIN_SHRUNK
+{
+	ifmove M_MJ12_ASSASSIN_MOVE { }
+	else
+		move M_MJ12_ASSASSIN_MOVE geth fleeenemy
+
+	ifl SHRUNK_TIME SHRUNKCOUNT // keep shrunk
+		state new_shrunkcode
+	else ifl SHRUNK_TIME SHRUNKDONECOUNT // regrow
+	{
+		state unshrink
+		sizeto 24 24
+	}
+	else // after regrow, switch back to regular action
+	{
+		state endshrunkenstate
+		action A_MJ12_ASSASSIN_SEEK
+	}
+}
+
+else ifaction A_MJ12_ASSASSIN_PAIN
+{
+	move STOP
+	ife INTERNALCOUNT_2 2
+	{
+		set INTERNALCOUNT_2 0
+		set enemy_cooldown1 1
+		cstat 257
+		seta[].blend 0
+		sound UNCLOAK
+	}
+	ifactioncount 2 action A_MJ12_ASSASSIN_SEEK
+}
+else ifaction A_MJ12_ASSASSIN_SEEK
+{
+	ifmove M_MJ12_ASSASSIN_MOVE { }
+	else
+		move M_MJ12_ASSASSIN_MOVE geth
+
+	state checkfortarget
+
+	ifn my_target -1
+	{
+		ldist temp THISACTOR my_target
+		ifl temp 1024 { set INTERNALCOUNT_3 0 sound MJ12_AS_AT action A_MJ12_ASSASSIN_ATTACK }
+		else ifrnd 8
+		{
+			state SKILL_SHOOT_LEVELADJUST
+			ifcansee ifl RANDOM_CHANCE SKILLCHANCE ifg ally_mag 0 { shoot FL_GRENADE sub ally_mag 1 }
+			action A_MJ12_ASSASSIN_JUMP
+		}
+	}
+
+	ifnotmoving operate
+}
+else ifaction A_MJ12_ASSASSIN_ATTACK
+{
+	move STOP
+	state new_validatetarget
+
+	ife my_target -1
+		action A_MJ12_ASSASSIN_SEEK
+
+	ife INTERNALCOUNT_2 2
+		ifl SKILL_LEVEL 3
+	{
+		set INTERNALCOUNT_2 0
+		set enemy_cooldown1 0
+		cstat 257
+		seta[].blend 0
+		sound UNCLOAK
+	}
+
+	add INTERNALCOUNT_3 1
+	ife INTERNALCOUNT_3 5 sound SWING
+	ife INTERNALCOUNT_3 10
+	{
+		// if not aiming at player, manipulate noaim
+		ifn my_target PLAYER_IDENTITY
+			setprojectile[15729].WORKSLIKE 2125890
+		else
+			setprojectile[15729].WORKSLIKE 2129986
+		shoot 15729
+		setprojectile[15729].WORKSLIKE 2129986
+	}
+	ife INTERNALCOUNT_3 15 sound SWING
+	ife INTERNALCOUNT_3 20
+	{
+		// if not aiming at player, manipulate noaim
+		ifn my_target PLAYER_IDENTITY
+			setprojectile[15729].WORKSLIKE 2125890
+		else
+			setprojectile[15729].WORKSLIKE 2129986
+		shoot 15729
+		setprojectile[15729].WORKSLIKE 2129986
+	}
+	ifg INTERNALCOUNT_3 20 set INTERNALCOUNT_3 0
+
+    ifn my_target -1
+	{
+        ldist temp THISACTOR my_target
+	    ifg temp 1024 action A_MJ12_ASSASSIN_JUMP
+    }
+}
+else ifaction A_MJ12_ASSASSIN_JUMP
+{
+	ifmove M_MJ12_ASSASSIN_JUMP { }
+	else
+		move M_MJ12_ASSASSIN_JUMP geth getv
+
+	ifactioncount 2 { sound NINJA_JUMP action A_MJ12_ASSASSIN_JUMPING }
+}
+else ifaction A_MJ12_ASSASSIN_IDLEJUMP
+{
+	move STOP
+
+	state checkfortarget
+	ifn my_target -1
+	{
+		action A_MJ12_ASSASSIN_JUMP
+	}
+}
+else ifaction A_MJ12_ASSASSIN_JUMPING
+{
+	ifactioncount 8 action A_MJ12_ASSASSIN_FALL
+}
+else ifaction A_MJ12_ASSASSIN_FALL
+{
+	ifmove M_MJ12_ASSASSIN_FALL { }
+	else
+		move M_MJ12_ASSASSIN_FALL geth getv
+
+	gets[].floorpicnum FLOORTEX
+	state CHECKSTEPS
+	iffloordistl 4 { ife STEPSOUNDFX 9 { soundonce WATER_SPLASH spawn 8435 } stopsound THUD sound JLAND action A_MJ12_ASSASSIN_LAND }
+}
+else ifaction A_MJ12_ASSASSIN_LAND
+{
+	move STOP
+	ifactioncount 4 action A_MJ12_ASSASSIN_SEEK
+}
+
+ifhitweapon
+{
+	state NEWGUNEFFECTS
+
+	ifwasweapon RPG seta[].xvel 0
+	ifwasweapon RADIUSEXPLOSION seta[].xvel 0
+
+	state random_wall_jibs
+	ifwasweapon RADIUSEXPLOSION
+	ifstrength 0
+	{
+		state squish_sounds
+		state standard_jibs
+		state human_jibs
+		killit
+	}
+
+	ifdead
+	{
+		set enemy_cooldown2 0
+		seta[].blend 0
+		cstat 0
+		xorvar npc_killed 16
+		addkills 1
+		spawn 2284
+		ifwasweapon RADIUSEXPLOSION
+		{
+			state squish_sounds
+			state standard_jibs
+			state human_jibs
+			killit
+		}
+		ifwasweapon RPG
+		{
+			state squish_sounds
+			state standard_jibs
+			state human_jibs
+			killit
+		}
+		ifand PROJ_UDATA PROJ_GIB
+		{
+			state squish_sounds
+			state standard_jibs
+			state human_jibs
+			killit
+		}
+		ifand PROJ_UDATA 8192
+			 {
+			 ifrnd 8 { spawn ELECTROCUTE_MARV soundonce MALE_ELECT1 } else spawn ELECTROCUTE_GUY
+			 shoot SPARK2 shoot SPARK2 shoot SPARK2
+			 killit
+			 }
+		ifwasweapon GROWSPARK { cstat 0 sound ACTOR_GROWING action A_MJ12_ASSASSIN_GROW break }
+		else ifg ice_damage 0 { spritepal 1 strength 0 sound SOMETHINGFROZE action A_MJ12_ASSASSIN_FREEZE }
+		ifwasweapon 7163
+		{
+			sound MJ12_FLAME_DIE
+			spawn ONFIREGUY
+			killit
+		}
+		else ifg spirit_damage 0
+		{
+			shoot SPARK2 shoot SPARK2 shoot SPARK2
+			spritepal 1
+			guts JIBS3 6
+			spawn SPIRIT_DEATH_GUY
+			killit
+		}
+		else ifg energy_damage 0
+		{
+			shoot SPARK2 shoot SPARK2 shoot SPARK2
+			spritepal 4
+			guts JIBS3 6
+			spawn DISINTIGRATE_GUY
+			killit
+		}
+		else ifg fire_damage 0
+		{
+			sound MJ12_FLAME_DIE
+			spawn ONFIREGUY
+			set PLAYER_VOICEOVER 21
+			killit
+		}
+		else
+		{
+			ifrnd 128 sound MJ12_DIE1
+			else ifrnd 128 sound MJ12_DIE2
+			else sound MJ12_DIE3
+			action A_MJ12_ASSASSIN_DYING
+			resetactioncount
+		}
+
+	}
+	else // not dead
+	{
+		ifwasweapon SHRINKSPARK { sound ACTOR_SHRINKING action A_MJ12_ASSASSIN_SHRUNK }
+
+		ifg PAIN_AMOUNT 0 action A_MJ12_ASSASSIN_PAIN
+		else ifrnd 4 { state PAIN_SKILL_LEVELADJUST action A_MJ12_ASSASSIN_PAIN }
+		else ifaction A_MJ12_ASSASSIN_IDLE { state PAIN_SKILL_LEVELADJUST action A_MJ12_ASSASSIN_PAIN }
+		else ifaction A_MJ12_ASSASSIN_IDLEJUMP { state PAIN_SKILL_LEVELADJUST action A_MJ12_ASSASSIN_PAIN }
+	}
+}
+
+state checksquished
+
+enda

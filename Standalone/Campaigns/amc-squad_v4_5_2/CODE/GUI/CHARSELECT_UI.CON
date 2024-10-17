@@ -1,0 +1,835 @@
+// Character selection UI
+// Ideally would like to make this one CON file along with player/charselect.con but there's some dependency hell with all the states & includes so I'll let that slide for now
+
+// fatigue display:
+// input character in "disp_temp3"
+// input x & y pos
+defstate fatigue_display
+	ifg AGENT_FATIGUE[disp_temp3] 5000 // tired?
+	  ifg SKILL_LEVEL 2
+	{
+		rotatesprite x y HALFSIZE 0 21242 0 0 0 0 0 xdim ydim
+		ifg AGENT_FATIGUE[disp_temp3] 10000
+		{
+			ife CHAR disp_temp3 screentext 2822 165 153 37500 0 0 6901 0 124 16 0 5 8 1 1 0 0 0 xdim ydim
+			rotatesprite mx my 12384 0 3588 0 68 0 0 0 xdim ydim // FRAME
+			rotatesprite x y HALFSIZE 0 21243 0 0 0 0 0 xdim ydim
+		}
+		else
+		{
+			ife CHAR disp_temp3 screentext 2822 165 153 37500 0 0 6900 0 32 16 0 5 8 1 1 0 0 0 xdim ydim
+			rotatesprite mx my 12384 0 3588 0 57 0 0 0 xdim ydim // FRAME
+		}
+	}
+ends
+
+defstate small_fatigue_display
+	ifg AGENT_FATIGUE[disp_temp3] 5000 // tired?
+	  ifg SKILL_LEVEL 2
+	{
+		rotatesprite x y HALFSIZE 0 21242 0 0 0 0 0 xdim ydim
+		ifg AGENT_FATIGUE[disp_temp3] 10000
+		{
+			ife CHAR disp_temp3 screentext 2822 165 153 37500 0 0 6901 0 124 16 0 5 8 1 1 0 0 0 xdim ydim
+			rotatesprite mx my 8173 0 3588 0 68 0 0 0 xdim ydim // FRAME
+			rotatesprite x y HALFSIZE 0 21243 0 0 0 0 0 xdim ydim
+		}
+		else
+		{
+			ife CHAR disp_temp3 screentext 2822 165 153 37500 0 0 6900 0 32 16 0 5 8 1 1 0 0 0 xdim ydim
+			rotatesprite mx my 8173 0 3588 0 57 0 0 0 xdim ydim // FRAME
+		}
+	}
+ends							  
+
+defstate charselectionui_display
+
+	rotatesprite 160 100 40960 0 3758 0 0 1024 0 0 xdim ydim // BG
+	ife VOLUME 3 ifge LEVEL 2 rotatespritea 160 100 22000 0 3634 0 0 1024 -255 0 0 xdim ydim // background
+	else
+	ifn LOCATION 0
+	{
+		ife LOCATION 8448
+		{
+			ifge VOLUME 4 ifl VOLUME 6 rotatesprite 55 157 18210 0 13693 0 21 256 0 0 xdim ydim
+			else rotatesprite 55 157 18210 0 13693 0 0 256 0 0 xdim ydim
+		}
+		else ife LOCATION 8449 rotatesprite 55 157 18210 0 13698 0 0 256 0 0 xdim ydim
+		else ife LOCATION 8450 rotatesprite 55 157 18210 0 13695 0 0 256 0 0 xdim ydim
+		else ife LOCATION 8467 rotatesprite 55 157 18210 0 13696 0 0 256 0 0 xdim ydim
+		else ife LOCATION 8459 rotatesprite 55 157 18210 0 13694 0 0 256 0 0 xdim ydim
+		else rotatesprite 55 157 NORMALSIZE 0 LOCATION 0 0 256 0 0 xdim ydim
+	}
+
+	rotatesprite 45 100 36768 0 3732 0 0 41 0 0 xdim ydim
+	rotatesprite 45 100 36768 0 3731 0 0 8 0 0 xdim ydim
+
+	rotatesprite 120 100 36768 0 3755 0 0 41 0 0 xdim ydim
+	rotatespritea 120 100 36768 0 3733 0 0 8 -255 0 0 xdim ydim
+
+	ife load_disp_files 0
+	{
+		//addlogvar load_disp_files
+		readgamevar AMC_BUDGET
+		readarrayfromfile EQUIPMENT_LOADOUT F_EQUIP_LOADOUT_AMCTC // display what the player has in the equipment slot
+		readarrayfromfile CHEST_LOADOUT F_CHEST_LOADOUT_AMCTC
+		readarrayfromfile BELT_LOADOUT F_BELT_LOADOUT_AMCTC
+		readarrayfromfile HELMET_LOADOUT F_HELMET_LOADOUT_AMCTC
+		readarrayfromfile BOOTS_LOADOUT F_BOOTS_LOADOUT_AMCTC
+		readarrayfromfile temp_WEAPON_LOADOUT F_TEMPW_LOADOUT_AMCTC // display what the player has in the disp_temp weapon slot
+		readarrayfromfile MELEE_WEAPON_LOADOUT F_MELEE_LOADOUT_AMCTC // display what the player has in the melee slot
+		readarrayfromfile AMMO_LOADOUT F_AMMO_LOADOUT_AMCTC // display what the player has in the special ammo slot
+		readarrayfromfile ARTIFACTS_LOADOUT F_ARTIFACTS_LOADOUT_AMCTC // display what the player has in the artifact slot
+		readarrayfromfile EQUIPMENT_LOADOUT_COST F_EQUIPMENT_L_COST_AMCTC
+		readarrayfromfile MELEE_LOADOUT_COST F_MELEE_L_COST_AMCTC
+		readarrayfromfile temp_WEAPON_LOADOUT_COST F_TWEAP_L_COST_AMCTC
+		readarrayfromfile AMMO_LOADOUT_COST F_AMMO_L_COST_AMCTC
+		// readarrayfromfile SPECIALIST_LOADOUT_COST F_SPECIAL_L_COST_AMCTC // UNUSED
+		readarrayfromfile CHEST_LOADOUT_COST F_CHEST_L_COST_AMCTC
+		readarrayfromfile BELT_LOADOUT_COST F_BELT_L_COST_AMCTC
+		readarrayfromfile HELMET_LOADOUT_COST F_HELMET_L_COST_AMCTC
+		readarrayfromfile BOOT_LOADOUT_COST F_BOOT_LOADOUT_COST_AMCTC
+		readarrayfromfile TIMES_CHOSEN F_TIMES_CHOSEN
+
+		set load_disp_files 1
+	}
+
+	qsprintf 1041 1042 AMC_BUDGET
+	screentext 2822 10 187 58400 0 0 1041 0 1 16 0 5 8 1 1 0 0 0 xdim ydim
+
+	ifn CHAR 20
+	ifn CHAR 15 // Give the player his equipped temporary weapon
+	ifn CHAR 8
+	ifn CHAR -1
+	{
+		set INFO_SEL CHAR
+		ifn INFO_SEL -1
+		{
+			set disp_temp7 104 // x
+			set disp_temp8 70 // y
+
+			state DISP_equipment_loadout
+			set disp_temp8 100 // y
+			state DISP_chest_loadout
+			set disp_temp8 128 // y
+			state DISP_belt_loadout
+			set disp_temp8 157 // y
+			state DISP_helmet_loadout
+			set disp_temp7 136 // x
+			set disp_temp8 70 // y
+			state DISP_boot_loadout
+		}
+
+		set disp_temp7 120 // x
+		set disp_temp8 40 // y
+		set INFO_SEL CHAR
+		state disp_temp_weapon_loadout
+
+		set disp_temp7 136 // x
+		set disp_temp8 100 // y
+		set INFO_SEL CHAR
+		state DISP_melee_loadout
+
+		set disp_temp7 136 // x
+		set disp_temp8 128 // y
+		set INFO_SEL CHAR
+		state DISP_ammo_loadout
+
+		set disp_temp7 136 // x
+		set disp_temp8 157 // y
+		set INFO_SEL CHAR
+		state DISP_artifact_loadout
+
+		set DISP_LOADOUT_COST 0
+		add DISP_LOADOUT_COST EQUIPMENT_LOADOUT_COST[CHAR]
+		add DISP_LOADOUT_COST MELEE_LOADOUT_COST[CHAR]
+		add DISP_LOADOUT_COST temp_WEAPON_LOADOUT_COST[CHAR]
+		add DISP_LOADOUT_COST AMMO_LOADOUT_COST[CHAR]
+		add DISP_LOADOUT_COST CHEST_LOADOUT_COST[CHAR]
+		add DISP_LOADOUT_COST BELT_LOADOUT_COST[CHAR]
+		add DISP_LOADOUT_COST HELMET_LOADOUT_COST[CHAR]
+		add DISP_LOADOUT_COST BOOT_LOADOUT_COST[CHAR]
+
+		// display 2 digits after the comma
+		set disp_temp9 DISP_LOADOUT_COST
+		div disp_temp9 10
+		modvar disp_temp9 10
+
+		set disp_temp8 DISP_LOADOUT_COST
+		div disp_temp8 100
+		modvar disp_temp8 10
+
+		div DISP_LOADOUT_COST 1000
+		qsprintf 1066 1067 DISP_LOADOUT_COST disp_temp8 disp_temp9
+		screentext 2822 88 177 28672 0 0 1066 0 124 16 0 5 8 1 1 0 0 0 xdim ydim
+	}
+
+	rotatesprite 220 15 16384 0 13569 0 0 8 0 0 xdim ydim
+	rotatesprite 120 25 16384 0 13570 0 0 8 0 0 xdim ydim
+
+		ife CHAR C_JAMES // JAMES
+		{
+			gametext 2822 20 20 125 0 0 0 0 0 xdim ydim
+			ife VOLUME 4 ife LEVEL 1 rotatesprite 170 40 26768 0 25569 CHARSHADE 0 8 0 0 xdim ydim // KIA
+			else ifand CHAR_APP 64 rotatesprite 170 40 26768 0 25565 CHARSHADE 0 8 0 0 xdim ydim // ringworld
+			else ifand CHAR_APP 1 rotatesprite 170 40 26768 0 25566 CHARSHADE 0 8 0 0 xdim ydim  // bionic arm
+			else rotatesprite 170 40 26768 0 3589 CHARSHADE 0 8 0 0 xdim ydim
+
+			rotatesprite 170 40 12384 0 3588 0 0 8 0 0 xdim ydim // FRAME
+			rotatesprite 89 18 HALFSIZE 0 23295 0 0 8 0 0 xdim ydim // flag
+			ifand CHAR_APP 64 set disp_temp5 27392 else
+			ifand CHAR_APP 1 set disp_temp5 25635 else
+			set disp_temp5 9017
+			rotatesprite 44 100 65000 0 disp_temp5 CHARSHADE 0 8 0 0 xdim ydim // CHARACTER
+		}
+		else
+		{
+			ife VOLUME 4 ife LEVEL 1 rotatesprite 170 40 26768 0 25569 0 0 8 0 0 xdim ydim // post-ringworld
+			else ifand CHAR_APP 64 rotatesprite 170 40 26768 0 25565 20 27 8 0 0 xdim ydim
+			else ifand CHAR_APP 1 rotatesprite 170 40 26768 0 25566 20 27 8 0 0 xdim ydim
+			else rotatesprite 170 40 26768 0 3589 20 27 0 0 0 xdim ydim
+			rotatesprite 170 40 12384 0 3594 0 0 0 0 0 xdim ydim // FRAME
+			ife debug_stuff 1 digitalnumberz DIGITALNUM 100 110 AGENT_FATIGUE[0] 0 0 0 0 0 xdim ydim QUARTERSIZE
+		}
+
+		set disp_temp3 C_JAMES
+		set x 177 set y 50
+		set mx 170 set my 40
+		state fatigue_display
+
+		ife CHAR C_ZAXTOR // ZAXTOR
+		{
+			gametext 2822 20 20 126 0 0 0 0 0 xdim ydim
+			rotatesprite 205 40 26768 0 3590 CHARSHADE 0 0 0 0 xdim ydim // ICON
+			rotatesprite 205 40 12384 0 3588 0 0 0 0 0 xdim ydim // FRAME
+			rotatesprite 89 18 HALFSIZE 0 23294 0 0 0 0 0 xdim ydim // flag
+			set disp_temp5 5501
+			rotatesprite 44 100 62000 0 disp_temp5 CHARSHADE 21 0 0 0 xdim ydim // CHARACTER
+		}
+		else
+		{
+			rotatesprite 205 40 26768 0 3590 20 27 0 0 0 xdim ydim // ICON
+			rotatesprite 205 40 12384 0 3594 0 0 0 0 0 xdim ydim // FRAME
+			ife debug_stuff 1 digitalnumberz DIGITALNUM 140 110 AGENT_FATIGUE[1] 0 0 0 0 0 xdim ydim QUARTERSIZE
+		}
+
+		set disp_temp3 C_ZAXTOR
+		set x 212 set y 50
+		set mx 205 set my 40
+		state fatigue_display
+
+		ife CHAR C_MERLIJN // MERLIJN
+		{
+			gametext 2822 20 20 127 0 0 0 0 0 xdim ydim
+			ifand CHAR_APP 4 rotatesprite 240 40 26768 0 25567 CHARSHADE 0 0 0 0 xdim ydim // ICON
+			else rotatesprite 240 40 26768 0 3591 CHARSHADE 0 0 0 0 xdim ydim // ICON
+			rotatesprite 240 40 12384 0 3588 0 0 0 0 0 xdim ydim // FRAME
+			rotatesprite 89 18 HALFSIZE 0 23293 0 0 0 0 0 xdim ydim // flag
+			ifand CHAR_APP 4 set disp_temp5 26447
+			else set disp_temp5 6425
+			rotatesprite 46 100 58000 0 disp_temp5 CHARSHADE 21 0 0 0 xdim ydim // CHARACTER
+		}
+		else
+		{
+			ifand CHAR_APP 4 rotatesprite 240 40 26768 0 25567 20 27 0 0 0 xdim ydim // ICON
+			else rotatesprite 240 40 26768 0 3591 20 27 0 0 0 xdim ydim // ICON
+			rotatesprite 240 40 12384 0 3594 0 0 0 0 0 xdim ydim // FRAME
+			ife debug_stuff 1 digitalnumberz DIGITALNUM 180 110 AGENT_FATIGUE[2] 0 0 0 0 0 xdim ydim QUARTERSIZE
+		}
+
+		set disp_temp3 C_MERLIJN
+		set x 247 set y 50
+		set mx 240 set my 40
+		state fatigue_display
+
+		ife CHAR C_HIGHWIRE // HIGHWIRE
+		{
+			gametext 2822 20 20 128 0 0 0 0 0 xdim ydim
+			ifand CHAR_APP 16 rotatesprite 275 40 26768 0 25568 CHARSHADE 0 0 0 0 xdim ydim // ICON
+			else rotatesprite 275 40 26768 0 3593 CHARSHADE 0 0 0 0 xdim ydim // ICON
+			rotatesprite 275 40 12384 0 3588 0 0 0 0 0 xdim ydim // FRAME
+			rotatesprite 89 18 HALFSIZE 0 23292 0 0 0 0 0 xdim ydim // flag
+			ifand CHAR_APP 16 set disp_temp5 30121 else
+			set disp_temp5 6013
+			rotatesprite 43 100 64000 0 disp_temp5 CHARSHADE 11 0 0 0 xdim ydim // CHARACTER
+		}
+		else
+		{
+			ifand CHAR_APP 16 rotatesprite 275 40 26768 0 25568 20 27 0 0 0 xdim ydim // ICON
+			else rotatesprite 275 40 26768 0 3593 20 27 0 0 0 xdim ydim // ICON
+			rotatesprite 275 40 12384 0 3594 0 0 0 0 0 xdim ydim // FRAME
+			ife debug_stuff 1 digitalnumberz DIGITALNUM 220 110 AGENT_FATIGUE[3] 0 0 0 0 0 xdim ydim QUARTERSIZE
+		}
+
+		set disp_temp3 C_HIGHWIRE
+		set x 282 set y 50
+		set mx 275 set my 40
+		state fatigue_display
+
+		ife CHAR C_SANG // SANG
+		{
+			gametext 2822 20 20 129 0 0 0 0 0 xdim ydim
+			rotatesprite 89 18 HALFSIZE 0 23291 0 0 0 0 0 xdim ydim // flag
+			ifand CHAR_APP 2
+			{
+				rotatesprite 170 85 26768 0 23835 CHARSHADE 0 0 0 0 xdim ydim // ICON
+				rotatesprite 44 100 63000 0 24011 CHARSHADE 21 0 0 0 xdim ydim // CHARACTER
+			}
+			else
+			{
+				rotatesprite 170 85 26768 0 3598 CHARSHADE 0 0 0 0 xdim ydim // ICON
+				rotatesprite 44 100 68000 0 13207 CHARSHADE 21 0 0 0 xdim ydim // CHARACTER
+			}
+			rotatesprite 170 85 12384 0 3588 0 0 0 0 0 xdim ydim // FRAME
+		}
+		else
+		{
+			ifand CHAR_APP 2 rotatesprite 170 85 26768 0 23835 20 27 0 0 0 xdim ydim // ICON
+			else rotatesprite 170 85 26768 0 3598 20 27 0 0 0 xdim ydim // ICON
+			rotatesprite 170 85 12384 0 3594 0 0 0 0 0 xdim ydim // FRAME
+			ife debug_stuff 1 digitalnumberz DIGITALNUM 100 150 AGENT_FATIGUE[4] 0 0 0 0 0 xdim ydim QUARTERSIZE
+		}
+
+		set disp_temp3 C_SANG
+		set x 177 set y 95
+		set mx 170 set my 85
+		state fatigue_display
+
+		ife CHAR C_RUSTY // RUSTY
+		{
+			gametext 2822 20 20 130 0 0 0 0 0 xdim ydim
+			rotatesprite 89 18 HALFSIZE 0 23282 0 0 0 0 0 xdim ydim // flag
+			ifand CHAR_APP 32 rotatesprite 205 85 26768 0 25564 CHARSHADE 0 0 0 0 xdim ydim // ICON
+			else rotatesprite 205 85 26768 0 3600 CHARSHADE 0 0 0 0 xdim ydim // ICON
+			rotatesprite 205 85 12384 0 3588 0 0 0 0 0 xdim ydim // FRAME
+			ifand CHAR_APP 32 set disp_temp5 27864
+			else set disp_temp5 6676
+			rotatesprite 44 100 65000 0 disp_temp5 CHARSHADE 12 0 0 0 xdim ydim // CHARACTER
+		}
+		else
+		{
+			ifand CHAR_APP 32 rotatesprite 205 85 26768 0 25564 20 27 0 0 0 xdim ydim // ICON
+			else rotatesprite 205 85 26768 0 3600 20 27 0 0 0 xdim ydim // ICON
+			rotatesprite 205 85 12384 0 3594 0 0 0 0 0 xdim ydim // FRAME
+			ife debug_stuff 1 digitalnumberz DIGITALNUM 140 150 AGENT_FATIGUE[5] 0 0 0 0 0 xdim ydim QUARTERSIZE
+		}
+
+		set disp_temp3 C_RUSTY
+		set x 212 set y 95
+		set mx 205 set my 85
+		state fatigue_display
+
+		ife CHAR C_GEOFFREY // GEOFFREY
+		{
+			gametext 2822 20 20 131 0 0 0 0 0 xdim ydim
+			rotatesprite 240 85 26768 0 3603 CHARSHADE 0 0 0 0 xdim ydim // ICON
+			rotatesprite 240 85 12384 0 3588 0 0 0 0 0 xdim ydim // FRAME
+			rotatesprite 89 18 HALFSIZE 0 23293 0 0 0 0 0 xdim ydim // flag
+			rotatesprite 48 100 56000 0 6456 CHARSHADE 0 0 0 0 xdim ydim // CHARACTER
+		}
+		else
+		{
+			rotatesprite 240 85 26768 0 3603 20 27 0 0 0 xdim ydim // ICON
+			rotatesprite 240 85 12384 0 3594 0 0 0 0 0 xdim ydim // FRAME
+			ife debug_stuff 1 digitalnumberz DIGITALNUM 180 150 AGENT_FATIGUE[6] 0 0 0 0 0 xdim ydim QUARTERSIZE
+		}
+
+		set disp_temp3 C_GEOFFREY
+		set x 247 set y 95
+		set mx 240 set my 85
+		state fatigue_display
+
+		ife CHAR C_MIKKO // MIKKO
+		{
+			gametext 2822 20 20 132 0 0 0 0 0 xdim ydim
+			ifand CHAR_APP 8 rotatesprite 275 85 26768 0 33763 CHARSHADE 0 0 0 0 xdim ydim // ICON
+			else rotatesprite 275 85 26768 0 3606 CHARSHADE 0 0 0 0 xdim ydim // ICON
+			rotatesprite 275 85 12384 0 3588 0 0 0 0 0 xdim ydim // FRAME
+			rotatesprite 89 18 HALFSIZE 0 23290 0 0 0 0 0 xdim ydim // flag
+			ifand CHAR_APP 8 set disp_temp5 27677
+			else set disp_temp5 20074
+			rotatesprite 46 100 60000 0 disp_temp5 CHARSHADE 11 0 0 0 xdim ydim // CHARACTER
+		}
+		else
+		{
+			ifand CHAR_APP 8 rotatesprite 275 85 26768 0 33763 20 27 0 0 0 xdim ydim
+			else rotatesprite 275 85 26768 0 3606 20 27 0 0 0 xdim ydim
+			rotatesprite 275 85 12384 0 3594 0 0 0 0 0 xdim ydim // FRAME
+			ife debug_stuff 1 digitalnumberz DIGITALNUM 220 150 AGENT_FATIGUE[7] 0 0 0 0 0 xdim ydim QUARTERSIZE
+		}
+
+		set disp_temp3 C_MIKKO
+		set x 282 set y 95
+		set mx 275 set my 85
+		state fatigue_display
+
+		ife ep2_new_char 1
+		{
+			ife CHAR C_MICKY // MICKY
+			{
+				gametext 2822 20 20 166 0 0 0 0 0 xdim ydim
+				ifand CHAR_APP 256 rotatesprite 170 130 26768 0 18472 CHARSHADE 0 0 0 0 xdim ydim // ICON
+				else ifand CHAR_APP 128 rotatesprite 170 130 26768 0 18542 CHARSHADE 0 0 0 0 xdim ydim // ICON
+				else rotatesprite 170 130 26768 0 16600 CHARSHADE 0 0 0 0 xdim ydim // ICON
+				rotatesprite 170 130 12384 0 3588 0 0 0 0 0 xdim ydim // FRAME
+				rotatesprite 89 18 HALFSIZE 0 23289 0 0 0 0 0 xdim ydim // flag
+				ifand CHAR_APP 256 set disp_temp5 26807
+				else ifand CHAR_APP 128 set disp_temp5 18527
+				else set disp_temp5 16585
+				rotatesprite 47 100 62000 0 disp_temp5 CHARSHADE 0 0 0 0 xdim ydim // CHARACTER
+			}
+			else
+			{
+				ifand CHAR_APP 256 rotatesprite 170 130 26768 0 18472 20 27 0 0 0 xdim ydim // ICON
+				else ifand CHAR_APP 128 rotatesprite 170 130 26768 0 18542 20 27 0 0 0 xdim ydim // ICON
+				else rotatesprite 170 130 26768 0 16600 20 27 0 0 0 xdim ydim // ICON
+				rotatesprite 170 130 12384 0 3594 0 0 0 0 0 xdim ydim // FRAME
+				ife debug_stuff 1 digitalnumberz DIGITALNUM 260 150 AGENT_FATIGUE[13] 0 0 0 0 0 xdim ydim QUARTERSIZE
+			}
+
+			set disp_temp3 C_MICKY
+			set x 177 set y 140
+			set mx 170 set my 130
+			state fatigue_display
+		}
+
+		ife ep3_new_char 1
+		{
+			ife CHAR C_SNOWFALL // SNOWFALL
+			{
+				gametext 2822 20 20 296 0 0 0 0 0 xdim ydim
+				rotatesprite 205 130 26768 0 20984 CHARSHADE 0 0 0 0 xdim ydim // ICON
+				rotatesprite 205 130 12384 0 3588 0 0 0 0 0 xdim ydim // FRAME
+				rotatesprite 89 18 HALFSIZE 0 23288 0 0 0 0 0 xdim ydim // flag
+				set disp_temp5 20888
+				rotatesprite 47 100 58000 0 disp_temp5 CHARSHADE 0 0 0 0 xdim ydim // CHARACTER
+			}
+			else
+			{
+				rotatesprite 205 130 26768 0 20984 20 27 0 0 0 xdim ydim // ICON
+				rotatesprite 205 130 12384 0 3594 0 0 0 0 0 xdim ydim // FRAME
+				ife debug_stuff 1 digitalnumberz DIGITALNUM 260 110 AGENT_FATIGUE[14] 0 0 0 0 0 xdim ydim QUARTERSIZE
+			}
+
+			set disp_temp3 C_SNOWFALL
+			set x 212 set y 140
+			set mx 205 set my 130
+			state fatigue_display
+		}
+
+		ife ep4_new_char 1
+		{
+			ife CHAR C_KAGURA // KAGURA
+			{
+				gametext 2822 20 20 382 0 0 0 0 0 xdim ydim
+				rotatesprite 240 130 26768 0 27262 CHARSHADE 0 0 0 0 xdim ydim // ICON
+				rotatesprite 240 130 12384 0 3588 0 0 0 0 0 xdim ydim // FRAME
+				rotatesprite 89 18 HALFSIZE 0 23285 0 0 0 0 0 xdim ydim // flag
+				set disp_temp5 27141
+				rotatesprite 47 100 58000 0 disp_temp5 CHARSHADE 0 0 0 0 xdim ydim // CHARACTER
+			}
+			else
+			{
+				rotatesprite 240 130 26768 0 27262 20 27 0 0 0 xdim ydim // ICON
+				rotatesprite 240 130 12384 0 3594 0 0 0 0 0 xdim ydim // FRAME
+				ife debug_stuff 1 digitalnumberz DIGITALNUM 260 110 AGENT_FATIGUE[17] 0 0 0 0 0 xdim ydim QUARTERSIZE
+			}
+
+			set disp_temp3 C_KAGURA
+			set x 247 set y 140
+			set mx 240 set my 130
+			state fatigue_display
+		}
+
+	ifand allow_temp_characters 1
+		{
+			ife CHAR 9 // CULTIST
+			{
+				gametext 2822 20 20 235 0 0 0 0 0 xdim ydim
+				rotatesprite 170 175 20076 0 7768 CHARSHADE 0 8 0 0 xdim ydim // ICON
+				rotatesprite 170 175 8173 0 3588 0 0 8 0 0 xdim ydim // FRAME
+				rotatesprite 89 18 HALFSIZE 0 23287 0 0 8 0 0 xdim ydim // flag
+				rotatesprite 44 100 58000 0 7680 CHARSHADE 0 8 0 0 xdim ydim // CHARACTER
+			}
+			else
+			{
+				rotatesprite 170 175 20076 0 7768 20 27 8 0 0 xdim ydim // ICON
+				rotatesprite 170 175 8173 0 3594 0 0 8 0 0 xdim ydim // FRAME
+			}
+
+			set disp_temp3 C_CULTIST
+			set x 177 set y 185
+			set mx 170 set my 175
+			state small_fatigue_display
+		}
+
+		ifand allow_temp_characters 2
+		{
+			ife CHAR C_BOMBSHELL // Bombshell
+			{
+				gametext 2822 20 20 236 0 0 0 0 0 xdim ydim
+				rotatesprite 193 175 20076 0 5368 CHARSHADE 0 8 0 0 xdim ydim // ICON
+				rotatesprite 193 175 8173 0 3588 0 0 8 0 0 xdim ydim // FRAME
+				rotatesprite 89 18 HALFSIZE 0 23287 0 0 8 0 0 xdim ydim // flag
+				rotatesprite 44 100 58000 0 10365 CHARSHADE 0 8 0 0 xdim ydim // CHARACTER
+			}
+			else
+			{
+				rotatesprite 193 175 20076 0 5368 20 27 8 0 0 xdim ydim // ICON
+				rotatesprite 193 175 8173 0 3594 0 0 8 0 0 xdim ydim // FRAME
+			}
+
+			set disp_temp3 C_BOMBSHELL
+			set x 200 set y 185
+			set mx 193 set my 175
+			state small_fatigue_display
+
+		}
+
+		ifand allow_temp_characters 4
+		{
+			ife CHAR C_MAARTEN // MAARTEN
+			{
+				gametext 2822 20 20 258 0 0 0 0 0 xdim ydim
+				rotatesprite 216 175 20076 0 5488 CHARSHADE 0 8 0 0 xdim ydim // ICON
+				rotatesprite 216 175 8173 0 3588 0 0 8 0 0 xdim ydim // FRAME
+				rotatesprite 89 18 HALFSIZE 0 23293 0 0 8 0 0 xdim ydim // flag
+				rotatesprite 42 100 55000 0 26280 CHARSHADE 0 8 0 0 xdim ydim // CHARACTER
+			}
+			else
+			{
+				rotatesprite 216 175 20076 0 5488 20 27 8 0 0 xdim ydim // ICON
+				rotatesprite 216 175 8173 0 3594 0 0 8 0 0 xdim ydim // FRAME
+			}
+
+			// Maarten cannot get fatigued
+		}
+
+		ifand allow_temp_characters 8
+		{
+			ife CHAR C_JANE // JANE
+			{
+				gametext 2822 20 20 259 0 0 0 0 0 xdim ydim
+				rotatesprite 239 175 20076 0 5366 CHARSHADE 0 8 0 0 xdim ydim // ICON
+				rotatesprite 239 175 8173 0 3588 0 0 8 0 0 xdim ydim // FRAME
+				rotatesprite 89 18 HALFSIZE 0 23295 0 0 8 0 0 xdim ydim // flag
+				rotatesprite 44 100 58000 0 12801 CHARSHADE 0 8 0 0 xdim ydim // CHARACTER
+			}
+			else
+			{
+				rotatesprite 239 175 20076 0 5366 20 27 8 0 0 xdim ydim // ICON
+				rotatesprite 239 175 8173 0 3594 0 0 8 0 0 xdim ydim // FRAME
+			}
+
+			set disp_temp3 C_JANE
+			set x 246 set y 95
+			set mx 239 set my 175
+			state small_fatigue_display
+		}
+
+	// Current character tooltip
+	ifn char_help -1
+	{
+		// The tooltip is in a different position when we are selecting characters below Mikko (who is the end of the second row)
+		// Eyeballed it and it just means a difference of -90 on the Y-axis on characters after Mikko
+
+		ifg char_help C_MIKKO
+		{
+			rotatesprite 240 60 36768 0 3757 0 0 9 0 0 xdim ydim
+			rotatesprite 240 60 36768 0 3756 0 0 8 0 0 xdim ydim
+		}
+		else
+		{
+			rotatesprite 240 150 36768 0 3757 0 0 9 0 0 xdim ydim
+			rotatesprite 240 150 36768 0 3756 0 0 8 0 0 xdim ydim
+		}
+
+		// show health ring bonus
+		ifn CHAR -1
+		  ife ARTIFACTS_LOADOUT[CHAR] 11
+		{
+			qputs 810 ^54+ 20
+
+			ifg char_help C_MIKKO
+				screentext 2822 242 35 37500 0 0 810 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+			else
+				screentext 2822 242 125 37500 0 0 810 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+		}
+
+		ife char_help C_JAMES
+		{
+			ifand CHAR_APP 1 qputs 815 Bionic AMC Leader
+			else qputs 815 De Facto AMC Leader
+			screentext 2822 185 115 37500 0 0 815 0 24 16 0 5 8 1 1 0 0 0 xdim ydim
+			qputs 810 HP: 100
+			screentext 2822 185 125 37500 0 0 810 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+			qputs 811 Armor Type: Medium
+			screentext 2822 185 133 37500 0 0 811 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+			ifg AGENT_FATIGUE[CHAR] 5000 ifg SKILL_LEVEL 2 qputs 812 Stamina:^54 90%
+			else qputs 812 Stamina: 120%
+			screentext 2822 185 141 37500 0 0 812 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+			qputs 813 + Can use Time Portals
+			screentext 2822 185 151 30500 0 0 813 0 125 16 0 5 8 1 1 0 0 0 xdim ydim
+			qputs 813 + Advanced Weapon training
+			screentext 2822 185 159 30500 0 0 813 0 125 16 0 5 8 1 1 0 0 0 xdim ydim
+			ifand CHAR_APP 1
+			{
+				qputs 814 + Bionic Arm
+				screentext 2822 185 167 30500 0 0 814 0 125 16 0 5 8 1 1 0 0 0 xdim ydim
+				qputs 814 - Weak to psychic attacks
+				screentext 2822 185 175 30500 0 0 814 0 124 16 0 5 8 1 1 0 0 0 xdim ydim
+			}
+			else
+			{
+				qputs 814 - Weaker to psychic attacks
+				screentext 2822 185 167 30500 0 0 814 0 124 16 0 5 8 1 1 0 0 0 xdim ydim
+			}
+		}
+		else ife char_help C_ZAXTOR
+		{
+			qputs 815 One Man Army
+ 			screentext 2822 185 115 37500 0 0 815 0 24 16 0 5 8 1 1 0 0 0 xdim ydim
+			qputs 810 HP: 255
+ 			screentext 2822 185 125 37500 0 0 810 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+			qputs 811 Armor Type: Weak
+ 			screentext 2822 185 133 37500 0 0 811 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+
+			ifg AGENT_FATIGUE[CHAR] 5000 ifg SKILL_LEVEL 2 qputs 812 Stamina:^54 70%
+			else qputs 812 Stamina: 100%
+ 			screentext 2822 185 141 37500 0 0 812 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+			qputs 813 + Resistant to psychic attacks
+ 			screentext 2822 185 151 30500 0 0 813 0 125 16 0 5 8 1 1 0 0 0 xdim ydim
+			qputs 814 - Weak to fire
+ 			screentext 2822 185 159 30500 0 0 814 0 124 16 0 5 8 1 1 0 0 0 xdim ydim
+		}
+		else ife char_help C_MERLIJN
+		{
+			qputs 815 Medieval Knight
+ 			screentext 2822 185 115 37500 0 0 815 0 24 16 0 5 8 1 1 0 0 0 xdim ydim
+			qputs 810 HP: 200
+ 			screentext 2822 185 125 37500 0 0 810 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+			qputs 811 Armor Type: Medium
+ 			screentext 2822 185 133 37500 0 0 811 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+			ifg AGENT_FATIGUE[CHAR] 5000 ifg SKILL_LEVEL 2 qputs 812 Stamina:^54 100%
+			else
+				{   // improved robes
+				ife PERSONNEL_RESEARCH[21] 2 qputs 812 Stamina: 150% ^8+ 20%
+				else qputs 812 Stamina: 150%
+				}
+ 			screentext 2822 185 141 37500 0 0 812 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+			qputs 813 + Knight Shield
+ 			screentext 2822 185 151 30500 0 0 813 0 125 16 0 5 8 1 1 0 0 0 xdim ydim
+			qputs 813 + Can side dodge
+ 			screentext 2822 185 161 30500 0 0 813 0 125 16 0 5 8 1 1 0 0 0 xdim ydim
+			qputs 813 - Lacks ranged weapons
+ 			screentext 2822 185 171 30500 0 0 813 0 124 16 0 5 8 1 1 0 0 0 xdim ydim
+		}
+		else ife char_help C_HIGHWIRE
+		{
+			qputs 815 Russian Commander
+ 			screentext 2822 185 115 37500 0 0 815 0 24 16 0 5 8 1 1 0 0 0 xdim ydim
+			qputs 810 HP: 100
+ 			screentext 2822 185 125 37500 0 0 810 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+			qputs 811 Armor Type: Strong
+ 			screentext 2822 185 133 37500 0 0 811 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+			ifg AGENT_FATIGUE[CHAR] 5000 ifg SKILL_LEVEL 2 qputs 812 Stamina:^54 70%
+			else qputs 812 Stamina: 100%
+ 			screentext 2822 185 141 37500 0 0 812 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+			qputs 813 + Can command more allies
+ 			screentext 2822 185 151 30500 0 0 813 0 125 16 0 5 8 1 1 0 0 0 xdim ydim
+			qputs 814 + Resistant to Alcohol
+ 			screentext 2822 185 161 30500 0 0 814 0 125 16 0 5 8 1 1 0 0 0 xdim ydim
+			qputs 814 - Stamina regens slightly slower
+ 			screentext 2822 185 171 30500 0 0 814 0 124 16 0 5 8 1 1 0 0 0 xdim ydim
+		}
+		else ife char_help C_SANG
+		{
+			ifand CHAR_APP 2
+			{
+				qputs 815 Rehabilitated Warlock
+				qputs 810 HP: 100
+				ifg AGENT_FATIGUE[CHAR] 5000 ifg SKILL_LEVEL 2 qputs 811 Stamina:^54 70%
+				else ife PERSONNEL_RESEARCH[21] 2 qputs 811 Stamina: 120% ^8+ 20%
+				else qputs 811 Stamina: 120%
+				qputs 812 Armor Type: Strong
+			}
+			else
+			{
+				qputs 815 Perturbed Warlock
+				ife PERSONNEL_RESEARCH[10] 2 qputs 810 HP: 75 ^8+ 25
+				else qputs 810 HP: 75
+				ifg AGENT_FATIGUE[CHAR] 5000 ifg SKILL_LEVEL 2 qputs 811 Stamina:^54 70%
+				else ife PERSONNEL_RESEARCH[21] 2 qputs 811 Stamina: 100% ^8+ 20%
+				else qputs 811 Stamina: 100%
+				qputs 812 Armor Type: Medium
+			}
+			
+ 			screentext 2822 185 115 37500 0 0 815 0 24 16 0 5 8 1 1 0 0 0 xdim ydim
+ 			screentext 2822 185 125 37500 0 0 810 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+ 			screentext 2822 185 141 37500 0 0 811 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+ 			screentext 2822 185 133 37500 0 0 812 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+			qputs 813 + Can destroy Blood Sigils
+ 			screentext 2822 185 151 30500 0 0 813 0 125 16 0 5 8 1 1 0 0 0 xdim ydim
+			qputs 814 + Resistant to psychic attacks
+ 			screentext 2822 185 159 30500 0 0 814 0 125 16 0 5 8 1 1 0 0 0 xdim ydim
+		}
+		else ife char_help C_RUSTY
+		{
+			qputs 815 Western Gunslinger
+ 			screentext 2822 185 115 37500 0 0 815 0 24 16 0 5 8 1 1 0 0 0 xdim ydim
+			ife PERSONNEL_RESEARCH[6] 2 qputs 810 HP: 120 ^8+ 20
+			else qputs 810 HP: 120
+ 			screentext 2822 185 125 37500 0 0 810 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+			qputs 811 Armor Type: Strong
+ 			screentext 2822 185 133 37500 0 0 811 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+			ifg AGENT_FATIGUE[CHAR] 5000 ifg SKILL_LEVEL 2 qputs 812 Stamina:^54 70%
+			else
+			{  // improved shoes?
+				ife PERSONNEL_RESEARCH[25] 2 qputs 812 Stamina: 100% ^8+ 30%
+				else qputs 812 Stamina: 100%
+			}
+ 			screentext 2822 185 141 37500 0 0 812 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+			qputs 813 + Can talk to Spirits
+ 			screentext 2822 185 151 30500 0 0 813 0 125 16 0 5 8 1 1 0 0 0 xdim ydim
+		}
+		else ife char_help C_GEOFFREY
+		{
+			qputs 815 Martian Outlaw
+ 			screentext 2822 185 115 37500 0 0 815 0 24 16 0 5 8 1 1 0 0 0 xdim ydim
+			ife PERSONNEL_RESEARCH[6] 2 qputs 810 HP: 120 ^8+ 20
+			else qputs 810 HP: 120
+ 			screentext 2822 185 125 37500 0 0 810 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+			qputs 811 Armor Type: Strong
+ 			screentext 2822 185 133 37500 0 0 811 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+			ifg AGENT_FATIGUE[CHAR] 5000 ifg SKILL_LEVEL 2 qputs 812 Stamina:^54 70%
+			else qputs 812 Stamina: 100%
+ 			screentext 2822 185 141 37500 0 0 812 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+			qputs 813 + Can hack VR Terminals
+ 			screentext 2822 185 151 30500 0 0 813 0 125 16 0 5 8 1 1 0 0 0 xdim ydim
+			qputs 813 + Can find treasure in Containers
+ 			screentext 2822 185 159 30500 0 0 813 0 125 16 0 5 8 1 1 0 0 0 xdim ydim
+		}
+		else ife char_help C_MIKKO
+		{
+			qputs 815 Corporate Cyborg
+ 			screentext 2822 185 115 37500 0 0 815 0 24 16 0 5 8 1 1 0 0 0 xdim ydim
+			// Get Actual Health:
+			ife PERSONNEL_RESEARCH[6] 2
+			{
+				ife PERSONNEL_RESEARCH[9] 2 qputs 810 HP: 150 ^8+ 50
+				else qputs 810 HP:  150 ^8+ 20
+			}
+			else ife PERSONNEL_RESEARCH[9] 2 qputs 810 HP: 150 ^8+ 30
+			else qputs 810 HP: 150
+ 			screentext 2822 185 125 37500 0 0 810 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+			qputs 811 Armor Type: Medium
+ 			screentext 2822 185 133 37500 0 0 811 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+			ifg AGENT_FATIGUE[CHAR] 5000 ifg SKILL_LEVEL 2 qputs 812 Stamina:^54 100%
+			else qputs 812 Stamina: 140%
+ 			screentext 2822 185 141 37500 0 0 812 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+			qputs 813 + Can hack VR Terminals
+ 			screentext 2822 185 151 30500 0 0 813 0 125 16 0 5 8 1 1 0 0 0 xdim ydim
+			qputs 814 + Resistant to psychic attacks
+ 			screentext 2822 185 159 30500 0 0 814 0 125 16 0 5 8 1 1 0 0 0 xdim ydim
+		}
+		else ife char_help C_MICKY
+		{
+			qputs 815 Combat Engineer
+ 			screentext 2822 185 25 37500 0 0 815 0 24 16 0 5 8 1 1 0 0 0 xdim ydim
+			qputs 810 HP: 100
+ 			screentext 2822 185 35 37500 0 0 810 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+			qputs 811 Armor Type: Energy
+ 			screentext 2822 185 43 37500 0 0 811 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+			ifg AGENT_FATIGUE[CHAR] 5000 ifg SKILL_LEVEL 2 qputs 812 Stamina:^54 90%
+			else qputs 812 Stamina: 120%
+ 			screentext 2822 185 51 37500 0 0 812 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+			qputs 813 + Infinite Toolbox Uses
+ 			screentext 2822 185 61 30500 0 0 813 0 125 16 0 5 8 1 1 0 0 0 xdim ydim
+		}
+		else ife char_help C_SNOWFALL
+		{
+			qputs 815 Space Adventurer
+ 			screentext 2822 185 25 37500 0 0 815 0 24 16 0 5 8 1 1 0 0 0 xdim ydim
+			ife PERSONNEL_RESEARCH[10] 2 qputs 810 HP: 50 ^8+ 25
+			else qputs 810 HP: 50
+ 			screentext 2822 185 35 37500 0 0 810 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+			qputs 811 Armor Type: Energy
+ 			screentext 2822 185 43 37500 0 0 811 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+			ifg AGENT_FATIGUE[14] 5000 ifg SKILL_LEVEL 2 qputs 812 Stamina: ^54110%
+			else qputs 812 Stamina: 160%
+ 			screentext 2822 185 51 37500 0 0 812 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+			qputs 813 + Auto-recharging Power Armor
+ 			screentext 2822 185 61 30500 0 0 813 0 125 16 0 5 8 1 1 0 0 0 xdim ydim
+			qputs 814 + -50% falling damage
+ 			screentext 2822 185 69 30500 0 0 814 0 125 16 0 5 8 1 1 0 0 0 xdim ydim
+		}
+		else ife char_help C_KAGURA
+		{
+			qputs 815 Cybernetic Demon Hunter
+ 			screentext 2822 185 25 37500 0 0 815 0 24 16 0 5 8 1 1 0 0 0 xdim ydim
+			ife PERSONNEL_RESEARCH[6] 2 qputs 810 HP: 100 ^8+20
+			else qputs 810 HP: 100
+ 			screentext 2822 185 35 37500 0 0 810 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+			qputs 811 Armor Type: Light
+ 			screentext 2822 185 43 37500 0 0 811 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+			ifg AGENT_FATIGUE[17] 5000 ifg SKILL_LEVEL 2 qputs 812 Stamina: ^54110%
+			else qputs 812 Stamina: 160%
+ 			screentext 2822 185 51 37500 0 0 812 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+			qputs 813 + Clamber up certain surfaces
+ 			screentext 2822 185 61 30500 0 0 813 0 125 16 0 5 8 1 1 0 0 0 xdim ydim
+			qputs 814 + Talking Sword Yo
+ 			screentext 2822 185 69 30500 0 0 814 0 125 16 0 5 8 1 1 0 0 0 xdim ydim
+		}
+		else ife char_help C_CULTIST
+		{
+			qputs 815 Deadbeat Hero
+ 			screentext 2822 185 25 37500 0 0 815 0 24 16 0 5 8 1 1 0 0 0 xdim ydim
+			qputs 810 HP: 100
+ 			screentext 2822 185 35 37500 0 0 810 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+			qputs 811 Armor Type: Strong
+ 			screentext 2822 185 43 37500 0 0 811 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+			qputs 812 Stamina: 100%
+ 			screentext 2822 185 51 37500 0 0 812 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+			qputs 813 + Health and armour from booze
+ 			screentext 2822 185 61 30500 0 0 813 0 125 16 0 5 8 1 1 0 0 0 xdim ydim
+			qputs 813 + Can't get drunk
+ 			screentext 2822 185 69 30500 0 0 813 0 125 16 0 5 8 1 1 0 0 0 xdim ydim
+		}
+		else ife char_help C_BOMBSHELL
+		{
+			qputs 815 Hail to the Queen
+ 			screentext 2822 185 25 37500 0 0 815 0 24 16 0 5 8 1 1 0 0 0 xdim ydim
+			qputs 810 HP: 100
+ 			screentext 2822 185 35 37500 0 0 810 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+			qputs 811 Armor Type: Strong
+ 			screentext 2822 185 43 37500 0 0 811 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+			qputs 812 Stamina: 100%
+ 			screentext 2822 185 51 37500 0 0 812 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+		}
+		else ife char_help C_MAARTEN
+		{
+			qputs 815 Medieval Warrior
+ 			screentext 2822 185 25 37500 0 0 815 0 24 16 0 5 8 1 1 0 0 0 xdim ydim
+			qputs 810 HP: 150
+ 			screentext 2822 185 35 37500 0 0 810 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+			qputs 811 Armor Type: Medium
+ 			screentext 2822 185 43 37500 0 0 811 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+			qputs 812 Stamina: 120%
+ 			screentext 2822 185 51 37500 0 0 812 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+			qputs 813 + Cannot get fatigued
+ 			screentext 2822 185 61 30500 0 0 813 0 125 16 0 5 8 1 1 0 0 0 xdim ydim
+		}
+		else ife char_help C_JANE
+		{
+			qputs 815 EDF Agent #1
+ 			screentext 2822 185 25 37500 0 0 815 0 24 16 0 5 8 1 1 0 0 0 xdim ydim
+			qputs 810 HP: 100
+ 			screentext 2822 185 35 37500 0 0 810 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+			qputs 811 Armor Type: Energy
+ 			screentext 2822 185 43 37500 0 0 811 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+			qputs 812 Stamina: 120%
+ 			screentext 2822 185 51 37500 0 0 812 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+		}
+	}
+
+ends

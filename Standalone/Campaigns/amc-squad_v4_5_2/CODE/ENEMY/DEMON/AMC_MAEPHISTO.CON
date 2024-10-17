@@ -1,0 +1,415 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+
+--------------------------------------------------------------------------------
+*/
+
+damageeventtile MAEPHISTO
+
+action A_MAEPHISTO_IDLE      0 1 5 1 20
+action A_MAEPHISTO_WALK      0 4 5 1 20
+action A_MAEPHISTO_READY     20 1 5 1 10
+action A_MAEPHISTO_PLASMA    25 2 5 1 4
+action A_MAEPHISTO_CHAINGUN 35 2 5 1 4
+action A_MAEPHISTO_CHARGE 45 1 5 1 200
+action A_MAEPHISTO_FIRE 50 1 5 1 14
+action A_MAEPHISTO_DYING 55 7 1 1 12
+
+move MAEP_MOVE 90
+
+ai AI_MAEPHISTO_SEEKENEMY A_MAEPHISTO_WALK MAEP_MOVE geth
+ai AI_MAEPHISTO_READY A_MAEPHISTO_READY STOP 
+ai AI_MAEPHISTO_PLASMA A_MAEPHISTO_PLASMA STOP 
+ai AI_MAEPHISTO_CHARGE A_MAEPHISTO_CHARGE STOP 
+ai AI_MAEPHISTO_STOMP A_MAEPHISTO_WALK STOP 
+ai AI_MAEPHISTO_FIRE A_MAEPHISTO_FIRE STOP 
+ai AI_MAEPHISTO_CHAINGUN A_MAEPHISTO_CHAINGUN STOP 
+
+action CHARGE 0
+
+useractor notenemy 14422
+cstat 32768
+
+ifaction 0
+	{
+	ife HITAGSAVED 0 action ZERO // if hitag is zero than go straight to 'ready' phase
+	else
+		{
+		checkactivatormotion HITAGSAVED
+		ife RETURN 1 action ZERO // become active once initially triggered
+		}
+	}
+
+ifaction ZERO
+	{
+	ifpdistl 4096
+	 ifcansee
+		{
+		soundonce MAEPH_CHARGE
+		action CHARGE
+		}
+	}
+
+ifaction CHARGE
+	{
+	ifrnd 32
+		{
+		eshoot SPARK
+		geta[].ang temp8
+		randvar temp6 256
+		ifrnd 128 add temp8 temp6 else sub temp8 temp6
+		seta[RETURN].ang temp8
+		}
+	add temp9 1
+		ifg temp9 140
+			{
+			spawn 8433
+			shoot MAEPH_BEAM
+			globalsound MAEPH_FIRE
+			palfrom 40 40 40 40
+			shoot SPARK shoot SPARK shoot SPARK shoot SPARK shoot SPARK
+			operateactivators LOTAGSAVED THISACTOR
+			operaterespawns LOTAGSAVED
+			operatemasterswitches LOTAGSAVED
+			killit
+			}
+		ifg temp9 145 killit
+	}
+
+enda
+
+spriteshadow 14423
+
+useractor notenemy 14423 // Foot
+ifaction 0
+{
+spawn BLOODPOOL
+sizeat 32 32
+action ZERO
+}
+fall
+enda
+
+spriteshadow 14419
+
+useractor notenemy 14419 // Foot
+
+ifaction 0
+{
+spawn BLOODPOOL
+sizeat 32 32
+action ZERO
+}
+
+fall
+enda
+
+useractor enemy MAEPHISTO
+fall
+
+ifaction 0
+	{
+	state monst_glow
+	set actor_type TYPE_CASE_SPECIFIC
+	seta[].htflags NORMAL_ENEMY_TRU
+	spawn SHOOTME
+	sizeat 30 30
+	strength 1500
+	cstator 257
+	globalsound MAEPH_ALERT
+	ai AI_MAEPHISTO_SEEKENEMY
+	}
+
+ifaction A_MAEPHISTO_DYING
+	{
+	move STOP faceplayer
+	add temp6 1
+	ifg temp6 4
+		{
+		espawn EXPLOSION2
+		sound RPG_EXPLODE
+		geta[].x temp
+		geta[].y temp2
+		set temp3 temp
+		add temp3 512
+		randvar temp4 2048
+		rotatepoint temp temp2 temp3 temp2 temp4 temp5 temp6
+		seta[RETURN].x temp5
+		seta[RETURN].y temp6
+		set temp6 0
+		}
+
+	ifactioncount 2
+		{
+		flash
+		ifrnd 8 shoot NJIB
+		ifrnd 8 shoot SPARK
+		quake 13
+		soundonce LASERTRIP_EXPLODE
+		}
+
+	ifactioncount 3
+		{
+		state monst_body_jibs
+		debris SCRAP1 2
+		debris SCRAP2 2
+		}
+
+	ifactioncount 6
+		{
+		espawn 14423
+		geta[].x temp
+		geta[].y temp2
+		set temp3 temp
+		add temp3 256
+		set temp4 256
+		rotatepoint temp temp2 temp3 temp2 temp4 temp5 temp6
+		seta[RETURN].x temp5
+		seta[RETURN].y temp6
+
+		espawn 14419
+		geta[].x temp
+		geta[].y temp2
+		set temp3 temp
+		add temp3 256
+		set temp4 -256
+		rotatepoint temp temp2 temp3 temp2 temp4 temp5 temp6
+		seta[RETURN].x temp5
+		seta[RETURN].y temp6
+		killit
+		}
+	}
+	else
+ifai AI_MAEPHISTO_SEEKENEMY
+	{
+	ifrnd 8 soundonce MAEPH_IDLE_1
+	else ifrnd 8 soundonce MAEPH_IDLE_2
+  state checkfortarget
+  ifpdistl 2048 ifrnd 64 ai AI_MAEPHISTO_STOMP
+  else
+    ifn my_target -1
+	{
+		state SKILL_SHOOT_LEVELADJUST
+		ifl RANDOM_CHANCE SKILLCHANCE
+			{
+			ifrnd 32 ai AI_MAEPHISTO_CHAINGUN
+			else ai AI_MAEPHISTO_READY
+			}
+	}
+
+	ifcount 13 { sound BOS1_WALK resetcount }
+	}
+else
+ifai AI_MAEPHISTO_STOMP
+	{
+	ifactioncount 2
+		{
+		ifpdistl 2048
+			{
+			getp[].posx mx
+			getp[].posy my
+			geta[].x x
+			geta[].y y
+			sub mx x
+			sub my y
+			getangle knockbackang mx my
+			set knockback 12
+			addphealth -10
+			wackplayer
+			}
+		quake 13
+		soundonce BIG_BOSS_WALK1
+		ifrnd 32 ai AI_MAEPHISTO_CHAINGUN
+		else ai AI_MAEPHISTO_SEEKENEMY
+		}
+	}
+else
+ifai AI_MAEPHISTO_CHAINGUN
+	{
+	move STOP
+	state new_validatetarget
+	
+	ife my_target -1
+		ai AI_MAEPHISTO_SEEKENEMY
+	
+	state fronttowardstarget
+	ifactioncount 2
+		{
+		state SKILL_ENEMY_ACCURACY 
+		set PROJECTILE_TO_SHOOT ENEMY_BULLET
+		set PROJECTILE_FIRING_SOUND ZCHAING_FIRE
+		state sang_enemyShootProjectile
+		set gunsmoke_z 17544
+		set gunsmoke_angle -270
+		state spawn_gunsmoke_z
+		set gunsmoke_z 17544
+		espawn 16115
+		state spawn_muzzleflash
+		resetactioncount
+		}
+	ifrnd 4 ai AI_MAEPHISTO_READY
+	}
+else
+ifai AI_MAEPHISTO_READY
+	{
+	state fronttowardstarget
+	ifpdistl 2048 ifrnd 64 ai AI_MAEPHISTO_STOMP
+	ifrnd 24 ifpdistg 8094 { set temp9 0 sound MAEPH_CHARGE ai AI_MAEPHISTO_CHARGE }
+	ifcount 6
+		{
+		ifn my_target -1 ai AI_MAEPHISTO_PLASMA else ai AI_MAEPHISTO_SEEKENEMY
+		resetcount
+		}
+	}
+else
+ifai AI_MAEPHISTO_CHARGE
+	{
+	state fronttowardstarget
+	add temp9 1
+
+	ifl temp9 100
+		{
+		espawn 23746
+		setav[RETURN].myowner THISACTOR
+		seta[RETURN].pal 7
+		set temp3 sprite[].x
+		randvarvar temp4 4096
+		add temp3 temp4
+
+		geta[].ang temp4
+		randvar temp2 2048
+		ifrnd 128 add temp4 temp2 else sub temp4 temp2
+
+        rotatepoint sprite[].x sprite[].y temp3 sprite[].y sprite[].ang temp5 temp6
+        seta[RETURN].x temp5
+        seta[RETURN].y temp6
+
+		geta[RETURN].z temp2
+		randvar temp 40000
+		sub temp 20000
+		add temp2 temp
+		seta[RETURN].z temp2
+		}
+
+	ife temp9 20 flash
+	ife temp9 40 flash
+	ife temp9 60 flash
+	ife temp9 80 flash
+	ife temp9 100 flash
+	ife temp9 120 flash
+	ifg temp9 140
+		{
+		set temp9 0
+		shoot MAEPH_BEAM
+		globalsound MAEPH_FIRE
+		palfrom 40 40 40 40
+		shoot SPARK shoot SPARK shoot SPARK shoot SPARK shoot SPARK
+		ai AI_MAEPHISTO_FIRE
+		}
+	}
+else
+ifai AI_MAEPHISTO_FIRE
+	{
+	ifg sprite[].htextra 0 seta[].htextra -1
+	add temp9 1
+	ifg temp9 20 ai AI_MAEPHISTO_SEEKENEMY
+	}
+else
+ifai AI_MAEPHISTO_PLASMA
+	{
+	state fronttowardstarget
+	ifpdistl 2048 ifrnd 64 ai AI_MAEPHISTO_STOMP
+	ifactioncount 2
+		{
+		sound MAEPH_BOLT
+
+		setprojectile[MPLASMA].offset -26
+		eshoot MPLASMA // shoots it's left gun
+		setthisprojectile[RETURN].extra 5
+		setprojectile[MPLASMA].offset 14354
+
+		setprojectile[MPLASMA].offset 64
+		eshoot MPLASMA // shoots it's right gun
+		setthisprojectile[RETURN].extra 5
+		setprojectile[MPLASMA].offset 14354
+
+			geta[].x temp
+			geta[].y temp2
+			set temp3 temp
+			add temp3 512
+			geta[].ang temp4
+			add temp4 256
+			rotatepoint temp temp2 temp3 temp2 temp4 temp5 temp6
+			espawn 16113
+			seta[RETURN].x temp5 seta[RETURN].y temp6
+			geta[].z temp sub temp 8844 seta[RETURN].z temp
+
+			geta[].x temp
+			geta[].y temp2
+			set temp3 temp
+			add temp3 512
+			geta[].ang temp4
+			sub temp4 256
+			rotatepoint temp temp2 temp3 temp2 temp4 temp5 temp6
+			espawn 16113
+			seta[RETURN].x temp5 seta[RETURN].y temp6
+			geta[].z temp sub temp 8844 seta[RETURN].z temp
+
+		resetactioncount
+		}
+	ifrnd 4 ai AI_MAEPHISTO_SEEKENEMY
+	else ife my_target -1 ai AI_MAEPHISTO_SEEKENEMY
+		
+	}
+
+
+ifg sprite[].htextra 0                            // if the actor is set to take some damage from a weapon...
+{
+  ife sprite[].htowner THISACTOR  // if the owner of the weapon IS this actor
+    seta[].htextra -1       // set the damage to 0
+}
+
+ifhitweapon
+	{
+	ifrnd 16 soundonce MAEPH_PAIN
+	state NEWGUNEFFECTS
+	//spawn BLOOD
+	shoot SPARK
+	ifrnd 64 { guts JIBS6 2 debris SCRAP6 1 debris SCRAP1 2 }
+	ifwasweapon RPG seta[].xvel 0
+	ifwasweapon RADIUSEXPLOSION seta[].xvel 0
+	state random_wall_jibs
+	ifdead
+		{
+			sound MAEPH_DIE
+			state rf
+
+			addkills 1
+			action A_MAEPHISTO_DYING
+		}
+	}
+
+enda

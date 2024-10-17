@@ -1,0 +1,377 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+
+--------------------------------------------------------------------------------
+*/
+
+
+// ************************************************************************************
+// SENTRY BOT
+// ************************************************************************************
+
+
+action A_SENTRY_IDLE 0 1 5 1 10
+action A_SENTRY_FLOAT 0 1 5 1 10
+action A_SENTRY_FLOATUP 0 1 5 1 10
+action A_SENTRY_FLOATDOWN 0 1 5 1 10
+action A_SENTRY_SHOOT 0 2 5 1 5
+action A_SENTRY_DIE 10 3 1 1 20
+action A_SENTRY_FALL 12 1 1 1 10
+action A_SENTRY_DEAD 13 1 1 1 10
+
+defstate sentry_maybeshoot
+	state checkfortarget
+
+	ifl INTERNALCOUNT 11
+		ifrnd 128
+			add INTERNALCOUNT 1
+
+	ifg INTERNALCOUNT 10
+		ifn my_target -1
+		ifrnd 4
+		ife enemy_cooldown1 0
+	{
+		ifrnd 64 sound GDR_ROAM1
+		set INTERNALCOUNT 0
+		action A_SENTRY_SHOOT
+	}
+ends
+
+damageeventtile SENTRY
+
+useractor enemy SENTRY
+
+ifaction 0
+{
+	set actor_type TYPE_ROBOTIC
+	state monst_glow
+	strength 750
+	sizeat 30 30
+	spriteflags ROBOT_ENEMY
+	espawn SHOOTME seta[RETURN].pal 1
+	cstat 257
+	action A_SENTRY_IDLE
+}
+
+state check_metal_squished
+
+ifdead nullop
+else
+{
+	ifpdistl 8192
+	ife camerasprite -1 // don't play during cutscenes
+		soundonce COMM_AMB
+
+	state getfloordist_sbs
+	ifl z 32
+		state smokering
+
+	ifstrength 100
+	ifrnd 32
+	{
+		sound SHORT_CIRCUIT
+		shoot SPARK shoot SPARK
+	}
+
+	ifaction A_SENTRY_SHOOT nullop
+	else ifg enemy_cooldown2 -1 sub enemy_cooldown2 1
+
+	ife enemy_cooldown1 1
+		ifl enemy_cooldown2 50
+		set enemy_cooldown1 0
+
+	ifg enemy_cooldown2 100
+		ifrnd 96
+	{
+		espawn 18365
+		geta[].z temp7
+		sub temp7 512
+		geta[].x temp
+		geta[].y temp2
+		set temp3 temp
+		add temp3 256
+		geta[].ang temp4
+		sub temp4 512
+		rotatepoint temp temp2 temp3 temp2 temp4 temp5 temp6
+		seta[RETURN].x temp5
+		seta[RETURN].y temp6
+		seta[RETURN].z temp7
+		espawn 18365
+		geta[].x temp
+		geta[].y temp2
+		set temp3 temp
+		add temp3 256
+		geta[].ang temp4
+		add temp4 512
+		rotatepoint temp temp2 temp3 temp2 temp4 temp5 temp6
+		seta[RETURN].x temp5
+		seta[RETURN].y temp6
+		seta[RETURN].z temp7
+	}
+}
+
+ifaction A_SENTRY_IDLE
+{
+	state checkfortarget
+
+	ifn my_target -1
+	{
+		sound GDR_RECOG1
+		set enemy_cooldown2 0 // weapon heat
+		set temp9 10 // heat sinks
+		action A_SENTRY_FLOAT
+	}
+}
+ifaction A_SENTRY_FLOAT
+{
+	ifmove M_SORCERER_FLOAT nullop
+	else move M_SORCERER_FLOAT geth getv
+
+	state sentry_maybeshoot
+
+	state getfloordist
+	ifl z 0 seta[].z sector[].floorz
+
+	ifrnd 128
+	{
+		geta[].z z
+		ifl player[].posz z action A_SENTRY_FLOATUP
+		else ifg player[].posz z action A_SENTRY_FLOATDOWN
+	}
+}
+else ifaction A_SENTRY_FLOATUP
+{
+	ifmove M_SORCERER_FLOATUP nullop
+	else move M_SORCERER_FLOATUP geth getv
+
+	state thisactor_getzrange
+	state sentry_maybeshoot
+
+	ifrnd 16
+		action A_SENTRY_FLOAT
+}
+else ifaction A_SENTRY_FLOATDOWN
+{
+	ifmove M_SORCERER_FLOATDOWN nullop
+	else move M_SORCERER_FLOATDOWN geth getv
+
+	state thisactor_getzrange
+	state sentry_maybeshoot
+
+	ifrnd 16
+		action A_SENTRY_FLOAT
+
+	state getfloordist
+	ifl z 5
+		action A_SENTRY_FLOAT
+}
+else ifaction A_SENTRY_SHOOT
+{
+	move STOP
+
+	state checkfortarget
+
+	ifn my_target -1
+	{
+		ifactioncount 2
+		{
+			randvar temp7 10
+			add enemy_cooldown2 temp7
+			add enemy_cooldown2 5
+
+			setprojectile[MDF_PLASMA].extra 3
+			setprojectile[MDF_PLASMA].extra_rand 2
+			set PROJECTILE_TO_SHOOT MDF_PLASMA
+			set PROJECTILE_FIRING_SOUND GDR_FIRE1
+			state sang_enemyShootProjectile
+
+			setthisprojectile[RETURN].pal 2
+			setthisprojectile[RETURN].vel 300
+			setthisprojectile[RETURN].spawns BIG_SMOKE
+			geta[].x temp
+			geta[].y temp2
+			set temp3 temp
+			add temp3 128
+			geta[].ang temp4
+			sub temp4 512
+			rotatepoint temp temp2 temp3 temp2 temp4 temp5 temp6
+			seta[RETURN].x temp5
+			seta[RETURN].y temp6
+
+			setprojectile[MDF_PLASMA].extra 3
+			setprojectile[MDF_PLASMA].extra_rand 2
+			set PROJECTILE_TO_SHOOT MDF_PLASMA
+			set PROJECTILE_FIRING_SOUND -1
+			state sang_enemyShootProjectile
+
+			// return to usual damage values for MDF_Plasma
+			setprojectile[MDF_PLASMA].extra 15
+			setprojectile[MDF_PLASMA].extra_rand 25
+
+			setthisprojectile[RETURN].pal 2
+			setthisprojectile[RETURN].vel 300
+			setthisprojectile[RETURN].spawns BIG_SMOKE
+			geta[].x temp
+			geta[].y temp2
+			set temp3 temp
+			add temp3 128
+			geta[].ang temp4
+			add temp4 512
+			rotatepoint temp temp2 temp3 temp2 temp4 temp5 temp6
+			seta[RETURN].x temp5
+			seta[RETURN].y temp6
+
+			resetactioncount
+		}
+	}
+	else // target gone
+	{
+		action A_SENTRY_FLOAT
+	}
+
+	ifg enemy_cooldown2 175
+	{
+		set enemy_cooldown1 1
+
+		// if it still has heat sinks, the sentry will eject them and immediately cool down
+		// otherwise it will need to gradually cool down
+		ifg temp9 0
+		{
+			sub temp9 1
+			soundonce HEAT_SINK_EJECT
+			shoot HEAT_SINK
+			set enemy_cooldown2 0
+		}
+		action A_SENTRY_FLOAT
+	}
+}
+else ifaction A_SENTRY_DIE
+{
+	move STOP
+
+	stopactorsound THISACTOR COMM_AMB
+	cstat 0
+	fall
+	state getfloordist
+	ifactioncount 2 { ifl z 16 nullop else action A_SENTRY_FALL }
+	ifactioncount 3 soundonce CARSMASH
+	ifactioncount 3 { quake 13 action A_SENTRY_DEAD set PLAYER_VOICEOVER 33 }
+
+	add temp6 1
+	ifg temp6 4
+	{
+		espawn EXPLOSION2
+		sound RPG_EXPLODE
+		geta[].x temp
+		geta[].y temp2
+		set temp3 temp
+		add temp3 512
+		randvar temp4 2048
+		rotatepoint temp temp2 temp3 temp2 temp4 temp5 temp6
+		seta[RETURN].x temp5
+		seta[RETURN].y temp6
+		set temp6 0
+	}
+
+}
+ifaction A_SENTRY_DEAD
+{
+	move STOP
+
+	fall
+	cstat 0
+
+	ifhitweapon
+	{
+		state METAL_HIT_SOUNDS
+		soundvar playsound
+		ifdead
+		{
+			sound VENT_BUST
+			debris SCRAP1 3
+			debris SCRAP2 3
+			debris SCRAP5 3
+			killit
+		}
+	}
+}
+else ifaction A_SENTRY_FALL
+{
+	move STOP
+	fall
+	state getfloordist
+	ifl z 16
+	{
+		quake 13
+		soundonce CARSMASH
+		action A_SENTRY_DEAD
+		set PLAYER_VOICEOVER 33
+	}
+
+	ifrnd 160
+	{
+		espawn 14040
+		geta[].x temp
+		randvar temp2 128
+		ifrnd 128 add temp temp2 else sub temp temp2
+		seta[RETURN].x temp
+
+		geta[].y temp
+		randvar temp2 128
+		ifrnd 128 add temp temp2 else sub temp temp2
+		seta[RETURN].y temp
+
+		geta[].z temp
+		sub temp 4096
+		randvar temp2 2048
+		sub temp temp2
+		seta[RETURN].z temp
+	}
+}
+
+
+ifhitweapon
+{
+	shoot SPARK
+	ifwasweapon RPG seta[].xvel 0
+		ifwasweapon RADIUSEXPLOSION seta[].xvel 0
+		ifdead
+	{
+		globalsound GDR_DIE
+		spawn 8433
+		quake 13
+		flash
+		spawn BIG_EXPLOSION
+		sound EXPLOSION_BIG
+		shoot SPARK shoot SPARK
+		move STOP
+		addkills 1
+
+		debris SCRAP2 10
+		action A_SENTRY_DIE
+	}
+}
+enda

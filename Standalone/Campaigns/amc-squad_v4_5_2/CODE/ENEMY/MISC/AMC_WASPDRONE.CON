@@ -1,0 +1,271 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+
+--------------------------------------------------------------------------------
+*/
+
+damageeventtile WASP_DRONE
+
+action WASP_DRONEFRAMES   0   2   5   1   3
+action WASP_DRONESCREAM   0   2   5   1   3
+action WASP_DRONEFIRE     10  2   5   1   3
+move WASP_DRONERUNVELS 128 64
+move WASP_DRONERUNUPVELS 128 -64
+move WASP_DRONEBULLVELS 252 -64
+move WASP_DRONEBACKWARDS -64 -64
+move WASP_DRONERISE 32 -32
+move WASP_DRONESTOPPED -16
+
+ai AIWASP_DRONEGETE WASP_DRONESCREAM WASP_DRONERUNVELS faceplayerslow getv
+ai AIWASP_DRONEPREPGUN WASP_DRONESCREAM WASP_DRONESTOPPED seekplayer
+ai AIWASP_DRONEMGUN WASP_DRONEFIRE WASP_DRONESTOPPED 
+ai AIWASP_DRONEWAIT WASP_DRONEFRAMES WASP_DRONESTOPPED seekplayer
+ai AIWASP_DRONEGETUP WASP_DRONESCREAM WASP_DRONERUNUPVELS faceplayer getv
+ai AIWASP_DRONEPULLBACK WASP_DRONEFRAMES WASP_DRONEBACKWARDS faceplayerslow
+ai AIWASP_DRONEHIT WASP_DRONESCREAM WASP_DRONEBACKWARDS faceplayer
+ai AIWASP_DRONEDODGE WASP_DRONEFRAMES WASP_DRONEBULLVELS dodgebullet geth
+ai AIWASP_DRONEDODGEUP WASP_DRONEFRAMES WASP_DRONERISE getv geth
+
+defstate checkwasp_dronehitstate
+
+  ifdead { stopactorsound THISACTOR HOVER_CRAFT state dronedead }
+  else ifsquished { stopactorsound THISACTOR HOVER_CRAFT sound METAL_CRUSH state dronedead }
+  else
+  {
+	geta[].htpicnum temp
+	ife temp 6197 addstrength -75
+	ife temp 6465 addstrength -10
+
+    ifbulletnear
+    {
+      ifceilingdistl 64
+        ifrnd 48
+          ai AIWASP_DRONEDODGE
+      ai AIWASP_DRONEDODGEUP
+    }
+    else
+      ai AIWASP_DRONEGETE
+  }
+ends
+
+defstate wasp_droneprepattackstate
+	ife INTERNALCOUNT 1
+		sound SELECT_HT_BIGGUN
+
+	ife INTERNALCOUNT 30
+		ai AIWASP_DRONEMGUN
+
+	add INTERNALCOUNT 1
+ends
+
+defstate wasp_droneattack
+	state new_validatetarget
+	ife my_target -1 ai AIWASP_DRONEPULLBACK
+	state fronttowardstarget
+		ifactioncount 3
+		{
+			geta[].z temp3 sub temp3 512 seta[].z temp3 // change this actor's height so the projectile comes from the right place
+			state SKILL_SHOOT_LEVELADJUST
+			divvar SKILLCHANCE 2
+			iffloordistl 3 set RANDOM_CHANCE 255 // don't fire a missile if too close to the floor
+			ifl RANDOM_CHANCE SKILLCHANCE // randomly fire a homing missile
+			{
+				set PROJECTILE_OFFSET -204
+				set PROJECTILE_STRENGTH 25
+				set PROJECTILE_TO_SHOOT HOMING_MISSILE
+				set PROJECTILE_FIRING_SOUND Z_MISSILE_FIRE
+				state sang_enemyShootProjectile
+
+				ife PERFMODE 1
+				 ifcansee
+				{
+					set gunsmoke_z 244
+					set gunsmoke_angle -64
+					state spawn_gunsmoke_z
+					set gunsmoke_z 344
+					espawn 16114
+					state spawn_muzzleflash
+				}
+				ai AIWASP_DRONEPULLBACK
+			}
+			else
+			{
+				add ally_mag 1
+				set PROJECTILE_OFFSET -204
+				set PROJECTILE_TO_SHOOT ENEMY_BULLET
+				set PROJECTILE_FIRING_SOUND GLOCKFIRE
+				state sang_enemyShootProjectile
+				globalsound DISTANT_RIFLE
+
+					ife PERFMODE 1
+					 ifcansee
+						{
+						set gunsmoke_z 244
+						set gunsmoke_angle -64
+						state spawn_gunsmoke_z
+						set gunsmoke_z 344
+						espawn 16115
+						state spawn_muzzleflash
+						}
+					ifrnd 32 ai AIWASP_DRONEPULLBACK
+					ifg ally_mag 10 ai AIWASP_DRONEPULLBACK
+			}
+			geta[].z temp3 add temp3 512 seta[].z temp3 // reset height
+			resetactioncount
+		}
+ends
+
+defstate wasp_dronegetstate
+state checkfortarget
+sub ally_mag 1
+ ifn my_target -1
+  ifrnd 32
+  {
+	set INTERNALCOUNT 0
+	ai AIWASP_DRONEPREPGUN
+  }
+  else
+  {
+      ifbulletnear
+      {
+        ai AIWASP_DRONEDODGE
+        break
+      }
+      ifmove WASP_DRONEBULLVELS
+      {
+        ifcount 64
+          ai AIWASP_DRONEPULLBACK
+        else
+          ifnotmoving
+            ifcount 16
+              ai AIWASP_DRONEPULLBACK
+      }
+      else
+        ifcount 32
+      {
+        ifp phigher
+          move WASP_DRONEBULLVELS geth getv
+        else
+          move WASP_DRONEBULLVELS geth
+      }
+
+      ifrnd 1
+        operate
+  }
+ends
+
+defstate wasp_dronedodgestate
+  ifai AIWASP_DRONEDODGEUP
+  {
+  state thisactor_getzrange
+     ifcount 8
+       ai AIWASP_DRONEGETE
+     else
+       ifnotmoving
+         ai AIWASP_DRONEGETE
+  }
+  else
+  {
+    ifcount 8
+      ai AIWASP_DRONEGETE
+    else
+      ifnotmoving
+        ai AIWASP_DRONEGETE
+  }
+ends
+
+spriteflags WASP_DRONE SFLAG_NOWATERSECTOR
+
+useractor enemy WASP_DRONE 100
+
+ifinwater state dronedead
+
+  ifrnd 2
+    fall
+  else
+    {
+	ifactorsound THISACTOR HOVER_CRAFT nullop else sound HOVER_CRAFT
+    setactorsoundpitch THISACTOR HOVER_CRAFT 1024
+	}
+
+  ifaction 0
+    {
+	state monst_glow
+	sound WASP_DR_RECOG
+	set actor_type TYPE_CASE_SPECIFIC
+	spriteflags 70262787
+	set MONSTER_FLAGS 1
+	ifspritepal 3 sizeat 48 48 else
+	sizeat 24 24
+	cstat 257
+	seta[].mdzoff 4096
+	spawn SHOOTME
+	ai AIWASP_DRONEGETE
+	}
+
+  else
+    ifai AIWASP_DRONEWAIT
+  {
+  state checkfortarget
+    ifactioncount 4
+      ifrnd 16
+        ifn my_target -1
+    {
+      ifp phigher
+        ai AIWASP_DRONEGETUP
+      else ai AIWASP_DRONEGETE
+    }
+  }
+  else ifai AIWASP_DRONEGETE
+      state wasp_dronegetstate
+  else ifai AIWASP_DRONEGETUP
+      state wasp_dronegetstate
+  else ifai AIWASP_DRONEPREPGUN
+	  state wasp_droneprepattackstate
+  else ifai AIWASP_DRONEMGUN
+	  state wasp_droneattack
+  else ifai AIWASP_DRONEPULLBACK
+  {
+    ifcount 32
+    ai AIWASP_DRONEWAIT
+  }
+  else
+    ifai AIWASP_DRONEHIT
+  {
+    ifcount 8
+      ai AIWASP_DRONEWAIT
+  }
+  else
+    ifai AIWASP_DRONEDODGE
+      state wasp_dronedodgestate
+  else
+    ifai AIWASP_DRONEDODGEUP
+      state wasp_dronedodgestate
+
+  ifhitweapon
+    state checkwasp_dronehitstate
+
+enda

@@ -1,0 +1,416 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+
+--------------------------------------------------------------------------------
+*/
+
+damageeventtile CULT_FLAME
+
+action A_CULT_FLAME_START 0 1 5 1 12
+action A_CULT_FLAME_IDLE 0 1 5 1 12
+
+action A_CULT_FLAME_DEAD 39
+action A_CULT_FLAME_DYING 35 5 1 1 16
+
+action A_CULT_FLAME_HS_DEAD 49
+action A_CULT_FLAME_HS_DYING 45 5 1 1 16
+
+action A_CULT_FLAME_SLASH_DEAD 44
+action A_CULT_FLAME_SLASH_DYING 40 5 1 1 16
+
+action A_CULT_FLAME_FREEZE 35 1 1 1 8
+
+action A_CULT_FLAME_GROW 35 1 1 1 8
+action A_CULT_FLAME_SHRUNK 0 4 5 1 12
+action A_CULT_FLAME_PAIN 35 1 1 1 8
+
+action A_CULT_FLAME_SEEK 5 4 5 1 12
+action A_CULT_FLAME_ATTACK 25 2 5 1 4
+
+move M_CULT_FLAME_WALK 126
+
+useractor enemystayput CULT_FLAME_STAYPUT 150 A_CULT_FLAME_START cactor CULT_FLAME enda
+
+useractor enemy CULT_FLAME 150 A_CULT_FLAME_START
+fall
+ifaction A_CULT_FLAME_START
+{
+	cstat 257
+	strength 150
+	sizeat 24 24
+	ifspritepal 0 spritepal 21
+	state monst_glow
+	// spawn SHOOTME no longer needed in theory as soon as every actor the dummy can come in contact with implements faction targetting code. But until then, it is needed as a fallback.
+	// spawn FLAMMABLE if the actor in question is flammable. NOT needed as long as SHOOTME still exists, otherwise enemy will take double fire damage (I guess?)
+	action A_CULT_FLAME_IDLE
+}
+
+state ENEMYKNOCKBACKS
+state enemyfloordamage
+state enemy_fire_damage
+state enemy_ice_damage
+state enemy_spirit_damage
+
+
+ifaction A_CULT_FLAME_IDLE
+{
+	move STOP
+	state checkfortarget
+	ifn my_target -1
+	{
+		ifrnd 128 sound CULT_SIG1 else sound CULT_SIG2
+		action A_CULT_FLAME_SEEK
+	}
+}
+
+// Death & dying
+else ifaction A_CULT_FLAME_HS_DEAD
+{
+	move STOP
+	ifhitweapon
+	{
+		ifwasweapon RADIUSEXPLOSION
+		{
+			state squish_sounds
+			state standard_jibs
+			state human_jibs
+			killit
+		}
+	}
+}
+else ifaction A_CULT_FLAME_SLASH_DEAD
+{
+	move STOP
+	ifhitweapon
+	{
+		ifwasweapon RADIUSEXPLOSION
+		{
+			eshoot FLAMEC_HEAD
+			seta[RETURN].pal sprite[].pal
+			state squish_sounds
+			state standard_jibs
+			state human_jibs
+			killit
+		}
+	}
+}
+else ifaction A_CULT_FLAME_DEAD
+{
+	move STOP
+	ifhitweapon
+	{
+		ifwasweapon RADIUSEXPLOSION
+		{
+			eshoot FLAMEC_HEAD
+			seta[RETURN].pal sprite[].pal
+			state squish_sounds
+			state standard_jibs
+			state human_jibs
+			killit
+		}
+	}
+}
+else ifaction A_CULT_FLAME_HS_DYING
+{
+	move STOP
+	strength 0
+	ifactioncount 5 { state rf state BODY_FALL_NOISES spawn BLOODPOOL action A_CULT_FLAME_HS_DEAD }
+}
+else ifaction A_CULT_FLAME_SLASH_DYING
+{
+	move STOP
+	strength 0
+	ifactioncount 5 { state rf state SQUISH_FALL_NOISES spawn BLOODPOOL action A_CULT_FLAME_SLASH_DEAD }
+}
+else ifaction A_CULT_FLAME_DYING
+{
+	move STOP
+	strength 0
+	ifactioncount 5 { state rf state BODY_FALL_NOISES spawn BLOODPOOL action A_CULT_FLAME_DEAD }
+}
+
+// Status effects
+else ifaction A_CULT_FLAME_FREEZE state frozen_code
+else ifaction A_CULT_FLAME_GROW
+{
+	move STOP
+	state genericgrowcode
+}
+else ifaction A_CULT_FLAME_SHRUNK
+{
+	ifmove M_CULT_FLAME_WALK { } // need to do this cause we're not using ai routines anymore
+	else
+		move M_CULT_FLAME_WALK geth fleeenemy
+
+	ifl SHRUNK_TIME SHRUNKCOUNT // keep shrunk
+		state new_shrunkcode
+	else ifl SHRUNK_TIME SHRUNKDONECOUNT // regrow
+	{
+		state unshrink
+		sizeto 24 24
+	}
+	else // after regrow, switch back to regular action
+	{
+		state endshrunkenstate
+		action A_CULT_FLAME_SEEK
+	}
+}
+
+else ifaction A_CULT_FLAME_PAIN
+{
+	sub PAIN_AMOUNT 1
+	move STOP
+	ife PAIN_AMOUNT 0
+	{
+		ifdead action A_CULT_FLAME_DYING
+		else action A_CULT_FLAME_SEEK
+	}
+}
+
+else ifaction A_CULT_FLAME_SEEK
+{
+	ifmove M_CULT_FLAME_WALK { }
+	else
+		move M_CULT_FLAME_WALK geth
+
+	state checkfortarget
+
+	ifn my_target -1
+	{
+		// Target acquired, skill setting can still affect decision to shoot.
+		state SKILL_SHOOT_LEVELADJUST
+
+		ifl RANDOM_CHANCE SKILLCHANCE
+		{
+			// Assume target still acquired, is rechecked on next tic anyway
+
+			// Optional: apply dist check to target
+			// Basically any check here to decide whether or not to ATTACK goes. But there is no need to check for my_target again.
+			// my_target can be the player or another target, the actor shouldn't care about that (for now)
+			ldist temp THISACTOR my_target
+			ifl temp 4096 { ifrnd 32 soundonce CULT_LAUGH action A_CULT_FLAME_ATTACK }
+		}
+	}
+}
+
+else ifaction A_CULT_FLAME_ATTACK
+{
+	move STOP
+	state new_validatetarget
+
+	ife my_target -1
+		action A_CULT_FLAME_SEEK
+
+	state fronttowardstarget
+
+	ifactioncount 2
+	{
+		getactorvar[my_target].myowner temp4
+		ifspritepal 21
+			{
+			soundonce FLAMETH_FIRE
+			spawn 3296
+			}
+		else
+		ifspritepal 16
+		{
+			set PROJECTILE_TO_SHOOT 5372
+			set PROJECTILE_FIRING_SOUND 535
+			state sang_enemyShootProjectile
+			seta[RETURN].extra 15
+		}
+		ife PERFMODE 1
+		 ifcansee
+		  ifspritepal 16
+			{
+			set gunsmoke_z 8192
+			set gunsmoke_angle -64
+			state spawn_gunsmoke_z
+			set gunsmoke_z 6044
+			espawn 16113
+			seta[RETURN].pal 0
+			state spawn_muzzleflash
+			}
+		ifrnd 32
+			{
+			ifspritepal 21 { stopactorsound THISACTOR FLAMETH_FIRE sound FLAMETH_STOP }
+			action A_CULT_FLAME_SEEK
+			}
+		resetactioncount
+	}
+}
+
+ifhitweapon
+{
+	state NEWGUNEFFECTS
+	sound BERSERK_PAIN
+	geta[].extra HEAL_COUNT
+	//spawn BLOOD
+	guts JIBS6 1
+	state random_wall_jibs
+	ifdead
+	{
+		addkills 1
+		ifspritepal 21 { stopactorsound THISACTOR FLAMETH_FIRE sound FLAMETH_STOP }
+		state rf
+		ifphealthl 50
+			{
+			state SKILL_LEVELADJUST
+			ifl RANDOM_CHANCE SKILLCHANCE spawn HPOWDER
+			}
+		else
+		ife YVELSAVED 1
+			{
+			ifspritepal 21 { espawn FLAMETHROWERSPRITE randvar temp 50 add temp 100 setactorvar[RETURN].YVELSAVED temp }
+			else
+			ifspritepal 16
+				{
+				espawn JPLASMASPRITE randvar temp 20 add temp 80 setactorvar[RETURN].YVELSAVED temp
+				}
+			}
+		else
+		ifrnd 16
+			{
+			ifspritepal 21 { espawn FLAMETHROWERSPRITE randvar temp 50 add temp 30 setactorvar[RETURN].YVELSAVED temp }
+			else
+			ifspritepal 16
+				{
+				espawn JPLASMASPRITE randvar temp 20 add temp 15 setactorvar[RETURN].YVELSAVED temp
+				}
+			}
+		ifwasweapon RADIUSEXPLOSION
+			{
+			ifg fire_damage 0 set fire_damage 0
+				state squish_sounds
+			  state monst_body_jibs
+			  state human_jibs
+			  killit
+			  }
+		  ifwasweapon RPG
+			  {
+			  ifg fire_damage 0 set fire_damage 0
+			  state squish_sounds
+			  state monst_body_jibs
+			  state human_jibs
+			  killit
+			  }
+		ifand PROJ_UDATA PROJ_GIB
+			  {
+			  ifg fire_damage 0 set fire_damage 0
+			  state squish_sounds
+			  state monst_body_jibs
+			  state human_jibs
+			  killit
+			  }
+		ifand PROJ_UDATA 8192
+			 {
+			 ifrnd 8 { spawn ELECTROCUTE_MARV soundonce MALE_ELECT1 } else spawn ELECTROCUTE_GUY
+			 shoot SPARK2 shoot SPARK2 shoot SPARK2
+			 killit
+			 }
+		ifwasweapon GROWSPARK { cstat 0 sound ACTOR_GROWING action A_CULT_FLAME_GROW break }
+		else ifg ice_damage 0 { spritepal 1 strength 0 sound SOMETHINGFROZE action A_CULT_FLAME_FREEZE }
+		else ifg fire_damage 0
+		{
+			shoot SPARK2 shoot SPARK2 shoot SPARK2
+			ifrnd 64 sound MALE_ONFIRE1
+			else ifrnd 64 sound MALE_ONFIRE2
+			else ifrnd 64 sound MALE_ONFIRE3
+			else sound MALE_ONFIRE4
+			spawn ONFIREGUY
+			killit
+		}
+		else ifand PROJ_UDATA 8
+			{
+			state random_trigger_showoff
+			cstat 4
+			state slashed_sounds
+			spawn BIG_BLOOD_EXE
+			sound SQUISHED3
+			action A_CULT_FLAME_SLASH_DYING
+			}
+		else ife HEADSHOT 2
+		{
+			ifg fire_damage 0 set fire_damage 0
+			state random_trigger_showoff
+			state jib_sounds
+			state decap_sounds
+			ifg sprite[].extra -30
+				{
+				eshoot FLAMEC_HEAD
+                geta[].htang temp
+				seta[RETURN].ang temp
+                geta[RETURN].z temp
+                sub temp 1200
+                seta[RETURN].z temp
+				seta[RETURN].pal sprite[].pal
+				}
+			else guts JIBS2 2
+			shoot NJIB
+			shoot NJIB
+			guts JIBS6 3
+			action A_CULT_FLAME_HS_DYING
+		}
+		else ifg spirit_damage 0
+		{
+			shoot SPARK2 shoot SPARK2 shoot SPARK2
+			spritepal 1
+			guts JIBS3 6
+			spawn SPIRIT_DEATH_GUY
+			killit
+		}
+		else ifg energy_damage 0
+		{
+			shoot SPARK2 shoot SPARK2 shoot SPARK2
+			spritepal 4
+			guts JIBS3 6
+			spawn DISINTIGRATE_GUY
+			killit
+		}
+		else
+		{
+		randvar temp 30
+		ifl temp 10 sound CULTIST_DIE1 else
+		ifl temp 20 sound CULTIST_DIE2 else
+		sound CULTIST_DIE3
+		action A_CULT_FLAME_DYING
+		}
+	}
+
+	else // not dead
+	{
+		ifwasweapon SHRINKSPARK { sound ACTOR_SHRINKING action A_CULT_FLAME_SHRUNK }
+
+		ifg PAIN_AMOUNT 0 { state cult_pain_sound action A_CULT_FLAME_PAIN }
+		else ifrnd 32 { state cult_pain_sound state PAIN_SKILL_LEVELADJUST action A_CULT_FLAME_PAIN }
+		// if they were idle, getting hit ALWAYS wakes them up
+		else ifaction A_CULT_FLAME_IDLE { state cult_pain_sound state PAIN_SKILL_LEVELADJUST action A_CULT_FLAME_PAIN }
+	}
+}
+
+state checksquished
+
+enda

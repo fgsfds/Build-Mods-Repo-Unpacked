@@ -1,0 +1,4454 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+This file contains code used for Zaxtor's maps, created by Cedric Lutes.
+It does NOT contain any code for the ingame character.
+--------------------------------------------------------------------------------
+*/
+
+appendevent EVENT_DISPLAYREST
+    ife INSIDEQUICKFALL 2
+        rotatesprite 159 99 67000 0 19411 12 17 1057 0 0 xdim ydim
+endevent
+
+
+defstate visible_with_heat_on
+    // invisible unless viewed with nightvision
+    geta[].cstat temp266
+    ife player[].heat_on 1
+        and temp266 -32769
+    else
+        or temp266 32768
+    seta[].cstat temp266
+ends
+
+// works like pressing space except CAN operate multi activators
+useractor notenemy SPECIAL_DOOR_EFF
+    cstator 32768
+    ife sprite[].sectnum player[].cursectnum
+    {
+        ifpdistl 966 ifcansee
+        {
+            set player_use 0
+            ifhitspace ifcount 35
+            {
+                ifspritepal 0 operateactivators 5 0
+                ifspritepal 2 operateactivators 10 0
+                resetcount
+            }
+        }
+    }
+
+    ifspritepal 4
+        soundonce C_MACHINESS
+enda
+
+useractor notenemy MUSHROOM
+    ifhitweapon
+    {
+        sound SQUISHED
+        debris SCRAP3 4
+        cactor MUSHROOMDEAD
+    }
+enda
+
+// fruit is soo poisonous that just touching it hurts you.
+useractor notenemy POISONOUS_FRUIT
+    ifhitweapon
+    {
+        sound SQUISHED
+        debris SCRAP3 3
+        cactor POISONOUS_FRUITDEAD
+    }
+
+    ifpdistl 866 ifp pfacing
+    {
+        ifhitspace ifcount 33
+        {
+            globalsound Z_LONGTERM_PAIN
+            addphealth -7
+            resetcount
+        }
+    }
+enda
+
+useractor notenemy DOOROPENNEREFF
+    cstat 32768
+    palfrom 23 17 61 31
+    ifcount 19
+    {
+        set DOOROP_X_1 1
+        killit
+    }
+enda
+
+useractor notenemy E_FORCEFIELD_BDOOR
+
+    ifspritepal 0
+    {
+        cstator 32768
+        ifspawnedby RESPAWN
+            spritepal 17
+
+        ifcount 41
+        {
+            palfrom 22 62 62 62
+            quote 8106 spritepal 2
+        }
+    }
+
+    ifspritepal 2
+    {
+        ifcount 162
+        {
+            palfrom 11 32 32 31
+            quake 5
+            quote 8107
+            killit
+        }
+    }
+
+    ifspritepal 4
+    {
+        cstator 32768
+        ife DOOROP_X_1 9
+        {
+            palfrom 11 63 31 11
+            quake 33
+            set DOOROP_X_1 10
+        }
+
+        ife DOOROP_X_1 11
+        {
+            ifcansee
+                palfrom 62 61 32 11
+
+            quake 66
+            globalsound EXPLOSION_HUGE
+            operatemasterswitches 2
+            sets[temp].visibility 0
+            sets[].floorshade -41
+            sets[].ceilingshade -41
+            sets[].floorpal 2
+            sets[].ceilingpal 2
+            spawn E_FORCEFIELD_BDOOR
+            killit
+        }
+    }
+
+    ifspritepal 6
+    {
+        cstator 32768
+        ife DOOROP_X_1 10
+        {
+            ifpdistl 1536
+                { set DOOROP_X_1 11 killit }
+        }
+    }
+
+    ifspritepal 7
+    {
+        cstator 32768
+            ifpdistl 888
+            {
+                set DOOROP_X_1 9
+                killit
+            }
+    }
+
+    ifspritepal 8
+    {
+        cstator 32768
+        ife DOOROP_X_1 11
+        {
+            ife sprite[].sectnum player[].cursectnum
+            {
+                set DOOROP_X_1 12 killit
+                killit
+            }
+        }
+    }
+
+    ifspritepal 9
+    {
+        cstator 32768
+        ife DOOROP_X_1 12 { set DOOROP_X_1 13 }
+        ife DOOROP_X_1 13
+        {
+            ifcansee
+                palfrom 55 62 31 21
+
+            quake 51
+            globalsound EXPLOSION_HUGE
+            operatemasterswitches 3
+            sets[temp].visibility 0
+            sets[].floorshade -41
+            sets[].ceilingshade -41
+            sets[].floorpal 2
+            sets[].ceilingpal 2
+            killit
+        }
+    }
+
+    ifspritepal 10
+    {
+        cstator 32768
+        ife DOOROP_X_1 13
+        {
+            resetcount
+            spritepal 11
+        }
+    }
+
+    ifspritepal 11
+    {
+        ifcount 162
+        {
+            ifcansee
+                palfrom 58 62 31 21
+
+            quake 32
+            globalsound EXPLOSION_HUGE
+            operatemasterswitches 4
+            sets[temp].visibility 0
+            sets[].floorshade -41
+            sets[].ceilingshade -41
+            sets[].floorpal 2
+            sets[].ceilingpal 2
+            killit
+        }
+    }
+
+    // used for the Jungle base's door forcefield
+    ifspritepal 12
+    {
+        ife DOOROP_X_1 1
+        {
+            sound FFIELD_OFF
+            killit
+        }
+    }
+
+    ifspritepal 13
+    {
+        cstator 32768
+        ife sprite[].sectnum player[].cursectnum
+        {
+            ife DOOROP_X_1 13
+                set DOOROP_X_1 14
+
+            ife DOOROP_X_1 14
+            {
+                quake 21
+                palfrom 9 63 63 32
+                killit
+            }
+        }
+    }
+
+    ifspritepal 14
+    {
+        cstator 32768
+        ife DOOROP_X_1 14
+        {
+            ife sprite[].sectnum player[].cursectnum
+            {
+                quake 41
+                operatemasterswitches 7
+                palfrom 45 63 63 32
+                set DOOROP_X_1 15
+            }
+        }
+        ife DOOROP_X_1 15
+            killit
+    }
+
+    ifspritepal 15
+    {
+        cstator 32768
+        ife DOOROP_X_1 15
+        {
+            ife sprite[].sectnum player[].cursectnum
+            {
+                quake 30
+                operatemasterswitches 8
+                palfrom 35 33 62 31
+                set DOOROP_X_1 16
+            }
+        }
+        ife DOOROP_X_1 16
+            killit
+    }
+
+    ifspritepal 16
+    {
+        cstator 32768
+        ife FFIELDTOLERANCE_LV 9
+        {
+            ifpdistl 1912
+            {
+                globalsound EXPLOSION_HUGE
+                operatemasterswitches 17
+                palfrom 53 64 62 51
+                quake 47
+                killit
+            }
+        }
+    }
+
+    ifspritepal 17
+    {
+        ifcount 62
+        {
+            globalsound Z_GODDAMNIT
+            killit
+        }
+    }
+
+enda
+
+action MYXTERSTAND 0 0 5 0 0
+
+useractor notenemy MYXTER 0
+    action MYXTERSTAND
+    fall
+    ifp pfacing ifpdistl 1280
+    {
+        set player_use 0
+        ifhitspace
+        {
+            ifcount 32
+            {
+                stopsound PLYR_SEARCH
+                stopsound PLYR_SEARCH2
+                move 0
+                cactor MYXTERTALK
+            }
+        }
+    }
+enda
+
+action MYXTERTALKSTAND 0 0 1 0 0
+useractor notenemy MYXTERTALK 0
+    action MYXTERTALKSTAND
+
+    ifspritepal 0
+        sound GUIDING_FOREST_FOSSA
+
+    resetcount
+    cactor MYXTER
+enda
+
+defstate shieldseverelydamaged
+    operateactivators 9 0
+    set FFIELDTOLERANCE_LV 26
+    globalsound BIGBANG
+
+    shoot SPARK
+    shoot SPARK
+    shoot SPARK
+    shoot SPARK
+
+    globalsound SHORT_CIRCUIT
+    palfrom 37 6 26 46
+    quote 8101
+    quake 14
+    killit
+ends
+
+
+defstate checkshieldhitstate
+    ifdead
+        state shieldseverelydamaged
+ends
+
+useractor notenemy SHIELDFIELDBARRIER BARRIER_PWR_LV
+    ifspritepal 0
+    {
+        ifstrength BARRIERPWRLV02
+        {
+            ife FFIELDRESISTANCE 100
+            {
+                addstrength 20
+                // if actor[].extra < VALUE, ascending order
+                ifstrength BARRIERPWRLV26 set FFIELDTOLERANCE_LV 24
+                else ifstrength BARRIERPWRLV25 set FFIELDTOLERANCE_LV 23
+                else ifstrength BARRIERPWRLV24 set FFIELDTOLERANCE_LV 22
+                else ifstrength BARRIERPWRLV23 set FFIELDTOLERANCE_LV 21
+                else ifstrength BARRIERPWRLV22 set FFIELDTOLERANCE_LV 20
+                else ifstrength BARRIERPWRLV21 set FFIELDTOLERANCE_LV 19
+                else ifstrength BARRIERPWRLV20 set FFIELDTOLERANCE_LV 18
+                else ifstrength BARRIERPWRLV19 set FFIELDTOLERANCE_LV 17
+                else ifstrength BARRIERPWRLV18 set FFIELDTOLERANCE_LV 16
+                else ifstrength BARRIERPWRLV17 set FFIELDTOLERANCE_LV 15
+                else ifstrength BARRIERPWRLV16 set FFIELDTOLERANCE_LV 14
+                else ifstrength BARRIERPWRLV15 set FFIELDTOLERANCE_LV 13
+                else ifstrength BARRIERPWRLV14 set FFIELDTOLERANCE_LV 12
+                else ifstrength BARRIERPWRLV13 set FFIELDTOLERANCE_LV 11
+                else ifstrength BARRIERPWRLV12 set FFIELDTOLERANCE_LV 10
+                else ifstrength BARRIERPWRLV11 set FFIELDTOLERANCE_LV 9
+                else ifstrength BARRIERPWRLV10 set FFIELDTOLERANCE_LV 8
+                else ifstrength BARRIERPWRLV09 set FFIELDTOLERANCE_LV 7
+                else ifstrength BARRIERPWRLV08 set FFIELDTOLERANCE_LV 6
+                else ifstrength BARRIERPWRLV07 set FFIELDTOLERANCE_LV 5
+                else ifstrength BARRIERPWRLV06 set FFIELDTOLERANCE_LV 4
+                else ifstrength BARRIERPWRLV05 set FFIELDTOLERANCE_LV 3
+                else ifstrength BARRIERPWRLV04 set FFIELDTOLERANCE_LV 2
+                else ifstrength BARRIERPWRLV03 set FFIELDTOLERANCE_LV 1
+                else ifstrength BARRIERPWRLV02 set FFIELDTOLERANCE_LV 0
+
+                set FFIELDRESISTANCE 0
+            }
+        }
+        ifhitweapon
+        {
+            sound ENERGY_FLD_DISCHARGE
+            ifstrength BARRIERPWRLV26 { ife FFIELDTOLERANCE_LV 24 set FFIELDTOLERANCE_LV 25 }
+            else ifstrength BARRIERPWRLV25 { ife FFIELDTOLERANCE_LV 23 set FFIELDTOLERANCE_LV 24 }
+            else ifstrength BARRIERPWRLV24 { ife FFIELDTOLERANCE_LV 22 set FFIELDTOLERANCE_LV 23 }
+            else ifstrength BARRIERPWRLV23 { ife FFIELDTOLERANCE_LV 21 set FFIELDTOLERANCE_LV 22 }
+            else ifstrength BARRIERPWRLV22 { ife FFIELDTOLERANCE_LV 20 set FFIELDTOLERANCE_LV 21 }
+            else ifstrength BARRIERPWRLV21 { ife FFIELDTOLERANCE_LV 19 set FFIELDTOLERANCE_LV 20 }
+            else ifstrength BARRIERPWRLV20 { ife FFIELDTOLERANCE_LV 18 set FFIELDTOLERANCE_LV 19 }
+            else ifstrength BARRIERPWRLV19 { ife FFIELDTOLERANCE_LV 17 set FFIELDTOLERANCE_LV 18 }
+            else ifstrength BARRIERPWRLV18 { ife FFIELDTOLERANCE_LV 16 set FFIELDTOLERANCE_LV 17 }
+            else ifstrength BARRIERPWRLV17 { ife FFIELDTOLERANCE_LV 15 set FFIELDTOLERANCE_LV 16 }
+            else ifstrength BARRIERPWRLV16 { ife FFIELDTOLERANCE_LV 14 set FFIELDTOLERANCE_LV 15 }
+            else ifstrength BARRIERPWRLV15 { ife FFIELDTOLERANCE_LV 13 set FFIELDTOLERANCE_LV 14 }
+            else ifstrength BARRIERPWRLV14 { ife FFIELDTOLERANCE_LV 12 set FFIELDTOLERANCE_LV 13 }
+            else ifstrength BARRIERPWRLV13 { ife FFIELDTOLERANCE_LV 11 set FFIELDTOLERANCE_LV 12 }
+            else ifstrength BARRIERPWRLV12 { ife FFIELDTOLERANCE_LV 10 set FFIELDTOLERANCE_LV 11 }
+            else ifstrength BARRIERPWRLV11 { ife FFIELDTOLERANCE_LV 9 set FFIELDTOLERANCE_LV 10 }
+            else ifstrength BARRIERPWRLV10 { ife FFIELDTOLERANCE_LV 8 set FFIELDTOLERANCE_LV 9 }
+            else ifstrength BARRIERPWRLV09 { ife FFIELDTOLERANCE_LV 7 set FFIELDTOLERANCE_LV 8 }
+            else ifstrength BARRIERPWRLV08 { ife FFIELDTOLERANCE_LV 6 set FFIELDTOLERANCE_LV 7 }
+            else ifstrength BARRIERPWRLV07 { ife FFIELDTOLERANCE_LV 5 set FFIELDTOLERANCE_LV 6 }
+            else ifstrength BARRIERPWRLV06 { ife FFIELDTOLERANCE_LV 4 set FFIELDTOLERANCE_LV 5 }
+            else ifstrength BARRIERPWRLV05 { ife FFIELDTOLERANCE_LV 3 set FFIELDTOLERANCE_LV 4 }
+            else ifstrength BARRIERPWRLV04 { ife FFIELDTOLERANCE_LV 2 set FFIELDTOLERANCE_LV 3 }
+            else ifstrength BARRIERPWRLV03 { ife FFIELDTOLERANCE_LV 1 set FFIELDTOLERANCE_LV 2 }
+            else ifstrength BARRIERPWRLV02 { ife FFIELDTOLERANCE_LV 0 set FFIELDTOLERANCE_LV 1 }
+
+            state checkshieldhitstate
+        }
+    }
+    ifspritepal 2
+    {
+        cstator 257
+        spawn REGENTIMEREFF11
+        spritepal 0
+    }
+
+enda
+
+useractor notenemy REGENTIMEREFF11
+    cstat 32768
+    ife FFIELDTOLERANCE_LV 26
+        killit
+
+    ifcount 19
+    {
+        set FFIELDRESISTANCE 100
+        resetcount
+    }
+enda
+
+useractor notenemy ENERGYFIELD2_OFF B10PROT_SHIELD_STR
+
+    seta[].shade -1
+    cstator 256
+    ifspritepal 0
+    {
+        ife FFIELDTOLERANCE_LV 26
+            killit
+    }
+
+    ifstrength B10PROT_AUTOREGEN
+        addstrength 699
+
+    ifpdistl 500
+    {
+        ifp palive
+        {
+            resetcount
+            cactor ENERGYFIELD2_ON3
+        }
+    }
+
+    ifhitweapon
+    {
+        sound ENERGY_FLD_DISCHARGE
+        resetcount
+        cactor ENERGYFIELD2_ON3
+    }
+
+enda
+
+useractor notenemy ENERGYFIELD2_ON1 B10PROT_SHIELD_STR
+
+    seta[].shade -20
+    cstat 0
+    cstator 786
+    ifspritepal 0
+    {
+        ife FFIELDTOLERANCE_LV 26
+            killit
+    }
+
+    ifstrength B10PROT_AUTOREGEN
+        addstrength 699
+
+    ifcount 27
+        cactor ENERGYFIELD2_OFF
+
+    ifpdistl 500
+    {
+        resetcount
+        cactor ENERGYFIELD2_ON3
+    }
+
+    ifhitweapon
+    {
+        sound ENERGY_FLD_DISCHARGE
+        resetcount
+        cactor ENERGYFIELD2_ON3
+    }
+
+enda
+
+useractor notenemy ENERGYFIELD2_ON2 B10PROT_SHIELD_STR
+
+    seta[].shade -60
+    cstat 0
+    cstator 274
+    ifspritepal 0
+    {
+        ife FFIELDTOLERANCE_LV 26
+            killit
+    }
+
+    ifstrength B10PROT_AUTOREGEN
+        addstrength 699
+
+    ifcount 18
+        cactor ENERGYFIELD2_ON1
+
+    ifpdistl 500
+    {
+        resetcount
+        cactor ENERGYFIELD2_ON3
+    }
+
+    ifhitweapon
+    {
+         sound ENERGY_FLD_DISCHARGE
+         resetcount
+         cactor ENERGYFIELD2_ON3
+    }
+
+enda
+
+useractor notenemy ENERGYFIELD2_ON3 B10PROT_SHIELD_STR
+
+    seta[].shade -100
+    cstat 0
+    cstator 272
+    ifspritepal 0
+    {
+        ife FFIELDTOLERANCE_LV 26
+            killit
+    }
+
+    ifstrength B10PROT_AUTOREGEN
+        addstrength 699
+
+    ifcount 9
+        cactor ENERGYFIELD2_ON2
+
+    ifpdistl 500
+    {
+        sound ENERGY_FLD_DISCHARGE
+        resetcount
+        cactor ENERGYFIELD2_ON3
+    }
+
+    ifhitweapon
+    {
+         sound ENERGY_FLD_DISCHARGE
+         resetcount
+         cactor ENERGYFIELD2_ON3
+    }
+
+enda
+
+useractor notenemy SHIELDTOLERANCE_METER
+    ifspritepal 0
+    {
+        switch FFIELDTOLERANCE_LV
+            case 0 sizeat 19 4 break
+            case 1 sizeat 19 8 break
+            case 2 sizeat 19 12 break
+            case 3 sizeat 19 16 break
+            case 4 sizeat 19 20 break
+            case 5 sizeat 19 24 break
+            case 6 sizeat 19 28 break
+            case 7 sizeat 19 32 break
+            case 8 sizeat 19 36 break
+            case 9 sizeat 19 40 break
+            case 10 sizeat 19 44 break
+            case 11 sizeat 19 48 break
+            case 12 sizeat 19 52 break
+            case 13 sizeat 19 56 break
+            case 14 sizeat 19 60 break
+            case 15 sizeat 19 64 break
+            case 16 sizeat 19 68 break
+            case 17 sizeat 19 72 break
+            case 18 sizeat 19 76 break
+            case 19 sizeat 19 80 break
+            case 20 sizeat 19 84 break
+            case 21 sizeat 19 88 break
+            case 22 sizeat 19 92 break
+            case 23 sizeat 19 96 break
+            case 24 sizeat 19 100 break
+            case 25 sizeat 19 104 break
+            case 26 killit break
+        endswitch
+    }
+enda
+
+useractor notenemy DOORSENSOR_TRIGGERER
+
+    cstator 32768
+    ifspritepal 0
+    {
+        ifcount 1
+        {
+            hitradius 124 1 1 1 1
+            resetcount
+        }
+    }
+
+    ifspritepal 2
+    {
+        ifcount 1
+        {
+            hitradius 246 1 1 1 1
+            resetcount
+        }
+    }
+
+    // hitspace to open SOME doors
+    ifspritepal 4
+    {
+        ife sprite[].sectnum player[].cursectnum
+         ifcount 43
+          ifcansee
+           ifpdistl 999
+        {
+            set player_use 0
+            ifhitspace
+            {
+                ifp pfacing
+                {
+                    operateactivators 17104 0
+                    resetcount
+                }
+            }
+        }
+    }
+
+    ifspritepal 5
+    {
+        ife sprite[].sectnum player[].cursectnum
+         ifcount 43
+          ifcansee
+           ifpdistl 899
+        {
+            set player_use 0
+            ifhitspace
+            {
+                ifp pfacing
+                {
+                    operateactivators 17107 0
+                    resetcount
+                }
+            }
+        }
+    }
+enda
+
+
+useractor notenemy DOORSENSOREFF B10PROT_SHIELD_STR
+    cstator 33024
+    ifstrength B10PROT_AUTOREGEN
+        addstrength 699
+
+    ifcount 112
+    {
+        switch sprite[].pal
+            case 2 operateactivators 22 0 break
+            case 3 operateactivators 25 0 break
+            case 4 operateactivators 28 0 break
+            case 5 operateactivators 31 0 break
+            case 6 operateactivators 2211 0 break
+            case 7 operateactivators 17104 0 break
+            case 8 operateactivators 17107 0 break
+        endswitch
+        resetcount
+    }
+
+    ifhitweapon
+        resetcount
+enda
+
+
+useractor notenemy PSEUDOSWITCHX_OFF
+    ifcansee
+    {
+        set player_use 0
+        ifhitspace
+          ifpdistl 862
+        {
+            ifspritepal 0
+            {
+                stopsound PLYR_SEARCH
+                stopsound PLYR_SEARCH2
+                ifcount 27
+                {
+                    sound SWITCH_ON
+                    operateactivators 28 0
+                    resetcount
+                    cactor PSEUDOSWITCHX_ON
+                }
+            }
+
+            ifspritepal 13
+            {
+                quote 8100
+                resetcount
+            }
+        }
+    }
+
+    ifspritepal 13
+      ife POWERINGSOMETHINGX 2
+        spritepal 0
+enda
+
+
+useractor notenemy PSEUDOSWITCHX_ON
+    ifcansee
+    {
+        set player_use 0
+        ifhitspace
+         ifpdistl 862
+          ifspritepal 0
+        {
+            stopsound PLYR_SEARCH
+            stopsound PLYR_SEARCH2
+            ifcount 27
+            {
+                sound SWITCH_ON
+                operateactivators 28 0
+                resetcount
+                cactor PSEUDOSWITCHX_OFF
+            }
+        }
+    }
+enda
+
+defstate temp_copypasta_relocation01
+    addphealth -3
+    ifcount 8
+      ifp palive
+    {
+        palfrom 45 10 10 62
+        globalsound ELECTROCUTE
+        lockplayer 7
+        resetcount
+    }
+ends
+
+useractor notenemy HURTEFFECTOR_
+    cstator 32768
+    ifspawnedby RESPAWN
+        spritepal 4
+
+    // this is the timer core (couint 60)
+    ifspritepal 0
+    {
+        ife EX_BEAM 0
+        {
+            operateactivators 101 0
+            set EX_BEAM 1
+            resetcount
+        }
+
+        ifcount 60
+        {
+            switch EX_BEAM
+                case 1
+                    operateactivators 101 0
+                    operateactivators 102 0
+                    set EX_BEAM 2
+                    break
+                case 2
+                    operateactivators 102 0
+                    operateactivators 103 0
+                    set EX_BEAM 3
+                    break
+                case 3
+                    operateactivators 103 0
+                    operateactivators 104 0
+                    set EX_BEAM 4
+                    break
+                case 4
+                    operateactivators 104 0
+                    operateactivators 105 0
+                    set EX_BEAM 5
+                    break
+                case 5
+                    operateactivators 105 0
+                    operateactivators 101 0
+                    set EX_BEAM 1
+                    break
+            endswitch
+            resetcount
+        }
+    }
+
+    // this is the faster timer core (count 40)
+    ifspritepal 2
+    {
+        ife EX_BEAMF 0
+        {
+            operateactivators 106 0
+            set EX_BEAMF 1
+            resetcount
+        }
+
+        ifcount 40
+        {
+            switch EX_BEAMF
+                case 1
+                    operateactivators 106 0
+                    operateactivators 107 0
+                    set EX_BEAMF 2
+                    break
+                case 2
+                    operateactivators 107 0
+                    operateactivators 108 0
+                    set EX_BEAMF 3
+                    break
+                case 3
+                    operateactivators 108 0
+                    operateactivators 109 0
+                    set EX_BEAMF 4
+                    break
+                case 4
+                    operateactivators 109 0
+                    operateactivators 106 0
+                    set EX_BEAMF 1
+                    break
+            endswitch
+            resetcount
+        }
+    }
+
+    // even faster timer core (count 20)
+    ifspritepal 3
+    {
+        ife EX_BEAMOPF 0
+        {
+            operateactivators 110 0
+            operateactivators 111 0
+            operateactivators 112 0
+            operateactivators 113 0
+            operateactivators 114 0
+            operateactivators 115 0
+            operateactivators 116 0
+            operateactivators 117 0
+            operateactivators 118 0
+
+            set EX_BEAMOPF01 1
+            set EX_BEAMOPF02 1
+            set EX_BEAMOPF03 1
+            set EX_BEAMOPF04 1
+            set EX_BEAMOPF05 1
+            set EX_BEAMOPF06 1
+            set EX_BEAMOPF07 1
+            set EX_BEAMOPF08 1
+            set EX_BEAMOPF09 1
+            set EX_BEAMOPF10 1
+
+            set EX_BEAMOPF 1
+        }
+
+        ifcount 20
+        {
+            // always set all to 1, then override with 0 where appropriate
+            set EX_BEAMOPF01 1
+            set EX_BEAMOPF02 1
+            set EX_BEAMOPF03 1
+            set EX_BEAMOPF04 1
+            set EX_BEAMOPF05 1
+            set EX_BEAMOPF06 1
+            set EX_BEAMOPF07 1
+            set EX_BEAMOPF08 1
+            set EX_BEAMOPF09 1
+            set EX_BEAMOPF10 1
+
+            switch EX_BEAMOPF
+                case 1
+                    operateactivators 119 0
+                    set EX_BEAMOPF 2
+                    break
+                case 2
+                    operateactivators 110 0
+                    set EX_BEAMOPF01 0
+                    set EX_BEAMOPF 3
+                    break
+                case 3
+                    operateactivators 111 0
+                    set EX_BEAMOPF01 0
+                    set EX_BEAMOPF02 0
+                    set EX_BEAMOPF 4
+                    break
+                case 4
+                    operateactivators 110 0
+                    operateactivators 112 0
+                    set EX_BEAMOPF02 0
+                    set EX_BEAMOPF03 0
+                    set EX_BEAMOPF 5
+                    break
+                case 5
+                    operateactivators 111 0
+                    operateactivators 113 0
+                    set EX_BEAMOPF03 0
+                    set EX_BEAMOPF04 0
+                    set EX_BEAMOPF 6
+                    break
+                case 6
+                    operateactivators 112 0
+                    operateactivators 114 0
+                    set EX_BEAMOPF04 0
+                    set EX_BEAMOPF05 0
+                    set EX_BEAMOPF 7
+                    break
+                case 7
+                    operateactivators 113 0
+                    operateactivators 115 0
+                    set EX_BEAMOPF05 0
+                    set EX_BEAMOPF06 0
+                    set EX_BEAMOPF 8
+                    break
+                case 8
+                    operateactivators 114 0
+                    operateactivators 116 0
+                    set EX_BEAMOPF06 0
+                    set EX_BEAMOPF07 0
+                    set EX_BEAMOPF 9
+                    break
+                case 9
+                    operateactivators 115 0
+                    operateactivators 117 0
+                    set EX_BEAMOPF07 0
+                    set EX_BEAMOPF08 0
+                    set EX_BEAMOPF 10
+                    break
+                case 10
+                    operateactivators 116 0
+                    operateactivators 118 0
+                    set EX_BEAMOPF08 0
+                    set EX_BEAMOPF09 0
+                    set EX_BEAMOPF 11
+                    break
+                case 11
+                    operateactivators 117 0
+                    operateactivators 119 0
+                    set EX_BEAMOPF09 0
+                    set EX_BEAMOPF10 0
+                    set EX_BEAMOPF 12
+                    break
+                case 12
+                    operateactivators 118 0
+                    set EX_BEAMOPF10 0
+                    set EX_BEAMOPF 1
+                    break
+            endswitch
+            resetcount
+        }
+    }
+
+    ifspritepal 4
+    {
+        ife ACCUNLOCKED 2
+        {
+            operateactivators 60 0
+            killit
+        }
+
+        ifcount 27
+         ifcansee
+          ifpdistl 879
+        {
+            set player_use 0
+            ifhitspace
+            {
+                globalsound LOCKED_HITECH1
+                lockplayer 15
+                quote 8102
+                resetcount
+            }
+        }
+    }
+
+    // access blocking effector
+    ife sprite[].sectnum player[].cursectnum
+    {
+        switch sprite[THISACTOR].pal
+            case 10 ife EX_BEAM 1 { state temp_copypasta_relocation01 } break
+            case 11 ife EX_BEAM 2 { state temp_copypasta_relocation01 } break
+            case 12 ife EX_BEAM 3 { state temp_copypasta_relocation01 } break
+            case 13 ife EX_BEAM 4 { state temp_copypasta_relocation01 } break
+            case 14 ife EX_BEAM 5 { state temp_copypasta_relocation01 } break
+            case 15 ife EX_BEAMF 1 { state temp_copypasta_relocation01 } break
+            case 16 ife EX_BEAMF 2 { state temp_copypasta_relocation01 } break
+            case 17 ife EX_BEAMF 3 { state temp_copypasta_relocation01 } break
+            case 18
+                ife EX_BEAM 0 state temp_copypasta_relocation01
+                ife EX_BEAMF 4 state temp_copypasta_relocation01
+                break
+            case 19 ife EX_BEAMOPF01 1 { state temp_copypasta_relocation01 } break
+            case 20 ife EX_BEAMOPF02 1 { state temp_copypasta_relocation01 } break
+            case 21 ife EX_BEAMOPF03 1 { state temp_copypasta_relocation01 } break
+            case 22 ife EX_BEAMOPF04 1 { state temp_copypasta_relocation01 } break
+            case 23 ife EX_BEAMOPF05 1 { state temp_copypasta_relocation01 } break
+            case 24 ife EX_BEAMOPF06 1 { state temp_copypasta_relocation01 } break
+            case 25 ife EX_BEAMOPF07 1 { state temp_copypasta_relocation01 } break
+            case 26 ife EX_BEAMOPF08 1 { state temp_copypasta_relocation01 } break
+            case 27 ife EX_BEAMOPF09 1 { state temp_copypasta_relocation01 } break
+            case 28 ife EX_BEAMOPF10 1 { state temp_copypasta_relocation01 } break
+        endswitch
+    }
+
+    // access blocking effector 2
+    ifspritepal 29
+    {
+        ife ACCUNLOCKED 1
+        {
+            operatemasterswitches 1815
+            killit
+        }
+
+        ifcount 27
+         ifcansee
+          ifpdistl 879
+        {
+            set player_use 0
+            ifhitspace
+            {
+                globalsound LOCKED_HITECH1
+                lockplayer 15
+                quote 8102
+                resetcount
+            }
+        }
+    }
+
+enda
+
+useractor notenemy XHX_ENERGYBEAMOFF
+    switch sprite[].pal
+        case 0 ife EX_BEAM 1 { ifcansee { globalsound WENERGYBEAMFIRES } cactor XHX_ENERGYBEAM } break
+        case 2 ife EX_BEAM 2 { ifcansee { globalsound WENERGYBEAMFIRES } cactor XHX_ENERGYBEAM } break
+        case 3 ife EX_BEAM 3 { ifcansee { globalsound WENERGYBEAMFIRES } cactor XHX_ENERGYBEAM } break
+        case 5 ife EX_BEAM 4 { ifcansee { globalsound WENERGYBEAMFIRES } cactor XHX_ENERGYBEAM } break
+        case 6 ife EX_BEAM 5 { ifcansee { globalsound WENERGYBEAMFIRES } cactor XHX_ENERGYBEAM } break
+        case 7 ife EX_BEAMF 1 { ifcansee { globalsound WENERGYBEAMFIRES } cactor XHX_ENERGYBEAM } break
+        case 8 ife EX_BEAMF 2 { ifcansee { globalsound WENERGYBEAMFIRES } cactor XHX_ENERGYBEAM } break
+        case 9 ife EX_BEAMF 3 { ifcansee { globalsound WENERGYBEAMFIRES } cactor XHX_ENERGYBEAM } break
+        case 10 ife EX_BEAMF 4 { ifcansee { globalsound WENERGYBEAMFIRES } cactor XHX_ENERGYBEAM } break
+        case 11 ife EX_BEAMOPF01 1 { ifcansee { globalsound WENERGYBEAMFIRES } cactor XHX_ENERGYBEAM } break
+        case 12 ife EX_BEAMOPF02 1 { ifcansee { globalsound WENERGYBEAMFIRES } cactor XHX_ENERGYBEAM } break
+        case 13 ife EX_BEAMOPF03 1 { ifcansee { globalsound WENERGYBEAMFIRES } cactor XHX_ENERGYBEAM } break
+        case 14 ife EX_BEAMOPF04 1 { ifcansee { globalsound WENERGYBEAMFIRES } cactor XHX_ENERGYBEAM } break
+        case 15 ife EX_BEAMOPF05 1 { ifcansee { globalsound WENERGYBEAMFIRES } cactor XHX_ENERGYBEAM } break
+        case 16 ife EX_BEAMOPF06 1 { ifcansee { globalsound WENERGYBEAMFIRES } cactor XHX_ENERGYBEAM } break
+        case 18 ife EX_BEAMOPF07 1 { ifcansee { globalsound WENERGYBEAMFIRES } cactor XHX_ENERGYBEAM } break
+        case 19 ife EX_BEAMOPF08 1 { ifcansee { globalsound WENERGYBEAMFIRES } cactor XHX_ENERGYBEAM } break
+        case 20 ife EX_BEAMOPF09 1 { ifcansee { globalsound WENERGYBEAMFIRES } cactor XHX_ENERGYBEAM } break
+        case 21 ife EX_BEAMOPF10 1 { ifcansee { globalsound WENERGYBEAMFIRES } cactor XHX_ENERGYBEAM } break
+    endswitch
+enda
+
+useractor notenemy XHX_ENERGYBEAM
+    switch sprite[].pal
+    case 0 ife EX_BEAM 2 { cactor XHX_ENERGYBEAMOFF } break
+    case 2 ife EX_BEAM 3 { cactor XHX_ENERGYBEAMOFF } break
+    case 3 ife EX_BEAM 4 { cactor XHX_ENERGYBEAMOFF } break
+    case 5 ife EX_BEAM 5 { cactor XHX_ENERGYBEAMOFF } break
+    case 6 ife EX_BEAM 1 { cactor XHX_ENERGYBEAMOFF } break
+    case 7 ife EX_BEAMF 2 { cactor XHX_ENERGYBEAMOFF } break
+    case 8 ife EX_BEAMF 3 { cactor XHX_ENERGYBEAMOFF } break
+    case 9 ife EX_BEAMF 4 { cactor XHX_ENERGYBEAMOFF } break
+    case 10 ife EX_BEAMF 1 { cactor XHX_ENERGYBEAMOFF } break
+    case 11 ife EX_BEAMOPF01 0 { cactor XHX_ENERGYBEAMOFF } break
+    case 12 ife EX_BEAMOPF02 0 { cactor XHX_ENERGYBEAMOFF } break
+    case 13 ife EX_BEAMOPF03 0 { cactor XHX_ENERGYBEAMOFF } break
+    case 14 ife EX_BEAMOPF04 0 { cactor XHX_ENERGYBEAMOFF } break
+    case 15 ife EX_BEAMOPF05 0 { cactor XHX_ENERGYBEAMOFF } break
+    case 16 ife EX_BEAMOPF06 0 { cactor XHX_ENERGYBEAMOFF } break
+    case 18 ife EX_BEAMOPF07 0 { cactor XHX_ENERGYBEAMOFF } break
+    case 19 ife EX_BEAMOPF08 0 { cactor XHX_ENERGYBEAMOFF } break
+    case 20 ife EX_BEAMOPF09 0 { cactor XHX_ENERGYBEAMOFF } break
+    case 21 ife EX_BEAMOPF10 0 { cactor XHX_ENERGYBEAMOFF } break
+    endswitch
+enda
+
+
+useractor notenemy JB_REACTOR_CORE
+    ifspritepal 0
+    {
+        ife JBGENEDEAD 0
+        {
+            resetcount
+            ifpdistl 1601
+            {
+                ifp palive
+                {
+                    palfrom 22 33 22 55
+                    wackplayer
+                    globalsound ELECTROCUTE
+                    addphealth -1
+                }
+            }
+        }
+        else ife JBGENEDEAD 1
+        {
+            ifcount 28
+            {
+                operaterespawns 1965
+                operatemasterswitches 1965
+                operateactivators 1965 0
+                spritepal 16
+            }
+        }
+    }
+enda
+
+
+useractor notenemy LITECHANGEREFFECTOR
+    cstator 32768
+    ifspritepal 10
+    {
+        ife JBGENEDEAD 1
+        {
+            sets[].ceilingpal 10
+            killit
+        }
+    }
+enda
+
+useractor notenemy JB_CORE_ARC
+    // color flash sequence
+    switch sprite[].pal
+    case 0
+        // init
+        ife JBGENEDEAD 1
+        {
+            resetcount
+            spritepal 1
+        }
+        break
+    case 1 ifcount 5 { spritepal 3 } break
+    case 3 ifcount 9 { spritepal 6 } break
+    case 6 ifcount 12 { spritepal 8 } break
+    case 8 ifcount 17 { spritepal 5 } break
+    case 5 ifcount 19 { spritepal 16 } break
+    case 16
+        ifcount 21
+        {
+            cstator 514
+            spritepal 9
+        }
+        break
+    case 9 ifcount 24 { spritepal 4 } break
+    case 4 ifcount 26 { spritepal 2 } break
+    case 2 ifcount 33 { spritepal 10 } break
+    case 10
+        ifcount 39
+        {
+            sound THUD
+            killit
+        }
+        break
+    endswitch
+enda
+
+useractor notenemy JB_INNER_CORE
+    seta[].blend 255
+    ifspawnedby RESPAWN
+    {
+        cstator 32768
+        ifcount 46
+        {
+            set ACCUNLOCKED 0
+            set JBGENEDEAD 1
+            globalsound CLAXON_ALARM
+            spawn 3806
+            quake 7
+            killit
+        }
+    }
+
+    ifspritepal 0
+    {
+        ife JBGENEDEAD 1
+        {
+            resetcount
+            spritepal 2
+        }
+    }
+
+    ifspritepal 2
+    {
+        ifcount 38
+        {
+            globalsound BIGBANG
+            killit
+        }
+    }
+
+    ifspritepal 3
+    {
+        ife JBGENEDEAD 1
+        {
+            resetcount
+            spritepal 24
+        }
+    }
+
+    ifspritepal 24
+    {
+        ifcount 42
+        {
+            globalsound SHORT_CIRCUIT
+            palfrom 44 13 1 63
+            quake 7
+            killit
+        }
+    }
+
+enda
+
+useractor notenemy JB_CORELITEEFF
+    ifspritepal 3
+    {
+        ife JBGENEDEAD 1
+        killit
+    }
+enda
+
+useractor notenemy JB_INNER_LITES
+    ifspritepal 21
+      ife JBGENEDEAD 1
+        spritepal 10
+enda
+
+useractor notenemy SPECIALSWITCHXOFF
+
+    ifspritepal 4
+        cstator 32769
+
+    ifspritepal 6
+    {
+        ifcount 36
+        {
+            quote 8104
+            set POWERINGSOMETHINGX 2
+            killit
+        }
+    }
+
+    ifspritepal 4
+    {
+        ifp pfacing ifpdistl 1024
+        {
+            resetcount
+            lockplayer 64
+            operatemasterswitches 31862
+            spritepal 6
+        }
+    }
+
+enda
+
+
+useractor notenemy SPECIALSWITCHXON
+
+    ifg ally_mag 0
+      ifl ally_mag 6 // 1 to 5
+    {
+        ife GIVINGANItempAPER 1
+        {
+            add INTERNALCOUNT_2 1
+            ifg INTERNALCOUNT_2 30
+            {
+                sound RED_COMPBEEP
+                set INTERNALCOUNT_2 0
+            }
+        }
+    }
+
+    switch ally_mag
+        case 0
+            add INTERNALCOUNT 1
+            spritepal 13
+            ifpdistl 1536
+             ifp pfacing
+              ifp palive
+            {
+                set player_use 0
+                ifhitspace
+                 ifg INTERNALCOUNT 20
+                {
+                    set INTERNALCOUNT_2 0
+                    set INTERNALCOUNT 0
+                    globalsound SW_TECHK_UNLOCK
+                    set ally_mag 1
+                }
+            }
+            break
+        case 1
+            add INTERNALCOUNT 1
+            spritepal 0
+            action ZERO
+            ifpdistl 1536
+              ifp pfacing
+                ifp palive
+            {
+                set player_use 0
+                ifhitspace
+                  ifg INTERNALCOUNT 20
+                {
+                    ifg INTERNALCOUNT 115
+                      ifl INTERNALCOUNT 145
+                    {
+                        globalsound SWITCH_ON
+                        set ally_mag 2
+                    }
+                    else
+                    {
+                        globalsound SWITCH_ON
+                        globalsound LOCKED_HITECH1
+                        set ally_mag 0
+                    }
+                    set INTERNALCOUNT 0
+                }
+            }
+            break
+        case 2
+            add INTERNALCOUNT 1
+            spritepal 0
+            action MINUSONE
+            ifpdistl 1536
+              ifp pfacing
+                ifp palive
+            {
+                set player_use 0
+                ifhitspace
+                ifg INTERNALCOUNT 20
+                {
+                    ifg INTERNALCOUNT 55
+                      ifl INTERNALCOUNT 85
+                    {
+                        globalsound SWITCH_ON
+                        set ally_mag 3
+                    }
+                    else
+                    {
+                        globalsound SWITCH_ON
+                        globalsound LOCKED_HITECH1
+                        set ally_mag 0
+                    }
+                    set INTERNALCOUNT 0
+                }
+            }
+            break
+        case 3
+            add INTERNALCOUNT 1
+            spritepal 0
+            action ZERO
+            ifpdistl 1536
+              ifp pfacing
+                ifp palive
+            {
+                set player_use 0
+                ifhitspace
+                  ifg INTERNALCOUNT 20
+                {
+                    ifg INTERNALCOUNT 55
+                      ifl INTERNALCOUNT 85
+                    {
+                        globalsound SWITCH_ON
+                        set INTERNALCOUNT 0
+                        set ally_mag 4
+                    }
+                    else
+                    {
+                        globalsound SWITCH_ON
+                        globalsound LOCKED_HITECH1
+                        set ally_mag 0
+                    }
+                    set INTERNALCOUNT 0
+                }
+            }
+            break
+        case 4
+            add INTERNALCOUNT 1
+            spritepal 0
+            action MINUSONE
+            ifpdistl 1536
+              ifp pfacing
+                ifp palive
+            {
+                set player_use 0
+                ifhitspace
+                  ifg INTERNALCOUNT 20
+                {
+                    ifg INTERNALCOUNT 145
+                      ifl INTERNALCOUNT 175
+                    {
+                        globalsound SWITCH_ON
+                        set ally_mag 5
+                    }
+                    else
+                    {
+                        globalsound SWITCH_ON
+                        globalsound LOCKED_HITECH1
+                        set ally_mag 0
+                    }
+                    set INTERNALCOUNT 0
+                }
+            }
+            break
+        case 5
+            add INTERNALCOUNT 1
+            spritepal 0
+            action ZERO
+            ifpdistl 1536
+              ifp pfacing
+                ifp palive
+            {
+                set player_use 0
+                ifhitspace
+                  ifg INTERNALCOUNT 20
+                {
+                    ifg INTERNALCOUNT 85
+                      ifl INTERNALCOUNT 115
+                    {
+                        globalsound SWITCH_ON
+                        globalsound MONITOR_ACTIVE
+                        quote 8103
+                        set ACCUNLOCKED 1
+                        set ally_mag 6
+                    }
+                    else
+                    {
+                        globalsound SWITCH_ON
+                        globalsound LOCKED_HITECH1
+                        set ally_mag 0
+                    }
+                }
+            }
+            break
+        case 6
+            spritepal 14
+            action MINUSONE
+            break
+    endswitch
+
+enda
+
+action WOLVERINEPOSITION 0 1 5 1 1
+
+useractor notenemy ANONY_WOLVERINES 0
+    ifaction 0
+        action WOLVERINEPOSITION
+
+    ifpdistl 1260
+      ifhitspace
+    {
+        qputs 330 Remember; the pattern for hitting the switch is (4,2,2,5,3)
+        set MISSIONLINE1 330
+        qputs 331 seconds. If you get it wrong the switch will beep, and you'll
+        set MISSIONLINE2 331
+        qputs 332 need to use it again to reset it.
+        set MISSIONLINE3 332
+        set MISSIONLINE4 0
+        set MISSIONLINE5 0
+        set MISSIONLINE6 0
+        stopsound PLYR_SEARCH
+        stopsound PLYR_SEARCH2
+        resetcount
+
+        ifspritepal 13
+            cactor ANONY_WOLVERINES_SPK
+        move 0
+    }
+enda
+
+useractor notenemy ANONY_WOLVERINES_SPK
+    ifcount 32
+    {
+        ife GIVINGANItempAPER 0
+        {
+            // >>(PUT THE CODE HERE)<<  (the convo cut scene stuff etc)
+            set GIVINGANItempAPER 1
+            cactor ANONY_WOLVERINES
+        }
+        //wtf? I'm not touching this, no idea if the code continues executing after cactor -bdino
+        ife GIVINGANItempAPER 1
+        {
+            sound ANYWOLVSPEECH2
+            cactor ANONY_WOLVERINES
+        }
+    }
+enda
+
+useractor notenemy TEMPOTILES_1
+    ifaction 0
+    {
+        ifspawnedby TEMPOTILES_2OFF
+        {
+            sizeat 64 16
+            cstat 0
+            cstator 17
+            spritepal 3
+        }
+        else ifspritepal 0
+        {
+            sizeat 64 64
+            cstat 0
+            cstator 33
+        }
+        action ZERO
+    }
+
+    switch sprite[].pal
+        // regular spawn
+        case 0
+            ifcount 30
+            {
+                cstator 2
+                spritepal 5
+            }
+            break
+        case 5
+            ifcount 50
+            {
+                cstator 514
+                spritepal 24
+            }
+            break
+        case 24
+            ifcount 65
+                killit
+            break
+        // TEMPOTILES_2OFF variant
+        case 3
+            ifcount 30
+            {
+                cstator 2
+                spritepal 9
+            }
+            break
+        case 9
+            ifcount 50
+            {
+                cstator 514
+                spritepal 25
+            }
+            break
+        case 25
+            ifcount 65
+                killit
+            break
+    endswitch
+enda
+
+defstate tempotiles_shared
+    cstator 32768
+    switch sprite[].pal
+        // spritepal 0, 2, 3 - (6.66 / 3.33 second cycle)
+        case 3 ifcount 200 { resetcount spritepal 0 } break
+        case 0 ifcount 100 { resetcount spritepal 2 } break
+        case 2 spawn TEMPOTILES_1 spritepal 3 break
+        // spritepal 4, 5, 6 - (5.66 / 4.33 second cycle)
+        case 6 ifcount 170 { resetcount spritepal 4 } break
+        case 4 ifcount 130 { resetcount spritepal 5 } break
+        case 5 spawn TEMPOTILES_1 spritepal 6 break
+        // spritepal 7, 8 ,9 - (4.66 / 5.33 second cycle)
+        case 9 ifcount 140 { resetcount spritepal 7 } break
+        case 7 ifcount 160 { resetcount spritepal 8 } break
+        case 8 spawn TEMPOTILES_1 spritepal 9 break
+        // spritepal 10, 11, 12 - (3.66 / 6.33 second cycle)
+        case 12 ifcount 110 { resetcount spritepal 10 } break
+        case 10 ifcount 190 { resetcount spritepal 11 } break
+        case 11 spawn TEMPOTILES_1 spritepal 12 break
+    endswitch
+ends
+
+useractor notenemy TEMPOTILES_1OFF state tempotiles_shared enda
+useractor notenemy TEMPOTILES_2OFF state tempotiles_shared enda
+
+useractor notenemy OPENSSDOORS
+    cstat 32768
+    ifcount 15
+    {
+        set ACCUNLOCKED 2
+        quote 8105
+        killit
+    }
+enda
+
+useractor notenemy SUPER_TCHPLATE
+    cstator 32768
+    ife sprite[].sectnum player[].cursectnum
+    {
+        ifspritepal 0
+        {
+            operaterespawns 60
+            operateactivators 60 0
+            operatemasterswitches 60
+            killit
+        }
+    }
+enda
+
+useractor notenemy CHANGINGCOLORVENT
+    ifspritepal 0
+    {
+        ife DOOROP_X_1 13
+        {
+            spritepal 2
+            seta[].shade -42
+        }
+    }
+enda
+
+useractor notenemy DAMAGABLECEIL_TILE
+    ifspritepal 0
+    {
+        ife DOOROP_X_1 16
+        {
+            debris SCRAP1 4
+            debris SCRAP2 2
+            debris SCRAP3 1
+            debris SCRAP5 2
+            killit
+        }
+    }
+enda
+
+move PYRSPIRITZ01 200
+useractor notenemy PYRAMIDDOORSPIRITS
+    // untaken pal slots are pal 0, 9, 24 and 25
+
+    // ghost doors activated
+    switch sprite[].pal
+        case 1 : move PYRSPIRITZ01 geth ife EX_BEAMF 11 { palfrom 23 31 61 21 globalsound INTO_MENU killit } ; break
+        case 2 : move PYRSPIRITZ01 geth ife EX_BEAMOPF 11 { palfrom 23 51 41 21 globalsound INTO_MENU killit } ; break
+        case 6 : move PYRSPIRITZ01 geth ife EX_BEAMOPF01 11 { palfrom 23 21 11 61 globalsound INTO_MENU killit } ; break
+        case 7 : move PYRSPIRITZ01 geth ife EX_BEAMOPF02 11 { palfrom 23 41 21 41 globalsound INTO_MENU killit } ; break
+        case 8 : move PYRSPIRITZ01 geth ife EX_BEAMOPF03 11 { palfrom 23 11 51 51 globalsound INTO_MENU killit } ; break
+        case 17 : move PYRSPIRITZ01 geth ife EX_BEAMOPF04 11 { palfrom 23 11 61 31 globalsound INTO_MENU killit } ; break
+        case 20 : move PYRSPIRITZ01 geth ife EX_BEAMOPF05 11 { palfrom 23 61 31 61 globalsound INTO_MENU killit } ; break
+        case 26 : move PYRSPIRITZ01 geth ife EX_BEAMOPF06 11 { palfrom 23 41 51 11 globalsound INTO_MENU killit } ; break
+        case 27 : move PYRSPIRITZ01 geth ife EX_BEAMOPF07 11 { palfrom 23 21 41 11 globalsound INTO_MENU killit } ; break
+        case 28 : move PYRSPIRITZ01 geth ife EX_BEAMOPF08 11 { palfrom 23 61 61 61 globalsound INTO_MENU killit } ; break
+        case 29 : move PYRSPIRITZ01 geth ife EX_BEAMOPF09 11 { palfrom 23 41 41 41 globalsound INTO_MENU killit } ; break
+        case 30 : move PYRSPIRITZ01 geth ife EX_BEAMOPF10 11 { palfrom 23 21 11 21 globalsound INTO_MENU killit } ; break
+    endswitch
+
+    // ghost doors paused
+    switch sprite[].pal
+        case 10 : ife FFIELDTOLERANCE_LV 0 { cstator 32768 resetcount } ife FFIELDTOLERANCE_LV 10 { ifcount 100 { sound DOORSPIRITSND cstat 0 cstator 530 spritepal 1 } } ; break
+        case 11 : ife FFIELDTOLERANCE_LV 0 { cstator 32768 resetcount } ife FFIELDTOLERANCE_LV 10 { ifcount 110 { sound DOORSPIRITSND cstat 0 cstator 530 spritepal 2 } } ; break
+        case 12 : ife FFIELDTOLERANCE_LV 0 { cstator 32768 resetcount } ife FFIELDTOLERANCE_LV 10 { ifcount 120 { sound DOORSPIRITSND cstat 0 cstator 530 spritepal 6 } } ; break
+        case 13 : ife FFIELDTOLERANCE_LV 0 { cstator 32768 resetcount } ife FFIELDTOLERANCE_LV 10 { ifcount 130 { sound DOORSPIRITSND cstat 0 cstator 530 spritepal 7 } } ; break
+        case 14 : ife FFIELDTOLERANCE_LV 0 { cstator 32768 resetcount } ife FFIELDTOLERANCE_LV 10 { ifcount 140 { sound DOORSPIRITSND cstat 0 cstator 530 spritepal 8 } } ; break
+        case 15 : ife FFIELDTOLERANCE_LV 0 { cstator 32768 resetcount } ife FFIELDTOLERANCE_LV 10 { ifcount 160 { sound DOORSPIRITSND cstat 0 cstator 530 spritepal 17 } } ; break
+        case 16 : ife FFIELDTOLERANCE_LV 0 { cstator 32768 resetcount } ife FFIELDTOLERANCE_LV 10 { ifcount 180 { sound DOORSPIRITSND cstat 0 cstator 530 spritepal 20 } } ; break
+        case 18 : ife FFIELDTOLERANCE_LV 0 { cstator 32768 resetcount } ife FFIELDTOLERANCE_LV 10 { ifcount 200 { sound DOORSPIRITSND cstat 0 cstator 530 spritepal 26 } } ; break
+        case 19 : ife FFIELDTOLERANCE_LV 0 { cstator 32768 resetcount } ife FFIELDTOLERANCE_LV 10 { ifcount 220 { sound DOORSPIRITSND cstat 0 cstator 530 spritepal 27 } } ; break
+        case 21 : ife FFIELDTOLERANCE_LV 0 { cstator 32768 resetcount } ife FFIELDTOLERANCE_LV 10 { ifcount 250 { sound DOORSPIRITSND cstat 0 cstator 530 spritepal 28 } } ; break
+        case 22 : ife FFIELDTOLERANCE_LV 0 { cstator 32768 resetcount } ife FFIELDTOLERANCE_LV 10 { ifcount 280 { sound DOORSPIRITSND cstat 0 cstator 530 spritepal 29 } } ; break
+        case 23 : ife FFIELDTOLERANCE_LV 0 { cstator 32768 resetcount } ife FFIELDTOLERANCE_LV 10 { ifcount 315 { sound DOORSPIRITSND cstat 0 cstator 530 spritepal 30 } } ; break
+    endswitch
+
+    // timer
+    ifspritepal 3
+    {
+        cstator 32768
+        ife sprite[].sectnum player[].cursectnum
+          ifpdistl 770
+        {
+            set player_use 0
+            ifhitspace
+            {
+                ifangdiffl 32
+                  ife FFIELDTOLERANCE_LV 9
+                {
+                    lockplayer 412
+                    resetcount
+                    spritepal 4
+                }
+            }
+        }
+    }
+
+    // potentially triggered by the above
+    ifspritepal 4
+    {
+        ifcount 37 { globalsound SPIRITDOORBLASTS quake 123 palfrom 33 11 33 11 resetcount spritepal 5 }
+    }
+
+    // also potentially triggered by the above
+    ifspritepal 5
+    {
+        ife EX_BEAMF 0 { globalsound SPIRITDOORBLASTS set FFIELDTOLERANCE_LV 10 palfrom 11 44 25 61 set EX_BEAMF 11 }
+        ife EX_BEAMOPF 0 { ife EX_BEAMF 11 { ifcount 160 { resetcount set EX_BEAMOPF 11 } } }
+        ife EX_BEAMOPF01 0 { ife EX_BEAMOPF 11 { ifcount 60 { resetcount set EX_BEAMOPF01 11 } } }
+        ife EX_BEAMOPF02 0 { ife EX_BEAMOPF01 11 { ifcount 10 { operateactivators 9 0 resetcount set EX_BEAMOPF02 11 } } }
+        ife EX_BEAMOPF03 0 { ife EX_BEAMOPF02 11 { ifcount 10 { resetcount set EX_BEAMOPF03 11 } } }
+        ife EX_BEAMOPF04 0 { ife EX_BEAMOPF03 11 { ifcount 10 { resetcount set EX_BEAMOPF04 11 } } }
+        ife EX_BEAMOPF05 0 { ife EX_BEAMOPF04 11 { ifcount 10 { resetcount set EX_BEAMOPF05 11 } } }
+        ife EX_BEAMOPF06 0 { ife EX_BEAMOPF05 11 { ifcount 10 { resetcount set EX_BEAMOPF06 11 } } }
+        ife EX_BEAMOPF07 0 { ife EX_BEAMOPF06 11 { ifcount 10 { resetcount set EX_BEAMOPF07 11 } } }
+        ife EX_BEAMOPF08 0 { ife EX_BEAMOPF07 11 { ifcount 10 { resetcount set EX_BEAMOPF08 11 } } }
+        ife EX_BEAMOPF09 0 { ife EX_BEAMOPF08 11 { ifcount 10 { resetcount set EX_BEAMOPF09 11 } } }
+        ife EX_BEAMOPF10 0 { ife EX_BEAMOPF09 11 { ifcount 10 { resetcount set EX_BEAMOPF10 11 } } }
+        ife EX_BEAMOPF10 11 { ifcount 10 { set FFIELDTOLERANCE_LV 0 quake 7 killit } }
+    }
+enda
+
+useractor notenemy PYRAMIDDOORGEM
+    sizeat 2 2
+    ifspritepal 8
+    {
+        ifcansee
+        {
+            ifpdistl 768
+            {
+                palfrom 10 64 64 64
+                set DISP_KEY -90
+                set DISP_KEY_PAL 8
+                set DISP_KEY_PIC sprite[].picnum
+                globalsound QUEST_ITEM
+                set FFIELDTOLERANCE_LV 9
+                killit
+            }
+        }
+    }
+enda
+
+useractor notenemy INSTANTDEATHSPIKES
+    cstator 32768
+    ifspritepal 0
+    {
+        cstator 32768
+        ife sprite[].sectnum player[].cursectnum
+            addphealth -241
+    }
+enda
+
+ // trap tile only visible with nightsight
+useractor notenemy HIDDENTRAPTILE
+    ifspritepal 0
+    {
+        ifspawnedby ff_delayer { spritepal 17 }
+        ifspawnedby PRESSABLESYMBOLS { spritepal 18 }
+        ife command 0
+        {
+            geta[].mdflags temp
+            orvar temp 16
+            seta[].mdflags temp
+            set command 131072
+        }
+        cstat 546
+        state visible_with_heat_on
+    }
+    ifspritepal 4
+    {
+        cstat 546
+        state visible_with_heat_on
+    }
+    // death timer
+    ifspritepal 17
+    {
+        cstator 32768
+        ife PYRAMIDCODAGE 10
+            killit
+        ife EX_BEAMOPF10 101 { resetcount set EX_BEAMOPF10 0 }
+        ifcount 601
+        {
+            globalsound BIGBANG
+            sound THUD
+            palfrom 53 63 63 63
+            for i range 8
+                addphealth -100
+            quake 36
+            killit
+        }
+    }
+
+    ifspritepal 18
+    {
+        cstator 32768
+        ifcount 96
+        {
+            operaterespawns 68
+            quake 29
+            globalsound BELLSND
+            operatemasterswitches 55
+            operaterespawns 44
+            killit
+        }
+    }
+
+    // sandfall effects
+    ifspritepal 27
+    {
+        cstator 32768
+        ife sprite[].sectnum player[].cursectnum
+            set INSIDEQUICKFALL 0
+    }
+
+    ifspritepal 28
+    {
+        cstator 32768
+        ife sprite[].sectnum player[].cursectnum
+        {
+            ifcount 3
+				{
+				// elemental shield protects against the slowdown
+				ife ARTIFACTS_LOADOUT[CHAR] 13 { set artifact_used 15 lockplayer 3 }
+				else lockplayer 4
+				resetcount
+				}
+        }
+    }
+
+    ifspritepal 29
+    {
+        cstator 32768
+        ife sprite[].sectnum player[].cursectnum
+        {
+            setp[].rotscrnang 65
+            soundonce VIOLENTSANDFALL
+            set INSIDEQUICKFALL 2
+        }
+    }
+
+    // sand flooding triggerer.
+
+    ifspritepal 30
+    {
+        cstator 32768
+        ife sprite[].sectnum player[].cursectnum
+        {
+            ife PYRAMIDCODAGE 0
+            {
+                ifcount 34
+                {
+                    operatemasterswitches 76
+                    set EX_BEAMOPF01 0
+                    set EX_BEAMOPF02 0
+                    set EX_BEAMOPF03 0
+                    set EX_BEAMOPF04 0
+                    set EX_BEAMOPF05 0
+                    set EX_BEAMOPF06 0
+                    set EX_BEAMOPF07 0
+                    set EX_BEAMOPF08 0
+                    set EX_BEAMOPF09 0
+                    set EX_BEAMOPF10 0
+                    killit
+                }
+            }
+            ife PYRAMIDCODAGE 10
+            {
+                lockplayer 32
+                operatemasterswitches 78
+                ife gp_subt 0
+                {
+                    qputs 7500 ^8Zaxtor: ^0Oh shit, I smell a deja vu.
+                    set gp_subt 82
+                }
+                globalsound ZAXDEJAVU
+                resetcount
+                set PYRAMIDCODAGE 0
+            }
+        }
+    }
+enda
+
+
+defstate pyramidcodage_triggerfailure
+    quake 66
+    operatemasterswitches 57
+    palfrom 45 63 2 1
+    globalsound BIGHORN
+    spawn ff_delayer
+    set JBGENEDEAD 666
+ends
+
+
+useractor notenemy PRESSABLESYMBOLS
+    // ultimate win
+    ife PYRAMIDCODAGE 10
+    {
+        operatemasterswitches 67
+        spawn HIDDENTRAPTILE
+        killit
+    }
+
+    // ultimate failure
+    ife JBGENEDEAD 666
+        killit
+
+    ifspritepal 0
+    {
+        cstat 18
+        ife command 0
+        {
+            geta[].mdflags temp
+            orvar temp 16
+            seta[].mdflags temp
+            set command 131072
+        }
+
+        state visible_with_heat_on
+    }
+
+    ifhitweapon
+    {
+        ifspritepal 2
+        {
+            ife PYRAMIDCODAGE 0
+            {
+                spawn ff_delayer
+                set PYRAMIDCODAGE 1
+                globalsound GONG_HIT
+                killit
+            }
+        }
+        else ifspritepal 3
+        {
+            switch PYRAMIDCODAGE
+                case 0
+                    spawn ff_delayer
+                    globalsound BELLSND
+                    operaterespawns 56
+                    killit
+                    break
+                case 1
+                case 2
+                case 3
+                case 4
+                case 5
+                case 6
+                case 7
+                case 8
+                case 9
+                    state pyramidcodage_triggerfailure
+                    break
+            endswitch
+        }
+        else ifspritepal 5
+        {
+            switch PYRAMIDCODAGE
+                case 1
+                    spawn ff_delayer
+                    globalsound BELLSND
+                    operaterespawns 58
+                    killit
+                    break
+                case 0
+                case 2
+                case 3
+                case 4
+                case 5
+                case 6
+                case 7
+                case 8
+                case 9
+                    state pyramidcodage_triggerfailure
+                    break
+            endswitch
+        }
+        else ifspritepal 6
+        {
+            switch PYRAMIDCODAGE
+                case 1
+                    spawn ff_delayer
+                    set PYRAMIDCODAGE 2
+                    globalsound GONG_HIT
+                    killit
+                    break
+                case 0
+                    state pyramidcodage_triggerfailure
+                    break
+            endswitch
+        }
+        else ifspritepal 7
+        {
+            switch PYRAMIDCODAGE
+                case 2
+                    spawn ff_delayer
+                    set PYRAMIDCODAGE 3
+                    globalsound GONG_HIT
+                    killit
+                    break
+                case 0
+                case 1
+                    state pyramidcodage_triggerfailure
+                    break
+            endswitch
+        }
+        else ifspritepal 8
+        {
+            switch PYRAMIDCODAGE
+                case 2
+                    spawn ff_delayer
+                    globalsound BELLSND
+                    operaterespawns 59
+                    killit
+                    break
+                case 0
+                case 1
+                case 3
+                case 4
+                case 5
+                case 6
+                case 7
+                case 8
+                case 9
+                    state pyramidcodage_triggerfailure
+                    break
+            endswitch
+        }
+        else ifspritepal 9
+        {
+            switch PYRAMIDCODAGE
+                case 2
+                    spawn ff_delayer
+                    globalsound BELLSND
+                    operaterespawns 60
+                    killit
+                    break
+                case 0
+                case 1
+                case 3
+                case 4
+                case 5
+                case 6
+                case 7
+                case 8
+                case 9
+                    state pyramidcodage_triggerfailure
+                    break
+            endswitch
+        }
+        else ifspritepal 10
+        {
+            switch PYRAMIDCODAGE
+                case 3
+                    spawn ff_delayer
+                    set PYRAMIDCODAGE 4
+                    globalsound GONG_HIT
+                    killit
+                    break
+                case 0
+                case 1
+                case 2
+                    state pyramidcodage_triggerfailure
+                    break
+            endswitch
+        }
+        else ifspritepal 11
+        {
+            switch PYRAMIDCODAGE
+                case 4
+                    spawn ff_delayer
+                    globalsound BELLSND
+                    operaterespawns 62
+                    killit
+                    break
+                case 0
+                case 1
+                case 2
+                case 3
+                case 5
+                case 6
+                case 7
+                case 8
+                case 9
+                    state pyramidcodage_triggerfailure
+                    break
+            endswitch
+        }
+        else ifspritepal 12
+        {
+            switch PYRAMIDCODAGE
+                case 4
+                    spawn ff_delayer
+                    set PYRAMIDCODAGE 5
+                    globalsound GONG_HIT
+                    killit
+                    break
+                case 0
+                case 1
+                case 2
+                case 3
+                    state pyramidcodage_triggerfailure
+                    break
+            endswitch
+        }
+        else ifspritepal 13
+        {
+            state pyramidcodage_triggerfailure
+        }
+        else ifspritepal 14
+        {
+            switch PYRAMIDCODAGE
+                case 5
+                    spawn ff_delayer
+                    set PYRAMIDCODAGE 6
+                    globalsound GONG_HIT
+                    killit
+                    break
+                case 0
+                case 1
+                case 2
+                case 3
+                case 4
+                    state pyramidcodage_triggerfailure
+                    break
+            endswitch
+        }
+        else ifspritepal 15
+        {
+            switch PYRAMIDCODAGE
+                case 6
+                    spawn ff_delayer
+                    globalsound BELLSND
+                    operaterespawns 63
+                    killit
+                    break
+                case 0
+                case 1
+                case 2
+                case 3
+                case 4
+                case 5
+                case 7
+                case 8
+                case 9
+                    state pyramidcodage_triggerfailure
+                    break
+            endswitch
+        }
+        else ifspritepal 16
+        {
+            switch PYRAMIDCODAGE
+                case 6
+                    spawn ff_delayer
+                    set PYRAMIDCODAGE 7
+                    globalsound GONG_HIT
+                    killit
+                    break
+                case 0
+                case 1
+                case 2
+                case 3
+                case 4
+                case 5
+                    state pyramidcodage_triggerfailure
+                    break
+            endswitch
+        }
+        else ifspritepal 17
+        {
+            switch PYRAMIDCODAGE
+                case 6
+                    spawn ff_delayer
+                    globalsound BELLSND
+                    operaterespawns 64
+                    killit
+                    break
+                case 0
+                case 1
+                case 2
+                case 3
+                case 4
+                case 5
+                case 7
+                case 8
+                case 9
+                    state pyramidcodage_triggerfailure
+                    break
+            endswitch
+        }
+        else ifspritepal 18
+        {
+            switch PYRAMIDCODAGE
+                case 7
+                    spawn ff_delayer
+                    set PYRAMIDCODAGE 8
+                    globalsound GONG_HIT
+                    killit
+                    break
+                case 0
+                case 1
+                case 2
+                case 3
+                case 4
+                case 5
+                case 6
+                    state pyramidcodage_triggerfailure
+                    break
+            endswitch
+        }
+        else ifspritepal 19
+        {
+            switch PYRAMIDCODAGE
+                case 7
+                    spawn ff_delayer
+                    globalsound BELLSND
+                    operaterespawns 65
+                    killit
+                    break
+                case 0
+                case 1
+                case 2
+                case 3
+                case 4
+                case 5
+                case 6
+                case 8
+                case 9
+                    state pyramidcodage_triggerfailure
+                    break
+            endswitch
+        }
+        else ifspritepal 20
+        {
+            switch PYRAMIDCODAGE
+                case 8
+                    spawn ff_delayer
+                    set PYRAMIDCODAGE 9
+                    globalsound GONG_HIT
+                    killit
+                    break
+                case 0
+                case 1
+                case 2
+                case 3
+                case 4
+                case 5
+                case 6
+                case 7
+                    state pyramidcodage_triggerfailure
+                    break
+            endswitch
+        }
+        else ifspritepal 21
+        {
+            state pyramidcodage_triggerfailure
+        }
+        else ifspritepal 22
+        {
+            switch PYRAMIDCODAGE
+                case 8
+                    spawn ff_delayer
+                    globalsound BELLSND
+                    operaterespawns 65
+                    killit
+                    break
+                case 0
+                case 1
+                case 2
+                case 3
+                case 4
+                case 5
+                case 6
+                case 7
+                case 9
+                    state pyramidcodage_triggerfailure
+                    break
+            endswitch
+        }
+        else ifspritepal 23
+        {
+            state pyramidcodage_triggerfailure
+        }
+        else ifspritepal 24
+        {
+            switch PYRAMIDCODAGE
+                case 9
+                    spawn ff_delayer
+                    set PYRAMIDCODAGE 10
+                    globalsound GONG_HIT
+                    break
+                case 0
+                case 1
+                case 2
+                case 3
+                case 4
+                case 5
+                case 6
+                case 7
+                case 8
+                    state pyramidcodage_triggerfailure
+                    break
+            endswitch
+        }
+        else ifspritepal 25
+        {
+            switch PYRAMIDCODAGE
+                case 9
+                    spawn ff_delayer
+                    globalsound BELLSND
+                    operaterespawns 66
+                    killit
+                    break
+                case 0
+                case 1
+                case 2
+                case 3
+                case 4
+                case 5
+                case 6
+                case 7
+                case 8
+                    state pyramidcodage_triggerfailure
+                    break
+            endswitch
+        }
+    }
+
+    // TURN ON, switch to beetle key actor, corresponding code is below
+    set temp9 0
+    switch sprite[].pal
+        case 26
+        case 27
+        case 28
+        case 29
+            cstator 32768
+            ife BEETLECODES05 19 killit
+            ifpdistl 528
+            {
+                set player_use 0
+                ifhitspace
+                {
+                    ifcount 63
+                    {
+                        lockplayer 44
+                        set temp9 1
+                        sound SWJPYRON
+                        palfrom 31 6 63 6
+                    }
+                }
+            }
+            break
+    endswitch
+
+    ife temp9 1
+    {
+        switch sprite[].pal
+            case 26 set BEETLECODES01 100 break
+            case 27 set BEETLECODES02 100 break
+            case 28 set BEETLECODES03 100 break
+            case 29 set BEETLECODES04 100 break
+        endswitch
+        resetcount
+        cactor SWK_1_02
+    }
+enda
+
+
+useractor notenemy SWK_1_02
+
+    // switch hit check
+    set temp9 0
+    switch sprite[].pal
+        case 2
+        case 3
+        case 4
+        case 5
+        case 6
+        case 7
+        case 10
+        case 11
+        case 12
+        case 13
+        case 14
+        case 15
+        case 16
+        case 17
+        case 18
+        case 19
+        case 20
+        case 21
+            cstator 32768
+            ife BEETLECODES05 18 killit
+            ifpdistl 528
+            {
+                set player_use 0
+                ifhitspace
+                  ifcount 63
+                {
+                    lockplayer 44
+                    set temp9 1
+                }
+            }
+            break
+    endswitch
+
+    // if switch is hit, do stuff
+    ife temp9 1
+    {
+        switch sprite[].pal
+            case 2
+            case 3
+            case 4
+            case 5
+            case 6
+            case 7
+            case 16
+            case 17
+            case 18
+                // turn on
+                sound SWJPYRON
+                palfrom 31 6 63 6
+                break
+            case 10
+            case 11
+            case 12
+            case 13
+            case 14
+            case 15
+            case 19
+            case 20
+            case 21
+                // turn off
+                sound SWJPYROFF
+                palfrom 31 63 6 6
+                break
+        endswitch
+
+        // on/off switch
+        switch sprite[].pal
+            case 2 spritepal 10 break
+            case 3 spritepal 11 break
+            case 4 spritepal 12 break
+            case 5 spritepal 13 break
+            case 6 spritepal 14 break
+            case 7 spritepal 15 break
+            case 16 spritepal 19 break
+            case 17 spritepal 20 break
+            case 18 spritepal 21 break
+            case 10 spritepal 2 break
+            case 11 spritepal 3 break
+            case 12 spritepal 4 break
+            case 13 spritepal 5 break
+            case 14 spritepal 6 break
+            case 15 spritepal 7 break
+            case 19 spritepal 16 break
+            case 20 spritepal 17 break
+            case 21 spritepal 18 break
+        endswitch
+        resetcount
+    }
+
+    // sound blocker
+    ifspritepal 8 { cstator 32768 } // to block the MARS_ELEV_1 that keeps looping for unknown reasons
+
+    // var resetter
+    ifspritepal 9
+    {
+        cstator 32768
+        ife sprite[].sectnum player[].cursectnum
+        {
+            set BEETLECODES01 0
+            set BEETLECODES02 0
+            set BEETLECODES03 0
+            set BEETLECODES04 0
+            set BEETLECODES05 0
+            set BEETLECODES06 0
+            set BEETLECODES07 0
+            set BEETLECODES08 0
+            killit
+        }
+    }
+
+    // TURN OFF, turn back into PRESSABLESYMBOLS, corresponding code in actor above
+    set temp9 0
+    switch sprite[].pal
+        case 26
+        case 27
+        case 28
+        case 29
+            cstator 32768
+            ife BEETLECODES05 19 killit
+            ifpdistl 528
+            {
+                set player_use 0
+                ifhitspace
+                {
+                    ifcount 63
+                    {
+                        lockplayer 44
+                        set temp9 1
+                        sound SWJPYROFF
+                        palfrom 31 63 6 6
+                    }
+                }
+            }
+            break
+    endswitch
+
+    ife temp9 1
+    {
+        switch sprite[].pal
+            case 26 set BEETLECODES01 0 break
+            case 27 set BEETLECODES02 0 break
+            case 28 set BEETLECODES03 0 break
+            case 29 set BEETLECODES04 0 break
+        endswitch
+        resetcount
+        cactor PRESSABLESYMBOLS
+    }
+enda
+
+useractor notenemy ff_delayer
+    ife PYRAMIDCODAGE 10 killit
+    set EX_BEAMOPF10 101
+    ifcount 1
+    {
+        ife SWITC_H_CODES 0
+        {
+            spawn HIDDENTRAPTILE
+            set SWITC_H_CODES 6
+        }
+        killit
+    }
+enda
+
+move HCIDOWN01 0 128
+move HCIUP01 0 -120
+move HCIDOWN02 0 128
+move HCIUP02 0 -120
+move HCIDOWN03 0 128
+move HCIUP03 0 -120
+move HCIDOWN04 0 128
+move HCIUP04 0 -120
+
+useractor notenemy TRAPSCANNER101
+    ife command 0
+    {
+        geta[].mdflags temp
+        orvar temp 16
+        seta[].mdflags temp
+        set command 131072
+    }
+
+    ifspritepal 4
+    {
+        cstator 32768
+        ife EX_BEAM 33 killit
+        ifcount 30 { set G_MOVINGPRT 10 resetcount spritepal 5 }
+    }
+    ifspritepal 5
+    {
+        ife EX_BEAM 33 killit
+        ifcount 30 { set G_MOVINGPRT 11 resetcount spritepal 4 }
+    }
+    ifspritepal 6
+    {
+        cstator 32768
+        ifcount 30 { set G_MOVINGPRT2 10 resetcount spritepal 7 }
+    }
+    ifspritepal 7
+    {
+        ifcount 30 { set G_MOVINGPRT2 11 resetcount spritepal 6 }
+    }
+    ifspritepal 10
+    {
+        cstat 0
+        state visible_with_heat_on
+
+        ife EX_BEAM 33 killit
+        ife G_MOVINGPRT 10 { move HCIDOWN01 getv }
+        ife G_MOVINGPRT 11 { move HCIUP01 getv }
+        ife sprite[].sectnum player[].cursectnum
+        {
+            ifpdistl 822
+            {
+                palfrom 48 1 63 10
+                globalsound DOORSPIRITSND
+                operatemasterswitches 95
+                set EX_BEAM 33
+            }
+        }
+    }
+    ifspritepal 11
+    {
+        cstat 0
+        state visible_with_heat_on
+
+        ife EX_BEAM 33 killit
+        ife G_MOVINGPRT 10 { move HCIUP02 getv }
+        ife G_MOVINGPRT 11 { move HCIDOWN02 getv }
+        ife sprite[].sectnum player[].cursectnum
+        {
+            ifpdistl 822
+            {
+                palfrom 48 1 63 10
+                globalsound DOORSPIRITSND
+                operatemasterswitches 95
+                set EX_BEAM 33
+            }
+        }
+    }
+    ifspritepal 13
+    {
+        seta[].shade 8
+        cstat 0
+        state visible_with_heat_on
+
+        ife G_MOVINGPRT2 10 { move HCIDOWN03 getv }
+        ife G_MOVINGPRT2 11 { move HCIUP03 getv }
+        ife sprite[].sectnum player[].cursectnum
+        {
+            ifpdistl 822
+            {
+                palfrom 48 1 63 10
+                globalsound BIGBANG
+                quake 13
+                spawn EXPLOSION2
+                addphealth -45
+                killit
+            }
+        }
+    }
+    ifspritepal 24
+    {
+        seta[].shade 18
+        cstat 0
+        state visible_with_heat_on
+
+        ife G_MOVINGPRT2 11 { move HCIDOWN04 getv }
+        ife G_MOVINGPRT2 10 { move HCIUP04 getv }
+        ife sprite[].sectnum player[].cursectnum
+        {
+            ifpdistl 822
+            {
+                palfrom 48 1 63 10
+                globalsound BIGBANG
+                quake 13
+                spawn EXPLOSION2
+                addphealth -45
+                killit
+            }
+        }
+    }
+
+enda
+
+useractor notenemy NONGHOSTTILE01
+    ifspritepal 0 { seta[].shade 13 }
+    // elevator timers
+    ifspritepal 2 { ifcount 80 { operateactivators 101 0 resetcount spritepal 3 } }
+    ifspritepal 3 { ifcount 80 { operateactivators 101 0 operateactivators 102 0 resetcount spritepal 5 } }
+    ifspritepal 4 { cstator 32768 operateactivators 102 0 spritepal 2 }
+    ifspritepal 5 { ifcount 80 { operateactivators 101 0 operateactivators 102 0 resetcount spritepal 3 } }
+    // SOME chopping blades sensors (pal 24 off pal 25 on)
+    ifspritepal 24
+    {
+        cstator 32768
+        ife sprite[].sectnum player[].cursectnum
+        {
+            set EX_BEAMOPF10 566
+        }
+    }
+    ifspritepal 25
+    {
+        cstator 32768
+        ife sprite[].sectnum player[].cursectnum
+        {
+            set EX_BEAMOPF10 567
+        }
+    }
+enda
+
+useractor notenemy NONGHOSTTILE02
+    ifspritepal 0 { seta[].shade 13 }
+enda
+
+useractor notenemy NONGHOSTTILE03
+    ifspritepal 0 { seta[].shade 13 }
+enda
+
+useractor notenemy NONGHOSTTILE04
+    ifspritepal 0 { seta[].shade 13 }
+enda
+
+useractor notenemy ANCIENTSYMBOLS
+    // visible
+    ifspritepal 6
+    {
+        ife EX_BEAMOPF 223 { palfrom 19 29 39 48 quake 67 operatemasterswitches 47 operatemasterswitches 116 killit }
+
+        ife command 0
+        {
+            geta[].mdflags temp
+            orvar temp 16
+            seta[].mdflags temp
+            set command 131072
+        }
+
+        seta[].shade -62
+        cstat 16
+        state visible_with_heat_on
+    }
+
+    // codes
+
+    ifspritepal 0 { cstator 256 ife EX_BEAMOPF 222 killit ifhitweapon { ifwasweapon RADIUSEXPLOSION { operaterespawns 131 } set EX_BEAMOPF01 222 globalsound GONG_HIT palfrom 34 1 62 2 killit } }
+    ifspritepal 1 { cstator 256 ife EX_BEAMOPF 222 killit ifhitweapon { ifwasweapon RADIUSEXPLOSION { operaterespawns 131 } operaterespawns 122 globalsound BELLSND palfrom 34 62 1 2 killit } }
+    ifspritepal 2 { cstator 256 ife EX_BEAMOPF 222 killit ifhitweapon { ifwasweapon RADIUSEXPLOSION { operaterespawns 131 } set EX_BEAMOPF02 222 globalsound GONG_HIT palfrom 34 1 62 2 killit } }
+    ifspritepal 3 { cstator 256 ife EX_BEAMOPF 222 killit ifhitweapon { ifwasweapon RADIUSEXPLOSION { operaterespawns 131 } operaterespawns 121 globalsound BELLSND palfrom 34 62 1 2 killit } }
+    ifspritepal 4 { cstator 256 ife EX_BEAMOPF 222 killit ifhitweapon { ifwasweapon RADIUSEXPLOSION { operaterespawns 131 } operaterespawns 120 globalsound BELLSND palfrom 34 62 1 2 killit } }
+    ifspritepal 5 { cstator 256 ife EX_BEAMOPF 222 killit ifhitweapon { ifwasweapon RADIUSEXPLOSION { operaterespawns 131 } set EX_BEAMOPF03 222 globalsound GONG_HIT palfrom 34 1 62 2 killit } }
+    ifspritepal 7 { cstator 256 ife EX_BEAMOPF 222 killit ifhitweapon { ifwasweapon RADIUSEXPLOSION { operaterespawns 131 } set EX_BEAMOPF04 222 globalsound GONG_HIT palfrom 34 1 62 2 killit } }
+    ifspritepal 8 { cstator 256 ife EX_BEAMOPF 222 killit ifhitweapon { ifwasweapon RADIUSEXPLOSION { operaterespawns 131 } set EX_BEAMOPF05 222 globalsound GONG_HIT palfrom 34 1 62 2 killit } }
+    ifspritepal 9 { cstator 256 ife EX_BEAMOPF 222 killit ifhitweapon { ifwasweapon RADIUSEXPLOSION { operaterespawns 131 } set EX_BEAMOPF06 222 globalsound GONG_HIT palfrom 34 1 62 2 killit } }
+    ifspritepal 10 { cstator 256 ife EX_BEAMOPF 222 killit ifhitweapon { ifwasweapon RADIUSEXPLOSION { operaterespawns 131 } operaterespawns 123 globalsound BELLSND palfrom 34 62 1 2 killit } }
+    ifspritepal 11 { cstator 256 ife EX_BEAMOPF 222 killit ifhitweapon { ifwasweapon RADIUSEXPLOSION { operaterespawns 131 } operaterespawns 124 globalsound BELLSND palfrom 34 62 1 2 killit } }
+    ifspritepal 12 { cstator 256 ife EX_BEAMOPF 222 killit ifhitweapon { ifwasweapon RADIUSEXPLOSION { operaterespawns 131 } set EX_BEAMOPF07 222 globalsound GONG_HIT palfrom 34 1 62 2 killit } }
+    ifspritepal 13 { cstator 256 ife EX_BEAMOPF 222 killit ifhitweapon { ifwasweapon RADIUSEXPLOSION { operaterespawns 131 } operaterespawns 125 globalsound BELLSND palfrom 34 62 1 2 killit } }
+    ifspritepal 14 { cstator 256 ife EX_BEAMOPF 222 killit ifhitweapon { ifwasweapon RADIUSEXPLOSION { operaterespawns 131 } operaterespawns 126 globalsound BELLSND palfrom 34 62 1 2 killit } }
+    ifspritepal 15 { cstator 256 ife EX_BEAMOPF 222 killit ifhitweapon { ifwasweapon RADIUSEXPLOSION { operaterespawns 131 } operaterespawns 127 globalsound BELLSND palfrom 34 62 1 2 killit } }
+    ifspritepal 16 { cstator 256 ife EX_BEAMOPF 222 killit ifhitweapon { ifwasweapon RADIUSEXPLOSION { operaterespawns 131 } set EX_BEAMOPF08 222 globalsound GONG_HIT palfrom 34 1 62 2 killit } }
+    ifspritepal 17 { cstator 256 ife EX_BEAMOPF 222 killit ifhitweapon { ifwasweapon RADIUSEXPLOSION { operaterespawns 131 } set EX_BEAMOPF09 222 globalsound GONG_HIT palfrom 34 1 62 2 killit } }
+    ifspritepal 18 { cstator 256 ife EX_BEAMOPF 222 killit ifhitweapon { ifwasweapon RADIUSEXPLOSION { operaterespawns 131 } operaterespawns 128 globalsound BELLSND palfrom 34 62 1 2 killit } }
+    ifspritepal 19 { cstator 256 ife EX_BEAMOPF 222 killit ifhitweapon { ifwasweapon RADIUSEXPLOSION { operaterespawns 131 } operaterespawns 129 globalsound BELLSND palfrom 34 62 1 2 killit } }
+    ifspritepal 20 { cstator 256 ife EX_BEAMOPF 222 killit ifhitweapon { ifwasweapon RADIUSEXPLOSION { operaterespawns 131 } set EX_BEAMOPF10 222 globalsound GONG_HIT palfrom 34 1 62 2 killit } }
+    ifspritepal 21 { cstator 256 ife EX_BEAMOPF 222 killit ifhitweapon { ifwasweapon RADIUSEXPLOSION { operaterespawns 131 } operaterespawns 130 globalsound BELLSND palfrom 34 62 1 2 killit } }
+
+    // code timer
+
+    ifspritepal 22
+    {
+        cstator 32768
+        ife EX_BEAMOPF01 222 { ife EX_BEAMOPF02 222 { ife EX_BEAMOPF03 222 { ife EX_BEAMOPF04 222 { ife EX_BEAMOPF05 222 { ife EX_BEAMOPF06 222 { ife EX_BEAMOPF07 222 { ife EX_BEAMOPF08 222 { ife EX_BEAMOPF09 222 { ife EX_BEAMOPF10 222 { set EX_BEAMOPF 222 resetcount spritepal 23 } } } } } } } } } }
+    }
+    ifspritepal 23 { ifcount 47 { set EX_BEAMOPF 223 killit } }
+
+    // sound / ambiences eff.
+
+    ifspritepal 24 { cstator 32768 soundonce MAGMASOUND }
+
+    // floor platform movement eff.
+
+    ifspritepal 25 { cstator 32768 ifcount 96 { operateactivators 146 0 resetcount } }
+    ifspritepal 26 { cstator 32768 ifcount 128 { operateactivators 152 0 resetcount } }
+
+    // painful area effector
+
+    ifspritepal 27
+    {
+        cstator 32768
+        ife sprite[].sectnum player[].cursectnum
+        {
+            ifcount 62
+            {
+                palfrom 59 63 63 63
+                quake 31
+                addphealth -100
+                globalsound DOORSPIRITSND
+                resetcount
+            }
+        }
+    }
+
+    // door slam shut effect
+    ifspritepal 28
+    {
+        cstator 32768
+        ife sprite[].sectnum player[].cursectnum
+        {
+            lockplayer 77
+            operatemasterswitches 182
+            resetcount
+            spritepal 29
+        }
+    }
+    ifspritepal 29 { ifcount 66 { globalsound ZFUCK killit } }
+
+    // associating with BREAKABLESCEILING (tile 20500)
+    ifspritepal 30 { ifhitweapon { set EX_BEAM 768 killit } }
+enda
+
+
+useractor notenemy RADICAL_PARTICLE1
+
+    ifaction 0
+    {
+        cstator 2
+        seta[].blend 255
+        action ZERO
+    }
+
+    ifspritepal 0
+    {
+        ifspawnedby RADICAL_PARTICLE1 { cstator 32768 spritepal 8 }
+        sizeat 34 34
+        seta[].shade -63
+        ifpdistl 999 { ifp palive { palfrom 27 11 62 35 wackplayer globalsound ELECTROCUTE addphealth -1 } }
+        ifcount 91 { spritepal 3 }
+    }
+    ifspritepal 3
+    {
+        palfrom 56 63 62 61
+        quake 47
+        hitradius 3100 60 75 92 116
+        sound EXPLOSION_HUGE
+        ifcansee { ifpdistl 1600 { addphealth -43 } }
+        spawn SPREADORVX1
+        spawn SPREADORVX1
+        spawn SPREADORVX1
+        spawn SPREADORVX1
+        spawn SPREADORVX1
+        spawn SPREADORVX2
+        spawn SPREADORVX2
+        spawn SPREADORVX2
+        spawn SPREADORVX2
+        spawn SPREADORVX2
+        spawn SPREADORVX2
+        spawn SPREADORVX3
+        spawn SPREADORVX3
+        spawn SPREADORVX3
+        spawn SPREADORVX3
+        spawn SPREADORVX3
+        spawn SPREADORVX4
+        spawn SPREADORVX4
+        spawn SPREADORVX4
+        spawn SPREADORVX4
+        spawn SPREADORVX4
+        spawn SPREADORVX5
+        spawn SPREADORVX5
+        spawn SPREADORVX5
+        spawn SPREADORVX5
+        spawn SPREADORVX5
+        spawn SPREADORVX6
+        spawn SPREADORVX6
+        spawn SPREADORVX6
+        spawn SPREADORVX6
+        spawn SPREADORVX7
+        spawn SPREADORVX7
+        spawn SPREADORVX7
+        spawn SPREADORVX7
+        spawn SPREADORVX8
+        spawn SPREADORVX8
+        spawn SPREADORVX8
+        spawn SPREADORVX8
+        spawn SPREADORVX9
+        spawn SPREADORVX9
+        spawn SPREADORVX9
+        spawn BIG_SMOKE
+        spawn BIG_SMOKE
+        spawn BIG_SMOKE
+        spawn BIG_SMOKE
+        spawn BIG_SMOKE
+        spawn BIG_SMOKE
+        spawn BIG_SMOKE2
+        spawn BIG_SMOKE2
+        spawn BIG_SMOKE2
+        spawn BIG_SMOKE2
+        spawn EXPLOSION2
+        killit
+    }
+    ifspritepal 8
+    {
+        cstator 256
+        ifpdistl 4500 { ifcount 3 { lockplayer 4 resetcount } }
+        ifhitweapon { hitradius 1000 15 16 17 19 killit }
+    }
+    ifspritepal 9 { seta[].blend 255 cstator 32768 ifcansee { ifpdistl 2000 { spawn RADICAL_PARTICLE1 resetcount sound USE_TIMEPORTAL spritepal 10 } } }
+    ifspritepal 10
+    {
+        cstat 258
+        sizeat 34 34
+        seta[].shade -63
+        ifpdistl 999 { ifp palive { palfrom 27 11 62 35 wackplayer globalsound ELECTROCUTE addphealth -1 } }
+        ifcount 162 { spritepal 3 }
+        ifhitweapon { spritepal 3 }
+    }
+enda
+
+move SPRDVX1MOVE 212
+
+useractor notenemy SPREADORVX1
+
+    ifmove 0
+        move SPRDVX1MOVE geth randomangle
+
+    ifcount 10 ifrnd 96
+    {
+        sound PIPEBOMB_EXPLODE
+        espawn EXPLOSION2
+        hitradius 1535 25 42 54 66
+        spawn BIG_SMOKE2
+        spawn BURNING2
+        killit
+    }
+    enda
+
+move SPRDVX2MOVE 211
+
+useractor notenemy SPREADORVX2
+
+    ifmove 0
+        move SPRDVX2MOVE geth randomangle
+
+    ifcount 20 ifrnd 96
+    {
+        sound PIPEBOMB_EXPLODE
+        espawn EXPLOSION2
+        hitradius 1535 25 42 54 66
+        spawn BIG_SMOKE2
+        spawn BURNING2
+        killit
+    }
+enda
+
+move SPRDVX3MOVE 211
+
+useractor notenemy SPREADORVX3
+    ifmove 0
+        move SPRDVX3MOVE geth randomangle
+
+    ifcount 30 ifrnd 96
+    {
+        sound PIPEBOMB_EXPLODE
+        espawn EXPLOSION2
+        hitradius 1535 25 42 54 66
+        spawn BIG_SMOKE2
+        spawn BURNING2
+        killit
+    }
+enda
+
+move SPRDVX4MOVE 211
+
+useractor notenemy SPREADORVX4
+    ifmove 0
+        move SPRDVX4MOVE geth randomangle
+
+    ifcount 40 ifrnd 96
+    {
+        sound PIPEBOMB_EXPLODE
+        espawn EXPLOSION2
+        hitradius 1535 25 42 54 66
+        spawn BIG_SMOKE2
+        spawn BURNING2
+        killit
+    }
+enda
+
+move SPRDVX5MOVE 211
+
+useractor notenemy SPREADORVX5
+    ifmove 0
+        move SPRDVX5MOVE geth randomangle
+
+    ifcount 50 ifrnd 96
+    {
+        sound PIPEBOMB_EXPLODE
+        espawn EXPLOSION2
+        hitradius 1535 25 42 54 66
+        spawn BIG_SMOKE2
+        spawn BURNING2
+        killit
+    }
+enda
+
+move SPRDVX6MOVE 211
+
+useractor notenemy SPREADORVX6
+
+    ifmove 0
+        move SPRDVX6MOVE geth randomangle
+
+    ifcount 60 ifrnd 96
+    {
+        sound PIPEBOMB_EXPLODE
+        espawn EXPLOSION2
+        hitradius 1535 25 42 54 66
+        spawn BIG_SMOKE2
+        spawn BURNING2
+        killit
+    }
+enda
+
+move SPRDVX7MOVE 211
+
+useractor notenemy SPREADORVX7
+
+    ifmove 0
+        move SPRDVX7MOVE geth randomangle
+
+    ifcount 70 ifrnd 96
+    {
+        sound PIPEBOMB_EXPLODE
+        espawn EXPLOSION2
+        hitradius 1535 25 42 54 66
+        spawn BIG_SMOKE2
+        spawn BURNING2
+        killit
+    }
+enda
+
+move SPRDVX8MOVE 211
+
+useractor notenemy SPREADORVX8
+    ifmove 0
+        move SPRDVX8MOVE geth randomangle
+
+    ifcount 80 ifrnd 96
+    {
+        sound PIPEBOMB_EXPLODE
+        espawn EXPLOSION2
+        hitradius 1535 25 42 54 66
+        spawn BIG_SMOKE2
+        spawn BURNING2
+        killit
+    }
+enda
+
+move SPRDVX9MOVE 210
+
+useractor notenemy SPREADORVX9
+    ifmove 0
+        move SPRDVX9MOVE geth randomangle
+
+    ifcount 90 ifrnd 96
+    {
+        sound PIPEBOMB_EXPLODE
+        espawn EXPLOSION2
+        hitradius 1535 25 42 54 66
+        spawn BIG_SMOKE2
+        spawn BURNING2
+        killit
+    }
+enda
+
+useractor notenemy BREAKABLESCEILING
+    ifspritepal 0
+    {
+        seta[].shade 17
+        ife EX_BEAM 768 killit
+    }
+enda
+
+
+useractor notenemy CHOPBLADES01
+    sizeto 64 65
+    cstat 0
+    cstator 16
+    ifspritepal 0
+    {
+        ifcount 11
+        {
+            ifpdistl 1945
+            {
+                ifcansee
+                {
+                    resetcount
+                    cactor CHOPBLADES02
+                }
+            }
+        }
+    }
+    ifspritepal 3 { spritepal 0 }
+    ifspritepal 5
+    {
+        ifcount 19
+        {
+            ifpdistl 6445
+            {
+                ifcansee
+                {
+                    resetcount
+                    cactor CHOPBLADES02
+                }
+            }
+        }
+    }
+    ifspritepal 9 { spritepal 5 }
+    ifspritepal 10
+    {
+        ifcount 19
+        {
+            ifpdistl 6445
+            {
+                ife EX_BEAMOPF10 567
+                {
+                    resetcount
+                    cactor CHOPBLADES02
+                }
+            }
+        }
+    }
+    ifspritepal 11 { spritepal 10 }
+enda
+
+useractor notenemy CHOPBLADES02
+    sizeto 64 65
+    ifspritepal 0 { ifcount 1 { resetcount cactor CHOPBLADES03 } }
+    ifspritepal 3 { ifcount 2 { sound BLADESFLOORED1 resetcount cactor CHOPBLADES01 } }
+    ifspritepal 5 { ifcount 1 { resetcount cactor CHOPBLADES03 } }
+    ifspritepal 9 { ifcount 2 { sound BLADESFLOORED1 resetcount cactor CHOPBLADES01 } }
+    ifspritepal 10 { ifcount 1 { resetcount cactor CHOPBLADES03 } }
+    ifspritepal 11 { ifcount 2 { sound BLADESFLOORED1 resetcount cactor CHOPBLADES01 } }
+enda
+
+useractor notenemy CHOPBLADES03
+    sizeto 64 65
+    ife sprite[].sectnum player[].cursectnum
+    {
+        addphealth -99
+        addphealth -199
+    }
+    ifspritepal 0 { ifcount 1 { cstator 257 resetcount cactor CHOPBLADES04 } }
+    ifspritepal 3 { ifcount 2 { cstat 0 cstator 16 resetcount cactor CHOPBLADES02 } }
+    ifspritepal 5 { ifcount 1 { cstator 257 resetcount cactor CHOPBLADES04 } }
+    ifspritepal 9 { ifcount 2 { cstat 0 cstator 16 resetcount cactor CHOPBLADES02 } }
+    ifspritepal 10 { ifcount 1 { cstator 257 resetcount cactor CHOPBLADES04 } }
+    ifspritepal 11 { ifcount 2 { cstat 0 cstator 16 resetcount cactor CHOPBLADES02 } }
+enda
+
+useractor notenemy CHOPBLADES04
+    sizeto 64 65
+    ife sprite[].sectnum player[].cursectnum
+    {
+        addphealth -99
+        addphealth -199
+    }
+    ifspritepal 0 { ifcount 1 { sound BLADESCLAP1 resetcount cactor CHOPBLADES05 } }
+    ifspritepal 3 { ifcount 2 { resetcount cactor CHOPBLADES03 } }
+    ifspritepal 5 { ifcount 1 { sound BLADESCLAP1 resetcount cactor CHOPBLADES05 } }
+    ifspritepal 9 { ifcount 2 { resetcount cactor CHOPBLADES03 } }
+    ifspritepal 10 { ifcount 1 { sound BLADESCLAP1 resetcount cactor CHOPBLADES05 } }
+    ifspritepal 11 { ifcount 2 { resetcount cactor CHOPBLADES03 } }
+enda
+
+useractor notenemy CHOPBLADES05
+    sizeto 64 65
+    ife sprite[].sectnum player[].cursectnum
+    {
+        addphealth -99
+        addphealth -199
+    }
+    ifspritepal 0 { ifcount 14 { resetcount spritepal 3 } }
+    ifspritepal 3 { ifcount 2 { resetcount cactor CHOPBLADES04 } }
+    ifspritepal 5 { ifcount 14 { resetcount spritepal 9 } }
+    ifspritepal 9 { ifcount 2 { resetcount cactor CHOPBLADES04 } }
+    ifspritepal 10 { ifcount 14 { resetcount spritepal 11 } }
+    ifspritepal 11 { ifcount 2 { resetcount cactor CHOPBLADES04 } }
+enda
+
+useractor notenemy MYSTERIOUSSTONE1
+    switch sprite[].pal
+        case 10 ife EX_BEAMOPF01 0 resetcount ife EX_BEAMOPF01 666 ifcount 20 killit break
+        case 11 ife EX_BEAMOPF01 0 resetcount ife EX_BEAMOPF01 666 ifcount 30 killit break
+        case 12 ife EX_BEAMOPF01 0 resetcount ife EX_BEAMOPF01 666 ifcount 40 killit break
+        case 13 ife EX_BEAMOPF01 0 resetcount ife EX_BEAMOPF01 666 ifcount 50 killit break
+        case 14 ife EX_BEAMOPF01 0 resetcount ife EX_BEAMOPF01 666 ifcount 60 killit break
+        case 15 ife EX_BEAMOPF01 0 resetcount ife EX_BEAMOPF01 666 ifcount 70 killit break
+        case 16 ife EX_BEAMOPF01 0 resetcount ife EX_BEAMOPF01 666 ifcount 80 killit break
+        case 17
+            cstator 32768
+            ife EX_BEAMOPF01 0 resetcount
+            ife EX_BEAMOPF01 666
+                {
+                ifcount 20 soundonce DOORSPIRITSND
+                ifcount 81
+                    {
+                    globalsound SKELETAL_DEMSNAKE
+                    killit
+                    }
+                }
+            break
+        // resetter
+        case 18
+            cstator 32768
+            ife sprite[].sectnum player[].cursectnum
+                {
+                set EX_BEAMOPF01 0
+                set EX_BEAMOPF02 0
+                set EX_BEAMOPF03 0
+                quake 31
+                killit
+                }
+            break
+        case 19
+            cstator 32768
+                ifcansee
+                 ifpdistl 862
+                  ifangdiffl 32
+                        {
+                        set player_use 0
+                        ifhitspace
+                            {
+                            operatemasterswitches 215
+                            globalsound BIG_BELL
+                            lockplayer 66
+                            palfrom 41 15 17 19
+                            resetcount
+                            spritepal 20
+                            }
+                        }
+            break
+        case 20 ifcount 59 { operatemasterswitches 333 operateactivators 800 0 set EX_BEAMOPF03 309 killit } break
+    endswitch
+enda
+
+move DISLS1A 62 -40
+move DISLS1B 82 -45
+move DISLS1C 102 -50
+move DISLS1D 122 -55
+move DISLS1E 142 -60
+move DISLS1F 162 -65
+move DISLS1G 182 -70
+
+useractor notenemy DISOLVINGSOULS1
+    // still souls
+    ifspritepal 9
+    {
+        cstator 32768
+        ife EX_BEAMOPF02 0 resetcount
+        ife EX_BEAMOPF02 309 { ifcount 20 ifrnd 126 { sound SOULSCREAMS1 spritepal 0 } }
+    }
+    ifspritepal 10
+    {
+        cstator 32768
+        ife EX_BEAMOPF02 0 resetcount
+        ife EX_BEAMOPF02 309 { ifcount 37 ifrnd 116 { sound SOULSCREAMS1 spritepal 1 } }
+    }
+    ifspritepal 11
+    {
+        cstator 32768
+        ife EX_BEAMOPF02 0 resetcount
+        ife EX_BEAMOPF02 309 { ifcount 53 ifrnd 106 { sound SOULSCREAMS1 spritepal 2 } }
+    }
+    ifspritepal 12
+    {
+        cstator 32768
+        ife EX_BEAMOPF02 0 resetcount
+        ife EX_BEAMOPF02 309 { ifcount 66 ifrnd 98 { sound SOULSCREAMS1 spritepal 6 } }
+    }
+    ifspritepal 13
+    {
+        cstator 32768
+        ife EX_BEAMOPF02 0 resetcount
+        ife EX_BEAMOPF02 309 { ifcount 77 ifrnd 91 { sound SOULSCREAMS1 spritepal 7 } }
+    }
+    ifspritepal 14
+    {
+        cstator 32768
+        ife EX_BEAMOPF02 0 resetcount
+        ife EX_BEAMOPF02 309 { ifcount 81 ifrnd 86 { sound SOULSCREAMS1 spritepal 8 } }
+    }
+    ifspritepal 15
+    {
+        cstator 32768
+        ife EX_BEAMOPF02 0 resetcount
+        ife EX_BEAMOPF02 309 { ifcount 45 ifrnd 82 { sound SOULSCREAMS1 spritepal 18 } }
+    }
+
+    // escaping souls
+    ifspritepal 0
+    {
+        cstat 0
+        seta[].shade -1
+        move DISLS1A getv
+        ife EX_BEAMOPF02 310 { cactor DISOLVINGSOULS2 }
+    }
+    ifspritepal 1
+    {
+        cstat 0
+        seta[].shade -1
+        move DISLS1B getv
+        ife EX_BEAMOPF02 310 { cactor DISOLVINGSOULS2 }
+    }
+    ifspritepal 2
+    {
+        cstat 0
+        seta[].shade -1
+        move DISLS1C getv
+        ife EX_BEAMOPF02 310 { cactor DISOLVINGSOULS2 }
+    }
+    ifspritepal 6
+    {
+        cstat 0
+        seta[].shade -1
+        move DISLS1C getv
+        ife EX_BEAMOPF02 310 { cactor DISOLVINGSOULS2 }
+    }
+    ifspritepal 7
+    {
+        cstat 0
+        seta[].shade -1
+        move DISLS1D getv
+        ife EX_BEAMOPF02 310 { cactor DISOLVINGSOULS2 }
+    }
+    ifspritepal 8
+    {
+        cstat 0
+        seta[].shade -1
+        move DISLS1E getv
+        ife EX_BEAMOPF02 310 { cactor DISOLVINGSOULS2 }
+    }
+    ifspritepal 18
+    {
+        cstat 0
+        seta[].shade -1
+        move DISLS1F getv
+        ife EX_BEAMOPF02 310 { cactor DISOLVINGSOULS2 }
+    }
+
+    // soul effectors
+    ifspritepal 20
+    {
+        cstator 32768
+        ife EX_BEAMOPF03 0 resetcount
+        ife EX_BEAMOPF03 309 { ifcount 66 { palfrom 35 52 12 27 quake 126 set EX_BEAMOPF02 309 spritepal 21 } }
+    }
+    ifspritepal 21
+    {
+        ife EX_BEAMOPF02 309 { ifcount 198 { operatemasterswitches 210 resetcount set EX_BEAMOPF02 310 } }
+        ife EX_BEAMOPF02 310 { ifcount 26 { resetcount set EX_BEAMOPF02 311 } }
+        ife EX_BEAMOPF02 311 { ifcount 26 { resetcount set EX_BEAMOPF02 312 } }
+        ife EX_BEAMOPF02 312 { ifcount 26 { resetcount set EX_BEAMOPF02 313 } }
+        ife EX_BEAMOPF02 313 { ifcount 262 { globalsound EARTHQUAKE set EX_BEAMOPF01 666 killit } }
+    }
+enda
+
+move DISLS2A 70 -30
+move DISLS2B 90 -35
+move DISLS2C 110 -40
+move DISLS2D 130 -45
+move DISLS2E 150 -50
+move DISLS2F 170 -55
+move DISLS2G 190 -60
+
+useractor notenemy DISOLVINGSOULS2
+    ifspritepal 0
+    {
+        seta[].blend 255
+        cstator 2
+        seta[].shade 5
+        move DISLS2A getv
+        ife EX_BEAMOPF02 311 { cactor DISOLVINGSOULS3 }
+    }
+    ifspritepal 1
+    {
+        seta[].blend 255
+        cstator 2
+        seta[].shade 5
+        move DISLS2B getv
+        ife EX_BEAMOPF02 311 { cactor DISOLVINGSOULS3 }
+    }
+    ifspritepal 2
+    {
+        seta[].blend 255
+        cstator 2
+        seta[].shade 5
+        move DISLS2C getv
+        ife EX_BEAMOPF02 311 { cactor DISOLVINGSOULS3 }
+    }
+    ifspritepal 6
+    {
+        seta[].blend 255
+        cstator 2
+        seta[].shade 5
+        move DISLS2C getv
+        ife EX_BEAMOPF02 311 { cactor DISOLVINGSOULS3 }
+    }
+    ifspritepal 7
+    {
+        seta[].blend 255
+        cstator 2
+        seta[].shade 5
+        move DISLS2D getv
+        ife EX_BEAMOPF02 311 { cactor DISOLVINGSOULS3 }
+    }
+    ifspritepal 8
+    {
+        seta[].blend 255
+        cstator 2
+        seta[].shade 5
+        move DISLS2E getv
+        ife EX_BEAMOPF02 311 { cactor DISOLVINGSOULS3 }
+    }
+    ifspritepal 18
+    {
+        seta[].blend 255
+        cstator 2
+        seta[].shade 5
+        move DISLS2F getv
+        ife EX_BEAMOPF02 311 { cactor DISOLVINGSOULS3 }
+    }
+enda
+
+move DISLS3A 80 -20
+move DISLS3B 100 -25
+move DISLS3C 120 -30
+move DISLS3D 140 -35
+move DISLS3E 160 -40
+move DISLS3F 180 -45
+move DISLS3G 200 -50
+
+useractor notenemy DISOLVINGSOULS3
+    ifspritepal 0
+    {
+        seta[].shade 9
+        move DISLS3A getv
+        ife EX_BEAMOPF02 312 { cactor DISOLVINGSOULS4 }
+    }
+    ifspritepal 1
+    {
+        seta[].shade 9
+        move DISLS3B getv
+        ife EX_BEAMOPF02 312 { cactor DISOLVINGSOULS4 }
+    }
+    ifspritepal 2
+    {
+        seta[].shade 9
+        move DISLS3C getv
+        ife EX_BEAMOPF02 312 { cactor DISOLVINGSOULS4 }
+    }
+    ifspritepal 6
+    {
+        seta[].shade 9
+        move DISLS3C getv
+        ife EX_BEAMOPF02 312 { cactor DISOLVINGSOULS4 }
+    }
+    ifspritepal 7
+    {
+        seta[].shade 9
+        move DISLS3D getv
+        ife EX_BEAMOPF02 312 { cactor DISOLVINGSOULS4 }
+    }
+    ifspritepal 8
+    {
+        seta[].shade 9
+        move DISLS3E getv
+        ife EX_BEAMOPF02 312 { cactor DISOLVINGSOULS4 }
+    }
+    ifspritepal 18
+    {
+        seta[].shade 9
+        move DISLS3F getv
+        ife EX_BEAMOPF02 312 { cactor DISOLVINGSOULS4 }
+    }
+enda
+
+move DISLS4A 100 -10
+move DISLS4B 120 -15
+move DISLS4C 140 -20
+move DISLS4D 160 -25
+move DISLS4E 180 -30
+move DISLS4F 200 -35
+move DISLS4G 220 -40
+
+useractor notenemy DISOLVINGSOULS4
+    ifspritepal 0
+    {
+        cstator 514
+        seta[].shade 13
+        move DISLS4A getv
+        ife EX_BEAMOPF02 313 { sound THUD killit }
+    }
+    ifspritepal 1
+    {
+        cstator 514
+        seta[].shade 13
+        move DISLS4B getv
+        ife EX_BEAMOPF02 313 { sound THUD killit }
+    }
+    ifspritepal 2
+    {
+        cstator 514
+        seta[].shade 13
+        move DISLS4C getv
+        ife EX_BEAMOPF02 313 { sound THUD killit }
+    }
+    ifspritepal 6
+    {
+        cstator 514
+        seta[].shade 13
+        move DISLS4C getv
+        ife EX_BEAMOPF02 313 { sound THUD killit }
+    }
+    ifspritepal 7
+    {
+        cstator 514
+        seta[].shade 13
+        move DISLS4D getv
+        ife EX_BEAMOPF02 313 { sound THUD killit }
+    }
+    ifspritepal 8
+    {
+        cstator 514
+        seta[].shade 13
+        move DISLS4E getv
+        ife EX_BEAMOPF02 313 { sound THUD killit }
+    }
+    ifspritepal 18
+    {
+        cstator 514
+        seta[].shade 13
+        move DISLS4F getv
+        ife EX_BEAMOPF02 313 { sound THUD killit }
+    }
+enda
+
+defstate snkeyedead
+    ifspritepal 7
+    {
+        set EX_BEAMOPF09 947
+        stopsound DEMSNKPAIN
+        quake 201
+        screensound SDS_DIES
+        guts JIBS6 29
+        spawn SKELSNAKE_BLK_N_E
+    }
+    ifspritepal 10 { set EX_BEAMOPF01 696 }
+    ifspritepal 11 { set EX_BEAMOPF02 696 }
+    ifspritepal 12 { set EX_BEAMOPF03 696 }
+    ifspritepal 13 { set EX_BEAMOPF04 696 }
+    ifspritepal 14 { set EX_BEAMOPF05 696 }
+    ifspritepal 15 { set EX_BEAMOPF06 696 }
+
+    guts JIBS6 16
+    shoot BLOODSPLAT1
+    shoot BLOODSPLAT1
+    shoot BLOODSPLAT2
+    shoot BLOODSPLAT2
+    shoot BLOODSPLAT3
+    shoot BLOODSPLAT4
+    globalsound BLOOD_EXPLOSION
+    globalsound BLOOD_SPURT
+    killit
+ends
+
+defstate checksdemseyehitstate
+    ifdead state snkeyedead
+ends
+
+useractor notenemy SSNAKEEYES_N_E SKELETALSNKHPEYE
+    // boss activator effector
+    ifspritepal 4
+    {
+        cstator 32768
+        ife sprite[].sectnum player[].cursectnum
+        {
+            set EX_BEAM 0
+            set EX_BEAMOPF 0
+            resetcount
+            spritepal 5
+        }
+    }
+    ifspritepal 5 { ifcount 6 { globalsound SKELETAL_DEMSNAKE resetcount spritepal 16 } }
+
+    // Boss's forehead (last part)
+    ifspritepal 6
+    {
+        cstator 32768
+        ife EX_BEAMOPF01 696 { ife EX_BEAMOPF02 696 { ife EX_BEAMOPF03 696 { ife EX_BEAMOPF04 696 { ife EX_BEAMOPF05 696 { ife EX_BEAMOPF06 696 { addstrength SKELETONSNKHEADSTR set CURBOSS THISACTOR set BOSS_TYPE 2 spritepal 7 } } } } } }
+    }
+    ifspritepal 7 { cstator 272 }
+
+    // boss's eyes
+    ifspritepal 10 { cstator 32768 cstator 272 }
+    ifspritepal 11 { cstator 32768 cstator 272 }
+    ifspritepal 12 { cstator 32768 cstator 272 }
+    ifspritepal 13 { cstator 32768 cstator 272 }
+    ifspritepal 14 { cstator 32768 cstator 272 }
+    ifspritepal 15 { cstator 32768 cstator 272 }
+
+    ifhitweapon
+    {
+        quake 7
+        soundonce DEMSNKPAIN
+        state checksdemseyehitstate
+    }
+
+    // boss controller
+    ifspritepal 16 { ife EX_BEAMOPF09 947 killit ifcount 228 { set EX_BEAMOPF 695 resetcount spritepal 17 } }
+    ifspritepal 17 { ife EX_BEAMOPF09 947 killit ifcount 390 { set EX_BEAMOPF 0 resetcount spritepal 18 } }
+    ifspritepal 18 { ife EX_BEAMOPF09 947 killit ifcount 300 { set EX_BEAMOPF 696 resetcount spritepal 19 } }
+    ifspritepal 19 { ife EX_BEAMOPF09 947 killit ifcount 100 { set EX_BEAMOPF 696 resetcount spritepal 20 } }
+    ifspritepal 20 { ife EX_BEAMOPF09 947 killit ifcount 198 { set EX_BEAMOPF 695 resetcount spritepal 21 } }
+    ifspritepal 21 { ife EX_BEAMOPF09 947 killit ifcount 390 { set EX_BEAMOPF 0 resetcount spritepal 22 } }
+    ifspritepal 22 { ife EX_BEAMOPF09 947 killit ifcount 90 { set EX_BEAMOPF 697 resetcount spritepal 23 } }
+    ifspritepal 23 { ife EX_BEAMOPF09 947 killit ifcount 98 { set EX_BEAMOPF 698 resetcount spritepal 24 } }
+    ifspritepal 24 { ife EX_BEAMOPF09 947 killit ifcount 111 { set EX_BEAMOPF 695 resetcount spritepal 25 } }
+    ifspritepal 25 { ife EX_BEAMOPF09 947 killit ifcount 390 { set EX_BEAMOPF 0 resetcount spritepal 26 } }
+    ifspritepal 26 { ife EX_BEAMOPF09 947 killit ifcount 100 { set EX_BEAMOPF 696 resetcount spritepal 27 } }
+    ifspritepal 27 { ife EX_BEAMOPF09 947 killit ifcount 100 { set EX_BEAMOPF 697 resetcount spritepal 28 } }
+    ifspritepal 28 { ife EX_BEAMOPF09 947 killit ifcount 100 { set EX_BEAMOPF 698 resetcount spritepal 29 } }
+    ifspritepal 29 { ife EX_BEAMOPF09 947 killit ifcount 200 { set EX_BEAMOPF 699 resetcount spritepal 30 } }
+    ifspritepal 30 { ife EX_BEAMOPF09 947 killit ife BARRIERPWRLV 98 { set EX_BEAM 0 resetcount spritepal 16 } }
+enda
+
+useractor notenemy SSNAKE_L_EYE_1_X_X
+    ife EX_BEAMOPF01 696 { cactor SSNAKE_L_EYE_1_X_XD }
+enda
+
+useractor notenemy SSNAKE_L_EYE_X_1_X
+    ife EX_BEAMOPF02 696 { cactor SSNAKE_L_EYE_X_1_XD }
+enda
+
+useractor notenemy SSNAKE_L_EYE_X_X_1
+    ife EX_BEAMOPF03 696 { cactor SSNAKE_L_EYE_X_X_1D }
+enda
+
+useractor notenemy SSNAKE_R_EYE_1_X_X
+    ife EX_BEAMOPF04 696 { cactor SSNAKE_R_EYE_1_X_XD }
+enda
+
+useractor notenemy SSNAKE_R_EYE_X_1_X
+    ife EX_BEAMOPF05 696 { cactor SSNAKE_R_EYE_X_1_XD }
+enda
+
+useractor notenemy SSNAKE_R_EYE_X_X_1
+    ife EX_BEAMOPF06 696 { cactor SSNAKE_R_EYE_X_X_1D }
+enda
+
+useractor notenemy SSNAKE_MOUTH_CLOSED
+    ifspritepal 0
+    {
+        ife EX_BEAMOPF09 945 { resetcount spritepal 2 }
+        ife EX_BEAMOPF 0 resetcount
+        ife EX_BEAMOPF 695 { cactor SSNAKE_OPENMOUTH_01 }
+        ife EX_BEAMOPF 696 { cactor SSNAKE_OPENMOUTH_01 }
+        ife EX_BEAMOPF 697 { cactor SSNAKE_OPENMOUTH_01 }
+        ife EX_BEAMOPF 698 { cactor SSNAKE_OPENMOUTH_01 }
+        ife EX_BEAMOPF 699 { cactor SSNAKE_OPENMOUTH_01 }
+    }
+    ifspritepal 2 { ifcount 31 killit }
+enda
+
+useractor notenemy SSNAKE_OPENMOUTH_01
+    ifspritepal 0
+    {
+        ife EX_BEAMOPF09 945 { resetcount spritepal 2 }
+        ife EX_BEAMOPF 0 { ifcount 16 { cactor SSNAKE_MOUTH_CLOSED } }
+        ife EX_BEAMOPF 695 { ifcount 4 { globalsound SKELETAL_DEMATTCK cactor SSNAKE_OPENMOUTH_02 } }
+        ife EX_BEAMOPF 696 { ifcount 4 { globalsound SKELETAL_DEMATTCK cactor SSNAKE_OPENMOUTH_02 } }
+        ife EX_BEAMOPF 697 { ifcount 4 { globalsound SKELETAL_DEMATTCK cactor SSNAKE_OPENMOUTH_02 } }
+        ife EX_BEAMOPF 698 { ifcount 4 { globalsound SKELETAL_DEMATTCK cactor SSNAKE_OPENMOUTH_02 } }
+        ife EX_BEAMOPF 699 { ifcount 4 { globalsound SKELETAL_DEMATTCK cactor SSNAKE_OPENMOUTH_02 } }
+    }
+    ifspritepal 2 { ifcount 31 killit }
+enda
+
+useractor notenemy SSNAKE_OPENMOUTH_02
+    ifspritepal 0
+    {
+        ife EX_BEAMOPF09 945 { resetcount spritepal 2 }
+        ife EX_BEAMOPF 0 { ifcount 12 { cactor SSNAKE_OPENMOUTH_01 } }
+        ife EX_BEAMOPF 695 { ifcount 8 { cactor SSNAKE_OPENMOUTH_03 } }
+        ife EX_BEAMOPF 696 { ifcount 8 { cactor SSNAKE_OPENMOUTH_03 } }
+        ife EX_BEAMOPF 697 { ifcount 8 { cactor SSNAKE_OPENMOUTH_03 } }
+        ife EX_BEAMOPF 698 { ifcount 8 { cactor SSNAKE_OPENMOUTH_03 } }
+        ife EX_BEAMOPF 699 { ifcount 8 { cactor SSNAKE_OPENMOUTH_03 } }
+    }
+    ifspritepal 2 { ifcount 31 killit }
+enda
+
+useractor notenemy SSNAKE_OPENMOUTH_03
+    ifspritepal 0
+    {
+        ife EX_BEAMOPF09 945 { resetcount spritepal 2 }
+        ife EX_BEAMOPF 0 { ifcount 8 { cactor SSNAKE_OPENMOUTH_02 } }
+        ife EX_BEAMOPF 694 { set EX_BEAMOPF 0 }
+        ife EX_BEAMOPF 695 { ifcount 12 { cactor SSNAKE_OPENMOUTH_04 } }
+        ife EX_BEAMOPF 696 { ifcount 12 { set EX_BEAM 667 resetcount cactor SSNAKE_OPENMOUTH_04 } }
+        ife EX_BEAMOPF 697 { ifcount 12 { set EX_BEAM 668 resetcount cactor SSNAKE_OPENMOUTH_04 } }
+        ife EX_BEAMOPF 698 { ifcount 12 { set EX_BEAM 669 resetcount cactor SSNAKE_OPENMOUTH_04 } }
+        ife EX_BEAMOPF 699 { ifcount 12 { cactor SSNAKE_OPENMOUTH_04 } }
+    }
+    ifspritepal 2 { ifcount 31 killit }
+enda
+
+useractor notenemy SSNAKE_OPENMOUTH_04
+    ifspritepal 0
+    {
+        ife EX_BEAMOPF09 945 { resetcount spritepal 2 }
+        ife EX_BEAMOPF 0 { ifcount 4 { cactor SSNAKE_OPENMOUTH_03 } }
+        ife EX_BEAMOPF 695 { ifcount 16 { set EX_BEAM 666 cactor SSNAKE_OPENMOUTH_05 } }
+        ife EX_BEAMOPF 694 { set EX_BEAM 0 cactor SSNAKE_OPENMOUTH_03 }
+        ife EX_BEAMOPF 696 { ifcount 15 { set EX_BEAM 0 resetcount set EX_BEAMOPF 694 } }
+        ife EX_BEAMOPF 697 { ifcount 15 { set EX_BEAM 0 resetcount set EX_BEAMOPF 694 } }
+        ife EX_BEAMOPF 698 { ifcount 15 { set EX_BEAM 0 resetcount set EX_BEAMOPF 694 } }
+        ife EX_BEAMOPF 699 { ifcount 16 { set EX_BEAM 999 set BARRIERPWRLV 100 cactor SSNAKE_OPENMOUTH_05 } }
+    }
+    ifspritepal 2 { ifcount 31 killit }
+enda
+
+useractor notenemy SSNAKE_OPENMOUTH_05
+    ifspritepal 0
+    {
+        ife EX_BEAMOPF09 945 { resetcount spritepal 2 }
+        ife EX_BEAMOPF 0 { set EX_BEAM 0 cactor SSNAKE_OPENMOUTH_04 }
+        ife EX_BEAMOPF 695 resetcount
+        ife EX_BEAMOPF 699 resetcount
+    }
+    ifspritepal 2 { ifcount 31 killit }
+enda
+
+useractor notenemy SSNAKE_WEAP_EFF
+    cstator 32768
+    ife EX_BEAMOPF09 947
+        killit
+
+    ifspritepal 0
+    {
+        ife EX_BEAM 0 resetcount
+        ife EX_BEAM 666 { ifcount 46 { spritepal 3 } }
+    }
+    ifspritepal 3
+    {
+        ife EX_BEAM 0 { spritepal 0 }
+        ifcount 96 { globalsound STYGIAN_FIRE shoot FSTYGIAN_ROCK resetcount }
+    }
+    // multifire laser
+    ifspritepal 2
+    {
+        ife EX_BEAM 0 resetcount
+        ife EX_BEAM 667 { ifcount 9 { shoot FIRELASER resetcount } }
+    }
+    ifspritepal 7
+    {
+        ife EX_BEAM 0 resetcount
+        ife EX_BEAM 668 { ifcount 9 { shoot FIRELASER resetcount } }
+    }
+    ifspritepal 8
+    {
+        ife EX_BEAM 0 resetcount
+        ife EX_BEAM 669 { ifcount 9 { shoot FIRELASER resetcount } }
+    }
+    // spawn blocks
+    ifspritepal 4 { ife EX_BEAMF 586 { globalsound SPELL8FIRE shoot MOBSPAWNBLK set EX_BEAMF 0 } }
+    ifspritepal 5
+    {
+        ife EX_BEAMOPF01 696 spritepal 6
+        ife EX_BEAMOPF02 696 spritepal 6
+        ife EX_BEAMOPF03 696 spritepal 6
+        ife EX_BEAMOPF04 696 spritepal 6
+        ife EX_BEAMOPF05 696 spritepal 6
+        ife EX_BEAMOPF06 696 spritepal 6
+    }
+    ifspritepal 6 { ifcount 610 { set EX_BEAMF 586 resetcount } }
+
+    // deadly firespit
+    ifspritepal 9
+    {
+        ife BARRIERPWRLV 100 { globalsound DEADLYFIRES shoot FIREBALLTRAILER resetcount set BARRIERPWRLV 101 }
+        ife BARRIERPWRLV 101 { ifcount 41 { set BARRIERPWRLV 102 } }
+    }
+    ifspritepal 10
+    {
+        ife BARRIERPWRLV 102 { globalsound DEADLYFIRES shoot FIREBALLTRAILER resetcount set BARRIERPWRLV 103 }
+        ife BARRIERPWRLV 103 { ifcount 41 { set BARRIERPWRLV 104 } }
+    }
+    ifspritepal 11
+    {
+        ife BARRIERPWRLV 104 { globalsound DEADLYFIRES shoot FIREBALLTRAILER resetcount set BARRIERPWRLV 105 }
+        ife BARRIERPWRLV 105 { ifcount 41 { set BARRIERPWRLV 106 } }
+    }
+    ifspritepal 12
+    {
+        ife BARRIERPWRLV 106 { globalsound DEADLYFIRES shoot FIREBALLTRAILER resetcount set BARRIERPWRLV 107 }
+        ife BARRIERPWRLV 107 { ifcount 41 { set BARRIERPWRLV 108 } }
+    }
+    ifspritepal 13
+    {
+        ife BARRIERPWRLV 108 { globalsound DEADLYFIRES shoot FIREBALLTRAILER resetcount set BARRIERPWRLV 109 }
+        ife BARRIERPWRLV 109 { ifcount 41 { set BARRIERPWRLV 110 } }
+    }
+    ifspritepal 14
+    {
+        ife BARRIERPWRLV 110 { globalsound DEADLYFIRES shoot FIREBALLTRAILER resetcount set BARRIERPWRLV 111 }
+        ife BARRIERPWRLV 111 { ifcount 41 { set BARRIERPWRLV 112 } }
+    }
+    ifspritepal 15
+    {
+        ife BARRIERPWRLV 112 { globalsound DEADLYFIRES shoot FIREBALLTRAILER resetcount set BARRIERPWRLV 113 }
+        ife BARRIERPWRLV 113 { ifcount 41 { set BARRIERPWRLV 114 } }
+    }
+    ifspritepal 16
+    {
+        ife BARRIERPWRLV 114 { globalsound DEADLYFIRES shoot FIREBALLTRAILER resetcount set BARRIERPWRLV 115 }
+        ife BARRIERPWRLV 115 { ifcount 41 { set BARRIERPWRLV 116 } }
+    }
+    ifspritepal 17
+    {
+        ife BARRIERPWRLV 116 { globalsound DEADLYFIRES shoot FIREBALLTRAILER resetcount set BARRIERPWRLV 117 }
+        ife BARRIERPWRLV 117 { ifcount 41 { set BARRIERPWRLV 118 } }
+    }
+    ifspritepal 18
+    {
+        ife BARRIERPWRLV 118 { globalsound DEADLYFIRES shoot FIREBALLTRAILER resetcount set BARRIERPWRLV 119 }
+        ife BARRIERPWRLV 119 { ifcount 41 { set BARRIERPWRLV 120 } }
+    }
+    ifspritepal 19
+    {
+        ife BARRIERPWRLV 120 { globalsound DEADLYFIRES shoot FIREBALLTRAILER resetcount set BARRIERPWRLV 121 }
+        ife BARRIERPWRLV 121 { ifcount 41 { set BARRIERPWRLV 122 } }
+    }
+    ifspritepal 20
+    {
+        ife BARRIERPWRLV 122 { globalsound DEADLYFIRES shoot FIREBALLTRAILER resetcount set BARRIERPWRLV 123 }
+        ife BARRIERPWRLV 123 { ifcount 41 { set BARRIERPWRLV 124 } }
+    }
+    ifspritepal 21
+    {
+        ife BARRIERPWRLV 124 { globalsound DEADLYFIRES shoot FIREBALLTRAILER resetcount set BARRIERPWRLV 125 }
+        ife BARRIERPWRLV 125 { ifcount 41 { set BARRIERPWRLV 126 } }
+    }
+    ifspritepal 22
+    {
+        ife BARRIERPWRLV 126 { globalsound DEADLYFIRES shoot FIREBALLTRAILER resetcount set BARRIERPWRLV 127 }
+        ife BARRIERPWRLV 127 { ifcount 41 { set BARRIERPWRLV 128 } }
+    }
+    ifspritepal 23
+    {
+        ife BARRIERPWRLV 128 { globalsound DEADLYFIRES shoot FIREBALLTRAILER resetcount set BARRIERPWRLV 129 }
+        ife BARRIERPWRLV 129 { ifcount 41 { set BARRIERPWRLV 130 } }
+    }
+    ifspritepal 24
+    {
+        ife BARRIERPWRLV 130 { globalsound DEADLYFIRES shoot FIREBALLTRAILER resetcount set BARRIERPWRLV 131 }
+        ife BARRIERPWRLV 131 { ifcount 41 { set BARRIERPWRLV 132 } }
+    }
+    ifspritepal 25
+    {
+        ife BARRIERPWRLV 99 { set EX_BEAMOPF 0 set BARRIERPWRLV 98 }
+        ife BARRIERPWRLV 132 { globalsound DEADLYFIRES shoot FIREBALLTRAILER resetcount set BARRIERPWRLV 133 }
+        ife BARRIERPWRLV 133 { ifcount 62 { set BARRIERPWRLV 99 } }
+    }
+enda
+
+move FFSSDEAD 62
+
+useractor notenemy SKELSNAKE_BLK_N_E
+    ifspritepal 0
+    {
+        ifspawnedby RESPAWN { spritepal 24 }
+        ifspawnedby SSNAKEEYES_N_E { spritepal 28 }
+        ifspawnedby MOBSPAWNBLK { spritepal 30 }
+        ife EX_BEAMOPF09 946 { resetcount spritepal 29 }
+        ife EX_BEAMOPF09 947
+        {
+            move FFSSDEAD
+        }
+    }
+    // exit tile spawner
+
+    ifspritepal 6 { spawn 21398 killit } // NEOSPAWNINGTILES
+    ifspritepal 24 { ifcount 5 spritepal 6 }
+
+    // boss demise
+    ifspritepal 25 { ifcount 62 { set EX_BEAMOPF09 943 operatemasterswitches 1666 operaterespawns 1666 operateactivators 1666 THISACTOR killit } }
+    ifspritepal 26 { ifcount 41 { quake 223 set EX_BEAMOPF09 944 resetcount spritepal 25 } }
+    ifspritepal 27 { globalsound EXPLOSION_BIG palfrom 54 63 63 63 set EX_BEAMOPF09 945 resetcount spritepal 26 }
+    ifspritepal 28 { ifcount 48 { set EX_BEAMOPF09 946 palfrom 21 63 63 63 spritepal 27 } }
+
+    ifspritepal 29 { ifcount 33 ifrnd 96 { spawn FIREEXP1 palfrom 23 61 62 63 spawn SPREADORVX1 killit } }
+    // lost spawner
+    ifspritepal 30 { palfrom 21 14 6 63 spawn EXPLOSION2 sound BIGBANG spawn LOST killit }
+enda
+
+action FEXP_FRAMES 0 17 1 1 4
+useractor notenemy FIREEXP1 1
+    ifaction 0
+    {
+        sizeat 254 231
+        ifspawnedby FIREBALLTRAILER
+            ifand THISACTOR 1
+                killit
+        cstat 130
+        seta[].blend 255
+        seta[].shade -127
+        action FEXP_FRAMES
+    }
+    ifaction FEXP_FRAMES
+    {
+        hitradius 2124 44 54 64 78
+        ifactioncount 17 killit
+    }
+enda
+
+move SSSPN1 0 -6
+useractor notenemy SSSPINE
+    ifspritepal 0 { ife EX_BEAMOPF09 944 { spritepal 3 } }
+    ifspritepal 2
+    {
+        fall
+        ifcount 63 ifrnd 91
+        {
+            iffloordistl 2
+            {
+                globalsound RPG_EXPLODE
+                palfrom 23 63 62 63
+                spawn SPREADORVX6
+                spawn SPREADORVX8
+                spawn SPREADORVX9
+                spawn FIREEXP1
+                killit
+            }
+        }
+    }
+    ifspritepal 3
+    {
+        ife EX_BEAMOPF09 944 { resetcount spritepal 2 }
+        move SSSPN1
+    }
+enda
+
+move SSRB1 0 -6
+useractor notenemy SSRIBS
+    ifspritepal 0 { ife EX_BEAMOPF09 944 { spritepal 3 } }
+    ifspritepal 2
+    {
+        fall
+        ifcount 63 ifrnd 91
+        {
+            iffloordistl 2
+            {
+                globalsound RPG_EXPLODE
+                palfrom 23 63 62 63
+                spawn FIREEXP1
+                spawn SPREADORVX2
+                spawn SPREADORVX7
+                spawn SPREADORVX9
+                killit
+            }
+        }
+    }
+    ifspritepal 3
+    {
+        ife EX_BEAMOPF09 944 { resetcount spritepal 2 }
+        move SSRB1
+    }
+enda
+
+useractor notenemy SSNAKE_L_EYE_1_X_XD
+    ifspritepal 0 { ife EX_BEAMOPF09 945 { resetcount spritepal 2 } }
+    ifspritepal 2 { ifcount 31 killit }
+enda
+
+useractor notenemy SSNAKE_R_EYE_1_X_XD
+    ifspritepal 0 { ife EX_BEAMOPF09 945 { resetcount spritepal 2 } }
+    ifspritepal 2 { ifcount 31 killit }
+enda
+
+useractor notenemy SSNAKE_L_EYE_X_1_XD
+    ifspritepal 0 { ife EX_BEAMOPF09 945 { resetcount spritepal 2 } }
+    ifspritepal 2 { ifcount 31 killit }
+enda
+
+useractor notenemy SSNAKE_R_EYE_X_1_XD
+    ifspritepal 0 { ife EX_BEAMOPF09 945 { resetcount spritepal 2 } }
+    ifspritepal 2 { ifcount 31 killit }
+enda
+
+useractor notenemy SSNAKE_L_EYE_X_X_1D
+    ifspritepal 0 { ife EX_BEAMOPF09 945 { resetcount spritepal 2 } }
+    ifspritepal 2 { ifcount 31 killit }
+enda
+
+useractor notenemy SSNAKE_R_EYE_X_X_1D
+    ifspritepal 0 { ife EX_BEAMOPF09 945 { resetcount spritepal 2 } }
+    ifspritepal 2 { ifcount 31 killit }
+enda
+
+useractor notenemy SSNAKE_L_HORNS
+    ifspritepal 0 { ife EX_BEAMOPF09 945 { resetcount spritepal 2 } }
+    ifspritepal 2 { ifcount 31 { globalsound DISTANT_EXPLOSION killit } }
+enda
+
+useractor notenemy SSNAKE_R_HORNS
+    ifspritepal 0 { ife EX_BEAMOPF09 945 { resetcount spritepal 2 } }
+    ifspritepal 2 { ifcount 31 { operatemasterswitches 1777 operateactivators 1777 THISACTOR killit } }
+enda
+
+eventloadactor 21398
+    geta[].cstat temp4
+    geta[].ang temp8
+    state GETHITAGLOTAG
+enda
+
+useractor notenemy 21398
+    ifspawnedby SKELSNAKE_BLK_N_E
+        spritepal 6
+
+    ifaction 0
+    {
+        ifspritepal 3
+            break
+        sizeat 1 1
+        cstat 32768
+        spawn 10353
+        ifn HITAGSAVED 0
+            action BREAK
+        else
+            action ZERO
+    }
+
+    ifaction BREAK
+    {
+        sleeptime 0
+        checkactivatormotion HITAGSAVED
+        ife RETURN 1 action ZERO
+    }
+    else ifaction ZERO
+    {
+        ifpdistl 3272
+        {
+            seta[].cstat temp4
+            action FORM
+        }
+    }
+    else ifaction FORM
+    {
+        cstator 34
+        geta[].ang temp3
+        add temp3 256
+        seta[].ang temp3
+        geta[].xrepeat temp2
+        add temp2 2
+        seta[].xrepeat temp2
+        seta[].yrepeat temp2
+        ifg temp2 24
+        {
+            cstator 35
+            sizeat 36 36
+            seta[].ang temp8
+            sound ROCK_IMPACT
+            action FORMED
+        }
+    }
+    else ifaction FORMED
+    {
+        move 0
+        ifpdistg 3071
+        {
+            action UNFORM
+        }
+    }
+    else ifaction UNFORM
+    {
+        geta[].ang temp3
+        sub temp3 256
+        seta[].ang temp3
+        sizeto 1 1
+        ife sprite[].xrepeat 1
+        {
+            seta[].ang temp8
+            cstat 32768
+            spawn GUNSMOKE
+            action ZERO
+        }
+    }
+enda
+
+spritenopal EPORTAL_AND_ETC1
+useractor notenemy EPORTAL_AND_ETC1
+    ifspritepal 4
+    {
+        ife EX_BEAMOPF09 0 { cstator 32768 }
+        ife EX_BEAMOPF09 943 { cstator 33 }
+    }
+
+    // Last scene activator
+    ifspritepal 5
+    {
+        cstator 32768
+        ife EX_BEAMOPF09 943 { ifcansee { palfrom 32 63 63 63 set ACCUNLOCKED 666 operateactivators 806 0 set EX_BEAMOPF08 518 resetcount spritepal 18 } }
+    }
+    ifspritepal 18 { ifcount 111 { set EX_BEAMOPF08 519 killit } }
+
+    // portal to exit boss
+    ifspritepal 6
+    {
+        ife EX_BEAMOPF09 0 { cstator 32768 }
+        ife EX_BEAMOPF09 943 { cstat 0 cstator 18 }
+    }
+
+    // portal to enter boss
+    ifspritepal 7 { seta[].shade -62 ifcount 423 { cstat 0 cstator 530 ife EX_BEAMOPF09 943 { ifpdistl 6666 { resetcount spritepal 17 } } } }
+    ifspritepal 8 { cstator 32768 ife EX_BEAMOPF01 666 { resetcount spritepal 7 } }
+    ifspritepal 17 { seta[].shade 20 ifcount 211 killit }
+
+    // Skeletal demon snake's lair fades to black.
+
+    ifspritepal 10
+    {
+        seta[].shade 62
+        ife ACCUNLOCKED 0 { cstator 32768 }
+        ife ACCUNLOCKED 666 { cstat 0 cstator 16 }
+    }
+    ifspritepal 11
+    {
+        seta[].shade 62
+        ife ACCUNLOCKED 0 { cstator 32768 }
+        ife ACCUNLOCKED 666 { cstat 0 cstator 32 }
+    }
+
+    // crushing ceiling movement effectors
+    ifspritepal 12 { cstator 32768 ifcount 32 { operateactivators 10501 0 resetcount spritepal 13 } }
+    ifspritepal 13 { ifcount 91 { operateactivators 10501 0 resetcount spritepal 12 } }
+
+    ifspritepal 14 { cstator 32768 ifcount 28 { operateactivators 10502 0 resetcount spritepal 15 } }
+    ifspritepal 15 { ifcount 91 { operateactivators 10502 0 resetcount spritepal 14 } }
+
+    ifspritepal 16 { cstator 32768 ifcount 16 { operateactivators 10503 0 resetcount spritepal 19 } }
+    ifspritepal 19 { ifcount 91 { operateactivators 10503 0 resetcount spritepal 16 } }
+
+    ifspritepal 20 { cstator 32768 ifcount 48 { operateactivators 10504 0 resetcount spritepal 21 } }
+    ifspritepal 21 { ifcount 91 { operateactivators 10504 0 resetcount spritepal 20 } }
+
+    ifspritepal 22 { cstator 32768 ifcount 35 { operateactivators 10505 0 resetcount spritepal 23 } }
+    ifspritepal 23 { ifcount 91 { operateactivators 10505 0 resetcount spritepal 22 } }
+
+    ifspritepal 24 { cstator 32768 ifcount 112 { operateactivators 10506 0 resetcount spritepal 25 } }
+    ifspritepal 25 { ifcount 91 { operateactivators 10506 0 resetcount spritepal 24 } }
+
+    ifspritepal 26 { cstator 32768 ifcount 111 { operateactivators 10507 0 resetcount spritepal 27 } }
+    ifspritepal 27 { ifcount 91 { operateactivators 10507 0 resetcount spritepal 26 } }
+
+    ifspritepal 28 { cstator 32768 ifcount 82 { operateactivators 10508 0 resetcount spritepal 29 } }
+    ifspritepal 29 { ifcount 91 { operateactivators 10508 0 resetcount spritepal 28 } }
+enda
+
+useractor notenemy MAGICALTILEEFFECTS
+    ifspritepal 0
+    {
+        seta[].shade 13
+        ife EX_BEAMOPF08 0 { cstator 32768 }
+        ife EX_BEAMOPF08 518 { cstat 0 cstator 33 resetcount }
+        ife EX_BEAMOPF08 519 { ifcount 20 { globalsound FLOORFADING1 killit } }
+    }
+    ifspritepal 3
+    {
+        seta[].shade 13
+        ife EX_BEAMOPF08 0 { cstator 32768 }
+        ife EX_BEAMOPF08 518 { cstat 0 cstator 545 resetcount }
+        ife EX_BEAMOPF08 519 { ifcount 56 killit }
+    }
+    ifspritepal 9
+    {
+        seta[].shade 13
+        ife EX_BEAMOPF08 0 { cstator 32768 }
+        ife EX_BEAMOPF08 518 { cstat 0 cstator 545 resetcount }
+        ife EX_BEAMOPF08 519 { ifcount 50 killit }
+    }
+    ifspritepal 10
+    {
+        seta[].shade 13
+        ife EX_BEAMOPF08 0 { cstator 32768 }
+        ife EX_BEAMOPF08 518 { cstat 0 cstator 545 resetcount }
+        ife EX_BEAMOPF08 519 { ifcount 44 killit }
+    }
+    ifspritepal 11
+    {
+        seta[].shade 13
+        ife EX_BEAMOPF08 0 { cstator 32768 }
+        ife EX_BEAMOPF08 518 { cstat 0 cstator 545 resetcount }
+        ife EX_BEAMOPF08 519 { ifcount 38 killit }
+    }
+    ifspritepal 12
+    {
+        seta[].shade 13
+        ife EX_BEAMOPF08 0 { cstator 32768 }
+        ife EX_BEAMOPF08 518 { cstat 0 cstator 545 resetcount }
+        ife EX_BEAMOPF08 519 { ifcount 32 killit }
+    }
+    ifspritepal 15
+    {
+        seta[].shade 13
+        ife EX_BEAMOPF08 0 { cstator 32768 }
+        ife EX_BEAMOPF08 518 { cstat 0 cstator 35 resetcount }
+        ife EX_BEAMOPF08 519 { ifcount 26 { cstator 514 ifcount 60 killit } }
+    }
+
+    // rest for beetle password
+    // beetle password No.1
+    ifspritepal 23
+    {
+        cstator 32768
+        ife BEETLECODES01 0
+        {
+            ife BEETLECODES02 100
+            {
+                ife BEETLECODES03 100
+                {
+                    ife BEETLECODES04 0
+                    {
+                        ife BEETLECODES05 0
+                        {
+                            globalsound GONG_HIT
+                            resetcount
+                            set BEETLECODES05 19
+                        }
+                    }
+                }
+            }
+        }
+        ife BEETLECODES05 19
+        {
+            ifcount 34
+            {
+                set BEETLECODES01 0
+                set BEETLECODES02 0
+                set BEETLECODES03 0
+                set BEETLECODES04 0
+                operatemasterswitches 79
+                quake 37
+                killit
+            }
+        }
+    }
+    // beetle password No.2
+    ifspritepal 24
+    {
+        cstator 32768
+        ife BEETLECODES01 100
+        {
+            ife BEETLECODES02 100
+            {
+                ife BEETLECODES03 0
+                {
+                    ife BEETLECODES04 0
+                    {
+                        ife BEETLECODES06 100
+                        {
+                            ife BEETLECODES07 100 { ife BEETLECODES05 19 { globalsound GONG_HIT resetcount set BEETLECODES05 18 } }
+                        }
+                    }
+                }
+            }
+        }
+        ife BEETLECODES05 18 { ifcount 34 { set BEETLECODES01 0 set BEETLECODES02 0 set BEETLECODES03 0 set BEETLECODES04 0 set BEETLECODES06 0 set BEETLECODES07 0 operatemasterswitches 86 quake 37 killit } }
+    }
+    // beetle password No.3
+
+    ifspritepal 25
+    {
+        cstator 32768
+        ife BEETLECODES01 100
+        {
+            ife BEETLECODES02 0
+            {
+                ife BEETLECODES08 100 { ife BEETLECODES05 18 { globalsound GONG_HIT resetcount set BEETLECODES05 17 } }
+            }
+        }
+        ife BEETLECODES05 17 { ifcount 34 { set BEETLECODES01 0 set BEETLECODES02 0 set BEETLECODES08 0 operatemasterswitches 90 quake 37 killit } }
+    }
+
+enda
+
+// superhot magma,
+// tile 20481 (put its effect here)
+// VAR resetters upon death, quit to main menu, move to next level by cheat code and or finishing level.
+
+appendevent EVENT_RESETPLAYER
+    set temp266 0
+    set temp267 0
+    set DOOROP_X_1 0
+    set FFIELDTOLERANCE_LV 0
+    set FFIELDRESISTANCE 0
+    set BARRIERPWRLV 0
+    set POWERINGSOMETHINGX 0
+    set EX_BEAM 0
+    set EX_BEAMF 0
+    set EX_BEAMOPF 0
+    set EX_BEAMOPF01 0
+    set EX_BEAMOPF02 0
+    set EX_BEAMOPF03 0
+    set EX_BEAMOPF04 0
+    set EX_BEAMOPF05 0
+    set EX_BEAMOPF06 0
+    set EX_BEAMOPF07 0
+    set EX_BEAMOPF08 0
+    set EX_BEAMOPF09 0
+    set EX_BEAMOPF10 0
+    set JBGENEDEAD 0
+    set ACCUNLOCKED 0
+    set SWITC_H_CODES 0
+    set GIVINGANItempAPER 0
+    set PYRAMIDCODAGE 0
+    set INSIDEQUICKFALL 0
+    set G_MOVINGPRT 0
+    set G_MOVINGPRT2 0
+    set BEETLECODES01 0
+    set BEETLECODES02 0
+    set BEETLECODES03 0
+    set BEETLECODES04 0
+    set BEETLECODES05 0
+    set BEETLECODES06 0
+    set BEETLECODES07 0
+    set BEETLECODES08 0
+endevent
+
+spritenoshade 19279
+spritenoshade 19280
+spritenoshade 19290
+spritenoshade 19291
+spritenoshade 19401
+spritenoshade 19434
+spritenoshade 19435
+spritenoshade 19436
+spritenoshade 19437
+spritenoshade 19438
+spritenoshade 19441
+spritenoshade 19442
+spritenoshade 19443
+spritenoshade 19444
+spritenoshade 20500
+spritenoshade 20511
+spritenoshade 20512
+spritenoshade 20513
+spritenoshade 20514
+spritenoshade 20610
+spritenoshade 20633
+spritenoshade 20634
+spritenoshade 20635
+spritenoshade 20636
+spritenoshade 20637
+spritenoshade 20638
+spritenoshade 20640
+
+// Scarab
+// UGH this is a hideous rush job, but this is just for this one level
+
+action SCARAB_OFF -152
+action SCARAB_DEC -152
+
+var scarab_code 0 0
+
+useractor notenemy 20418
+ifaction 0
+	{
+	ifspritepal 10
+		{
+		cstat 32768
+		fall
+		ifpdistl 2048
+			{
+			set scarab_code 0
+			killit
+			}
+		}
+	else
+	ifspritepal 6 action FORM else
+	ifspritepal 5 action FORM else
+	ifspritepal 4 action FORM else
+	action SCARAB_OFF
+	}
+
+
+ifaction FORM
+	{
+	cstat 32768
+	ife scarab_code LOTAGSAVED
+		{
+		globalsound GONG_HIT
+		ifspritepal 6 operatemasterswitches 79
+		else ifspritepal 5 operatemasterswitches 90
+		else ifspritepal 4 operatemasterswitches 86
+		quake 37
+        killit
+		}
+	}
+
+ifspritepal 0
+	{
+	ife scarab_code LOTAGSAVED action SCARAB_DEC
+	}
+
+ifaction SCARAB_DEC spritepal 121
+
+ifaction SCARAB_OFF
+	{
+    ifpdistl 966 ifcansee ifp pfacing
+        {
+        set player_use 0
+            ifhitspace ifcount 35
+            {
+			xor scarab_code HITAGSAVED
+			sound SWJPYRON
+            action ZERO
+            resetcount
+            }
+        }
+	}
+
+ifaction ZERO
+	{
+    ifpdistl 966 ifcansee ifp pfacing
+        {
+            set player_use 0
+            ifhitspace ifcount 35
+            {
+			xor scarab_code HITAGSAVED
+			sound SWJPYROFF
+            action SCARAB_OFF
+            resetcount
+            }
+        }
+	}
+
+enda

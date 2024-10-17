@@ -1,0 +1,485 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+
+--------------------------------------------------------------------------------
+*/
+
+// ************************************************************************************
+// ZOMBIE RIFLE SOLDIER
+// ************************************************************************************
+
+action AZSOLDIER_FROZE 0 1 5 1 10
+action AZSOLDIER_GROW 30 1 1 1 10
+action AZSOLDIER_IDLE 0 1 5 1 20
+action AZSOLDIERRUN  0  4 5 1 20
+action AZSOLDIERFIRE 20 2 5 1 4
+action AZSOLDIERFLINCH 30 1 1 1 10
+action AZSOLDIERDYING 35 5 1 1 16
+action AZSOLDIERDEAD 39 1 1 1 10
+
+action AZSOLDIER_HEADSHOT 40 5 1 1 16
+action AZSOLDIER_HEADDEAD 44 1 1 1 10
+
+
+move ZSOLDIERWALKVELS 60
+move ZSOLDIERRUNVELS 80
+
+ai AIZSOLDIERSEEKENEMY AZSOLDIERRUN ZSOLDIERWALKVELS geth
+ai AIZSOLDIERSHOOTENEMY AZSOLDIERFIRE STOP 
+ai AIZSOLDIERDEAD AZSOLDIERDEAD STOP faceplayer
+ai AIZSOLDIER_HEADDEAD AZSOLDIER_HEADDEAD STOP faceplayer
+ai AIZSOLDIERSHRUNK AZSOLDIERRUN ZSOLDIERRUNVELS furthestdir
+ai AIZSOLDIER_GROW AZSOLDIER_GROW STOP faceplayer
+
+damageeventtile ZSOLDIER
+
+useractor enemystayput ZSOLDIER_STAYPUT 75 AZSOLDIER_IDLE
+state monst_glow
+cactor ZSOLDIER
+enda
+
+useractor enemy ZSOLDIER 75 AZSOLDIER_IDLE
+fall
+
+ifai 0
+{
+	state monst_glow
+	spawn SHOOTME
+	spriteflags NORMAL_ENEMY
+	geta[].pal actor_pal
+	ife actor_pal 24 { set actor_type TYPE_BODY_ARMOUR strength 200 sizeat 30 30 } else
+	{ strength 75 sizeat 25 25 }
+	action AZSOLDIERRUN
+	ai AIZSOLDIERSEEKENEMY
+	sound FZOM_SIGHT
+	cstat 257
+}
+
+state ENEMYKNOCKBACKS
+state enemyfloordamage
+state enemy_fire_damage
+state enemy_ice_damage
+state enemy_spirit_damage
+
+ifaction AZSOLDIER_FROZE state frozen_code
+else
+ifaction AZSOLDIERFLINCH
+{
+	sub PAIN_AMOUNT 1
+	move STOP
+	ife PAIN_AMOUNT 0 ai AIZSOLDIERSEEKENEMY
+}
+else
+ifai AIZSOLDIERDEAD
+{
+move STOP
+    ifhitweapon
+	    {
+	      ifwasweapon RADIUSEXPLOSION state zombie_jibs
+	      break
+	    }
+}
+else
+ifai AIZSOLDIER_HEADDEAD
+{
+move STOP
+    ifhitweapon
+	    {
+	      ifwasweapon RADIUSEXPLOSION state zombie_jibs
+	      break
+	    }
+}
+else
+ifaction AZSOLDIERDYING
+{
+strength 0
+	ifactioncount 5 { state BODY_FALL_NOISES spawn BLOODPOOL ai AIZSOLDIERDEAD }
+}
+else
+ifaction AZSOLDIER_HEADSHOT
+{
+strength 0
+	ifactioncount 5 { state BODY_FALL_NOISES spawn BLOODPOOL ai AIZSOLDIER_HEADDEAD }
+}
+else
+ifai AIZSOLDIER_GROW state genericgrowcode
+else
+ifai AIZSOLDIERSHRUNK
+{
+    ifcount SHRUNKDONECOUNT
+      ai AIZSOLDIERSEEKENEMY
+    else ifcount SHRUNKCOUNT
+	  {
+	  sound ACTOR_UNSHRINK
+      sizeat 25 25
+	  }
+    else
+      state genericshrunkcode
+    break
+}
+else
+ifai AIZSOLDIERSEEKENEMY
+	{
+	state checkfortarget
+	state SKILL_SHOOT_LEVELADJUST
+	ifn my_target -1 ifl RANDOM_CHANCE SKILLCHANCE ai AIZSOLDIERSHOOTENEMY
+		ifrnd 16 { soundonce ZSOLD_ROAM setactorsoundpitch THISACTOR ZSOLD_ROAM 256 }
+	}
+else
+ifai AIZSOLDIERSHOOTENEMY
+	{
+		state new_validatetarget
+		ife my_target -1 ai AIZSOLDIERSEEKENEMY
+		state fronttowardstarget
+		ifactioncount 2
+		{
+			ife actor_pal 24
+				{
+				set PROJECTILE_FIRING_SOUND M16_FIRE
+				set PROJECTILE_TO_SHOOT ENEMY_BULLET
+				}
+			else
+				{
+				state SKILL_ENEMY_ACCURACY
+				set PROJECTILE_FIRING_SOUND M16_2_FIRE
+				set PROJECTILE_TO_SHOOT ENEMY_BULLET
+				}
+			state sang_enemyShootProjectile
+			ife PERFMODE 1
+			 ifcansee
+				{
+				set gunsmoke_z 7644
+				set gunsmoke_angle 128
+				state spawn_gunsmoke_z
+				state npc_rifleshell
+				set gunsmoke_z 6044
+				state spawn_enemy_ARFLASH
+				state spawn_muzzleflash
+				}
+			ifrnd 32 ai AIZSOLDIERSEEKENEMY
+			resetactioncount
+		}
+	}
+
+ifhitweapon
+{
+	state NEWGUNEFFECTS
+	//spawn BLOOD
+	state random_wall_jibs
+	ifdead
+		{
+		ifwasweapon GROWSPARK { cstat 0 sound ACTOR_GROWING ai AIZSOLDIER_GROW break }
+		else ifg ice_damage 0 { spritepal 1 strength 1 sound SOMETHINGFROZE action AZSOLDIER_FROZE }
+		else
+			{
+			state rf
+			guts JIBS6 3
+			addkills 1
+
+			ifwasweapon RADIUSEXPLOSION state zombie_jibs
+			ifwasweapon RPG state zombie_jibs
+			ifand PROJ_UDATA PROJ_GIB state zombie_jibs
+			ifand PROJ_UDATA 8192
+			 {
+			 shoot SPARK2 shoot SPARK2 shoot SPARK2
+			 spawn ELECTROCUTE_GUY
+			 killit
+			 }
+			ifg fire_damage 0
+				{
+				shoot SPARK2 shoot SPARK2 shoot SPARK2
+				sound FZOM_DIE
+				spawn ONFIREGUY
+				killit
+				}
+			else
+			ife HEADSHOT 2
+				{
+			    ifg fire_damage 0 set fire_damage 0
+				state random_trigger_showoff
+				state jib_sounds
+				state decap_sounds
+				shoot NJIB
+				shoot NJIB
+				guts JIBS6 3
+				guts JIBS2 2
+				action AZSOLDIER_HEADSHOT
+				}
+			else ifg spirit_damage 0
+				{
+				shoot SPARK2 shoot SPARK2 shoot SPARK2
+				spritepal 1
+				guts JIBS3 6
+				spawn SPIRIT_DEATH_GUY
+				killit
+				}
+			else
+			ifg energy_damage 0
+				{
+				shoot SPARK2 shoot SPARK2 shoot SPARK2
+				spritepal 4
+				guts JIBS3 6
+				spawn DISINTIGRATE_GUY
+				killit
+				}
+			else
+				{
+				sound FZOM_DIE
+				action AZSOLDIERDYING
+				}
+			ifrnd 48 { espawn M16SPRITE randvar temp 30 setactorvar[RETURN].YVELSAVED temp }
+			}
+		ifphealthl 50
+			{
+			state SKILL_LEVELADJUST
+			ifl RANDOM_CHANCE SKILLCHANCE spawn HYPOSPRAY
+			}
+		}
+else
+	ifg PAIN_AMOUNT 0 { sound FZOM_HURT action AZSOLDIERFLINCH }
+	else ifrnd 16 { sound FZOM_HURT state PAIN_SKILL_LEVELADJUST action AZSOLDIERFLINCH }
+	else ifwasweapon SHRINKSPARK { sound ACTOR_SHRINKING ai AIZSOLDIERSHRUNK }
+}
+
+state checksquished
+
+enda
+
+damageeventtile ZSOLDIER2
+
+useractor enemystayput ZSOLDIER2_STAYPUT 75 AZSOLDIER_IDLE
+state monst_glow
+cactor ZSOLDIER2
+enda
+
+useractor enemy ZSOLDIER2 75 AZSOLDIER_IDLE
+fall
+
+ifai 0
+{
+	state monst_glow
+	spawn SHOOTME
+	spriteflags NORMAL_ENEMY
+	geta[].pal actor_pal
+	ife actor_pal 24 { set actor_type TYPE_BODY_ARMOUR strength 200 sizeat 30 30 } else
+	{ strength 75 sizeat 25 25 }
+	action AZSOLDIERRUN
+	ai AIZSOLDIERSEEKENEMY
+	sound ZSOLD_SIGHT
+	cstat 257
+}
+
+state ENEMYKNOCKBACKS
+state enemyfloordamage
+state enemy_fire_damage
+state enemy_ice_damage
+state enemy_spirit_damage
+
+ifaction AZSOLDIER_FROZE state frozen_code
+else
+ifaction AZSOLDIERFLINCH
+{
+	sub PAIN_AMOUNT 1
+	move STOP
+	ife PAIN_AMOUNT 0 ai AIZSOLDIERSEEKENEMY
+}
+else
+ifai AIZSOLDIERDEAD
+{
+move STOP
+    ifhitweapon
+	    {
+	      ifwasweapon RADIUSEXPLOSION state zombie_jibs
+	      break
+	    }
+}
+else
+ifai AIZSOLDIER_HEADDEAD
+{
+move STOP
+    ifhitweapon
+	    {
+	      ifwasweapon RADIUSEXPLOSION state zombie_jibs
+	      break
+	    }
+}
+else
+ifaction AZSOLDIERDYING
+{
+strength 0
+	ifactioncount 5 { state BODY_FALL_NOISES spawn BLOODPOOL ai AIZSOLDIERDEAD }
+}
+else
+ifaction AZSOLDIER_HEADSHOT
+{
+strength 0
+	ifactioncount 5 { state BODY_FALL_NOISES spawn BLOODPOOL ai AIZSOLDIER_HEADDEAD }
+}
+else
+ifai AIZSOLDIER_GROW state genericgrowcode
+else
+ifai AIZSOLDIERSHRUNK
+{
+    ifcount SHRUNKDONECOUNT
+      ai AIZSOLDIERSEEKENEMY
+    else ifcount SHRUNKCOUNT
+	  {
+	  sound ACTOR_UNSHRINK
+      sizeat 25 25
+	  }
+    else
+      state genericshrunkcode
+    break
+}
+else
+ifai AIZSOLDIERSEEKENEMY
+	{
+		state checkfortarget
+		state SKILL_SHOOT_LEVELADJUST
+		ifn my_target -1 ifl RANDOM_CHANCE SKILLCHANCE ai AIZSOLDIERSHOOTENEMY
+			ifrnd 16 { soundonce ZSOLD_ROAM setactorsoundpitch THISACTOR ZSOLD_ROAM 256 }
+	}
+else
+ifai AIZSOLDIERSHOOTENEMY
+	{
+		state new_validatetarget
+		ife my_target -1 ai AIZSOLDIERSEEKENEMY
+		state fronttowardstarget
+		ifactioncount 2
+		{
+			ife actor_pal 24
+				{
+				set PROJECTILE_FIRING_SOUND M16_FIRE
+				set PROJECTILE_TO_SHOOT ENEMY_BULLET
+				}
+			else
+				{
+				state SKILL_ENEMY_ACCURACY
+				set PROJECTILE_FIRING_SOUND M16_2_FIRE
+				set PROJECTILE_TO_SHOOT ENEMY_BULLET
+				}
+			state sang_enemyShootProjectile
+			ife PERFMODE 1
+			 ifcansee
+				{
+				set gunsmoke_z 7644
+				set gunsmoke_angle 128
+				state spawn_gunsmoke_z
+				state npc_rifleshell
+				set gunsmoke_z 6044
+				state spawn_enemy_ARFLASH
+				state spawn_muzzleflash
+				}
+			ifrnd 32 ai AIZSOLDIERSEEKENEMY
+			resetactioncount
+		}
+	}
+
+ifhitweapon
+{
+	state NEWGUNEFFECTS
+	//spawn BLOOD
+	//guts JIBS6 5
+	state random_wall_jibs
+	ifdead
+		{
+		ifwasweapon GROWSPARK { cstat 0 sound ACTOR_GROWING ai AIZSOLDIER_GROW break }
+		else ifg ice_damage 0 { spritepal 1 strength 1 sound SOMETHINGFROZE action AZSOLDIER_FROZE }
+		else
+			{
+			state rf
+			addkills 1
+
+			ifwasweapon RADIUSEXPLOSION state zombie_jibs
+			ifwasweapon RPG state zombie_jibs
+			ifand PROJ_UDATA PROJ_GIB state zombie_jibs
+			ifand PROJ_UDATA 8192
+				 {
+				 ifrnd 8 { spawn ELECTROCUTE_MARV soundonce MALE_ELECT1 } else spawn ELECTROCUTE_GUY
+				 shoot SPARK2 shoot SPARK2 shoot SPARK2
+				 killit
+				 }
+			ifg fire_damage 0
+			{
+			shoot SPARK2 shoot SPARK2 shoot SPARK2
+				ifrnd 128 sound ZSOLD_DIE1
+				else sound ZSOLD_DIE2
+			spawn ONFIREGUY
+			killit
+			}
+			else
+			ife HEADSHOT 2
+			{
+			ifg fire_damage 0 set fire_damage 0
+				state random_trigger_showoff
+				state jib_sounds
+				state decap_sounds
+				shoot NJIB
+				shoot NJIB
+				guts JIBS6 3
+				guts JIBS2 2
+				action AZSOLDIER_HEADSHOT
+			}
+			else ifg spirit_damage 0
+			{
+			shoot SPARK2 shoot SPARK2 shoot SPARK2
+			spritepal 1
+			guts JIBS3 6
+			spawn SPIRIT_DEATH_GUY
+			killit
+			}
+			else
+			ifg energy_damage 0
+				{
+				shoot SPARK2 shoot SPARK2 shoot SPARK2
+				spritepal 4
+				guts JIBS3 6
+				spawn DISINTIGRATE_GUY
+				killit
+				}
+			else
+				{
+				ifrnd 128 sound ZSOLD_DIE1
+				else sound ZSOLD_DIE2
+				action AZSOLDIERDYING
+				}
+			ifrnd 48 { espawn M16SPRITE randvar temp 30 setactorvar[RETURN].YVELSAVED temp }
+			}
+		ifphealthl 50
+			{
+			state SKILL_LEVELADJUST
+			ifl RANDOM_CHANCE SKILLCHANCE spawn HYPOSPRAY
+			}
+		}
+else
+	ifg PAIN_AMOUNT 0 action AZSOLDIERFLINCH
+	else ifrnd 16 { sound ZSCI_PAIN state PAIN_SKILL_LEVELADJUST action AZSOLDIERFLINCH }
+	else ifwasweapon SHRINKSPARK { sound ACTOR_SHRINKING ai AIZSOLDIERSHRUNK }
+}
+
+state checksquished
+
+enda

@@ -1,0 +1,357 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+
+--------------------------------------------------------------------------------
+*/
+
+damageeventtile SSQUIRE
+
+action A_SSQUIRE_IDLE 0 1 5 1 12
+action A_SSQUIRE_START 0 1 5 1 12
+action A_SSQUIRE_WALK 0 4 5 1 12
+action A_SSQUIRE_SHRUNK 5 4 5 1 12
+action A_SSQUIRE_GROW 40 1 1 1 8
+
+action A_SSQUIRE_ATTACK 20 3 5 1 12
+action A_SSQUIRE_PREPSLASH 20 1 5 1 12
+action A_SSQUIRE_SLASH 20 3 5 1 12
+
+action A_SSQUIRE_PAIN 35 1 1 1 8
+action A_SSQUIRE_FROZEN 35 1 1 1 8
+
+action A_SSQUIRE_DIE 43 6 1 1 12
+action A_SSQUIRE_DEAD 48
+
+action A_SSQUIRE_HEAD_DIE 36 7 1 1 7
+action A_SSQUIRE_HEAD_DEAD 42
+
+action A_SSQUIRE_RES 48 5 1 -1 24
+
+move SSQUIRE_WALK 126
+
+defstate SSQUIRE_deadcode
+	move STOP
+	strength 0
+
+	// resurrect
+	ifaction A_SSQUIRE_DEAD
+	ife silence_damage 0
+	{
+		add INTERNALCOUNT 1
+		ifg INTERNALCOUNT 450 ifg ally_mag 10 { sound SKN_RES state addtotargetarray action A_SSQUIRE_RES  }
+	}
+
+    ifhitweapon
+	{
+		ifwasweapon RADIUSEXPLOSION
+		{
+			spritepal 41
+			state squish_sounds
+			state monst_body_jibs
+			state standard_jibs
+			killit
+		}
+		break
+	}
+ends
+
+defstate SSQUIRE_blastattack // projectile attack
+	move STOP
+
+	ifactioncount 2
+	{
+		sound SKN_BLAST
+
+		// For some reason setthisprojectile[RETURN].EXTRA 35 does not work for kag blast?
+		set PROJECTILE_TO_SHOOT 28977
+		set PROJECTILE_FIRING_SOUND SKN_BLAST
+		setprojectile[28977].EXTRA 15
+
+		state sang_enemyShootProjectile
+
+		setthisprojectile[RETURN].ISOUND SKN_IMPACT
+		setprojectile[28977].EXTRA 175
+		resetactioncount
+		action A_SSQUIRE_WALK
+	}
+ends
+
+defstate SSQUIRE_doattack // melee attack
+	move STOP
+	ife my_target -1
+		action A_SSQUIRE_WALK
+	else
+	{
+		ldist temp THISACTOR my_target
+
+		ifg temp 1536 action A_SSQUIRE_WALK
+		else state fronttowardstarget
+
+		ifactioncount 3
+		{
+			set PROJECTILE_TO_SHOOT 4963
+			set PROJECTILE_FIRING_SOUND -1
+			state sang_enemyShootProjectile
+			setthisprojectile[RETURN].RANGE 4
+
+			action A_SSQUIRE_WALK
+		}
+	}
+ends
+
+useractor enemystayput SSQUIRE_STAYPUT 275 A_SSQUIRE_START cactor SSQUIRE enda
+
+useractor enemy SSQUIRE 150 A_SSQUIRE_START
+fall
+
+ifaction A_SSQUIRE_START
+{
+	cstat 257
+	strength 150
+	sizeat 28 28
+	set ally_mag 150
+	geta[].pal PALSAVED
+	state monst_glow
+	espawn SHOOTME seta[RETURN].pal 1
+	// TODO uncomment when we get rid of shootme spawn FLAMMABLE
+	action A_SSQUIRE_IDLE
+}
+
+	ifg silence_damage 0
+		{
+		sub silence_damage 1
+		state spawn_curse_particles
+		}
+
+ifg sprite[].htextra 0
+{
+  ife sprite[sprite[].htowner].picnum SSQUIRE
+    seta[].htextra -1
+}
+
+state ENEMYKNOCKBACKS
+state enemyfloordamage
+state enemy_fire_damage
+state enemy_ice_damage
+state enemy_spirit_damage
+
+ifaction A_SSQUIRE_FROZEN
+{
+	state frozen_code
+}
+else ifaction A_SSQUIRE_DEAD state SSQUIRE_deadcode
+else ifaction A_SSQUIRE_HEAD_DEAD state SSQUIRE_deadcode
+else ifaction A_SSQUIRE_DIE
+	{
+	move STOP
+	strength 0
+	ifactioncount 6 { set INTERNALCOUNT 0 state rf state BODY_FALL_NOISES action A_SSQUIRE_DEAD espawn BLOODPOOL seta[RETURN].pal 1 }
+	}
+else ifaction A_SSQUIRE_HEAD_DIE
+	{
+	move STOP
+	strength 0
+	ifactioncount 6 { state rf state BODY_FALL_NOISES action A_SSQUIRE_HEAD_DEAD espawn BLOODPOOL seta[RETURN].pal 1 }
+	}
+else ifaction A_SSQUIRE_PAIN
+{
+	sub PAIN_AMOUNT 1
+	move STOP
+	ife PAIN_AMOUNT 0
+	{
+		ifdead break
+		action A_SSQUIRE_WALK
+	}
+}
+else ifaction A_SSQUIRE_SHRUNK
+{
+	ifmove SSQUIRE_WALK nullop
+	else move SSQUIRE_WALK geth fleeenemy
+
+	ifl SHRUNK_TIME SHRUNKCOUNT // keep shrunk
+		state new_shrunkcode
+	else ifl SHRUNK_TIME SHRUNKDONECOUNT // regrow
+	{
+		state unshrink
+		sizeto 28 28
+	}
+	else // after regrow, switch back to regular action
+	{
+		state endshrunkenstate
+		action A_SSQUIRE_WALK
+	}
+}
+else ifaction A_SSQUIRE_RES
+{
+	move STOP
+	ifactioncount 5
+	{
+		cstat 257
+		div ally_mag 2
+		seta[].extra ally_mag
+		set weight_increase 1
+		set max_weight 2
+
+		espawn SHOOTME seta[RETURN].pal 1
+		// TODO uncomment when we get rid of shootme spawn FLAMMABLE
+		action A_SSQUIRE_IDLE
+	}
+}
+else ifaction A_SSQUIRE_GROW
+{
+	move STOP
+	state genericgrowcode
+}
+else ifaction A_SSQUIRE_IDLE
+{
+	move STOP
+	state checkfortarget
+	ifn my_target -1
+	{
+		sound SKN_SIGHT
+		action A_SSQUIRE_WALK
+	}
+}
+else ifaction A_SSQUIRE_WALK
+{
+	ifmove SSQUIRE_WALK nullop
+	else move SSQUIRE_WALK geth
+
+	state checkfortarget
+
+	ifn my_target -1
+	{
+		dist temp THISACTOR my_target // if found, get distance
+		ifl temp 1024 { sound SKN_SWING action A_SSQUIRE_ATTACK } // if target is less than distance, attack
+		else ifl temp 8192 ifrnd 8 { sound SKN_SWING action A_SSQUIRE_PREPSLASH }
+	}
+}
+else ifaction A_SSQUIRE_ATTACK
+	state SSQUIRE_doattack
+else ifaction A_SSQUIRE_PREPSLASH // telegraphing
+{
+	move STOP
+
+	ifn my_target -1
+		state fronttowardstarget
+
+	ifactioncount 3
+		action A_SSQUIRE_SLASH
+}
+else ifaction A_SSQUIRE_SLASH
+	state SSQUIRE_blastattack
+
+ifhitweapon
+{
+	state NEWGUNEFFECTS
+	spritepal 41
+	espawn BLOOD
+	seta[RETURN].pal 1
+	guts JIBS6 1
+	state random_wall_jibs
+	ifwasweapon VOID_PLAYER_BOLT { sound EN_CURSE set silence_damage 150 }
+	ifwasweapon VOID_BOLT { sound EN_CURSE set silence_damage 300 }
+	ifwasweapon VOID_BLAST { sound EN_CURSE set silence_damage 900 }
+	getlastpal
+	ifdead
+		{
+		addkills 1
+
+		ifwasweapon GROWSPARK { cstat 0 sound ACTOR_GROWING action A_SSQUIRE_GROW break }
+		else ifg ice_damage 0 { spritepal 1 strength 0 sound SOMETHINGFROZE action A_SSQUIRE_FROZEN }
+		else ifg fire_damage 0
+			{
+			shoot SPARK2 shoot SPARK2 shoot SPARK2
+			spawn ONFIREGUY
+			killit
+			}
+		else ifand PROJ_UDATA 1048576
+			{
+			spritepal 41
+			state squish_sounds
+			state monst_body_jibs
+			state standard_jibs
+			killit
+			}
+		else ifand PROJ_UDATA 256
+			{
+			shoot SPARK2 shoot SPARK2 shoot SPARK2
+			state jib_sounds
+			spritepal 1
+			guts JIBS3 6
+			spawn SPIRIT_DEATH_GUY
+			killit
+			}
+		else ifg spirit_damage 0
+			{
+			shoot SPARK2 shoot SPARK2 shoot SPARK2
+			state jib_sounds
+			spritepal 1
+			guts JIBS3 6
+			spawn SPIRIT_DEATH_GUY
+			killit
+			}
+		else ifg energy_damage 0
+			{
+			state jib_sounds
+			shoot SPARK2 shoot SPARK2 shoot SPARK2
+			spritepal 4
+			guts JIBS3 6
+			spawn DISINTIGRATE_GUY
+			killit
+			}
+		else ife HEADSHOT 2
+			{
+			state rf
+			ifg fire_damage 0 set fire_damage 0
+			state random_trigger_showoff
+			state jib_sounds
+			ifrnd 128 sound HEL_HS1 else sound HEL_HS2
+			state decap_sounds
+			spritepal 41
+			shoot NJIB
+			shoot NJIB
+			guts JIBS6 3
+			guts JIBS2 2
+			getlastpal
+			action A_SSQUIRE_HEAD_DIE
+			}
+		else
+			{
+			sound SKN_DIE
+			state rf
+			action A_SSQUIRE_DIE
+			}
+		}
+	else ifg PAIN_AMOUNT 0 { sound SKN_PAIN action A_SSQUIRE_PAIN }
+	else ifrnd 32 { sound SKN_PAIN state PAIN_SKILL_LEVELADJUST action A_SSQUIRE_PAIN }
+	else ifaction A_SSQUIRE_IDLE { sound SKN_PAIN state PAIN_SKILL_LEVELADJUST action A_SSQUIRE_PAIN }
+	ifwasweapon SHRINKSPARK { sound ACTOR_SHRINKING action A_SSQUIRE_SHRUNK }
+}
+
+state checksquished
+
+enda

@@ -1,0 +1,621 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+
+--------------------------------------------------------------------------------
+*/
+
+damageeventtile NAALDIR
+
+appendevent EVENT_LOADACTOR
+	ifactor NAALDIR
+		geta[].xvel XVELSAVED
+endevent
+
+var naal_glob_curse 0 0
+
+action A_NAALDIR_IDLE -5510 1 5 1 12
+action A_NAALDIR_FLOAT -5510 4 5 1 16
+action A_NAALDIR_ATTACK_CHARGE -5490 4 5 1 36
+action A_NAALDIR_ATTACK -5490 4 5 1 12
+action A_NAALDIR_ATTACK_FIRE1 -5475 1 5 1 12
+action A_NAALDIR_ATTACK_ICE1 -5475 1 5 1 12
+action A_NAALDIR_ATTACK_TOTEM -5475 1 5 1 12
+action A_NAALDIR_TELEPORT -5475 1 5 1 12
+action A_NAALDIR_PAIN -5470 1 5 1 12
+action A_NAALDIR_DIE -5465 6 1 1 36
+
+move M_NAALDIR_FLOAT 260
+
+defstate nbody_dying_randomexplosion
+	// nbody pivot point
+	geta[].x x
+	geta[].y y
+	geta[].z z
+
+	// explosion point
+	set temp2 x
+	add temp2 1024
+
+	randvar temp4 2048
+
+	rotatepoint x y temp2 y temp4 mx my
+
+	// nbody is about 21000 units tall, get random z coordinate and offset it to actual nbody pos
+	rand mz 2100
+
+	sub z 2100
+	add mz z
+	sound SKULL_EXP
+	espawn SKULLEXPLOSION
+	seta[RETURN].x mx
+	seta[RETURN].y my
+	seta[RETURN].z mz
+ends
+
+defstate naaldir_curse
+
+	ifg P_SPIRIT_ARMOUR 0
+	{
+		sub P_SPIRIT_ARMOUR 50
+		clamp P_SPIRIT_ARMOUR 0 200
+		palfrom 20 0 0 40
+		soundonce SPARM_PROTECT
+		set INTERNALCOUNT_3 300
+	}
+	else
+	{
+		screensound P_CURSED
+		palfrom 20 40 0 40
+		ifand NOISE_SAID 512 nullop
+		else { set voice_cooldown 0 set PLAYER_VOICEOVER 49 xorvar NOISE_SAID 512 }
+
+		set CURSED THISACTOR
+		inv CURSED
+	}
+ends
+
+defstate naaldir_breakcurse
+	set temp8 CURSED
+	inv temp8
+	ife temp8 THISACTOR
+		set CURSED 0
+ends
+
+defstate naaldir_startspawner
+	set temp XVELSAVED
+	sub temp 1
+	operateactivators temp THISACTOR
+ends
+
+defstate naaldir_killminions
+	set temp XVELSAVED
+	sub temp 2
+	operateactivators temp THISACTOR
+ends
+
+defstate naaldir_prepteleport
+	getp[].posx temp
+	getp[].posy temp2
+	set temp3 temp
+	add temp3 1024
+	randvar temp4 2048
+	rotatepoint temp temp2 temp3 temp2 temp4 temp5 temp6
+	updatesector temp5 temp6 temp7
+	ifn temp7 -1
+	{
+		set INTERNALCOUNT 0
+		action A_NAALDIR_TELEPORT
+	}
+ends
+
+useractor enemy NAALDIR
+	ifg silence_damage 0
+	{
+		sub silence_damage 1
+		state spawn_curse_particles
+	}
+
+	// Cooldowns
+	ifaction A_NAALDIR_ATTACK_FIRE1 nullop
+	else ifaction A_NAALDIR_ATTACK_ICE1 nullop
+	else
+	{
+		ifg enemy_cooldown1 0
+			sub enemy_cooldown1 1
+
+		ifg enemy_cooldown2 0
+			sub enemy_cooldown2 1
+
+		ifg enemy_cooldown3 0
+			sub enemy_cooldown3 1
+	}
+
+	ifg INTERNALCOUNT_3 0
+		sub INTERNALCOUNT_3 1
+
+	ifaction 0
+	{
+		cstat 257
+		sizeat 32 32
+
+		strength 8000
+		set CURBOSS THISACTOR
+		state monst_glow
+		seta[].mdflags 16
+		set command 32768
+		set naal_glob_curse 0
+
+		action A_NAALDIR_IDLE
+	}
+	else ifaction A_NAALDIR_IDLE
+	{
+		state checkfortarget
+
+		ifn my_target -1
+		{
+			state naaldir_startspawner
+			action A_NAALDIR_FLOAT
+		}
+	}
+	else ifaction A_NAALDIR_FLOAT
+	{
+		state checkfortarget
+
+		ifn my_target -1
+		{
+			set temp 0 // if temp = 1, do an attack. If temp = 2, do teleport
+
+			// don't stick to the player like a fly on shit
+			ldist temp6 THISACTOR my_target
+
+			ifg temp6 4096
+			{
+				ifmove M_NAALDIR_FLOAT nullop
+				else move M_NAALDIR_FLOAT geth
+
+				// If far enough away, teleport
+				ifg temp6 10000
+				  ifrnd 8
+				  ife silence_damage 0
+				{
+					set temp 2
+				}
+				// Otherwise, random chance of attacking if any cooldown is 0
+				else ifrnd 32
+				{
+					// any cooldown must be 0 as well
+					ifle enemy_cooldown1 0
+						set temp 1
+					else ifle enemy_cooldown2 0
+						set temp 1
+					else ifle enemy_cooldown3 0
+						set temp 1
+					else
+						set temp 0
+				}
+			}
+			else
+			{
+				move STOP
+
+				// if close, be more aggro
+				ifrnd 64
+					set temp 1
+			}
+
+			ife temp 1
+			{
+				state fronttowardstarget
+
+				globalsound NAL3_ATCK3
+				action A_NAALDIR_ATTACK_CHARGE
+			}
+			else ife temp 2
+			{
+				state naaldir_prepteleport
+			}
+		}
+		else
+		{
+			ifmove M_NAALDIR_FLOAT nullop
+			else move M_NAALDIR_FLOAT geth
+		}
+
+		ife silence_damage 0
+		 ife CURSED 0
+		  ife INTERNALCOUNT_3 0
+		{
+			state naaldir_curse
+		}
+	}
+	else ifaction A_NAALDIR_ATTACK_CHARGE
+	{
+		state fronttowardstarget
+
+		move STOP
+
+		ifactioncount 3
+		{
+			set INTERNALCOUNT 0
+
+			ifle enemy_cooldown3 0
+				action A_NAALDIR_ATTACK_TOTEM
+			else ifle enemy_cooldown2 0
+				action A_NAALDIR_ATTACK_ICE1
+			else ifle enemy_cooldown1 0
+				action A_NAALDIR_ATTACK_FIRE1
+			// fallback
+			else ifrnd 128
+				action A_NAALDIR_ATTACK_FIRE1
+			else
+				action A_NAALDIR_ATTACK_ICE1
+		}
+	}
+	else ifaction A_NAALDIR_ATTACK_FIRE1
+	{
+		set enemy_cooldown1 150
+
+		state fronttowardstarget
+
+		move STOP
+
+		ife INTERNALCOUNT 0
+		{
+			sound SVD_FIRE2
+			eshoot GORO_EXPLODING_FLAME
+			setav[RETURN].OWNERSAVED THISACTOR
+		}
+
+		ife INTERNALCOUNT 60
+			action A_NAALDIR_FLOAT
+
+		add INTERNALCOUNT 1
+	}
+	else ifaction A_NAALDIR_ATTACK_ICE1
+	{
+		set enemy_cooldown2 150
+
+		state fronttowardstarget
+
+		move STOP
+
+		ife INTERNALCOUNT 0
+		{
+			sound SVD_ICE
+
+			// set noaim flag
+			setprojectile[7160].WORKSLIKE 102402
+			setprojectile[7160].extra 50
+
+			// bunch of ice projectiles in a circle
+			set PROJECTILE_VEL 700
+			state calczvel
+
+			zshoot temp3 7160
+			add temp 64 seta[].ang temp zshoot temp3 7160
+			add temp 64 seta[].ang temp zshoot temp3 7160
+			add temp 64 seta[].ang temp zshoot temp3 7160
+			add temp 64 seta[].ang temp zshoot temp3 7160
+			add temp 64 seta[].ang temp zshoot temp3 7160
+			add temp 64 seta[].ang temp zshoot temp3 7160
+			add temp 64 seta[].ang temp zshoot temp3 7160
+			add temp 64 seta[].ang temp zshoot temp3 7160
+			add temp 64 seta[].ang temp zshoot temp3 7160
+			add temp 64 seta[].ang temp zshoot temp3 7160
+			add temp 64 seta[].ang temp zshoot temp3 7160
+			add temp 64 seta[].ang temp zshoot temp3 7160
+			add temp 64 seta[].ang temp zshoot temp3 7160
+			add temp 64 seta[].ang temp zshoot temp3 7160
+			add temp 64 seta[].ang temp zshoot temp3 7160
+			add temp 64 seta[].ang temp zshoot temp3 7160
+			add temp 64 seta[].ang temp zshoot temp3 7160
+			add temp 64 seta[].ang temp zshoot temp3 7160
+			add temp 64 seta[].ang temp zshoot temp3 7160
+			add temp 64 seta[].ang temp zshoot temp3 7160
+			add temp 64 seta[].ang temp zshoot temp3 7160
+			add temp 64 seta[].ang temp zshoot temp3 7160
+			add temp 64 seta[].ang temp zshoot temp3 7160
+			add temp 64 seta[].ang temp zshoot temp3 7160
+			add temp 64 seta[].ang temp zshoot temp3 7160
+			add temp 64 seta[].ang temp zshoot temp3 7160
+			add temp 64 seta[].ang temp zshoot temp3 7160
+			add temp 64 seta[].ang temp zshoot temp3 7160
+			add temp 64 seta[].ang temp zshoot temp3 7160
+			add temp 64 seta[].ang temp zshoot temp3 7160
+			add temp 64 seta[].ang temp zshoot temp3 7160
+			add temp 64 seta[].ang temp zshoot temp3 7160
+
+			// remove noaim flag
+			setprojectile[7160].WORKSLIKE 98306
+			setprojectile[7160].extra 250
+
+			// restore ang
+			seta[].ang temp2
+		}
+
+		ife INTERNALCOUNT 40
+			action A_NAALDIR_FLOAT
+
+		add INTERNALCOUNT 1
+	}
+	else ifaction A_NAALDIR_ATTACK_TOTEM
+	{
+		set enemy_cooldown3 200
+
+		state fronttowardstarget
+
+		move STOP
+
+		ife INTERNALCOUNT 0
+		{
+			getp[].posx temp
+			getp[].posy temp2
+			set temp3 temp
+			add temp3 1024
+			randvar temp4 2048
+			rotatepoint temp temp2 temp3 temp2 temp4 temp5 temp6
+			updatesectorz temp5 temp6 player[].posz temp7
+			ifn temp7 -1
+			{
+				globalsound NMIND_ATCK2
+				espawn VOID_TOTEM
+				seta[RETURN].x temp5
+				seta[RETURN].y temp6
+
+				gets[temp7].floorz temp
+				seta[RETURN].z temp
+				seta[RETURN].sectnum temp7
+			}
+		}
+
+		ife INTERNALCOUNT 30
+			action A_NAALDIR_FLOAT
+
+		add INTERNALCOUNT 1
+	}
+	else ifaction A_NAALDIR_TELEPORT
+	{
+		move STOP spin
+
+		add INTERNALCOUNT 1
+		spawn FRAMEEFFECT1
+		ife INTERNALCOUNT 4 { cstat 2 soundonce PRIEST_CAST02 sizeto 2 24 }
+		ife INTERNALCOUNT 26
+		{
+			cstat 32768
+			getp[].posx temp
+			getp[].posy temp2
+			set temp3 temp
+			add temp3 1024
+			randvar temp4 2048
+			rotatepoint temp temp2 temp3 temp2 temp4 temp5 temp6
+			updatesectorz temp5 temp6 player[].posz temp7
+			ifn temp7 -1
+			{
+				spawn 8433
+				seta[].x temp5
+				seta[].y temp6
+				seta[].sectnum temp7
+			}
+			else
+			{
+				cstat 257
+				sizeat 32 32
+				action A_NAALDIR_FLOAT
+			}
+		}
+		ife INTERNALCOUNT 27 { soundonce PRIEST_APPEAR cstat 2 sizeto 32 32 spawn 8433 }
+		ife INTERNALCOUNT 40 { cstat 257 sizeat 32 32 action A_NAALDIR_FLOAT }
+	}
+	else ifaction A_NAALDIR_DIE
+	{
+		move STOP
+
+		ife INTERNALCOUNT_2 0
+			state nbody_dying_randomexplosion
+		else
+			add INTERNALCOUNT 1
+
+		ifactioncount 6
+		{
+			set INTERNALCOUNT_2 1
+			cstat 32768
+		}
+
+		ifg INTERNALCOUNT 120
+			{
+			operateactivators XVELSAVED THISACTOR
+			killit
+			}
+	}
+
+	ifg sprite[].htextra 0
+	{
+		ife silence_damage 0
+			{
+			ifwasweapon VOID_PLAYER_BOLT nullop else
+			ifwasweapon VOID_BOLT nullop else
+			ifwasweapon VOID_BLAST nullop else
+				{
+				seta[].htextra -1
+				set hit_indic 0
+				set hit_indic_pal 124
+				}
+			}
+
+
+		ife sprite[].htpicnum GORO_EXPLODING_FLAME
+			seta[].htextra -1
+
+		// catch-all
+	    ife sprite[].htowner THISACTOR
+			seta[].htextra -1
+	}
+
+	ifg naal_glob_curse 0
+	{
+		sound EN_CURSE
+		state naaldir_breakcurse
+		set silence_damage naal_glob_curse
+		set naal_glob_curse 0
+	}
+
+	ifhitweapon
+	{
+		guts JIBS6 1
+		state bullet_data
+		state melee_hit_effects
+		state random_wall_jibs
+		ifrnd 96 sound SBJ_PAIN1
+		else ifrnd 96 sound SBJ_PAIN2
+
+		ifwasweapon VOID_BOLT
+		{
+			sound EN_CURSE
+			state naaldir_breakcurse
+			set silence_damage 300
+		}
+
+		ifwasweapon VOID_BLAST
+		{
+			sound EN_CURSE
+			state naaldir_breakcurse
+			set silence_damage 900
+		}
+
+		ifdead
+		{
+			set silence_damage 0
+			state naaldir_breakcurse
+			set INTERNALCOUNT 0
+			state naaldir_killminions
+			// TODO a sound
+			action A_NAALDIR_DIE
+		}
+		else ifaction A_NAALDIR_IDLE
+		{
+			state naaldir_startspawner
+			action A_NAALDIR_FLOAT
+		}
+	}
+enda
+
+// VOID TOTEMS ============================================================================================
+
+spritenoshade 17921
+spritenopal 17921
+
+useractor notenemy 17921 // ripple thing
+
+ifaction 0
+ ifspawnedby VOID_TOTEM
+	{
+	seta[].blend 255
+	seta[].shade -127
+	sizeat 16 16
+	spritepal 30
+	cstat 34
+	action ZERO
+	}
+
+ifaction ZERO
+	{
+	sizeto 200 200
+	geta[].shade temp
+	add temp 1
+	seta[].shade temp
+	ifge temp 127 killit
+	}
+
+enda
+
+spritenoshade VOID_TOTEM
+spritenopal VOID_TOTEM
+spriteshadow VOID_TOTEM
+
+useractor notenemy VOID_TOTEM
+
+ifaction 0
+	{
+	cstat 256
+	strength 125
+	seta[].mdflags 16
+	set command 32768
+	sizeat 32 32
+	spawn ENERGY_EXPLOSION
+
+	ifspawnedby NAALDIR
+		sound NBRUTE_IDLE1
+
+	action ZERO
+	}
+
+ifaction ZERO
+	{
+	ifcount 90
+		{
+		ifpdistl 8192
+			{
+			ifg P_SPIRIT_ARMOUR 0
+					{
+					sub P_SPIRIT_ARMOUR 25
+					clamp P_SPIRIT_ARMOUR 0 200
+					palfrom 20 0 0 40
+					soundonce SPARM_PROTECT
+					set INTERNALCOUNT_3 300
+					}
+			else
+					{
+					screensound P_CURSED
+					palfrom 20 40 0 40
+					ifand NOISE_SAID 512 nullop
+					else { set voice_cooldown 0 set PLAYER_VOICEOVER 49 xorvar NOISE_SAID 512 }
+					set CURSED 150
+					}
+			}
+		spawn 17921
+		sound VT_PULSE
+		resetcount
+		}
+	}
+
+ifhitweapon
+	{
+      lotsofglass 1
+      sound ICE_SMASH
+		ifdead
+			{
+			lotsofglass 20
+			set naal_glob_curse 450
+			sound GLASS_BREAKING
+			spawn ENERGY_EXPLOSION
+			set CURSED 0
+			killit
+			}
+	}
+
+
+enda

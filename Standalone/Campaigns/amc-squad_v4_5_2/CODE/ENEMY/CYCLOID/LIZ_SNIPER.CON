@@ -1,0 +1,336 @@
+action A_LIZ_SNIPER_START 0 1 5 1 12 // Starting frame, different from the idle frame
+action A_LIZ_SNIPER_IDLE 0 1 5 1 12
+
+action A_LIZ_SNIPER_DEAD 92
+action A_LIZ_SNIPER_DYING 87 5 1 1 12
+
+action A_LIZ_SNIPER_HEADSHOT 80 5 1 1 12
+action A_LIZ_SNIPER_HEADDEAD 85
+
+action A_LIZ_SNIPER_FREEZE 86 1 1 1 8
+action A_LIZ_SNIPER_GROW 86 1 1 1 8
+
+action A_LIZ_SNIPER_SHRUNK 5 4 5 1 12
+action A_LIZ_SNIPER_PAIN 86 1 1 1 8
+
+action A_LIZ_SNIPER_SEEK 5 4 5 1 12
+
+action A_LIZ_SNIPER_ATTACK 25 2 5 1 0
+
+action A_LIZ_SNIPER_PREP 35 1 5 1 8
+action A_LIZ_SNIPER_DUCK 35 2 5 1 8
+
+action A_LIZ_SNIPER_ROLL 45 5 5 1 16
+
+action A_LIZ_SNIPER_KICK 70 2 5 1 12
+
+move M_LIZ_SNIPER_WALK 126
+
+damageeventtile LIZ_SNIPER
+
+// Insert stayput thing here
+useractor enemystayput LIZ_SNIPER_STAYPUT 150 A_LIZ_SNIPER_START
+	cactor LIZ_SNIPER
+enda
+
+useractor enemy LIZ_SNIPER 125 A_LIZ_SNIPER_START
+fall
+ifaction A_LIZ_SNIPER_START
+{
+	cstat 257
+	strength 125
+	sizeat 24 24
+	geta[].pal actor_pal
+	state monst_glow
+	espawn SHOOTME // Controls stuff like fire damage, targetting, .etc .etc - still used as a backup for the ally fighting stuff in-case an actor isn't set up with it yet
+	seta[RETURN].pal 1 // basically done just to make it clear that this actor is onboarded to the new targetting stuff, and is using SHOOTME for other purposes
+	action A_LIZ_SNIPER_IDLE
+}
+	
+state ENEMYKNOCKBACKS
+state enemyfloordamage
+state enemy_fire_damage
+state enemy_ice_damage
+state enemy_spirit_damage
+
+
+ifaction A_LIZ_SNIPER_IDLE
+{
+	move STOP
+	state checkfortarget
+	ifn my_target -1 
+	{
+		sound CYSN_RCG
+		action A_LIZ_SNIPER_SEEK
+	}
+}
+
+else ifaction A_LIZ_SNIPER_HEADDEAD
+{
+	move STOP
+	ifhitweapon
+	{
+		ifwasweapon RADIUSEXPLOSION
+		{
+			state squish_sounds
+			state standard_jibs
+			killit
+		}
+	}
+}
+else ifaction A_LIZ_SNIPER_HEADSHOT
+{
+	strength 0
+	ifactioncount 5 { state rf state BODY_FALL_NOISES action A_LIZ_SNIPER_HEADDEAD }
+}
+// Death & dying
+else ifaction A_LIZ_SNIPER_DEAD
+{
+	move STOP
+	ifhitweapon
+	{
+		ifwasweapon RADIUSEXPLOSION
+		{
+			state squish_sounds
+			state standard_jibs
+			killit
+		}
+	}
+}
+else ifaction A_LIZ_SNIPER_DYING
+{
+	strength 0
+	ifactioncount 5 { state rf state BODY_FALL_NOISES action A_LIZ_SNIPER_DEAD }
+}
+
+// Status effects
+else ifaction A_LIZ_SNIPER_FREEZE state frozen_code
+else ifaction A_LIZ_SNIPER_GROW
+{
+	move STOP
+	state genericgrowcode
+}
+else ifaction A_LIZ_SNIPER_SHRUNK
+{
+	ifmove M_LIZ_SNIPER_WALK { } // need to do this cause we're not using ai routines anymore
+	else
+		move M_LIZ_SNIPER_WALK geth fleeenemy
+		
+	ifl SHRUNK_TIME SHRUNKCOUNT // keep shrunk
+		state new_shrunkcode
+	else ifl SHRUNK_TIME SHRUNKDONECOUNT // regrow
+	{
+		state unshrink
+		sizeto 24 24
+	}
+	else // after regrow, switch back to regular action
+	{
+		state endshrunkenstate
+		action A_LIZ_SNIPER_SEEK
+	}	
+}
+
+else ifaction A_LIZ_SNIPER_PAIN
+{
+	sub PAIN_AMOUNT 1
+	move STOP
+	ife PAIN_AMOUNT 0
+	{
+		ifdead action A_LIZ_SNIPER_DYING 
+		else ifrnd 64 { action A_LIZ_SNIPER_ROLL move LIZROLL randomangle geth } else action A_LIZ_SNIPER_SEEK
+	}
+}
+
+else ifaction A_LIZ_SNIPER_ROLL
+	{
+	
+	ifactioncount 1 soundonce P_ROLL
+	  ifactioncount 5
+		 action A_LIZ_SNIPER_SEEK
+	}
+
+else ifaction A_LIZ_SNIPER_SEEK
+{	
+	set ally_mag 0
+	ifmove M_LIZ_SNIPER_WALK nullop 
+	else move M_LIZ_SNIPER_WALK geth
+		
+	state checkfortarget
+	
+	ifbulletnear
+	 ifrnd 32
+	  { action A_LIZ_SNIPER_ROLL move LIZROLL randomangle geth }
+	
+	ifn my_target -1
+	{
+		// Target acquired, skill setting can still affect decision to shoot.
+		state SKILL_SHOOT_LEVELADJUST
+		
+		ifl RANDOM_CHANCE SKILLCHANCE 
+		{
+			ifrnd 128 sound CYSN_ATCK1 else sound CYSN_ATCK2
+			ldist temp THISACTOR my_target
+			ifl temp 1024 action A_LIZ_SNIPER_KICK
+			else ifl temp 4096 { soundonce CYSN_BURST action A_LIZ_SNIPER_ATTACK }
+			else { espawn WARN_GLINT state SPAWN_IN_FRONT sound CYSN_CHARGE action A_LIZ_SNIPER_PREP }
+		}
+	}
+		
+}
+
+else ifaction A_LIZ_SNIPER_KICK
+{
+	move STOP
+	state new_validatetarget
+	
+	ife my_target -1
+		action A_LIZ_SNIPER_SEEK
+	
+	state fronttowardstarget
+	
+	ifactioncount 2
+	{
+
+			set PROJECTILE_TO_SHOOT KICK_2
+			set PROJECTILE_FIRING_SOUND KICK_SWING
+			state sang_enemyShootProjectile
+
+		action A_LIZ_SNIPER_SEEK
+	}
+}
+
+else ifaction A_LIZ_SNIPER_PREP
+{
+	move STOP
+	state new_validatetarget
+	
+	ife my_target -1
+		action A_LIZ_SNIPER_SEEK
+	
+	state fronttowardstarget
+	ifactioncount 10 action A_LIZ_SNIPER_DUCK
+	
+}
+
+else ifaction A_LIZ_SNIPER_DUCK
+{
+	move STOP
+	state new_validatetarget
+	
+	ife my_target -1
+		action A_LIZ_SNIPER_SEEK
+	
+	state fronttowardstarget
+	
+	ifactioncount 2
+	{
+		// Optional: check if the target is the player
+		getactorvar[my_target].myowner temp4
+		set HITSCAN_TO_SHOOT CYC_RAILGUN
+		set HITSCAN_FIRING_SOUND CYSN_SNIPE
+		state sang_enemyShootHitscan	
+		action A_LIZ_SNIPER_SEEK
+	}
+}
+
+else ifaction A_LIZ_SNIPER_ATTACK
+{
+	move STOP
+	state new_validatetarget
+	
+	ife my_target -1
+		action A_LIZ_SNIPER_SEEK
+	
+	state fronttowardstarget
+	
+	ifactioncount 2
+	{
+		// Optional: check if the target is the player
+		getactorvar[my_target].myowner temp4
+		
+			set PROJECTILE_TO_SHOOT FIRELASER
+			set PROJECTILE_FIRING_SOUND 4
+			state sang_enemyShootProjectile
+		add ally_mag 1
+		ifge ally_mag 22 action A_LIZ_SNIPER_SEEK
+		else resetactioncount
+	}
+}
+	
+ifhitweapon
+{
+	state NEWGUNEFFECTS
+	//spawn BLOOD
+	guts JIBS6 1
+	state random_wall_jibs
+	ifdead
+	{
+		addkills 1
+		state rf
+		
+
+		ifand PROJ_UDATA 8192
+			 {
+			 spawn ELECTROCUTE_LIZT
+			 shoot SPARK2 shoot SPARK2 shoot SPARK2
+			 killit
+			 }
+		ifwasweapon GROWSPARK { cstat 0 sound ACTOR_GROWING action A_LIZ_SNIPER_GROW break }
+		else ifg ice_damage 0 { spritepal 1 strength 0 sound SOMETHINGFROZE action A_LIZ_SNIPER_FREEZE } 
+		else ifg fire_damage 0 
+		{
+			shoot SPARK2 shoot SPARK2 shoot SPARK2 
+			ifrnd 128 sound ZSOLD_DIE1
+			else sound ZSOLD_DIE2
+			spawn ONFIREGUY
+			killit
+		}
+		else ife HEADSHOT 2 
+		{
+			ifg fire_damage 0 set fire_damage 0
+			ifrnd 32 state trigger_showoff
+			state jib_sounds
+			sound DECAPITATE 
+			shoot NJIB 
+			shoot NJIB 
+			guts JIBS6 3 
+			guts JIBS2 2 
+			action A_LIZ_SNIPER_HEADSHOT
+		}
+		else ifg spirit_damage 0
+		{
+			shoot SPARK2 shoot SPARK2 shoot SPARK2 
+			spritepal 1
+			guts JIBS3 6
+			spawn SPIRIT_DEATH_GUY
+			killit
+		}
+		else ifg energy_damage 0
+		{
+			shoot SPARK2 shoot SPARK2 shoot SPARK2 
+			spritepal 4
+			guts JIBS3 6
+			spawn DISINTIGRATE_GUY
+			killit
+		}
+		else
+		{
+			sound CYSN_DIE
+			action A_LIZ_SNIPER_DYING
+			spawn BLOODPOOL
+		}
+	}
+		
+	else // not dead
+	{
+		ifwasweapon SHRINKSPARK { sound ACTOR_SHRINKING action A_LIZ_SNIPER_SHRUNK }
+		
+		ifg PAIN_AMOUNT 0 { sound CYSN_PAIN action A_LIZ_SNIPER_PAIN }
+		else ifrnd 32 { sound CYSN_PAIN state PAIN_SKILL_LEVELADJUST action A_LIZ_SNIPER_PAIN }
+		else ifaction A_LIZ_SNIPER_IDLE { sound CYSN_PAIN state PAIN_SKILL_LEVELADJUST action A_LIZ_SNIPER_PAIN }
+	}
+}
+
+state checksquished
+
+enda

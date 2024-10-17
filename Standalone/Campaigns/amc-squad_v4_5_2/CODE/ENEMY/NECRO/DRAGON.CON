@@ -1,0 +1,975 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+
+--------------------------------------------------------------------------------
+*/
+
+damageeventtile DRAGON
+damageeventtile DRAGON_FLIGHT
+
+// DRAGON SETTINGS
+// EXTRA = activator to activate upon death.
+// XVEL
+//     0: flying boss variant, dies while flying and doesn't go to ground
+//     1: miniboss variant, has less health and will drop to ground if damaged enough (if not over a water sector or paralaxed floor)
+// ZVEL
+// 		track number of smartpoints to follow
+
+var dragon_flying 0 2
+var dragon_goingup 0 2
+
+// Dragon flight actions
+action A_DRAGON_FLY_IDLE 0 1 5 1 12
+action A_DRAGON_FLY_WINGUP 0 4 5 1 8
+action A_DRAGON_FLY_WINGDOWN 15 4 5 -1 8
+action A_DRAGON_FLY_ATTACK_PREP 20 1 5 1 8
+action A_DRAGON_FLY_ATTACK 20 4 5 1 8
+action A_DRAGON_FLY_PAIN 40 1 1 1 8
+action A_DRAGON_FLY_DYING 40
+action A_DRAGON_FLY_FALL 40
+action A_DRAGON_FLY_HITGROUND 41 2 1 1 8
+action A_DRAGON_FLY_WAIT 42
+action A_DRAGON_FLY_RISE 42 2 1 -1 48
+action A_DRAGON_FLY_DEAD 101
+
+// Dragon flight moves
+move M_DRAGON_FLYUP 500 -100
+move M_DRAGON_FLYUPVERT 0 -100
+move M_DRAGON_FLYDOWN 500 20
+move M_DRAGON_FLYDOWNVERT 0 20
+move M_DRAGON_FLYSTRAIGHT 500 -18 // counteract gravity
+move M_DRAGON_FLYIDLE 0 -18 // counteract gravity
+
+// Dragon ground actions
+action A_DRAGON_IDLE 0 1 5 1 12
+action A_DRAGON_DEAD 58
+action A_DRAGON_DYING 50 9 1 1 16
+action A_DRAGON_PAIN 50
+action A_DRAGON_SEEK 5 4 5 1 8
+action A_DRAGON_MELEE 25 3 5 1 16
+action A_DRAGON_FIREPREP 40 1 5 1 8
+action A_DRAGON_FIRE 45 1 5 1 8
+
+// Dragon ground moves
+move M_DRAGON_WALK 275
+
+defstate dragon_shoot_fire
+	geta[].ang temp
+
+	set temp2 temp
+	sub temp2 temp4
+	seta[].ang temp2
+	zshoot temp3 22828
+
+	ifn temp3 0
+	{
+		set temp2 temp
+		add temp2 temp4
+		seta[].ang temp2
+		zshoot temp3 22828
+	}
+
+	seta[].ang temp
+ends
+
+// input argument: z
+defstate dragon_height_check
+
+	geta[].z my_z
+
+	set temp z
+
+	// margin of 8000 units to hover around the height, it looks stupid otherwise
+	ife dragon_goingup 1
+		sub temp 8000
+	else
+		add temp 4000
+
+	ifg my_z temp
+	{
+		set dragon_goingup 1
+
+		ife temp3 1
+		{
+			ifmove M_DRAGON_FLYUPVERT nullop
+			else move M_DRAGON_FLYUPVERT geth getv
+		}
+		else
+		{
+			ifmove M_DRAGON_FLYUP nullop
+			else move M_DRAGON_FLYUP geth getv
+		}
+	}
+	else
+	{
+		set dragon_goingup 0
+
+		ife temp3 1
+		{
+			ifmove M_DRAGON_FLYDOWNVERT nullop
+			else move M_DRAGON_FLYDOWNVERT geth getv
+		}
+		else
+		{
+			ifmove M_DRAGON_FLYDOWN nullop
+			else move M_DRAGON_FLYDOWN geth getv
+		}
+	}
+ends
+
+defstate handle_dragon_flight
+	ifg INTERNALCOUNT 0
+		sub INTERNALCOUNT 1
+
+	set temp 0 // temp = 1 if allowed to attack
+
+	ifle INTERNALCOUNT 0
+	{
+		state checkfortarget
+
+		ifn my_target -1
+			ifrnd 32
+			set temp 1
+	}
+
+	ife temp 1
+	{
+		set INTERNALCOUNT 120
+		geta[].z z
+		ifrnd 128 sound DGR_ATT1 else sound DGR_ATT2
+		action A_DRAGON_FLY_ATTACK_PREP
+	}
+	else
+	{
+		state anglePathToNextLotag
+
+		// if temp3 is 1 the dragon should only move vertically
+		set temp3 0
+
+		ifn next_point -1
+		{
+			ldist xydist next_point THISACTOR
+
+			ifg xydist 2048
+				seta[].ang angvar
+			else
+				set temp3 1
+		}
+
+		ifrnd 128
+		{
+			ife temp3 1
+				move STOP
+		}
+		else ifn next_point -1
+		{
+			geta[next_point].z z
+			state dragon_height_check
+		}
+	}
+ends
+
+defstate dgr_wing_sound
+	ifrnd 96 sound DGR_FWING1
+	else ifrnd 128 sound DGR_FWING2
+	else sound DGR_FWING3
+ends
+
+// Make sure Dragons keep their colours even if we use weird pals
+spritenopal DRAGON_FLIGHT
+spriteshadow DRAGON
+spritenopal DRAGON
+
+// Dragon flying
+useractor enemy DRAGON_FLIGHT
+	fall
+
+	// NEVER go back to sleep after activation, to prevent getting stuck out of view somewhere
+	ifaction 0 nullop
+	else sleeptime 0
+
+	ifaction 0
+	{
+		cstat 257
+		ife sprite[myowner].picnum 9 // respawned?
+			{
+			getav[myowner].XVELSAVED XVELSAVED
+			getav[myowner].ZVELSAVED ZVELSAVED
+			}
+		geta[].pal PALSAVED
+		set smartpoint_track_sub ZVELSAVED
+
+		ife XVELSAVED 0
+			strength 9000
+		else ife XVELSAVED 1
+			strength 4500
+
+		sizeat 48 48
+		clipdist 164
+		state monst_glow
+		action A_DRAGON_FLY_IDLE
+	}
+	else ifaction A_DRAGON_FLY_IDLE
+	{
+		// hover
+		ifmove M_DRAGON_FLYIDLE nullop
+		else move M_DRAGON_FLYIDLE geth getv
+
+		state checkfortarget
+
+		soundonce DGR_IDL
+		ifn my_target -1
+		{
+			set CURBOSS THISACTOR
+			ifrnd 128 sound DGR_SIG1
+			else sound DGR_SIG2
+			action A_DRAGON_FLY_WINGUP
+		}
+	}
+	else ifaction A_DRAGON_FLY_WINGUP
+	{
+		state handle_dragon_flight
+
+		ifactioncount 4
+		{
+			state dgr_wing_sound
+			action A_DRAGON_FLY_WINGDOWN
+		}
+	}
+	else ifaction A_DRAGON_FLY_WINGDOWN
+	{
+		state handle_dragon_flight
+
+		ifactioncount 4
+			action A_DRAGON_FLY_WINGUP
+	}
+	else ifaction A_DRAGON_FLY_ATTACK_PREP
+	{
+		state fronttowardstarget
+
+		set temp3 1
+		state dragon_height_check
+
+		ifactioncount 8
+		{
+			ifrnd 96 sound DGR_FIRE1
+			else ifrnd 128 sound DGR_FIRE2
+			else sound DGR_FIRE3
+			action A_DRAGON_FLY_ATTACK
+		}
+	}
+	else ifaction A_DRAGON_FLY_ATTACK
+	{
+		ife my_target -1
+		{
+			state dgr_wing_sound
+			action A_DRAGON_FLY_WINGDOWN
+		}
+		else
+		{
+			state fronttowardstarget
+
+			set temp3 1
+			state dragon_height_check
+
+			ifactioncount 3
+			{
+				// offset dragon a bit cause he's aiming at feet
+				set CALCZ_TARGET_OFFSET -11000
+
+				// this to make the projectiles originate from the dragon's mouth instead of his belly
+				geta[].z my_z
+				sub my_z 4096
+				seta[].z my_z
+
+				// fire projectile
+				set PROJECTILE_TO_SHOOT 22828
+				set PROJECTILE_FIRING_SOUND SNAKE_FIRE
+				state sang_enemyShootProjectile
+
+				// temp3 contains zvel now so just reuse it in this state
+				set temp4 32 state dragon_shoot_fire
+				set temp4 64 state dragon_shoot_fire
+				set temp4 96 state dragon_shoot_fire
+
+				add my_z 4096
+				seta[].z my_z
+			}
+
+			ifactioncount 4
+			{
+				ifrnd 64
+				{
+					ifrnd 96 sound DGR_ROAR1
+					else ifrnd 128 sound DGR_ROAR2
+					else sound DGR_ROAR3
+				}
+				state dgr_wing_sound
+				action A_DRAGON_FLY_WINGDOWN
+			}
+		}
+	}
+	else ifaction A_DRAGON_FLY_PAIN
+	{
+		set temp3 1
+		state dragon_height_check
+
+		ifactioncount 2
+		{
+			ifdead
+				action A_DRAGON_FLY_DYING
+			else
+			{
+				ifrnd 128 sound DGR_HISS1
+				else sound DGR_HISS2
+				action A_DRAGON_FLY_WINGDOWN
+			}
+		}
+	}
+	else ifaction A_DRAGON_FLY_DYING
+	{
+		strength 0
+		move STOP
+
+		add INTERNALCOUNT 1
+
+		ifle INTERNALCOUNT 10
+		{
+			cstat 8
+		}
+		else ifle INTERNALCOUNT 20
+		{
+			cstat 12
+
+			ife INTERNALCOUNT 20
+				set INTERNALCOUNT 0
+		}
+
+		// change to dead sprite if fall has stopped (won't handle spritebridges.. yet?)
+		geta[].sectnum temp
+		gets[temp].floorbunch temp2
+
+		ife temp2 -1
+		{
+			gets[temp].floorz temp2
+			sub temp2 1024
+
+			geta[].z z
+
+			ifge z temp2
+				action A_DRAGON_FLY_DEAD
+		}
+	}
+	else ifaction A_DRAGON_FLY_FALL
+	{
+		move STOP
+
+		// change to grounded dragon if fall has stopped (won't handle spritebridges.. yet?)
+		geta[].sectnum temp
+		gets[temp].floorbunch temp2
+
+		ife temp2 -1
+		{
+			geta[].x x
+			geta[].y y
+			getflorzofslope temp x y temp2
+
+			sub temp2 1024
+
+			geta[].z z
+
+			ifge z temp2
+			{
+				sound DGR_CRLAND
+				set CURBOSS -1 // health bar is gone to sorta surprise the player
+
+				ifpdistl 16384
+					quake 50
+
+				action A_DRAGON_FLY_HITGROUND
+			}
+		}
+	}
+	else ifaction A_DRAGON_FLY_HITGROUND
+	{
+		ifactioncount 2
+		{
+			set INTERNALCOUNT 0
+			action A_DRAGON_FLY_WAIT
+		}
+	}
+	else ifaction A_DRAGON_FLY_WAIT
+	{
+		add INTERNALCOUNT 1
+
+		ifge INTERNALCOUNT 60
+			action A_DRAGON_FLY_RISE
+	}
+	else ifaction A_DRAGON_FLY_RISE
+	{
+		ifactioncount 2
+		{
+			set CURBOSS THISACTOR
+			cactor DRAGON
+			action A_DRAGON_SEEK
+		}
+	}
+	else ifaction A_DRAGON_FLY_DEAD
+	{
+		cstat 0
+		move STOP
+
+		ifg EXTRASAVED 0
+		{
+			operateactivators EXTRASAVED THISACTOR
+			operatemasterswitches EXTRASAVED
+		}
+	}
+	ifg sprite[].htextra -1
+		{
+		geta[].htextra temp8
+		ifaction A_DRAGON_FLY_WINGUP
+		ife sprite[].htpicnum BALLIST_BOLT
+			{
+			mul temp8 2
+			seta[].htextra temp8
+			set temp8 0
+			set hit_indic_pal 32
+			ifdead nullop else
+				{
+				state PAIN_SKILL_LEVELADJUST
+				geta[].z z
+				action A_DRAGON_FLY_PAIN
+				}
+			}
+
+		ife sprite[].htpicnum 1817
+			{
+			mul temp8 2
+			seta[].htextra temp8
+			set temp8 0
+			set hit_indic_pal 32
+			ifdead nullop else
+				{
+				state PAIN_SKILL_LEVELADJUST
+				geta[].z z
+				action A_DRAGON_FLY_PAIN
+				}
+			}
+
+		ifaction A_DRAGON_FLY_WINGDOWN
+		ife sprite[].htpicnum BALLIST_BOLT
+			{
+			mul temp8 2
+			seta[].htextra temp8
+			set temp8 0
+			set hit_indic_pal 32
+			ifdead nullop else
+				{
+				state PAIN_SKILL_LEVELADJUST
+				geta[].z z
+				action A_DRAGON_FLY_PAIN
+				}
+			}
+		}
+	ifhitweapon
+	{
+		ifaction A_DRAGON_FLY_WAIT nullop
+		else set CURBOSS THISACTOR
+
+		ifrnd 32
+		{
+			ifrnd 128 sound DGR_PAIN1
+			else sound DGR_PAIN2
+		}
+		state random_wall_jibs
+
+		ifdead
+		{
+			ifrnd 128 sound DGR_DIE1 else sound DGR_DIE2
+			set voice_cooldown 0
+			state jib_sounds
+			add TREASURE_FOUND 5
+			addkills 1
+			state rf
+			cstator 8
+			set INTERNALCOUNT 0
+			action A_DRAGON_FLY_DYING
+		}
+		else ifaction A_DRAGON_FLY_FALL nullop
+		else ifaction A_DRAGON_FLY_HITGROUND nullop
+		else ifaction A_DRAGON_FLY_WAIT nullop
+		else ifaction A_DRAGON_FLY_RISE nullop
+		else ifaction A_DRAGON_IDLE
+		{
+			set my_target PLAYER_IDENTITY
+
+			set CURBOSS THISACTOR
+			ifrnd 128 sound DGR_SIG1
+			else sound DGR_SIG2
+
+			action A_DRAGON_FLY_WINGUP
+		}
+		else
+		{
+			set temp 0 // if 1 => play pain animation if random check passes
+			ife XVELSAVED 1
+			{
+				geta[].extra temp2
+
+				// Fall to floor if strength less than temp2 and drop is allowed in the sector
+				ifl temp2 900
+				{
+					state isnodropallowedsector
+
+					ife RETURN 1
+						set temp 1
+					else
+					{
+						set INTERNALCOUNT 0
+
+						ifrnd 128 sound DGR_SCR1
+						else sound DGR_SCR2
+
+						action A_DRAGON_FLY_FALL
+					}
+				}
+				else ifaction A_DRAGON_FLY_ATTACK_PREP nullop
+				else ifaction A_DRAGON_FLY_ATTACK nullop
+				else
+					set temp 1
+			}
+			else
+				set temp 1
+
+			ife temp 1 ifrnd 8
+			{
+				state PAIN_SKILL_LEVELADJUST
+				geta[].z z
+				action A_DRAGON_FLY_PAIN
+			}
+		}
+	}
+enda
+
+useractor enemystayput DRAGON_STAYPUT
+cactor DRAGON
+enda
+
+// Dragon on ground
+useractor enemy DRAGON
+	fall
+
+	// ledge detection only disabled for a few actions
+	ifaction 0 nullop
+	else ifaction A_DRAGON_IDLE nullop
+	else ifaction A_DRAGON_DEAD nullop
+	else ifaction A_DRAGON_DYING nullop
+	else ifactornotstayput state detectledge
+
+
+	ife faction_flag ALLIED_FACTION_FLAG
+		{
+		add INTERNALCOUNT_2 1
+		ifg INTERNALCOUNT_2 600
+			{
+			spawn BIG_SMOKE2
+			killit
+			}
+		}
+
+	ifaction 0
+	{
+		cstat 257
+		ifspawnedby RESPAWN strength 6000 else
+		strength 3000
+		clipdist 80
+		ife faction_flag ALLIED_FACTION_FLAG sizeat 36 36
+		else
+			{
+			sizeat 48 48
+			set CURBOSS THISACTOR
+			}
+		state monst_glow
+		action A_DRAGON_IDLE
+	}
+
+	else ifaction A_DRAGON_IDLE
+	{
+		move STOP
+		state checkfortarget
+		ifn my_target -1
+		{
+			ifrnd 128 sound DGR_SIG1
+			else sound DGR_SIG2
+			action A_DRAGON_SEEK
+		}
+	}
+	else ifaction A_DRAGON_DEAD
+	{
+		move STOP
+		ifhitweapon
+		{
+			ifwasweapon RADIUSEXPLOSION
+			{
+				state squish_sounds
+				state standard_jibs
+				killit
+			}
+		}
+	}
+	else ifaction A_DRAGON_DYING
+	{
+		strength 0
+		ifactioncount 5 { state rf state BODY_FALL_NOISES action A_DRAGON_DEAD }
+	}
+	else ifaction A_DRAGON_PAIN
+	{
+		move STOP
+		sub PAIN_AMOUNT 1
+		ife PAIN_AMOUNT 0
+		{
+			ifdead action A_DRAGON_DYING
+			else action A_DRAGON_SEEK
+		}
+	}
+	else ifaction A_DRAGON_SEEK
+	{
+		ifmove M_DRAGON_WALK nullop
+		else move M_DRAGON_WALK geth
+
+		ifcount 6
+		{
+			ifrnd 64 sound DGR_STEP1
+			else ifrnd 64 sound DGR_STEP2
+			else ifrnd 64 sound DGR_STEP3
+			else sound DGR_STEP4
+
+			resetcount
+		}
+
+		state checkfortarget
+
+		ifn my_target -1
+		{
+			ldist temp THISACTOR my_target
+			ifl temp 1536 ifrnd 64 action A_DRAGON_MELEE
+			else ifrnd 32
+			{
+				state SKILL_SHOOT_LEVELADJUST
+
+				ifl RANDOM_CHANCE SKILLCHANCE
+				{
+					set INTERNALCOUNT 0
+					action A_DRAGON_FIREPREP
+				}
+			}
+		}
+	}
+	else ifaction A_DRAGON_MELEE
+	{
+		move STOP
+		state fronttowardstarget
+
+		ifactioncount 3
+			action A_DRAGON_SEEK
+		else ifactioncount 2
+		{
+			ife INTERNALCOUNT 0
+			{
+				add INTERNALCOUNT 1
+
+				// TODO need some kind of melee hitscan projectile, ripper scratch isn't cutting it
+				// For now just apply damage directly
+				ifrnd 128 sound DGR_SLSH1 else sound DGR_SLSH2
+
+				// if player is close enough play scratch sound
+				ldist temp THISACTOR my_target
+				ifle temp 1536
+				{
+					sound RIPPER_SCRATCH
+					set temp 50
+					rand temp2 25
+					add temp temp2
+					seta[my_target].htextra temp
+					seta[my_target].htpicnum 17663
+				}
+			}
+		}
+		else ifactioncount 1
+			set INTERNALCOUNT 0
+	}
+	else ifaction A_DRAGON_FIREPREP
+	{
+		move STOP
+		state fronttowardstarget
+		add INTERNALCOUNT 1
+
+		ife INTERNALCOUNT 1
+			sound DGR_HISS1
+
+		ife INTERNALCOUNT 30
+		{
+			set INTERNALCOUNT 0
+			action A_DRAGON_FIRE
+		}
+	}
+	else ifaction A_DRAGON_FIRE
+	{
+		move STOP
+		state fronttowardstarget
+
+		// This is -1 sometimes, don't know why.
+		ifn my_target -1
+			ldist temp6 THISACTOR my_target
+		else
+			set temp6 8193
+
+		ifsound DGR_HISS1 stopsound DGR_HISS1
+		ifsound DGR_FIRE1 nullop
+		else sound DGR_FIRE1
+
+		add INTERNALCOUNT 1
+
+		ifl temp6 8192
+		{
+			soundonce FLAMETH_FIRE
+			geta[].z temp7
+			espawn 3296
+			sub temp7 12288
+			seta[RETURN].z temp7
+
+			ifge INTERNALCOUNT 60
+				action A_DRAGON_SEEK
+		}
+		else
+		{
+			ife INTERNALCOUNT 9
+			{
+				state fronttowardstarget
+
+				set CALCZ_TARGET_OFFSET -11000
+
+				// fire projectile
+				set PROJECTILE_TO_SHOOT 22828
+				set PROJECTILE_FIRING_SOUND SNAKE_FIRE
+				state sang_enemyShootProjectile
+
+				// temp3 contains zvel now so just reuse it in this state
+				set temp4 32 state dragon_shoot_fire
+				set temp4 64 state dragon_shoot_fire
+				set temp4 96 state dragon_shoot_fire
+			}
+
+			ifge INTERNALCOUNT 18
+				action A_DRAGON_SEEK
+		}
+	}
+
+	ifhitweapon
+	{
+		ife faction_flag ALLIED_FACTION_FLAG nullop else
+		set CURBOSS THISACTOR
+		// TODO should it be vulnerable to status attacks?
+
+		ifrnd 32
+		{
+			ifrnd 128 sound DGR_PAIN1
+			else sound DGR_PAIN2
+		}
+		state random_wall_jibs
+
+		ifdead
+		{
+			ifrnd 128 sound DGR_DIE1
+			else sound DGR_DIE2
+			set voice_cooldown 0
+			state jib_sounds
+			add TREASURE_FOUND 5
+			addkills 1
+			state rf
+			sound ARCH_DIE
+			set INTERNALCOUNT 0
+			action A_DRAGON_DYING
+		}
+		else ifrnd 8
+		{
+			state PAIN_SKILL_LEVELADJUST
+			action A_DRAGON_PAIN
+		}
+	}
+
+	state checksquished
+enda
+
+// This code could be reused for any homing projectile I suppose
+// Basically you pass my_target into it and it'll home in towards that target, then apply stuff on my_target and kill itself
+// In this case it heals but it should be easy enough to refactor to do whatever
+// Also it spawns lightbugs as some kind of magical aura thing...
+var dragon_regen_active 0 0
+useractor notenemy DRAGON_REGEN_PROJECTILE
+	cstat 32768
+	sizeat 64 64
+	add INTERNALCOUNT 1
+	set dragon_regen_active 1
+
+	ifsound CRYSTAL_AMBIENCE nullop
+	else sound CRYSTAL_AMBIENCE
+
+	// spawn lightbug every so often
+	ifg INTERNALCOUNT 1
+	{
+		espawn 23731
+		seta[RETURN].pal 8
+		set INTERNALCOUNT 0
+	}
+
+	ifnotmoving
+	{
+		set dragon_regen_active 0
+		killit
+	}
+
+	ldist temp THISACTOR my_target
+	ifl temp 2048
+	{
+		stopsound CRYSTAL_AMBIENCE
+		set dragon_regen_active 0
+
+		// heal dragon in blocks
+		// 0 - 3000
+		// 3000 - 6000
+		// 6000 - 9000
+		// If health is depleted to below that of a block, only heal to the high end of the block before
+		geta[my_target].extra temp
+
+		ifg temp 0
+		{
+			ifl temp 3000
+			{
+				add temp 100
+				ifg temp 3000
+					set temp 3000
+			}
+			else ifl temp 6000
+			{
+				add temp 100
+				ifg temp 6000
+					set temp 6000
+			}
+			else ifl temp 9000
+			{
+				add temp 100
+				ifg temp 9000
+					set temp 9000
+			}
+
+			seta[my_target].extra temp
+		}
+
+		killit
+	}
+
+	set CALCZ_TARGET_OFFSET -20000
+	set PROJECTILE_VEL 128
+	state calczvel
+	set movesprite_zvel temp3
+
+	// angle towards my_target
+	state angvartotarget
+	set movesprite_angvar angvar
+	set movesprite_shift 5
+	state movesprite_state
+enda
+
+useractor notenemy DRAGON_REGEN
+	cstat 32768
+	sizeat 50 50
+
+	ifaction 0
+	{
+		set faction_flag 1
+
+		ife INTERNALCOUNT 70
+		{
+			set INTERNALCOUNT 0
+
+			// step 1, only needs to run once: determine the sprite id of the dragon flight actor
+			ifle my_target -1
+			{
+				set targets_iterator 0
+				whilel targets_iterator targets_range
+				{
+					set my_target targets[targets_iterator]
+
+					ife my_target -2
+					{
+						set targets_iterator targets_range
+						set my_target -1
+						exit
+					}
+					else ifg my_target 0
+					{
+						geta[my_target].picnum temp4
+
+						ife temp4 DRAGON_FLIGHT
+						{
+							set targets_iterator targets_range
+							exit
+						}
+					}
+
+					add targets_iterator 1
+				}
+			}
+
+			// We know the sprite id, now check if we can see it
+			// and there is not already a regen sprite in play
+			else ife dragon_regen_active 0
+			{
+				state fronttowardstarget
+
+				canseespr THISACTOR my_target RETURN
+
+				ife RETURN 1
+				{
+					geta[my_target].extra temp
+
+					ifl temp 6750
+					{
+						// we can see the dragon, spawn a homing healing projectile
+						espawn DRAGON_REGEN_PROJECTILE
+						sound BEAMSABRE_ON
+						setav[RETURN].my_target my_target
+					}
+				}
+			}
+		}
+		else
+			add INTERNALCOUNT 1
+
+	}
+enda

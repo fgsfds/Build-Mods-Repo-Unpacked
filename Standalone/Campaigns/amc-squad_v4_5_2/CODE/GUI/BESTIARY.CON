@@ -1,0 +1,788 @@
+define BESTIARY_INTERFACE 18103
+
+var bst_show_mode 0 1 // armor type filter
+var bst_list_amount 0 0
+
+defstate disp_bst_header
+	set ui_help_tab BST_TAB_HELP
+	state disp_interface_header
+
+	qputs 1380 BESTIARY
+	screentext STARTALPHANUM 142 9 30000 0 0 1380 0 2 16 0 2 0 1 1 0 0 0 xdim ydim
+ends
+
+defstate disp_bst_tabbutton
+	state bst_query_list
+	ife bst_hasdef 1
+	{
+		set gui_pos_x ui_tabrow_x
+		set gui_pos_y ui_tabrow_y
+		set ui_btn_mousehint 7506
+		set ui_btn_size 15000
+		ife ui_tab ui_tab_query
+			set ui_btn_active 1
+		state putgenericbutton
+		ife ui_btn_return 2
+		{
+			set g_scroll_pos 0
+			set ui_tab ui_tab_query
+			set ui_item -1
+			state bst_init_list
+		}
+	}
+ends
+
+defstate disp_bst_tabbuttons
+
+	// TAB BUTTONS
+	set ui_tabrow_x 30
+	set ui_tabrow_y 35
+
+	// Cycloid tab
+	qputs 7505 CYCLOID
+	qputs 7506 Switch to Cycloid faction tab
+	set ui_tab_query BST_TAB_CYCLOID
+	state disp_bst_tabbutton
+
+	// Zombies
+	add ui_tabrow_x 50
+	qputs 7505 ZOMBIES
+	qputs 7506 Switch to Zombie faction tab
+	set ui_tab_query BST_TAB_ZOMB
+	state disp_bst_tabbutton
+
+	// Demons
+	add ui_tabrow_x 50
+	qputs 7505 DEMONS
+	qputs 7506 Switch to Demon faction tab
+	set ui_tab_query BST_TAB_DEMON
+	state disp_bst_tabbutton
+
+	// Mercenaries
+	add ui_tabrow_x 50
+	qputs 7505 MERCS
+	qputs 7506 Switch to Mercenary faction tab
+	set ui_tab_query BST_TAB_MERC
+	state disp_bst_tabbutton
+
+	// Cultists
+	add ui_tabrow_x 50
+	qputs 7505 CULTISTS
+	qputs 7506 Switch to Cultist faction tab
+	set ui_tab_query BST_TAB_CULT
+	state disp_bst_tabbutton
+
+	// Misc
+	add ui_tabrow_x 50
+	qputs 7505 MISC
+	qputs 7506 Switch to Miscellaneous faction tab
+	set ui_tab_query BST_TAB_MISC
+	state disp_bst_tabbutton
+
+	// SECOND ROW
+	add ui_tabrow_y 15
+	set ui_tabrow_x 30
+
+	// Shadow realm
+	qputs 7505 SHADOW
+	qputs 7506 Switch to Shadow realm faction tab
+	set ui_tab_query BST_TAB_SHADOW
+	state disp_bst_tabbutton
+
+	// Paradigm
+	add ui_tabrow_x 50
+	qputs 7505 PARADIGM
+	qputs 7506 Switch to Paradigm Eschaton faction tab
+	set ui_tab_query BST_TAB_PARADIGM
+	state disp_bst_tabbutton
+
+	// MJ12
+	add ui_tabrow_x 50
+	qputs 7505 MJ12
+	qputs 7506 Switch to Majestic 12 faction tab
+	set ui_tab_query BST_TAB_MJ12
+	state disp_bst_tabbutton
+
+	// Egypt
+	add ui_tabrow_x 50
+	qputs 7505 EGYPT
+	qputs 7506 Switch to Egyptian faction tab
+	set ui_tab_query BST_TAB_EGYPT
+	state disp_bst_tabbutton
+
+	// Necromancer
+	add ui_tabrow_x 50
+	qputs 7505 NECRO
+	qputs 7506 Switch to Necromancer faction tab
+	set ui_tab_query BST_TAB_NECRO
+	state disp_bst_tabbutton
+
+	// Beyond
+	add ui_tabrow_x 50
+	ifl VOLUME 2 // don't know what these are yet
+		{
+		qputs 7505 UNKNOWN
+		qputs 7506 Switch to Unknown tab
+		}
+	else
+		{
+		qputs 7505 BEYOND
+		qputs 7506 Switch to Beyonder tab
+		}
+	set ui_tab_query BST_TAB_BEYOND
+	state disp_bst_tabbutton
+ends
+
+defstate disp_bst_helplistitem
+	set disp_temp 0
+
+	ife g_scroll_hold 0
+	  ifn ui_popup_shown 1
+	{
+		state CURSOR_OVER_ITEM
+		// bounds of the list
+		ifl gui_pos_x_temp 20
+		 ifg gui_pos_x_temp -75
+		  ifl gui_pos_y_temp 7
+		   ifg gui_pos_y_temp -7
+		{
+			set disp_temp 1
+			state handle_click
+
+			ife clicked 1
+			{
+				screensound RES_INT1
+				set ui_help_id ui_help_query_id
+			}
+		}
+	}
+
+	// Text
+	set gui_pos_x_temp gui_pos_x
+	add gui_pos_x_temp 10
+
+	ife ui_help_id ui_help_query_id
+		screentext STARTALPHANUM gui_pos_x_temp gui_pos_y 17000 0 0 1380 0 2 16 0 2 0 1 1 8192 0 0 xdim ydim
+	else ife disp_temp 1
+		screentext STARTALPHANUM gui_pos_x_temp gui_pos_y 17000 0 0 1380 disp_pulse 7 16 0 2 0 1 1 8192 0 0 xdim ydim
+	else
+		screentext STARTALPHANUM gui_pos_x_temp gui_pos_y 16000 0 0 1380 0 12 16 0 2 0 1 1 8192 0 0 xdim ydim
+ends
+
+defstate disp_bst_help
+	set clicked 0
+
+	// Display help list
+	set gui_pos_x 15
+	set gui_pos_y 75
+
+	set ui_help_query_id 0
+	qputs 1380 Overview
+	state disp_bst_helplistitem
+
+	add gui_pos_y 15
+	set ui_help_query_id 1
+	qputs 1380 Armor
+	state disp_bst_helplistitem
+
+	add gui_pos_y 15
+	set ui_help_query_id 2
+	qputs 1380 MIA gun
+	state disp_bst_helplistitem
+
+	ife ui_help_id 0
+	{
+		qputs 1011 Overview
+ 		screentext 2822 65 73 28672 0 0 1011 0 125 16 0 5 8 1 1 0 0 0 xdim ydim
+		qputs 1011 The bestiary contains information about the
+ 		screentext 2822 65 78 28672 0 0 1011 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+		qputs 1011 various foes the AMC Squad faces.
+ 		screentext 2822 65 83 28672 0 0 1011 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+		qputs 1011 An enemy type will be added to the bestiary
+ 		screentext 2822 65 88 28672 0 0 1011 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+		qputs 1011 when they are killed for the first time.
+ 		screentext 2822 65 93 28672 0 0 1011 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+		qputs 1011 This information includes which armor type, if any
+ 		screentext 2822 65 98 28672 0 0 1011 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+		qputs 1011 that the enemy in question has.
+ 		screentext 2822 65 103 28672 0 0 1011 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+		qputs 1011 You can also ^2use the MIA gun ^0on the enemy to
+ 		screentext 2822 65 108 28672 0 0 1011 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+		qputs 1011 unlock more details about them.
+ 		screentext 2822 65 113 28672 0 0 1011 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+
+		qputs 1011 This interface is in ^2BETA ^0. Some enemies might
+ 		screentext 2822 65 128 28672 0 0 1011 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+		qputs 1011 not show up correctly, or at all. In case of doubt,
+ 		screentext 2822 65 133 28672 0 0 1011 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+		qputs 1011 log a ticket with the AMC Squad IT administration
+ 		screentext 2822 65 138 28672 0 0 1011 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+		qputs 1011 subdivision.
+ 		screentext 2822 65 143 28672 0 0 1011 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+	}
+	else ife ui_help_id 1
+	{
+		qputs 1011 Armor
+ 		screentext 2822 65 73 28672 0 0 1011 0 125 16 0 5 8 1 1 0 0 0 xdim ydim
+		qputs 1011 Some enemies that our agents encounter in the field
+ 		screentext 2822 65 78 28672 0 0 1011 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+		qputs 1011 are armored. Attacking armor with an attack that it
+ 		screentext 2822 65 83 28672 0 0 1011 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+		qputs 1011 is not vulnerable to leads to ^2reduced damage^0, or
+ 		screentext 2822 65 88 28672 0 0 1011 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+		qputs 1011 in some cases even ^2no damage^0 at all. However,
+ 		screentext 2822 65 93 28672 0 0 1011 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+		qputs 1011 each armor type does have vulnerabilities meaning
+ 		screentext 2822 65 98 28672 0 0 1011 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+		qputs 1011 there is always a counter-attack that does ^2extra damage^0.
+ 		screentext 2822 65 103 28672 0 0 1011 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+		qputs 1011 For this reason, choosing a balanced loadout is a necessity.
+ 		screentext 2822 65 108 28672 0 0 1011 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+		qputs 1011 ^2In the shooting range next to the armory^0, the loadout can be
+ 		screentext 2822 65 113 28672 0 0 1011 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+		qputs 1011 tested on dummies equipped with the various armor types.
+ 		screentext 2822 65 118 28672 0 0 1011 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+
+		qputs 1011 ^8Body armor^0: Regular humanoid body armor. Mostly used by
+ 		screentext 2822 65 123 28672 0 0 1011 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+		qputs 1011 soldiers of various factions.
+ 		screentext 2822 65 128 28672 0 0 1011 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+
+		qputs 1011 ^8Mech armor^0: Heavy steel armor. Mostly used by human-operated
+ 		screentext 2822 65 133 28672 0 0 1011 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+		qputs 1011 powersuits, tanks, and by some humanoid enemies.
+ 		screentext 2822 65 138 28672 0 0 1011 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+
+		qputs 1011 ^8Robotic armor^0: Heavy armor used exclusively by robots.
+ 		screentext 2822 65 143 28672 0 0 1011 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+
+		qputs 1011 ^8Chitin armor^0: A lighter armor used by certain alien creatures.
+ 		screentext 2822 65 148 28672 0 0 1011 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+
+		qputs 1011 ^8Supernatural protection^0: Can be encountered on various
+ 		screentext 2822 65 153 28672 0 0 1011 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+		qputs 1011 magical beings.
+ 		screentext 2822 65 158 28672 0 0 1011 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+	}
+	else ife ui_help_id 2
+	{
+		qputs 1011 MIA Gun
+ 		screentext 2822 65 73 28672 0 0 1011 0 125 16 0 5 8 1 1 0 0 0 xdim ydim
+
+		myospalx 180 85 9371 0 0 0
+
+		qputs 1011 The MIA gun is a useful research tool. To use it,
+ 		screentext 2822 65 108 28672 0 0 1011 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+		qputs 1011 it must be equipped in the loadout prior to a mission.
+ 		screentext 2822 65 113 28672 0 0 1011 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+		qputs 1011 When shooting an enemy with the gun, they will be ^2briefly^0
+ 		screentext 2822 65 118 28672 0 0 1011 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+		qputs 1011 teleported to a secure location where our scientists will
+ 		screentext 2822 65 123 28672 0 0 1011 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+		qputs 1011 study them. This can yield additional research projects and can
+ 		screentext 2822 65 128 28672 0 0 1011 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+		qputs 1011 provide extra information in this bestiary.
+ 		screentext 2822 65 133 28672 0 0 1011 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+
+		qputs 1011 To view the MIA gun research project,
+ 		screentext 2822 65 138 28672 0 0 1011 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+		qputs 1011 please visit the AMC Squad Research and Development
+ 		screentext 2822 65 143 28672 0 0 1011 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+		qputs 1011 subdivision. (Commonly known as "the science lab")
+ 		screentext 2822 65 148 28672 0 0 1011 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+	}
+
+ends
+
+defstate disp_bst_listfilter
+	// Toggle between the various armor types
+	set disp_temp 0
+	ife bst_show_mode 0
+		qputs 1500 Armor type: All
+	else ife bst_show_mode ARMOR_FLAG_NONE
+		qputs 1500 Armor type: None
+	else ife bst_show_mode ARMOR_FLAG_BODY
+		qputs 1500 Armor type: Body armor
+	else ife bst_show_mode ARMOR_FLAG_MECH
+		qputs 1500 Armor type: Mech
+	else ife bst_show_mode ARMOR_FLAG_ROBOTIC
+		qputs 1500 Armor type: Robotic
+	else ife bst_show_mode ARMOR_FLAG_CHITIN
+		qputs 1500 Armor type: Chitin
+	else ife bst_show_mode ARMOR_FLAG_SUPERNATURAL
+		qputs 1500 Armor type: Supernatural
+
+	set gui_pos_x 10
+	set gui_pos_y 60
+
+	ife g_scroll_hold 0
+	  ifn ui_popup_shown 1
+	{
+		state CURSOR_OVER_ITEM
+		// bounds show button
+		ifl gui_pos_x_temp 20
+		 ifg gui_pos_x_temp -75
+		  ifl gui_pos_y_temp 1
+		   ifg gui_pos_y_temp -5
+		{
+			set disp_temp 1
+
+			state handle_click
+
+			ife clicked 1
+			{
+				screensound RES_INT3
+				ife bst_show_mode 0
+					set bst_show_mode ARMOR_FLAG_NONE
+				else
+					mul bst_show_mode 2
+				set g_scroll_pos 0
+				set ui_item -1
+				ifg bst_show_mode ARMOR_FLAG_SUPERNATURAL
+					set bst_show_mode 0
+			}
+		}
+	}
+
+	ife disp_temp 0
+		screentext STARTALPHANUM gui_pos_x gui_pos_y 28000 0 0 1500 0 2 16 0 2 0 1 1 8192 0 0 xdim ydim
+	else ife disp_temp 1
+		screentext STARTALPHANUM gui_pos_x gui_pos_y 33000 0 0 1500 disp_pulse 7 16 0 2 0 1 1 8192 0 0 xdim ydim
+ends
+
+defstate disp_bst_listiteminner
+	set disp_temp 0
+	set clicked 0
+
+	ife g_scroll_hold 0
+	ifn ui_popup_shown 1
+	{
+		state CURSOR_OVER_ITEM
+		// bounds of the list
+		ifl gui_pos_x_temp 20
+		 ifg gui_pos_x_temp -75
+		  ifl gui_pos_y_temp 7
+		   ifg gui_pos_y_temp -7
+		{
+			set disp_temp 1
+
+			state handle_click
+
+			ife clicked 1
+			{
+				screensound RES_INT1
+				set ui_item ui_query_id
+			}
+		}
+	}
+
+	// Icon
+	// Enemy picnums are quite tall, they should disappear off the list a little faster than the text
+	ifge gui_pos_y 73
+	{
+		ife rendmode 0 // classic mode? fall back to the original tiles
+			{
+			ife disp_temp 0
+				rotatesprite gui_pos_x gui_pos_y 7168 0 bst_item_picnum 0 bst_item_pal 0 0 0 xdim ydim
+			else
+				rotatesprite gui_pos_x gui_pos_y 7168 0 bst_item_picnum disp_pulse bst_item_pal 0 0 0 xdim ydim
+			}
+		else // use the icons
+			{
+			ifn bst_icon_id 0 // if icon is set, use it
+				{
+					ife disp_temp 0
+						rotatesprite gui_pos_x gui_pos_y QUARTERSIZE 0 BESTIARY_TILE 0 bst_icon_id 0 0 0 xdim ydim
+					else
+						rotatesprite gui_pos_x gui_pos_y QUARTERSIZE 0 BESTIARY_TILE disp_pulse bst_icon_id 0 0 0 xdim ydim
+				}
+			else // otherwise again fall back to the original tile
+				{
+					ife disp_temp 0
+						rotatesprite gui_pos_x gui_pos_y 7168 0 bst_item_picnum 0 bst_item_pal 0 0 0 xdim ydim
+					else
+						rotatesprite gui_pos_x gui_pos_y 7168 0 bst_item_picnum disp_pulse bst_item_pal 0 0 0 xdim ydim
+				}
+			}
+	}
+
+	// Text
+	set gui_pos_x_temp gui_pos_x
+	add gui_pos_x_temp 10
+
+	ife ui_item ui_query_id
+		screentext STARTALPHANUM gui_pos_x_temp gui_pos_y 17000 0 0 1380 0 2 16 0 2 0 1 1 8192 0 0 xdim ydim
+	else ife disp_temp 0
+		screentext STARTALPHANUM gui_pos_x_temp gui_pos_y 16000 0 0 1380 0 12 16 0 2 0 1 1 8192 0 0 xdim ydim
+	else
+		screentext STARTALPHANUM gui_pos_x_temp gui_pos_y 17000 0 0 1380 disp_pulse 7 16 0 2 0 1 1 8192 0 0 xdim ydim
+ends
+
+defstate disp_bst_listitem
+	set temp4 0
+
+	ife bst_show_mode 0  // show all
+		set temp4 1
+	else
+	{
+		set temp4 bst_item_armorflags
+		and temp4 bst_show_mode
+
+		ifg temp4 0
+			set temp4 1
+	}
+
+	ife temp4 1
+	{
+		add bst_list_amount 1
+		// if in visible list
+		ifge gui_pos_y 68 ifle gui_pos_y 185
+			state disp_bst_listiteminner
+
+		add gui_pos_y 20
+	}
+ends
+
+defstate disp_bst_commontab
+	for temp range MAX_BESTIARY_COUNT
+	{
+		set temp2 bst_currentlist[temp]
+		ifg temp2 0
+		{
+			set ui_query_id temp2
+			// call appropriate defs state
+			set ui_tab_query ui_tab
+			state bst_get_def
+			state disp_bst_listitem
+		}
+	}
+ends
+
+defstate disp_bst_list
+	// Scroll bar
+	ifg bst_list_amount 6 // testing shows we can display 6 items without scrolling
+	{
+		// The scrollbar starts at 75 and ends at 180, and should increment in some velocity that the difference is divisible by
+		// This velocity must be based on the list length as well...
+		set gui_pos_x 100
+		set gui_pos_y 75
+		set g_scroll_y_pos_end 180
+		set g_scroll_baryvel 5
+		state putscrollbar
+	}
+
+	// list start coordinates
+	set gui_pos_x 15
+	set gui_pos_y 75
+
+	// Determine the y offset to apply to the list per scroll
+	ifn g_scroll_pos 0
+	{
+		// temp2 = Total amount of scrolls
+		set temp2 105
+		div temp2 g_scroll_baryvel
+
+		// temp3 = the total y distance that has to be scrolled
+		set temp3 75
+		sub temp3 180
+		set temp4 bst_list_amount
+		sub temp4 1
+		mul temp4 20
+		add temp3 temp4
+
+		// temp4 = the amount that needs to be subbed from y pos for the end of the list to match with the end of the scrollbar
+		set temp4 temp3
+		div temp4 temp2
+		add temp4 1 // compensate for incomplete divisions
+
+		set disp_temp g_scroll_pos
+		mul disp_temp temp4
+		sub gui_pos_y disp_temp
+	}
+
+	set bst_list_amount 0
+
+	ifn ui_tab BST_TAB_HELP
+		state disp_bst_commontab
+
+	ife bst_list_amount 0
+	{
+		qputs 1380 No results for this filter in this faction.
+		screentext STARTALPHANUM gui_pos_x gui_pos_y 23000 0 0 1380 disp_pulse 2 16 0 2 0 1 1 8192 0 0 xdim ydim
+	}
+ends
+
+var best_size INVENSIZE 0
+
+defstate disp_bst_item
+	set ui_query_id ui_item
+
+	ifg ui_query_id 0
+		state bst_get_def
+
+	// Bigger version of the icon
+	set gui_pos_x 285
+	set gui_pos_y 105
+
+	ifn bst_item_sound -1
+	{
+	state CURSOR_OVER_ITEM
+		ifl gui_pos_x_temp 40
+		 ifg gui_pos_x_temp -40
+		  ifl gui_pos_y_temp 40
+		   ifg gui_pos_y_temp -40
+		{
+			state handle_click
+
+			ife clicked 1
+			{
+			screensound bst_item_sound
+			}
+		}
+	}
+
+	set best_size INVENSIZE
+	set disp_temp4 tilesizx[bst_item_picnum]
+	set disp_temp5 tilesizy[bst_item_picnum]
+	
+	ifle disp_temp4 190
+	  ifle disp_temp5 190
+		nullop
+	else ifle disp_temp4 300
+	  ifle disp_temp5 300
+	{
+		set best_size 22000
+	}
+	else
+		set best_size 8192
+	rotatesprite gui_pos_x gui_pos_y best_size 0 bst_item_picnum 0 bst_item_pal 0 0 0 xdim ydim
+
+	// Beyonder drawing, case specific scenario
+	ife bst_item_picnum BEYONDER
+	{
+		// if Zeta base has been beaten, remove the picture
+		ifand BEAT_EPISODES[7] 1 nullop else
+		rotatesprite 285 108 18000 0 18742 0 0 0 0 0 xdim ydim
+	}
+
+	// Header Space
+ 	screentext STARTALPHANUM 110 73 28672 0 0 1380 0 125 16 0 5 8 1 1 0 0 0 xdim ydim
+
+	// Description Space
+ 	screentext STARTALPHANUM 110 78 25000 0 0 1381 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+ 	screentext STARTALPHANUM 110 83 25000 0 0 1382 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+ 	screentext STARTALPHANUM 110 88 25000 0 0 1383 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+ 	screentext STARTALPHANUM 110 93 25000 0 0 1384 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+ 	screentext STARTALPHANUM 110 98 25000 0 0 1385 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+ 	screentext STARTALPHANUM 110 103 25000 0 0 1386 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+ 	screentext STARTALPHANUM 110 108 25000 0 0 1387 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+ 	screentext STARTALPHANUM 110 113 25000 0 0 1388 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+ 	screentext STARTALPHANUM 110 118 25000 0 0 1389 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+
+	// MIA TEXT
+	ife bst_item_ismiad 1
+	{
+ 		screentext STARTALPHANUM 110 128 25000 0 0 1390 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+ 		screentext STARTALPHANUM 110 133 25000 0 0 1391 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+ 		screentext STARTALPHANUM 110 138 25000 0 0 1392 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+ 		screentext STARTALPHANUM 110 143 25000 0 0 1393 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+ 		screentext STARTALPHANUM 110 148 25000 0 0 1394 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+ 		screentext STARTALPHANUM 110 153 25000 0 0 1395 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+	}
+
+	// ARMOR TYPE
+	ifn bst_item_armorflags ARMOR_FLAG_NONE
+	{
+		qputs 1380 ARMOR TYPE
+ 		screentext STARTALPHANUM 110 163 25000 0 0 1380 0 125 16 0 5 8 1 1 0 0 0 xdim ydim
+
+		qputs 1500
+		ife bst_item_armorflags ARMOR_FLAG_BODY
+			qputs 1500 Body armor
+		else ife bst_item_armorflags ARMOR_FLAG_MECH
+			qputs 1500 Mech armor
+		else ife bst_item_armorflags ARMOR_FLAG_ROBOTIC
+			qputs 1500 Robotic armor
+		else ife bst_item_armorflags ARMOR_FLAG_CHITIN
+			qputs 1500 Chitin armor
+		else ife bst_item_armorflags ARMOR_FLAG_SUPERNATURAL
+			qputs 1500 Supernatural
+
+		// If string 1500 is not empty then there's a singular armor type, just display that
+		qputs 1395
+		qstrcmp 1500 1395 bst_hasdef
+		abs bst_hasdef
+
+		ife bst_hasdef 1
+ 			screentext STARTALPHANUM 110 168 25000 0 0 1500 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+		else
+		{
+			qstrcmp 1501 1395 bst_hasdef
+			abs bst_hasdef
+
+			ifn bst_hasdef 1
+				qputs 1501 We forgot to add specific armor type text for this one.
+
+			// Otherwise, the enemy has multiple flags active, display more detailed text (eg pal variants or whatever)
+ 			screentext STARTALPHANUM 110 168 25000 0 0 1501 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+ 			screentext STARTALPHANUM 110 173 25000 0 0 1502 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+ 			screentext STARTALPHANUM 110 178 25000 0 0 1503 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+ 			screentext STARTALPHANUM 110 183 25000 0 0 1504 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+		}
+	}
+	
+	// MIA UNLOCKS
+	ifn bst_item_research -1
+	{
+		// There is little space to work with here. Show a text "Research project found" with button.
+		// There is no room for an icon or research title.
+
+		qputs 1380 MIA RESEARCH PROJECT
+ 		screentext STARTALPHANUM 245 145 28672 0 0 1380 0 125 16 0 5 8 1 1 0 0 0 xdim ydim
+		
+		// if this is the dojo/melee category, we need the dojo research
+		ife bst_item_res_cat RS_TAB_DOJO
+		  ifn BASE_RESEARCH[RS_B_DOJO] 2
+		{
+			qputs 1380 DOJO REQUIRED
+ 			screentext STARTALPHANUM 245 163 28672 0 0 1380 0 2 16 0 5 8 1 1 0 0 0 xdim ydim
+		}
+		// If this is the mystical category, etc
+		else ife bst_item_res_cat RS_TAB_MYSTIC
+		  ifn BASE_RESEARCH[RS_B_PARANORMAL] 2 // Paranormal lab researched?
+		{
+			qputs 1380 PARANORMAL LAB
+ 			screentext STARTALPHANUM 245 163 28672 0 0 1380 0 2 16 0 5 8 1 1 0 0 0 xdim ydim
+			qputs 1380 REQUIRED
+ 			screentext STARTALPHANUM 245 173 28672 0 0 1380 0 2 16 0 5 8 1 1 0 0 0 xdim ydim
+		}
+		else
+		{
+			// Display button "view research" with icon below it
+			set gui_pos_x 270
+			set gui_pos_y 160
+			qputs 7505 VIEW RESEARCH
+			set ui_btn_mousehint 7506
+			qputs 7506 Switch to research project
+			set ui_btn_mousehint 7506
+			set ui_btn_size 20000
+			set ui_btn_fontsize 20000
+			state putgenericbutton
+			
+			// Swap to research terminal
+			ife ui_btn_return 2
+			{
+				set show_bst_ui 0
+				
+				state prep_rs_terminal
+				
+				set ui_help_id 0
+				set ui_tab bst_item_res_cat
+				
+				switch ui_tab
+					case RS_TAB_WEAPONS
+						state rs_init_weapon_list
+						break
+					case RS_TAB_EQUIPMENT
+						state rs_init_equipment_list
+						break
+					case RS_TAB_PERSONNEL
+						state rs_init_personnel_list
+						break
+					case RS_TAB_BASE
+						state rs_init_base_list
+						break
+					case RS_TAB_MYSTIC
+						state rs_init_mystical_list
+						break
+					case RS_TAB_DOJO
+						state rs_init_dojo_list
+						break
+				endswitch
+				
+				set ui_item bst_item_research
+				set show_rs_ui 1
+				sound INTERFACE_1
+			}
+		}
+	}
+
+ends
+
+appendevent EVENT_DISPLAYREST
+	// Draw stuff while UI is active
+	ife char_sel_anim 0 // wait for character animation to finish as this freezes, I don't understand why
+	ife show_bst_ui 1
+	{
+		// hightile backdrop
+		rotatesprite 160 100 31734 0 12222 0 0 0 0 0 xdim ydim
+
+
+		state disp_bst_header
+		state disp_bst_tabbuttons
+
+		ife ui_tab BST_TAB_HELP
+		{
+			state disp_bst_help
+		}
+		else
+		{
+			state disp_bst_listfilter
+			state disp_bst_list
+
+			ifn ui_item -1
+				state disp_bst_item
+		}
+	}
+endevent
+
+spritenopal BESTIARY_INTERFACE
+spritenoshade BESTIARY_INTERFACE
+
+useractor notenemy BESTIARY_INTERFACE
+	// Handle use prompts
+	// If UI is being shown, pressing E closes it
+	ife show_bst_ui 1
+	{
+		ife use_action_allowed 1
+		{
+			set show_rs_ui 0
+			set show_bst_ui 0
+			set MOUSEUP 0 // Go from "cursor" mode back to regular gameplay mode
+			state setIgnoreUse
+		}
+	}
+	else ife show_rs_ui 1
+	{
+		ife use_action_allowed 1
+		{
+			set show_rs_ui 0
+			set show_bst_ui 0
+			set MOUSEUP 0 // Go from "cursor" mode back to regular gameplay mode
+			state setIgnoreUse
+		}
+	}
+	// Otherwise set it to show if player is close enough etc etc
+	else ife player[].newowner -1 // prevent viewscreen bugs
+	  ifp pfacing
+	  ifpdistl 1024
+	  ifp palive
+	  ifcansee
+	{
+		set player_use 0
+
+		ife use_action_allowed 1
+		{
+			set ui_tab BST_TAB_CYCLOID
+			set ui_tab_query BST_TAB_CYCLOID
+			state bst_init_list
+			set ui_item -1
+			set show_bst_ui 1
+			set MOUSEUP 1 // This enters into "cursor" mode.. Lock the player, display pointer etc
+			set hit_key 30
+			sound INTERFACE_1
+
+			state setIgnoreUse
+		}
+	}
+enda

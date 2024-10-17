@@ -1,0 +1,298 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+
+--------------------------------------------------------------------------------
+*/
+
+damageeventtile SIREN
+
+action ASIREN_FROZEN 5 1 5 1 10
+action ASIRENFLOAT 0 1 5 1 10
+action ASIRENCAST 5 4 5 1 20
+action ASIRENPAIN -4 1 1 1 10
+action ASIRENDIE -4 4 1 1 8
+
+ai AISIRENFLOAT ASIRENFLOAT M_SORCERER_FLOAT seekplayer
+ai AISIRENFLOATUP ASIRENFLOAT M_SORCERER_FLOATUP seekplayer getv
+ai AISIRENFLOATDOWN ASIRENFLOAT M_SORCERER_FLOATDOWN seekplayer getv
+ai AISIRENSHOOT ASIRENCAST STOP faceplayer
+ai AISIRENPUSH ASIRENCAST STOP faceplayer
+ai AISIRENPAIN ASIRENPAIN STOP faceplayer
+ai AISIRENTELEPORT ASIRENCAST STOP faceplayer
+ai AISIRENDYING ASIRENDIE STOP faceplayer
+
+useractor enemy SIREN 200 ASIRENFLOAT
+
+ifai 0
+{
+set MONSTER_FLAGS 1
+	state monst_glow
+ifspritepal 0 spritepal 10
+spawn SHOOTME
+spriteflags NORMAL_ENEMY
+sound SIREN_SIGHT
+strength 200
+sizeat 24 24
+action ASIRENFLOAT
+ai AISIRENFLOAT
+cstat 257
+}
+
+state check_canfloat
+
+ifaction ASIREN_FROZEN state frozen_code else
+ifai AISIRENDYING
+	{
+	cstat 0
+	spriteflags 39
+	ifactioncount 4 { spawn 8433 spawn BIG_BLOOD_EXE state jib_sounds state monst_body_jibs state standard_jibs killit }
+	}
+else
+ifai AISIRENPAIN
+	{
+	sub PAIN_AMOUNT 1
+	move STOP
+	ife PAIN_AMOUNT 0 ai AISIRENFLOAT
+	}
+else
+ifai AISIRENFLOAT
+{
+	sizeto 24 24
+	spriteflags 35
+	 ifcanseetarget
+	  ifcanshoottarget
+	  ifrnd 8
+	  {
+	  sound SIREN_ATTACK
+	   ai AISIRENSHOOT
+	   }
+	   else
+	   ifpdistl 1024
+		ifrnd 32
+		ai AISIRENPUSH
+	   else
+	ifpdistg 8098
+	 ifpdistl 16384
+	  ifrnd 16
+	   ife camerasprite -1
+	    ife silence_damage 0
+		{
+		 getp[].posx temp
+		 getp[].posy temp2
+		 set temp3 temp
+		 add temp3 1024
+		 randvar temp4 2048
+		 rotatepoint temp temp2 temp3 temp2 temp4 temp5 temp6
+		 updatesector temp5 temp6 temp7
+		 // if the player has the Enemy tracking protection mystic research, teleport has a 20% chance of failing
+		 ife MYSTICAL_RESEARCH[RS_M_SHADE] 2 ifrnd 50 set temp7 -1
+		 else
+		 ifn temp7 -1
+			 {
+			 set INTERNALCOUNT 0
+			 ai AISIRENTELEPORT
+			 resetcount
+			 }
+		}
+		else
+	ifrnd 128
+		{
+		state check_canfloat
+		 // Skip the float detection code if the wizard can't float freely in here
+		 ife temp9 1
+		 {
+			 ifp phigher
+				ai AISIRENFLOATUP
+			  else
+			  {
+				geta[].z z
+				ifg temp10 z
+				{
+					ai AISIRENFLOATDOWN
+				}
+			  }
+		  }
+		}
+}
+else
+ifai AISIRENTELEPORT
+{
+add INTERNALCOUNT 1
+	spawn FRAMEEFFECT1
+	ife INTERNALCOUNT 4 { cstat 2 sizeto 2 24 }
+	ife INTERNALCOUNT 26
+		{
+			cstat 32768
+
+			// use position instead of rotatepoint, siren can (and usually does) end up in a wrong spot
+			getp[].posx temp5
+			getp[].posy temp6
+			getp[].posz temp8
+			getp[].cursectnum temp7
+			updatesectorz temp5 temp6 temp8 temp7
+
+			ifn temp7 -1
+			{
+				ife sector[temp7].lotag 2 { cstat 257 sizeat 24 24 ai AISIRENFLOAT }
+				spawn 8433
+				seta[].x temp5
+				seta[].y temp6
+				// spawn above the player a little bit, if the ceiling height allows this
+				sub temp8 1754
+
+				gets[temp7].ceilingz temp5
+				add temp5 12544
+
+				ifl temp5 temp8
+					add temp8 1754
+
+				seta[].z temp8
+
+				changespritesect THISACTOR temp7
+			}
+			else { cstat 257 sizeat 24 24 ai AISIRENFLOAT }
+		}
+	ife INTERNALCOUNT 27 { soundonce SIREN_TELEP cstat 2 sizeto 24 24 spawn 8433 }
+	ife INTERNALCOUNT 40 { spawn SHOOTME cstat 257 sizeat 24 24 sound SIREN_ATTACK ai AISIRENSHOOT }
+}
+else
+ifai AISIRENFLOATUP
+{
+state thisactor_getzrange
+ ifcanseetarget
+  ifcanshoottarget
+  ifrnd 4
+  {
+  sound SIREN_ATTACK
+   ai AISIRENSHOOT
+   }
+   else
+   ifpdistl 1024
+    ifrnd 32
+	ai AISIRENPUSH
+	else
+ifrnd 16 ai AISIRENFLOAT
+}
+else
+ifai AISIRENFLOATDOWN
+{
+state thisactor_getzrange
+ ifcanseetarget
+  ifcanshoottarget
+  ifrnd 4
+  {
+  sound SIREN_ATTACK
+   ai AISIRENSHOOT
+   }
+   else
+   ifpdistl 1024
+    ifrnd 32
+	ai AISIRENPUSH
+   else
+ifrnd 16 ai AISIRENFLOAT
+
+state getfloordist
+ifl z 0
+	{
+	seta[].z sector[].floorz
+	ai AISIRENFLOAT
+	}
+
+}
+else
+ifai AISIRENSHOOT
+{
+spriteflags 39
+seta[].shade -64
+ifactioncount 3 { shoot 12717 ai AISIRENFLOAT resetactioncount }
+}
+else
+ifai AISIRENPUSH
+{
+spriteflags 39
+seta[].shade -64
+ifactioncount 1
+	{
+	getp[].posx mx
+	getp[].posy my
+	geta[].x x
+	geta[].y y
+	sub mx x
+	sub my y
+	getangle knockbackang mx my
+	set knockback 6
+	sound FORCE_BLAST
+	ifpdistl 1024
+		{
+		wackplayer
+		palfrom 20 30 0 0
+		addphealth -15
+		}
+	ai AISIRENFLOAT
+	resetactioncount
+	}
+}
+
+ifg silence_damage 0
+	{
+	sub silence_damage 1
+	state spawn_curse_particles
+	}
+
+ifhitweapon
+	{
+	state NEWGUNEFFECTS
+	//spawn BLOOD
+	//guts JIBS6 1
+	state random_wall_jibs
+	ifwasweapon VOID_PLAYER_BOLT { sound EN_CURSE set silence_damage 150 }
+	ifwasweapon VOID_BOLT { sound EN_CURSE set silence_damage 300 }
+	ifwasweapon VOID_BLAST { sound EN_CURSE set silence_damage 900 }
+	ifwasweapon 6875 { set WEP3_BLOODY 3 sound STAB_01 }
+    ifwasweapon RPG
+	{ seta[].xvel 5 }
+	ifdead
+		{
+		ifg ice_damage 0 { spritepal 1 strength 1 sound SOMETHINGFROZE action ASIREN_FROZEN }
+		else
+			{
+			state jib_sounds
+			sound SIREN_DEATH
+			ai AISIRENDYING
+			state rf
+			addkills 1
+
+			set INTERNALCOUNT 0
+			}
+		}
+	else ifpdistl 1024 { ifai AISIRENPUSH nullop else ai AISIRENPUSH }
+	else ifg PAIN_AMOUNT 0 ai AISIRENPAIN
+	else ifrnd 16 { state PAIN_SKILL_LEVELADJUST ai AISIRENPAIN }
+	}
+
+state ENEMYKNOCKBACKS
+
+enda

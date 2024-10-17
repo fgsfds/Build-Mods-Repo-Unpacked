@@ -1,0 +1,248 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+
+--------------------------------------------------------------------------------
+*/
+
+damageeventtile MAKARA
+
+action ASCUBAGLIDE  5  1  5  1  20
+action ASCUBASWIM   0  3  5  1  12
+action ASCUBASHOOT  15 2  5  1  30
+action ASCUBADYING  25 6  1  1  18
+action ASCUBADEAD   30 1  1  1  10
+action ASCUBAFROZEN 15  1  5  1  10
+action ASCUBAGROW   15  1  5  1  10
+
+move SCUBAGLIDEVELS 160
+move SCUBASWIMVELS 128
+
+ai AISCUBASEEK ASCUBASWIM SCUBASWIMVELS seekplayer
+ai AISCUBASHOOT ASCUBASHOOT STOP faceplayer
+ai AISCUBAGROW ASCUBAGROW STOP geth
+ai AISCUBAFROZEN ASCUBAFROZEN STOP geth
+ai AISCUBADYING ASCUBADYING STOP geth
+
+defstate scubashootstate
+
+ifcount 8 nullop else
+ifcount 7
+{
+	geta[].z temp4
+	add temp4 3072
+	seta[].z temp4
+	sound MAK_ATCK
+
+		ifvarn target -1
+		{
+			state calczdist
+			ldist temp THISACTOR target
+			ifvare temp 0 setvar temp 1
+			mulvar zdist 768
+			divvarvar zdist temp
+			ezshoot zdist 29020
+		}
+		else
+		shoot 29020
+
+	sub temp4 3072
+	seta[].z temp4
+	add actor_breathe_count 1
+	move STOP geth
+	ifg actor_breathe_count 2
+	{
+		set actor_breathe_count 0
+		ai AISCUBASEEK
+		ifpdistl 4096
+			move SCUBASWIMVELS randomangle
+	}
+}
+
+ends
+
+defstate scubadyingstate
+
+	strength 0
+
+	ifaction ASCUBADYING
+	{
+		ifhitweapon state random_wall_jibs
+		ifactioncount 5
+		{
+			state rf
+			seta[].mdflags 16
+			setvar command 32768
+			iffloordistl 512 nullop else
+			spriteflags 4096
+			action ASCUBADEAD
+			iffloordistl 8 sound THUD
+			break
+		}
+	}
+	ifaction ASCUBADEAD
+	{
+		ifhitweapon
+		{
+			ifwasweapon RPG
+			{
+				state squish_sounds
+				state standard_jibs
+				killit
+			}
+			ifwasweapon RADIUSEXPLOSION
+			{
+				state squish_sounds
+				spawn BLOODPOOL
+				state standard_jibs
+				killit
+			}
+		}
+	}
+
+ends
+
+defstate scubaseekstate
+
+	// ifrnd 1 soundonce SCUBROAM
+	add ally_mag 1
+	getp[].posz zdist
+	add zdist 8192
+
+	sub zdist sprite[].z
+	shiftr zdist 1
+	ifl ally_mag 20 set zdist 0
+	ifaction ASCUBAGLIDE set zdist 0
+
+	ifl zdist -1560 set zdist -1560
+	ifg zdist 1560 set zdist 1560
+
+	getceilzofslope sprite[].sectnum sprite[].x sprite[].y z
+	geta[].z temp
+	sub temp z
+
+	ifl temp 6144 ifl zdist 0 set zdist 512
+
+	getflorzofslope sprite[].sectnum sprite[].x sprite[].y z
+	sub z sprite[].z
+	ifl z 6144 ifg zdist 0 set zdist -512
+
+	movesprite THISACTOR 0 0 zdist CLIPMASK0 RETURN
+	ifg zdist 0 ife INTERNALCOUNT -1 set ally_mag 0
+	ifl zdist 0 ife INTERNALCOUNT 1 set ally_mag 0
+	ifg zdist 0 set INTERNALCOUNT 1 else ifl zdist 0 set INTERNALCOUNT -1
+
+	ifcansee
+	{
+		ifaction ASCUBASWIM
+		ifawayfromwall
+		{
+			ifpdistg 4096
+			{
+				ifpdistg 8192 ifrnd 8
+				{
+					action ASCUBAGLIDE
+					move SCUBAGLIDEVELS geth
+				}
+				else ifrnd 2
+				{
+					action ASCUBAGLIDE
+					move SCUBAGLIDEVELS geth
+				}
+			}
+		}
+
+		ifcount 24
+		ifpdistl 16384
+		ifcanshoottarget
+		{
+			ifaction ASCUBAGLIDE ifpdistl 5120 nullop else
+			{
+				ifrnd 16 ai AISCUBASHOOT
+				else ifpdistl 5120 ifrnd 32 ai AISCUBASHOOT
+				else ifpdistl 2560 ai AISCUBASHOOT
+			}
+		}
+	}
+
+	ifaction ASCUBAGLIDE
+	{
+		ifnotmoving count 100
+		ifcount 90
+		{
+			action ASCUBASWIM
+			move SCUBASWIMVELS seekplayer
+		}
+	}
+
+ends
+
+eventloadactor MAKARA sizeat 40 40 cstator 257 enda
+
+useractor enemy MAKARA 250
+
+	ifai 0
+	{
+		ai AISCUBASEEK
+		sizeat 40 40
+		cstator 257
+	}
+	ifai AISCUBADYING { state scubadyingstate break }
+	ifinwater ifrnd 28 spawn WATERBUBBLE
+	ifai AISCUBASEEK state scubaseekstate else
+	ifai AISCUBASHOOT state scubashootstate
+
+	ifhitweapon
+	{
+		ifwasweapon BURNING nullop else
+		state random_wall_jibs
+		ifdead
+		{
+			addkills 1
+			ai AISCUBADYING
+			ifrnd 128 cstator 4
+			sound MAK_DIE
+
+			guts JIBS6 4
+
+			ifwasweapon RPG
+			{
+				state squish_sounds
+				state standard_jibs
+				killit
+			}
+			ifwasweapon RADIUSEXPLOSION
+			{
+				state squish_sounds
+				state standard_jibs
+				killit
+			}
+			break
+		}
+		else ifrnd 32 soundonce MAK_PAIN
+	}
+	else state checksquished
+
+enda

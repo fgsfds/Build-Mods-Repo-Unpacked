@@ -1,0 +1,307 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+
+--------------------------------------------------------------------------------
+*/
+
+damageeventtile SATYR
+
+action ASATYR_FROZEN 35 1 5 1 10
+action ASATYRIDLE 0 1 5 1 10
+action ASATRYWALK      0  4 5 1 20
+action ASATRYRUN      0  4 5 1 4
+action ASATYRSLASH    20 3 5 1 15
+action ASATYRFLINCH 35 1 5 1 10
+action ASATYRGROW 35 1 5 1 10
+
+action ASATYRDYING 40 6 1 1 10
+action ASATYRDEAD 46 1 1 1 10
+
+action ASATYR_SLASH 3584 5 1 1 12
+action ASATYR_SLASH_DEAD 3588 0 1 1 12
+
+action ASATYR_H_DYING 393 6 1 1 10
+action ASATYR_H_DEAD 398 1 1 1 10
+
+
+move SATYRWALKVELS 80
+move SATYRRUNVELS 208
+
+ai AISATYRIDLE ASATYRIDLE STOP seekplayer
+ai AISATYRSEEKENEMY ASATRYWALK SATYRWALKVELS seekplayer
+ai AISATYRRUSHENEMY ASATRYRUN SATYRRUNVELS faceplayer
+ai AISATYRSLASHENEMY ASATYRSLASH STOP faceplayer
+
+ai AISATYR_SLASH_DEAD ASATYR_SLASH_DEAD STOP faceplayer
+ai AISATYRDEAD ASATYRDEAD STOP faceplayer
+ai AISATYR_H_DEAD ASATYR_H_DEAD STOP faceplayer
+ai AISATYRSHRUNK ASATRYRUN SATYRRUNVELS furthestdir
+ai AISATYRGROW ASATYRGROW STOP seekplayer
+
+
+
+useractor enemystayput SATYR_STAYPUT 275 ASATYRIDLE
+spawn SHOOTME
+sound SATYR_ALERT
+geta[].pal actor_pal
+state monst_glow
+ife actor_pal 47 { spritepal 0 strength 400 sizeat 30 30 }
+else { strength 275 sizeat 26 26 }
+ai AISATYRSEEKENEMY
+cstator 257
+cactor SATYR
+enda
+
+useractor enemy SATYR 175 ASATYRIDLE
+fall
+
+ifai 0
+	{
+	state monst_glow
+		spawn SHOOTME
+		sound SATYR_ALERT
+		ife actor_pal 0 geta[].pal actor_pal
+		ife actor_pal 47 { spritepal 0 setactorsoundpitch THISACTOR SATYR_ALERT -512 strength 300 sizeat 30 30 }
+		else { strength 175 sizeat 26 26 }
+		geta[].htflags temp
+		orvar temp SFLAG_NODAMAGEPUSH
+		seta[].htflags temp
+		ai AISATYRIDLE
+		cstator 257
+	}
+
+ifai AISATYRRUSHENEMY nullop else ife actor_pal 47 nullop else state ENEMYKNOCKBACKS
+state enemy_ice_damage
+state enemy_spirit_damage
+
+ifaction ASATYR_FROZEN
+	state frozen_code
+else
+ifai AISATYR_SLASH_DEAD
+	{
+	move STOP
+		ifhitweapon
+		{
+		  ifwasweapon RADIUSEXPLOSION
+		  {
+			shoot SATYR_HEAD
+			state squish_sounds
+		  state standard_jibs
+			killit
+		  }
+		  break
+		}
+	}
+else
+ifai AISATYRDEAD
+	{
+	move STOP
+		ifhitweapon
+		{
+		  ifwasweapon RADIUSEXPLOSION
+		  {
+			shoot SATYR_HEAD
+			state squish_sounds
+		  state standard_jibs
+			killit
+		  }
+		  break
+		}
+	}
+else
+ifai AISATYR_H_DEAD
+	{
+	move STOP
+	ifhitweapon
+		{
+		ifwasweapon RADIUSEXPLOSION
+			{
+			state squish_sounds
+			state standard_jibs
+			killit
+			}
+		break
+		}
+	}
+else
+ifaction ASATYRDYING
+	{
+	strength 0
+	ifactioncount 6 { state BODY_FALL_NOISES spawn BLOOD_POOL ai AISATYRDEAD }
+	}
+else
+ifaction ASATYR_SLASH
+	{
+	strength 0
+	ifactioncount 5 { state BODY_FALL_NOISES spawn BLOOD_POOL ai AISATYR_SLASH_DEAD }
+	}
+else
+ifaction ASATYR_H_DYING
+	{
+	strength 0
+	ifactioncount 6 { state BODY_FALL_NOISES spawn BLOOD_POOL ai AISATYR_H_DEAD }
+	}
+else
+ifaction ASATYRFLINCH
+	{
+	ifdead break
+	sub PAIN_AMOUNT 1
+	move STOP
+	ife PAIN_AMOUNT 0 ai AISATYRSEEKENEMY
+	}
+else
+ifai AISATYRGROW state genericgrowcode
+else
+ifai AISATYRSHRUNK
+	{
+		ifcount SHRUNKDONECOUNT
+		  ai AISATYRSEEKENEMY
+		else ifcount SHRUNKCOUNT
+		  {
+		  sound ACTOR_UNSHRINK
+		ife actor_pal 47 sizeto 52 52 else sizeto 46 46
+		}
+		else
+		  state genericshrunkcode
+		break
+	}
+else
+ifai AISATYRIDLE
+	{
+		state correctcansee
+		ifp palive
+		ife sightvar YES
+		{
+		ifpdistl 8012 ai AISATYRRUSHENEMY else ai AISATYRSEEKENEMY
+		}
+		else ifrnd 128 ai AISATYRSEEKENEMY
+	}
+else
+ifai AISATYRSEEKENEMY
+	{
+	state correctcansee
+	ifpdistl 8012 ife sightvar YES ifrnd 32 { sound SATYR_ALERT ife actor_pal 47 setactorsoundpitch THISACTOR SATYR_ALERT -512 ai AISATYRRUSHENEMY }
+	else ifrnd 2 ai AISATYRIDLE
+	}
+else
+ifai AISATYRRUSHENEMY
+	{
+	state correctcansee
+	ifpdistg 8012 ife sightvar YES ai AISATYRSEEKENEMY
+	else ifpdistl 1536 ai AISATYRSLASHENEMY
+	}
+else
+ifai AISATYRSLASHENEMY
+{
+	ifpdistg 1536 ai AISATYRRUSHENEMY else
+	ifactioncount 3
+	{
+	sound SCRATCHS
+		eshoot 17849
+		setthisprojectile[RETURN].isound SCRATCHS
+		resetactioncount
+	}
+}
+
+ifhitweapon
+{
+	state NEWGUNEFFECTS
+	sound SATYR_PAIN
+	ife actor_pal 47 setactorsoundpitch THISACTOR SATYR_PAIN -512
+	guts JIBS6 1
+	state random_wall_jibs
+	ifdead
+		{
+		addkills 1
+		state rf
+
+		  ifwasweapon RADIUSEXPLOSION
+		  {
+				eshoot SATYR_HEAD
+				geta[RETURN].ang temp
+				sub temp 1024
+				seta[RETURN].ang temp
+				shoot NJIB
+				shoot NJIB
+				guts JIBS6 3
+				guts JIBS2 2
+				state squish_sounds
+			  state standard_jibs
+			killit
+		  }
+		ifwasweapon GROWSPARK { cstat 0 sound ACTOR_GROWING ai AISATYRGROW break }
+		else ifg ice_damage 0 { spritepal 1 strength 0 sound SOMETHINGFROZE action ASATYR_FROZEN }
+		else
+		ifand PROJ_UDATA 8
+			{
+			sound SATYR_DIE
+			state sword_kill_sounds
+            state random_trigger_showoff
+			state slashed_sounds
+			action ASATYR_SLASH
+			}
+			else
+			{
+			ife HEADSHOT 2
+				{
+				state jib_sounds
+				action ASATYR_H_DYING
+				ifg sprite[].extra -30
+				{
+				eshoot SATYR_HEAD
+                geta[].htang temp
+				seta[RETURN].ang temp
+                geta[RETURN].z temp
+                sub temp 1200
+                seta[RETURN].z temp
+				}
+				else guts JIBS2 2
+
+                state random_trigger_showoff
+				state decap_sounds
+				shoot NJIB
+				shoot NJIB
+				guts JIBS6 3
+
+				}
+				else
+				{
+				sound SATYR_DIE
+				ife actor_pal 47 setactorsoundpitch THISACTOR SATYR_DIE -512
+				action ASATYRDYING
+				}
+			}
+		}
+    else ifwasweapon KNEE ife cur_weap 0 ife temp_weap 16 { ifaction ASATYRSLASH nullop else action ASATYRFLINCH }
+	else ifg PAIN_AMOUNT 0 action ASATYRFLINCH
+	else ifrnd 4 { ife actor_pal 47 nullop else ifaction ASATYRSLASH nullop else { state PAIN_SKILL_LEVELADJUST action ASATYRFLINCH } }
+	ifwasweapon SHRINKSPARK { sound ACTOR_SHRINKING ai AISATYRSHRUNK }
+}
+
+
+state checksquished
+
+enda

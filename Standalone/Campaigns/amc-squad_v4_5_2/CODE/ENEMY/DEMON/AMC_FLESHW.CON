@@ -1,0 +1,216 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+
+--------------------------------------------------------------------------------
+*/
+
+damageeventtile FLESHWIZARD
+
+action AFLESH_WIZ_IDLE 0 1 5 1 0
+action AFLESH_WIZ_FROZEN 0 1 5 1 0
+action AFLESH_WIZ_MOVE 0 1 5 1 10
+action AFLESH_WIZ_SHOOT 5 2 5 1 20
+action AFLESH_WIZ_PAIN 15 1 5 1 10
+action AFLESH_WIZ_DIE 20 6 1 1 10
+action AFLESH_WIZ_DEAD 26 1 1 1 10
+action AFLESH_WIZ_HEAD_DIE 2791 7 1 1 10
+action AFLESH_WIZ_HEAD_DEAD 2797 1 1 1 10
+
+move FLESHMOVE 96 0
+move FLESHSTOP
+
+ai AIFLESH_WIZ_MOVE AFLESH_WIZ_MOVE FLESHMOVE seekplayer
+ai AIFLESH_WIZ_SHRUNK AFLESH_WIZ_MOVE FLESHMOVE furthestdir
+ai AIFLESH_WIZ_SHOOT AFLESH_WIZ_SHOOT FLESHSTOP faceplayerslow
+ai AIFLESH_WIZ_PAIN AFLESH_WIZ_PAIN FLESHSTOP
+ai AIFLESH_WIZ_DIE AFLESH_WIZ_DIE FLESHSTOP
+ai AIFLESH_WIZ_HEAD_DIE AFLESH_WIZ_HEAD_DIE FLESHSTOP
+
+useractor enemystayput FLESHWIZARDSTAYPUT 125 AFLESH_WIZ_IDLE
+state monst_glow
+cactor FLESHWIZARD
+enda
+
+useractor enemy FLESHWIZARD 125 AFLESH_WIZ_IDLE
+fall
+
+ifai 0
+	{
+	state monst_glow
+	spawn SHOOTME
+	sound FLW_RCG
+	spriteflags NORMAL_ENEMY
+	sizeat 26 26
+	strength 125
+	cstat 257
+	ai AIFLESH_WIZ_MOVE
+	}
+
+state ENEMYKNOCKBACKS
+state enemy_ice_damage
+state enemy_fire_damage
+state enemy_spirit_damage
+
+ifaction AFLESH_WIZ_FROZEN state frozen_code
+else
+ifaction AFLESH_WIZ_DEAD
+	{
+	move FLESHSTOP
+    ifhitweapon
+	    {
+	      ifwasweapon RADIUSEXPLOSION
+	      {
+	        state squish_sounds
+	        state monst_body_jibs
+			ife INVASION 1  nullop else
+			{
+		  state standard_jibs
+			}
+	        killit
+	      }
+	      break
+	    }
+	}
+else
+ifaction AFLESH_WIZ_HEAD_DEAD
+	{
+	move FLESHSTOP
+    ifhitweapon
+	    {
+	      ifwasweapon RADIUSEXPLOSION
+	      {
+	        state squish_sounds
+	        state monst_body_jibs
+			ife INVASION 1  nullop else
+			{
+		  state standard_jibs
+			}
+	        killit
+	      }
+	      break
+	    }
+	}
+else
+ifai AIFLESH_WIZ_DIE
+	{
+	ifactioncount 6 { state rf action AFLESH_WIZ_DEAD }
+	}
+else
+ifai AIFLESH_WIZ_HEAD_DIE
+	{
+	ifactioncount 7 { state rf action AFLESH_WIZ_HEAD_DEAD }
+	}
+else
+ifai AIFLESH_WIZ_MOVE
+	{
+	ifrnd 4 sound FLW_ROAM
+	ifpdistl 16000
+	 ifcansee
+	  ifcanshoottarget
+	   ifrnd 32
+		{
+		ifrnd 64 sound FLW_ATCK
+		ai AIFLESH_WIZ_SHOOT
+		}
+	}
+else
+ifai AIFLESH_WIZ_SHOOT
+	{
+	ifactioncount 2
+		{
+		sound FLESH_SQUIRT
+		eshoot GASBURST
+		setthisprojectile[RETURN].extra 5
+		ai AIFLESH_WIZ_MOVE
+		}
+	}
+else
+ifai AIFLESH_WIZ_PAIN
+{
+	sub PAIN_AMOUNT 1
+	move FLESHSTOP
+	ife PAIN_AMOUNT 0 ai AIFLESH_WIZ_MOVE
+}
+else
+ifai AIFLESH_WIZ_SHRUNK
+{
+    ifcount SHRUNKDONECOUNT
+      ai AIFLESH_WIZ_MOVE
+    else ifcount SHRUNKCOUNT
+	  {
+	  sound ACTOR_UNSHRINK
+      sizeto 55 55
+	  }
+    else
+      state genericshrunkcode
+    break
+}
+
+ifhitweapon
+{
+	state NEWGUNEFFECTS
+	//spawn BLOOD
+	//guts JIBS6 1
+	state random_wall_jibs
+	ifdead
+		{
+		ifg ice_damage 0 { spritepal 1 strength 1 sound SOMETHINGFROZE action AFLESH_WIZ_FROZEN }
+		else
+		ife HEADSHOT 2
+			{
+			state random_trigger_showoff
+			state jib_sounds
+			state decap_sounds
+			state rf
+			ai AIFLESH_WIZ_HEAD_DIE
+			shoot NJIB
+			shoot NJIB
+			guts JIBS6 3
+			guts JIBS2 2
+			}
+		else
+			{
+			ifg fire_damage 0 set fire_damage 0
+			sound FLW_DIE
+			addkills 1
+			ifwasweapon CHAINSAW_PROJ
+				{
+				set npc_chainsaw_struggle 54
+				set npc_chainsaw_id 5
+				set cultist_pal sprite[].pal
+				}
+			ai AIFLESH_WIZ_DIE
+			}
+		}
+else
+	ifg PAIN_AMOUNT 0 { sound FLW_PAIN ai AIFLESH_WIZ_PAIN }
+	else ifrnd 16 { sound FLW_PAIN state PAIN_SKILL_LEVELADJUST ai AIFLESH_WIZ_PAIN }
+	ifwasweapon SHRINKSPARK { sound ACTOR_SHRINKING ai AIFLESH_WIZ_SHRUNK }
+}
+
+state checksquished
+
+enda

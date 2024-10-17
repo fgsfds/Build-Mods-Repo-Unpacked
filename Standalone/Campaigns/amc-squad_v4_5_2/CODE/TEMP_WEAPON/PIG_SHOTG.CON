@@ -1,0 +1,158 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+This file contains code for the Pigcop Shotgun temp weapon.
+--------------------------------------------------------------------------------
+*/
+
+defstate tw_pigcop_shotgun_gunammotypes
+	setarray GUN_AMMO_TYPES_ARR[0] 5
+ends								 						   
+defstate tw_pigcop_shotgun_code
+    ife temp_weap 56 setarray WEAPON_TILE[0] MOSSBERG_SPRITE
+    else setarray WEAPON_TILE[0] PIGCOPGUNSPRITE
+    setarray weap_special[0] 0
+
+    set WEAPON0_WORKSLIKE 0
+    set WEAPON0_TOTALTIME 20
+    set WEAPON0_HOLDDELAY 0
+    set WEAPON0_FIREDELAY 2
+    set WEAPON0_INITIALSOUND 4
+    set WEAPON0_SHOTSPERBURST 7
+    set WEAPON0_FLAGS 1024
+    set WEAPON0_SELECTSOUND SELECT_SHOTGUN
+
+    set gun_mag -1
+    set GUN_SIZE 1
+    set GUN_HANDS 2
+    set GUN_VOLUME 70
+    set GUN_ACCURACY 12
+    set GUN_MAX_SPREAD 48
+    set GUN_AMMO_TYPES 5
+
+    // determine shot type
+    ifand AMMO_TYPES[cur_weap] 1
+    {
+        set weapon_type 8
+        set LAST_SHELL_FIRED 1
+        set WEAPON0_SHOOTS 9361
+        set WEAPON0_FIRESOUND EXPL_SHELL_FIRE
+        ife explosive_shells 0 ife kickbackpic 0 { xorvar AMMO_TYPE 1 setarray AMMO_TYPES[cur_weap] AMMO_TYPE }
+    }
+    else ifand AMMO_TYPES[cur_weap] 4
+    {
+        set weapon_type 9
+        set LAST_SHELL_FIRED 4
+        set WEAPON0_FIRESOUND FLECH_SHELL_FIRE
+
+        ifge CHAR 0 ife ARTIFACTS_LOADOUT[CHAR] 7
+            set WEAPON0_SHOOTS 6816
+        else
+            set WEAPON0_SHOOTS 6826
+
+        ife flechete_shells 0
+          ife kickbackpic 0
+        {
+            xorvar AMMO_TYPE 4
+            setarray AMMO_TYPES[cur_weap] AMMO_TYPE
+        }
+    }
+    else ifand AMMO_TYPES[cur_weap] 64
+    {
+        set weapon_type 0
+        set LAST_SHELL_FIRED 64
+        set WEAPON0_FIRESOUND MAGNUM_SHOTGUN
+        set WEAPON0_SHOOTS RMAXREVOLVERSHOT
+
+        ife magnum_shells 0
+          ife kickbackpic 0
+        {
+            xorvar AMMO_TYPE 64
+            setarray AMMO_TYPES[cur_weap] AMMO_TYPE
+        }
+    }
+    else ifand AMMO_TYPES[cur_weap] 1024
+    {
+        set weapon_type 8
+        set LAST_SHELL_FIRED 1024
+        set WEAPON0_FIRESOUND DRAGONS_BR_FIRE
+        set WEAPON0_SHOOTS 22536
+        ife dragon_shells 0
+          ife kickbackpic 0
+        {
+            xorvar AMMO_TYPE 1024
+            setarray AMMO_TYPES[cur_weap] AMMO_TYPE
+        }
+    }
+    else
+    {
+        set weapon_type 2
+        set LAST_SHELL_FIRED 0
+		ife temp_weap 56 set WEAPON0_FIRESOUND MOSSB_FIRE
+        else set WEAPON0_FIRESOUND PIGC_SHOTG
+		ife kickbackpic 2 { espawn SOUND_SPRITE state SPAWN_IN_PLAYER_FRONT setactorvar[RETURN].temp WEAPON0_FIRESOUND }
+		set WEAPON0_FIRESOUND 4
+        set WEAPON0_SHOOTS SHOTGUN
+    }
+
+	ife kickbackpic 2 set gun_recoil 12
+
+    // other stuff (casings, smoke, etc.)
+    ife kickbackpic 4
+    {
+	ife temp_weap 56 add gun_spread 32
+    else add gun_spread 48
+        set gunsmoke_angle 64
+        state spawn_gunsmoke
+        ifand AMMO_TYPES[cur_weap] 64
+        {
+            set gun_pushback_power -128
+            state gun_pushback
+        }
+    }
+    else ife kickbackpic 10
+		{
+		ife temp_weap 56 sound MOSSB_PUMP
+        else sound SHOTGUN_COCK2
+		}
+    else ife kickbackpic 12
+		{
+			// kickbackpic_2 is set to 1 when we transfer shotgun shells from this gun to the main shotgun (slot 3 on keyboard, or slot 2 in code)
+			ife kickbackpic_2 1
+			{
+				// add to shotgun
+				getp[].ammo_amount 2 temp
+				add temp 1
+				setp[].ammo_amount 2 temp
+				// take from this shotgun
+				set ammo_forweaponidx 0
+				set ammo_doreduce 1
+				state ammo_getdefs
+				set kickbackpic_2 0 // signal that the converting is over
+			}
+		else
+		state SHOTGUN_SHELL
+		}
+ends

@@ -1,0 +1,296 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+
+--------------------------------------------------------------------------------
+*/
+
+
+var shade_flip 0 2
+var shade_process 1 2
+var shade_todo 0 2
+var shade_done 0 2
+var shade_origpal -1 2 // currently only one pal for the entire sector, and it's based on the floorpal
+
+// Array where each index represents the hitag of a shadeoffset sprite. Various actors can be linked to the shade offset via this array.
+// If the value is 0, the lighting code will finish its current offset change, if any, and then stop.
+// If the value is 1 if the linked actor decides when the LIGHT_OPEN is sets back to 0.
+// If the value is 2 if the shade offset sprite effect itself should decide this (this is as soon as the offset is applied).
+// If the value is 10+, it's an actor incrementing the value, keep applying shade offset again and again, decrement value, until back to 10.
+// Note that if set to 2 you can get weird pulsating shit if the linked actor is stuck on setting the value (eg when it's blocked by some other actor)
+gamearray LIGHT_OPEN 32768 // This max needs to match the max hitag of mapster, it doesn't mean there will be 32768 sprites (impossible anyway)
+
+// If XVELSAVED = 1, pulsating mode
+spritenopal SHADEOFFSET
+useractor notenemy SHADEOFFSET
+	cstat 32768
+	sizeat 50 50
+
+	ifaction 0
+	{
+		geta[].pal PALSAVED
+
+		set RETURN 0
+
+		ife LIGHT_OPEN[HITAGSAVED] 1
+			set RETURN 1
+		else ife LIGHT_OPEN[HITAGSAVED] 2
+			set RETURN 1
+		else ifg LIGHT_OPEN[HITAGSAVED] 10
+			set RETURN 1
+		else ife temp4 1
+			set RETURN 1
+		else ifn LOTAGSAVED 0
+			checkactivatormotion LOTAGSAVED
+		else ife XVELSAVED 1
+			set RETURN 1
+
+		// activator motion detected => mark the total shade change we need to do
+		ife shade_process 1
+			ife RETURN 1
+		{
+			ife shade_todo 0
+			{
+				geta[].shade temp
+				ife ZVELSAVED 1 { set shade_origpal PALSAVED set shade_flip 1 set ZVELSAVED 0 } // darken the sector instead on activation
+				set shade_todo temp
+				set INTERNALCOUNT 0
+			}
+		}
+
+		// nothing is running => reset
+		ife shade_todo 0
+			ife RETURN 0
+		{
+			set shade_process 1
+			set shade_todo 0
+			set shade_done 0
+		}
+
+		ifn shade_todo 0
+		{
+			// adjust shading in increments, if a gpspeed exists do it every x tics (where x = gpspeed value = sector extra value)
+			// sector extra value of 256 == -1 == means there is no gpspeed
+			geta[].sectnum temp2
+			ifg EXTRASAVED 0 set temp3 EXTRASAVED // backup incase the sector is a door or something
+			else gets[temp2].extra temp3
+
+			// temp 1 means do processing
+			set temp 0
+
+			ife temp3 256
+				set temp 1
+			else
+			{
+				add INTERNALCOUNT 1
+
+				ifge INTERNALCOUNT temp3
+				{
+					set INTERNALCOUNT 0
+					set temp 1
+				}
+			}
+
+			ife temp 1
+			{
+				ife shade_origpal -1
+				{
+					ife sprite[].ang 1024 gets[temp2].ceilingpal shade_origpal else
+					gets[temp2].floorpal shade_origpal
+				}
+
+				// ceiling
+				ifn sprite[].ang 0
+				ifn sprite[].ang 256
+				{
+					gets[temp2].ceilingshade temp3
+					ife shade_flip 0
+					{
+						ifn PALSAVED 0
+							sets[temp2].ceilingpal PALSAVED
+						add temp3 -1
+					}
+					else
+					{
+						ifn PALSAVED 0
+							sets[temp2].ceilingpal shade_origpal
+						sub temp3 -1
+					}
+					ifge temp3 127 nullop else
+					ifle temp3 -127 nullop else
+					sets[temp2].ceilingshade temp3
+				}
+
+				// floor
+				ifn sprite[].ang 1024
+				ifn sprite[].ang 256
+				{
+					gets[temp2].floorshade temp3
+					ife shade_flip 0
+					{
+						ifn PALSAVED 0
+							sets[temp2].floorpal PALSAVED
+						add temp3 -1
+					}
+					else
+					{
+						ifn PALSAVED 0
+							sets[temp2].floorpal shade_origpal
+						sub temp3 -1
+					}
+					ifge temp3 127 nullop else
+					ifle temp3 -127 nullop else
+					sets[temp2].floorshade temp3
+				}
+
+				// walls
+				for WALLPOINT wallsofsector temp2
+				{
+					ifn wall[WALLPOINT].hitag 1 // if hitag 1, don't touch the wall - same as built in lighting effects
+					{
+						ifand wall[WALLPOINT].cstat 2 // is bottom swap flag set?
+						 ifn wall[WALLPOINT].nextwall -1 // sometimes a white wall can have cstat 2 applied
+						{
+						ifn wall[WALLPOINT].lotag 2 // set lotag to 2 to ONLY affect the top half
+							{
+							getwall[WALLPOINT].nextwall temp5 // than get the nextwall's settings as that's where they are stored
+							getwall[temp5].shade temp3
+							ife shade_flip 0
+							{
+								ifn PALSAVED 0
+									setwall[temp5].pal PALSAVED
+								add temp3 -1
+							}
+							else
+							{
+								ifn PALSAVED 0
+									setwall[temp5].pal shade_origpal
+								sub temp3 -1
+							}
+							ifge temp3 127 nullop else
+							ifle temp3 -127 nullop else
+							setwall[temp5].shade temp3
+							}
+						}
+						ifn wall[WALLPOINT].lotag 1 // set lotag to 1 to ONLY affect the bottom half
+						{
+							getwall[WALLPOINT].shade temp3
+							ife shade_flip 0
+							{
+								ifn PALSAVED 0
+									setwall[WALLPOINT].pal PALSAVED
+								add temp3 -1
+							}
+							else
+							{
+								ifn PALSAVED 0
+									setwall[WALLPOINT].pal shade_origpal
+								sub temp3 -1
+							}
+							ifge temp3 127 nullop else
+							ifle temp3 -127 nullop else
+							setwall[WALLPOINT].shade temp3
+						}
+					}
+				}
+				
+				// wall sprites only
+				for ally_mag spritesofsector temp2
+				{
+					ifand sprite[ally_mag].cstat 16 // if hitag 1, don't touch the sprite - same as built in lighting effects
+					{
+							getactor[ally_mag].shade temp3
+							ife shade_flip 0
+							{
+								ifn PALSAVED 0
+									setactor[ally_mag].pal PALSAVED
+								add temp3 -1
+							}
+							else
+							{
+								ifn PALSAVED 0
+									setactor[ally_mag].pal shade_origpal
+								sub temp3 -1
+							}
+							ifge temp3 127 nullop else
+							ifle temp3 -127 nullop else
+							setactor[ally_mag].shade temp3
+					}
+				}
+
+				ifg shade_todo 0
+					add shade_done 1
+				else
+					sub shade_done 1
+
+				// all done
+				ife shade_done shade_todo
+				{
+					// if all done, reset, but only if activator not still in motion... otherwise weird shit happens
+					set RETURN 0
+
+					// Mark ready for next light open action
+					set temp LIGHT_OPEN[HITAGSAVED]
+					ife temp 2
+						setarray LIGHT_OPEN[HITAGSAVED] 0
+
+					ifg temp 10
+					{
+						sub temp 1
+						setarray LIGHT_OPEN[HITAGSAVED] temp
+					}
+
+					checkactivatormotion LOTAGSAVED
+
+					ifn RETURN 1
+					{
+						set shade_process 1
+						set shade_todo 0
+						set shade_done 0
+					}
+					// we're done, but not allowed to reprocess.. unless we're in pulsating mode
+					else
+					{
+						set shade_process 0
+						set shade_todo 0
+						set shade_done 0
+
+						// pulsating mode, flip and redo immediately, plus set temp4 to 1 => means keep running indefinitely
+						ife XVELSAVED 1
+						{
+							set shade_process 1
+							set temp4 1
+						}
+					}
+
+					ife shade_flip 0
+						set shade_flip 1
+					else
+						set shade_flip 0
+				}
+			}
+		}
+	}
+enda

@@ -1,0 +1,80 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+
+--------------------------------------------------------------------------------
+*/
+
+
+spritenopal PAL_SWAP
+useractor notenemy PAL_SWAP
+	cstat 32768
+	sizeat 50 50
+
+	ifaction 0
+	{
+	geta[].pal PALSAVED
+	set RETURN 0
+
+	ifn LOTAGSAVED 0 checkactivatormotion LOTAGSAVED
+	ife RETURN 1
+		{
+		geta[].sectnum temp2
+
+		// ceiling
+			ifn sprite[].ang 0
+			ifn sprite[].ang 256
+			{
+			sets[temp2].ceilingpal PALSAVED
+			}
+		// floor
+			ifn sprite[].ang 1024
+			ifn sprite[].ang 256
+			{
+			sets[temp2].floorpal PALSAVED
+			}
+		// walls
+		for WALLPOINT wallsofsector temp2
+				{
+					ifn wall[WALLPOINT].hitag 1 // if hitag 1, don't touch the wall - same as built in lighting effects
+					{
+						ifand wall[WALLPOINT].cstat 2 // is bottom swap flag set?
+						 ifn wall[WALLPOINT].nextwall -1 // sometimes a white wall can have cstat 2 applied
+						{
+						ifn wall[WALLPOINT].lotag 2 // set lotag to 2 to ONLY affect the top half
+							{
+							getwall[WALLPOINT].nextwall temp5 // than get the nextwall's settings as that's where they are stored
+							setwall[temp5].pal PALSAVED
+							}
+						}
+						ifn wall[WALLPOINT].lotag 1 // set lotag to 1 to ONLY affect the bottom half
+						{
+							setwall[WALLPOINT].pal PALSAVED
+						}
+					}
+				}
+			}
+		}
+enda

@@ -1,0 +1,414 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+
+--------------------------------------------------------------------------------
+*/
+
+// **************************************************************************************************
+// ALT JAMES
+// **************************************************************************************************
+
+damageeventtile E3_BOSS
+
+action ALT_JS_STAND -6642 1 5 1 8
+action ALT_JS_FIRE -6642 1 5 1 8
+action ALT_JS_RUN -6637 4 5 1 12
+action ALT_JS_RUN_BACK -6617 4 5 -1 12
+action ALT_JS_DASH -6637 4 5 1 4
+action ALT_JS_DYING -6612 6 1 1 18
+action ALT_JS_DEAD -6607 1 1 1 0
+action ALT_JS_CROUCH -6606 1 5 1 8
+
+move FK_JS_RUN 180
+move FK_JS_RUN_BACK -180
+move FK_JS_DASH 280
+
+ai AI_ALT_JS_STAND ALT_JS_STAND STOP seekplayer
+
+ai AI_ALT_JS_FIRE ALT_JS_FIRE STOP 
+ai AI_ALT_JS_FIRE_AHEAD ALT_JS_FIRE STOP faceplayersmart
+
+ai AI_ALT_JS_RUN ALT_JS_RUN FK_JS_RUN seekplayer
+ai AI_ALT_JS_RUN_BACK ALT_JS_RUN_BACK FK_JS_RUN_BACK seekplayer
+
+ai AI_ALT_JS_DASH_TO ALT_JS_DASH FK_JS_DASH dodgebullet
+ai AI_ALT_JS_DASH ALT_JS_DASH FK_JS_DASH faceplayer randomangle
+
+ai AI_ALT_JS_TIMEJ ALT_JS_CROUCH STOP faceplayer
+
+ai AI_ALT_JS_DEAD ALT_JS_DEAD STOP
+
+useractor enemy E3_BOSS
+fall
+
+ifspawnedby APLAYER ifaction 0 action ZERO
+ifaction ZERO
+	{
+	set actor_type TYPE_FULL_BODY_ARMOUR
+	state monst_glow
+	spawn SHOOTME
+	spriteflags NORMAL_ENEMY_TRU
+	strength 4000
+	spritepal 12
+	sizeat 22 22
+	cstat 257
+	set ally_mag SKILL_LEVEL
+	ife SKILL_LEVEL 1 set HEAL_COUNT 200
+	ife SKILL_LEVEL 2 set HEAL_COUNT 400
+	ife SKILL_LEVEL 3 set HEAL_COUNT 600
+	ife SKILL_LEVEL 4 set HEAL_COUNT 800
+	ife SKILL_LEVEL 5 set HEAL_COUNT 1000
+	soundonce PFIELD_ON
+	espawn 22923
+	seta[RETURN].pal 18
+	setactorvar[RETURN].temp8 temp4
+	set shoot_countdown 150
+	ai AI_ALT_JS_RUN
+	}
+
+
+ifdead nullop else
+{
+ifg playsound 0
+	{
+	sub playsound 1
+	ifl playsound 5
+		{
+		soundonce PFIELD_ON
+		espawn 22923
+		seta[RETURN].pal 18
+		setactorvar[RETURN].temp8 temp4
+		set playsound 0
+		}
+	}
+
+ifrnd 16
+ifrnd 16
+	{
+	ifand ALLY_VOICE 1 nullop else ife npc_talking 0
+		{
+		globalsound SEMAJ_TAUNT1
+		ife gp_subt 0
+			{
+			set subt_id 13007
+			set gp_subt 112
+			}
+		xorvar ALLY_VOICE 1
+		set npc_talking 900
+		}
+	ifand ALLY_VOICE 2 nullop else ife npc_talking 0
+		{
+		globalsound SEMAJ_TAUNT2
+		ife gp_subt 0
+			{
+			set subt_id 13008
+			set gp_subt 117
+			}
+		xorvar ALLY_VOICE 2
+		set npc_talking 900
+		}
+	ifand ALLY_VOICE 4 nullop else ife npc_talking 0
+		{
+		globalsound SEMAJ_TAUNT3
+		ife gp_subt 0
+			{
+			set subt_id 13009
+			set gp_subt 82
+			}
+		xorvar ALLY_VOICE 4
+		set npc_talking 900
+		}
+	ifand ALLY_VOICE 8 nullop else ife npc_talking 0
+		{
+		globalsound SEMAJ_TAUNT4
+		ife gp_subt 0
+			{
+			set subt_id 13010
+			set gp_subt 82
+			}
+		xorvar ALLY_VOICE 8
+		set npc_talking 900
+		}
+	}
+
+ifg npc_talking 0 sub npc_talking 1
+
+
+ifstrength 1000
+ ifg HEAL_COUNT 0
+	{
+	sub HEAL_COUNT 1
+	addstrength 1
+	soundonce JAMES_FIRSTAID
+
+		set temp3 sprite[].x
+		randvarvar temp4 256
+		add temp3 temp4
+		randvar temp4 2048
+
+		rotatepoint sprite[].x sprite[].y temp3 sprite[].y temp4 temp5 temp6
+
+		espawn 18574
+
+		seta[RETURN].x temp5
+		seta[RETURN].y temp6
+		geta[RETURN].z temp7
+		sub temp7 4096
+		seta[RETURN].z temp7
+
+		seta[RETURN].pal 8
+
+	}
+}
+
+ifai AI_ALT_JS_DEAD
+	{
+	strength 0
+	cstat 0
+	move STOP
+	ifl INTERNALCOUNT 100 add INTERNALCOUNT 1
+		ifg INTERNALCOUNT 90
+			{
+			operateactivators 999 THISACTOR
+			operaterespawns 999
+			operatemasterswitches 999
+			}
+	break
+	}
+else
+ifaction ALT_JS_DYING
+	{
+	move STOP
+	add INTERNALCOUNT_2 1
+	ifg INTERNALCOUNT_2 25
+		{
+		set INTERNALCOUNT 0
+		quake 26
+		spawn 10644
+		state BODY_FALL_NOISES
+		ai AI_ALT_JS_DEAD
+		}
+	}
+else
+ifai AI_ALT_JS_RUN
+	{
+	ifg shoot_countdown 0 sub shoot_countdown 1
+	ifg playsound 0 ifbulletnear ai AI_ALT_JS_DASH_TO
+
+	ifrnd 4 ifpdistl 8192 ai AI_ALT_JS_FIRE
+	else ifrnd 4 ifpdistg 8192 ai AI_ALT_JS_FIRE_AHEAD
+	else ifrnd 4
+		  ife shoot_countdown 0
+			{
+			getp[].posx temp
+			getp[].posy temp2
+			set temp3 temp
+			add temp3 1024
+			randvar temp4 2048
+			rotatepoint temp temp2 temp3 temp2 temp4 temp5 temp6
+			updatesector temp5 temp6 temp7
+			ifn temp7 -1
+				{
+				set INTERNALCOUNT 0
+				state SKILL_SHOOT_LEVELADJUST
+				ifl RANDOM_CHANCE SKILLCHANCE ifg ally_mag 0 { shoot FL_GRENADE sub ally_mag 1 }
+				ai AI_ALT_JS_TIMEJ
+				resetcount
+				}
+			}
+	else ife weapon_type 2 ifpdistl 8192 ai AI_ALT_JS_RUN_BACK
+	else ife weapon_type 8 ifpdistl 8192 ai AI_ALT_JS_RUN_BACK
+	else ife weapon_type 11 ifpdistl 8192 ai AI_ALT_JS_RUN_BACK
+	else ife weapon_type 4 ifpdistg 4096 ai AI_ALT_JS_DASH
+	}
+else
+ifai AI_ALT_JS_RUN_BACK
+	{
+	ifg playsound 0 ifbulletnear ai AI_ALT_JS_DASH_TO
+	ifpdistg 4096
+	{
+		ifrnd 16
+		{
+			getp[].posx temp
+			getp[].posy temp2
+			set temp3 temp
+			add temp3 1024
+			randvar temp4 2048
+			rotatepoint temp temp2 temp3 temp2 temp4 temp5 temp6
+			updatesector temp5 temp6 temp7
+			ifn temp7 -1
+				{
+				set INTERNALCOUNT 0
+				state SKILL_SHOOT_LEVELADJUST
+				ifl RANDOM_CHANCE SKILLCHANCE ifstrength 2000 shoot FL_GRENADE
+				ai AI_ALT_JS_TIMEJ
+				resetcount
+				}
+		}
+		else ife weapon_type 2 ai AI_ALT_JS_FIRE_AHEAD
+		else ife weapon_type 8 ai AI_ALT_JS_FIRE_AHEAD
+		else ife weapon_type 11 ai AI_ALT_JS_FIRE_AHEAD
+		else ife weapon_type 4 ai AI_ALT_JS_DASH
+	}
+	}
+else
+ifai AI_ALT_JS_DASH
+	{
+	spawn FRAMEEFFECT1
+	ifg playsound 0 ifbulletnear ai AI_ALT_JS_DASH_TO else
+	ifpdistl 4096 ai AI_ALT_JS_FIRE else
+	ife weapon_type 2 ifrnd 128 ai AI_ALT_JS_RUN_BACK else
+	ife weapon_type 11 ifrnd 128 ai AI_ALT_JS_RUN_BACK else
+	ife weapon_type 8 ifrnd 128 ai AI_ALT_JS_RUN_BACK else
+	ifpdistg 8098
+	 ifrnd 16
+	  ifstrength 2000
+		{
+		getp[].posx temp
+		getp[].posy temp2
+		set temp3 temp
+		add temp3 1024
+		randvar temp4 2048
+		rotatepoint temp temp2 temp3 temp2 temp4 temp5 temp6
+		updatesector temp5 temp6 temp7
+		ifn temp7 -1
+			{
+			set INTERNALCOUNT 0
+			state SKILL_SHOOT_LEVELADJUST
+			ifl RANDOM_CHANCE SKILLCHANCE shoot FL_GRENADE
+			ai AI_ALT_JS_TIMEJ
+			resetcount
+			}
+		}
+	}
+else
+ifai AI_ALT_JS_DASH_TO
+	{
+	spawn FRAMEEFFECT1
+	ifactioncount 10
+		{
+		ife weapon_type 2 ai AI_ALT_JS_RUN_BACK else
+		ife weapon_type 8 ai AI_ALT_JS_RUN_BACK else
+		ife weapon_type 11 ai AI_ALT_JS_RUN_BACK else
+		ife weapon_type 4 ai AI_ALT_JS_DASH else
+		ai AI_ALT_JS_RUN
+		}
+	}
+else
+ifai AI_ALT_JS_TIMEJ
+{
+add INTERNALCOUNT 1
+	spawn FRAMEEFFECT1
+	ife INTERNALCOUNT 4 { cstat 2 soundonce USE_TIMEPORTAL sizeto 2 22 }
+	ife INTERNALCOUNT 13
+		{
+			cstat 32768
+			getp[].posx temp
+			getp[].posy temp2
+			set temp3 temp
+			add temp3 1024
+			randvar temp4 2048
+			rotatepoint temp temp2 temp3 temp2 temp4 temp5 temp6
+			updatesector temp5 temp6 temp7
+			ifn temp7 -1
+				{
+				spawn 8433
+				seta[].x temp5
+				seta[].y temp6
+				getp[].posz temp8
+				sub temp8 1754
+				seta[].z temp8
+				}
+			else { cstat 257 sizeat 22 22 ai AI_ALT_JS_DASH }
+		}
+	ife INTERNALCOUNT 14 { soundonce USE_TIMEPORTAL cstat 2 sizeto 22 22 spawn 8433 }
+	ife INTERNALCOUNT 24 { spawn SHOOTME cstat 257 sizeat 22 22 ai AI_ALT_JS_DASH }
+}
+else
+ifai AI_ALT_JS_FIRE
+{
+state fronttowardstarget
+	ifactioncount 3
+	{
+		ifpdistl 4096
+		{
+			set PROJECTILE_TO_SHOOT ENEMY_SHOTGUN
+			set PROJECTILE_FIRING_SOUND MERC3_SHOTG
+			state sang_enemyShootProjectile
+
+			zshoot temp3 ENEMY_SHOTGUN
+			zshoot temp3 ENEMY_SHOTGUN
+			zshoot temp3 ENEMY_SHOTGUN
+			zshoot temp3 ENEMY_SHOTGUN
+			flash
+		}
+		else
+		ifpdistg 16384
+		{
+			set HITSCAN_TO_SHOOT RAILGUN
+			set HITSCAN_FIRING_SOUND RAILGUN_FIRE
+			state sang_enemyShootHitscan
+			ife HITSCAN_SHOT_FIRED 1
+			{
+				flash
+				globalsound RAILGUN_FIRE
+			}
+		}
+		else
+			{
+			set PROJECTILE_STRENGTH 20
+			set PROJECTILE_TO_SHOOT ENEMY_BULLET
+			set PROJECTILE_FIRING_SOUND UP_GLOCKFIRE
+			state sang_enemyShootProjectile
+			flash
+			}
+		ai AI_ALT_JS_RUN
+	}
+}
+else
+ifai AI_ALT_JS_FIRE_AHEAD
+{
+	ifactioncount 3
+	{
+		shoot GEO_NADE
+		ai AI_ALT_JS_RUN
+	}
+}
+
+ifhitweapon
+{
+	//spawn BLOOD
+	state random_wall_jibs
+	ifdead
+	{
+		cstat 0
+		move STOP
+		globalsound SEMAJ_DIE
+		action ALT_JS_DYING
+	}
+}
+
+enda

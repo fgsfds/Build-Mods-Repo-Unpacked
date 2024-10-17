@@ -1,0 +1,757 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+Common code => more stuff is to be isolated, find includes of external files at the bottom
+--------------------------------------------------------------------------------
+*/
+
+move AMCSTILL 0
+move AMCMOVE 266
+move AMCMOVESLOW 96
+
+defstate clear_ally_death
+ife ALLYSLOT1 THISACTOR set ALLYSLOT1 -1
+ife ALLYSLOT2 THISACTOR set ALLYSLOT2 -1
+ife ALLYSLOT3 THISACTOR set ALLYSLOT3 -1
+ife ALLYSLOT4 THISACTOR set ALLYSLOT4 -1
+ife ALLYSLOT5 THISACTOR set ALLYSLOT5 -1
+ife ALLYSLOT6 THISACTOR set ALLYSLOT6 -1
+ife ALLYSLOT7 THISACTOR set ALLYSLOT7 -1
+ife ALLYSLOT8 THISACTOR set ALLYSLOT8 -1
+ends
+
+defstate civilian_pals
+	ifrnd 32 spritepal 23
+	else ifrnd 32 spritepal 36
+	else ifrnd 32 spritepal 21
+	else ifrnd 32 spritepal 49
+	else ifrnd 32 spritepal 43
+	else ifrnd 32 spritepal 44
+	else ifrnd 32 spritepal 35
+	else ifrnd 32 spritepal 37
+	else ifrnd 32 spritepal 38
+	else ifrnd 32 spritepal 39
+	else ifrnd 32 spritepal 16
+	else ifrnd 32 spritepal 15
+	else ifrnd 32 spritepal 14
+	else ifrnd 32 spritepal 13
+	else ifrnd 32 spritepal 3
+	else ifrnd 32 spritepal 11
+	else ifrnd 32 spritepal 10
+	else spritepal 12
+ends
+
+defstate ALLY_SHIELD_STUFF
+		geta[].htextra temp
+		ifg temp 0
+		 ifg NPC_SHIELD 0
+			{
+			geta[].htpicnum PROJ_HIT_TYPE
+			ifand tiledata[PROJ_HIT_TYPE].gameflags 8 getprojectile[PROJ_HIT_TYPE].userdata PROJ_UDATA
+			else set PROJ_UDATA 0
+
+			// plasma/energy/electric attacks do x2 damage to shields
+			ifand PROJ_UDATA 1 mul temp 2
+			ifand PROJ_UDATA 8192 mul temp 2
+
+			// spirit/curse ignores shield entirely
+			ifand PROJ_UDATA 16384 nullop else
+			ifand PROJ_UDATA 262144 nullop else
+				{
+				seta[].htextra -1
+				seta[].htpicnum 0
+				sound SOMETHINGHITFORCE
+				espawn ENERGY_SHIELD
+				seta[RETURN].xrepeat sprite[].xrepeat
+				seta[RETURN].yrepeat sprite[].yrepeat
+				seta[RETURN].ang sprite[].htang
+				sub NPC_SHIELD temp
+				set NPC_REC_DELAY 150
+				ifl NPC_SHIELD 1
+					{
+					set NPC_SHIELD -240
+					espawn ENERGY_EXPLOSION
+					geta[].z temp2
+					sub temp2 4096
+					seta[RETURN].z temp2
+					seta[RETURN].pal 32
+					set NPC_REC_DELAY 300
+					seta[].pal actor_pal
+					stopsound SOMETHINGHITFORCE
+					screensound ENEMY_SH_BREAK
+					shoot SPARK shoot SPARK shoot SPARK shoot SPARK shoot SPARK
+					shoot SPARK shoot SPARK shoot SPARK shoot SPARK shoot SPARK
+					}
+				}
+			resetcount
+			}
+	ifl NPC_SHIELD 200
+		{
+		ifg NPC_REC_DELAY 0 
+			{
+			ife NPC_REC_DELAY 1 
+				{ 
+				sound ESHEILD_CHARGING 
+				setactorsoundpitch THISACTOR ESHEILD_CHARGING -256 
+				espawn ENERGY_SHIELD 
+				seta[RETURN].xrepeat 64
+				seta[RETURN].yrepeat 64
+				seta[RETURN].ang sprite[THISACTOR].ang
+				seta[RETURN].pal 23
+				}
+			sub NPC_REC_DELAY 1		
+			}
+		else
+			{
+			add NPC_SHIELD 2
+			ifg NPC_SHIELD 199 
+				{ 
+				espawn ENERGY_SHIELD 
+				seta[RETURN].xrepeat sprite[].xrepeat
+				seta[RETURN].yrepeat sprite[].yrepeat
+				seta[RETURN].ang sprite[THISACTOR].ang
+				seta[RETURN].pal 7
+				sound ENEMY_SH_RECHARGE
+				}
+			}
+		}
+	ends
+
+// *****************************************************************************************************************************************************************************************************************************************************
+// ALLIES CODE
+// *****************************************************************************************************************************************************************************************************************************************************
+
+useractor notenemy SHOOTME // Target for allies to shoot at
+
+ife debug_stuff 0 cstat 32768
+sizeat 32 32
+
+ife sprite[myowner].statnum -1 killit
+ife sprite[myowner].cstat 32768 killit
+ife sprite[myowner].statnum 1024 killit
+ife sprite[myowner].statnum 2 { ifg music_level 0 ifg music_check 238 set music_check 0 }
+ifl sprite[myowner].extra 1 { set music_check 0 killit }
+ifcansee
+	{
+	ifg sprite[myowner].extra 50 ifl music_level 1 set music_level 1
+	else ifg sprite[myowner].extra 100 ifl music_level 2 set music_level 2
+	else ifg sprite[myowner].extra 300 ifl music_level 3 set music_level 3
+	else ifg sprite[myowner].extra 600 ifl music_level 4 set music_level 4
+	}
+ifg enemies_cleared 0 set enemies_cleared 0
+geta[myowner].picnum temp7
+
+geta[myowner].x temp
+geta[myowner].y temp2
+geta[myowner].z temp3
+ifspawnedby TERMINATORCRAWLING setvar ally_mag 1 else // re-using a variable rather than making a new one just for this
+sub temp3 4096 // adjust it to sprite's center roughly
+setsprite THISACTOR temp temp2 temp3
+
+ifaction 0
+	{
+	ifmultiplayer
+		ife COOP 1
+			{
+			ifcansee
+			 ifp pfacing
+			  ifpdistl 8000
+			   ifrnd 32
+				{
+				ife CHAR 0 globalsound J_INCOMING
+				ife CHAR 1 globalsound Z_INCOMING
+				ife CHAR 2 globalsound M_INCOMING
+				ife CHAR 3 globalsound R_INCOMING
+				ife CHAR 4 globalsound S_INCOMING
+				ife CHAR 5 globalsound RN_INCOMING
+				ife CHAR 6 globalsound G_INCOMING
+				ife CHAR 7 globalsound MS_INCOMING
+				ife CHAR 12 globalsound JA_INCOMING
+				qgetsysstr 356 STR_PLAYERNAME
+				qstrcat 356 643
+				userquote 356
+				}
+			}
+	action ZERO
+	}
+
+enda
+
+
+useractor notenemy SHOOTME2 // Target for enemies to shoot at
+	cstat 32768
+	sizeat 32 32
+
+	geta[myowner].statnum temp6
+	ife temp6 1024 killit
+	geta[myowner].extra temp6
+	ifl temp6 1 killit
+
+	geta[myowner].x temp
+	geta[myowner].y temp2
+	geta[myowner].z temp3
+	setsprite THISACTOR temp temp2 temp3
+
+	// Workaround for a TROR Bug. Sectnum doesn't update correctly when traversing TROR Layers, in such cases do this manually.
+	geta[myowner].sectnum temp
+	geta[].sectnum temp2
+
+	ifn temp temp2
+		seta[].sectnum temp
+
+
+enda
+
+defstate rand_lookaround
+		ifrnd 2
+		 ife camerasprite -1 // if it's not a cutscene
+		{
+		ifrnd 64 soundonce JMOVE1 else
+		ifrnd 64 soundonce JMOVE2 else
+		ifrnd 64 soundonce JMOVE3 else
+		soundonce JMOVE4
+		geta[].ang temp5
+		randvar temp4 128
+		ifrnd 128 add temp4 temp5 else sub temp4 temp5
+		seta[].ang temp4
+		}
+ends
+
+defstate startfollowplayer
+	ife ALLYSLOT1 THISACTOR nullop
+	else ife ALLYSLOT2 THISACTOR nullop
+	else ife ALLYSLOT3 THISACTOR nullop
+	else ife ALLYSLOT4 THISACTOR nullop
+	else ife ALLYSLOT5 THISACTOR nullop
+	else ife ALLYSLOT6 THISACTOR nullop
+	else ife ALLYSLOT7 THISACTOR nullop
+	else ife ALLYSLOT8 THISACTOR nullop
+	else
+	{
+		ife ALLYSLOT1 -1 set ALLYSLOT1 THISACTOR
+		else ife ALLYSLOT2 -1 set ALLYSLOT2 THISACTOR
+		else ife ALLYSLOT3 -1 set ALLYSLOT3 THISACTOR
+		else ifge max_ally 4 ife ALLYSLOT4 -1 set ALLYSLOT4 THISACTOR
+		else ifge max_ally 5 ife ALLYSLOT5 -1 set ALLYSLOT5 THISACTOR
+		else ifge max_ally 6 ife ALLYSLOT6 -1 set ALLYSLOT6 THISACTOR
+		else ifge max_ally 7 ife ALLYSLOT7 -1 set ALLYSLOT7 THISACTOR
+		else ifge max_ally 8 ife ALLYSLOT8 -1 set ALLYSLOT8 THISACTOR
+		else
+			break
+	}
+	state follow_sounds
+	set FOLLOW_PLAYER 1
+ends
+
+defstate stopfollowplayer
+	ife ALLYSLOT1 THISACTOR set ALLYSLOT1 -1
+	else ife ALLYSLOT2 THISACTOR set ALLYSLOT2 -1
+	else ife ALLYSLOT3 THISACTOR set ALLYSLOT3 -1
+	else ife ALLYSLOT4 THISACTOR set ALLYSLOT4 -1
+	else ife ALLYSLOT5 THISACTOR set ALLYSLOT4 -1
+	else ife ALLYSLOT6 THISACTOR set ALLYSLOT4 -1
+	else ife ALLYSLOT7 THISACTOR set ALLYSLOT4 -1
+	else ife ALLYSLOT8 THISACTOR set ALLYSLOT4 -1
+	state stay_sounds
+	set FOLLOW_PLAYER 0
+ends
+
+defstate removefollower
+	ife ALLYSLOT1 THISACTOR set ALLYSLOT1 -1 else
+	ife ALLYSLOT2 THISACTOR set ALLYSLOT2 -1 else
+	ife ALLYSLOT3 THISACTOR set ALLYSLOT3 -1 else
+	ife ALLYSLOT4 THISACTOR set ALLYSLOT4 -1 else
+	ife ALLYSLOT5 THISACTOR set ALLYSLOT4 -1 else
+	ife ALLYSLOT6 THISACTOR set ALLYSLOT4 -1 else
+	ife ALLYSLOT7 THISACTOR set ALLYSLOT4 -1 else
+	ife ALLYSLOT8 THISACTOR set ALLYSLOT4 -1
+	set FOLLOW_PLAYER 0
+ends
+
+// for removing followers from other actors
+defstate hard_removefollower
+	ifn ALLYSLOT1 -1 { setactorvar[ALLYSLOT1].FOLLOW_PLAYER 0 set ALLYSLOT1 -1 }
+	ifn ALLYSLOT2 -1 { setactorvar[ALLYSLOT2].FOLLOW_PLAYER 0 set ALLYSLOT2 -1 }
+	ifn ALLYSLOT3 -1 { setactorvar[ALLYSLOT3].FOLLOW_PLAYER 0 set ALLYSLOT3 -1 }
+	ifn ALLYSLOT4 -1 { setactorvar[ALLYSLOT4].FOLLOW_PLAYER 0 set ALLYSLOT4 -1 }
+	ifn ALLYSLOT5 -1 { setactorvar[ALLYSLOT4].FOLLOW_PLAYER 0 set ALLYSLOT5 -1 }
+	ifn ALLYSLOT6 -1 { setactorvar[ALLYSLOT4].FOLLOW_PLAYER 0 set ALLYSLOT6 -1 }
+	ifn ALLYSLOT7 -1 { setactorvar[ALLYSLOT4].FOLLOW_PLAYER 0 set ALLYSLOT7 -1 }
+	ifn ALLYSLOT8 -1 { setactorvar[ALLYSLOT4].FOLLOW_PLAYER 0 set ALLYSLOT8 -1 }
+ends
+
+defstate player_follow_commands
+	ifdead
+		break
+
+	ifpdistl 1024
+	  ifp pfacing
+	{
+		set player_use 0
+		ife use_action_allowed 1
+		{
+			state setIgnoreUse
+			set hit_key 30
+			ifspritepal 3 break
+			ifspritepal 5 break
+			ife FOLLOW_PLAYER 0
+				state startfollowplayer
+			else ife FOLLOW_PLAYER 1
+				state stopfollowplayer
+		}
+	}
+ends
+
+// ========================================AMC SOLDIER/SCIENTIST
+
+spriteshadow AMCSOLDIER
+spritenvg AMCSOLDIER
+spriteshadow AMC_ASOLDIER
+spritenvg AMC_ASOLDIER
+spriteshadow AMC_209
+spriteshadow AMCSCIENTIST
+spriteshadow AMCSCIENTIST_ACTIVE
+spritenvg AMCSCIENTIST
+spriteshadow EDFSOLDIER
+spritenvg EDFSOLDIER
+spriteshadow AMCSCIENTIST_2
+spriteshadow AMCSCIENTIST_3
+spriteshadow AMCSCIENTIST_4
+spriteshadow AMCSCIENTIST_5
+spriteshadow MSSOLDIER
+spritenvg MSSOLDIER
+spriteshadow 22956
+spriteshadow 10993
+spriteshadow 10998
+spriteshadow 11003
+
+action AEDFSTAND 0 1 5 1 1
+
+action AMC_SALUTE -169 1 5 1 1
+
+action RAINCOAT 10437 1 5 1 1
+
+defstate amc_soldier_greet
+ifspritepal 130 // Museum Pal
+    nullop
+else ifspritepal 131 // museum pal
+    nullop
+else ifpdistl 1536
+ ifp pfacing
+  ifmove 0
+   {
+   ifhitspace
+		{
+				gettimedate temp temp temp2 temp temp temp temp temp
+				ife GENDER FEMALE
+				{
+				ifl temp2 18 // no evening voice file
+				 ifrnd 128
+					{
+					ifl temp2 12 soundonce AMCF_MORN else // Morning
+					soundonce AMCF_AFTN  // Daytime
+					}
+					else
+					{
+					ifrnd 85 sound AMCF_HI_01
+					else ifrnd 170 sound AMCF_HI_02
+					else sound AMCF_HI_03
+					}
+				}
+				else
+				ife GENDER MALE
+				{
+				ife CHAR 4 ifrnd 32 soundonce AMCS_M_SANG else
+				ifrnd 128
+					{
+					ifg temp2 18 soundonce AMCS_M_EVENIN else // Night
+					ifl temp2 12 soundonce AMCS_M_MORN else // Morning
+					soundonce AMCS_M_AFTERN  // Daytime
+					}
+				else
+					{
+					ife P_GENDER FEMALE soundonce AMCS_M_MAAM
+					else soundonce AMCS_M_SIR
+					}
+				}
+		move STOP
+		}
+	}
+ends
+
+useractor notenemy AMCSOLDIER 100 0
+fall
+ifaction 0
+	{
+	cstator 257
+	ifspritepal 9 nullop else ife PERSONNEL_RESEARCH[32] 2 cactor AMC_ASOLDIER
+	ifrnd 128 { sizeat 21 22 set GENDER FEMALE } else { sizeat 23 23 set GENDER MALE }
+	ife EXTRASAVED 1 { sizeat 21 22 set GENDER FEMALE } else ife EXTRASAVED 2 { sizeat 23 23 set GENDER MALE }
+
+	ifg raining 0
+	 ifoutside
+	 action RAINCOAT
+	 else action FIVE_ANG
+
+	}
+
+ifaction FIVE_ANG
+{
+ifspritepal 9 // Museum Pal
+    nullop
+else ifpdistl 4096
+ ifcanseetarget
+  ifn CHAR 9 // I tells ya, can't get no respect!
+	{
+	sound JMOVE6
+	action AMC_SALUTE
+	resetactioncount
+	}
+}
+
+ifaction AMC_SALUTE
+{
+ifactioncount 130
+	{
+	sound JMOVE7
+	action AEDFSTAND
+	}
+}
+
+state amc_soldier_greet
+
+state spawn_cold_breathe
+
+ifcount 52
+	{
+	findnearspritez SHOOTME 6432 107456 temp
+	ifn temp -1 { spawn AMCSOLDIER_ACTIVE killit }
+	resetcount
+	}
+
+enda
+
+// advanced AMC soldier
+
+action AMC_ASALUTE 2744 1 5
+
+useractor notenemy AMC_ASOLDIER 100 0
+fall
+ifaction 0
+{
+ife PERSONNEL_RESEARCH[32] 0 cactor AMCSOLDIER
+cstator 257
+ifrnd 128 { sizeat 20 21 set GENDER FEMALE } else { sizeat 22 22 set GENDER MALE }
+ife EXTRASAVED 1 { sizeat 20 21 set GENDER FEMALE } else ife EXTRASAVED 2 { sizeat 22 22 set GENDER MALE }
+action FIVE_ANG
+}
+
+ifaction RAINCOAT action FIVE_ANG
+
+ifaction FIVE_ANG
+{
+ifspritepal 130 // Museum Pal
+    nullop
+else ifpdistl 4096
+ ifcanseetarget
+  ifn CHAR 9 // I tells ya, can't get no respect!
+	{
+	sound JMOVE6
+	action AMC_ASALUTE
+	resetactioncount
+	}
+}
+
+ifaction AMC_ASALUTE
+{
+ifactioncount 130
+	{
+	sound JMOVE7
+	action AEDFSTAND
+	}
+}
+
+state amc_soldier_greet
+
+state spawn_cold_breathe
+
+ifcount 52
+	{
+	findnearspritez SHOOTME 6432 107456 temp
+	ifn temp -1 { spawn AMC_ASOLDIER_ACTIVE killit }
+	resetcount
+	}
+
+enda
+
+useractor notenemy AMC_209 800 0
+fall
+
+ifaction 0
+{
+ifn PERSONNEL_RESEARCH[31] 2 killit
+cstator 257
+sizeat 28 28
+action FIVE_ANG
+}
+
+ifpdistl 1536
+ ifp pfacing
+  ifmove 0
+   {
+   ifhitspace
+	{
+	ife CHAR 0 sound RB_JS_HI
+	ife CHAR 1 sound RB_ZN_HI
+	ife CHAR 2 sound RB_MO_HI
+	ife CHAR 3 sound RB_HW_HI
+	ife CHAR 4 sound RB_SG_HI
+	ife CHAR 5 sound RB_RN_HI
+	ife CHAR 6 sound RB_GEO_HI
+	ife CHAR 7 sound RB_MS_HI
+	ife CHAR 9
+		{
+		ifrnd 128 sound RB_OHNO1
+		else sound RB_OHNO2
+		}
+	ife CHAR 10 sound RB_BS_HI
+	ife CHAR 12 sound RB_JA_HI
+	ife CHAR 13 sound RB_MC_HI
+	ife CHAR 14 sound RB_SF_HI
+	ife CHAR 17 sound RB_KG_HI
+	move STOP
+	}
+   }
+
+ifcount 52
+	{
+	findnearspritez SHOOTME 6432 107456 temp
+	ifn temp -1 { spawn AMC_209_ACTIVE killit }
+	resetcount
+	}
+
+enda
+
+// EDF Soldier guarding
+
+useractor notenemy EDFSOLDIER 100 0
+fall
+ifaction 0
+{
+cstator 257
+sizeat 22 22
+action AEDFSTAND
+}
+
+state spawn_cold_breathe
+
+ifspritepal 46
+	{
+	ifrnd 2 move STOP randomangle
+	else move STOP
+	checkactivatormotion 21711
+	ife RETURN 1
+		{
+		spawn BLOODPOOL
+		killit
+		}
+	}
+else
+	{
+	ifcount 26
+		{
+		findnearspritez SHOOTME 6432 107456 temp
+		ifn temp -1 { spawn EDFSOLDIER_ACTIVE killit }
+		resetcount
+		}
+	}
+
+enda
+
+defstate captive_edf
+fall
+ifaction 0
+{
+cstator 257
+sizeat 22 22
+action AEDFSTAND
+}
+
+state spawn_cold_breathe
+
+ifaction AEDFSTAND
+	{
+	ifrnd 2 move STOP randomangle
+	else move STOP
+	checkactivatormotion 21711
+	ife RETURN 1
+		{
+		spawn BLOODPOOL
+		killit
+		}
+	}
+ends
+
+useractor notenemy 8916 state captive_edf enda
+useractor notenemy 9854 state captive_edf enda
+
+
+action MSSOLDIER_ID_DIE 2118 6 1 1 11
+action MSSOLDIER_ID_DEAD 2123 1 1 1 11
+
+useractor notenemy MSSOLDIER 100 0
+fall
+ifaction 0
+{
+ifspritepal 21 sizeat 27 27 else
+sizeat 24 24
+ifn HITAGSAVED 0 cstator 256
+action AEDFSTAND
+}
+
+state spawn_cold_breathe
+
+ife HITAGSAVED 0
+{
+ifspritepal 21 nullop
+else
+	{
+	ife CHAR 7
+	{
+	getp[].palookup temp
+	ife temp 0 set temp 11
+	seta[].pal temp
+	}
+	else spritepal 11
+	}
+
+ifcount 26
+	{
+	findnearspritez SHOOTME 6432 107456 temp
+	ifn temp -1 { spawn MSSOLDIER_ACTIVE killit }
+	resetcount
+	}
+}
+else
+ifn HITAGSAVED 0
+{
+ifaction AEDFSTAND
+	{
+	sleeptime 0
+	ifhitweapon
+		{
+		action MSSOLDIER_ID_DIE
+		spawn BLOOD
+		spawn BLOODPOOL
+		randvar temp 30
+		ifsound MS_PRAET3 stopsound MS_PRAET3
+		ifl temp 10 sound EDFSOLD_DIE1 else
+		ifl temp 20 sound EDFSOLD_DIE2 else
+		sound EDFSOLD_DIE3
+		}
+	}
+	else
+	ifaction MSSOLDIER_ID_DIE
+		{
+		ifactioncount 5
+			{
+			action MSSOLDIER_ID_DEAD
+			cstat 0
+			state BODY_FALL_NOISES_SOUNDONCE
+			}
+		}
+}
+
+enda
+
+// This is used for the dummy in the AMC Base target range. It is spawned in front of the target the AMC soldier shoots at.
+// It is killed and respawned regularly so the soldier doesn't shoot at it constantly.
+useractor notenemy 9462
+	cstat 256
+
+	ifaction 0
+	{
+		geta[].z z
+		sub z 8192
+		seta[].z z
+		
+		espawn SHOOTME
+		strength 150
+		sizeat 64 64
+		action ZERO
+	}
+
+	ifcount 190 killit
+
+	ifdead killit
+enda
+
+// ======================================================================================================================
+// VEHICLES
+// ======================================================================================================================
+
+include CODE/VEHICLE/VEHICLE.CON // Common states
+include CODE/VEHICLE/TANK.CON // Fox tank code
+include CODE/VEHICLE/HORSE.CON // Horse
+include CODE/VEHICLE/HOVERCRAFT.CON // Hovercraft
+include CODE/VEHICLE/CYFLIER.CON // Cycloid Flier
+include CODE/VEHICLE/HOVERTANK.CON // Hovertank
+include CODE/VEHICLE/VRTANK.CON // VR Tank
+include CODE/VEHICLE/MS_MECH.CON // MS Corp Mech
+include CODE/VEHICLE/ENG_SUB.CON // Engineer submarine
+
+// ======================================================================================================================
+// ALLY EXTERNAL FILES
+// ======================================================================================================================
+
+include CODE/ALLY/CIVILIANS.CON // Civilians
+include CODE/ALLY/MEDCIVILIANS.CON // Medieval Civilians
+
+include CODE/ALLY/SCIENTIST.CON // AMC Scientists
+include CODE/ALLY/FIDO.CON // Fido
+include CODE/ALLY/SECURITY.CON // Security Guard
+
+include CODE/ALLY/FR_SORCERER.CON // Friendly sorcerer
+include CODE/ALLY/TOWNGUARD.CON // Town guard
+include CODE/ALLY/DARK_ELF.CON // Dark Elf
+
+include CODE/ALLY/SOLDIERACTIVE.CON // Active AMC Soldier
+include CODE/ALLY/ADV_SOLDIER_ACTIVE.CON // Active Advanced AMC soldier
+include CODE/ALLY/AMC209.CON
+
+include CODE/ALLY/EDF_SOLDIER.CON // EDF Soldier
+include CODE/ALLY/EDF_SUPERS.CON // EDF Super Soldier
+
+include CODE/ALLY/EAF_SOLDIER.CON // EAF Soldier
+
+include CODE/ALLY/MSCORP_SOLDIER.CON // Ms Corp Soldier
+include CODE/ALLY/JANE.CON // Jane Ashford follower
+include CODE/ALLY/SHELLY.CON // Bombshell follower
+include CODE/ALLY/VLADMIR.CON // Vladmir lebedev follower
+include CODE/ALLY/RUSSIAN.CON // Russian fighters
+
+include CODE/ALLY/MINERVA.CON // Minerva Armitage
+include CODE/ALLY/RIPPERH.CON // Ripper Heart
+include CODE/ALLY/TURRETS.CON // Turrets, Sentry Staffs .etc

@@ -1,0 +1,514 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+
+--------------------------------------------------------------------------------
+*/
+
+
+defstate kagura_hud
+
+    //IMPORTANT: hud_disp_temp9 is used for resolution scaling here
+    state get_resolution_rescale // sets hud_disp_temp9
+
+    ife userdef[].god 1
+    {
+        rotatesprite 109 23 18600 0 27355 512 24 264 0 0 xdim ydim // health bar
+        ifg PHEALTH 0 ; ifg KAGURA_CHARGE 9
+            rotatespritea 95 25 18600 0 27354 disp_pulse 24 264 0 0 0 xdim ydim // outline
+        else
+            rotatespritea 95 25 18600 0 27354 0 24 264 0 0 0 xdim ydim // outline
+    }
+    else
+    {
+         // HEALTH
+        set hud_disp_temp xdim
+        mul hud_disp_temp  50
+        mulscale hud_disp_temp hud_disp_temp hud_disp_temp9 10
+
+        set hud_disp_temp2 PHEALTH
+        scalevar hud_disp_temp2 hud_disp_temp2 xdim pmax_health
+        mulscale hud_disp_temp2 hud_disp_temp2 384 10
+        mul hud_disp_temp2 hud_disp_temp9
+
+        add hud_disp_temp hud_disp_temp2
+        divvar hud_disp_temp 1000
+
+        set hud_disp_temp8 hud_disp_temp
+
+        // regular health bar
+        ifn CURSED 0 rotatesprite 109 23 18600 0 27355 0 30 264 0 0 hud_disp_temp8 ydim // health bar
+        else rotatesprite 109 23 18600 0 27355 0 0 264 0 0 hud_disp_temp8 ydim // health bar
+
+        // overheal health bar
+        ifg PHEALTH pmax_health
+        {
+            set hud_disp_temp xdim
+            mul hud_disp_temp 75 // from 30/1000 * xdim to 436/1000 * xdim
+            mulscale hud_disp_temp hud_disp_temp hud_disp_temp9 10
+
+            set hud_disp_temp2 PHEALTH
+            sub hud_disp_temp2 pmax_health
+
+            // If max health exceeds 199, then just assume max overheal is 2 * Player HP.
+            ifg pmax_health 199 { set hud_disp_temp3 pmax_health mulvar hud_disp_temp3 2 } else set hud_disp_temp3 200
+            sub hud_disp_temp3 pmax_health
+
+            scalevar hud_disp_temp2 hud_disp_temp2 xdim hud_disp_temp3
+            mulscale hud_disp_temp2 hud_disp_temp2 361 10
+            mul hud_disp_temp2 hud_disp_temp9
+
+            add hud_disp_temp hud_disp_temp2
+            divvar hud_disp_temp 1000
+
+            ifn CURSED 0 rotatesprite 109 23 18600 0 27355 0 40 264 0 0 hud_disp_temp ydim // health bar
+            else rotatesprite 109 23 18600 0 27355 -10 1 264 0 0 hud_disp_temp ydim // health bar
+        }
+
+
+        // check if booster
+        ifg PHEALTH 0
+        {
+            ifg KAGURA_CHARGE 9 set hud_disp_temp 1
+            else ifp pboosted set hud_disp_temp 1
+        }
+        else set hud_disp_temp 0
+
+        // Skull + outline
+        // precedence: Charged < Curse < Overheal < Normal
+        ife hud_disp_temp 1
+        {
+            set hud_disp_temp 105
+            ifn CURSED 0 ; set hud_disp_temp 40
+        //    else ifg PHEALTH pmax_health ; set hud_disp_temp 46
+            rotatesprite 95 25 18600 0 27354 disp_pulse hud_disp_temp 264 0 0 xdim ydim
+
+        }
+        else ifn CURSED 0 rotatesprite 95 25 18600 0 27354 0 40 264 0 0 xdim ydim // Display hp foreground (blue)
+     //   else ifg PHEALTH pmax_health rotatespritea 95 25 18600 0 27354 6 46 264 0 0 0 xdim ydim // Display hp foreground (blue)
+        else rotatesprite 95 25 18600 0 27354 0 0 264 0 0 xdim ydim // Display hp foreground
+
+        // death skull is revealed as health drops
+        ifg PHEALTH 0
+            rotatespritea 30 21 18600 0 27356 12 26 264 0 hud_disp_temp8 0 xdim ydim
+        else
+            rotatespritea 30 21 18600 0 27356 12 26 264 0 0 0 xdim ydim
+    }
+
+
+    // Skull-only override
+    // Skull goes gray when dead, or gold with the energy shield. Gold skull serves as energy shield meter
+    ifg PHEALTH 0 ; ifg P_HAS_SHIELD 0 ; ifg P_ENERGYSHIELD 0
+        {
+        set hud_disp_temp ydim
+        mulvar hud_disp_temp 180 // from 30/1000 * ydim to 180/1000 * ydim
+        mulvarvar hud_disp_temp hud_disp_temp9
+        divvar hud_disp_temp 1000
+
+        set hud_disp_temp2 P_ENERGYSHIELD
+        mulvar hud_disp_temp2 150
+        mulvarvar hud_disp_temp2 ydim
+        divvarvar hud_disp_temp2 P_MAX_SHIELD
+        divvar hud_disp_temp2 1000
+        mulvarvar hud_disp_temp2 hud_disp_temp9
+
+        sub hud_disp_temp hud_disp_temp2
+        divvar hud_disp_temp 1000
+
+		rotatespritea 30 21 18600 0 27356 0 0 264 0 0 hud_disp_temp xdim ydim // skull
+        digitalnumberz 27341 32 42 P_ENERGYSHIELD 0 32 264 0 0 xdim ydim 8192 // number
+        }
+
+
+    // display health number
+    set hud_disp_temp6 pmax_health
+    divvar hud_disp_temp6 4
+    ifl PHEALTH hud_disp_temp6 set hud_disp_temp6 124 else set hud_disp_temp6 0
+    digitalnumberz 27341 100 24 PHEALTH 0 hud_disp_temp6 264 0 0 xdim ydim 8192 // number
+
+    // curse icon
+    ifn CURSED 0
+		{
+		add hud_disp_temp5 1
+		ifg hud_disp_temp5 2048 set hud_disp_temp5 0
+		ifl CURSED 0 set hud_disp_temp6 128
+		else ifg CURSED 128 set hud_disp_temp6 128
+        else set hud_disp_temp6 CURSED
+		mulvar hud_disp_temp6 -1
+		add hud_disp_temp6 30
+		rotatespritea 21 54 8192 hud_disp_temp5 22772 hud_disp_temp6 18 256 -255 0 0 xdim ydim
+		}
+
+    // Armor displays
+    set hud_disp_temp 50
+    set hud_disp_temp2 68
+    ifg PARMOUR 0
+        {
+        ifg PARMOUR 100 rotatespritea hud_disp_temp 35 17384 0 27389 0 0 264 0 0 0 xdim ydim // super armor
+        else rotatespritea hud_disp_temp 35 17384 0 27388 0 0 264 0 0 0 xdim ydim // normal armor
+        digitalnumberz 27341 hud_disp_temp2 35 PARMOUR 0 0 264 0 0 xdim ydim 8192 // number
+        add hud_disp_temp 30
+        add hud_disp_temp2 30
+        }
+    ifg P_SPIRIT_ARMOUR 0
+        {
+        rotatespritea hud_disp_temp 35 21480 0 SPIRIT_ARMOUR 0 0 264 0 0 0 xdim ydim // spirit armor
+        digitalnumberz 27341 hud_disp_temp2 35 P_SPIRIT_ARMOUR 0 0 264 0 0 xdim ydim 8192 // number
+        add hud_disp_temp 30
+        add hud_disp_temp2 30
+        }
+    ifg P_FIRE_ARMOUR 0
+        {
+        rotatespritea hud_disp_temp 35 21480 0 FIRE_ARMOUR 0 0 264 0 0 0 xdim ydim //fire armor
+        digitalnumberz 27341 hud_disp_temp2 35 P_FIRE_ARMOUR 0 0 264 0 0 xdim ydim 8192 // number
+        }
+
+    // check if boosted
+    ifg PHEALTH 0
+    {
+        ifg KAGURA_CHARGE 0 set hud_disp_temp 1
+        else ifp pboosted set hud_disp_temp 1
+    }
+    else set hud_disp_temp 0
+
+    // display charge eyes
+    ife hud_disp_temp 1
+    {
+		ifp pboosted set hud_disp_temp2 15
+        else set hud_disp_temp2 KAGURA_CHARGE
+
+        mul hud_disp_temp2 3
+		set hud_disp_temp3 30
+		sub hud_disp_temp3 hud_disp_temp2
+
+        ifp pboosted add hud_disp_temp4 15
+        else ifl KAGURA_CHARGE 10 add hud_disp_temp4 KAGURA_CHARGE
+        else add hud_disp_temp4 10
+
+		ifg hud_disp_temp4 2047 set hud_disp_temp4 0
+
+        // change color
+        set hud_disp_temp 2
+        ifn CURSED 0 set hud_disp_temp 30
+        else ifg P_HAS_SHIELD 0 ; ifg P_ENERGYSHIELD 0 set hud_disp_temp 32
+//        else ifg PHEALTH pmax_health set hud_disp_temp 1
+
+		rotatespritea 25 25 8192 hud_disp_temp4 1635 hud_disp_temp3 hud_disp_temp 264 -255 0 0 xdim ydim
+		rotatespritea 35 25 8192 hud_disp_temp4 1635 hud_disp_temp3 hud_disp_temp 264 -255 0 0 xdim ydim
+    }
+
+
+    // ammo panel display check (-1 : none, 0 : one, 1 : two)
+   state ammo_panel_check
+    ife hud_disp_temp9 0
+		{
+		ife cur_weap 1 set hud_disp_temp9 -1
+		else ife cur_weap 2
+			{
+			ife SPECIALIST_EQUIPMENT[103] 2 set hud_disp_temp9 1
+			else ifand MAGIC_UPGRADE[17] 1 set hud_disp_temp9 1
+			}
+		else ife cur_weap 3 ifand KAGURA_UPGRADE 2 set hud_disp_temp9 1
+		}
+
+    ifn hud_disp_temp9 -1
+        {
+        // ammo panels
+        rotatesprite 36 172 20480 0 27351 0 0 264 0 0 xdim ydim // Ammo bg
+        ife hud_disp_temp9 1 rotatespritea 26 142 20480 0 27352 0 0 264 0 0 0 xdim ydim  // upper bg icon
+        //rotatespritea 66 185 20480 0 27352 0 0 264 0 0 0 xdim ydim  // lower icon
+
+        // Set standard ammo sprite to display
+        set hud_disp_temp8 INVENSIZE
+        switch cur_weap
+        case 0
+            ifand GUN_AMMO_TYPES 1 ifand AMMO_TYPES[cur_weap] 1 { set hud_disp_temp8 20000 set tilenum EXPL_SHELLS }
+            else ifand GUN_AMMO_TYPES 2 ifand AMMO_TYPES[cur_weap] 2  { set hud_disp_temp8 24576 set tilenum SILVERAMMO_DRUM }
+			else ifand GUN_AMMO_TYPES 2 ifand AMMO_TYPES[cur_weap] 32768  { set hud_disp_temp8 24576 set tilenum INCEND_AMMO_DRUM }
+            else ifand GUN_AMMO_TYPES 1 ifand AMMO_TYPES[cur_weap] 4 { set hud_disp_temp8 20000 set tilenum FLECHETE_SHELLS }
+            else ifand GUN_AMMO_TYPES 4 ifand AMMO_TYPES[cur_weap] 64 { set hud_disp_temp8 20000 set tilenum MAGNUM_SHELLS }
+            else ifand GUN_AMMO_TYPES 4 ifand AMMO_TYPES[cur_weap] 1024 { set hud_disp_temp8 20000 set tilenum DRAGONS_SHELLS }
+            else ifand GUN_AMMO_TYPES 8 ifand AMMO_TYPES[cur_weap] 8 { set hud_disp_temp8 10000 set tilenum TESLA_AMMO_SPRITE }
+            else ifand GUN_AMMO_TYPES 16 ifand AMMO_TYPES[cur_weap] 16 { set hud_disp_temp8 20000 set tilenum SILVER_CROSSBOW_BOLTS }
+			else ifand GUN_AMMO_TYPES 16 ifand AMMO_TYPES[cur_weap] 8192 { set hud_disp_temp8 20000 set tilenum TEK_CROSSBOW_BOLTS }
+			else ifand GUN_AMMO_TYPES 16 ifand AMMO_TYPES[cur_weap] 16384 { set hud_disp_temp8 20000 set tilenum VOID_CROSSBOW_BOLTS }
+            else ife temp_weap 32 ifand gun_firemode_two 2 { set hud_disp_temp8 HALFSIZE set tilenum 2455 }
+            else ife temp_weap 32 ifand gun_firemode_two 4 { set hud_disp_temp8 20000 set tilenum DUP_MISSILES_PICKUP }
+            else set tilenum 3833
+            break
+        case 1 set tilenum W_AMMO_TILE[1] break
+        case 2
+			ife SPECIALIST_EQUIPMENT[103] 2 set tilenum 3587 else set tilenum W_AMMO_TILE[2] break
+        case 3 set tilenum W_AMMO_TILE[3] break
+        case 4 set tilenum W_AMMO_TILE[4] break
+        case 5 set tilenum W_AMMO_TILE[5] break
+        case 6 set tilenum W_AMMO_TILE[6] break
+        case 7 set tilenum W_AMMO_TILE[7] break
+        case 8 set tilenum WEAPON_TILE[8] break
+        case 9 set tilenum W_AMMO_TILE[9] break
+        case 10 set tilenum 6488 break
+        case 11 set tilenum W_AMMO_TILE[11] break
+        endswitch
+
+        // Set alternate ammo sprite to display
+        ife cur_weap 0 ife temp_weap 11 ifand AMMO_TYPES[cur_weap] 2 set hud_disp_temp silver_ammo
+		else ife cur_weap 0 ife temp_weap 11 ifand AMMO_TYPES[cur_weap] 32768 set hud_disp_temp incend_ammo
+        else ife cur_weap 0 ife temp_weap 13 ifand AMMO_TYPES[cur_weap] 16 set hud_disp_temp silver_bolts
+		else ife cur_weap 0 ife temp_weap 13 ifand AMMO_TYPES[cur_weap] 8192 set hud_disp_temp tek_bolts
+		else ife cur_weap 0 ife temp_weap 13 ifand AMMO_TYPES[cur_weap] 16384 set hud_disp_temp void_bolts
+        else ife cur_weap 0 ife temp_weap 50 ifand AMMO_TYPES[cur_weap] 16 set hud_disp_temp silver_bolts
+		else ife cur_weap 0 ife temp_weap 50 ifand AMMO_TYPES[cur_weap] 8192 set hud_disp_temp tek_bolts
+		else ife cur_weap 0 ife temp_weap 50 ifand AMMO_TYPES[cur_weap] 16384 set hud_disp_temp void_bolts
+        else ife cur_weap 0 ife temp_weap 12 ifand AMMO_TYPES[cur_weap] 8 set hud_disp_temp tesla_ammo
+        else ife cur_weap 0 ife temp_weap 27 ifand AMMO_TYPES[cur_weap] 8 set hud_disp_temp tesla_ammo
+        else ife cur_weap 0 ife temp_weap 32 ifand gun_firemode_two 2 set hud_disp_temp atomic_bomb
+        else ife cur_weap 0 ife temp_weap 32 ifand gun_firemode_two 4 set hud_disp_temp DUP_missile_ammo
+		else ife cur_weap 0
+		{
+			set ammo_forweaponidx 0
+			state ammo_getdefs
+			set hud_disp_temp ammo_normalammoremaining
+		}
+        else getp[].ammo_amount cur_weap hud_disp_temp
+
+        ifand GUN_AMMO_TYPES 1
+            {
+            ifand AMMO_TYPES[cur_weap] 1 set hud_disp_temp explosive_shells
+            else ifand AMMO_TYPES[cur_weap] 4 set hud_disp_temp flechete_shells
+            }
+        ifand GUN_AMMO_TYPES 4
+            {
+            ifand AMMO_TYPES[cur_weap] 64 set hud_disp_temp magnum_shells
+            else ifand AMMO_TYPES[cur_weap] 1024 set hud_disp_temp dragon_shells
+            }
+
+        rotatesprite 36 172 hud_disp_temp8 0 tilenum 0 0 264 0 0 xdim ydim // icon
+        ifn gun_mag -1
+            {
+            digitalnumberz 27341 72 168 gun_mag 0 0 264 0 0 xdim ydim 12480
+            digitalnumberz 27341 72 180 hud_disp_temp 0 0 264 0 0 xdim ydim 12480
+            }
+        else digitalnumberz 27341 72 174 hud_disp_temp 0 0 264 0 0 xdim ydim 12480
+
+        // secondary ammo
+
+        ife hud_disp_temp9 1
+            {
+            ife cur_weap 0
+                {
+                switch temp_weap
+                case 25
+                    ifand AMMO_TYPES[cur_weap] 32
+                        {
+                        rotatesprite 26 142 QUARTERSIZE 0 FORTYMM_SHELLS 0 0 264 0 0 xdim ydim
+                        digitalnumberz 27341 52 142  fortymm_shells 0 0 264 0 0 xdim ydim 8192
+                        }
+                    else ifand AMMO_TYPES[cur_weap] 128
+                        {
+                        rotatesprite 26 142 QUARTERSIZE 0 5463 0 0 264 0 0 xdim ydim
+                        digitalnumberz 27341 52 142 fortymm_MIA_shells 0 0 264 0 0 xdim ydim 8192
+                        }
+                    else ifand AMMO_TYPES[cur_weap] 256
+                        {
+                        rotatesprite 26 142 QUARTERSIZE 0 5476 0 0 264 0 0 xdim ydim
+                        digitalnumberz 27341 52 142 fortymm_plasma 0 0 264 0 0 xdim ydim 8192
+                        }
+                    else
+                        {
+                        rotatesprite 26 142 QUARTERSIZE 0 FORTYMM_NADES 0 0 264 0 0 xdim ydim
+                        digitalnumberz 27341 52 142 fortymm_grenades 0 0 264 0 0 xdim ydim 8192
+                        }
+                    break
+                case 26
+                    ifand AMMO_TYPES[cur_weap] 512
+                        {
+                        rotatesprite 26 142 QUARTERSIZE 0 FORTYMM_SLUGS 0 0 264 0 0 xdim ydim
+                        digitalnumberz 27341 52 142 fortymm_slug 0 0 264 0 0 xdim ydim 8192
+                        }
+                    else ifand AMMO_TYPES[cur_weap] 2048
+                        {
+                        rotatesprite 26 142 QUARTERSIZE 0 FORTYMM_ELECTRO 0 0 264 0 0 xdim ydim
+                        digitalnumberz 27341 52 142 fortymm_electro 0 0 264 0 0 xdim ydim 8192
+                        }
+                    else ifand AMMO_TYPES[cur_weap] 4096
+                        {
+                        rotatesprite 26 142 QUARTERSIZE 0 FORTYMM_CRYO 0 0 264 0 0 xdim ydim
+                        digitalnumberz 27341 52 142 fortymm_cryo 0 0 264 0 0 xdim ydim 8192
+                        }
+                    else
+                        {
+                        rotatesprite 26 142 QUARTERSIZE 0 FORTYMM_CASELESS 0 0 264 0 0 xdim ydim
+                        digitalnumberz 27341 52 142 fortymm_caseless 0 0 264 0 0 xdim ydim 8192
+                        }
+                    break
+                case 30
+                    rotatesprite 26 142 20000 0 MICRO_TORPEDO_PACK 0 0 264 0 0 xdim ydim
+                    digitalnumberz 27341 52 142 micro_torpedo 0 0 264 0 0 xdim ydim 8192
+                    break
+				case 46
+                    rotatesprite 26 142 20000 0 BLUE_MANA_PICKUP 0 0 264 0 0 xdim ydim
+                    digitalnumberz 27341 52 142 p_blue_mana 0 0 264 0 0 xdim ydim 8192
+                    break
+				case 49
+                    rotatesprite 26 142 20000 0 GREEN_MANA_PICKUP 0 0 264 0 0 xdim ydim
+                    digitalnumberz 27341 52 142 p_green_mana 0 0 264 0 0 xdim ydim 8192
+                    break
+				case 50
+                    ifand GUN_AMMO_TYPES 8192
+                        {
+						rotatesprite 26 142 20000 0 BLUE_MANA_PICKUP 0 0 264 0 0 xdim ydim
+						digitalnumberz 27341 52 142 p_blue_mana 0 0 264 0 0 xdim ydim 8192
+                        }
+                    else ifand GUN_AMMO_TYPES 16384
+                        {
+						rotatesprite 26 142 20000 0 GREEN_MANA_PICKUP 0 0 264 0 0 xdim ydim
+						digitalnumberz 27341 52 142 p_green_mana 0 0 264 0 0 xdim ydim 8192
+                        }
+                    else ifand GUN_AMMO_TYPES 32768
+                        {
+                        rotatesprite 26 142 20000 0 ORANGE_MANA_PICKUP 0 0 264 0 0 xdim ydim
+                        digitalnumberz 27341 52 142 p_orange_mana 0 0 264 0 0 xdim ydim 8192
+                        }
+                    else ifand GUN_AMMO_TYPES 65536
+                        {
+                        rotatesprite 26 142 20000 0 PURPLE_MANA_PICKUP 0 0 264 0 0 xdim ydim
+                        digitalnumberz 27341 52 142 p_purple_mana 0 0 264 0 0 xdim ydim 8192
+                        }
+					break
+                endswitch
+                }
+			ife cur_weap 2
+			{
+			 ife SPECIALIST_EQUIPMENT[103] 2
+				{
+                rotatesprite 26 142 20000 0 ORANGE_MANA_PICKUP 0 0 264 0 0 xdim ydim
+                digitalnumberz 27341 52 142 p_orange_mana 0 0 264 0 0 xdim ydim 8192
+				}
+			else
+			ifand MAGIC_UPGRADE[17] 1
+                {
+				rotatesprite 26 142 20000 0 GREEN_MANA_PICKUP 0 0 264 0 0 xdim ydim
+				digitalnumberz 27341 52 142 p_green_mana 0 0 264 0 0 xdim ydim 8192
+                }
+			}
+			ife cur_weap 3
+				{
+				rotatesprite 26 142 QUARTERSIZE 0 TESLA_AMMO_SPRITE 0 0 264 0 0 xdim ydim
+				digitalnumberz 27341 52 142 tesla_ammo 0 0 264 0 0 xdim ydim 8192
+				}
+            }
+        }
+
+    // Display keycards
+	ifand player[].got_access 1 rotatespritea 20 50 HALFSIZE 0 6959 0 0 264 -255 0 0 xdim ydim
+	ifand player[].got_access 2 rotatespritea 20 58  HALFSIZE 0 6959 0 21 264 -255 0 0 xdim ydim
+	ifand player[].got_access 4 rotatespritea 20 66  HALFSIZE 0 6959 0 23 264 -255 0 0 xdim ydim
+	ifand ACCESSKEY2 1 rotatespritea 20 74 HALFSIZE 0 6959 0 12 264 -255 0 0 xdim ydim
+	ifand ACCESSKEY2 2 rotatespritea 20 82 HALFSIZE 0 6959 0 14 264 -255 0 0 xdim ydim
+	ifand ACCESSKEY2 4 rotatespritea 28 50 HALFSIZE 0 6959 0 15 264 -255 0 0 xdim ydim
+	ifand ACCESSKEY2 8 rotatespritea 28 58 HALFSIZE 0 6959 0 49 264 -255 0 0 xdim ydim
+	ifand ACCESSKEY2 16 rotatespritea 28 66 HALFSIZE 0 6959 0 10 264 -255 0 0 xdim ydim
+	ifand ACCESSKEY2 32 rotatespritea 28 74 HALFSIZE 0 6959 0 36 264 -255 0 0 xdim ydim
+	ifand ACCESSKEY2 64 rotatespritea 28 82 HALFSIZE 0 6959 0 16 264 -255 0 0 xdim ydim
+
+
+    getp[].inven_icon hud_disp_temp
+
+    ifg hud_disp_temp 0 rotatesprite 280 172 18600 0 27353 0 0 520 0 0 xdim ydim  // inventory panel
+
+    switch hud_disp_temp
+    case 1 // MEDKIT
+        rotatesprite 280 172 INVENSIZE 0 c_medikit 0 0 520 0 0 xdim ydim
+        getp[].firstaid_amount hud_disp_temp2
+        digitalnumberz 27341 255 182 hud_disp_temp2 0 0 520 0 0 xdim ydim QUARTERSIZE // number
+        break
+    case 2 // STEROIDS
+        getp[].steroids_amount hud_disp_temp2
+        ifl hud_disp_temp2 400 set hud_disp_temp3 disp_pulse
+        else set hud_disp_temp3 0
+        divvar hud_disp_temp2 4
+        rotatesprite 280 172 13500 0 27390 hud_disp_temp3 0 520 0 0 xdim ydim
+        digitalnumberz 27341 255 182 hud_disp_temp2 0 0 520 0 0 xdim ydim QUARTERSIZE // number
+        break
+    case 3 // HOLODUKE
+        rotatesprite 280 172 INVENSIZE 0 c_holoduke 0 0 520 0 0 xdim ydim
+        getp[].holoduke_amount hud_disp_temp2
+        divvar hud_disp_temp2 24
+        digitalnumberz 27341 255 182 hud_disp_temp2 0 0 520 0 0 xdim ydim QUARTERSIZE
+        getp[].holoduke_on hud_disp_temp2
+        ifn hud_disp_temp2 -1 gametextz STARTALPHANUM 553 180 500 0 11 528 0 0 xdim ydim 48000
+        else gametextz STARTALPHANUM 546 180 501 0 10 528 0 0 xdim ydim 48000
+        break
+    case 4 // JETPACK
+        rotatesprite 280 170 INVENSIZE 0 c_jetpack 0 0 520 0 0 xdim ydim
+        getp[].jetpack_amount hud_disp_temp2
+        divvar hud_disp_temp2 16
+        digitalnumberz 27341 255 182 hud_disp_temp2 0 0 520 0 0 xdim ydim QUARTERSIZE
+        getp[].jetpack_on hud_disp_temp2
+        ifn hud_disp_temp2 0 gametextz STARTALPHANUM 553 180 500 0 11 528 0 0 xdim ydim 48000
+        else gametextz STARTALPHANUM 546 180 501 0 10 528 0 0 xdim ydim 48000
+        break
+    case 5 // NIGHT VISION GOGGLES
+        rotatesprite 281 172 INVENSIZE 0 disp_nvg 0 0 520 0 0 xdim ydim
+        getp[].heat_amount hud_disp_temp2
+        divvar hud_disp_temp2 48
+        digitalnumberz 27341 255 182 hud_disp_temp2 0 0 520 0 0 xdim ydim QUARTERSIZE
+        getp[].heat_on hud_disp_temp2
+        ifn hud_disp_temp2 0 gametextz STARTALPHANUM 553 180 500 0 11 528 0 0 xdim ydim 48000
+        else gametextz STARTALPHANUM 546 180 501 0 10 528 0 0 xdim ydim 48000
+        break
+    case 6 // SCUBA GEAR
+        ife AIR_FILTER 1
+            {
+            myospal 334 180 3812 20 0 2
+            rotatesprite 281 172 12384 0 REBREATHER 0 0 520 0 0 xdim ydim
+            }
+        else
+            {
+            rotatesprite 280 172 INVENSIZE 0 c_scuba 0 0 520 0 0 xdim ydim
+            getp[].scuba_amount hud_disp_temp2
+            divvar hud_disp_temp2 64
+            digitalnumberz 27341 255 182 hud_disp_temp2 0 0 520 0 0 xdim ydim QUARTERSIZE
+            gametextz STARTALPHANUM 542 180 502 0 11 528 0 0 xdim ydim 48000
+            }
+        break
+    case 7 // BOOTS
+        rotatesprite 280 172 INVENSIZE 0 c_boots 0 0 520 0 0 xdim ydim
+        getp[].boot_amount hud_disp_temp2
+        divvar hud_disp_temp2 2
+        digitalnumberz 27341 255 182 hud_disp_temp2 0 0 520 0 0 xdim ydim QUARTERSIZE
+        gametextz STARTALPHANUM 542 180 502 0 11 528 0 0 xdim ydim 48000
+        break
+    case 10 // TOOLBOX
+        rotatesprite 280 172 INVENSIZE 0 TOOLBOX_PICKUP 0 0 520 0 0 xdim ydim
+        gametextz STARTALPHANUM 542 180 509 0 0 528 0 0 xdim ydim 48000
+        break
+    case 11 // ROPE
+        rotatesprite 280 172 INVENSIZE 0 ROPE_PICKUP 0 0 520 0 0 xdim ydim
+        gametextz STARTALPHANUM 542 180 509 0 0 528 0 0 xdim ydim 48000
+        break
+    endswitch
+
+ends

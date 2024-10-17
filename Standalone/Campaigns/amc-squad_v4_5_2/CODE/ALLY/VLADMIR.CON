@@ -1,0 +1,402 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+
+--------------------------------------------------------------------------------
+*/
+
+damageeventtile VLADMIR
+
+action A_VLADMIRIDLE 0 1 5 1 11
+action A_VLADMIRMOVE 5 4 5 1 11
+action A_VLADMIRFIRE 25 2 5 1 3
+action A_VLADMIRPAIN 35 1 1 1 8
+action A_VLADMIRDYING 35 5 1 1 11
+action A_VLADMIRDEAD 40 1 1 1 1
+
+ai AIVLADMIRIDLE A_VLADMIRIDLE STOP 0
+ai AIVLADMIRMOVE A_VLADMIRMOVE M_EDF_WALK geth
+ai AIVLADMIRRELOAD A_VLADMIRMOVE M_EDF_SLOW seekplayer
+ai AIVLADMIRFIRE A_VLADMIRFIRE STOP 0
+ai AIVLADMIRDYING A_VLADMIRDYING STOP 0
+
+move VLAD_MOVE 244
+
+spriteshadow VLADMIR
+spritenvg VLADMIR
+
+useractor notenemy VLADMIR
+fall
+
+ifpdistl 1024 cstat 256 else cstat 257
+
+ifai 0
+	{
+	seta[].htwaterzoffset 8
+	spawn SHOOTME2
+	set ally_mag 50
+	strength 1500
+	sizeat 23 23
+	ai AIVLADMIRIDLE
+
+		ifn EXTRASAVED -1 state startfollowplayer
+
+	}
+
+state spawn_cold_breathe
+
+state ENEMYKNOCKBACKS
+state enemyfloordamage
+state enemy_fire_damage
+state enemy_ice_damage
+state enemy_spirit_damage
+
+ifg targetlock 0 sub targetlock 1
+
+ifg ALLY_VOICE 0
+	{
+	sub ALLY_VOICE 1
+	ife ALLY_VOICE 1
+		{
+		ife CHAR 3 ifrnd 96
+			{
+			ife ally_subt 0
+				{
+				qstrcpy 7501 5180
+				// 7501 ^1Vladmir: ^0To victory Highwire!
+				set ally_subt 45
+				}
+			sound VLAD_VICTORY
+			}
+			else
+		ifrnd 128
+			{
+			ife ally_subt 0
+				{
+				qstrcpy 7501 5181
+				// 7501 ^1Vladmir: ^0Yes comrade.
+				set ally_subt 45
+				}
+			sound VLAD_COMRADE
+			}
+			else
+			{
+			ife ally_subt 0
+				{
+				qstrcpy 7501 5182
+				// 7501 ^1Vladmir: ^0For the people.
+				set ally_subt 45
+				}
+			sound VLAD_FORPEOP
+			}
+		}
+	}
+else
+ifl ALLY_VOICE 0
+	{
+	add ALLY_VOICE 1
+	ife ALLY_VOICE -1
+		{
+		ifrnd 96
+			{
+			ife ally_subt 0
+				{
+				qstrcpy 7501 5183
+				// 7501 ^1Vladmir: ^0I'll keep watch here.
+				set ally_subt 45
+				}
+			sound VLAD_ILLKEEP
+			}
+			else ifrnd 96
+			{
+			ife ally_subt 0
+				{
+				qstrcpy 7501 5184
+				// 7501 ^1Vladmir: ^0Dah, I'll wait here.
+				set ally_subt 55
+				}
+			sound VLAD_ILLWAIT
+			}
+			else
+			{
+			ife ally_subt 0
+				{
+				qstrcpy 7501 5185
+				// 7501 ^1Vladmir: ^0Stay safe comrade.
+				set ally_subt 45
+				}
+			sound VLAD_STAYSAFE
+			}
+		}
+	}
+
+ifaction A_VLADMIRDEAD
+	{
+	strength 0
+	break
+	}
+else
+ifai AIVLADMIRDYING
+	{
+	ifactioncount 5 action A_VLADMIRDEAD
+	}
+ifai AIVLADMIRFIRE
+	{
+	state new_validatetarget
+	ife my_target -1 ai AIVLADMIRIDLE
+	state fronttowardstarget
+	ifactioncount 2
+	 ifn my_target -1
+			{
+			state fronttowardstarget
+			set PROJECTILE_FIRING_SOUND RPK_FIRE
+			set PROJECTILE_TO_SHOOT ENEMY_BULLET
+			set PROJECTILE_PAL 8
+			state sang_enemyShootProjectile
+			state npc_rifleshell
+
+			set gunsmoke_z 7244
+			set gunsmoke_angle 220
+			state spawn_gunsmoke_z
+			set gunsmoke_z 5044
+			espawn 16115
+			state spawn_muzzleflash
+
+			sub ally_mag 1
+			ife ally_mag 0 { state bgar_mag_out_sounds shoot SMGMAGAZINE ai AIVLADMIRRELOAD }
+			resetactioncount
+			}
+	ife my_target -1
+		{
+		ifrnd 32
+			{
+			ife ally_subt 0
+				{
+				qstrcpy 7501 5186
+				// 7501 ^1Vladmir: ^0Cover is for the weak!
+				set ally_subt 65
+				}
+			soundonce VLAD_COVER
+			}
+		else ifrnd 32
+			{
+			ife ally_subt 0
+				{
+				qstrcpy 7501 5187
+				// 7501 ^1Vladmir: ^0Die vermin!
+				set ally_subt 45
+				}
+			soundonce VLAD_DIE
+			}
+		else ifrnd 32
+			{
+			ife ally_subt 0
+				{
+				qstrcpy 7501 5188
+				// 7501 ^1Vladmir: ^0For Russia! Die pig dog!
+				set ally_subt 65
+				}
+			soundonce VLAD_RUSKY
+			}
+		ai AIVLADMIRIDLE
+		}
+	}
+else
+ifai AIVLADMIRMOVE
+	{
+	state checkfortarget
+			ifn my_target -1
+				{
+				state fronttowardstarget
+				ifrnd 64 ai AIVLADMIRFIRE
+				}
+				else
+				state faceplayerstate
+		geta[PLAYER_IDENTITY].xvel temp
+		ifg temp 10
+			{
+			mul temp 2
+			seta[].xvel temp
+			}
+		ifactioncount 3
+			{
+			state npc_footsteps
+			resetactioncount
+			}
+		ifn ANGLE 0 ifpdistl 8192 ai AIVLADMIRIDLE else
+		ifpdistl 1536 ai AIVLADMIRIDLE
+		ifnotmoving operate
+	/*
+	state checkfortarget
+	geta[PLAYER_IDENTITY].xvel temp
+
+	ifg temp 10
+		{
+		mul temp 2
+		seta[].xvel temp
+		}
+	ifactioncount 3
+		{
+		state npc_footsteps
+		resetactioncount
+		}
+	ifn ANGLE 0 ifpdistl 32768 ai AIVLADMIRIDLE else
+	ifpdistl 1536 ai AIVLADMIRIDLE
+	ifnotmoving operate
+
+	ifn my_target -1
+		{
+		state fronttowardstarget
+		ifrnd 64 ai AIVLADMIRFIRE
+		}
+	else
+	ife FOLLOW_PLAYER 1
+	{
+	ifg smartpoint_index 0 // are smartpoints present in the map?
+		{
+			set HITSCAN_TO_ACTOR PLAYER_IDENTITY
+			state hitscanTo
+
+			ife hitsprite PLAYER_IDENTITY
+			{
+				// run sector check, pretend the player is a smartpoint
+				set cur_point PLAYER_IDENTITY
+				state doSectorCheck // output => if temp6 = 1 => route to player does not cross any pits
+
+				ife temp6 1
+				{
+					set smartpoint_lotag_handled 0
+
+					// just to avoid repeating code...
+					set next_point 0
+				}
+				else
+					state anglePathToPlayer
+			}
+			else
+				state anglePathToPlayer
+
+			ifn next_point -1
+			{
+				seta[].ang angvar
+				ifmove VLAD_MOVE nullop
+				else move VLAD_MOVE geth
+			}
+			else
+				ai AIVLADMIRIDLE
+		}
+		else
+			state faceplayerstate
+		}
+	*/
+	}
+else
+ifai AIVLADMIRRELOAD
+	{
+	add ally_mag 1
+	ife ally_mag 25 state bgar_mag_in_sounds
+	ife ally_mag 50 { ife FOLLOW_PLAYER 1 ai AIVLADMIRMOVE else ai AIVLADMIRIDLE }
+	}
+else
+ifai AIVLADMIRIDLE
+	{
+	state checkfortarget
+	move STOP
+	sleeptime 0
+	add HEAL_COUNT 1
+	
+		ifn my_target -1
+			{
+			state fronttowardstarget
+			ai AIVLADMIRFIRE
+			}
+		else
+	ife FOLLOW_PLAYER 1
+	{
+		ifpdistg 2048
+		{
+			set temp 0
+			// if smartpoints used, don't rely on whether or not the player can be seen
+			ifg smartpoint_index 0
+				set temp 1
+			else ifcansee ifcanseetarget
+				set temp 1
+
+			ife temp 1
+				ai AIVLADMIRMOVE
+		}
+	}
+	ifstrength 1500 ifg HEAL_COUNT 6 { addstrength 1 set HEAL_COUNT 0 }
+	ifspritepal 3 nullop else state rand_lookaround
+	}
+	
+
+	ifpdistl 1024
+		  ifp pfacing
+		  {
+		  set player_use 0
+		   ifhitspace
+		    ife INTERNALCOUNT 0
+			{
+			set hit_key 30
+			ife FOLLOW_PLAYER 0 state startfollowplayer
+			else
+			ife FOLLOW_PLAYER 1 state stopfollowplayer
+			set INTERNALCOUNT 26
+			}
+		}
+else
+ifaction A_VLADMIRPAIN
+	{
+	ifactioncount 4 { ife FOLLOW_PLAYER 1 ai AIVLADMIRMOVE else ai AIVLADMIRIDLE }
+	}
+	
+ifhitweapon
+	{
+	spawn BLOOD
+	ifrnd 76 action A_VLADMIRPAIN
+	state ENEMYKNOCKBACKS
+	state random_wall_jibs
+	state NEWGUNEFFECTS
+	ifdead
+		{
+		state clear_ally_death
+		state rf
+		sound RUSSIAN_DIE1
+		ai AIVLADMIRDYING
+		ifrnd 76 spawn BLOODPOOL
+		ifmultiplayer nullop else
+			{
+			palfrom 63 63 63 63
+			set SLO_MO_SHOWOFF 70
+			set FISSION_MAILED 1
+			}
+		}
+	}
+	
+ifg INTERNALCOUNT 0 sub INTERNALCOUNT 1
+
+
+enda

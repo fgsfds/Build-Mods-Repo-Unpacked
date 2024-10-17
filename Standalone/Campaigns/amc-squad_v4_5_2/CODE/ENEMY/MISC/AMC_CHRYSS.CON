@@ -1,0 +1,240 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+
+--------------------------------------------------------------------------------
+*/
+
+damageeventtile CHRYSSALID
+damageeventtile CHRYSSALID_SLEEP
+
+action ACHRYSS_MOVE 0 4 5 1 20
+action ACHRYSS_SWIPE1 20 2 5 1 12
+action ACHRYSS_SWIPE2 30 2 5 1 12
+action ACHRYSS_PREP 40 1 5 1 12
+action ACHRYSS_JUMP 45 1 5 1 12
+action ACHRYSS_LAND 50 1 5 1 12
+
+action ACHRYSS_HURT 60 1 1
+action ACHRYSS_DIE 61 6 1 1 16
+action ACHRYSS_DEAD 66
+
+move CHR_SEEK 480
+move CHR_JUMP 160 -160
+
+ai AI_CHRYSS_SEEK ACHRYSS_MOVE CHR_SEEK seekplayer
+ai AI_CHRYSS_SWIPE1 ACHRYSS_SWIPE1 STOP shoottarget
+ai AI_CHRYSS_SWIPE2 ACHRYSS_SWIPE2 STOP shoottarget
+ai AI_CHRYSS_PREP ACHRYSS_PREP STOP
+ai AI_CHRYSS_JUMP ACHRYSS_JUMP CHR_JUMP jumptoplayer
+ai AI_CHRYSS_FALL ACHRYSS_JUMP CHR_SEEK seekplayer
+ai AI_CHRYSS_LAND ACHRYSS_LAND STOP
+
+ai AI_CHRYSS_HURT ACHRYSS_HURT STOP
+ai AI_CHRYSS_DIE ACHRYSS_DIE STOP
+
+useractor enemy CHRYSSALID_SLEEP
+fall
+ifaction 0
+	{
+	set actor_type TYPE_CHITIN
+	cstat 257
+	strength 500
+	sizeat 28 28
+	action FIVE_ANG
+	}
+
+ifaction FIVE_ANG
+	{
+	ifpdistl 2048
+		{
+		ifrnd 2
+			{
+			sound CHRYSS_SIGHT
+			cactor CHRYSSALID
+			}
+		}
+	ifhitweapon
+		{
+		strength 1000
+		sound CHRYSS_SIGHT
+		cactor CHRYSSALID
+		}
+	}
+
+enda
+
+useractor enemy CHRYSSALID
+fall
+
+ifai 0
+	{
+	set actor_type TYPE_CHITIN
+	state monst_glow
+	set blood_type 8
+	spawn SHOOTME
+	spriteflags 5251105
+	strength 1000
+	sizeat 28 28
+	sound CHRYSS_SIGHT
+	ai AI_CHRYSS_SEEK
+	cstator 257
+	}
+
+
+state spawn_cold_breathe
+
+state ENEMYKNOCKBACKS
+state enemyfloordamage
+
+ifaction ACHRYSS_DEAD
+	{
+	strength 0
+		ifhitweapon
+		{
+		state standard_jibs
+		state monst_body_jibs
+		state monst_body_jibs
+		sound SQUISHED
+		killit
+		}
+		break
+	}
+else
+ifai AI_CHRYSS_DIE
+	{
+	move STOP
+	ifactioncount 6
+		action ACHRYSS_DEAD
+	}
+else
+ifai AI_CHRYSS_HURT
+	{
+	ifg PAIN_AMOUNT 0 sub PAIN_AMOUNT 1
+	ifdead
+		{
+		addkills 1
+		sound CHRYSS_DIE
+		ifai AI_CHRYSS_DIE nullop else ai AI_CHRYSS_DIE
+		}
+	else
+	ifl PAIN_AMOUNT 1 ai AI_CHRYSS_SEEK
+	}
+else
+ifai AI_CHRYSS_SEEK
+	{
+	state correctcansee
+	geta[].htmovflag move_flag
+	ifn move_flag 0 // this is the same as ifnotmoving, but now we have info about what is hit in the temp var
+	{
+			 andvar move_flag 49152
+			 ife move_flag 32768 // the actor is pushing on a wall
+			 {
+			   geta[].htmovflag move_flag2 // need to get the info again
+			   andvar move_flag2 16383 // temp now stores the wall number
+					   getwall[move_flag2].nextsector sect
+					   ifn sect -1
+					   {
+					   ifand wall[move_flag2].cstat 1 break
+					   ife sector[sect].lotag 20 operate
+					   ife sector[sect].lotag 21 operate
+					   ife sector[sect].lotag 22 operate
+					   ife sector[sect].lotag 23 operate
+						  ifl sector[sect].floorz sector[].floorz // assumes floors are not sloped!
+							{
+							ai AI_CHRYSS_PREP
+							}
+						}
+			  }
+	}
+	else
+	ifrnd 2 { sound CHRYSS_SCUTTLE ai AI_CHRYSS_SEEK }
+	ifrnd 1 soundonce CHRYSS_ROAM
+	ifpdistl 1536 ai AI_CHRYSS_SWIPE1
+	}
+else
+ifai AI_CHRYSS_PREP
+	{
+	ifactioncount 3 ai AI_CHRYSS_JUMP
+	}
+else
+ifai AI_CHRYSS_JUMP
+	{
+	ifactioncount 3 ai AI_CHRYSS_FALL
+	}
+else
+ifai AI_CHRYSS_FALL
+	{
+	iffloordistl 16 { sound MONSTER_LAND stopsound THUD ai AI_CHRYSS_LAND }
+	}
+else
+ifai AI_CHRYSS_LAND
+	{
+	ifactioncount 3 ai AI_CHRYSS_SEEK
+	}
+ifai AI_CHRYSS_SWIPE1
+	{
+	ifactioncount 2
+		{
+		sound SCRATCHS
+		shoot 17663
+		resetactioncount
+		ifpdistg 1536 ai AI_CHRYSS_SEEK else ai AI_CHRYSS_SWIPE2
+		}
+	}
+else
+ifai AI_CHRYSS_SWIPE2
+	{
+	ifactioncount 2
+		{
+		sound SCRATCHS
+		shoot 17663
+		resetactioncount
+		ifpdistg 1536 ai AI_CHRYSS_SEEK else ai AI_CHRYSS_SWIPE1
+		}
+	}
+
+ifhitweapon
+	{
+	state NEWGUNEFFECTS
+    //spawn BLOOD
+	state random_wall_jibs
+    ifwasweapon RPG
+	{ seta[].xvel 5 }
+	ifdead
+		{
+		resetactioncount
+		sound CHRYSS_DIE
+		state rf
+		ai AI_CHRYSS_DIE
+		guts JIBS6 10
+		addkills 1
+
+		}
+	else ifg PAIN_AMOUNT 0 { sound CHRYSS_PAIN ai AI_CHRYSS_HURT }
+	else ifrnd 16 { sound CHRYSS_PAIN state PAIN_SKILL_LEVELADJUST ai AI_CHRYSS_HURT }
+	}
+
+enda

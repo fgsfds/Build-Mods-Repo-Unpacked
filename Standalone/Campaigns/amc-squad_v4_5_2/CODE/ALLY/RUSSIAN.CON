@@ -1,0 +1,463 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+
+--------------------------------------------------------------------------------
+*/
+
+damageeventtile RUSSIAN
+
+action A_RUSSIANIDLE 0 1 5 1 11
+action A_RUSSIANIDLE2 -1955 1 5 1 11
+action A_RUSSIANMOVE 5 4 5 1 11
+action A_RUSSIANFIRE 25 2 5 1 8
+action A_RUSSIANPAIN 35 1 1 1 8
+action A_RUSSIANDYING 35 4 1 1 11
+action A_RUSSIANDEAD 39 1 1 1 1
+
+ai AIRUSSIANIDLE A_RUSSIANIDLE STOP 0
+ai AIRUSSIANIDLE2 A_RUSSIANIDLE2 STOP 0
+ai AIRUSSIANMOVE A_RUSSIANMOVE M_EDF_WALK geth
+ai AIRUSSIANRELOAD A_RUSSIANMOVE M_EDF_SLOW seekplayer
+ai AIRUSSIANFIRE A_RUSSIANFIRE STOP 0
+ai AIRUSSIANDYING A_RUSSIANDYING STOP 0
+
+spriteshadow RUSSIAN
+spritenvg RUSSIAN
+
+useractor notenemy RUSSIAN
+fall
+
+ifpdistl 1024 cstat 256 else cstat 257
+
+ifai 0
+	{
+	seta[].htwaterzoffset 8
+	set allies_present 1
+	ifspritepal 0 ifrnd 128 spritepal 51
+	spawn SHOOTME2
+	randvar LAST_NAME 20
+	add LAST_NAME 7100
+	set ally_mag 30
+	strength 100
+	sizeat 23 23
+	ifspawnedby MI_24_HIND { set ally_mag 0 ai AIRUSSIANRELOAD } else
+	ai AIRUSSIANIDLE
+
+		ifg EXTRASAVED 0 state startfollowplayer
+
+	ifspawnedby APLAYER
+		{
+		spawn TRANSPORTERBEAM
+		state startfollowplayer
+		set INTERNALCOUNT 960
+		}
+	else set INTERNALCOUNT -1
+	}
+
+state spawn_cold_breathe
+
+ifn INTERNALCOUNT -1
+{
+	ifg INTERNALCOUNT 0 sub INTERNALCOUNT 1
+	else ife INTERNALCOUNT 0
+		{
+		spawn TRANSPORTERBEAM
+		state removefollower
+		killit
+		}
+}
+
+ifg INTERNALCOUNT_2 0 sub INTERNALCOUNT_2 1
+
+ifg targetlock 0 sub targetlock 1
+
+ifg ALLY_VOICE 0
+	{
+	sub ALLY_VOICE 1
+	ife ALLY_VOICE 1
+		{
+		ifn CHAR 3
+			{
+			ifrnd 96
+				{
+				ife ally_subt 0
+					{
+					qsprintf ALLY_SUBTITLE 5220 LAST_NAME
+					set ally_subt 55
+					}
+				sound RUS_OT1
+				}
+			else
+			ifrnd 96
+				{
+				ife ally_subt 0
+					{
+					qsprintf ALLY_SUBTITLE 5221 LAST_NAME
+					set ally_subt 65
+					}
+				sound RUS_OT2
+				}
+				else
+				{
+				ife ally_subt 0
+					{
+					qsprintf ALLY_SUBTITLE 5222 LAST_NAME
+					set ally_subt 40
+					}
+				sound RUSSIAN_MOVE1
+				}
+			}
+			else
+			{
+			ifrnd 96
+				{
+				ife ally_subt 0
+					{
+					qsprintf ALLY_SUBTITLE 5223 LAST_NAME
+					set ally_subt 40
+					}
+				sound RUS_HW1
+				}
+				else
+			ifrnd 96
+				{
+				ife ally_subt 0
+					{
+					qsprintf ALLY_SUBTITLE 5224 LAST_NAME
+					set ally_subt 40
+					}
+				sound RUSSIAN_MOVE1
+				}
+				else
+				ifrnd 96
+				{
+				ife ally_subt 0
+					{
+					qsprintf ALLY_SUBTITLE 5225 LAST_NAME
+					set ally_subt 40
+					}
+				sound RUSSIAN_MOVE2
+				}
+				else
+				{
+				ife ally_subt 0
+					{
+					qsprintf ALLY_SUBTITLE 5226 LAST_NAME
+					set ally_subt 40
+					}
+				sound RUSMOV3
+				}
+			}
+		}
+	}
+else
+ifl ALLY_VOICE 0
+	{
+	add ALLY_VOICE 1
+	ife ALLY_VOICE -1
+		{
+		ife CHAR 3
+		ifrnd 96
+			{
+			ife ally_subt 0
+				{
+				qsprintf ALLY_SUBTITLE 5227 LAST_NAME
+				set ally_subt 40
+				}
+			sound RUS_HW1
+			}
+			else
+		ifn CHAR 3
+		 ifrnd 96
+			{
+			ife ally_subt 0
+				{
+				qsprintf ALLY_SUBTITLE 5228 LAST_NAME
+				set ally_subt 45
+				}
+			sound RUS_OTS1
+			}
+			else
+		ifrnd 128
+			{
+			ife ally_subt 0
+				{
+				qsprintf ALLY_SUBTITLE 5229 LAST_NAME
+				set ally_subt 40
+				}
+			sound RUSSIAN_STAY1
+			}
+			else
+			{
+			ife ally_subt 0
+				{
+				qsprintf ALLY_SUBTITLE 5230 LAST_NAME
+				set ally_subt 40
+				}
+			sound RUSSIAN_STAY2
+			}
+		}
+	}
+
+ifaction A_RUSSIANDEAD
+	{
+	strength 0
+	break
+	}
+else
+ifai AIRUSSIANDYING
+	{
+	set ALLY_VOICE 0
+	ifactioncount 5 { spawn 2284 action A_RUSSIANDEAD }
+	}
+ifai AIRUSSIANFIRE
+	{
+	state checkfortarget
+	ifactioncount 1
+	ifn my_target -1
+			{
+			sound RUS_FIRE
+			state fronttowardstarget
+			set PROJECTILE_FIRING_SOUND RUS_FIRE
+			set PROJECTILE_TO_SHOOT ENEMY_BULLET
+			set PROJECTILE_PAL 8
+			state sang_enemyShootProjectile
+			state npc_pistolshell
+
+			state canseeateyelevel
+			ife RETURN 1
+			{
+				set gunsmoke_z 7244
+				set gunsmoke_angle 220
+				state spawn_gunsmoke_z
+				set gunsmoke_z 5044
+				espawn 16115
+				state spawn_muzzleflash
+			}
+
+			sub ally_mag 1
+			ife ally_mag 0
+				{
+				state bgar_mag_out_sounds
+				shoot RIFLEMAGAZINE
+				ife ally_subt 0
+				ifrnd 16
+					{
+					qsprintf ALLY_SUBTITLE 5231 LAST_NAME
+					set ally_subt 40
+					sound RUS_REL1
+					}
+				ai AIRUSSIANRELOAD
+				}
+			resetactioncount
+			}
+	ife my_target -1
+		{
+		ife ally_subt 0
+		 ifpdistl 8192
+			{
+			ifrnd 4
+				{
+				qsprintf ALLY_SUBTITLE 5232 LAST_NAME
+				set ally_subt 98
+				sound RUS_KILL1
+				}
+			else
+			ifrnd 4
+				sound RUS_KILL2
+			else
+			ifrnd 4
+				{
+				qsprintf ALLY_SUBTITLE 5233 LAST_NAME
+				set ally_subt 45
+				sound RUS_KILL3
+				}
+			else
+			ifrnd 4
+				{
+				qsprintf ALLY_SUBTITLE 5234 LAST_NAME
+				set ally_subt 90
+				sound RUS_KILL4
+				}
+			else
+			ifrnd 4
+				{
+				qsprintf ALLY_SUBTITLE 5235 LAST_NAME
+				set ally_subt 90
+				sound RUS_KILL5
+				}
+			}
+		ai AIRUSSIANIDLE
+		}
+	}
+else
+ifai AIRUSSIANMOVE
+	{
+	state checkfortarget
+		ifn my_target -1
+			{
+			state fronttowardstarget
+			ife ally_subt 0
+			 ifrnd 32
+			  ifpdistl 8192
+				{
+				ifrnd 8
+					{
+					qsprintf ALLY_SUBTITLE 5236 LAST_NAME
+					set ally_subt 40
+					sound RUS_SIG1
+					}
+				else
+				ifrnd 8
+					{
+					qsprintf ALLY_SUBTITLE 5237 LAST_NAME
+					set ally_subt 75
+					sound RUS_SIG2
+					}
+				}
+			ai AIRUSSIANFIRE
+			}
+			else
+			state faceplayerstate
+	geta[PLAYER_IDENTITY].xvel temp
+	ifg temp 10
+		{
+		mul temp 2
+		seta[].xvel temp
+		}
+	ifactioncount 3
+		{
+		state npc_footsteps
+		resetactioncount
+		}
+	ifn ANGLE 0 ifpdistl 8192 ai AIRUSSIANIDLE else
+	ifpdistl 1536 ai AIRUSSIANIDLE
+	ifnotmoving operate
+	}
+else
+ifai AIRUSSIANRELOAD
+	{
+	add ally_mag 1
+	ife ally_mag 25 state bgar_mag_in_sounds
+	ife ally_mag 30 { ife FOLLOW_PLAYER 1 ai AIRUSSIANMOVE else ai AIRUSSIANIDLE }
+	}
+else
+ifai AIRUSSIANIDLE
+	{
+	sleeptime 0
+	state rand_lookaround
+	add HEAL_COUNT 1
+	state checkfortarget
+		ifn my_target -1
+			{
+			state fronttowardstarget
+			ife ally_subt 0
+			 ifrnd 32
+			  ifpdistl 8192
+				{
+				ifrnd 8
+					{
+					qsprintf ALLY_SUBTITLE 5236 LAST_NAME
+					set ally_subt 40
+					sound RUS_SIG1
+					}
+				else
+				ifrnd 8
+					{
+					qsprintf ALLY_SUBTITLE 5237 LAST_NAME
+					set ally_subt 75
+					sound RUS_SIG2
+					}
+				}
+			ifrnd 64 ai AIRUSSIANFIRE
+			}
+			else
+	ife FOLLOW_PLAYER 1
+		{ ifpdistg 1535 ifcansee ifcanseetarget ai AIRUSSIANMOVE }
+	ifstrength 100 ifg HEAL_COUNT 6 { addstrength 1 set HEAL_COUNT 0 }
+	ifrnd 1 { sound JMOVE6 ai AIRUSSIANIDLE2 }
+	}
+else
+ifai AIRUSSIANIDLE2
+	{
+	sleeptime 0
+	state rand_lookaround
+	add HEAL_COUNT 1
+	state checkfortarget
+		ifn my_target -1
+			{
+			state fronttowardstarget
+			ifrnd 64 ai AIRUSSIANFIRE
+			}
+			else
+	ife FOLLOW_PLAYER 1
+		{ ifpdistg 1535 ifcansee ifcanseetarget ai AIRUSSIANMOVE }
+	ifstrength 100 ifg HEAL_COUNT 6 { addstrength 1 set HEAL_COUNT 0 }
+	}
+
+
+	ifpdistl 1024
+		  ifp pfacing
+		  {
+		  set player_use 0
+		   ifhitspace
+		    ife INTERNALCOUNT_2 0
+			{
+			set hit_key 30
+			ife FOLLOW_PLAYER 0 state startfollowplayer
+			else
+			ife FOLLOW_PLAYER 1 state stopfollowplayer
+			set INTERNALCOUNT_2 26
+			}
+		}
+else
+ifhitweapon
+	{
+	spawn BLOOD
+	ifrnd 76 action A_RUSSIANPAIN
+	state ENEMYKNOCKBACKS
+	state random_wall_jibs
+	state NEWGUNEFFECTS
+	ifdead
+		{
+		state clear_ally_death
+		state rf
+		ifpdistl 8192 set PLAYER_VOICEOVER 1
+		sound RUSSIAN_DIE1
+		ifrnd 76 { espawn AK114SPRITE add ally_mag 30 setactorvar[RETURN].YVELSAVED ally_mag }
+		ai AIRUSSIANDYING
+		ifrnd 76 spawn BLOODPOOL
+		}
+	}
+else
+ifaction A_RUSSIANPAIN
+	{
+	move STOP
+	ifactioncount 2 { ife FOLLOW_PLAYER 1 ai AIRUSSIANMOVE else ai AIRUSSIANIDLE }
+	}
+ifg INTERNALCOUNT 0 sub INTERNALCOUNT 1
+
+enda

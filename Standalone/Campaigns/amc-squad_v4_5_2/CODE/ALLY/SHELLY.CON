@@ -1,0 +1,388 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+
+--------------------------------------------------------------------------------
+*/
+
+
+damageeventtile SHELLY
+
+action A_SHELLY_IDLE 0 1 5 1 11
+action A_SHELLY_MOVE -456 4 5 1 11
+action A_SHELLY_RELOAD -456 4 5 1 11
+action A_SHELLY_FIRE 0 1 5 1 3
+action A_SHELLY_DYING -436 6 1 1 11
+action A_SHELLY_JUMP 5 3 5 1 20
+action A_SHELLY_KICK -429 2 5 1 12
+action A_SHELLY_DEAD -431 1 1 1 1
+action A_SHELLY_FALL 15 1 5 1 30
+
+move M_SHELLY_MOVE 266
+move M_SHELLY_MOVESLOW 128
+
+// Copies, used with different movflags
+move M_SHELLY_MOVEJUMP 266
+move M_SHELLY_MOVEFALL 266
+
+spriteshadow SHELLY
+spritenvg SHELLY
+
+useractor notenemy 9946
+	sizeat 48 48
+	geta[temp4].x temp5 setactor[THISACTOR].x temp5
+	geta[temp4].y temp5 setactor[THISACTOR].y temp5
+	geta[temp4].ang temp5 setactor[THISACTOR].ang temp5
+
+	getuserdef[THISACTOR].overhead_on temp
+	ife temp 2
+	{
+		action ZERO
+		cstat 32
+	}
+	else
+		cstat 32768
+enda
+
+defstate shelly_voice
+	ifvarg ALLY_VOICE 0
+	{
+		subvar ALLY_VOICE 1
+		ife ALLY_VOICE 1
+		{
+			ifrnd 128
+			{
+				ife ally_subt 0
+                {
+					qstrcpy 7501 5169
+					// 7501 ^60Bombshell: ^0Let's rock.
+					set ally_subt 34
+                }
+				sound BS_FOLLOW1
+			}
+			else
+			{
+				ife ally_subt 0
+                {
+					qstrcpy 7501 5170
+					// 7501 ^60Bombshell: ^0I'm ready.
+					set ally_subt 28
+                }
+				sound BS_FOLLOW2
+			}
+		}
+	}
+	else ifvarl ALLY_VOICE 0
+	{
+		addvar ALLY_VOICE 1
+		ife ALLY_VOICE -1
+		{
+			ife ally_subt 0
+			{
+				qstrcpy 7501 5171
+				// 7501 ^60Bombshell: ^0Got it.
+				set ally_subt 25
+			}
+			sound BS_ROGER
+		}
+	}
+ends
+
+useractor notenemy SHELLY
+	fall
+
+	ifaction 0
+	{
+		seta[].htwaterzoffset 8
+		ifspritepal 3 { ifand ELYSION_QUEST 524288 spritepal 0 else killit }
+		spawn SHOOTME2
+		spawn 9946
+		strength 16384
+		setvar ally_mag 30
+		cstat 257
+		sizeat 22 22
+		action A_SHELLY_IDLE
+	}
+
+	ifl sprite[].extra 16000
+		seta[].extra 16384
+
+	ife CHAR 10 ife CHARSELECT 0 killit
+
+	state spawn_cold_breathe
+
+	state ENEMYKNOCKBACKS
+	state enemyfloordamage
+	state enemy_fire_damage
+	state enemy_ice_damage
+	state enemy_spirit_damage
+
+	ifvarg sprite[THISACTOR].zvel 40 { ifstrength 0 break else action A_SHELLY_FALL }
+
+	state shelly_voice
+
+	ifaction A_SHELLY_DEAD
+	{
+		move STOP
+		strength 0
+		break
+	}
+	else ifaction A_SHELLY_DYING
+	{
+		move STOP
+		ifactioncount 6 { state BODY_FALL_NOISES action A_SHELLY_DEAD }
+	}
+	else ifaction A_SHELLY_KICK
+	{
+		move STOP
+		state checkfortarget
+
+		add INTERNALCOUNT_2 1
+
+		ifn my_target -1
+		{
+			// swing sound only once
+			ife INTERNALCOUNT_2 1
+				soundonce KICK_SWING
+
+			ifactioncount 3
+			{
+				set INTERNALCOUNT_2 0
+				resetactioncount
+			}
+			else ifactioncount 2
+			{
+				ife INTERNALCOUNT_2 3
+				{
+					state fronttowardstarget
+					ldist temp THISACTOR my_target
+
+					ifg temp 1024
+						action A_SHELLY_MOVE
+
+					setprojectile[KICK_2].WORKSLIKE 2125890
+					setprojectile[KICK_2].extra 90
+					setprojectile[KICK_2].range 5
+
+					set PROJECTILE_TO_SHOOT KICK_2
+					set PROJECTILE_FIRING_SOUND -1
+					state sang_enemyShootProjectile
+
+					setprojectile[KICK_2].WORKSLIKE 2129986
+					setprojectile[KICK_2].extra 13
+					setprojectile[KICK_2].range 2
+
+					add INTERNALCOUNT_2 1
+				}
+			}
+			else ifactioncount 1
+				set INTERNALCOUNT_2 2
+		}
+		else
+			action A_SHELLY_MOVE
+	}
+	else ifaction A_SHELLY_FIRE
+	{
+		move STOP
+		state checkfortarget
+		ifn my_target -1
+		{
+			ifactioncount 3
+			{
+				state fronttowardstarget
+				set HITSCAN_TO_SHOOT ZRIFLESHOTU
+				set HITSCAN_FIRING_SOUND M16_NPC
+				state sang_enemyShootHitscanNoTargetSeek
+
+				ife PERFMODE 1
+				 ifcansee
+				{
+					set gunsmoke_z 7244
+					set gunsmoke_angle 256
+					state spawn_gunsmoke_z
+					set gunsmoke_z 7044
+					state spawn_enemy_ARFLASH
+					state spawn_muzzleflash
+					state npc_rifleshell
+				}
+
+				subvar ally_mag 1
+				resetactioncount
+				ifvarl ally_mag 1 { shoot RIFLEMAGAZINE sound AR_MAGOUT_1 action A_SHELLY_RELOAD }
+			}
+		}
+
+		ife my_target -1
+			action A_SHELLY_IDLE
+	}
+	else ifaction A_SHELLY_FALL
+	{
+		ifmove M_SHELLY_MOVEFALL nullop
+		else move M_SHELLY_MOVEFALL geth seekplayer
+
+		iffloordistl 8
+		{
+			soundonce LAND_NORM
+			action A_SHELLY_MOVE
+		}
+	}
+	else ifaction A_SHELLY_JUMP
+	{
+		ifmove M_SHELLY_MOVEJUMP nullop
+		else move M_SHELLY_MOVEJUMP geth jumptoplayer
+
+		ifactioncount 3
+			action A_SHELLY_FALL
+	}
+	else ifaction A_SHELLY_MOVE
+	{
+		ifmove M_SHELLY_MOVE nullop
+		else move M_SHELLY_MOVE geth
+
+		state checkfortarget
+		ifactioncount 3
+		{
+			state npc_footsteps
+			resetactioncount
+		}
+
+		ifn my_target -1
+		{
+			ldist temp THISACTOR my_target
+
+			ifl temp 768
+				action A_SHELLY_KICK
+			else
+				action A_SHELLY_FIRE
+
+			resetactioncount
+		}
+		else
+			state faceplayerstate
+
+		ifnotmoving operate
+		ifp phigher ifnotmoving ifrnd 128 action A_SHELLY_JUMP
+		else ifpdistl 1736 { ifphealthl 25 ifrnd 16 sound BS_HURT1 action A_SHELLY_IDLE }
+	}
+	else ifaction A_SHELLY_RELOAD
+	{
+		ifmove M_SHELLY_MOVESLOW nullop
+		else move M_SHELLY_MOVESLOW geth
+
+		addvar ally_mag 1
+		ife ally_mag 25 sound AR_MAGIN_1
+		ife ally_mag 30 action A_SHELLY_MOVE
+	}
+	else ifaction A_SHELLY_IDLE
+	{
+		move STOP
+		sleeptime 0
+		ifn camerasprite -1
+			move STOP faceplayer
+		else
+			state rand_lookaround
+
+		addvar temp7 1
+		ife FOLLOW_PLAYER 1
+		{
+			ifpdistg 1735
+			 ifcansee
+			  ifcanseetarget
+			   action A_SHELLY_MOVE
+		}
+		state checkfortarget
+		ifn my_target -1
+		{
+			ldist temp THISACTOR my_target
+			ifl temp 768
+				action A_SHELLY_KICK
+			else
+				action A_SHELLY_FIRE
+			resetactioncount
+		}
+
+		ifstrength 1499 ifcount 6 { addstrength 1 resetcount }
+	}
+
+
+	ifvarn LOTAGSAVED 0
+	{
+		checkactivatormotion LOTAGSAVED
+		ife RETURN 1 killit
+	}
+
+	ifvarn XVELSAVED 0
+	{
+		checkactivatormotion XVELSAVED
+		ife RETURN 1 killit
+	}
+
+
+	ifpdistl 1024
+	  ifp pfacing
+	{
+		set player_use 0
+
+		ife use_action_allowed 1
+		{
+			state setIgnoreUse
+			set hit_key 30
+
+			ife FOLLOW_PLAYER 0
+				state startfollowplayer
+			else ife FOLLOW_PLAYER 1
+				state stopfollowplayer
+		}
+	}
+
+	ifvarg spirit_damage 0 subvar spirit_damage 2
+
+	ifhitweapon
+	{
+		spawn BLOOD
+		state ENEMYKNOCKBACKS
+		state random_wall_jibs
+		state NEWGUNEFFECTS
+		ifvarg spirit_damage 10 setvar spirit_damage 10
+		ifdead
+		{
+			state clear_ally_death
+			state rf
+
+			action A_SHELLY_DYING
+			ifrnd 76 spawn BLOODPOOL
+
+			/* disable babysitting
+			ifmultiplayer nullop
+			else
+			{
+				palfrom 63 63 63 63
+				setvar SLO_MO_SHOWOFF 70
+				setvar FISSION_MAILED 1
+			}
+			*/
+		}
+	}
+enda

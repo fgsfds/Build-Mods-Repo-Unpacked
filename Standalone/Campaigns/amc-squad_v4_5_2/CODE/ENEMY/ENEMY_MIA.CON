@@ -1,0 +1,1269 @@
+// expected input: temp value contains the research project value
+// output: temp2 will be 1 if this project was not yet acquired by the player before
+defstate first_mia
+	set temp2 0
+
+	ife temp 0
+		set temp2 1
+	else ife temp 4
+		set temp2 1
+ends
+
+// controls how long research appears on screen
+defstate display_res
+	state getfactornormalizedframerate
+	set DISP_RES -240
+	mul DISP_RES NORMALIZED_FACTOR
+ends
+
+defstate MIA_GUN_STATE
+state bullet_data
+    ife PROJ_HIT_TYPE 9376 // MIA GUN
+    {
+	ifactor APLAYER addphealth -150 else
+		{
+		  ifactor BATTLELORD ifspritepal 0 break
+		  ifactor BOSS2 ifspritepal 0 break
+		  ifactor BOSS3 ifspritepal 0 break
+		  ifactor BOSS4 ifspritepal 0 break
+		  ifactor BOSS5 ifspritepal 0 break
+		  ifactor LIZBOSS ifspritepal 0 break
+		  ifactor PIGBOSS ifspritepal 0 break
+		  ifactor BRUISER ifspritepal 24 break
+		  ifactor CYBERDEMON ifspritepal 0 break
+
+	  ife npc_mia -1
+		{
+		geta[].extra npc_mia
+		div npc_mia 15
+		ife POLYMERS 0 readgamevar POLYMERS
+		add POLYMERS npc_mia
+		qsprintf 14006 14005 npc_mia
+		userquote 14006
+		savegamevar POLYMERS
+		}
+
+	  ifactor LIZTROOP
+	  {
+	  readarrayfromfile PERSONNEL_RESEARCH F_PERSONNEL_AMCTC
+	  set temp PERSONNEL_RESEARCH[RS_P_CYCLOIDJETPACKCONTR]
+	  state first_mia
+	  ife temp2 0 nullop // improved jetpack controls
+			else
+			{
+			state display_res
+			set DISP_RES_PAL 1
+			set DISP_RES_PIC 22499
+			setarray PERSONNEL_RESEARCH[RS_P_CYCLOIDJETPACKCONTR] 3
+			orvar new_research 4
+			writearraytofile PERSONNEL_RESEARCH F_PERSONNEL_AMCTC
+			state ENEMY_RES_STUFF
+			}
+	   ifspritepal 10 // If it's the liztroop major, give the player the teleport device project
+		{
+			set temp PERSONNEL_RESEARCH[RS_P_TELEPORTDEVICE]
+			state first_mia
+			ife temp2 0 nullop
+			else
+			{
+			state display_res
+			set DISP_RES_PAL 1
+			set DISP_RES_PIC 13339
+			setarray PERSONNEL_RESEARCH[RS_P_TELEPORTDEVICE] 3
+			orvar new_research 4
+			writearraytofile PERSONNEL_RESEARCH F_PERSONNEL_AMCTC
+			state ENEMY_RES_STUFF
+			}
+		}
+	   ifspritepal 23 // If it's the liztroop freezer, give the player the de-frost kit project
+		{
+			set temp PERSONNEL_RESEARCH[RS_P_DETHAWINGKIT]
+			state first_mia
+			ife temp2 0 nullop
+			else
+			{
+			state display_res
+			set DISP_RES_PAL 1
+			set DISP_RES_PIC 13341
+			setarray PERSONNEL_RESEARCH[RS_P_DETHAWINGKIT] 3
+			orvar new_research 4
+			writearraytofile PERSONNEL_RESEARCH F_PERSONNEL_AMCTC
+			state ENEMY_RES_STUFF
+			}
+		}
+	 }
+
+	 ifactor SPACE_LIZTROOP // o2 oxygen
+		{
+			readarrayfromfile PERSONNEL_RESEARCH F_PERSONNEL_AMCTC
+			set temp PERSONNEL_RESEARCH[RS_P_IMPROXYGENCIRC]
+			state first_mia
+			ife temp2 0 nullop
+			else
+			{
+			state display_res
+			set DISP_RES_PAL 1
+			set DISP_RES_PIC 22726
+			setarray PERSONNEL_RESEARCH[RS_P_IMPROXYGENCIRC] 3
+			orvar new_research 4
+			writearraytofile PERSONNEL_RESEARCH F_PERSONNEL_AMCTC
+			state ENEMY_RES_STUFF
+			}
+		}
+
+	   ifactor YUKI_ONNA // give the player the de-frost kit project
+		{
+			readarrayfromfile PERSONNEL_RESEARCH F_PERSONNEL_AMCTC
+
+			set temp PERSONNEL_RESEARCH[RS_P_DETHAWINGKIT]
+			state first_mia
+			ife temp2 0 nullop
+			else
+			{
+			state display_res
+			set DISP_RES_PAL 1
+			set DISP_RES_PIC 13341
+			setarray PERSONNEL_RESEARCH[RS_P_DETHAWINGKIT] 3
+			orvar new_research 4
+			writearraytofile PERSONNEL_RESEARCH F_PERSONNEL_AMCTC
+			state ENEMY_RES_STUFF
+			}
+		}
+
+	 ifactor MJ12_TROOP // Mj12 Comms
+		{
+			readarrayfromfile PERSONNEL_RESEARCH F_PERSONNEL_AMCTC
+
+			set temp PERSONNEL_RESEARCH[RS_P_MJ12_COMMS]
+			state first_mia
+			ife temp2 0 nullop
+			else
+			{
+			state display_res
+			set DISP_RES_PAL 1
+			set DISP_RES_PIC 12986
+			setarray PERSONNEL_RESEARCH[RS_P_MJ12_COMMS] 3
+			orvar new_research 4
+			writearraytofile PERSONNEL_RESEARCH F_PERSONNEL_AMCTC
+			state ENEMY_RES_STUFF
+			}
+		ife actor_pal 21 // Shielded MJ12?
+			{
+				set temp PERSONNEL_RESEARCH[RS_P_PES]
+				state first_mia
+				ife temp2 0 nullop
+				else
+				{
+				state display_res
+				set DISP_RES_PAL 1
+				set DISP_RES_PIC 22734
+				setarray PERSONNEL_RESEARCH[RS_P_PES] 3
+				orvar new_research 4
+				writearraytofile PERSONNEL_RESEARCH F_PERSONNEL_AMCTC
+				state ENEMY_RES_STUFF
+				}
+			}
+		}
+
+	 ifactor MJ12_ASSASSIN // muscle suit
+		{
+		readarrayfromfile PERSONNEL_RESEARCH F_PERSONNEL_AMCTC
+
+			set temp PERSONNEL_RESEARCH[RS_P_MUSCLESKIN]
+			state first_mia
+			ife temp2 0 nullop
+			else
+			{
+			state display_res
+			set DISP_RES_PAL 1
+			set DISP_RES_PIC 22718
+			setarray PERSONNEL_RESEARCH[RS_P_MUSCLESKIN] 3
+			orvar new_research 4
+			writearraytofile PERSONNEL_RESEARCH F_PERSONNEL_AMCTC
+			state ENEMY_RES_STUFF
+			}
+		}
+
+	 ifactor PITFIEND // Pitfiend Comms
+		{
+			readarrayfromfile PERSONNEL_RESEARCH F_PERSONNEL_AMCTC
+
+			set temp PERSONNEL_RESEARCH[RS_P_PITFIEND_COMMS]
+			state first_mia
+			ife temp2 0 nullop
+			else
+			{
+			state display_res
+			set DISP_RES_PAL 1
+			set DISP_RES_PIC 13501
+			setarray PERSONNEL_RESEARCH[RS_P_PITFIEND_COMMS] 3
+			orvar new_research 4
+			writearraytofile PERSONNEL_RESEARCH F_PERSONNEL_AMCTC
+			state ENEMY_RES_STUFF
+			}
+		}
+
+	 ifactor LIZBOSS // better jetpack
+		{
+			readarrayfromfile PERSONNEL_RESEARCH F_PERSONNEL_AMCTC
+			set temp PERSONNEL_RESEARCH[RS_P_JETPACKEFFICMOD]
+			state first_mia
+			ife temp2 0 nullop
+			else
+			{
+			state display_res
+			set DISP_RES_PAL 1
+			set DISP_RES_PIC 22725
+			setarray PERSONNEL_RESEARCH[RS_P_JETPACKEFFICMOD] 3
+			orvar new_research 4
+			writearraytofile PERSONNEL_RESEARCH F_PERSONNEL_AMCTC
+			state ENEMY_RES_STUFF
+			}
+		}
+
+	 ifactor OGRE // improved shield
+		{
+			readarrayfromfile PERSONNEL_RESEARCH F_PERSONNEL_AMCTC
+			set temp PERSONNEL_RESEARCH[RS_P_IMPRSHIELDMATERIAL]
+			state first_mia
+			ife temp2 0 nullop
+			else
+			{
+			state display_res
+			set DISP_RES_PAL 1
+			set DISP_RES_PIC 22724
+			setarray PERSONNEL_RESEARCH[RS_P_IMPRSHIELDMATERIAL] 3
+			orvar new_research 4
+			writearraytofile PERSONNEL_RESEARCH F_PERSONNEL_AMCTC
+			state ENEMY_RES_STUFF
+			}
+		}
+
+	 ifactor ELITE_LIZMAN // if it's the elite lizard man, give the player the personal forceshield topic
+		{
+			readarrayfromfile PERSONNEL_RESEARCH F_PERSONNEL_AMCTC
+			set temp PERSONNEL_RESEARCH[RS_P_PES]
+			state first_mia
+			ife temp2 0 nullop
+			else
+			{
+			state display_res
+			set DISP_RES_PAL 1
+			set DISP_RES_PIC 22734
+			setarray PERSONNEL_RESEARCH[RS_P_PES] 3
+			orvar new_research 4
+			writearraytofile PERSONNEL_RESEARCH F_PERSONNEL_AMCTC
+			state ENEMY_RES_STUFF
+			}
+		}
+
+	 ifactor GORILLA // if it's the gorilla commando, give the player the personal forceshield topic
+	  ife actor_pal 13
+		{
+		readarrayfromfile PERSONNEL_RESEARCH F_PERSONNEL_AMCTC
+			set temp PERSONNEL_RESEARCH[RS_P_PES]
+			state first_mia
+			ife temp2 0 nullop
+			else
+			{
+			state display_res
+			set DISP_RES_PAL 1
+			set DISP_RES_PIC 22734
+			setarray PERSONNEL_RESEARCH[RS_P_PES] 3
+			orvar new_research 4
+			writearraytofile PERSONNEL_RESEARCH F_PERSONNEL_AMCTC
+			state ENEMY_RES_STUFF
+			}
+
+			set temp PERSONNEL_RESEARCH[RS_P_PESBATMK2]
+			state first_mia
+			ife temp2 0 nullop
+			else
+			{
+			state display_res
+			set DISP_RES_PAL 1
+			set DISP_RES_PIC 22733
+			setarray PERSONNEL_RESEARCH[RS_P_PESBATMK2] 3
+			orvar new_research 4
+			writearraytofile PERSONNEL_RESEARCH F_PERSONNEL_AMCTC
+			state ENEMY_RES_STUFF
+			}
+		}
+
+	  ifactor PIGCOP // If it's the pig cop, give the player the improved body armour topic
+		{
+		readarrayfromfile PERSONNEL_RESEARCH F_PERSONNEL_AMCTC
+
+			set temp PERSONNEL_RESEARCH[RS_P_ARMOURSTRENGTH]
+			state first_mia
+			ife temp2 0 nullop
+			else
+			{
+			state display_res
+			set DISP_RES_PAL 1
+			set DISP_RES_PIC 22739
+			setarray PERSONNEL_RESEARCH[RS_P_ARMOURSTRENGTH] 3
+			orvar new_research 4
+			writearraytofile PERSONNEL_RESEARCH F_PERSONNEL_AMCTC
+			state ENEMY_RES_STUFF
+			}
+		}
+
+	  ifactor PIGCOP_RIOT // If it's the pig cop, give the player the improved body armour topic
+		{
+		readarrayfromfile PERSONNEL_RESEARCH F_PERSONNEL_AMCTC
+			set temp PERSONNEL_RESEARCH[RS_P_ARMOURSTRENGTH]
+			state first_mia
+			ife temp2 0 nullop
+			else
+			{
+			state display_res
+			set DISP_RES_PAL 1
+			set DISP_RES_PIC 22739
+			setarray PERSONNEL_RESEARCH[RS_P_ARMOURSTRENGTH] 3
+			orvar new_research 4
+			writearraytofile PERSONNEL_RESEARCH F_PERSONNEL_AMCTC
+			state ENEMY_RES_STUFF
+			}
+		}
+
+	  ifactor PIG_SF // If it's the pig cop, give the player the improved body armour topic
+		{
+		readarrayfromfile PERSONNEL_RESEARCH F_PERSONNEL_AMCTC
+			set temp PERSONNEL_RESEARCH[RS_P_ARMOURSTRENGTH]
+			state first_mia
+			ife temp2 0 nullop
+			else
+			{
+			state display_res
+			set DISP_RES_PAL 1
+			set DISP_RES_PIC 22739
+			setarray PERSONNEL_RESEARCH[RS_P_ARMOURSTRENGTH] 3
+			orvar new_research 4
+			writearraytofile PERSONNEL_RESEARCH F_PERSONNEL_AMCTC
+			state ENEMY_RES_STUFF
+			}
+		}
+
+	  ifactor COBRA // If it's the COBRA, give the player the anti-toxin research
+		{
+		readarrayfromfile PERSONNEL_RESEARCH F_PERSONNEL_AMCTC
+		set temp PERSONNEL_RESEARCH[RS_P_ANTITOXIN]
+		state first_mia
+		ife temp2 0 nullop
+		else
+			{
+			state display_res
+			set DISP_RES_PAL 1
+			set DISP_RES_PIC 22498
+			setarray PERSONNEL_RESEARCH[RS_P_ANTITOXIN] 3
+			orvar new_research 4
+			writearraytofile PERSONNEL_RESEARCH F_PERSONNEL_AMCTC
+			state ENEMY_RES_STUFF
+			}
+
+		set temp PERSONNEL_RESEARCH[RS_P_SNAKESKINBOOTS]
+		state first_mia
+		ife temp2 0 nullop
+		else
+			{
+			state display_res
+			set DISP_RES_PAL 1
+			set DISP_RES_PIC 22731
+			setarray PERSONNEL_RESEARCH[RS_P_SNAKESKINBOOTS] 3
+			orvar new_research 4
+			writearraytofile PERSONNEL_RESEARCH F_PERSONNEL_AMCTC
+			state ENEMY_RES_STUFF
+			}
+		}
+
+	  ifactor NEWBEAST // If it's the newbeast, give them the acid boot protection topic
+		{
+		readarrayfromfile PERSONNEL_RESEARCH F_PERSONNEL_AMCTC
+
+			set temp PERSONNEL_RESEARCH[RS_P_ACIDPROTECTION]
+			state first_mia
+			ife temp2 0 nullop
+			else
+			{
+			state display_res
+			set DISP_RES_PAL 1
+			set DISP_RES_PIC 22737
+			setarray PERSONNEL_RESEARCH[RS_P_ACIDPROTECTION] 3
+			orvar new_research 4
+			writearraytofile PERSONNEL_RESEARCH F_PERSONNEL_AMCTC
+			state ENEMY_RES_STUFF
+			}
+		}
+
+	  ifactor FLESHWIZARD // If it's the Flesh wizard, give the nutrient solution
+		{
+			readarrayfromfile PERSONNEL_RESEARCH F_PERSONNEL_AMCTC
+
+			set temp PERSONNEL_RESEARCH[RS_P_NUTRIENTSOLUTION]
+			state first_mia
+			ife temp2 0 nullop
+			else
+			{
+			state display_res
+			set DISP_RES_PAL 1
+			set DISP_RES_PIC 13329
+			setarray PERSONNEL_RESEARCH[RS_P_NUTRIENTSOLUTION] 3
+			orvar new_research 4
+			writearraytofile PERSONNEL_RESEARCH F_PERSONNEL_AMCTC
+			state ENEMY_RES_STUFF
+			}
+		}
+
+	  ifactor FASCIST // If it's the Imperical Union SOLDIER, give them the AMC troop lasergun
+		{
+			readarrayfromfile PERSONNEL_RESEARCH F_PERSONNEL_AMCTC
+
+			set temp PERSONNEL_RESEARCH[RS_P_AMCLASGUN]
+			state first_mia
+			ife temp2 0 nullop
+			else
+			{
+			state display_res
+			set DISP_RES_PAL 1
+			set DISP_RES_PIC 12971
+			setarray PERSONNEL_RESEARCH[RS_P_AMCLASGUN] 3
+			orvar new_research 4
+			writearraytofile PERSONNEL_RESEARCH F_PERSONNEL_AMCTC
+			state ENEMY_RES_STUFF
+			}
+		}
+
+	  ifactor SPIDER2 // If it's the spider, give the player the anti-toxin research
+		{
+		readarrayfromfile PERSONNEL_RESEARCH F_PERSONNEL_AMCTC
+
+			set temp PERSONNEL_RESEARCH[RS_P_ANTITOXIN]
+			state first_mia
+			ife temp2 0 nullop
+			else
+			{
+			state display_res
+			set DISP_RES_PAL 1
+			set DISP_RES_PIC 22498
+			setarray PERSONNEL_RESEARCH[RS_P_ANTITOXIN] 3
+			orvar new_research 4
+			writearraytofile PERSONNEL_RESEARCH F_PERSONNEL_AMCTC
+			state ENEMY_RES_STUFF
+			}
+		}
+
+	  ifactor PE_TROOP // If it's the Paradigm grunt, give the player the intel
+		{
+		readarrayfromfile PERSONNEL_RESEARCH F_PERSONNEL_AMCTC
+
+			set temp PERSONNEL_RESEARCH[RS_P_PARAD_INTEL]
+			state first_mia
+			ife temp2 0 nullop
+			else
+			{
+			state display_res
+			set DISP_RES_PAL 1
+			set DISP_RES_PIC 13480
+			setarray PERSONNEL_RESEARCH[RS_P_PARAD_INTEL] 3
+			orvar new_research 4
+			writearraytofile PERSONNEL_RESEARCH F_PERSONNEL_AMCTC
+			state ENEMY_RES_STUFF
+			}
+		}
+
+	  ifactor PE_ELDER // If it's the Paradigm Elder, give the blood storage project
+		{
+			readarrayfromfile PERSONNEL_RESEARCH F_PERSONNEL_AMCTC
+
+			set temp PERSONNEL_RESEARCH[RS_P_BLOOD_STORAGE]
+			state first_mia
+			ife temp2 0 nullop
+			else
+			{
+			state display_res
+			set DISP_RES_PAL 1
+			set DISP_RES_PIC 18743
+			setarray PERSONNEL_RESEARCH[RS_P_BLOOD_STORAGE] 3
+			orvar new_research 4
+			writearraytofile PERSONNEL_RESEARCH F_PERSONNEL_AMCTC
+			state ENEMY_RES_STUFF
+			}
+		}
+
+	  ifactor CYBERCULTIST // If it's the cybercultist, give the player the enhanced turret ai
+		{
+			readarrayfromfile PERSONNEL_RESEARCH F_PERSONNEL_AMCTC
+
+			set temp PERSONNEL_RESEARCH[RS_P_ENHANCED_TARG]
+			state first_mia
+			ife temp2 0 nullop
+			else
+			{
+			state display_res
+			set DISP_RES_PAL 23
+			set DISP_RES_PIC 17627
+			setarray PERSONNEL_RESEARCH[RS_P_ENHANCED_TARG] 3
+			orvar new_research 4
+			writearraytofile PERSONNEL_RESEARCH F_PERSONNEL_AMCTC
+			state ENEMY_RES_STUFF
+			}
+
+		  ife actor_pal 21
+			{
+			readarrayfromfile PERSONNEL_RESEARCH F_PERSONNEL_AMCTC
+				set temp PERSONNEL_RESEARCH[RS_P_PES]
+				state first_mia
+				ife temp2 0 nullop
+				else
+				{
+				state display_res
+				set DISP_RES_PAL 1
+				set DISP_RES_PIC 22734
+				setarray PERSONNEL_RESEARCH[RS_P_PES] 3
+				orvar new_research 4
+				writearraytofile PERSONNEL_RESEARCH F_PERSONNEL_AMCTC
+				state ENEMY_RES_STUFF
+				}
+
+				set temp PERSONNEL_RESEARCH[RS_P_PESBATMK2]
+				state first_mia
+				ife temp2 0 nullop
+				else
+				{
+				state display_res
+				set DISP_RES_PAL 1
+				set DISP_RES_PIC 22733
+				setarray PERSONNEL_RESEARCH[RS_P_PESBATMK2] 3
+				orvar new_research 4
+				writearraytofile PERSONNEL_RESEARCH F_PERSONNEL_AMCTC
+				state ENEMY_RES_STUFF
+				}
+			}
+
+		}
+
+
+	  ifactor CYBERALIEN // If it's the cyber-alien, give the player the enhanced heat seeking project
+		{
+			readarrayfromfile PERSONNEL_RESEARCH F_PERSONNEL_AMCTC
+
+			set temp PERSONNEL_RESEARCH[RS_P_ENHANCEDHEATSEEKERCARD]
+			state first_mia
+			ife temp2 0 nullop
+			else
+			{
+			state display_res
+			set DISP_RES_PAL 8
+			set DISP_RES_PIC 13342
+			setarray PERSONNEL_RESEARCH[RS_P_ENHANCEDHEATSEEKERCARD] 3
+			orvar new_research 4
+			writearraytofile PERSONNEL_RESEARCH F_PERSONNEL_AMCTC
+			state ENEMY_RES_STUFF
+			}
+		}
+
+	  ifactor LIZMAN
+	  {
+		readarrayfromfile WEAPONS_RESEARCH F_WEAPONS_AMCTC
+
+			set temp WEAPONS_RESEARCH[RS_W_LIZRFMOD]
+			state first_mia
+			ife temp2 0 nullop
+			else
+			{
+			state display_res
+			set DISP_RES_PAL 2
+			set DISP_RES_PIC LIZMANGUNSPRITE
+			setarray WEAPONS_RESEARCH[RS_W_LIZRFMOD] 3
+			orvar new_research 1
+			writearraytofile WEAPONS_RESEARCH F_WEAPONS_AMCTC
+			state ENEMY_RES_STUFF
+			}
+	   ifspritepal 24 // If it's the lizman laser gunner, give the player the laser gunner project
+		{
+			set temp WEAPONS_RESEARCH[RS_W_LIZLCHAINGUN]
+			state first_mia
+			ife temp2 0 nullop
+			else
+			{
+			state display_res
+			set DISP_RES_PAL 2
+			set DISP_RES_PIC LIZMANFGUNSPRITE
+			setarray WEAPONS_RESEARCH[RS_W_LIZLCHAINGUN] 3
+			orvar new_research 1
+			writearraytofile WEAPONS_RESEARCH F_WEAPONS_AMCTC
+			state ENEMY_RES_STUFF
+			}
+		}
+	}
+
+	  ifactor COMMANDER
+	  {
+		readarrayfromfile PERSONNEL_RESEARCH F_PERSONNEL_AMCTC
+
+			set temp PERSONNEL_RESEARCH[RS_P_DRONESECURITYCODES]
+			state first_mia
+			ife temp2 0 nullop
+			else
+			{
+			state display_res
+			set DISP_RES_PAL 1
+			set DISP_RES_PIC 22738
+			setarray PERSONNEL_RESEARCH[RS_P_DRONESECURITYCODES] 3
+			orvar new_research 4
+			writearraytofile PERSONNEL_RESEARCH F_PERSONNEL_AMCTC
+			state ENEMY_RES_STUFF
+			}
+	}
+
+	ifactor ADV_COMMANDER
+	{
+	readarrayfromfile WEAPONS_RESEARCH F_WEAPONS_AMCTC
+		set temp WEAPONS_RESEARCH[RS_W_CYCLOIDPLASMA]
+		state first_mia
+		ife temp2 0 nullop
+		else
+			{
+			state display_res
+			set DISP_RES_PAL 2
+			set DISP_RES_PIC 13547
+			setarray WEAPONS_RESEARCH[RS_W_CYCLOIDPLASMA] 3
+			orvar new_research 1
+			writearraytofile WEAPONS_RESEARCH F_WEAPONS_AMCTC
+			state ENEMY_RES_STUFF
+			}
+	}
+
+	  ifactor MERC // carapace armour
+		{
+		readarrayfromfile PERSONNEL_RESEARCH F_PERSONNEL_AMCTC
+
+			set temp PERSONNEL_RESEARCH[RS_P_AMCCARAPACE]
+			state first_mia
+			ife temp2 0 nullop
+			else
+			{
+			state display_res
+			set DISP_RES_PAL 1
+			set DISP_RES_PIC 12942
+			setarray PERSONNEL_RESEARCH[RS_P_AMCCARAPACE] 3
+			orvar new_research 4
+			writearraytofile PERSONNEL_RESEARCH F_PERSONNEL_AMCTC
+			state ENEMY_RES_STUFF
+			}
+		}
+
+	  ifactor MERC2 // ablative plating
+		{
+		readarrayfromfile PERSONNEL_RESEARCH F_PERSONNEL_AMCTC
+
+			set temp PERSONNEL_RESEARCH[RS_P_ABLATIVEARMOURPLATING]
+			state first_mia
+			ife temp2 0 nullop
+			else
+			{
+			state display_res
+			set DISP_RES_PAL 1
+			set DISP_RES_PIC 22501
+			setarray PERSONNEL_RESEARCH[RS_P_ABLATIVEARMOURPLATING] 3
+			orvar new_research 4
+			writearraytofile PERSONNEL_RESEARCH F_PERSONNEL_AMCTC
+			state ENEMY_RES_STUFF
+			}
+		}
+
+	  ifactor JUGGERNAUT // Juggernaut weaponry
+		{
+		stopactorsound THISACTOR MINIGUN_FIRE
+		readarrayfromfile WEAPONS_RESEARCH F_WEAPONS_AMCTC
+
+			set temp WEAPONS_RESEARCH[RS_W_DEVASFRAMEW]
+			state first_mia
+			ife temp2 0 nullop
+			else
+			{
+			state display_res
+			set DISP_RES_PAL 8
+			set DISP_RES_PIC 15912
+			setarray WEAPONS_RESEARCH[RS_W_DEVASFRAMEW] 3
+			orvar new_research 1
+			writearraytofile WEAPONS_RESEARCH F_WEAPONS_AMCTC
+			state ENEMY_RES_STUFF
+			}
+		}
+
+	  ifactor ZSCIEN // Improved Scanning device
+		{
+		readarrayfromfile BASE_RESEARCH F_BASE_AMCTC
+			set temp BASE_RESEARCH[RS_B_SCANMODULE]
+			state first_mia
+			ife temp2 0 nullop
+			else
+			{
+			state display_res
+			set DISP_RES_PAL 7
+			set DISP_RES_PIC 10330
+			setarray BASE_RESEARCH[RS_B_SCANMODULE] 3
+			orvar new_research 8
+			writearraytofile BASE_RESEARCH F_BASE_AMCTC
+			state ENEMY_RES_STUFF
+			}
+		}
+
+
+	  ifactor ZSOLDIER // Extended AMC soldier magazines
+		{
+		readarrayfromfile PERSONNEL_RESEARCH F_PERSONNEL_AMCTC
+			set temp PERSONNEL_RESEARCH[RS_P_AMCXTMAG]
+			state first_mia
+			ife temp2 0 nullop
+			else
+			{
+			state display_res
+			set DISP_RES_PAL 1
+			set DISP_RES_PIC 13331
+			setarray PERSONNEL_RESEARCH[RS_P_AMCXTMAG] 3
+			orvar new_research 4
+			writearraytofile PERSONNEL_RESEARCH F_PERSONNEL_AMCTC
+			state ENEMY_RES_STUFF
+			}
+		}
+
+	  ifactor ZSOLDIER2 // Extended AMC soldier magazines
+		{
+		readarrayfromfile PERSONNEL_RESEARCH F_PERSONNEL_AMCTC
+
+			set temp PERSONNEL_RESEARCH[RS_P_AMCXTMAG]
+			state first_mia
+			ife temp2 0 nullop
+			else
+			{
+			state display_res
+			set DISP_RES_PAL 1
+			set DISP_RES_PIC 13331
+			setarray PERSONNEL_RESEARCH[RS_P_AMCXTMAG] 3
+			orvar new_research 4
+			writearraytofile PERSONNEL_RESEARCH F_PERSONNEL_AMCTC
+			state ENEMY_RES_STUFF
+			}
+		}
+
+	  ifactor Z_GRENADEL // Blast padding
+		{
+		readarrayfromfile PERSONNEL_RESEARCH F_PERSONNEL_AMCTC
+
+			set temp PERSONNEL_RESEARCH[RS_P_BLASTPADDING]
+			state first_mia
+			ife temp2 0 nullop
+			else
+			{
+			state display_res
+			set DISP_RES_PAL 1
+			set DISP_RES_PIC 13549
+			setarray PERSONNEL_RESEARCH[RS_P_BLASTPADDING] 3
+			orvar new_research 4
+			writearraytofile PERSONNEL_RESEARCH F_PERSONNEL_AMCTC
+			state ENEMY_RES_STUFF
+			}
+		}
+
+	  ifactor CYBERTOUR // cybertour sheathing
+		{
+		readarrayfromfile PERSONNEL_RESEARCH F_PERSONNEL_AMCTC
+
+			set temp PERSONNEL_RESEARCH[RS_P_CYBERTSHEATHING]
+			state first_mia
+			ife temp2 0 nullop
+			else
+			{
+			state display_res
+			set DISP_RES_PAL 1
+			set DISP_RES_PIC 13324
+			setarray PERSONNEL_RESEARCH[RS_P_CYBERTSHEATHING] 3
+			orvar new_research 4
+			writearraytofile PERSONNEL_RESEARCH F_PERSONNEL_AMCTC
+			state ENEMY_RES_STUFF
+			}
+		}
+
+	  ifactor SATYR // satyr fibre
+		{
+		readarrayfromfile PERSONNEL_RESEARCH F_PERSONNEL_AMCTC
+
+			set temp PERSONNEL_RESEARCH[RS_P_THERMALWEAVING]
+			state first_mia
+			ife temp2 0 nullop
+			else
+			{
+			state display_res
+			set DISP_RES_PAL 1
+			set DISP_RES_PIC 13327
+			setarray PERSONNEL_RESEARCH[RS_P_THERMALWEAVING] 3
+			orvar new_research 4
+			writearraytofile PERSONNEL_RESEARCH F_PERSONNEL_AMCTC
+			state ENEMY_RES_STUFF
+			}
+		}
+
+	ifactor CULTIST
+	{
+	readarrayfromfile PERSONNEL_RESEARCH F_PERSONNEL_AMCTC
+
+		set temp PERSONNEL_RESEARCH[RS_P_CULTROBETECH]
+		state first_mia
+		ife temp2 0 nullop
+		else
+		{
+		state display_res
+		set DISP_RES_PAL 1
+		set DISP_RES_PIC 22736
+		setarray PERSONNEL_RESEARCH[RS_P_CULTROBETECH] 3
+		orvar new_research 4
+		writearraytofile PERSONNEL_RESEARCH F_PERSONNEL_AMCTC
+		state ENEMY_RES_STUFF
+		}
+
+	ife actor_pal 49 // purple robed mystical cultist?
+		{
+		readarrayfromfile MYSTICAL_RESEARCH F_MYSTIC_AMCTC
+
+			set temp MYSTICAL_RESEARCH[RS_M_MINDSHIELD_LVL1]
+			state first_mia
+			ife temp2 0 nullop
+			else
+			{
+			state display_res
+			set DISP_RES_PAL 49
+			set DISP_RES_PIC 13328
+			setarray MYSTICAL_RESEARCH[RS_M_MINDSHIELD_LVL1] 3
+			orvar new_research 16
+			writearraytofile MYSTICAL_RESEARCH F_MYSTIC_AMCTC
+			state ENEMY_RES_STUFF
+			}
+		}
+
+	}
+
+	ifactor ORC
+	{
+	readarrayfromfile PERSONNEL_RESEARCH F_PERSONNEL_AMCTC
+		set temp PERSONNEL_RESEARCH[RS_P_ORCBANDOLIER]
+		state first_mia
+		ife temp2 0 nullop
+		else
+		{
+		state display_res
+		set DISP_RES_PAL 1
+		set DISP_RES_PIC 29368
+		setarray PERSONNEL_RESEARCH[RS_P_ORCBANDOLIER] 3
+		orvar new_research 4
+		writearraytofile PERSONNEL_RESEARCH F_PERSONNEL_AMCTC
+		state ENEMY_RES_STUFF
+		}
+	}
+
+	ifactor ARCHER
+	{
+	readarrayfromfile PERSONNEL_RESEARCH F_PERSONNEL_AMCTC
+		set temp PERSONNEL_RESEARCH[RS_P_ARCHERQUIVER]
+		state first_mia
+		ife temp2 0 nullop
+		else
+		{
+		state display_res
+		set DISP_RES_PAL 1
+		set DISP_RES_PIC 29369
+		setarray PERSONNEL_RESEARCH[RS_P_ARCHERQUIVER] 3
+		orvar new_research 4
+		writearraytofile PERSONNEL_RESEARCH F_PERSONNEL_AMCTC
+		state ENEMY_RES_STUFF
+		}
+	}
+
+	ifactor MAEPHISTO
+	{
+	readarrayfromfile PERSONNEL_RESEARCH F_PERSONNEL_AMCTC
+		set temp PERSONNEL_RESEARCH[RS_P_MAEPH_CHARGE]
+		state first_mia
+		ife temp2 0 nullop
+		else
+		{
+		state display_res
+		set DISP_RES_PAL 2
+		set DISP_RES_PIC 14495
+		setarray PERSONNEL_RESEARCH[RS_P_MAEPH_CHARGE] 3
+		orvar new_research 4
+		writearraytofile PERSONNEL_RESEARCH F_PERSONNEL_AMCTC
+		state ENEMY_RES_STUFF
+		}
+	}
+
+	ifactor BEHOLDER // beholder gaze
+		{
+		readarrayfromfile MYSTICAL_RESEARCH F_MYSTIC_AMCTC
+
+			set temp MYSTICAL_RESEARCH[RS_M_BEHOLDER]
+			state first_mia
+			ife temp2 0 nullop
+			else
+			{
+			state display_res
+			set DISP_RES_PAL 49
+			set DISP_RES_PIC 29336
+			setarray MYSTICAL_RESEARCH[RS_M_BEHOLDER] 3
+			orvar new_research 16
+			writearraytofile MYSTICAL_RESEARCH F_MYSTIC_AMCTC
+			state ENEMY_RES_STUFF
+			}
+		}
+
+	ifactor TROLL // Merlijn ground pound
+		{
+		readarrayfromfile MYSTICAL_RESEARCH F_MYSTIC_AMCTC
+			set temp MYSTICAL_RESEARCH[RS_M_TROLL]
+			state first_mia
+			ife temp2 0 nullop
+			else
+			{
+			state display_res
+			set DISP_RES_PAL 49
+			set DISP_RES_PIC 29337
+			setarray MYSTICAL_RESEARCH[RS_M_TROLL] 3
+			orvar new_research 16
+			writearraytofile MYSTICAL_RESEARCH F_MYSTIC_AMCTC
+			state ENEMY_RES_STUFF
+			}
+		}
+
+
+	  ifactor ANUBIS_MUMMY // improved medi-kit speed
+		{
+		readarrayfromfile MYSTICAL_RESEARCH F_MYSTIC_AMCTC
+
+			set temp MYSTICAL_RESEARCH[RS_M_IMPROVEDFIRSTAID]
+			state first_mia
+			ife temp2 0 nullop
+			else
+			{
+			state display_res
+			set DISP_RES_PAL 49
+			set DISP_RES_PIC 22717
+			setarray MYSTICAL_RESEARCH[RS_M_IMPROVEDFIRSTAID] 3
+			orvar new_research 16
+			writearraytofile MYSTICAL_RESEARCH F_MYSTIC_AMCTC
+			state ENEMY_RES_STUFF
+			}
+		}
+
+	  ifactor DARKAVATAR
+		{
+		readarrayfromfile MYSTICAL_RESEARCH F_MYSTIC_AMCTC
+
+			set temp MYSTICAL_RESEARCH[RS_M_MINDSHIELD_LVL1]
+			state first_mia
+			ife temp2 0 nullop
+			else
+			{
+			state display_res
+			set DISP_RES_PAL 49
+			set DISP_RES_PIC 13328
+			setarray MYSTICAL_RESEARCH[RS_M_MINDSHIELD_LVL1] 3
+			orvar new_research 16
+			writearraytofile MYSTICAL_RESEARCH F_MYSTIC_AMCTC
+			state ENEMY_RES_STUFF
+			}
+
+			set temp MYSTICAL_RESEARCH[RS_M_MINDSHIELD_LVL2]
+			state first_mia
+			ife temp2 0 nullop
+			else
+			{
+			state display_res
+			set DISP_RES_PAL 49
+			set DISP_RES_PIC 13334
+			setarray MYSTICAL_RESEARCH[RS_M_MINDSHIELD_LVL2] 3
+			orvar new_research 16
+			writearraytofile MYSTICAL_RESEARCH F_MYSTIC_AMCTC
+			state ENEMY_RES_STUFF
+			}
+
+			set temp MYSTICAL_RESEARCH[RS_M_MINDSHIELD_LVL3]
+			state first_mia
+			ife temp2 0 nullop
+			else
+			{
+			state display_res
+			set DISP_RES_PAL 49
+			set DISP_RES_PIC 13335
+			setarray MYSTICAL_RESEARCH[RS_M_MINDSHIELD_LVL3] 3
+			orvar new_research 16
+			writearraytofile MYSTICAL_RESEARCH F_MYSTIC_AMCTC
+			state ENEMY_RES_STUFF
+			}
+		}
+
+	  ifactor SHADE // Enemy tracking protection
+		{
+		readarrayfromfile MYSTICAL_RESEARCH F_MYSTIC_AMCTC
+
+			set temp MYSTICAL_RESEARCH[RS_M_SHADE]
+			state first_mia
+			ife temp2 0 nullop
+			else
+			{
+			state display_res
+			set DISP_RES_PAL 7
+			set DISP_RES_PIC 10385
+			setarray MYSTICAL_RESEARCH[RS_M_SHADE] 3
+			orvar new_research 16
+			writearraytofile MYSTICAL_RESEARCH F_MYSTIC_AMCTC
+			state ENEMY_RES_STUFF
+			}
+		}
+
+	  ifactor BRUISER // Abyssal Fire
+		{
+		readarrayfromfile MYSTICAL_RESEARCH F_MYSTIC_AMCTC
+
+			set temp MYSTICAL_RESEARCH[RS_M_BRUISER]
+			state first_mia
+			ife temp2 0 nullop
+			else
+			{
+			state display_res
+			set DISP_RES_PAL 49
+			set DISP_RES_PIC 10302
+			setarray MYSTICAL_RESEARCH[RS_M_BRUISER] 3
+			orvar new_research 16
+			writearraytofile MYSTICAL_RESEARCH F_MYSTIC_AMCTC
+			state ENEMY_RES_STUFF
+			}
+		}
+
+	  ifactor OCTABRAIN // first level of mystical shield
+		{
+		readarrayfromfile MYSTICAL_RESEARCH F_MYSTIC_AMCTC
+
+			set temp MYSTICAL_RESEARCH[RS_M_MINDSHIELD_LVL1]
+			state first_mia
+			ife temp2 0 nullop
+			else
+			{
+			state display_res
+			set DISP_RES_PAL 49
+			set DISP_RES_PIC 13328
+			setarray MYSTICAL_RESEARCH[RS_M_MINDSHIELD_LVL1] 3
+			orvar new_research 16
+			writearraytofile MYSTICAL_RESEARCH F_MYSTIC_AMCTC
+			state ENEMY_RES_STUFF
+			}
+		}
+
+	  ifactor SORCERER // second level of mystical shield
+		{
+		readarrayfromfile MYSTICAL_RESEARCH F_MYSTIC_AMCTC
+
+			set temp MYSTICAL_RESEARCH[RS_M_MINDSHIELD_LVL2]
+			state first_mia
+			ife temp2 0 nullop
+			else
+			{
+			state display_res
+			set DISP_RES_PAL 49
+			set DISP_RES_PIC 13334
+			setarray MYSTICAL_RESEARCH[RS_M_MINDSHIELD_LVL2] 3
+			orvar new_research 16
+			writearraytofile MYSTICAL_RESEARCH F_MYSTIC_AMCTC
+			state ENEMY_RES_STUFF
+			}
+		}
+
+	  ifactor LOST // third level of mystical shield
+		{
+		readarrayfromfile MYSTICAL_RESEARCH F_MYSTIC_AMCTC
+
+			set temp MYSTICAL_RESEARCH[RS_M_MINDSHIELD_LVL3]
+			state first_mia
+			ife temp2 0 nullop
+			else
+			{
+			state display_res
+			set DISP_RES_PAL 49
+			set DISP_RES_PIC 13335
+			setarray MYSTICAL_RESEARCH[RS_M_MINDSHIELD_LVL3] 3
+			orvar new_research 16
+			writearraytofile MYSTICAL_RESEARCH F_MYSTIC_AMCTC
+			state ENEMY_RES_STUFF
+			}
+		}
+
+	  ifactor TRIAD // If it's the triad, give the player the intel
+		{
+		readarrayfromfile PERSONNEL_RESEARCH F_PERSONNEL_AMCTC
+
+			set temp PERSONNEL_RESEARCH[RS_P_TRIAD_INTEL]
+			state first_mia
+			ife temp2 0 nullop
+			else
+			{
+			state display_res
+			set DISP_RES_PAL 1
+			set DISP_RES_PIC 13480
+			setarray PERSONNEL_RESEARCH[RS_P_TRIAD_INTEL] 3
+			orvar new_research 4
+			writearraytofile PERSONNEL_RESEARCH F_PERSONNEL_AMCTC
+			state ENEMY_RES_STUFF
+			}
+		}
+
+	  ifactor NINJA // If it's the ninja, give the player the ninja roll ability
+		{
+		readarrayfromfile MELEE_RESEARCH F_DOJO_AMCTC
+
+			set temp MELEE_RESEARCH[RS_D_NINJAROLL]
+			state first_mia
+			ife temp2 0 nullop
+			else
+			{
+			state display_res
+			set DISP_RES_PAL 22
+			set DISP_RES_PIC 17402
+			setarray MELEE_RESEARCH[RS_D_NINJAROLL] 3
+			orvar new_research 32
+			writearraytofile MELEE_RESEARCH F_DOJO_AMCTC
+			state ENEMY_RES_STUFF
+			}
+		}
+
+	  ifactor NAZI // If it's the Nazi, give the player the intel
+		{
+		readarrayfromfile PERSONNEL_RESEARCH F_PERSONNEL_AMCTC
+
+			set temp PERSONNEL_RESEARCH[RS_P_NAZI_INTEL]
+			state first_mia
+			ife temp2 0 nullop
+			else
+			{
+			state display_res
+			set DISP_RES_PAL 1
+			set DISP_RES_PIC 13480
+			setarray PERSONNEL_RESEARCH[RS_P_NAZI_INTEL] 3
+			orvar new_research 4
+			writearraytofile PERSONNEL_RESEARCH F_PERSONNEL_AMCTC
+			state ENEMY_RES_STUFF
+			}
+		}
+
+	  ifactor SIREN // curse protection
+		{
+		readarrayfromfile MYSTICAL_RESEARCH F_MYSTIC_AMCTC
+
+			set temp MYSTICAL_RESEARCH[RS_M_SIRENCURSEPROTECT]
+			state first_mia
+			ife temp2 0 nullop
+			else
+			{
+			state display_res
+			set DISP_RES_PAL 49
+			set DISP_RES_PIC 22735
+			setarray MYSTICAL_RESEARCH[RS_M_SIRENCURSEPROTECT] 3
+			orvar new_research 16
+			writearraytofile MYSTICAL_RESEARCH F_MYSTIC_AMCTC
+			state ENEMY_RES_STUFF
+			}
+		}
+
+	  ifactor GUARDIAN // If it's the guardian, give the player the guardian head project
+		{
+		readarrayfromfile MELEE_RESEARCH F_DOJO_AMCTC
+
+			set temp MELEE_RESEARCH[RS_D_GUARDIANHEAD]
+			state first_mia
+			ife temp2 0 nullop
+			else
+			{
+			state display_res
+			set DISP_RES_PAL 22
+			set DISP_RES_PIC 13345
+			setarray MELEE_RESEARCH[RS_D_GUARDIANHEAD] 3
+			orvar new_research 32
+			writearraytofile MELEE_RESEARCH F_DOJO_AMCTC
+			state ENEMY_RES_STUFF
+			}
+		}
+
+
+	  ifactor BERSERKER // If it's the berserker, give player the merlijn berserk project
+		{
+		readarrayfromfile MELEE_RESEARCH F_DOJO_AMCTC
+
+			set temp MELEE_RESEARCH[RS_D_BESERKERATK]
+			state first_mia
+			ife temp2 0 nullop
+			else
+			{
+			state display_res
+			set DISP_RES_PAL 22
+			set DISP_RES_PIC 11172
+			setarray MELEE_RESEARCH[RS_D_BESERKERATK] 3
+			orvar new_research 32
+			writearraytofile MELEE_RESEARCH F_DOJO_AMCTC
+			state ENEMY_RES_STUFF
+			}
+		}
+
+	  ifactor RIPPER // If it's the ripper, give the player the ripper heart project
+		{
+		readarrayfromfile MELEE_RESEARCH F_DOJO_AMCTC
+
+			set temp MELEE_RESEARCH[RS_D_RIPPERHEART]
+			state first_mia
+			ife temp2 0 nullop
+			else
+			{
+			state display_res
+			set DISP_RES_PAL 22
+			set DISP_RES_PIC 13346
+			setarray MELEE_RESEARCH[RS_D_RIPPERHEART] 3
+			orvar new_research 32
+			writearraytofile MELEE_RESEARCH F_DOJO_AMCTC
+			state ENEMY_RES_STUFF
+			}
+		}
+
+	  ifactor MAMANO // If it's the Mamano, give the player the Sword rampage topic
+		{
+		readarrayfromfile MELEE_RESEARCH F_DOJO_AMCTC
+
+			set temp MELEE_RESEARCH[RS_D_MAMANOHEART]
+			state first_mia
+			ife temp2 0 nullop
+			else
+			{
+			state display_res
+			set DISP_RES_PAL 22
+			set DISP_RES_PIC 13346
+			setarray MELEE_RESEARCH[RS_D_MAMANOHEART] 3
+			orvar new_research 32
+			writearraytofile MELEE_RESEARCH F_DOJO_AMCTC
+			state ENEMY_RES_STUFF
+			}
+		}
+
+	  ifactor DOCTORJ break
+	  ifactor MISTERH break
+      globalsound ACTOR_SHRINKING
+	  espawn TRANSPORTERBEAM
+	  seta[RETURN].pal 27
+	  ifactor CULTIST { ifn YVELSAVED 0 espawnvar YVELSAVED set YVELSAVED 0 }
+	  geta[].picnum temp7
+	  geta[].extra MIA_HEALTH
+	  geta[].cstat temp9
+	  cstat 32768
+	  cactor 9375
+	  resetcount
+	}
+}
+
+ends

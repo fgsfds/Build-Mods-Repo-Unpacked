@@ -1,0 +1,613 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+
+--------------------------------------------------------------------------------
+*/
+
+
+
+spriteshadow LIZMINE
+
+spriteflags LIZBOSS 5251072
+
+damageeventtile LIZBOSS
+
+// HURTSPAWNBLOOD + NODAMAGEPUSH + SMOOTHMOVE
+
+action ALIZBOSSWALKING     	0   4  5  1  22
+action ALIZBOSSRUNNING     	0   4  5  1  14
+action ALIZBOSSSTARTSHOOT	20  1  5  1  20
+action ALIZBOSSSHOOT1		25	1  5  1  5
+action ALIZBOSSSHOOT2		30  1  5  1  5
+action ALIZBOSSFLY      	63  1  5  1  10
+action ALIZBOSSFALL      	35  1  5  1  10
+action ALIZBOSSSTAND     	40  1  5  1  10
+action ALIZBOSSSQUAT     	45  1  5  1  60
+action ALIZSQUATDONE		50  1  5  1  30
+action ALIZBOSSFROZEN     	50  1  5  1  10
+action ALIZBOSSFLINTCH 		55  1  1  1  10
+action ALIZBOSSGROW 		55  1  1  1  10
+action ALIZBOSSDYING     	55  6  1  1  20
+action ALIZBOSSLYINGDEAD   	60  1  1  1  10
+
+move LIZBOSSSTOPPED
+move LIZBOSSSHRUNKVELS 32
+move PALLIZBOSSWALKVEL 96
+move LIZBOSSWALKVEL 132
+move LIZBOSSRUNVEL 280
+move LIZBOSSJUMPVEL 416 -208
+move LIZBOSSFALLVEL 416
+
+ai AILIZBOSSWAIT			ALIZBOSSSTAND LIZBOSSSTOPPED geth
+ai AILIZBOSSSEEK			ALIZBOSSWALKING LIZBOSSWALKVEL seekplayer
+ai AILIZBOSSCHARGE			ALIZBOSSRUNNING LIZBOSSRUNVEL faceplayersmart
+ai AILIZBOSSSHOOT			ALIZBOSSSTARTSHOOT LIZBOSSSTOPPED faceplayer
+ai AILIZBOSSDYING			ALIZBOSSDYING LIZBOSSSTOPPED geth
+ai AILIZBOSSHIT				ALIZBOSSFLINTCH LIZBOSSSTOPPED faceplayer
+ai AILIZBOSSFROZEN			ALIZBOSSFROZEN LIZBOSSSTOPPED geth
+ai AILIZBOSSSHRUNK			ALIZBOSSRUNNING LIZBOSSSHRUNKVELS fleeenemy
+ai AILIZBOSSGROW			ALIZBOSSGROW LIZBOSSSTOPPED geth
+ai AILIZBOSSJUMP			ALIZBOSSFLY LIZBOSSJUMPVEL geth getv
+ai AILIZLAYMINE				ALIZBOSSSTAND LIZBOSSSTOPPED geth
+
+defstate lizbosshitstate
+	ifcount 9 ai AILIZBOSSWAIT
+ends
+
+defstate lizbosschargestate
+
+	ifrnd 2
+	{
+		ifrnd 128
+		sound CYBOSS_ROAM1
+		else
+		sound CYBOSS_ROAM2
+	}
+	ifcount 30
+	{
+		ifcansee { ai AILIZBOSSSHOOT sound CYBOSS_ATTK }
+		ifcount 60 ai AILIZBOSSSEEK
+	}
+
+ends
+
+defstate lizbossseekstate
+
+	ifrnd 2
+	{
+		ifrnd 128
+		sound CYBOSS_ROAM1
+		else
+		sound CYBOSS_ROAM2
+	}
+	ifcount 10
+	ifcansee ifpdistl 6144
+	{
+		ifrnd 8 { ai AILIZBOSSSHOOT sound CYBOSS_ATTK }
+		else ifrnd 12 ai AILIZBOSSCHARGE
+	}
+
+	ifrnd 4 ifpdistg 6144 ai AILIZBOSSWAIT
+
+
+ends
+
+defstate lizbossshootstate
+state fronttowardstarget
+	ifaction ALIZBOSSSTARTSHOOT
+	{
+	
+		ifactioncount 2
+		{
+			action ALIZBOSSSHOOT1
+			globalsound DISTANT_RIFLE
+			set PROJECTILE_TO_SHOOT ENEMY_BULLET
+			set PROJECTILE_FIRING_SOUND M4A1_FIRE
+			state sang_enemyShootProjectile
+			ifspritepal 0 state sang_enemyShootProjectile
+			move LIZBOSSSTOPPED faceplayerslow
+		}
+	}
+	ifaction ALIZBOSSSHOOT1
+	{
+		ifactioncount 1
+		{
+			action ALIZBOSSSHOOT2
+			ifpdistg 10240 ifrnd 64
+			{
+				geta[].x bossx
+				geta[].y bossy
+				geta[].ang bossang
+				sub bossang 512
+				set LIZBVAR bossx
+				ifspritepal 0 add LIZBVAR 1024
+				else
+				add LIZBVAR 512
+				rotatepoint sprite[].x sprite[].y LIZBVAR sprite[].y bossang newx newy
+				seta[].x newx
+				seta[].y newy
+				sound ERPG_SHOOT
+
+				eshoot RPG
+				ifspritepal 0
+				{
+					seta[RETURN].xrepeat 40
+					seta[RETURN].yrepeat 40
+					seta[RETURN].extra 65
+				}
+				seta[].x bossx
+				seta[].y bossy
+				break
+			}
+			globalsound DISTANT_RIFLE
+			set PROJECTILE_TO_SHOOT ENEMY_BULLET
+			set PROJECTILE_FIRING_SOUND M4A1_FIRE
+			state sang_enemyShootProjectile
+			ifspritepal 0 state sang_enemyShootProjectile
+			ifspritepal 0
+			{
+				shoot SHOTSPARK1
+				shoot SHOTSPARK1
+			}
+		}
+	}
+	ifaction ALIZBOSSSHOOT2
+	{
+		ifactioncount 1
+		{
+			ifcount 60
+			{
+				ai AILIZBOSSSEEK
+				break
+			}
+			action ALIZBOSSSHOOT1
+			globalsound DISTANT_RIFLE
+			sound BOS1_ATTACK1
+		}
+	}
+
+ends
+
+defstate lizbossjumpstate
+
+	ifaction ALIZBOSSFLY
+	{
+		ifrnd 8 { sound RPG_SHOOT shoot MORTER }
+		espawn EXPLOSION2
+		set LIZBVAR 514
+		ifrnd 128 orvar LIZBVAR 4
+		seta[RETURN].cstat LIZBVAR
+		ifspritepal 0 nullop else
+		{
+			seta[RETURN].xrepeat 28
+			seta[RETURN].yrepeat 28
+		}
+		set LIZBVAR lizjumpx
+		set LIZBVAR2 lizjumpy
+		sub LIZBVAR sprite[].x
+		sub LIZBVAR2 sprite[].y
+		getangle LIZBVAR3 LIZBVAR LIZBVAR2
+		seta[].ang LIZBVAR3
+
+		set LIZBVAR2 sprite[].x
+		sub LIZBVAR2 lizjumpx
+		mul LIZBVAR2 LIZBVAR2
+
+		set LIZBVAR3 sprite[].y
+		sub LIZBVAR3 lizjumpy
+		mul LIZBVAR3 LIZBVAR3
+		add LIZBVAR2 LIZBVAR3
+		sqrt LIZBVAR2 LIZBVAR2
+		set LIZBVAR lizjumpdist
+		div LIZBVAR 2
+		ifl LIZBVAR2 LIZBVAR // more than halfway to destination
+		{
+			action ALIZBOSSFALL
+			globalsound CYBOSS_SWOOP
+			move LIZBOSSFALLVEL geth
+		}
+		else
+		ifcount 60
+		{
+			action ALIZBOSSFALL
+			globalsound CYBOSS_SWOOP
+			move LIZBOSSFALLVEL geth
+		}
+	}
+
+	ifaction ALIZBOSSFALL
+	{
+		iffloordistl 8
+		{
+			globalsound CYBOSS_LAND
+			quake 90
+			ifspritepal 0
+			{
+				debris SCRAP1 4
+				debris SCRAP2 4
+				debris SCRAP3 4
+				debris SCRAP4 4
+				debris SCRAP5 4
+				hitradius 5120 35 50 70 1000
+				ifpdistl 7168
+				{
+					setp[].poszv -2048
+					getp[].posz LIZBVAR
+					sub LIZBVAR 1024
+					setp[].posz LIZBVAR
+				}
+			}
+			else hitradius 4096 20 30 40 50
+
+			set LIZBVAR 0
+			whilevarn LIZBVAR 48
+			{
+				add LIZBVAR 1
+				espawn SMALLSMOKE
+				rand LIZBVAR2 12288
+				sub LIZBVAR2 6144
+				add LIZBVAR2 sprite[].x
+				seta[RETURN].x LIZBVAR2
+				rand LIZBVAR2 12288
+				sub LIZBVAR2 6144
+				add LIZBVAR2 sprite[].y
+				seta[RETURN].y LIZBVAR2
+			}
+			sound CYBOSS_LAYMINE
+			ai AILIZLAYMINE
+		}
+	}
+
+ends
+
+defstate lizbosswaitstate
+
+	ifrnd 16
+	ifcansee
+		ifpdistg 6144
+			ifpdistl 32768
+				iffloordistl 8
+{
+	getplayer[].posx lizjumpx
+	getplayer[].posy lizjumpy
+	findplayer lizjumpdist
+	ai AILIZBOSSJUMP
+	globalsound CYBOSS_LAUNCH
+}
+
+ifcount 30 ai AILIZBOSSSEEK
+
+ends
+
+defstate lizlayminestate
+
+ifaction ALIZBOSSSTAND
+{
+	ifactioncount 5
+		action ALIZBOSSSQUAT
+}
+ifaction ALIZBOSSSQUAT
+{
+	ifactioncount 2
+	{
+		action ALIZSQUATDONE
+		espawn LIZMINE
+		seta[RETURN].xrepeat sprite[].xrepeat
+		seta[RETURN].yrepeat sprite[].yrepeat
+		seta[RETURN].pal sprite[].pal
+	}
+}
+ifaction ALIZSQUATDONE
+{
+	ifactioncount 2
+		ai AILIZBOSSCHARGE
+}
+
+ends
+
+defstate lizbossgrowstate
+
+	state genericgrowcode
+	sizeto 255 192
+
+ends
+
+defstate lizbossshrunkstate
+
+  ifcount SHRUNKDONECOUNT
+    ai AILIZBOSSWAIT
+  else
+    ifcount SHRUNKCOUNT
+	{
+	  ifspritepal 0 { sizeto 52 52 sizeto 52 52 }
+	  else
+      sizeto 26 26
+	}
+  else
+    state genericshrunkcode
+
+ends
+
+useractor enemy LIZBOSS_JUMP 6000
+
+ifai 0
+{
+	spawn SHOOTME
+	quake 26
+	geta[].owner myowner
+	seta[].ang sprite[myowner].ang
+	globalsound CYBOSS_RECOG
+	set actor_type TYPE_CASE_SPECIFIC
+	ai AILIZBOSSJUMP
+	cstat 257
+	cactor LIZBOSS
+	ifspritepal 0
+		{
+		sizeat 52 52
+		set CURBOSS THISACTOR
+		set BOSS_TYPE 1
+		}
+		else
+	{
+	sizeat 26 26
+	strength 2000
+	}
+}
+
+enda
+
+useractor enemy LIZBOSS 6000
+
+fall
+ifai 0
+{
+	spawn SHOOTME
+	quake 26
+	globalsound CYBOSS_RECOG
+	ai AILIZBOSSWAIT
+	cstat 257
+	ifspritepal 0
+		{
+		sizeat 52 52
+        set BOSS_TYPE 1
+		set CURBOSS THISACTOR
+		}
+		else
+	{
+		sizeat 26 26
+		strength 2000
+	}
+}
+
+ifp palive
+	ifspritepal 0
+	  ifpdistl 1280
+{
+	ifdead nullop else
+	{
+	  addphealth -1000
+	  palfrom 63 63
+	  }
+}
+
+ifaction ALIZBOSSLYINGDEAD
+{
+ifhitweapon
+		{
+			ifwasweapon RPG
+			{
+				sound SQUISHED
+				spawn BLOODPOOL
+				state standard_jibs
+				state standard_jibs
+				debris SCRAP1 4
+				debris SCRAP2 4
+				debris SCRAP3 4
+				debris SCRAP4 4
+				debris SCRAP5 4
+				debris SCRAP6 4
+				killit
+			}
+			ifwasweapon RADIUSEXPLOSION
+			{
+				sound SQUISHED
+				spawn BLOODPOOL
+				state standard_jibs
+				state standard_jibs
+				debris SCRAP1 4
+				debris SCRAP2 4
+				debris SCRAP3 4
+				debris SCRAP4 4
+				debris SCRAP5 4
+				debris SCRAP6 4
+				killit
+			}
+		}
+}
+else
+ifai AILIZBOSSDYING
+{
+	strength 0
+	cstat 0
+		ifactioncount 5
+		{
+			globalsound BOSSFALL
+			quake 30
+			action ALIZBOSSLYINGDEAD
+		}
+}
+
+
+
+
+
+ifai AILIZBOSSGROW { state lizbossgrowstate break }
+ifai AILIZBOSSFROZEN { state frozen_code break }
+ifai AILIZBOSSSHRUNK state lizbossshrunkstate else
+ifai AILIZBOSSHIT state lizbosshitstate else
+ifai AILIZBOSSWAIT state lizbosswaitstate else
+ifai AILIZBOSSJUMP state lizbossjumpstate else
+ifai AILIZLAYMINE state lizlayminestate else
+ifai AILIZBOSSCHARGE state lizbosschargestate else
+ifai AILIZBOSSSHOOT state lizbossshootstate else
+ifai AILIZBOSSSEEK state lizbossseekstate
+
+ifhitweapon
+{
+ifspritepal 0 set CURBOSS THISACTOR
+state NEWGUNEFFECTS
+    ifwasweapon SHRINKSPARK
+	{
+		ifstrength 600
+		{
+		  sound ACTOR_SHRINKING
+		  ai AILIZBOSSSHRUNK
+		  // set shrunken 1
+		  break
+		}
+		else addstrength -60
+	}
+	else
+        ifwasweapon GROWSPARK
+          sound EXPANDERHIT
+	ifdead
+	{
+		ifwasweapon FREEZEBLAST
+		{
+		  sound SOMETHINGFROZE
+		  spritepal 1
+		  ai AILIZBOSSFROZEN
+		  strength 0
+		  // state freezeme
+		  break
+		}
+		ifwasweapon GROWSPARK
+		{
+		  cstat 0
+		  sound ACTOR_GROWING
+		  ai AILIZBOSSGROW
+		  break
+		}
+		addkills 1
+		ifspritepal 0 add TREASURE_FOUND 5
+		else add TREASURE_FOUND 1
+		sound CYBOSS_DEATH
+		ai AILIZBOSSDYING
+		guts JIBS6 8
+		ifspritepal 0 break
+		ifwasweapon RPG
+		{
+			sound SQUISHED
+			spawn BLOODPOOL
+			state standard_jibs
+			state standard_jibs
+			debris SCRAP1 4
+			debris SCRAP2 4
+			debris SCRAP3 4
+			debris SCRAP4 4
+			debris SCRAP5 4
+			debris SCRAP6 4
+			killit
+        }
+		ifwasweapon RADIUSEXPLOSION
+		{
+			sound SQUISHED
+			spawn BLOODPOOL
+			state standard_jibs
+			state standard_jibs
+			debris SCRAP1 4
+			debris SCRAP2 4
+			debris SCRAP3 4
+			debris SCRAP4 4
+			debris SCRAP5 4
+			debris SCRAP6 4
+			killit
+        }
+		break
+	}
+
+	sound CYBOSS_PAIN
+	ifrnd 2
+		spawn BLOODPOOL
+	ifai AILIZBOSSHIT nullop else
+	ifai AILIZLAYMINE nullop else
+	ifai AILIZBOSSJUMP nullop else
+	ifai AILIZBOSSSHRUNK nullop else
+	{
+		ifrnd 16
+		 ai AILIZBOSSHIT
+	}
+}
+
+enda
+
+defstate mineexplode
+
+	espawn EXPLOSION2
+	seta[RETURN].xrepeat sprite[].xrepeat
+	seta[RETURN].yrepeat sprite[].yrepeat
+	sound PIPEBOMB_EXPLODE
+	ifspritepal 0
+	hitradius 4096 35 50 65 80
+	else
+	hitradius 3072 25 30 35 40
+	killit
+
+ends
+
+move IFRAMES
+move READY
+move DETONATE
+useractor notenemy LIZMINE 0
+
+	fall
+	ifmove 0
+		move IFRAMES
+
+	ifmove IFRAMES
+	{
+		ifcount 30 move READY
+		break
+	}
+
+	cstator 256
+	ifhitweapon
+		state mineexplode
+
+	ifpdistl 1280
+		state mineexplode
+
+	ifmove READY
+	ifpdistl 2048
+	ifcansee
+	{
+		move DETONATE
+		sound LASERTRIP_ARMING
+	}
+	ifmove DETONATE
+		ifcount 8
+		state mineexplode
+enda

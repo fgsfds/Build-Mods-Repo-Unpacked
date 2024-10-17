@@ -1,0 +1,281 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+
+--------------------------------------------------------------------------------
+*/
+
+// ========================================================AMC SOLDIER=====================================================
+
+action A_AMC209IDLE -95 1 5 1 11
+action A_AMC209MOVE 0 4 5 1 11
+action A_AMC209_RELOAD 30 1 5
+action A_AMC209FIRE 20 2 5 1 3
+action A_AMC209FIRE_MISSILE 30 2 5 1 3
+
+action A_AMC209DYING -90 1 1 1 11
+action A_AMC209DEAD -90 1 1 1 1
+
+ai AI_AMC209IDLE A_AMC209IDLE AMCSTILL 0
+
+ai AI_AMC209MOVE A_AMC209MOVE AMCMOVE geth 
+ai AI_AMC209RELOAD A_AMC209_RELOAD STOP 
+
+ai AI_AMC209FIRE A_AMC209FIRE AMCSTILL 0
+ai AI_AMC209FIRE_MISSILE A_AMC209FIRE_MISSILE AMCSTILL 0
+ai AI_AMC209DYING A_AMC209DYING AMCSTILL 0
+
+spriteshadow AMC_209_ACTIVE
+spritenvg AMC_209_ACTIVE
+
+damageeventtile AMC_209_ACTIVE // Ally
+
+useractor notenemy AMC_209_ACTIVE
+fall
+
+// no cheating
+ifn PERSONNEL_RESEARCH[31] 2 killit
+
+ifpdistl 1024 cstat 256 else cstat 257
+
+ifai 0
+	{
+	seta[].htwaterzoffset 8
+	set actor_type TYPE_ROBOTIC
+	ifspritepal 5 ife base_tutorial 0 killit
+	sizeat 28 28
+	randvar LAST_NAME 19
+	add LAST_NAME 7270
+	readarrayfromfile PERSONNEL_RESEARCH F_PERSONNEL_AMCTC
+	ife PERSONNEL_RESEARCH[1] 2 { ifand amc_soldier_upgrades 1 nullop else xorvar amc_soldier_upgrades 1 } // has the player researched laser guns for AMC soldiers?
+	ife PERSONNEL_RESEARCH[2] 2 { ifand amc_soldier_upgrades 2 nullop else xorvar amc_soldier_upgrades 2 } // has the player researched better armour for AMC soldiers?
+	ife PERSONNEL_RESEARCH[3] 2 { ifand amc_soldier_upgrades 4 nullop else xorvar amc_soldier_upgrades 4 } // has the player researched bigger magazines for AMC soldiers?
+
+
+		set max_health 800
+		strength 800
+
+
+	// TODO remove shootme refs
+	spawn SHOOTME2
+
+	ifand amc_soldier_upgrades 4 set ally_mag 200 else set ally_mag 100
+	ai AI_AMC209IDLE
+	ifspawnedby RESPAWN spawn TRANSPORTERBEAM
+	ifspawnedby APLAYER
+		{
+		spawn TRANSPORTERBEAM
+		state startfollowplayer
+		ife BASE_RESEARCH[7] 2 set INTERNALCOUNT_3 1920 else
+		set INTERNALCOUNT_3 960
+		}
+	else set INTERNALCOUNT_3 -1
+	}
+
+state AMC209_MOVE_VOICE
+
+
+state ENEMYKNOCKBACKS
+state enemyfloordamage
+
+ifg INTERNALCOUNT_2 0 sub INTERNALCOUNT_2 1
+
+ifn INTERNALCOUNT_3 -1
+	{
+	ifg INTERNALCOUNT_3 0 sub INTERNALCOUNT_3 1
+	else ife INTERNALCOUNT_3 0
+		{
+		spawn TRANSPORTERBEAM
+		state removefollower
+		killit
+		}
+	}
+
+// ifspritepal 5 ifn camerasprite -1
+
+ifaction A_AMC209DEAD
+	{
+	strength 0
+	break
+	}
+else
+ifai AI_AMC209DYING
+	{
+	ifactioncount 1 action A_AMC209DEAD
+	}
+else
+ifai AI_AMC209FIRE
+	{
+	state new_validatetarget
+	ife my_target -1 ai AI_AMC209IDLE
+	state fronttowardstarget
+	ifactioncount 3
+			{
+			ldist temp THISACTOR my_target
+			geta[].z temp2
+			sub temp2 8192 // Offset the Z. Assumes the center of the actor is the same as the player
+			geta[my_target].z temp3
+			ife actorvar[my_target].ally_mag 1 sub temp3 256 else
+			sub temp3 8592 // Offset the Z. assumes the center of the actor is the same as the player
+			sub temp3 temp2
+			shiftvarl temp3 8
+			ifn temp 0 divvarvar temp3 temp
+
+			set PROJECTILE_TO_SHOOT CRYSTAL_SPIKE
+			set PROJECTILE_FIRING_SOUND MAG_FIRE
+			state sang_enemyShootProjectile
+
+			sub ally_mag 1
+			ife ally_mag 0
+				{
+				state smg_mag_out_sounds
+				ai AI_AMC209RELOAD
+				}
+			resetactioncount
+			}
+	}
+else
+ifai AI_AMC209FIRE_MISSILE
+	{
+	state new_validatetarget
+	ife my_target -1 ai AI_AMC209IDLE
+	state fronttowardstarget
+	ifactioncount 3
+			{
+			ldist temp THISACTOR my_target
+			geta[].z temp2
+			sub temp2 8192 // Offset the Z. Assumes the center of the actor is the same as the player
+			geta[my_target].z temp3
+			ife actorvar[my_target].ally_mag 1 sub temp3 256 else
+			sub temp3 8592 // Offset the Z. assumes the center of the actor is the same as the player
+			sub temp3 temp2
+			shiftvarl temp3 8
+			ifn temp 0 divvarvar temp3 temp
+
+			ife WEAPONS_RESEARCH[9] 2
+				{
+				set PROJECTILE_TO_SHOOT CYCLOID_PLASMA
+				set PROJECTILE_FIRING_SOUND CY_PLASMA_FIRE
+				state sang_enemyShootProjectile
+				}
+			else
+				{
+				set PROJECTILE_TO_SHOOT MISSILE
+				set PROJECTILE_FIRING_SOUND DUP_FIRE
+				state sang_enemyShootProjectile
+				}
+			set INTERNALCOUNT_2 150
+			ai AI_AMC209MOVE
+			}
+	}
+else
+ifai AI_AMC209MOVE
+	{
+		geta[PLAYER_IDENTITY].xvel temp
+		ifg temp 10
+			{
+			mul temp 2
+			seta[].xvel temp
+			}
+			
+	state checkfortarget
+	ifn my_target -1
+			{
+			state fronttowardstarget
+			ldist temp THISACTOR my_target
+			ifl temp 4096 { state AMC209_FIRING ai AI_AMC209FIRE }
+			else
+			ifrnd 64
+					{
+					ifg sprite[my_target].extra 500 ife INTERNALCOUNT_2 0 { state AMC209_MISSILES ai AI_AMC209FIRE_MISSILE } 
+					else { state AMC209_FIRING ai AI_AMC209FIRE }
+					}
+			}
+		else state faceplayerstate
+
+	ifactioncount 3
+		{
+		ifpdistl 4096
+			{
+			set screen_shake 6
+			set shake_strength 3
+			}
+		ifrnd 128 { espawn SOUND_SPRITE setactorvar[RETURN].temp PA_FOOTSTEP1 }
+		else { espawn SOUND_SPRITE setactorvar[RETURN].temp PA_FOOTSTEP2 }
+		resetactioncount
+		}
+	ifpdistl 1536 ife FOLLOW_PLAYER 1 ai AI_AMC209IDLE
+
+	ifnotmoving operate
+	}
+else
+ifai AI_AMC209RELOAD
+	{
+	ifspritepal 3 move 0
+	ifand amc_soldier_upgrades 4
+		{
+		add ally_mag 2
+		ife ally_mag 40 state bgar_mag_in_sounds
+		ifge ally_mag 60 { ife FOLLOW_PLAYER 1 ai AI_AMC209MOVE else ai AI_AMC209IDLE }
+		}
+	else
+		{
+		add ally_mag 1
+		ife ally_mag 20 state smg_mag_in_sounds
+		ifge ally_mag 40 { ife FOLLOW_PLAYER 1 ai AI_AMC209MOVE else ai AI_AMC209IDLE }
+		}
+	}
+else
+ifai AI_AMC209IDLE
+	{
+	sleeptime 0
+	
+	state checkfortarget
+	ifn my_target -1
+	 ai AI_AMC209MOVE
+	
+	ife FOLLOW_PLAYER 1
+		{ ifpdistg 1535 ifcansee ifcanseetarget ai AI_AMC209MOVE }
+		ifl sprite[].extra max_health { soundonce VEH_REP ife CHAR 13 addstrength 2 else addstrength 1  }
+	state rand_lookaround
+	}
+
+
+state player_follow_commands
+
+ifhitweapon
+	{
+	ifdead
+		{
+		state clear_ally_death
+		ifrnd 32 sound RB_DIE1
+		else ifrnd 64 sound RB_DIE2
+		else ifrnd 96 sound RB_DIE3
+		else ifrnd 128 sound RB_DIE4
+		ai AI_AMC209DYING
+		}
+	}
+
+enda

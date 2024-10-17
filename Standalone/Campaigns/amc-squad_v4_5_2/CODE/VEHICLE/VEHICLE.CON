@@ -1,0 +1,42 @@
+// Common states for certain vehicles
+
+// Save player cstat before entering vehicle
+var player_cstat_backup 0 1
+
+// get base speed for movesprite. Currently every vehicle uses the same base speed, no variable yet to customize
+// Expected: movesprite_angvar already has proper value
+defstate vehicle_getbasespeed
+	cos movesprite_xvel movesprite_angvar
+	sin movesprite_yvel movesprite_angvar
+
+	set movesprite_shift 7
+	shiftr movesprite_xvel movesprite_shift
+	shiftr movesprite_yvel movesprite_shift
+ends
+
+// increase the vehicle speed by some arbitrary fraction of the current speed. Currently every vehicle has the same acceleration.
+// Expected: movesprite_xvel, movesprite_yvel have correct values of current speed
+// Note: Don't just do shiftl as that creates noticeable boosts, needs to be gradual.
+defstate vehicle_speedup
+	set temp movesprite_xvel
+	set temp2 movesprite_yvel
+
+	div temp 8
+	div temp2 8
+
+	add movesprite_xvel temp
+	add movesprite_yvel temp2
+ends
+
+// turn vehicle, either based on mouse movement or turn left/right keys. Expected input temp3
+defstate vehicle_turn
+	geta[].ang temp
+	ifg forward_accelerate 300
+	{
+		set temp2 forward_accelerate
+		divvar temp2 200
+		divvarvar temp3 temp2
+	}
+	add temp temp3
+	seta[].ang temp
+ends

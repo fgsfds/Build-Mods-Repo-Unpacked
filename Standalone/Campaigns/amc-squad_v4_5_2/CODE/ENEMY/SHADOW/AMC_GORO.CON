@@ -1,0 +1,487 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+
+--------------------------------------------------------------------------------
+*/
+
+damageeventtile GUARDIAN
+
+action A_GUARDIAN_IDLE 0 1 5 1 20
+action A_GUARDIAN_WALK 0 4 5 1 20
+action A_GUARDIAN_RUN 0 4 5 1 6
+action A_GUARDIAN_SLASH 20 3 5 1 16
+action A_GUARDIAN_PREP_BLAST 35 1 5 1 20
+action A_GUARDIAN_BLAST 40 1 5 1 16
+action A_GUARDIAN_FLINCH 45 1 1 1 12
+
+action A_GUARDIAN_DYING 45 6 1 1 12
+action A_GUARDIAN_DEAD 50 1 1 1
+action A_GUARDIAN_HEADSHOT_DYING 55 5 1 1 12
+action A_GUARDIAN_HEADSHOT_DEAD 59 1 1 1
+action A_GUARDIAN_SLICED_DYING 60 6 1 1 16
+action A_GUARDIAN_SLICED_DEAD 65 1 1 1
+
+move GORO_WALKVELS 120
+move GORO_RUSHVELS 280
+
+ai AI_GUARDIAN_SEEK A_GUARDIAN_WALK GORO_WALKVELS geth
+ai AI_GUARDIAN_RUSH A_GUARDIAN_RUN GORO_RUSHVELS geth
+ai AI_GUARDIAN_DISTANCE A_GUARDIAN_RUN GORO_RUSHVELS fleeenemy
+ai AI_GUARDIAN_DODGE A_GUARDIAN_RUN GORO_RUSHVELS dodgebullet
+ai AI_GUARDIAN_CHOP A_GUARDIAN_SLASH STOP
+ai AI_GUARDIAN_PREP_BLAST A_GUARDIAN_PREP_BLAST STOP
+ai AI_GUARDIAN_BLAST A_GUARDIAN_BLAST STOP
+ai AI_GUARDIAN_FROZEN A_GUARDIAN_FLINCH STOP faceplayer
+ai AI_GUARDIAN_GROW A_GUARDIAN_FLINCH STOP faceplayer
+ai AI_GUARDIAN_SHRUNK A_GUARDIAN_RUN GORO_WALKVELS fleeenemy
+
+ai AI_GUARDIAN_DYING A_GUARDIAN_DYING STOP faceplayer
+ai AI_GUARDIAN_HEADSHOT_DYING A_GUARDIAN_HEADSHOT_DYING STOP faceplayer
+ai AI_GUARDIAN_SLICED_DYING A_GUARDIAN_SLICED_DYING STOP faceplayer
+
+useractor enemystayput GUARDIANSTAYPUT 250 A_GUARDIAN_IDLE
+ifai 0
+	{
+	state monst_glow
+	cstat 257
+	ife actor_pal 0 geta[].pal actor_pal
+	ife actor_pal 36 { strength 500 sizeat 30 30 } else
+	{ strength 250 sizeat 26 26 }
+	ife actor_pal 0 spritepal 11
+	spawn SHOOTME
+	sound GUARDIAN_ALERT
+	ai AI_GUARDIAN_SEEK
+	cactor GUARDIAN
+	}
+enda
+
+useractor enemy GUARDIAN 250 A_GUARDIAN_IDLE
+fall
+
+state enemyfloordamage
+state enemy_fire_damage
+state enemy_ice_damage
+state enemy_spirit_damage
+
+state ENEMYKNOCKBACKS
+
+ifai 0
+	{
+	state monst_glow
+	cstat 257
+	ife actor_pal 0 geta[].pal actor_pal
+	ife actor_pal 36 { strength 500 sizeat 30 30 } else
+	{ strength 250 sizeat 26 26 }
+	ife actor_pal 0 spritepal 11
+	spawn SHOOTME
+	sound GUARDIAN_ALERT
+	ai AI_GUARDIAN_SEEK
+	}
+
+ifai AI_GUARDIAN_FROZEN
+{
+move 0
+state frozen_code
+}
+else
+ifaction A_GUARDIAN_FLINCH
+{
+move 0
+sub PAIN_AMOUNT 1
+ife PAIN_AMOUNT 0 ai AI_GUARDIAN_SEEK
+}
+else
+ifaction A_GUARDIAN_DEAD
+{
+strength 0
+move 0
+    ifhitweapon
+    {
+      ifwasweapon RADIUSEXPLOSION
+      {
+	  state SKILL_LEVELADJUST
+	  ifl RANDOM_CHANCE SKILLCHANCE { eshoot GORO_HEAD_FLY seta[RETURN].pal sprite[].pal }
+        state squish_sounds
+		state monst_body_jibs
+        state standard_jibs
+        killit
+      }
+      break
+    }
+
+}
+else
+ifai AI_GUARDIAN_DYING
+{
+move 0
+	ifactioncount 6 { state BODY_FALL_NOISES spawn 16368 state rf action A_GUARDIAN_DEAD }
+}
+else
+ifaction A_GUARDIAN_HEADSHOT_DEAD
+{
+strength 0
+move 0
+    ifhitweapon
+    {
+      ifwasweapon RADIUSEXPLOSION
+      {
+        state squish_sounds
+		state monst_body_jibs
+        state standard_jibs
+        killit
+      }
+      break
+    }
+
+}
+else
+ifai AI_GUARDIAN_HEADSHOT_DYING
+{
+move 0
+ifactioncount 5 { state BODY_FALL_NOISES spawn 16368 cstat 0 action A_GUARDIAN_HEADSHOT_DEAD }
+}
+else
+ifaction A_GUARDIAN_SLICED_DEAD
+{
+strength 0
+move 0
+    ifhitweapon
+    {
+      ifwasweapon RADIUSEXPLOSION
+      {
+	  state SKILL_LEVELADJUST
+	  ifl RANDOM_CHANCE SKILLCHANCE { eshoot GORO_HEAD_FLY seta[RETURN].pal sprite[].pal }
+        state squish_sounds
+		state monst_body_jibs
+        state standard_jibs
+        killit
+      }
+      break
+    }
+
+}
+else
+ifai AI_GUARDIAN_SLICED_DYING
+{
+ifg SLO_MO_SHOWOFF 0 ai AI_GUARDIAN_SLICED_DYING
+move 0
+ifactioncount 6 { state SQUISH_FALL_NOISES spawn 16368 action A_GUARDIAN_SLICED_DEAD }
+}
+else
+ifai AI_GUARDIAN_GROW
+state genericgrowcode
+else
+ifai AI_GUARDIAN_SHRUNK
+{
+    ifcount SHRUNKDONECOUNT
+      ai AI_GUARDIAN_SEEK
+    else ifcount SHRUNKCOUNT
+	  {
+	  sound ACTOR_UNSHRINK
+	  ife actor_pal 36 sizeto 30 30 else
+      sizeto 26 26
+	  }
+    else
+      state genericshrunkcode
+    break
+}
+else
+ifai AI_GUARDIAN_DODGE
+	{
+	ifpdistl 1536 ifcanseetarget ai AI_GUARDIAN_CHOP
+	else
+	 ifrnd 32
+	  ai AI_GUARDIAN_SEEK
+
+	ifrnd 1 sound GUARDIAN_ROAM
+	}
+else
+ifai AI_GUARDIAN_SEEK
+	{
+	state checkfortarget
+	ifn my_target -1
+		{
+		dist temp THISACTOR my_target // if found, get distance
+		ifl temp 1536 ai AI_GUARDIAN_CHOP
+		else ifrnd 4 ife silence_damage 0 ai AI_GUARDIAN_PREP_BLAST
+		}
+	else
+	ifpdistl 1536 ifcanseetarget ai AI_GUARDIAN_CHOP
+	else
+	ifbulletnear ifrnd 128 ai AI_GUARDIAN_DODGE
+
+	ifrnd 1 sound GUARDIAN_ROAM
+	}
+else
+ifai AI_GUARDIAN_RUSH
+	{
+	state checkfortarget
+	ifrnd 1 sound GUARDIAN_ROAM
+	ifn my_target -1
+		{
+		dist temp THISACTOR my_target // if found, get distance
+		ifl temp 1536 ai AI_GUARDIAN_CHOP
+		else ifrnd 4 ife silence_damage 0 ai AI_GUARDIAN_PREP_BLAST
+		}
+	else ifrnd 16 ai AI_GUARDIAN_SEEK
+	}
+else
+ifai AI_GUARDIAN_CHOP
+	{
+	state checkfortarget
+	ife my_target -1 ai AI_GUARDIAN_RUSH
+	else
+		{
+		state fronttowardstarget
+		dist temp THISACTOR my_target // if found, get distance
+		ifactioncount 1 soundonce GUARDIAN_SWING
+		 ifactioncount 3
+			{
+			ife my_target PLAYER_IDENTITY
+			 ifpdistl 1536
+				ifn SWORD_BLOCK 0
+				 ifp pfacing
+					{
+					shoot SPARK shoot SPARK shoot SPARK shoot SPARK shoot SPARK
+					sub p_stamina 40
+					wackplayer
+					sound SWORD_CLASH
+					set PAIN_AMOUNT 16
+					action A_GUARDIAN_FLINCH
+					break
+					}
+			else
+					{
+					ifn my_target PLAYER_IDENTITY
+						setprojectile[17849].WORKSLIKE 2125890
+					else
+						setprojectile[17849].WORKSLIKE 2129986
+
+					setprojectile[17849].RANGE 4
+					shoot 17849
+					setprojectile[17849].WORKSLIKE 2129986
+					}
+			ifg temp 1536 ai AI_GUARDIAN_RUSH
+			resetactioncount
+			}
+		}
+	}
+else
+ifai AI_GUARDIAN_PREP_BLAST
+	{
+	state fronttowardstarget
+		dist temp THISACTOR my_target // if found, get distance
+		ifl temp 1536 ai AI_GUARDIAN_CHOP
+	 ifactioncount 2
+		{
+		ai AI_GUARDIAN_BLAST
+		resetactioncount
+		}
+	ife my_target -1 ai AI_GUARDIAN_RUSH
+	}
+else
+ifai AI_GUARDIAN_BLAST
+	{
+	state fronttowardstarget
+	ife my_target -1 ai AI_GUARDIAN_SEEK
+	 ifactioncount 1
+		{
+
+		soundonce GUARDIAN_FLAME
+		getprojectile[GORO_FLAME].vel PROJECTILE_VEL
+		state calczvel
+
+		// spawn from the eyes
+		geta[].ang angvar
+		setprojectile[GORO_FLAME].OFFSET -224
+		ezshoot temp3 GORO_FLAME geta[RETURN].z temp sub temp 2000 seta[RETURN].z temp seta[RETURN].ang angvar
+		setprojectile[GORO_FLAME].OFFSET -128
+		ezshoot temp3 GORO_FLAME geta[RETURN].z temp sub temp 2000 seta[RETURN].z temp seta[RETURN].ang angvar
+
+		setprojectile[GORO_FLAME].OFFSET 224
+
+		ifrnd 32 ai AI_GUARDIAN_SEEK
+		resetactioncount
+		}
+	}
+
+ifg silence_damage 0
+	{
+	sub silence_damage 1
+	state spawn_curse_particles
+	}
+
+ifhitweapon
+{
+	ifai AI_GUARDIAN_DYING break
+	ifai AI_GUARDIAN_HEADSHOT_DYING break
+	ifwasweapon VOID_PLAYER_BOLT { sound EN_CURSE set silence_damage 150 }
+	ifwasweapon VOID_BOLT { sound EN_CURSE set silence_damage 300 }
+	ifwasweapon VOID_BLAST { sound EN_CURSE set silence_damage 900 }
+	state NEWGUNEFFECTS
+	//spawn BLOOD
+    guts JIBS6 1
+	ifwasweapon SHRINKSPARK
+    {
+      sound ACTOR_SHRINKING
+      ai AI_GUARDIAN_SHRUNK
+      break
+    }
+	guts JIBS6 1
+    state random_wall_jibs
+	ifdead
+		{
+
+		geta[].htpicnum PROJ_HIT_TYPE
+		ifand tiledata[PROJ_HIT_TYPE].gameflags 8 getprojectile[PROJ_HIT_TYPE].userdata PROJ_UDATA else set PROJ_UDATA 0
+
+			addkills 1
+
+		  ifwasweapon RADIUSEXPLOSION
+			  {
+			  ifrnd SPAWNAMMOODDS
+				{
+				eshoot GORO_HEAD_FLY
+				geta[].htang temp
+				add temp 1024
+				seta[RETURN].ang temp
+				seta[RETURN].pal sprite[].pal
+				}
+				state standard_jibs
+				state monst_body_jibs
+				spawn 16368
+				sound SQUISHED
+				killit
+			  }
+		  ifwasweapon RPG
+			  {
+			  ifrnd SPAWNAMMOODDS
+				{
+				eshoot GORO_HEAD_FLY
+				geta[].htang temp
+				add temp 1024
+				seta[RETURN].ang temp
+				seta[RETURN].pal sprite[].pal
+				}
+				state standard_jibs
+				state monst_body_jibs
+				spawn 16368
+				sound SQUISHED
+				killit
+			  }
+		  ifand PROJ_UDATA PROJ_GIB
+			  {
+			  ifrnd SPAWNAMMOODDS
+				{
+				eshoot GORO_HEAD_FLY
+				geta[].htang temp
+				add temp 1024
+				seta[RETURN].ang temp
+				seta[RETURN].pal sprite[].pal
+				}
+				state standard_jibs
+				state monst_body_jibs
+				spawn 16368
+				sound SQUISHED
+				killit
+			  }
+		ifand PROJ_UDATA 8192
+			 {
+			 ifrnd 4 soundonce MALE_ELECT1
+			 spawn ELECTROCUTE_ORC
+			 shoot SPARK2 shoot SPARK2 shoot SPARK2
+			 killit
+			 }
+			ifg ice_damage 0
+			{
+				sound SOMETHINGFROZE
+				spritepal 1
+				ai AI_GUARDIAN_FROZEN
+				strength 0
+				break
+			}
+			else
+			ifg fire_damage 0
+				{
+				shoot SPARK2 shoot SPARK2 shoot SPARK2
+				sound GUARDIAN_DIE
+				spawn ONFIREGUY
+				killit
+				}
+			else
+			ifwasweapon GROWSPARK { cstat 0 sound ACTOR_GROWING ai AI_GUARDIAN_GROW resetcount break }
+		else ifand PROJ_UDATA 8 // sliced
+			{
+			set fire_damage 0
+			cstat 4
+			sound GUARDIAN_DIE
+			ifwasweapon CHAINSAW_PROJ
+				{
+				set npc_chainsaw_struggle 54
+				set npc_chainsaw_id 4
+				set cultist_pal sprite[].pal
+				}
+			else
+				{
+				state sword_kill_sounds
+				state random_trigger_showoff
+				state slashed_sounds
+				}
+			ai AI_GUARDIAN_SLICED_DYING
+			}
+		  else
+		ife HEADSHOT 2
+			{
+			cstat 0
+			state random_trigger_showoff
+			state decap_sounds
+			state jib_sounds
+			ifg sprite[].extra -50
+				{
+				state SKILL_LEVELADJUST
+				ifl RANDOM_CHANCE SKILLCHANCE { eshoot GORO_HEAD_FLY seta[RETURN].pal sprite[].pal }
+				}
+			ai AI_GUARDIAN_HEADSHOT_DYING shoot NJIB shoot NJIB guts JIBS6 3 guts JIBS2 2
+			}
+			else
+			{
+			cstat 0
+			ai AI_GUARDIAN_DYING
+			sound GUARDIAN_DIE
+			}
+			guts JIBS6 5
+		}
+	else
+	ifg PAIN_AMOUNT 0 action A_GUARDIAN_FLINCH else
+	ifai AI_GUARDIAN_CHOP nullop else
+		{
+		ifrnd 8 { soundonce GUARDIAN_PAIN state PAIN_SKILL_LEVELADJUST action A_GUARDIAN_FLINCH }
+		}
+}
+
+state checksquished
+
+enda

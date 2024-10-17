@@ -1,0 +1,626 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+
+--------------------------------------------------------------------------------
+*/
+
+
+damageeventtile ARCHER
+
+appendevent EVENT_LOADACTOR
+	ifactor ARCHER
+		geta[].owner OWNERSAVED
+endevent
+
+action A_ARCHER_START 0 1 5 1 12
+action A_ARCHER_IDLE 0 1 5 1 12
+action A_ARCHER_WALK 0 4 5 1 12
+action A_ARCHER_SHRUNK 0 4 5 1 8
+
+action A_ARCHER_PREP 20 1 5 1 12
+action A_ARCHER_ATTACK 25 1 5 1 12
+action A_ARCHER_ATTACK2 30 1 5 1 12
+
+action A_ARCHER_CROUCH -430 1 5 1 12
+action A_ARCHER_CR_ATT1 -425 1 5 1 12
+action A_ARCHER_CR_ATT2 -420 1 5 1 12
+
+action A_ARCHER_GROW 35
+action A_ARCHER_PAIN 35
+action A_ARCHER_FROZEN 35
+
+action A_ARCHER_DIE 35 6 1 1 12
+action A_ARCHER_DEAD 40
+
+action A_ARCHER_HEADSHOT -415 6 1 1 16
+action A_ARCHER_HS_DEAD -410
+
+action A_ARCHER_SLASH_DIE 51 6 1 1 12
+action A_ARCHER_SLASH_DEAD 56
+
+move ARCHER_WALK 126
+
+defstate archer_flyback
+	setprojectile[ARCHER_CORPSE_FLY].pal sprite[].pal
+	eshoot ARCHER_CORPSE_FLY
+	setprojectile[ARCHER_CORPSE_FLY].pal 0
+	geta[].htang temp4
+	seta[RETURN].ang temp4
+	killit
+ends
+
+defstate archer_fronttowardstarget
+	// use smart aim only if playing on Expert and above
+	ife my_target PLAYER_IDENTITY
+	{
+		ifge SKILL_LEVEL 3
+		ifrnd 200
+		{
+			move STOP faceplayersmart
+		}
+		else
+		{
+			move STOP
+			state fronttowardstarget
+		}
+	}
+	else
+	{
+		move STOP
+		state fronttowardstarget
+	}
+
+ends
+
+defstate archer_corpse_code
+	move STOP
+    ifhitweapon
+		{
+		  ifwasweapon RADIUSEXPLOSION
+		  {
+			ifaction A_ARCHER_HS_DEAD nullop else shoot ARCHER_HEAD
+			state squish_sounds
+		  state standard_jibs
+			killit
+		  }
+		  break
+		}
+ends
+
+useractor enemystayput ARCHER_STAYPUT 150 A_ARCHER_START cactor ARCHER enda
+
+useractor enemy ARCHER 150 A_ARCHER_START
+fall
+ifaction A_ARCHER_START
+	{
+	geta[].pal actor_pal
+	cstat 257
+	ife actor_pal 15
+		{
+		sizeat 28 24
+		strength 50
+		}
+	else
+	ife actor_pal 49
+		{
+		sizeat 28 24
+		strength 50
+		}
+	else
+		{
+		sizeat 30 26
+		strength 150
+		}
+	state monst_glow
+	espawn SHOOTME
+	seta[RETURN].pal 1
+	action A_ARCHER_IDLE
+	}
+
+state ENEMYKNOCKBACKS
+state enemyfloordamage
+state enemy_fire_damage
+state enemy_ice_damage
+state enemy_spirit_damage
+
+ifaction A_ARCHER_FROZEN
+	{
+	state frozen_code
+	}
+else
+ifaction A_ARCHER_GROW
+	{
+	move STOP
+	state genericgrowcode
+	}
+else
+ifaction A_ARCHER_DEAD state archer_corpse_code
+else
+ifaction A_ARCHER_HS_DEAD state archer_corpse_code
+else
+ifaction A_ARCHER_SLASH_DEAD state archer_corpse_code
+else
+ifaction A_ARCHER_SLASH_DIE
+	{
+	ifg SLO_MO_SHOWOFF 0 action A_ARCHER_SLASH_DIE
+	strength 0
+	ifactioncount 6 { state SQUISH_FALL_NOISES action A_ARCHER_SLASH_DEAD spawn BLOODPOOL }
+	}
+else
+ifaction A_ARCHER_DIE
+	{
+	strength 0
+	ifactioncount 5 { state rf state BODY_FALL_NOISES action A_ARCHER_DEAD spawn BLOODPOOL }
+	}
+else
+ifaction A_ARCHER_HEADSHOT
+	{
+	strength 0
+	ifactioncount 6 { state rf state BODY_FALL_NOISES action A_ARCHER_HS_DEAD spawn BLOODPOOL }
+	}
+else
+ifaction A_ARCHER_PAIN
+	{
+	sub PAIN_AMOUNT 1
+	move STOP
+	ife PAIN_AMOUNT 0
+		{
+		ifdead action A_ARCHER_DIE else
+		action A_ARCHER_WALK
+		}
+	}
+else
+ifaction A_ARCHER_SHRUNK
+{
+	ifmove ARCHER_WALK { } else
+	move ARCHER_WALK fleeenemy geth
+
+	ifl SHRUNK_TIME SHRUNKCOUNT // keep shrunk
+		state new_shrunkcode
+	else ifl SHRUNK_TIME SHRUNKDONECOUNT // regrow
+	{
+		state unshrink
+		sizeto 26 26
+	}
+	else // after regrow, switch back to regular action
+	{
+		state endshrunkenstate
+		action A_ARCHER_WALK
+	}
+}
+else
+ifaction A_ARCHER_IDLE
+	{
+	move STOP
+	state checkfortarget
+	ifn my_target -1
+		{
+		ifrnd 96 sound ARCH_SIGHT1
+		else ifrnd 96 sound ARCH_SIGHT2
+		else sound ARCH_SIGHT3
+		action A_ARCHER_WALK
+		}
+	}
+else
+ifaction A_ARCHER_WALK
+{
+	ifmove ARCHER_WALK { } else
+	move ARCHER_WALK geth
+
+	ifrnd 2 sound ARCH_IDLE
+	state checkfortarget
+	state SKILL_SHOOT_LEVELADJUST // run difficulty level check
+	ifl RANDOM_CHANCE SKILLCHANCE // if succesful
+	ifn my_target -1
+	{
+		dist temp THISACTOR my_target // if found, get distance
+
+		// If stayput, can snipe from further away
+		ifactornotstayput set temp2 16384
+		else set temp2 32768
+
+		ifl temp temp2
+		{
+			state SKILL_LEVELADJUST
+			sound BOWDRAW
+			ifrnd 128 action A_ARCHER_CROUCH else action A_ARCHER_PREP
+			resetactioncount
+		}
+	}
+}
+else
+ifaction A_ARCHER_CROUCH
+	{
+	state archer_fronttowardstarget
+
+	geta[].htg_t 2 temp
+	ifactioncount 4
+		{
+		ife my_target -1 action A_ARCHER_CR_ATT1 else
+			{
+			ife actor_pal 49 action A_ARCHER_CR_ATT1 else
+			ife my_target PLAYER_IDENTITY
+			 ifg PARMOUR 0 action A_ARCHER_CR_ATT2 else // shoot anti-armour bolt
+			action A_ARCHER_CR_ATT1
+			}
+		}
+	ifg temp 4 action A_ARCHER_WALK
+	}
+else
+ifaction A_ARCHER_CR_ATT1
+{
+	state archer_fronttowardstarget
+
+	ife friendlyfire 0
+		ifn wallinbetween 1
+	{
+		ifactioncount 2
+		{
+			ife actor_pal 49
+				{
+				set PROJECTILE_TO_SHOOT VOID_ARCH_BOLT
+				set PROJECTILE_FIRING_SOUND VOID_FIRE
+				state sang_enemyShootProjectile
+				}
+			else
+				{
+				set PROJECTILE_TO_SHOOT GREEN_ARCH_BOLT
+				set PROJECTILE_FIRING_SOUND ARCH_FIRE
+				state sang_enemyShootProjectile
+				}
+			action A_ARCHER_WALK // go back to seeking AI
+		}
+	}
+	else ifactioncount 8 // shoot anyway
+	{
+		ife actor_pal 49
+			{
+			set PROJECTILE_TO_SHOOT VOID_ARCH_BOLT
+			set PROJECTILE_FIRING_SOUND VOID_FIRE
+			state sang_enemyShootProjectile
+			}
+		else
+			{
+			set PROJECTILE_TO_SHOOT GREEN_ARCH_BOLT
+			set PROJECTILE_FIRING_SOUND ARCH_FIRE
+			state sang_enemyShootProjectile
+			}
+		action A_ARCHER_WALK // go back to seeking AI
+	}
+}
+else
+ifaction A_ARCHER_CR_ATT2
+{
+	state archer_fronttowardstarget
+
+	ife friendlyfire 0
+		ifn wallinbetween 1
+	{
+		ifactioncount 2
+		{
+			set PROJECTILE_TO_SHOOT RED_ARCH_BOLT
+			set PROJECTILE_FIRING_SOUND ARCH_FIRE2
+			state sang_enemyShootProjectile
+			action A_ARCHER_WALK // go back to seeking AI
+		}
+	}
+	else ifactioncount 8 // shoot anyway
+	{
+		set PROJECTILE_TO_SHOOT RED_ARCH_BOLT
+		set PROJECTILE_FIRING_SOUND ARCH_FIRE2
+		state sang_enemyShootProjectile
+		action A_ARCHER_WALK // go back to seeking AI
+	}
+}
+else
+ifaction A_ARCHER_PREP
+	{
+	state archer_fronttowardstarget
+
+	geta[].htg_t 2 temp
+	ifactioncount 4
+		{
+		ife my_target -1 action A_ARCHER_ATTACK else
+			{
+			ife actor_pal 49 action A_ARCHER_ATTACK else
+			ife my_target PLAYER_IDENTITY
+			 ifg PARMOUR 0 action A_ARCHER_ATTACK2 else // shoot anti-armour bolt
+			action A_ARCHER_ATTACK
+			}
+		}
+	ifg temp 4 action A_ARCHER_WALK
+	}
+else
+ifaction A_ARCHER_ATTACK
+{
+	state archer_fronttowardstarget
+
+	ife friendlyfire 0
+		ifn wallinbetween 1
+	{
+		ifactioncount 2
+		{
+			ife actor_pal 49
+				{
+				setprojectile[VOID_BOLT].extra 2
+				set PROJECTILE_TO_SHOOT VOID_BOLT
+				set PROJECTILE_FIRING_SOUND VOID_FIRE
+				state sang_enemyShootProjectile
+				setprojectile[VOID_BOLT].extra 75
+				}
+			else
+				{
+				set PROJECTILE_TO_SHOOT GREEN_ARCH_BOLT
+				set PROJECTILE_FIRING_SOUND ARCH_FIRE
+				state sang_enemyShootProjectile
+				}
+			action A_ARCHER_WALK // go back to seeking AI
+		}
+	}
+	else ifactioncount 8 // shoot anyway
+	{
+		ife actor_pal 49
+			{
+			setprojectile[VOID_BOLT].extra 2
+			set PROJECTILE_TO_SHOOT VOID_BOLT
+			set PROJECTILE_FIRING_SOUND VOID_FIRE
+			state sang_enemyShootProjectile
+			setprojectile[VOID_BOLT].extra 75
+			}
+		else
+			{
+			set PROJECTILE_TO_SHOOT GREEN_ARCH_BOLT
+			set PROJECTILE_FIRING_SOUND ARCH_FIRE
+			state sang_enemyShootProjectile
+			}
+		action A_ARCHER_WALK // go back to seeking AI
+	}
+}
+else
+ifaction A_ARCHER_ATTACK2
+{
+	state archer_fronttowardstarget
+
+	ife friendlyfire 0
+		ifn wallinbetween 1
+	{
+		ifactioncount 2
+		{
+			set PROJECTILE_TO_SHOOT RED_ARCH_BOLT
+			set PROJECTILE_FIRING_SOUND ARCH_FIRE2
+			state sang_enemyShootProjectile
+			action A_ARCHER_WALK // go back to seeking AI
+		}
+	}
+	else ifactioncount 8 // shoot anyway
+	{
+		set PROJECTILE_TO_SHOOT RED_ARCH_BOLT
+		set PROJECTILE_FIRING_SOUND ARCH_FIRE2
+		state sang_enemyShootProjectile
+		action A_ARCHER_WALK // go back to seeking AI
+	}
+}
+
+ifhitweapon
+{
+	state NEWGUNEFFECTS
+	sound ARCH_PAIN
+	//spawn BLOOD
+	//guts JIBS6 1
+	state random_wall_jibs
+	ifdead
+		{
+		addkills 1
+		state rf
+		ifspritepal 49 { spawn VOID_CROSSBOW_BOLTS spawn SILVER_CROSSBOW_BOLTS }
+		ifwasweapon RPG
+			{
+			geta[].extra temp
+			ifg temp -50 state archer_flyback
+			  shoot ARCHER_HEAD
+			  state squish_sounds
+			  state human_jibs
+			  state standard_jibs
+			  killit
+			}
+		  ifwasweapon RADIUSEXPLOSION
+			{
+			geta[].extra temp
+			ifg temp -50 state archer_flyback
+			  shoot ARCHER_HEAD
+			  state squish_sounds
+			  state human_jibs
+			  state standard_jibs
+			  killit
+			}
+		  ifand PROJ_UDATA PROJ_GIB
+			{
+			geta[].extra temp
+			ifg temp -50 state archer_flyback
+			  shoot ARCHER_HEAD
+			  state squish_sounds
+			  state human_jibs
+			  state standard_jibs
+			  killit
+			}
+		ifand PROJ_UDATA 8192
+		 {
+		 ifrnd 8 { spawn ELECTROCUTE_MARV soundonce MALE_ELECT1 } else spawn ELECTROCUTE_GUY
+		 shoot SPARK2 shoot SPARK2 shoot SPARK2
+		 killit
+		 }
+		ifwasweapon GROWSPARK { cstat 0 sound ACTOR_GROWING action A_ARCHER_GROW resetcount break }
+		else ifg ice_damage 0 { spritepal 1 strength 0 sound SOMETHINGFROZE action A_ARCHER_FROZEN }
+		else ifg fire_damage 0
+			{
+			shoot SPARK2 shoot SPARK2 shoot SPARK2
+			ifrnd 128 sound ZSOLD_DIE1
+			else sound ZSOLD_DIE2
+			spawn ONFIREGUY
+			killit
+			}
+		else
+		ifand PROJ_UDATA 8
+			{
+			state sword_kill_sounds
+            state random_trigger_showoff
+			ife SWORD_ANIM 1 cstat 0 else cstat 4 state slashed_sounds action A_ARCHER_SLASH_DIE
+			}
+		else
+		ife HEADSHOT 2
+			{
+			ifg fire_damage 0 set fire_damage 0
+				state random_trigger_showoff
+				state jib_sounds
+				ifrnd 128 sound HEL_HS1 else sound HEL_HS2
+				ifg sprite[].extra -30
+					{
+					eshoot ARCHER_HEAD
+					geta[].htang temp
+					seta[RETURN].ang temp
+
+					geta[RETURN].z temp
+					sub temp 1200
+					seta[RETURN].z temp
+					}
+					else guts JIBS2 2
+				shoot NJIB
+				shoot NJIB
+				guts JIBS6 3
+				action A_ARCHER_HEADSHOT
+			}
+		else ifg spirit_damage 0
+			{
+			shoot SPARK2 shoot SPARK2 shoot SPARK2
+			spritepal 1
+			guts JIBS3 6
+			spawn SPIRIT_DEATH_GUY
+			killit
+			}
+		else ifg energy_damage 0
+			{
+			shoot SPARK2 shoot SPARK2 shoot SPARK2
+			spritepal 4
+			guts JIBS3 6
+			spawn DISINTIGRATE_GUY
+			killit
+			}
+		else
+			{
+			sound ARCH_DIE
+			ifstrength -35 ifpdistl 4096 state archer_flyback
+			else ifwasweapon KNEE state archer_flyback
+			else ifwasweapon SHOTGUN ifpdistl 1536 state archer_flyback
+			else
+			action A_ARCHER_DIE
+			}
+		}
+	else ifg PAIN_AMOUNT 0 action A_ARCHER_PAIN
+	else ifrnd 32 { state PAIN_SKILL_LEVELADJUST action A_ARCHER_PAIN }
+	ifwasweapon SHRINKSPARK { sound ACTOR_SHRINKING action A_ARCHER_SHRUNK }
+}
+
+state checksquished
+
+enda
+
+useractor notenemy ARCHER_SPAWNER
+	ifaction 0
+	{
+		cstat 32768
+
+		geta[].hitag HITAGSAVED
+		geta[].pal PALSAVED
+		set temp 0
+		action ZERO
+	}
+	else ifaction ZERO
+	{
+		checkactivatormotion HITAGSAVED
+
+		// Start randomly spawning
+		ife RETURN 1
+		{
+			set INTERNALCOUNT 0
+			set temp 1
+		}
+
+		ife temp 1
+		{
+			ifg INTERNALCOUNT 0
+				sub INTERNALCOUNT 1
+
+			set temp2 HITAGSAVED
+			sub temp2 1
+			checkactivatormotion temp2
+
+			// Stop spawning => destroy what's currently spawned and kill sprite
+			ife RETURN 1
+			{
+				// kill all minions
+				set targets_iterator 0
+
+				whilel targets_iterator targets_range
+				{
+					set temp targets[targets_iterator]
+
+					ife temp -2
+					{
+						set targets_iterator targets_range
+						exit
+					}
+
+					ifg temp -1
+					{
+						getav[temp].OWNERSAVED temp2
+
+						ifg temp2 -1
+						  ife sprite[temp2].picnum ARCHER_SPAWNER
+						{
+							seta[temp].htextra 5000
+							seta[temp].htpicnum SHOTSPARK1
+						}
+					}
+
+					add targets_iterator 1
+				}
+
+				killit
+			}
+
+			ife temp 1
+				ife INTERNALCOUNT 0
+				ifrnd 8
+			{
+				set INTERNALCOUNT 450
+				espawn ARCHER
+				seta[RETURN].pal PALSAVED
+				setav[RETURN].my_target PLAYER_IDENTITY
+				setav[RETURN].OWNERSAVED THISACTOR
+			}
+		}
+	}
+enda

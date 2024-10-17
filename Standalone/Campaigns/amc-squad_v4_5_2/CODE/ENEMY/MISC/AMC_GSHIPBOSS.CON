@@ -1,0 +1,567 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+Not actually a real enemy, but here in the enemy section for clarity's sake
+--------------------------------------------------------------------------------
+*/
+
+
+defstate disappear_when_triggered
+checkactivatormotion LOTAGSAVED
+ife RETURN 1 killit
+ends
+
+defstate appear_when_triggered
+state disappear_when_triggered
+ifaction 0
+{
+cstat 32768
+checkactivatormotion HITAGSAVED
+ife RETURN 1
+	{
+	seta[].cstat CSTATSAVED
+	action BREAK
+	}
+}
+ends
+
+defstate tentacle_joint
+state appear_when_triggered
+ifaction BREAK
+{
+sizeto 64 64
+ifcount 30 { action ZERO  resetcount }
+}
+ifaction ZERO
+{
+sizeto 65 65
+ifcount 30 { action BREAK resetcount }
+}
+ends
+
+useractor notenemy 17367 state appear_when_triggered enda
+useractor notenemy 17373 state appear_when_triggered enda
+
+useractor notenemy 17376 state tentacle_joint enda
+useractor notenemy 17377 state tentacle_joint enda
+useractor notenemy 17378 state tentacle_joint enda
+useractor notenemy 17379 state tentacle_joint enda
+useractor notenemy 17380 state tentacle_joint enda
+useractor notenemy 17381 state tentacle_joint enda
+useractor notenemy 17382 state tentacle_joint enda
+
+
+useractor notenemy 17368
+state appear_when_triggered
+ifaction BREAK
+{
+sizeto 64 64
+ifcount 30 { action ZERO resetcount }
+}
+ifaction ZERO
+{
+sizeto 64 66
+ifcount 30 { action BREAK resetcount }
+}
+
+enda
+
+useractor notenemy 17369 // head
+state appear_when_triggered
+
+ifaction 0 nullop else
+{
+	ifl HUGE_BOSS_HEALTH 500 action ONE
+	ife temp6 0
+	{
+	geta[].z temp
+	add temp 32
+	seta[].z temp
+	ifcount 30 { set temp6 1 resetcount }
+	}
+	ife temp6 1
+	{
+	geta[].z temp
+	sub temp 32
+	seta[].z temp
+	ifcount 30 { set temp6 0 resetcount }
+	}
+}
+
+enda
+
+action ROAR 0
+
+useractor notenemy 17371 // jaw
+state appear_when_triggered
+ifaction BREAK
+{
+geta[].z temp
+add temp 32
+seta[].z temp
+ifcount 30 { action ZERO  resetcount }
+ifrnd 2 ife camerasprite -1 { action ROAR set INTERNALCOUNT 0 globalsound GSHIP_BOSS_SCREAM }
+}
+ifaction ZERO
+{
+geta[].z temp
+sub temp 32
+seta[].z temp
+ifcount 30 { action BREAK resetcount }
+}
+ifaction ROAR
+{
+	add INTERNALCOUNT 1
+	ifl INTERNALCOUNT 31
+	{
+	geta[].z temp
+	add temp 128
+	seta[].z temp
+	quake 256
+	}
+	ifg INTERNALCOUNT 40
+	{
+	sub SHIP_INTEGRITY 1
+	geta[].z temp
+	sub temp 64
+	seta[].z temp
+	}
+	ifg INTERNALCOUNT 60
+	{
+	seta[].z temp5
+	set INTERNALCOUNT 0
+	action BREAK
+	}
+
+}
+
+enda
+
+useractor notenemy 16618 // Pulse battery computer
+
+ifaction 0
+	{
+	ifand temp2 1 nullop else
+		{
+		checkactivatormotion HITAGSAVED
+		ife RETURN 1 xorvar temp2 1
+		}
+	ifand temp2 2 nullop else
+		{
+		checkactivatormotion LOTAGSAVED
+		ife RETURN 1 xorvar temp2 2
+		}
+	ifand temp2 4 nullop else
+		{
+		checkactivatormotion XVELSAVED
+		ife RETURN 1 xorvar temp2 4
+		}
+	ifand temp2 8 nullop else
+		{
+		checkactivatormotion YVELSAVED
+		ife RETURN 1 xorvar temp2 8
+		}
+	ife temp2 15 action ONE
+	}
+
+enda
+
+useractor notenemy 16620 // pulse battery icon
+ifaction 0
+	{
+	checkactivatormotion HITAGSAVED
+	ife RETURN 1
+		{
+		spritepal 8
+		action ZERO
+		}
+	}
+enda
+
+useractor notenemy 16615 // pulse battery
+ifaction 0
+	{
+	checkactivatormotion HITAGSAVED
+	 ife RETURN 1
+		{
+		action ZERO
+		}
+	}
+
+ifaction BREAK
+	{
+	ifg HUGE_BOSS_HEALTH -1
+		{
+		ife INTERNALCOUNT 0
+			{
+			sound PULSE_CAN_FIRE
+
+			sub HUGE_BOSS_HEALTH 5
+			geta[].x temp
+			geta[].y temp2
+
+			set temp3 temp
+			add temp3 1024
+
+			geta[].ang temp4
+
+			rotatepoint temp temp2 temp3 temp2 temp4 temp5 temp6
+
+			geta[].sectnum upd_sect
+			updatesectorz temp5 temp6 sprite[].z upd_sect
+			espawn 8433
+			seta[RETURN].x temp5
+			seta[RETURN].y temp6
+
+			geta[].z temp
+			sub temp 12192
+			seta[RETURN].z temp
+			changespritesect RETURN upd_sect
+
+			set INTERNALCOUNT 300
+			}
+		sub INTERNALCOUNT 1
+		}
+
+	}
+
+ifaction ZERO
+	{
+	geta[].ang temp
+	ifl temp 520
+	ifg temp 500
+		{
+		seta[].ang 512
+		stopsound TANK_ROTATE
+		sound HITECH_DOOR4
+		action BREAK
+		set INTERNALCOUNT 0
+		}
+		else
+	ifl temp 512
+		{
+		add temp 16
+		ifactorsound THISACTOR TANK_ROTATE nullop else sound TANK_ROTATE
+		seta[].ang temp
+		}
+	else
+	ifg temp 512
+		{
+		sub temp 16
+		ifactorsound THISACTOR TANK_ROTATE nullop else sound TANK_ROTATE
+		seta[].ang temp
+		}
+	}
+
+enda
+
+useractor notenemy 16595
+ifaction 0
+	{
+	checkactivatormotion HITAGSAVED
+	 ife RETURN 1
+		{
+		cactor 16877
+		}
+	}
+enda
+
+useractor notenemy 16878
+ife BIG_GUN_CHARGE 1200 action ONE else action ZERO
+enda
+
+useractor notenemy 16877
+ife BIG_GUN_CHARGE 1200 action ONE else action ZERO
+enda
+
+useractor notenemy 16617
+ife BIG_GUN_CHARGE 1200 spritepal 8 else spritepal 2
+enda
+
+useractor notenemy 16616 // BIG GUN
+
+ifaction ZERO
+{
+add INTERNALCOUNT 1
+ifspritepal 9 break
+ifspritepal 3 spritepal 102
+ifspritepal 102
+	{
+	sizeto 2 75
+	geta[].shade temp8
+	sub temp8 1
+	seta[].shade temp8
+
+		set temp3 sprite[].x
+		randvarvar temp4 2048
+		add temp3 temp4
+		randvar temp4 2048
+
+		rotatepoint sprite[].x sprite[].y temp3 sprite[].y temp4 temp5 temp6
+
+		espawn 18574
+
+		seta[RETURN].x temp5
+		seta[RETURN].y temp6
+
+		seta[RETURN].pal 1
+
+	ifg INTERNALCOUNT 60 { sound SOMETHINGHITFORCE spawn 8433 operateactivators LOTAGSAVED THISACTOR killit }
+	}
+ifspritepal 103
+	{
+	cstat 257
+	sizeto 75 75
+	ifg INTERNALCOUNT 600 { spritepal 0 action 0 }
+	}
+}
+
+ifspritepal 3
+	{
+	checkactivatormotion HITAGSAVED
+	ife RETURN 1
+		{
+		set INTERNALCOUNT 0
+		action ZERO
+		}
+	}
+	else
+ifspritepal 103
+ ifaction 0
+	{
+	cstat 32768
+	sizeat 2 75
+	checkactivatormotion HITAGSAVED
+	ife RETURN 1
+		{
+		globalsound SOMETHINGHITFORCE
+		spawn 8433
+		set INTERNALCOUNT 0
+		action ZERO
+		}
+	}
+	else
+ifspritepal 0
+	{
+		ifg HUGE_BOSS_HEALTH -1
+			{
+			ife BIG_GUN_CHARGE -1
+				{
+				stopallsounds
+				screensound BIG_GUN_FIRE
+				wackplayer
+				quake 52
+
+				set temp3 sprite[].x
+				add temp3 2048
+
+				rotatepoint sprite[].x sprite[].y temp3 sprite[].y sprite[].ang temp5 temp6
+
+				geta[].sectnum upd_sect
+				updatesectorz temp5 temp6 sprite[].z upd_sect
+
+				geta[].z temp
+				sub temp 18192
+
+				espawn 8433
+				seta[RETURN].x temp5
+				seta[RETURN].y temp6
+				seta[RETURN].z temp
+				ifn upd_sect -1 changespritesect RETURN upd_sect
+
+				espawn BIG_SMOKE2
+				seta[RETURN].x temp5
+				seta[RETURN].y temp6
+				seta[RETURN].z temp
+				ifn upd_sect -1 changespritesect RETURN upd_sect
+
+				espawn BIG_SMOKE2
+				seta[RETURN].x temp5
+				seta[RETURN].y temp6
+				seta[RETURN].z temp
+				ifn upd_sect -1 changespritesect RETURN upd_sect
+
+				espawn BIG_SMOKE2
+				seta[RETURN].x temp5
+				seta[RETURN].y temp6
+				seta[RETURN].z temp
+				ifn upd_sect -1 changespritesect RETURN upd_sect
+
+				set BIG_GUN_CHARGE -5
+				}
+			else ifl BIG_GUN_CHARGE 1200 add BIG_GUN_CHARGE 1
+			ife BIG_GUN_CHARGE 800 globalsound ALIENSHIP_CHARGE
+			}
+	}
+
+enda
+
+useractor notenemy 16596
+cstat 32768
+
+ifaction 0
+ ife BIG_GUN_CHARGE -5
+	{
+	action ZERO
+	set BIG_GUN_CHARGE 0
+	set INTERNALCOUNT 0
+	}
+
+ifaction ZERO
+	{
+	add INTERNALCOUNT 1
+	ifg INTERNALCOUNT 90
+		{
+		spawn 8433
+		globalsound BIG_GUN_HIT
+		spawn 15954
+		sub HUGE_BOSS_HEALTH 200
+		wackplayer
+		action 0
+		}
+	}
+
+enda
+
+useractor notenemy 16597
+
+ifaction 0
+	{
+	checkactivatormotion HITAGSAVED
+	 ife RETURN 1
+		{
+		action ONE
+		}
+	}
+
+ifaction BREAK
+	{
+	ifp pfacing
+	 ifpdistl 2048
+	 ifg SHIP_INTEGRITY -1
+		{
+		set player_use 0
+		 ifhitspace
+		  ife BIG_GUN_CHARGE 1200
+			{
+			sound IW_SWITCH
+			set BIG_GUN_CHARGE -1
+			action ONE
+			}
+		}
+	}
+
+ifaction ONE
+	{
+	ife BIG_GUN_CHARGE 1200 { sound IW_SWITCH action BREAK }
+	}
+
+enda
+
+useractor notenemy 16599 // SHIP BATTLE STARTER
+cstat 32768
+ifaction 0
+	{
+	checkactivatormotion HITAGSAVED
+		ife RETURN 1
+			{
+			set SHIP_INTEGRITY 1000
+			set HUGE_BOSS_HEALTH 1000
+			set temp6 0
+			action ZERO
+			}
+	}
+
+ifaction ZERO
+	{
+	ifl HUGE_BOSS_HEALTH 800 ife temp6 0
+		{
+		operaterespawns 7500
+		set temp6 1
+		}
+	ifl HUGE_BOSS_HEALTH 600 ife temp6 1
+		{
+		operaterespawns 7501
+		set temp6 2
+		}
+	ifl HUGE_BOSS_HEALTH 400 ife temp6 2
+		{
+		operaterespawns 7502
+		set temp6 3
+		}
+	ifl HUGE_BOSS_HEALTH 200 ife temp6 3
+		{
+		operaterespawns 7503
+		set temp6 4
+		}
+
+	ifl SHIP_INTEGRITY 800 ife temp7 0
+		{
+		operateactivators 7600 THISACTOR
+		operatemasterswitches 7600
+		operaterespawns 7600
+		set temp7 1
+		}
+	ifl SHIP_INTEGRITY 600 ife temp7 1
+		{
+		operateactivators 7601 THISACTOR
+		operatemasterswitches 7601
+		operaterespawns 7601
+		set temp7 2
+		}
+	ifl SHIP_INTEGRITY 400 ife temp7 2
+		{
+		operateactivators 7602 THISACTOR
+		operatemasterswitches 7602
+		operaterespawns 7602
+		set temp7 3
+		}
+	ifl SHIP_INTEGRITY 200 ife temp7 3
+		{
+		operateactivators 7603 THISACTOR
+		operatemasterswitches 7603
+		operaterespawns 7603
+		set temp7 4
+		}
+
+	ifl SHIP_INTEGRITY 1
+		{
+		operateactivators 7604 THISACTOR
+		operatemasterswitches 7604
+		operaterespawns 7604
+		state fade_out_white
+		killit
+		}
+	else
+	ifl HUGE_BOSS_HEALTH 0
+		{
+		operateactivators LOTAGSAVED THISACTOR
+		operatemasterswitches LOTAGSAVED
+		operaterespawns LOTAGSAVED
+		killit
+		}
+	}
+
+enda

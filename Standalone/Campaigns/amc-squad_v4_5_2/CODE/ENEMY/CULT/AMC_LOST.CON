@@ -1,0 +1,216 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+
+--------------------------------------------------------------------------------
+*/
+
+damageeventtile LOST
+
+action ALOSTFLOAT 0 1 5 1 0
+action ALOSTDYING 15 5 1 1 12
+action ALOSTATTACK 5 2 5 1 8
+
+move MLOSTFLOAT 128 0
+move MLOSTFLOATUP 128 -128
+move MLOSTFLOATDOWN 128 128
+
+ai AILOSTFLOAT ALOSTFLOAT MLOSTFLOAT faceplayer seekplayer
+ai AILOSTFLOATUP ALOSTFLOAT MLOSTFLOATUP faceplayer seekplayer getv
+ai AILOSTFLOATDOWN ALOSTFLOAT MLOSTFLOATDOWN faceplayer seekplayer getv
+ai AILOSTDYING ALOSTDYING STOP faceplayer
+ai AILOST_CD ALOSTFLOAT STOP faceplayer
+ai AILOSTATTACK ALOSTATTACK MLOSTFLOAT faceplayer
+
+spritenoshade LOST
+useractor enemy LOST 75 ALOSTFLOAT
+
+ifai 0
+	{
+	seta[].mdflags 16
+	set actor_type TYPE_SUPERNATURAL
+	set command 12288
+	set MONSTER_FLAGS 8
+	cstat 257
+	spawn SHOOTME
+	spriteflags NORMAL_ENEMY
+	sizeat 24 24
+	strength 75
+	action ALOSTFLOAT
+	ai AILOSTFLOAT
+	}
+
+ifdead nullop else
+{
+	ifpdistg 2048
+	{
+	ifrnd 32 soundonce SPOOKY2
+	}
+	else
+	ifpdistl 2048
+	{
+	cstat 256
+	}
+}
+
+ifai AILOSTDYING
+	{
+	soundonce LOST_DIE
+	sizeto 64 64
+	ifactioncount 5 killit
+	}
+else
+ifai AILOST_CD
+	{
+	addvar INTERNALCOUNT 1
+	ife SKILL_LEVEL 1 ifg INTERNALCOUNT 90 ai AILOSTFLOAT
+	else ife SKILL_LEVEL 2 ifg INTERNALCOUNT 60 ai AILOSTFLOAT
+	else ife SKILL_LEVEL 3 ifg INTERNALCOUNT 30 ai AILOSTFLOAT
+	else ife SKILL_LEVEL 4 ifg INTERNALCOUNT 15 ai AILOSTFLOAT
+	else ifg SKILL_LEVEL 4 ai AILOSTFLOAT
+	}
+else
+ifai AILOSTATTACK
+	{
+	ifactioncount 2
+		{
+		ifg P_SPIRIT_ARMOUR 0
+			{
+			sub P_SPIRIT_ARMOUR 20
+			soundonce SPARM_PROTECT
+			palfrom 20 0 0 40
+			ifl P_SPIRIT_ARMOUR 0 set P_SPIRIT_ARMOUR 0
+			state setknockback
+			}
+		else
+			ife CHAR 14
+			  ifn player[].holoduke_on -1
+				{
+				soundonce SPARM_PROTECT
+				palfrom 20 0 0 40
+				state setknockback
+				}
+		else
+			ife CHAR 4
+			  ifn player[].holoduke_on -1
+				{
+				soundonce SPARM_PROTECT
+				palfrom 20 0 0 40
+				state setknockback
+				seta[].htextra 50
+				}
+		else ife player_spooked 0 { ife silence_damage 0 set player_spooked 98 addphealth -30 palfrom 40 40 0 0 state setknockback }
+		wackplayer
+		set INTERNALCOUNT 0
+		soundonce LOST_ATTACK
+		ai AILOST_CD
+		resetactioncount
+		}
+	ifpdistg 2047 ai AILOSTFLOAT
+	}
+else
+ifai AILOSTFLOAT
+{
+	ifcansee
+	 ifcanseetarget
+	  ifpdistl 2048
+	  {
+		ai AILOSTATTACK
+	   }
+	   else
+	ifrnd 128
+		{
+		 ifp phigher
+			ai AILOSTFLOATUP
+		  else
+			{
+			geta[].z z
+			getp[].posz temp
+			ifg temp z ai AILOSTFLOATDOWN
+			}
+		}
+}
+else
+ifai AILOSTFLOATUP
+{
+ifcansee
+ ifcanseetarget
+  ifpdistl 2048
+  {
+  	ai AILOSTATTACK
+   }
+   else
+ifrnd 16 ai AILOSTFLOAT
+}
+else
+ifai AILOSTFLOATDOWN
+{
+	geta[].x x
+	geta[].y y
+	geta[].z z
+	geta[].sectnum temp
+	updatesectorz x y z temp
+	ifn temp -1
+	{
+		getflorzofslope temp x y temp2
+		ifg sprite[].z temp2
+		{
+			seta[].z temp2
+			ai AILOSTFLOAT
+		}
+	}
+ifcansee
+ ifcanseetarget
+  ifpdistl 2048
+  {
+  	ai AILOSTATTACK
+   }
+   else
+ifrnd 16 ai AILOSTFLOAT
+}
+
+	ifg silence_damage 0
+		{
+		sub silence_damage 1
+		state spawn_curse_particles
+		}
+
+ifhitweapon
+	{
+	state NEWGUNEFFECTS
+    ifwasweapon RPG seta[].xvel 5
+	ifwasweapon VOID_BOLT { sound EN_CURSE set silence_damage 300 }
+	ifwasweapon VOID_PLAYER_BOLT { sound EN_CURSE set silence_damage 150 }
+	ifwasweapon VOID_BLAST { sound EN_CURSE set silence_damage 900 }
+	ifdead
+		{
+		ai AILOSTDYING
+		state rf
+		addkills 1
+		}
+	}
+
+
+enda

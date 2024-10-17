@@ -1,0 +1,1207 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+Short states for recurring actions to save ourselves some writing space.
+Hopefully this can be extended into a "CON Standard Library" someday.
+--------------------------------------------------------------------------------
+*/
+
+ // get angle to point at given actor
+
+// pass point coordinates in mx/my/mz
+defstate angleToCoordinate
+	geta[].x my_x
+    geta[].y my_y
+    geta[].z my_z
+
+    sub mx my_x
+    sub my my_y
+    getangle angvar mx my
+ends
+
+// Output = angvar
+var ANGLE_TO_ACTOR 0 2
+defstate angleTo
+	geta[ANGLE_TO_ACTOR].x mx
+	geta[ANGLE_TO_ACTOR].y my
+	geta[ANGLE_TO_ACTOR].z mz
+
+	state angleToCoordinate
+ends
+
+defstate angleToFromPlayer
+    getp[].posx my_x
+    getp[].posy my_y
+    getp[].posz my_z
+
+    geta[ANGLE_TO_ACTOR].x mx
+    geta[ANGLE_TO_ACTOR].y my
+    geta[ANGLE_TO_ACTOR].z mz
+
+    sub mx my_x
+    sub my my_y
+    getangle angvar mx my
+ends
+
+defstate angleToPlayer
+	set ANGLE_TO_ACTOR PLAYER_IDENTITY
+	state angleTo
+ends
+
+defstate faceplayerstate
+	state angleToPlayer
+	seta[].ang angvar
+ends
+
+// Do a hitscan check to the passed in actor.
+// Input: HITSCAN_TO_ACTOR
+// Output: hitsector hitwall hitsprite hitx hity hitz (see eduke wiki)
+var HITSCAN_TO_ACTOR 0 2
+var HITSCAN_CLIPMASK -1 2
+defstate hitscanTo
+    ife HITSCAN_CLIPMASK -1
+        set HITSCAN_CLIPMASK CLIPMASK0
+
+    ifn HITSCAN_TO_ACTOR PLAYER_IDENTITY
+    {
+        geta[HITSCAN_TO_ACTOR].cstat temp4
+        // ensure hitscan bit is set, you fuckin nobhead
+        seta[HITSCAN_TO_ACTOR].cstat 1
+    }
+
+    // Make small sprites big enough
+    geta[HITSCAN_TO_ACTOR].xrepeat temp6
+    geta[HITSCAN_TO_ACTOR].yrepeat temp7
+    seta[HITSCAN_TO_ACTOR].xrepeat 128
+    seta[HITSCAN_TO_ACTOR].yrepeat 128
+
+    set ANGLE_TO_ACTOR HITSCAN_TO_ACTOR
+    state angleTo
+
+    cos mycos angvar
+    sin mysin angvar
+
+    // calc zdist
+    set zdist mz
+    sub zdist my_z
+    shiftvarl zdist 14
+    ldist xydist THISACTOR HITSCAN_TO_ACTOR
+    ife xydist 0 set xydist 1
+    divvarvar zdist xydist
+
+    // compensate
+    sub my_z 8192
+
+    hitscan my_x my_y my_z sprite[].sectnum mycos mysin zdist hitsector hitwall hitsprite hitx hity hitz HITSCAN_CLIPMASK
+
+    ife HITSCAN_TO_ACTOR PLAYER_IDENTITY
+        ifn hitsprite PLAYER_IDENTITY
+        ifn hitsprite -1
+    {
+        // the sprite can be one of the special sprites that follows the player (shootme2 for instance)
+        getav[hitsprite].IS_PLAYER temp8
+
+        ife temp8 1
+            set hitsprite PLAYER_IDENTITY
+    }
+
+    // intended to debug vladmir
+    ife debug_stuff 3
+    {
+        geta[].picnum my
+        ife my 11776 // vladmir
+        {
+            ifn hitsprite -1
+            {
+                al HITSCAN_TO_ACTOR
+                al PLAYER_IDENTITY
+                al hitsprite
+                geta[hitsprite].picnum mz
+                al mz
+            }
+        }
+    }
+
+    ifn HITSCAN_TO_ACTOR PLAYER_IDENTITY
+        seta[HITSCAN_TO_ACTOR].cstat temp4
+
+    seta[HITSCAN_TO_ACTOR].xrepeat temp6
+    seta[HITSCAN_TO_ACTOR].yrepeat temp7
+ends
+
+// credit to oasiz for the floor sprite alignment code
+defstate SlapSpriteToFloor
+ifand sector[].floorstat 2
+ ifn sector[].floorslope 0 // sanity check for sectors with slope set but no actual slope
+	{	
+	 set temp sprite[].sectnum
+	 set temp2 sector[temp].floorslope
+	 
+	 geta[].cstat temp3
+	 or temp3 16
+	 or temp3 32
+	 seta[].cstat temp3
+	 
+	 shiftvarl temp2 8
+	 shiftvarr temp2 8
+	 seta[].xoffset temp2
+	 set temp2 sector[temp].floorslope
+	 shiftvarr temp2 8
+	 seta[].yoffset temp2
+	 set temp2 sector[temp].floorslope
+	 updatesectorz sprite[].x sprite[].y sprite[].z upd_sect
+	 ifn upd_sect -1 getflorzofslope upd_sect sprite[].x sprite[].y temp7
+	 sub temp7 4
+	 seta[].z temp7
+	 
+     gets[].wallptr temp4
+	 getwall[temp4].ang temp5
+	 add temp5 1024
+	 seta[].ang temp5	
+	}
+ends
+
+// credit to oasiz for the ceiling sprite alignment code
+defstate SlapSpriteToCeiling
+ifand sector[].ceilingstat 2
+ ifn sector[].ceilingslope 0 // sanity check for sectors with slope set but no actual slope
+	{	
+	 set temp sprite[].sectnum
+	 set temp2 sector[temp].ceilingslope
+	 
+	 geta[].cstat temp3
+	 or temp3 16
+	 or temp3 32
+	 seta[].cstat temp3
+	 
+	 shiftvarl temp2 8
+	 shiftvarr temp2 8
+	 seta[].xoffset temp2
+	 set temp2 sector[temp].ceilingslope
+	 shiftvarr temp2 8
+	 seta[].yoffset temp2
+	 set temp2 sector[temp].ceilingslope
+	 updatesectorz sprite[].x sprite[].y sprite[].z upd_sect
+	 ifn upd_sect -1 getceilzofslope upd_sect sprite[].x sprite[].y temp7
+	 seta[].z temp7
+	 
+     gets[].wallptr temp4
+	 getwall[temp4].ang temp5
+	 add temp5 1024
+	 seta[].ang temp5	
+	}
+ends
+
+defstate hitscanToFromPlayer
+    getp[].posx my_x
+    getp[].posy my_y
+    getp[].posz my_z
+    getp[].cursectnum temp
+    getp[].ang angvar
+    getp[].horiz zdist
+    subvar zdist 100
+    mulvar zdist -2048
+    cos mycos angvar
+    sin mysin angvar
+
+    geta[].cstat temp4
+    // ensure hitscan bit is set, you fuckin nobhead
+    seta[].cstat 1
+
+    geta[].xrepeat temp6
+    geta[].yrepeat temp7
+    seta[].xrepeat 128
+    seta[].yrepeat 128
+
+    hitscan my_x my_y my_z temp mycos mysin zdist hitsector hitwall hitsprite hitx hity hitz CLIPMASK0
+
+    ife hitsprite THISACTOR
+        set RETURN 1
+    else
+        set RETURN 0
+
+    seta[].cstat temp4
+    seta[THISACTOR].xrepeat temp6
+    seta[THISACTOR].yrepeat temp7
+ends
+
+// This code sets the sprite a bit above the ground so it has the appearance of floating, except if that means clipping through the ceiling
+defstate check_canfloat
+    geta[].sectnum upd_sect
+    updatesectorz sprite[].x sprite[].y sprite[].z upd_sect
+    ifn upd_sect -1 getflorzofslope upd_sect sprite[].x sprite[].y z
+    ifn upd_sect -1 getceilzofslope upd_sect sprite[].x sprite[].y temp2
+    set temp3 temp2
+    sub temp3 z
+    mulvar temp3 -1
+    // temp3 now contains the height difference in "units" between ceiling and floor, multiplied by -1 to make it easier to understand (for me :P)
+    // The *exact* height of a sorcerer is 12 544 units
+    // For each unit that temp3 is higher than 12 544, the sorcerer can float that many units above the floor up to a maximum of 4000.
+    sub temp3 12544
+
+    geta[].z temp
+    sub temp z
+    mulvar temp -1 // temp contains the distance in units between the actor z and the floorz, again adjusted
+
+    ifg temp3 4000 // can float 4000 units
+    {
+        // save the result of what would be the normal float height in temp10
+        sub z 4000
+        set temp10 z
+        set temp9 1
+        ifl temp 4000 // but is not floating that yet or higher
+        {
+            seta[].z temp10
+            seta[].zvel 0 // stop falling
+        }
+    }
+    else // float the amount that we can
+    {
+        sub z temp3
+        set temp10 z
+        set temp9 0
+        seta[].z z
+        seta[].zvel 0 // stop falling
+    }
+ends // temp9 == 1 if the wizard can float 4000 units or more, 0 if they can't
+
+
+// Spritebridge check returns the sprite id of a spritebridge, -1 if there is no spritebridge, -2 for faulty checks...
+var SPRITEBRIDGE_ACTOR_CHECK 0 2
+defstate check_spritebridge
+    geta[SPRITEBRIDGE_ACTOR_CHECK].x my_x
+    geta[SPRITEBRIDGE_ACTOR_CHECK].y my_y
+    geta[SPRITEBRIDGE_ACTOR_CHECK].z my_z
+    geta[SPRITEBRIDGE_ACTOR_CHECK].sectnum temp8
+
+    getzrange my_x my_y my_z temp8
+        temp2 // ceilingz
+        temp3 // ceilinghit
+        temp4 // floorz
+        temp5 // floorhit
+        256
+        CLIPMASK0
+
+    set temp -1
+    ifge temp5 49152
+    {
+        sub temp5 49152
+
+        ifvarand sprite[temp5].cstat 32
+            set temp temp5
+    }
+    else ifge temp5 16384
+    {
+        // if the check goes off near the edge of another sector, we can actually detect that other sector here... so double check that
+        sub temp5 16384
+
+        ifn temp5 temp8 // different sector, so we still count it as the spritebridge... special case
+            set temp -2
+    }
+ends
+
+var movesprite_zvel 0 2
+var movesprite_angvar 0 2
+var movesprite_shift 0 2
+var movesprite_clipmask -1 2
+var movesprite_sprite -1 2
+
+// custom xvel / yvel. set customvels to 1 to use
+var movesprite_customvels 0 2
+var movesprite_xvel 0 2
+var movesprite_yvel 0 2
+defstate movesprite_state
+
+	ife movesprite_customvels 1
+	{
+		set temp2 movesprite_xvel
+		set temp3 movesprite_yvel
+	}
+	else
+	{
+		cos temp2 movesprite_angvar
+		sin temp3 movesprite_angvar
+
+		shiftr temp2 movesprite_shift
+		shiftr temp3 movesprite_shift
+	}
+
+    set temp4 movesprite_clipmask
+    ife temp4 -1
+        set temp4 1 // default clipmask = 1 => only detect blocking walls
+
+	ife movesprite_sprite -1
+		movesprite THISACTOR temp2 temp3 movesprite_zvel temp4 RETURN
+	else
+		movesprite movesprite_sprite temp2 temp3 movesprite_zvel temp4 RETURN
+ends
+
+// returns the top of the sprite coordinate in my_z
+defstate getspritetopz
+    geta[temp2].z my_z
+    set temp tiledata[sprite[temp2].picnum].ysize
+    mul temp sprite[temp2].yrepeat
+    mul temp 7
+    div temp 2
+    sub my_z temp
+ends
+
+defstate getspriteheight
+    state getspritetopz // my_z = sprite top
+    geta[temp2].z mz // mz = sprite bottom
+    set RETURN -1
+
+    // this can't happen, but just in case... if the heights are equal or the bottom is above the top for some reason, something went quite wrong and the height is just 0
+    ifle mz my_z
+    {
+        set RETURN 0
+    }
+    else
+    {
+        // calc height
+        set temp 0
+
+        ifl my_z 0
+          ifl mz 0
+        {
+            set temp 1
+        }
+        else ifg my_z 0
+          ifg mz 0
+        {
+            set temp 1
+        }
+        else
+            set temp 2
+
+        // if both values are above or below 0, we can just subtract the absolute values
+        ife temp 1
+        {
+            abs my_z
+            abs mz
+
+            sub mz my_z
+            set RETURN mz
+        }
+        // otherwise one is negative and one is positive, we need to add the numbers together
+        else
+        {
+            abs my_z
+            abs mz
+
+            add my_z mz
+            set RETURN my_z
+        }
+    }
+ends
+
+/// <summary>
+/// Calculate a zvel needed for an actor or projectile to reach a given target
+/// <summary>
+/// <params name="my_target">Should be the actor id of the target (no calc happens if set to -1)</params>
+/// <params name="PROJECTILE_VEL">Should be set to the velocity of the projectile or actor.</params>
+/// <params name="CALCZ_TARGET_OFFSET">Default is 0, which means we're aiming at the target's feet. Offset in case you need to aim higher.</params>
+var PROJECTILE_VEL 0 2
+var CALCZ_TARGET_OFFSET 0 2
+
+defstate calczvel
+    ifn my_target -1
+        setvarvar target my_target
+
+    ifn target -1
+    {
+		// get zdist, todo base this on middle part of sprite instead of feet (would also mean calcz target offset is no longer needed)
+		geta[].z temp2
+        geta[target].z temp3
+		sub temp3 CALCZ_TARGET_OFFSET
+        sub temp3 temp2 // temp3 = zdist
+
+        ldist temp4 THISACTOR target
+		ife temp4 0 // prevent divide by zero
+			set temp4 1
+
+		// temp 5 = working var
+		// zvel = zdist * (proj vel / xy dist)
+		set temp5 temp3
+		mul temp5 PROJECTILE_VEL
+		div temp5 temp4
+
+
+		set temp3 temp5 // temp3 is expected output variable
+    }
+ends
+
+defstate calczvel_attackers // this function specifically for attacking targets
+
+	// skip for player
+	ifn my_target PLAYER_IDENTITY
+	  ifn my_target -1
+	{
+		// get my height
+		set temp2 THISACTOR
+		state getspriteheight
+		abs RETURN
+		set temp3 RETURN // backup in temp3
+
+		set temp2 my_target
+		state getspriteheight
+		abs RETURN
+
+		// assume the projectile spawns from the middle of the sprite. This will be correct in most cases. Will test where it isn't and add an override option..
+		div temp3 2
+
+		// Target between top and middle
+		div RETURN 2
+
+		// Compensate for shooter shooting from middle
+		sub RETURN temp3
+
+		set CALCZ_TARGET_OFFSET RETURN
+	}
+
+	state calczvel
+ends
+
+// Calculate that the difference between Angle A and Angle B does not exceed MAX_ANGLE_DIFF
+// sets RETURN to 1 if it does
+// Note this will fuck up if max angle diff is near/above 2048
+var MAX_ANGLE_DIFF 0 2
+var ANGLE_A 0 2
+var ANGLE_B
+defstate check_max_angle_diff
+    set temp2 ANGLE_B
+    sub temp2 MAX_ANGLE_DIFF
+
+    set temp3 ANGLE_B
+    add temp3 MAX_ANGLE_DIFF
+
+    ifl temp2 0
+        add temp2 2048
+
+    ifge temp3 2048
+        sub temp3 2048
+
+    set temp 0
+    set RETURN 0
+    ifl temp3 temp2
+    {
+        // we wrapped around the 0/2048 line, either case is enough
+        ifl ANGLE_A temp3
+            set temp 1
+        else ifg ANGLE_A temp2
+            set temp 1
+    }
+    else
+    {
+        // we didn't wrap around so needs to be inbetween [temp2-temp3]
+        ifge ANGLE_A temp2
+            ifle ANGLE_A temp3
+            set temp 1
+    }
+
+    ife temp 1
+        set RETURN 0
+    else
+        set RETURN 1
+ends
+
+// Checks if an actor needs to float down, up or straight depending on whether their intended target is below or above them
+// RETURN -1 if should go down, 0 if straight, 1 if up
+var FLOATING_CUR 0 2 // 0 for straight, -1 for down, 1 for up
+defstate float_check
+	// if no current target, but my previous target was the player, then keep previous action. Otherwise the beholder will kinda stick below edges cause they can't see the player anymore.
+	// so if active but no target but it was the player we just assume the player is just out of sight
+	set temp 0
+	ife my_target -1
+	{
+		ife my_previous_target PLAYER_IDENTITY
+		{
+			set temp 1 // recheck
+			geta[my_previous_target].z mz
+		}
+		else
+			set RETURN 0
+	}
+	else
+	{
+		set temp 1
+		geta[my_target].z mz
+	}
+
+    ife temp 1
+    {
+
+        geta[].z my_z
+
+        // prevent sticking to the player's Z coordinate like a fly on shit:
+        // depending on current floating direction, add or subtract some tolerance
+		// this doesn't work too well, I should probably fix it up
+		ifactor VRDUDE nullop
+		else ife my_target PLAYER_IDENTITY
+		{
+			ife FLOATING_CUR -1
+				add mz 4000
+			else ife FLOATING_CUR 1
+				sub mz 48000
+		}
+		else ife my_target -1 ife my_previous_target PLAYER_IDENTITY
+		{
+			ife FLOATING_CUR -1
+				add mz 4000
+			else ife FLOATING_CUR 1
+				sub mz 48000
+		}
+
+        ifg mz my_z
+            set RETURN -1
+        else ifl mz my_z
+            set RETURN 1
+        else
+            set RETURN 0
+
+        // if we're supposed to float down but we're on the floor, then go up
+		geta[].sectnum temp
+		geta[].x x
+		geta[].y y
+		geta[].z z
+
+        ife RETURN -1
+        {
+            getflorzofslope temp x y temp2
+            add z 2048 // comparison of Z coordinates isn't exact, add some margin of error
+
+			// if this is a TROR ceiling that isn't blocked then disregard and just keep doing what you doing
+			gets[temp].floorstat temp6
+
+			ifand temp6 1024
+			{
+				ifand temp6 512
+				  ifge z temp2
+					set RETURN 1
+			}
+            else ifge z temp2
+                set RETURN 1
+        }
+		else
+		{
+			set temp5 RETURN // backup
+
+			// determine how tall the sprite is with a little margin
+			set temp2 THISACTOR
+			state getspriteheight
+			set temp4 RETURN
+			abs temp4
+			add temp4 4096
+
+			// if we're hugging the ceiling (z coordinate is above ceiling height - sprite height + margin), float down
+			getceilzofslope temp x y temp3
+			add temp3 temp4
+
+			// if this is a TROR ceiling that isn't blocked then disregard and just keep doing what you doing
+			gets[temp].ceilingstat temp6
+
+			ifand temp6 1024
+			{
+				ifand temp6 512
+				{
+					ifle z temp2
+						set RETURN -1
+					else
+						set RETURN temp5
+				}
+				else
+					set RETURN temp5
+			}
+			else ifle z temp2
+				set RETURN -1
+			else
+				set RETURN temp5
+		}
+    }
+ends
+
+// Get the distance between 2 arbitrary coordinates
+var xdiff 0 2
+var ydiff 0 2
+var distance 0 2
+defstate distcoordinates
+	ifg my_x mx
+	{
+		set xdiff my_x
+		sub xdiff mx
+	}
+	else
+	{
+		set xdiff mx
+		sub xdiff my_x
+	}
+
+	ifg my_y my
+	{
+		set ydiff my_y
+		sub ydiff my
+	}
+	else
+	{
+		set ydiff my
+		sub ydiff my_y
+	}
+
+	calchypotenuse distance xdiff ydiff
+ends
+
+// Get the X/Y coordinate that's in front of the player.
+// Result is not reliable if RETURN not 0
+var FRONT_PLAYER_X 0 2
+var FRONT_PLAYER_Y 0 2
+defstate getxycoords_infront_player
+    // Uncomment this to determine the front based on the player's movement direction.
+	// I don't really like this behaviour for the Succubs personally, but if some other actor uses this we can differentiate...
+	// getangle angvar player[].posxv player[].posyv
+	getp[].ang angvar
+    getp[].i temp
+
+    cos xvel angvar
+    sin yvel angvar
+    shiftvarr xvel 3
+    shiftvarr yvel 3
+    getp[].posx mx
+    getp[].posy my
+
+    movesprite temp xvel yvel 0 65 RETURN
+
+    ife RETURN 0
+    {
+        geta[temp].x FRONT_PLAYER_X
+        geta[temp].y FRONT_PLAYER_Y
+    }
+
+    setp[].posx mx
+    setp[].posy my
+ends
+
+var FRONT_PLAYER_DIST 0 2 // THISACTOR distance from that point
+var FRONT_PLAYER_ANG 0 2 // THISACTOR angle to that point
+defstate getxycoords_front_player_2 // different calculation than the other state, which might be more reliable
+	getp[].posx x
+	getp[].posy y
+
+	set temp3 x
+	add temp3 64 // Distance from player
+
+	getp[].ang angvar
+
+	rotatepoint x y temp3 y angvar FRONT_PLAYER_X FRONT_PLAYER_Y
+
+	getp[].cursectnum temp7
+	getp[].posz z
+	updatesectorz FRONT_PLAYER_X FRONT_PLAYER_Y z temp7
+
+	ife temp7 -1
+		set RETURN 0
+	else
+	{
+		set RETURN 1
+
+		set mx FRONT_PLAYER_X
+		set my FRONT_PLAYER_Y
+		state angleToCoordinate
+		set FRONT_PLAYER_ANG angvar
+
+		set mx FRONT_PLAYER_X
+		set my FRONT_PLAYER_Y
+		state distcoordinates
+		set FRONT_PLAYER_DIST distance
+	}
+ends
+
+var BEHIND_PLAYER_X 0 2
+var BEHIND_PLAYER_Y 0 2
+var BEHIND_PLAYER_DIST 0 2 // THISACTOR distance from that point
+var BEHIND_PLAYER_ANG 0 2 // THISACTOR angle to that point
+defstate getxycoords_behind_player
+	getp[].posx x
+	getp[].posy y
+
+	set temp3 x
+	add temp3 2048 // Distance from player
+
+	getp[].ang angvar
+	sub angvar 1024 // flip angle
+
+	rotatepoint x y temp3 y angvar BEHIND_PLAYER_X BEHIND_PLAYER_Y
+
+	getp[].cursectnum temp7
+	getp[].posz z
+	updatesectorz BEHIND_PLAYER_X BEHIND_PLAYER_Y z temp7
+
+	ife temp7 -1
+		set RETURN 0
+	else
+	{
+		set RETURN 1
+
+		set mx BEHIND_PLAYER_X
+		set my BEHIND_PLAYER_Y
+		getp[].posz mz
+		state angleToCoordinate
+		set BEHIND_PLAYER_ANG angvar
+
+		set mx BEHIND_PLAYER_X
+		set my BEHIND_PLAYER_Y
+		state distcoordinates
+		set BEHIND_PLAYER_DIST distance
+	}
+ends
+
+var FLOORZ_ACTOR 0 2
+defstate setfloorzforactor
+    geta[FLOORZ_ACTOR].sectnum temp
+	geta[FLOORZ_ACTOR].x x
+	geta[FLOORZ_ACTOR].y y
+	getflorzofslope temp x y mz
+    seta[FLOORZ_ACTOR].z mz
+ends
+
+defstate lower_weapon
+    // this isn't going to be correct 100% of the time, but it should work for most cases
+    ife player[].weapon_pos 0
+        set weapon_lowersound_handled -1
+
+    setp[].weapon_pos 10
+ends
+
+var LOWER_WEAPON_SOUND 0 1
+defstate sound_lower_weapon
+    ife weapon_lowersound_handled -1
+        sound LOWER_WEAPON_SOUND
+
+    set weapon_lowersound_handled 1
+ends
+
+var ACTOR_STRAFING 0 2
+var strafe_duration -1 2
+var strafe_direction 0 2
+var strafe_speedshift -1 2
+defstate actor_strafe
+	ifmove STOP nullop
+	else move STOP
+
+	ife ACTOR_STRAFING 0
+	{
+		ifrnd 64
+			set strafe_direction 1
+		else
+			set strafe_direction -1
+
+		ife strafe_duration -1
+			set strafe_duration 5
+
+		set ACTOR_STRAFING strafe_duration
+	}
+
+	ifg ACTOR_STRAFING 0
+	{
+		geta[].ang movesprite_angvar
+
+		ife strafe_direction 1
+			sub movesprite_angvar 512
+		else
+			add movesprite_angvar 512
+
+		ife strafe_speedshift -1
+			set strafe_speedshift 5
+
+		set movesprite_shift strafe_speedshift
+		state movesprite_state
+		sub ACTOR_STRAFING 1
+	}
+ends
+
+defstate isnodropallowedsector
+	set RETURN 0
+
+	ife RETURN 0
+	{
+		// forbidden if floor is paralaxed
+		gets[].floorstat temp2
+		ifand temp2 1
+			set RETURN 1
+	}
+
+	ife RETURN 0
+	{
+		// forbidden if water sector
+		gets[].lotag temp2
+		ife temp2 1
+			set RETURN 1
+	}
+ends
+
+// Prevents actor from walking off ledges
+var prev_x 0 2
+var prev_y 0 2
+var prev_z 0 2
+var prev_sectnum -1 2
+defstate islargedrop
+	set RETURN 0
+
+	gets[prev_sectnum].floorz z
+	gets[].floorz mz
+	add z 32768 // experiment with this value for what feels good, or make it actor dependent
+	ifge mz z
+		set RETURN 1
+
+ends
+
+defstate detectledge
+	geta[].x x
+	geta[].y y
+	geta[].z z
+	geta[].sectnum temp
+
+	// we're moving into a new sector
+	ifn prev_sectnum -1
+		ifn prev_sectnum temp
+	{
+		state islargedrop
+
+		ife RETURN 0
+			state isnodropallowedsector
+
+		ife RETURN 1
+		{
+			// Reset to previous position
+			seta[].x prev_x
+			seta[].y prev_y
+			seta[].z prev_z
+			updatesector prev_x prev_y temp
+			seta[].sectnum temp
+
+			// adjust the angle so we don't hug the border
+			geta[].ang angvar
+
+			ifrnd 128
+				add angvar 256
+			else
+				sub angvar 256
+
+			seta[].ang angvar
+		}
+	}
+
+	set prev_x x
+	set prev_y y
+	set prev_z z
+	set prev_sectnum temp
+ends
+
+// Get the sectnum of the sector above the given one in a bunch
+// Input argument: mysector_backup = sectnum
+// Output: SECT_NUM is next sector number, or -1 if none available
+defstate getnextsectorofbunch_up
+	gets[mysector_backup].ceilingbunch temp
+
+	set temp4 -1
+
+	ifn temp -1
+	{
+
+		for temp2 allsectors
+		{
+			ifn temp4 -1
+				exit
+
+			gets[temp2].floorbunch temp3
+
+			ife temp3 temp
+				set temp4 temp2
+		}
+	}
+	else // There is no upper bunch so I guess I'm it
+		set temp4 mysector_backup
+
+	set SECT_NUM temp4
+ends
+
+// Get the top sectnum in a bunch
+// Input argument: mysector = starting sectnum
+// Output: SECT_NUM is the top sector
+defstate gettopsectorofbunch
+	set mysector_backup mysector
+	set SECT_NUM mysector
+
+	gets[SECT_NUM].ceilingbunch temp
+
+	// Bascially "recursive", keep calling until there's no more bunches
+	whilevarvarn temp -1
+	{
+		set mysector_backup SECT_NUM
+		state getnextsectorofbunch_up
+
+		ife SECT_NUM -1
+			set temp -1
+		else
+			gets[SECT_NUM].ceilingbunch temp
+	}
+ends
+
+defstate getnextsectorofbunch_down
+	gets[mysector_backup].floorbunch temp
+
+	set temp4 -1
+
+	ifn temp -1
+	{
+
+		for temp2 allsectors
+		{
+			ifn temp4 -1
+				exit
+
+			gets[temp2].ceilingbunch temp3
+
+			ife temp3 temp
+				set temp4 temp2
+		}
+	}
+	else // There is no lower bunch so I guess I'm it
+		set temp4 mysector_backup
+
+	set SECT_NUM temp4
+ends
+
+// Get the lowest sector in a TROR bunch
+// Input argument: mysector = starting sectnum
+// Output: SECT_NUM is the top sector
+defstate getbottomsectorofbunch
+	set mysector_backup mysector
+	set SECT_NUM mysector
+
+	gets[SECT_NUM].floorbunch temp
+
+	// Bascially "recursive", keep calling until there's no more bunches
+	whilevarvarn temp -1
+	{
+		set mysector_backup SECT_NUM
+		state getnextsectorofbunch_down
+		
+		ife SECT_NUM -1
+			set temp -1
+		else
+			gets[SECT_NUM].floorbunch temp
+	}
+ends
+
+// Input: sectnum in mysector
+defstate gettrorawarefloorz
+	ifand sector .floorstat 1024
+	{
+		state getbottomsectorofbunch
+		set mysector SECT_NUM
+	}
+	
+	getflorzofslope mysector sprite[].x sprite[].y z
+ends
+
+defstate setbadguyflag
+	geta[].htflags temp
+	or temp SFLAG_BADGUY
+	seta[].htflags temp
+ends
+
+defstate unsetbadguyflag
+	geta[].htflags temp
+	xor temp SFLAG_BADGUY
+	seta[].htflags temp
+ends
+
+// Find target states
+var TARGET_SEARCH_PARAM -1 2
+
+// find first actor by picnum
+// Result returned in RETURN var
+defstate findfirstactorbypicnum
+	ifg TARGET_SEARCH_PARAM -1
+	{
+		set targets_iterator 0
+		set RETURN -1
+		whilel targets_iterator targets_range
+		{
+			ifn RETURN -1
+			{
+				set targets_iterator targets_range
+				exit
+			}
+
+			set temp targets[targets_iterator]
+
+			ife temp -2
+			{
+				set targets_iterator targets_range
+				exit
+			}
+
+			ifg temp -1
+			  ife sprite[temp].picnum TARGET_SEARCH_PARAM
+				set RETURN temp
+
+			add targets_iterator 1
+		}
+	}
+ends
+
+defstate detectcombat
+	set RETURN 0
+
+	// old style is using enemies_cleared
+	ifl enemies_cleared 150
+		set RETURN 1
+	// new style is using targets array. Check if the player can see any non-allied faction thing
+	else
+	{
+		set targets_iterator 0
+
+		whilel targets_iterator targets_range
+		{
+			ifn RETURN 0
+			{
+				set targets_iterator targets_range
+				exit
+			}
+
+			set temp targets[targets_iterator]
+
+			ife temp -2
+			{
+				set targets_iterator targets_range
+				exit
+			}
+
+			ifg temp -1
+			{
+				getav[temp].faction_flag temp2
+
+				ifn temp2 ALLIED_FACTION_FLAG
+				{
+					geta[temp].z mz
+					sub mz 8192
+					seta[temp].z mz
+					canseespr temp PLAYER_IDENTITY RETURN
+					add mz 8192
+					seta[temp].z mz
+				}
+			}
+
+			add targets_iterator 1
+		}
+	}
+ends
+
+
+
+// Result in temp2 (not return cause I'm not sure if that won't cause fucky behavior)
+defstate is_autosave_playtest
+	qgetsysstr 7503 STR_MAPNAME
+	qputs 7504 /autosave_playtest.map
+	qstrcmp 7503 7504 temp2
+ends
+
+// ifcansee checks the base of the sprite, ie. the feet, we want eye level
+// 8192 is a good value for almost all cases
+defstate canseeateyelevel
+	set RETURN 0
+
+	geta[].z z
+	sub z 8192
+	seta[].z z
+
+	ifcansee
+		set RETURN 1
+
+	add z 8192
+	seta[].z z
+ends
+
+defstate spawnflareeffects
+	ifpdistlvar opt_particle_distance // if player is within defined distance, spawn extra flare effects
+	{
+		espawn PROJECTILE_FLARE
+		geta[].htg_t 0 temp2
+		set temp3 sprite[].x
+		ifg temp2 11 add temp3 64
+		else ifg temp2 5 add temp3 256
+		else add temp3 300
+		geta[].ang temp4
+		add temp4 512
+		rotatepoint sprite[].x sprite[].y temp3 sprite[].y temp4 temp5 temp6
+		seta[RETURN].x temp5
+		seta[RETURN].y temp6
+		seta[RETURN].ang sprite[].ang
+		geta[].z temp4
+		ifg temp2 11 sub temp4 8062
+		else ifg temp2 5 sub temp4 12784
+		else sub temp4 14784
+		seta[RETURN].z temp4
+	}
+ends
+
+// For use in display code, display code is tied to framerate so if something needs to show up for a number of seconds on any given framerate, use this
+// It will base its calculation on the timing at 60 FPS.
+// The output will be by how much a timing value needs to be multiplied to have the same timing at higher or lower framerates.
+var NORMALIZED_FACTOR 1 1
+defstate getfactornormalizedframerate
+	set NORMALIZED_FACTOR 1
+	
+	set temp framerate
+	div temp 60
+
+	set temp2 framerate
+	mod temp2 60
+
+	ifn temp2 0
+		add temp 1
+
+	set NORMALIZED_FACTOR temp
+ends
+
+
+// For value PERCENTAGE_IN, calculate how much is PERCENTAGE_PERCENT of it and return in PERCENTAGE_OUT
+// Eg if percentage_in is 2 then 50% of it is 1
+var PERCENTAGE_PERCENT 0 1
+var PERCENTAGE_IN 0 1
+var PERCENTAGE_OUT 0 1
+defstate getpercentage
+	set temp8 PERCENTAGE_IN
+	mul temp8 PERCENTAGE_PERCENT
+	set temp9 temp8
+	mod temp9 100
+	div temp8 100
+	set PERCENTAGE_OUT temp8
+	
+	// round up
+	ifn temp9 0
+		add PERCENTAGE_OUT 1
+ends

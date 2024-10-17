@@ -1,0 +1,439 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+
+--------------------------------------------------------------------------------
+*/
+
+damageeventtile GORILLA
+
+action A_GORILLA_START 0 1 5 1 20
+action A_GORILLA_IDLE 0 1 5 1 20
+action A_GORILLA_DEAD 35 1 1 1 10
+action A_GORILLA_HEADDEAD 41 1 1 1 10
+action A_GORILLA_HEADSHOT 36 6 1 1 16
+action A_GORILLA_DYING 30 6 1 1 16
+action A_GORILLA_FREEZE 0 1 5 1 10
+action A_GORILLA_GROW 30 1 1 1 10
+action A_GORILLA_SHRUNK  0  4 5 1 12
+action A_GORILLA_PAIN 30 1 1 1 10
+action A_GORILLA_SEEK  0  4 5 1 12
+action A_GORILLA_ATTACK 20 2 5 1 4
+action A_GORILLA_RELOAD 20 1 5 1 4
+
+move M_GORILLA_WALK 140
+move M_GORILLA_RUN 200
+
+useractor enemystayput GORILLA_STAYPUT 275 A_GORILLA_START
+state monst_glow
+cactor GORILLA
+enda
+
+useractor enemy GORILLA 275 A_GORILLA_START
+fall
+
+ifaction A_GORILLA_START
+{
+	state monst_glow
+	spriteflags NORMAL_ENEMY
+	spawn SHOOTME
+	// TODO uncomment this when we get rid of SHOOTME spawn FLAMMABLE
+	geta[].pal actor_pal
+	set NPC_SHIELD 0
+	ife actor_pal 10 { strength 600 sizeat 40 40 } else
+	ife actor_pal 13 { set actor_type TYPE_BODY_ARMOUR set NPC_SHIELD 500 spritepal 0 strength 2000 sizeat 45 45 } else
+	ife actor_pal 24 { set actor_type TYPE_BODY_ARMOUR strength 400 sizeat 35 35  } else
+	{ strength 275 sizeat 30 30 }
+	action A_GORILLA_IDLE
+	cstat 257
+}
+
+state enemyfloordamage
+state enemy_fire_damage
+state enemy_ice_damage
+state enemy_spirit_damage
+
+ifaction A_GORILLA_IDLE
+{
+	move STOP
+	state checkfortarget
+	ifn my_target -1
+	{
+		ifrnd 128 sound GORILLA_ALERT2
+		else sound GORILLA_ALERT1
+
+		action A_GORILLA_SEEK
+	}
+}
+else ifaction A_GORILLA_DEAD
+{
+	move STOP
+    ifhitweapon
+	{
+		ifwasweapon RADIUSEXPLOSION
+		{
+			state squish_sounds
+			state standard_jibs
+			killit
+		}
+	}
+}
+else ifaction A_GORILLA_HEADDEAD
+{
+	move STOP
+    ifhitweapon
+	{
+		ifwasweapon RADIUSEXPLOSION
+		{
+			state squish_sounds
+			state standard_jibs
+			killit
+		}
+	}
+}
+else ifaction A_GORILLA_HEADSHOT
+{
+	move STOP
+	strength 0
+	ifactioncount 6 { state BODY_FALL_NOISES spawn BLOODPOOL action A_GORILLA_HEADDEAD }
+}
+else ifaction A_GORILLA_DYING
+{
+	move STOP
+	strength 0
+	ifactioncount 6 { state BODY_FALL_NOISES spawn BLOODPOOL action A_GORILLA_DEAD }
+}
+else ifaction A_GORILLA_FREEZE state frozen_code
+else ifaction A_GORILLA_GROW
+{
+	move STOP
+	state genericgrowcode
+}
+else ifaction A_GORILLA_SHRUNK
+{
+	ifmove M_GORILLA_WALK { } // need to do this cause we're not using ai routines anymore
+	else
+		move M_GORILLA_WALK geth fleeenemy
+
+	ifl SHRUNK_TIME SHRUNKCOUNT // keep shrunk
+		state new_shrunkcode
+	else ifl SHRUNK_TIME SHRUNKDONECOUNT // regrow
+	{
+		state unshrink
+		ife actor_pal 10 sizeto 40 40
+		else ife actor_pal 13 sizeto 45 45
+		else ife actor_pal 24 sizeto 35 35
+		else sizeto 30 30
+	}
+	else // after regrow, switch back to regular action
+	{
+		state endshrunkenstate
+		action A_GORILLA_SEEK
+	}
+}
+else ifaction A_GORILLA_PAIN
+{
+	sub PAIN_AMOUNT 1
+	move STOP
+	ife PAIN_AMOUNT 0
+	{
+		ifdead action A_GORILLA_DYING
+		else action A_GORILLA_SEEK
+	}
+}
+else ifaction A_GORILLA_SEEK
+{
+	ifmove M_GORILLA_RUN { }
+	else
+		move M_GORILLA_RUN geth
+
+	state checkfortarget
+
+	ifn my_target -1
+	{
+		// Target acquired, skill setting can still affect decision to shoot.
+		// TODO maybe this should only be called if the target is the player?
+		state SKILL_SHOOT_LEVELADJUST
+
+		ifg shoot_countdown 0 sub shoot_countdown 1
+			ifl shoot_countdown 1
+				ifl RANDOM_CHANCE SKILLCHANCE
+				{
+					// Assume target still acquired, is rechecked on next tic anyway
+					action A_GORILLA_ATTACK
+				}
+			ifrnd 16 soundonce GORILLA_ROAM
+	}
+}
+else ifaction A_GORILLA_ATTACK
+{
+	move STOP
+	state fronttowardstarget
+	ifactioncount 2
+	{
+		ife actor_pal 10
+		{
+			set PROJECTILE_TO_SHOOT MICRO_MISSILE
+			set PROJECTILE_FIRING_SOUND Z_MISSILE_FIRE
+			// bigger guy so need to aim a little bit lower to be able to hit most targets
+			set CALCZ_TARGET_OFFSET -5000
+			state sang_enemyShootProjectile
+			set INTERNALCOUNT 0
+			action A_GORILLA_RELOAD
+		}
+		else ife actor_pal 16
+		{
+		set PROJECTILE_STRENGTH 12
+		set PROJECTILE_TO_SHOOT ENEMY_BULLET
+		set PROJECTILE_FIRING_SOUND M60_FIRE
+		state sang_enemyShootProjectile
+		}
+		else ife actor_pal 11
+		{
+			add ally_mag 1
+
+			set PROJECTILE_TO_SHOOT ENEMY_SHOTGUN
+			set PROJECTILE_FIRING_SOUND RIOTGUN_FIRE
+			state sang_enemyShootProjectile
+
+			// chain another shot (could add more for higher damage output)
+			ife HITSCAN_SHOT_FIRED 1
+				zshoot temp3 ENEMY_SHOTGUN
+
+			ifg ally_mag 3 { set INTERNALCOUNT 0 action A_GORILLA_RELOAD }
+		}
+		else ife actor_pal 13
+		{
+			// TODO enemyshoothitscan state wasn't working for this one. Not sure why
+			state checkfortarget
+
+			ifn my_target -1
+			{
+			set PROJECTILE_TO_SHOOT ENEMY_BULLET
+			set PROJECTILE_FIRING_SOUND BOS1_ATTACK1
+			state sang_enemyShootProjectile
+			state sang_enemyShootProjectile
+			state sang_enemyShootProjectile
+			state sang_enemyShootProjectile
+			shoot FAKE_BULLET
+			shoot FAKE_BULLET
+			shoot FAKE_BULLET
+			shoot FAKE_BULLET
+			}
+		}
+		else ife actor_pal 49
+			{
+			set PROJECTILE_STRENGTH 10
+			set PROJECTILE_TO_SHOOT ENEMY_BULLET
+			set PROJECTILE_FIRING_SOUND FNFAL_FIRE
+			state sang_enemyShootProjectile
+			}
+		else
+		{
+			state SKILL_ENEMY_ACCURACY
+			set PROJECTILE_TO_SHOOT ENEMY_BULLET
+			set PROJECTILE_FIRING_SOUND AK104FIRE
+			state sang_enemyShootProjectile
+		}
+		ife PERFMODE 1
+			ifcansee
+			{
+				set gunsmoke_z 7644
+				set gunsmoke_angle 256
+				state spawn_gunsmoke_z
+				ife actor_pal 11 shoot 3761 else
+				ife actor_pal 10 nullop else
+				state npc_rifleshell
+				set gunsmoke_z 7044
+				ife actor_pal 10 espawn 16115 else ife actor_pal 11 espawn 16115 else
+				state spawn_enemy_ARFLASH
+				state spawn_muzzleflash
+			}
+		globalsound DISTANT_RIFLE
+		ife actor_pal 13 nullop else
+		ifrnd 32  action A_GORILLA_SEEK
+		ife my_target -1 action A_GORILLA_SEEK
+		resetactioncount
+	}
+}
+else ifaction A_GORILLA_RELOAD
+{
+	move STOP
+	add INTERNALCOUNT 1
+	ife actor_pal 11
+	{
+		ife INTERNALCOUNT 10 sound RIOTGUN_BOLT
+		ife INTERNALCOUNT 25 sound RIOTGUN_COCK
+		ife INTERNALCOUNT 30
+		{
+			set ally_mag 0
+			action A_GORILLA_SEEK
+		}
+	}
+	else ife actor_pal 10
+	{
+		ife INTERNALCOUNT 10 sound RANGER_ROTATE
+		ife INTERNALCOUNT 30
+		{
+			action A_GORILLA_SEEK
+		}
+	}
+}
+
+ife actor_pal 13 state ENEMY_SHIELD_STUFF
+
+ifhitweapon
+{
+	state NEWGUNEFFECTS
+	//spawn BLOOD
+	guts JIBS6 1
+	state random_wall_jibs
+	ifdead
+	{
+		ifwasweapon GROWSPARK { cstat 0 sound ACTOR_GROWING action A_GORILLA_GROW break }
+		else ifg ice_damage 0 { spritepal 1 strength 1 sound SOMETHINGFROZE action A_GORILLA_FREEZE }
+		else
+			{
+			ife actor_pal 13
+			ife CHAR 6
+				{
+				add TREASURE_FOUND 5
+				ife gp_subt 0
+						{
+						set subt_id 13006
+						set gp_subt 87
+						}
+				globalsound G_RAINF3
+				}
+			state rf
+			addkills 1
+
+			ifg fire_damage 0
+			{
+			shoot SPARK shoot SPARK shoot SPARK
+			sound GORILLA_DIE
+			spawn 33964
+			killit
+			}
+			else
+			ife HEADSHOT 2
+			{
+			ifg fire_damage 0 set fire_damage 0
+				state random_trigger_showoff
+				state jib_sounds
+				state decap_sounds
+				shoot NJIB
+				shoot NJIB
+				guts JIBS6 4
+				guts JIBS2 2
+				action A_GORILLA_HEADSHOT
+			}
+			else ifg spirit_damage 0
+			{
+			shoot SPARK2 shoot SPARK2 shoot SPARK2
+			spritepal 1
+			guts JIBS3 6
+			spawn SPIRIT_DEATH_GUY
+			killit
+			}
+			else
+			ifg energy_damage 0
+				{
+				shoot SPARK2 shoot SPARK2 shoot SPARK2
+				spritepal 4
+				guts JIBS3 6
+				spawn DISINTIGRATE_BIG_GUY
+				killit
+				}
+			else
+				{
+				sound GORILLA_DIE
+				action A_GORILLA_DYING
+				}
+			}
+		ifrnd 16
+			{
+			ife actor_pal 16
+				{
+				espawn M60_SPRITE randvar temp 50
+				add temp 20
+				setactorvar[RETURN].YVELSAVED temp
+				}
+			else
+			ife actor_pal 10
+				{
+				espawn ZMISSILELSPRITE randvar temp 2
+				add temp 5
+				setactorvar[RETURN].YVELSAVED temp
+				}
+			else
+			ife actor_pal 11
+				{
+				espawn RIOTGUNSPRITE randvar temp 8
+				add temp 4
+				setactorvar[RETURN].YVELSAVED temp
+				}
+			else
+			ife actor_pal 13
+				{
+				espawn RIOTGUN_MINIGUN_SPRITE randvar temp 100
+				add temp 100
+				setactorvar[RETURN].YVELSAVED temp
+				}
+			else
+			ife actor_pal 49
+				{
+				espawn FNFALSPRITE randvar temp 15
+				add temp 5
+				setactorvar[RETURN].YVELSAVED temp
+				}
+			else
+				{
+				espawn AK114SPRITE randvar temp 15
+				add temp 15
+				setactorvar[RETURN].YVELSAVED temp
+				}
+			}
+		ifphealthl 50
+			{
+			state SKILL_LEVELADJUST
+			ifl RANDOM_CHANCE SKILLCHANCE spawn 20159
+			}
+	}
+	else
+	{
+		// Shrunk detection always goes first
+		ifwasweapon SHRINKSPARK { sound ACTOR_SHRINKING action A_GORILLA_SHRUNK }
+
+		ifg PAIN_AMOUNT 0 action A_GORILLA_PAIN
+		else ifrnd 16 { sound GORILLA_PAIN state PAIN_SKILL_LEVELADJUST action A_GORILLA_PAIN }
+		// If they were idle, getting hit ALWAYS wakes them up
+		else ifaction A_GORILLA_IDLE { sound GORILLA_PAIN state PAIN_SKILL_LEVELADJUST action A_GORILLA_PAIN }
+	}
+}
+
+state checksquished
+
+enda

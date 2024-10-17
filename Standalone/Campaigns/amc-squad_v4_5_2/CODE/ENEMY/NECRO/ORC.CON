@@ -1,0 +1,678 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+
+--------------------------------------------------------------------------------
+*/
+
+damageeventtile ORC
+
+action A_ORC_IDLE 0 1 5 1 12
+action A_ORC_START 0 1 5 1 12
+action A_ORC_WALK 0 4 5 1 12
+action A_ORC_SHRUNK 0 4 5 1 12
+action A_ORC_GROW 35 1 1 1 8
+
+action A_ORC_ATTACK 20 3 5 1 12
+action A_ORC_ATTACK2 98 3 5 1 12
+action A_ORC_ATTACK3 113 3 5 1 16
+
+action A_ORC_PREP_THROW 152 1 5 1 20
+action A_ORC_THROW 152 2 5 1 20
+
+action A_ORC_PAIN 35 1 1 1 8
+action A_ORC_FROZEN 35 1 1 1 8
+
+action A_ORC_RESS 40 5 1 -1 12
+
+action A_ORC_DIE 35 5 1 1 12
+action A_ORC_DEAD 40
+action A_ORC_HEADSHOT 146 6 1 1 12
+action A_ORC_HEADDEAD 151
+action A_ORC_DIE2 128 6 1 1 12
+action A_ORC_DEAD2 133
+action A_ORC_BIDIE 6037 2 1 1 16
+action A_ORC_BIDEAD 6038
+
+action A_ORC_SLASHED_RIGHT 134 6 1 1 12
+action A_ORC_SLASHED_R_DEAD 139
+action A_ORC_SLASHED_LEFT 140 6 1 1 12
+action A_ORC_SLASHED_L_DEAD 145
+
+move ORC_WALK 126
+
+defstate orc_torsofly
+	state random_trigger_showoff
+	sound TORS_BISEC
+	setprojectile[ORC_TORSO_FLY].pal sprite[].pal
+	ezshoot -4096 ORC_TORSO_FLY
+	setprojectile[ORC_TORSO_FLY].pal 0
+	geta[].htang temp4
+	seta[RETURN].ang temp4
+	espawn BIG_BLOOD_EXE
+	seta[RETURN].pal 8
+	shoot ORC_SWORD_DROP
+	action A_ORC_BIDIE
+ends
+
+defstate spawnsquadorc
+	set squad_leader THISACTOR
+	set squad_id next_squad_id
+	add next_squad_id 1
+
+	// Spawn <temp2> buddies
+	set temp 1
+	set temp2 10
+	for temp range temp2 {
+		add temp 1
+		espawn ORC // TODO spawn around me and not in me
+		seta[RETURN].pal 0
+		setav[RETURN].squad_leader THISACTOR
+		setav[RETURN].squad_id squad_id
+	}
+ends
+
+appendevent EVENT_LOADACTOR
+	ifactor ORC
+	{
+		geta[].extra EXTRASAVED
+
+		ife EXTRASAVED 1
+			state spawnsquadorc
+	}
+endevent
+
+defstate orc_flyback
+	setprojectile[ORC_CORPSE_FLY].pal sprite[].pal
+	eshoot ORC_CORPSE_FLY
+	setprojectile[ORC_CORPSE_FLY].pal 0
+	geta[].htang temp4
+	seta[RETURN].ang temp4
+	shoot ORC_SWORD_DROP
+	killit
+ends
+
+defstate orc_ress
+	ifaction A_ORC_HEADDEAD break
+	ifaction A_ORC_BIDEAD break
+	strength 300
+	spawn 13949
+	spritepal 63
+	ifge necro_ress 0 sub necro_ress 1
+	ifrnd 128 sound ZORC_SIG1
+	else sound ZORC_SIG2
+	action A_ORC_RESS
+ends
+
+defstate orc_deadcode
+	move STOP
+	strength 0
+    ifhitweapon
+	{
+		ifwasweapon RADIUSEXPLOSION
+		{
+			shoot ORC_HEAD
+			shoot ORC_SWORD_DROP
+			spritepal 8
+			state squish_sounds
+			state standard_jibs
+			killit
+		}
+		break
+	}
+	ife necro_ress -1
+	 ifn sprite[].pal 63
+		state orc_ress
+
+	ifg necro_ress 0
+		ifpdistl 8192
+			ifrnd 32
+			 ifn sprite[].pal 63 // not already resurrected?
+			  state orc_ress
+ends
+
+defstate orc_selectattack
+	ifrnd 96 action A_ORC_ATTACK3
+	else ifrnd 96 action A_ORC_ATTACK2
+	else action A_ORC_ATTACK
+ends
+
+defstate orc_throwattack
+	move STOP
+	ife my_target -1 action A_ORC_WALK
+	else
+	{
+	ldist temp THISACTOR my_target
+	ifg temp 8192 action A_ORC_WALK
+	else state fronttowardstarget
+	ifactioncount 2
+		{
+			sub ally_mag 1
+			// if not aiming at player, manipulate noaim
+			ifn my_target PLAYER_IDENTITY
+				setprojectile[BLACK_POWD_BOMB].WORKSLIKE 2125890
+			else
+				setprojectile[BLACK_POWD_BOMB].WORKSLIKE 2099246
+
+			shoot BLACK_POWD_BOMB
+			setprojectile[BLACK_POWD_BOMB].WORKSLIKE 2099246
+
+			action A_ORC_WALK
+		}
+	}
+ends
+
+defstate orc_doattack
+	move STOP
+	ife my_target -1 action A_ORC_WALK
+	else
+	{
+	ldist temp THISACTOR my_target
+	ifg temp 1536 action A_ORC_WALK
+	else state fronttowardstarget
+
+	ifspritepal 63 // zombie Orc?
+		{
+		// no overlapping sounds
+		ifsound ZORC_ATCK1 nullop
+		else ifsound ZORC_ATCK2 nullop
+		else
+			{
+				ifrnd 128 sound ZORC_ATCK1
+				else sound ZORC_ATCK2
+			}
+		}
+	else
+		{
+		// no overlapping sounds
+		ifsound ORC_ATTACK1 nullop
+		else ifsound ORC_ATTACK2 nullop
+		else ifsound ORC_ATTACK3 nullop
+		else
+			{
+				ifrnd 96 sound ORC_ATTACK1
+				else ifrnd 96 sound ORC_ATTACK2
+				else sound ORC_ATTACK3
+			}
+		}
+
+	ifactioncount 3
+		{
+			ife my_target PLAYER_IDENTITY
+			 ifpdistl 1536
+				ifn SWORD_BLOCK 0
+				 ifp pfacing
+					{
+					shoot SPARK shoot SPARK shoot SPARK shoot SPARK shoot SPARK
+					sub p_stamina 40
+					wackplayer
+					sound SWORD_CLASH
+					set PAIN_AMOUNT 16
+					action A_ORC_PAIN
+					break
+					}
+			// if not aiming at player, manipulate noaim
+			ifn my_target PLAYER_IDENTITY
+				setprojectile[4963].WORKSLIKE 2125890
+			else
+				setprojectile[4963].WORKSLIKE 2129986
+
+			setprojectile[4963].RANGE 4
+
+			ife my_target PLAYER_IDENTITY
+				shoot 4963
+			else
+			{
+				// targets can be smaller... so need to use appropriate zvel calc
+				set PROJECTILE_FIRING_SOUND -1
+				set PROJECTILE_TO_SHOOT 4963
+				state sang_enemyShootProjectile
+			}
+			setprojectile[4963].WORKSLIKE 2129986
+
+			action A_ORC_WALK
+		}
+	}
+ends
+
+useractor enemystayput ORC_STAYPUT 75 A_ORC_START cactor ORC enda
+
+useractor enemy ORC 75 A_ORC_START
+fall
+
+// used as throw grenade cooldown
+ifg INTERNALCOUNT 0
+	sub INTERNALCOUNT 1
+else ifl INTERNALCOUNT 0
+	set INTERNALCOUNT 0
+
+ifdead nullop else
+ifactornotstayput state detectledge
+
+ifaction A_ORC_START
+{
+	set INTERNALCOUNT 80
+
+	cstat 257
+	set blood_type 8
+	ifspritepal 25
+		{
+		set ally_mag SKILL_LEVEL // has skill level no of bombs
+		strength 200
+		sizeat 32 32
+		}
+	else
+		{
+		set ally_mag SKILL_LEVEL
+		sub ally_mag 1 // has skill level no -1 of bombs
+		ife INVASION 1 set ally_mag 0 // ...but no bombs during big battle scenes
+		strength 75
+		sizeat 26 26
+		}
+	state monst_glow
+	espawn SHOOTME seta[RETURN].pal 1
+	// TODO uncomment when we get rid of shootme spawn FLAMMABLE
+
+	action A_ORC_IDLE
+}
+
+ifg npc_talking 0 sub npc_talking 1
+
+state ENEMYKNOCKBACKS
+state enemyfloordamage
+state enemy_fire_damage
+state enemy_ice_damage
+state enemy_spirit_damage
+
+ifg sprite[].htextra 0
+{
+  ife sprite[].htpicnum BLACK_POWD_BOMB seta[].htextra -1
+}
+
+ifaction A_ORC_FROZEN
+{
+	state frozen_code
+}
+else ifaction A_ORC_DEAD state orc_deadcode
+else ifaction A_ORC_HEADDEAD state orc_deadcode
+else ifaction A_ORC_DEAD2 state orc_deadcode
+else ifaction A_ORC_BIDEAD state orc_deadcode
+else ifaction A_ORC_SLASHED_R_DEAD state orc_deadcode
+else ifaction A_ORC_SLASHED_L_DEAD state orc_deadcode
+else ifaction A_ORC_SLASHED_RIGHT
+	{
+	ifg SLO_MO_SHOWOFF 0 action A_ORC_SLASHED_RIGHT
+	strength 0
+	ifactioncount 5 { state SQUISH_FALL_NOISES action A_ORC_SLASHED_R_DEAD espawn BLOODPOOL seta[RETURN].pal 8 }
+	}
+else ifaction A_ORC_SLASHED_LEFT
+	{
+	ifg SLO_MO_SHOWOFF 0 action A_ORC_SLASHED_LEFT
+	strength 0
+	ifactioncount 5 { state SQUISH_FALL_NOISES action A_ORC_SLASHED_L_DEAD espawn BLOODPOOL seta[RETURN].pal 8 }
+	}
+else ifaction A_ORC_DIE
+	{
+	strength 0
+	ifactioncount 5 { state rf state BODY_FALL_NOISES action A_ORC_DEAD espawn BLOODPOOL seta[RETURN].pal 8 }
+	}
+else ifaction A_ORC_BIDIE
+	{
+	strength 0
+	ifactioncount 2 { state rf state BODY_FALL_NOISES action A_ORC_BIDEAD espawn BLOODPOOL seta[RETURN].pal 8 }
+	}
+else ifaction A_ORC_DIE2
+	{
+	strength 0
+	ifactioncount 5 { state rf state BODY_FALL_NOISES action A_ORC_DEAD2 espawn BLOODPOOL seta[RETURN].pal 8 }
+	}
+else ifaction A_ORC_HEADSHOT
+	{
+	strength 0
+	ifactioncount 5 { state rf state BODY_FALL_NOISES action A_ORC_HEADDEAD espawn BLOODPOOL seta[RETURN].pal 8 }
+	}
+else ifaction A_ORC_PAIN
+{
+	ifactioncount 0
+	{
+		ifsound ZORC_PAIN1 nullop
+		else ifsound ORC_PAIN1 nullop
+		else ifsound ORC_PAIN2 nullop
+		else ifsound ORC_PAIN3 nullop
+		else ifspritepal 63 sound ZORC_PAIN1
+		else ifrnd 96 sound ORC_PAIN1
+		else ifrnd 96 sound ORC_PAIN2
+		else sound ORC_PAIN3
+	}
+
+	sub PAIN_AMOUNT 1
+	ife PAIN_AMOUNT 0
+	{
+		ifdead break
+		action A_ORC_WALK
+	}
+}
+else ifaction A_ORC_SHRUNK
+{
+	ifmove ORC_WALK { }
+	else
+		move ORC_WALK geth fleeenemy
+
+	ifl SHRUNK_TIME SHRUNKCOUNT // keep shrunk
+		state new_shrunkcode
+	else ifl SHRUNK_TIME SHRUNKDONECOUNT // regrow
+	{
+		state unshrink
+		sizeto 26 26
+	}
+	else // after regrow, switch back to regular action
+	{
+		state endshrunkenstate
+		action A_ORC_WALK
+	}
+}
+else ifaction A_ORC_GROW
+{
+	move STOP
+	state genericgrowcode
+}
+else ifaction A_ORC_IDLE
+{
+	move STOP
+	state checkfortarget
+	ifn my_target -1
+	{
+		ifspritepal 63
+			{
+			ifrnd 128 sound ZORC_SIG1
+			else sound ZORC_SIG2
+			}
+		else
+			{
+			randvar temp 50
+			ifl temp 10 sound ORC_SIGHT1
+			else ifl temp 20 sound ORC_SIGHT2
+			else ifl temp 30 sound ORC_SIGHT3
+			else ifl temp 40 sound ORC_SIGHT4
+			else sound ORC_SIGHT5
+			}
+		action A_ORC_WALK
+	}
+}
+else ifaction A_ORC_WALK
+{
+	ifmove ORC_WALK { }
+	else
+		move ORC_WALK geth
+
+	ifrnd 8
+	ife npc_talking 0
+		{
+		ifspritepal 63
+			{
+			ifrnd 128 sound ZORC_SIG1
+			else sound ZORC_SIG2
+			}
+		else
+			{
+			ifrnd 96 sound ORC_IDLE1
+			else ifrnd 96 sound ORC_IDLE2
+			else ifrnd 96 sound ORC_IDLE3
+			else sound ORC_IDLE4
+			}
+		set npc_talking 150
+		}
+
+	state checkfortarget
+
+	ifn my_target -1
+	{
+		dist temp THISACTOR my_target // if found, get distance
+		ifl temp 1024 state orc_selectattack // if target is less than distance, attack
+		else ife INTERNALCOUNT 0 ifl temp 8192 ifg temp 2048 ifrnd 12 ifg ally_mag 0 { sound ORC_THROW1 action A_ORC_PREP_THROW }
+	}
+}
+else ifaction A_ORC_RESS
+	{
+	cstat 257
+	ifactioncount 5
+		{
+			set INTERNALCOUNT 80
+			cstat 257
+			state addtotargetarray
+			espawn SHOOTME seta[RETURN].pal 1
+			action A_ORC_WALK
+		}
+	}
+else ifaction A_ORC_ATTACK
+	state orc_doattack
+else ifaction A_ORC_ATTACK2
+	state orc_doattack
+else ifaction A_ORC_ATTACK3
+	state orc_doattack
+else ifaction A_ORC_PREP_THROW
+{
+	move STOP
+	ife my_target -1
+		action A_ORC_WALK
+	else
+		state fronttowardstarget
+
+	ifactioncount 2
+		action A_ORC_THROW
+}
+else ifaction A_ORC_THROW
+{
+	set INTERNALCOUNT 120
+	state orc_throwattack
+}
+
+ifhitweapon
+{
+	state NEWGUNEFFECTS
+	spritepal 8
+	espawn BLOOD
+	seta[RETURN].pal 8
+	guts JIBS6 1
+	state random_wall_jibs
+	getlastpal
+	ifdead
+		{
+		addkills 1
+		ifspritepal 63
+			{
+			shoot SPARK2 shoot SPARK2 shoot SPARK2
+			spritepal 1
+			guts JIBS3 6
+			sound ZORC_DIE1
+			spawn SPIRIT_DEATH_GUY
+			killit
+			}
+		ifwasweapon RADIUSEXPLOSION
+		  {
+		  geta[].extra temp
+		  ifg temp -50 state orc_flyback
+		  shoot ORC_HEAD
+		  shoot ORC_SWORD_DROP
+		   spritepal 8
+			state squish_sounds
+			state human_jibs
+		  state standard_jibs
+			killit
+		  }
+		ifwasweapon RPG
+		  {
+		  geta[].extra temp
+		  ifg temp -50 state orc_flyback
+		  shoot ORC_SWORD_DROP
+		  spritepal 8
+			state squish_sounds
+			state human_jibs
+		  state standard_jibs
+			killit
+		  }
+		ifand PROJ_UDATA PROJ_GIB
+		  {
+		  geta[].extra temp
+		  ifg temp -50 state orc_flyback
+		  shoot ORC_SWORD_DROP
+		  spritepal 8
+			state squish_sounds
+			state human_jibs
+		  state standard_jibs
+			killit
+		  }
+		ifand PROJ_UDATA 8192
+			 {
+			 ifrnd 4 soundonce MALE_ELECT1
+			 spawn ELECTROCUTE_ORC
+			 shoot SPARK2 shoot SPARK2 shoot SPARK2
+			 killit
+			 }
+		 ifwasweapon CHAINSAW_PROJ
+				{
+				set npc_chainsaw_struggle 54
+				set npc_chainsaw_id 8
+				set cultist_pal sprite[].pal
+				ifrnd 128 sound ORC_DIE1
+				else sound ORC_DIE2
+				state rf
+				action A_ORC_SLASHED_RIGHT
+				}
+		else
+		ifwasweapon SAWBLADE state orc_torsofly
+		else ifwasweapon SAWBLADE_BOUNCE state orc_torsofly
+		else ifwasweapon SNOWFALL_DISC state orc_torsofly
+		else ifwasweapon 6875 ife CHAR 2 state orc_torsofly
+		else ifwasweapon GROWSPARK { cstat 0 sound ACTOR_GROWING action A_ORC_GROW break }
+		else ifg ice_damage 0 { spritepal 1 strength 0 sound SOMETHINGFROZE action A_ORC_FROZEN }
+		else ifg fire_damage 0
+			{
+			shoot SPARK2 shoot SPARK2 shoot SPARK2
+			ifrnd 128 sound ORC_DIE1
+			else sound ORC_DIE2
+			spawn ONFIREGUY
+			killit
+			}
+		else ifg spirit_damage 0
+			{
+			shoot SPARK2 shoot SPARK2 shoot SPARK2
+			spritepal 1
+			guts JIBS3 6
+			spawn SPIRIT_DEATH_GUY
+			killit
+			}
+		else ifg energy_damage 0
+			{
+			shoot SPARK2 shoot SPARK2 shoot SPARK2
+			spritepal 4
+			guts JIBS3 6
+			spawn DISINTIGRATE_BIG_GUY
+			killit
+			}
+		else
+		ifand PROJ_UDATA 8
+			{
+				ifaction A_ORC_SLASHED_RIGHT nullop
+				else ifaction A_ORC_SLASHED_LEFT nullop
+				else
+				{
+					ifrnd 128 sound ORC_DIE1
+					else sound ORC_DIE2
+					state sword_kill_sounds
+					state random_trigger_showoff
+					state rf
+					state slashed_sounds
+					ife SWORD_ANIM 1
+					{
+						action A_ORC_SLASHED_RIGHT
+					}
+					else
+					{
+						action A_ORC_SLASHED_LEFT
+					}
+				}
+			}
+		else ife HEADSHOT 2
+			{
+			state rf
+			ifg fire_damage 0 set fire_damage 0
+				state random_trigger_showoff
+				state jib_sounds
+				state decap_sounds
+				ifg sprite[].extra -30
+					{
+					eshoot ORC_HEAD
+					geta[].htang temp
+					seta[RETURN].ang temp
+
+					geta[RETURN].z temp
+					sub temp 1200
+					seta[RETURN].z temp
+					}
+				else
+					{
+					spritepal 8
+					guts JIBS2 2
+					getlastpal
+					}
+				spritepal 8
+				shoot NJIB
+				shoot NJIB
+				guts JIBS6 3
+				getlastpal
+				action A_ORC_HEADSHOT
+			}
+		else
+			{
+			state rf
+			ifrnd 128 sound ORC_DIE1
+			else sound ORC_DIE2
+			ifl sprite[].extra -100 state orc_torsofly
+			else
+			ifstrength -50 ifpdistl 4096 state orc_flyback
+			else ifwasweapon KNEE state orc_flyback
+			else ifwasweapon SHOTGUN ifpdistl 1536 state orc_flyback
+			else
+				{
+				ifrnd 128 action A_ORC_DIE2 else
+				action A_ORC_DIE
+				}
+			}
+		ifphealthl 50
+			{
+			state SKILL_LEVELADJUST
+			ifl RANDOM_CHANCE SKILLCHANCE spawn HPOWDER
+			}
+		}
+	else ifg PAIN_AMOUNT 0 action A_ORC_PAIN
+	else ifrnd 32 { state PAIN_SKILL_LEVELADJUST action A_ORC_PAIN }
+	else ifaction A_ORC_IDLE { state PAIN_SKILL_LEVELADJUST action A_ORC_PAIN }
+	ifwasweapon SHRINKSPARK { sound ACTOR_SHRINKING action A_ORC_SHRUNK }
+}
+
+state checksquished
+
+enda

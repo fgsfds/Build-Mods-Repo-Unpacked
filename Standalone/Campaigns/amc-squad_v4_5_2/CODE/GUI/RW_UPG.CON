@@ -1,0 +1,608 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+
+TO ADD A WEAPON TO A CHARACTER just do this:
+
+	set blacksm_weaponidx <the previous weaponidx FOR THE CURRENT CHARACTER + 1, starts at 0>
+	set blacksm_upgradebit <set to the bit to check for in magic_upgrades array>
+	set blacksm_orbscost <set to cost of orbs>
+	qputs 409 <The name to display>
+	state blacksm_addweapontolist
+
+THEN BELOW THE WEAPON ADDITIONS, STILL WITHIN THE CHARACTER IF BLOCK, ADD THIS TO DISPLAY THE WEAPON SPRITE THING:
+	(else) ife blacksm_wepidxhover <the value you put in blacksm_weaponidx for this weapon>
+	{
+		rotatesprite or whatever code goes here
+	}
+
+James
+1 = XM8 magic upgrade
+2 = Protecta Iceblast
+8 = Bizon laser
+
+Zaxtor
+1 = Shotgun flame
+2 = Laser RPG water
+
+Merlijn
+1 = Ice Axe
+2 = Blunderbuss cannon
+
+Highwire
+1 = GL Stygian rock
+2 = RPKM flame bullets
+
+Sang
+1 = Dragon summon
+
+Rusty
+1 = Pulse BFG mode
+
+Geoffrey
+1 = Railgun void blast
+
+Mikko
+1 = MDF pistol ice beam
+2 = Plasma gun flamethrower
+
+Micky
+1 = Pulse rifle armour mode
+
+Snowfall
+2 = HMG spectral turret
+
+Kagura
+
+
+--------------------------------------------------------------------------------
+*/
+
+// =====================================================================================================================================================
+// RINGWORLD UPGRADES
+// =====================================================================================================================================================
+
+defstate BLACKSM_CANT
+	ifsound BSM_PISS1 nullop else ifsound BSM_PISS2 nullop else ifsound BSM_PISS3 nullop else
+	{
+		ifrnd 128 sound BSM_PISS3
+		else ifrnd 128 sound BSM_PISS2
+		else sound BSM_PISS1
+	}
+ends
+
+defstate blacksm_thanks
+	ifrnd 96 sound BSM_BUY1
+	else ifrnd 96 sound BSM_BUY2
+	else ifrnd 96 sound BSM_BYEB1
+ends
+
+defstate blacksm_displaybought
+	set disp_temp6 0
+	gametextz 2822 326 98 3080 0 disp_temp6 0 0 0 xdim ydim HALFSIZE
+ends
+
+
+// Generic blacksmith states
+var blacksm_forchar -1 1 // which character are we checking
+var blacksm_weaponidx 0 1 // 0-based index of weapon in the list
+var blacksm_upgradebit -1 1 // which upgrade are we checking, these are uniquely identified via a magic_upgrade array (per character) and a flag
+var blacksm_orbscost -1 1 // how many orbs does this upgrade cost
+
+// Handle hovering over and buying
+var blacksm_wepidxhover -1 1 // return weapon idx if hovering
+defstate blacksm_handleitem
+	ifl gui_pos_x_temp 40
+	 ifg gui_pos_x_temp -40
+	  ifl gui_pos_y_temp 6
+	   ifg gui_pos_y_temp -6
+	{
+		set blacksm_wepidxhover blacksm_weaponidx
+
+		gametextz 2822 gui_pos_x gui_pos_y 409 disp_pulse 2 0 0 0 xdim ydim HALFSIZE
+		ifand MAGIC_UPGRADE[blacksm_forchar] blacksm_upgradebit
+			state blacksm_displaybought
+		else
+		{
+			// Display cost
+			// special case for 1 cause singular...
+			ife blacksm_orbscost 1
+				qputs 1011 Cost: 1 Orb
+			else
+			{
+				qputs 1011 Cost: %ld Orbs
+				qsprintf 1011 1011 blacksm_orbscost
+			}
+			gametextz 2822 326 98 1011 0 disp_temp6 0 0 0 xdim ydim HALFSIZE
+
+			// Handle purchase
+			ifl ORBS_FOUND blacksm_orbscost
+				set disp_temp6 2
+			else
+				set disp_temp6 8
+
+			ifand BITS_PRESS 4
+			{
+				ifl ORBS_FOUND blacksm_orbscost
+					state BLACKSM_CANT
+				else
+				{
+					sub ORBS_FOUND blacksm_orbscost
+					set mag_upg_temp MAGIC_UPGRADE[blacksm_forchar]
+					xor mag_upg_temp blacksm_upgradebit
+					setarray MAGIC_UPGRADE[blacksm_forchar] mag_upg_temp
+					savegamevar ORBS_FOUND
+					writearraytofile MAGIC_UPGRADE F_MAGIC_UPGRADE
+					sound CASHREG
+				}
+			}
+		}
+	}
+ends
+
+// add weapon to list for current character
+// Expected input: qputs 409 is called with the weapon name.
+// Output: if the player is hovering over the weapon, blacksm_wepidxhover will be set to the given index.
+defstate blacksm_addweapontolist
+	ifn blacksm_weaponidx 0
+		add gui_pos_y 10
+
+	state CURSOR_OVER_ITEM
+	ifand MAGIC_UPGRADE[blacksm_forchar] blacksm_upgradebit set disp_temp2 125 else set disp_temp2 60
+	gametextz 2822 gui_pos_x gui_pos_y 409 0 disp_temp2 0 0 0 xdim ydim HALFSIZE
+
+	ife blacksm_wepidxhover -1
+		state blacksm_handleitem
+ends
+
+defstate RINGWORLD_UPGRADES_INTERFACE
+	rotatesprite 160 100 NNORMALSIZE 0 3584 30 4 0 0 0 xdim ydim
+	qputs 409 ORBS: %ld
+	qsprintf 409 409 ORBS_FOUND
+	gametextz 2822 480 20 409 0 1 0 0 0 xdim ydim HALFSIZE
+
+	ife INFO_SEL_2 0
+	{
+		set gui_pos_x 70
+		set gui_pos_y 50
+
+		set blacksm_forchar INFO_SEL
+		set blacksm_wepidxhover -1
+
+		ife blacksm_forchar C_JAMES
+		{
+			gametextz 2822 118 30 1010 10 2 0 0 0 xdim ydim HALFSIZE
+
+			set blacksm_weaponidx 0
+			set blacksm_upgradebit 1
+			set blacksm_orbscost 1
+			qputs 409 XM8 Mana Upgrade
+			state blacksm_addweapontolist
+
+			set blacksm_weaponidx 1
+			set blacksm_upgradebit 2
+			set blacksm_orbscost 2
+			qputs 409 Protecta Ice Beam
+			state blacksm_addweapontolist
+
+			set blacksm_weaponidx 2
+			set blacksm_upgradebit 8
+			set blacksm_orbscost 2
+			qputs 409 Bizon Mana
+			state blacksm_addweapontolist
+
+			ife blacksm_wepidxhover 0
+				rotatesprite 210 62 21000 0 5254 0 0 8 0 0 xdim ydim
+			else ife blacksm_wepidxhover 1
+				rotatesprite 210 70 18000 0 5360 0 0 8 0 0 xdim ydim
+			else ife blacksm_wepidxhover 2
+				rotatesprite 210 62 19000 0 12063 0 0 8 0 0 xdim ydim
+		}
+		else ife blacksm_forchar C_ZAXTOR
+		{
+			gametextz 2822 118 30 1004 10 2 0 0 0 xdim ydim HALFSIZE
+
+			set blacksm_weaponidx 0
+			set blacksm_upgradebit 1
+			set blacksm_orbscost 2
+			qputs 409 Shotgun flame belch
+			state blacksm_addweapontolist
+
+			set blacksm_weaponidx 1
+			set blacksm_upgradebit 2
+			set blacksm_orbscost 2
+			qputs 409 Laser RPG Water blast
+			state blacksm_addweapontolist
+
+			ife blacksm_wepidxhover 0
+				rotatesprite 210 62 21000 0 11108 0 0 8 0 0 xdim ydim
+			else ife blacksm_wepidxhover 1
+			{
+				rotatesprite 210 62 16000 0 2544 0 0 4104 windowx1 windowy1 windowx2 windowy2
+				rotatesprite 184 56 22268 0 12003 disp_pulse 11 4104 windowx1 windowy1 windowx2 windowy2
+			}
+		}
+		else ife blacksm_forchar C_MERLIJN
+		{
+			gametextz 2822 118 30 1005 10 2 0 0 0 xdim ydim HALFSIZE
+
+			set blacksm_weaponidx 0
+			set blacksm_upgradebit 1
+			set blacksm_orbscost 2
+			qputs 409 Great Axe Ice blast
+			state blacksm_addweapontolist
+
+			set blacksm_weaponidx 1
+			set blacksm_upgradebit 2
+			set blacksm_orbscost 3
+			qputs 409 Blunderbuss Cannon
+			state blacksm_addweapontolist
+
+			ife blacksm_wepidxhover 0
+			{
+				rotatesprite 210 74 16000 0 5017 0 0 4104 0 0 xdim ydim
+				rotatesprite 210 74 16000 0 5025 0 0 4104 0 0 xdim ydim
+			}
+			else ife blacksm_wepidxhover 1
+			{
+				ifand MERLIJN_UPGRADE 2
+						rotatesprite 210 65 20000 0 4912 0 0 8 windowx1 windowy1 windowx2 windowy2 // power
+
+				ifand MERLIJN_UPGRADE 4
+					set tilenum 5056
+				else
+					set tilenum 5052 // accuracy
+
+				rotatesprite 210 65 20000 0 tilenum 0 0 8 windowx1 windowy1 windowx2 windowy2
+
+				ifand MERLIJN_UPGRADE 1
+					rotatesprite 210 65 20000 0 4908 0 0 8 windowx1 windowy1 windowx2 windowy2 // cog
+
+				rotatesprite 225 77 12000 0 12003 0 29 8 windowx1 windowy1 windowx2 windowy2
+			}
+		}
+		else ife blacksm_forchar C_HIGHWIRE
+		{
+			gametextz 2822 118 30 1006 10 2 0 0 0 xdim ydim HALFSIZE
+
+			set blacksm_weaponidx 0
+			set blacksm_upgradebit 1
+			set blacksm_orbscost 3
+			qputs 409 GL Stygian Rock
+			state blacksm_addweapontolist
+
+			set blacksm_weaponidx 1
+			set blacksm_upgradebit 2
+			set blacksm_orbscost 3
+			qputs 409 RPKM Flame bullets
+			state blacksm_addweapontolist
+
+			ife blacksm_wepidxhover 0
+				rotatesprite 210 62 19500 0 5969 0 0 8 0 0 xdim ydim
+			else ife blacksm_wepidxhover 1
+				rotatesprite 210 62 19500 0 11881 0 0 8 0 0 xdim ydim
+		}
+		else ife blacksm_forchar C_SANG
+		{
+			gametextz 2822 118 30 1010 10 2 0 0 0 xdim ydim HALFSIZE
+
+			set blacksm_weaponidx 0
+			set blacksm_upgradebit 4
+			set blacksm_orbscost 3
+			qputs 409 Hellfire Summon
+			state blacksm_addweapontolist
+
+			ife blacksm_wepidxhover 0
+			{
+				rotatesprite 210 62 13500 0 6215 0 0 8 0 0 xdim ydim
+				rotatespritea 210 62 13500 0 6214 disp_pulse 0 8 -255 0 0 xdim ydim
+			}
+		}
+		else ife blacksm_forchar C_RUSTY
+		{
+			gametextz 2822 118 30 1008 10 2 0 0 0 xdim ydim HALFSIZE
+
+			set blacksm_weaponidx 0
+			set blacksm_upgradebit 1
+			set blacksm_orbscost 3
+			qputs 409 Pulse Rifle BFG
+			state blacksm_addweapontolist
+
+			ife blacksm_wepidxhover 0
+			{
+				rotatesprite 210 62 19500 0 6818 0 0 8 0 0 xdim ydim
+
+				// not sure what this is for but ok
+				ifand RUSTY_UPGRADE 128
+					rotatesprite 210 62 19500 0 6824 0 0 8 0 0 xdim ydim
+			}
+		}
+		else ife blacksm_forchar C_GEOFFREY
+		{
+			gametextz 2822 118 30 1009 10 2 0 0 0 xdim ydim HALFSIZE
+
+			set blacksm_weaponidx 0
+			set blacksm_upgradebit 1
+			set blacksm_orbscost 3
+			qputs 409 Railgun Void blast
+			state blacksm_addweapontolist
+
+			set blacksm_weaponidx 1
+			set blacksm_upgradebit 2
+			set blacksm_orbscost 2
+			qputs 409 Melta Ice beam
+			state blacksm_addweapontolist
+
+			ife blacksm_wepidxhover 0
+				rotatesprite 210 66 18500 0 6523 0 0 8 0 0 xdim ydim
+			else ife blacksm_wepidxhover 1
+				rotatesprite 210 66 19000 0 6576 0 0 8 0 0 xdim ydim // display weapon sprite
+		}
+		else ife blacksm_forchar C_MIKKO
+		{
+			gametextz 2822 118 30 1010 10 2 0 0 0 xdim ydim HALFSIZE
+
+			set blacksm_weaponidx 0
+			set blacksm_upgradebit 1
+			set blacksm_orbscost 2
+			qputs 409 MDF Pistol Ice Beam
+			state blacksm_addweapontolist
+
+			set blacksm_weaponidx 1
+			set blacksm_upgradebit 2
+			set blacksm_orbscost 2
+			qputs 409 Plasma Flamer
+			state blacksm_addweapontolist
+
+			// display weapon sprite(s) (in this case an ice beam particle appears over the weapon)
+			ife blacksm_wepidxhover 0
+			{
+				rotatesprite 210 66 18500 0 11102 0 0 8 0 0 xdim ydim
+				rotatesprite 221 65 10768 0 12003 0 0 8 0 0 xdim ydim
+			}
+			else ife blacksm_wepidxhover 1
+				rotatesprite 210 66 20500 0 7027 0 0 8 0 0 xdim ydim // display weapon sprite
+		}
+		else ife blacksm_forchar C_MICKY
+		{
+			gametextz 2822 118 30 1216 10 2 0 0 0 xdim ydim HALFSIZE
+
+			set blacksm_weaponidx 0
+			set blacksm_upgradebit 1
+			set blacksm_orbscost 1
+			qputs 409 PulseRifle Red Laser
+			state blacksm_addweapontolist
+
+			ife blacksm_wepidxhover 0
+				rotatesprite 208 62 20000 0 28120 0 0 8 0 0 xdim ydim // display weapon sprite
+		}
+		else ife blacksm_forchar C_SNOWFALL
+		{
+			gametextz 2822 118 30 1217 10 2 0 0 0 xdim ydim HALFSIZE
+
+			set blacksm_weaponidx 0
+			set blacksm_upgradebit 2
+			set blacksm_orbscost 3
+			qputs 409 HMG Spectral turret
+			state blacksm_addweapontolist
+
+			ife blacksm_wepidxhover 0
+				rotatesprite 212 61 19000 0 20828 0 0 8 0 0 xdim ydim // display weapon sprite
+		}
+		else ife blacksm_forchar C_KAGURA
+		{
+			gametextz 2822 118 30 1222 10 2 0 0 0 xdim ydim HALFSIZE
+
+			set blacksm_weaponidx 0
+			set blacksm_upgradebit 1
+			set blacksm_orbscost 2
+			qputs 409 DP-12 Fire blast
+			state blacksm_addweapontolist
+
+			ife blacksm_wepidxhover 0
+				rotatesprite 212 61 19000 0 8309 0 0 8 0 0 xdim ydim // weapon sprite
+		}
+	}
+
+	rotatesprite 162 103 43690 0 28312 0 0 8 0 0 xdim ydim
+	rotatespritea 208 60 69536 0 11232 0 0 0 -255 0 0 xdim ydim
+ends
+
+useractor notenemy 25817 // Blacksmith
+
+ifaction 0
+{
+strength 50
+espawn 12263
+seta[RETURN].owner THISACTOR
+geta[RETURN].z temp
+sub temp 16384
+seta[RETURN].z temp
+action FIVE_ANG
+}
+
+ifaction FIVE_ANG
+{
+
+ifg npc_talking 0 sub npc_talking 1
+
+ifpdistl 16384
+ifcansee
+ ifrnd 4
+  ife npc_talking 0
+   ife camerasprite -1
+	{
+	ifrnd 96 sound BSM_IDLE1
+	else ifrnd 96 sound BSM_IDLE2
+	else ifrnd 96 sound BSM_IDLE3
+	else ifrnd 96 sound BSM_IDLE4
+	else ifrnd 96 sound BSM_IDLE5
+	set npc_talking 600
+	}
+
+ifp palive
+ ife player[].newowner -1 // prevent viewscreen bugs
+  {
+  ifpdistl 1536 ifp pfacing ife MOUSEUP 0 set player_use 0
+   ifhitspace
+	{
+		ife MOUSEUP 0
+		ifcount 13
+		 ifp pfacing
+		  ifpdistl 1526
+			{
+			soundonce CONVERSATION
+			readarrayfromfile NEW_IN_STORE F_SHOP_NEW_AMCTC
+			readarrayfromfile SPECIALIST_EQUIPMENT F_SPECIAL_LOADOUT_AMCTC
+			resizearray SPECIALIST_EQUIPMENT MAX_SPECIAL_LOADOUT
+			getp[].horiz PHORIZ
+			getp[].ang PANG
+			set PCINTER 11
+			ifspritepal 5 set INFO_SEL 4350
+			else set INFO_SEL 24
+			set MOUSEUP 1
+			resetcount
+			}
+		else
+		ife MOUSEUP 1
+		ifcount 13
+		 ifpdistl 4096
+		  ife PCINTER 18
+			{
+			ifrnd 64 sound BSM_BYE1
+			else ifrnd 64 sound BSM_BYEB1
+			else ifrnd 64 sound BSM_BYEB2
+			set PCINTER 0
+			set MOUSEUP 0
+			soundonce CONVERSATION
+			resetcount
+			}
+	}
+
+	ife PCINTER 11 // Talking to the blacksmith?
+		{
+		ifcount 13
+			{
+			getinput[].bits temp
+			shiftvarr temp 8
+			andvar temp 0xF
+			switch temp
+				case 1
+					ifpdistl 2048
+					{
+					ifrnd 64 sound BSM_GREET1
+					else ifrnd 128 sound BSM_GREET2
+					else ifrnd 196 sound BSM_GREET3
+					else sound BSM_GREET4
+					}
+					soundonce CONVERSATION
+					ifspritepal 5
+						{
+						ife INFO_SEL 4350 { set INFO_SEL CHAR set PCINTER 18 }
+						}
+					else
+						{
+						ife INFO_SEL 24 { set INFO_SEL CHAR set PCINTER 18 }
+						ife INFO_SEL 25 { set INFO_SEL CHAR set PCINTER 18 }
+						}
+					resetcount
+					break
+				case 2
+					soundonce CONVERSATION
+					ife INFO_SEL 4350 ife STORY_TRIGGER3 1 set INFO_SEL 4351
+					ife INFO_SEL 24 set INFO_SEL 25
+					resetcount
+					break
+				case 10
+					ifpdistl 2048
+					{
+					ifrnd 64 sound BSM_BYE1
+					else ifrnd 64 sound BSM_BYEB1
+					else ifrnd 64 sound BSM_BYEB2
+					}
+					set PCINTER 0
+					set MOUSEUP 0
+					soundonce CONVERSATION
+					resetcount
+					break
+			endswitch
+			}
+		}
+	else
+	ife PCINTER 18 // Browsing the shop?
+		{
+		ifand EXTBITS_PRESS 4
+		 ifcount 13
+			{
+			ife INFO_SEL 0 set INFO_SEL 17 else
+			ife INFO_SEL 17 set INFO_SEL 14 else
+			ife INFO_SEL 14 set INFO_SEL 13 else
+			ife INFO_SEL 13 set INFO_SEL 7 else
+			ifg INFO_SEL 0 sub INFO_SEL 1 else set INFO_SEL 17
+			soundonce COMP_SELECT
+			resetcount
+			}
+
+		ifand EXTBITS_PRESS 16
+		 ifcount 13
+			{
+			ife INFO_SEL 0 set INFO_SEL 17 else
+			ife INFO_SEL 17 set INFO_SEL 14 else
+			ife INFO_SEL 14 set INFO_SEL 13 else
+			ife INFO_SEL 13 set INFO_SEL 7 else
+			ifg INFO_SEL 0 sub INFO_SEL 1 else set INFO_SEL 17
+			soundonce COMP_SELECT
+			resetcount
+			}
+
+		ifand EXTBITS_PRESS 8
+		 ifcount 13
+			{
+			ife INFO_SEL 7 set INFO_SEL 13 else
+			ife INFO_SEL 13 set INFO_SEL 14 else
+			ife INFO_SEL 14 set INFO_SEL 17 else
+			ife INFO_SEL 17 set INFO_SEL 0 else
+			ifl INFO_SEL 7 add INFO_SEL 1 else set INFO_SEL 0
+			soundonce COMP_SELECT
+			resetcount
+			}
+
+		ifand EXTBITS_PRESS 32
+		 ifcount 13
+			{
+			ife INFO_SEL 7 set INFO_SEL 13 else
+			ife INFO_SEL 13 set INFO_SEL 14 else
+			ife INFO_SEL 14 set INFO_SEL 17 else
+			ife INFO_SEL 17 set INFO_SEL 0 else
+			ifl INFO_SEL 7 add INFO_SEL 1 else set INFO_SEL 0
+			soundonce COMP_SELECT
+			resetcount
+			}
+		}
+
+   }
+
+}
+enda

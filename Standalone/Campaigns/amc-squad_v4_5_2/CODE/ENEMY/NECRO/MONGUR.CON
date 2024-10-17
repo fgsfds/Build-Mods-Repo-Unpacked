@@ -1,0 +1,699 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+
+--------------------------------------------------------------------------------
+*/
+
+damageeventtile MONGUR
+
+action A_MONGUR_IDLE -5683 1 5 1 12
+action A_MONGUR_WALK -5678 4 5 1 16
+action A_MONGUR_SWING_MELEE -5658 5 5 1 16
+action A_MONGUR_SWING_PROJ -5658 5 5 1 16
+
+action A_MONGUR_SPIN_PREP -5653 1 5
+action A_MONGUR_SPIN_SLOW -5643 1 5
+action A_MONGUR_SPIN_MEDIUM -5643 1 5
+action A_MONGUR_SPIN_FAST -5643 1 5
+action A_MONGUR_CLASH -5638 1 5
+
+action A_MONGUR_PREP -5633 3 5 1 20
+action A_MONGUR_CHARGE -5618 5 5 1 8
+action A_MONGUR_CHARGEPAUSE -5683 1 5 1 12
+
+action A_MONGUR_DIE -5593 6 1 1 16
+action A_MONGUR_DEAD -5587
+
+move MONGUR_WALK 300
+
+var mongur_greedy_check 0 2
+var mongur_charge_commit 0 2
+
+defstate mongur_shouldspin // ????
+	set temp 1
+
+	ifl enemy_cooldown1 240
+		set temp 0
+
+	ife temp 1
+	{
+		// this counter is increased when mongur gets hit if player is in close enough proximity
+		ifl mongur_greedy_check 3
+			set temp 0
+	}
+ends
+
+defstate mongur_attack
+	dist xydist THISACTOR my_target // if found, get distance
+
+	ifl xydist 4096
+	{
+		// Detect if mongur should spin based on a cooldown, player proximity and whether or not they are "greedy".
+		state mongur_shouldspin
+
+		ife temp 1
+		ifle sprite[].extra 3500
+		{
+			set mongur_greedy_check 0
+			set enemy_cooldown1 240
+			state fronttowardstarget
+			geta[].ang movesprite_angvar
+			set movesprite_shift 5
+			set INTERNALCOUNT 0
+			sound MON_YELL1
+			action A_MONGUR_SPIN_PREP
+		}
+		else
+		{
+			set INTERNALCOUNT 0
+
+			ifg xydist 2048
+			{
+				ifge enemy_cooldown3 150
+				{
+					sound MON_ROAM1
+					action A_MONGUR_SWING_PROJ // projectile
+				}
+			}
+			else ifl xydist 2048
+				action A_MONGUR_SWING_MELEE // melee
+		}
+	}
+	else ifge enemy_cooldown2 240
+	{
+			sound MON_YELL2
+			set INTERNALCOUNT 0
+			action A_MONGUR_PREP
+	}
+ends
+
+defstate mongur_spin
+	// axe swing sound on full rotation
+	set temp 0
+	ifaction A_MONGUR_SPIN_SLOW
+	{
+		ifge INTERNALCOUNT 16
+			set temp 1
+	}
+	else ifaction A_MONGUR_SPIN_MEDIUM
+	{
+		ifge INTERNALCOUNT 8
+			set temp 1
+	}
+	else ifaction A_MONGUR_SPIN_FAST
+	{
+		ifge INTERNALCOUNT 4
+			set temp 1
+	}
+
+	ife temp 1
+	{
+		set INTERNALCOUNT 0
+		espawn SOUND_SPRITE setactorvar[RETURN].temp GUANDAO_SLASH2
+	}
+
+	add INTERNALCOUNT 1
+
+	geta[].ang angvar_backup
+
+	ifge angvar_backup 2048
+		sub angvar_backup 2048
+
+	state fronttowardstarget
+
+	// if current angle in spin is within 128 units of correct angvar, take the hit
+	// TODO normalize 0/2048 wraparound
+
+	set temp3 0
+	ifle knockback 0
+	{
+		set temp angvar_backup
+		add temp 256
+
+		set temp2 angvar_backup
+		sub temp2 256
+
+		set temp3 0
+
+		ifle angvar temp
+			ifge angvar temp2
+				set temp3 1
+	}
+
+	ife temp3 1
+	{
+		ldist temp THISACTOR my_target
+
+		ifl temp 2048
+		ifge SLIDE_KICK 26
+		{
+			// knock player back far away that they don't get stuck in the spin cause that sucks
+			state setknockback
+			set knockback 25
+
+			wackplayer
+			sound BOSS_WHACK
+			palfrom 20 30 0 0
+
+			// higher loss of health the faster the spin is
+			ifaction A_MONGUR_SPIN_SLOW
+				{
+				ifp pfacing ifg shield_up 0 sub riot_shield 25
+				else ifp pfacing ifg merl_shieldup 0 { ifrnd 128 sound SHIELDHIT2 else sound SHIELDHIT sub merlijn_shield 25 }
+				else addphealth -35
+				}
+			else ifaction A_MONGUR_SPIN_MEDIUM
+				{
+				ifp pfacing ifg shield_up 0 sub riot_shield 35
+				else ifp pfacing ifg merl_shieldup 0 { ifrnd 128 sound SHIELDHIT2 else sound SHIELDHIT sub merlijn_shield 35 }
+				else addphealth -50
+				}
+			else ifaction A_MONGUR_SPIN_FAST
+				{
+				ifp pfacing ifg shield_up 0 sub riot_shield 45
+				else ifp pfacing ifg merl_shieldup 0 { ifrnd 128 sound SHIELDHIT2 else sound SHIELDHIT sub merlijn_shield 45 }
+				else addphealth -65
+				}
+		}
+	}
+
+	ifrnd 196
+	{
+		geta[].ang movesprite_angvar
+		state movesprite_state
+	}
+
+	findnearactor 29370 3192 ally_mag
+	ifn ally_mag -1
+		{
+		setactorvar[ally_mag].temp 2
+		}
+
+	set angvar angvar_backup
+	add angvar 128
+	seta[].ang angvar
+
+	ifaction A_MONGUR_SPIN_MEDIUM
+	{
+		add angvar 128
+		seta[].ang angvar
+	}
+
+	else ifaction A_MONGUR_SPIN_FAST
+	{
+		add angvar 128
+		seta[].ang angvar
+		add angvar 128
+		seta[].ang angvar
+		add angvar 128
+		seta[].ang angvar
+	}
+
+ends
+
+useractor enemy MONGUR 4000
+
+ifaction 0
+{
+	cstat 257
+	sizeat 52 52
+	strength 6000
+	set CURBOSS THISACTOR
+	state monst_glow
+	set enemy_cooldown1 120
+	set enemy_cooldown2 120
+	action A_MONGUR_IDLE
+}
+
+ifaction A_MONGUR_SPIN_PREP nullop
+else ifaction A_MONGUR_SPIN_SLOW nullop
+else ifaction A_MONGUR_SPIN_MEDIUM nullop
+else ifaction A_MONGUR_SPIN_FAST nullop
+else
+{
+	ifl enemy_cooldown1 240
+		add enemy_cooldown1 1
+
+	ifl enemy_cooldown3 240
+		add enemy_cooldown3 1
+}
+
+ifaction A_MONGUR_CHARGE nullop
+else ifaction A_MONGUR_PREP nullop
+else
+{
+	ifl enemy_cooldown2 240
+		add enemy_cooldown2 1
+
+	ifl enemy_cooldown3 240
+		add enemy_cooldown3 1
+}
+
+ifaction A_MONGUR_IDLE
+{
+	move STOP
+	state checkfortarget
+
+	ifn my_target -1
+	{
+		ife VOLUME 3 starttrackslot 3 20
+		ife CHAR 2
+			{
+			ife gp_subt 0
+				{
+				set subt_id 13012
+				set gp_subt 117
+				}
+			screensound MERL_BOSS1
+			}
+		action A_MONGUR_WALK
+	}
+}
+else ifaction A_MONGUR_WALK
+{
+	ifmove MONGUR_WALK nullop
+	else move MONGUR_WALK geth
+
+	state checkfortarget
+
+	ifn my_target -1
+	{
+		state mongur_attack
+	}
+
+	ifactioncount 3
+	{
+		resetactioncount
+		ifpdistl 32767
+		{
+			quake 6
+			ifrnd 76 sound TROLL_W1 else
+			ifrnd 76 sound TROLL_W2 else
+			ifrnd 76 sound TROLL_W3 else
+			sound TROLL_W4
+		}
+	}
+}
+else ifaction A_MONGUR_SPIN_PREP
+{
+	move STOP
+	state fronttowardstarget
+
+	add INTERNALCOUNT 1
+
+	ife INTERNALCOUNT 50
+	{
+		set INTERNALCOUNT 0
+		sound MON_SPIN1
+		action A_MONGUR_SPIN_SLOW
+	}
+}
+else ifaction A_MONGUR_SPIN_SLOW
+{
+	state mongur_spin
+
+	ifactioncount 32
+		action A_MONGUR_SPIN_MEDIUM
+}
+else ifaction A_MONGUR_SPIN_MEDIUM
+{
+	state mongur_spin
+
+	ifactioncount 48
+		action A_MONGUR_SPIN_FAST
+}
+else ifaction A_MONGUR_SPIN_FAST
+{
+	state mongur_spin
+
+	ifactioncount 96
+	{
+		set enemy_cooldown1 0
+		action A_MONGUR_WALK // TODO spin down slowly instead of going straight to walk
+	}
+}
+else ifaction A_MONGUR_SWING_MELEE
+{
+	move STOP
+	state fronttowardstarget
+
+	ifactioncount 4
+		ife INTERNALCOUNT 0
+	{
+		add INTERNALCOUNT 1
+
+		sound GUANDAO_SLASH2
+		sound MON_CHOP2
+
+		ldist temp THISACTOR my_target
+		ifle temp 2048
+		{
+			sound BIGST_03
+			set temp 30
+			rand temp2 25
+			add temp temp2
+			seta[my_target].htextra temp
+			seta[my_target].htpicnum 17663 // pretend it's ripper scratch, maybe needs to be a better projectile
+		}
+	}
+
+	ifactioncount 5
+		action A_MONGUR_WALK
+}
+else ifaction A_MONGUR_SWING_PROJ
+{
+	// could do faceplayersmart but it's kind of annoying
+	move STOP
+	state fronttowardstarget
+
+	set enemy_cooldown3 0
+
+	ifactioncount 5
+		action A_MONGUR_WALK
+
+	ifactioncount 4
+		ife INTERNALCOUNT 0
+	{
+		set CALCZ_TARGET_OFFSET -8192
+		set PROJECTILE_TO_SHOOT KAG_BLAST_RIGHT
+		set PROJECTILE_FIRING_SOUND ARCH_FIRE
+		set PROJECTILE_DISABLEAUTOAIM 1
+
+		// lower extra value to not instakill the player, probably also need to reduce clipdist
+		setprojectile[KAG_BLAST_RIGHT].EXTRA 45
+		state sang_enemyShootProjectile
+		sound MON_CHOP1
+		setthisprojectile[RETURN].ISOUND SKN_IMPACT
+		setprojectile[KAG_BLAST_RIGHT].EXTRA 350
+
+		set INTERNALCOUNT 1
+	}
+}
+else ifaction A_MONGUR_PREP
+{
+	set enemy_cooldown2 0
+
+	move STOP
+	state fronttowardstarget
+
+
+	ife INTERNALCOUNT 0
+		sound MON_SNORT
+
+	ifactioncount 3
+	{
+		sound LAND_ICE
+		add INTERNALCOUNT 1
+		resetactioncount
+	}
+
+	ife INTERNALCOUNT 2
+	{
+		sound MON_CHARGE1
+		geta[].ang angvar
+		set INTERNALCOUNT 0
+		set mongur_charge_commit 0
+		action A_MONGUR_CHARGE
+	}
+}
+else ifaction A_MONGUR_CHARGE
+{
+	ifle INTERNALCOUNT 90
+	{
+		// charge directly at the player until they roll, but the roll only counts if the mongur was close enough
+		set temp 1
+
+		dist temp2 THISACTOR my_target
+
+		// dodge sound cue
+		ifle temp2 2048
+		{
+			ifsound MON_ROAM2 nullop else sound MON_ROAM2
+		}
+
+		ifle temp2 1768
+		{
+			ifl ROLL_LEFT 13
+				set temp 0
+			else ifl ROLL_RIGHT 13
+				set temp 0
+		}
+
+		ife temp 1
+		{
+			ife mongur_charge_commit 0
+			{
+				state fronttowardstarget
+				geta[].ang movesprite_angvar
+			}
+		}
+		else
+		{
+			set mongur_charge_commit 1
+
+			ifle INTERNALCOUNT 50
+				add INTERNALCOUNT 20
+		}
+
+		set movesprite_shift 5
+		set movesprite_clipmask CLIPMASK0
+
+		// make player a big enough target or the hit detection is kinda wonky
+		geta[PLAYER_IDENTITY].xrepeat x
+		geta[PLAYER_IDENTITY].yrepeat y
+		seta[PLAYER_IDENTITY].xrepeat 128
+		seta[PLAYER_IDENTITY].yrepeat 128
+
+		state movesprite_state
+
+		set temp2 0
+
+		seta[PLAYER_IDENTITY].xrepeat x
+		seta[PLAYER_IDENTITY].yrepeat y
+
+		ifge RETURN 49152
+		{
+			set ally_mag RETURN
+			sub ally_mag 49152
+
+			ife ally_mag PLAYER_IDENTITY
+			{
+				// damage player
+				state setknockback
+				set knockback 12
+
+				wackplayer
+				sound BOSS_WHACK
+				palfrom 20 30 0 0
+				addphealth -30
+
+				action A_MONGUR_WALK
+			}
+			else // hit some other sprite
+				{
+				ife sprite[ally_mag].picnum 29370 setav[ally_mag].temp 1
+				ife sprite[ally_mag].picnum 29371 setav[ally_mag].temp 1
+				set temp2 1
+				}
+		}
+		else ifge RETURN 32768 // hit a wall
+			set temp2 1
+
+
+		// handle wall/other sprite hit
+		ife temp2 1
+		{
+			seta[].ang angvar // cancel randomization of angle after bumping into something
+			quake 64
+
+			shoot ROCKDEB_1 shoot ROCKDEB_1 shoot ROCKDEB_1
+			shoot ROCKDEB_3 shoot ROCKDEB_3 shoot ROCKDEB_3
+			shoot ROCKDEB_4 shoot ROCKDEB_4 shoot ROCKDEB_4
+			state spawn_dazed
+			sound DAZED
+			ifge sprite[].extra 4500 set dazed_count 150
+			else ifge sprite[].extra 3000 set dazed_count 120
+			else ifge sprite[].extra 1500 set dazed_count 90
+			else set dazed_count 60
+			action A_MONGUR_CHARGEPAUSE
+		}
+
+		add INTERNALCOUNT 1
+	}
+	else // you've dodged for long enough, cancel attack
+		action A_MONGUR_WALK
+}
+else ifaction A_MONGUR_CLASH
+{
+	quake 26
+	move STOP
+	ifactioncount 8
+		{
+		set dazed_count 0
+		action A_MONGUR_WALK
+		}
+}
+else ifaction A_MONGUR_CHARGEPAUSE
+{
+	move STOP
+	set dazed_count 150
+	ifactioncount 32
+		{
+		set dazed_count 0
+		action A_MONGUR_WALK
+		}
+}
+else ifaction A_MONGUR_DIE
+{
+	cstat 0
+	strength 0
+
+	ifactioncount 6
+	{
+		set INTERNALCOUNT 0
+		action A_MONGUR_DEAD
+	}
+}
+else ifaction A_MONGUR_DEAD
+{
+	move STOP
+
+	ifle INTERNALCOUNT 40
+		add INTERNALCOUNT 1
+	else ifn HITAGSAVED 0
+	{
+		ifand ELYSION_QUEST 131072 nullop else { xor ELYSION_QUEST 131072 savegamevar ELYSION_QUEST }
+		operateactivators HITAGSAVED THISACTOR
+		operatemasterswitches HITAGSAVED
+		operaterespawns HITAGSAVED
+	}
+}
+
+// increment greed
+ifg sprite[].htextra -1
+{
+	ifdead nullop
+	else
+	{
+		ldist temp THISACTOR PLAYER_IDENTITY
+		ifl temp 4096
+		{
+			add mongur_greedy_check 1
+		}
+	}
+
+	ife sprite[].htpicnum 19
+		{
+			ifaction A_MONGUR_SWING_PROJ action A_MONGUR_CLASH
+			ifaction A_MONGUR_SWING_MELEE action A_MONGUR_CLASH
+			ifg dazed_count 0 seta[].htextra 125
+			else
+				seta[].htextra 50
+		}
+}
+
+ifhitweapon
+{
+	state NEWGUNEFFECTS
+	espawn BLOOD
+	guts JIBS6 1
+	state random_wall_jibs
+
+	ifdead
+	{
+		set dazed_count 0
+		ifaction A_MONGUR_DIE break
+		else ifaction A_MONGUR_DEAD break
+
+		sound MON_DIE
+		action A_MONGUR_DIE
+	}
+}
+
+enda
+
+// pillars ====================================================
+
+defstate pillar_destroy
+ifaction 0
+ifn temp 0
+	{
+	sound BUST_CONCRETE
+	geta[].z temp2
+	sub temp2 16384
+	espawn BIG_SMOKE2
+	seta[RETURN].z temp2
+	espawn BIG_SMOKE2
+	seta[RETURN].z temp2
+	quake 26
+	shoot ROCKDEB_1 shoot ROCKDEB_1 shoot ROCKDEB_1
+	shoot ROCKDEB_1 shoot ROCKDEB_1 shoot ROCKDEB_1
+	shoot ROCKDEB_1 shoot ROCKDEB_1 shoot ROCKDEB_1
+	shoot ROCKDEB_1 shoot ROCKDEB_1 shoot ROCKDEB_1
+
+	espawn 29375
+	set temp3 sprite[].x
+	randvarvar temp4 4096
+	add temp3 temp4
+	randvar temp4 2048
+	rotatepoint sprite[].x sprite[].y temp3 sprite[].y temp4 temp5 temp6
+	seta[RETURN].x temp5
+	seta[RETURN].y temp6
+
+	espawn 29374
+	set temp3 sprite[].x
+	randvarvar temp4 4096
+	add temp3 temp4
+	randvar temp4 2048
+	rotatepoint sprite[].x sprite[].y temp3 sprite[].y temp4 temp5 temp6
+	seta[RETURN].x temp5
+	seta[RETURN].y temp6
+
+	ifactor 29370 ife temp 2 cactor 29371 else
+		{
+		ifrnd 128 cactor 29372 else cactor 29373
+		}
+	set temp 0
+	}
+ends
+
+useractor notenemy 29370
+state pillar_destroy
+enda
+
+useractor notenemy 29371
+state pillar_destroy
+enda
+
+useractor notenemy 29374
+fall
+ifaction 0 { spawn BIG_SMOKE2 sizeat 64 64 state rf action ZERO }
+enda
+
+useractor notenemy 29375
+fall
+ifaction 0 { spawn BIG_SMOKE2 sizeat 64 64 state rf action ZERO }
+enda

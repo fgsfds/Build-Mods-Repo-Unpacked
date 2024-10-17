@@ -1,0 +1,975 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+This file handles targetting code.
+
+It will find all faction actors and save them in an array.
+
+Actors simply need to call "checkfortarget". This will in turn call a bunch of internal states that the calling actor doesn't need to care about.
+The target they are allowed to fire at will be in my_target. Actor code can handle my_target as they see fit.
+
+TargetING actors all need to define a weight factor that they contribute to their target.
+TargetED actors need to define their current weight, and their max allowed weight.
+
+An actor will not be allowed to target another actor if its max weight has already been met (unless there are no other targets).
+--------------------------------------------------------------------------------
+*/
+
+var player_target_init -1 0
+// add player as a possible target
+defstate addplayertarget
+	ifn player_target_init 1
+	{
+		getp[].i PLAYER_IDENTITY
+		state findnextavailableindex
+		setarray targets[targets_next_index] PLAYER_IDENTITY
+		set targets_my_index targets_next_index
+	}
+	set player_target_init 1
+ends
+
+var owner_faction 0 2
+defstate checkshootmeownerhasfaction
+	set owner_faction 0
+	set temp 0
+
+	ifactor SHOOTME
+		set temp 1
+	else ifactor SHOOTME2
+		set temp 1
+
+	ife temp 1
+	{
+		getav[THISACTOR].myowner temp2
+		ifn temp2 -1
+			getav[temp2].faction_flag owner_faction
+	}
+ends
+
+defstate addtotargetarray
+	ife targets_my_index -1
+	{
+		setactorvar[THISACTOR].current_weight 0
+		state findnextavailableindex
+		setarray targets[targets_next_index] THISACTOR
+		set targets_my_index targets_next_index
+	}
+ends
+
+// on each spawn check for actor faction and add to array
+appendevent EVENT_SPAWN
+	// init if not already initted
+	ifn indexes_initialized 1
+	{
+		// arrays aren't cleared on level load! and the EVENT_ENTERLEVEL runs after all the event_spawns, so, need to run clearing logic here.
+		// set them all to -2
+		for targets_iterator range targets_range
+		{
+			setarray targets[targets_iterator] -2
+		}
+
+		set player_target_init -1
+		set indexes_initialized 1
+	}
+
+	// Init faction and other targetting vars
+	state applyAllyTargetVars
+	state applyEnemyTargetVars
+
+	// Performance optimization: Fix shootme, don't add it to the array if their owner already has a faction -> otherwise double entry in the array...
+	ifg faction_flag 0
+	{
+		state checkshootmeownerhasfaction
+
+		ifg owner_faction 0 // not a shootme actor or its owner has no faction defined for whatever reason, fair game to add
+			nullop
+		else
+			state addtotargetarray
+	}
+endevent
+
+appendevent EVENT_ENDLEVELSCREEN
+	// mark for update
+	set indexes_initialized -1
+endevent
+
+defstate removetargetweight
+	ifn my_target -1
+	{
+		getav[my_target].current_weight temp2
+		sub temp2 weight_increase
+
+		ifl temp2 0
+			set temp2 0
+
+		setav[my_target].current_weight temp2
+	}
+ends
+
+defstate electnewsquadleader
+	ife squad_leader THISACTOR
+	{
+		set temp3 -1
+		set targets_iterator 0
+		whilel targets_iterator targets_range
+		{
+			set temp targets[targets_iterator]
+
+			ife temp -2
+			{
+				set targets_iterator targets_range
+				exit
+			}
+
+			ifn temp -1
+			{
+				getav[temp].squad_id temp2
+
+				ifn temp THISACTOR
+					ife temp2 squad_id
+				{
+					// temp3 contains the new squad leader id
+					ife temp3 -1
+						set temp3 temp
+
+					setav[temp].squad_leader temp3
+				}
+			}
+
+			add targets_iterator 1
+		}
+	}
+ends
+
+// post damage sprite and killit => remove me from the targets array
+appendevent EVENT_POSTACTORDAMAGE
+	geta[].extra temp3
+
+	ifle temp3 0
+	ifg targets_my_index -1
+	{
+		state electnewsquadleader
+		setarray targets[targets_my_index] -1
+		set targets_my_index -1
+		state removetargetweight
+	}
+
+	ifle temp3 0
+	 ifand faction_flag ALLIED_FACTION_FLAG
+		{
+		ifand npc_killed 64 nullop else xorvar npc_killed 64
+		}
+
+endevent
+
+appendevent EVENT_KILLIT
+	ifg targets_my_index -1
+	{
+		state electnewsquadleader
+		setarray targets[targets_my_index] -1
+		set targets_my_index -1
+		state removetargetweight
+	}
+endevent
+
+defstate new_checksight
+	geta[].z sightz
+	sub sightz zsight_correction
+	seta[].z sightz
+	geta[my_target].z mz
+	getav[my_target].zsight_correction temp2
+	sub mz temp2
+	seta[my_target].z mz
+
+	canseespr THISACTOR my_target temp2
+
+	add sightz zsight_correction
+	seta[].z sightz
+	getav[my_target].zsight_correction temp3
+	add mz temp3
+	seta[my_target].z mz
+
+	ife temp2 0
+		set my_target -1
+ends
+
+defstate new_calczdist
+	ifn my_target -1
+		geta[my_target].z mz
+	else ifn my_previous_target -1
+		set mz target_last_z
+
+	ifn my_target -1
+	{
+		geta[].z z
+		ifactor BATTLELORD sub z 4596
+
+		geta[my_target].z mz
+		set zdist mz
+		sub zdist z // zdist now holds how far up or down you would have to go from THISACTOR's position to get to target's position
+		geta[my_target].picnum temp
+
+		ifl zdist -8192 sub zdist 4096 // aim for the head when shooting up into windows
+	}
+ends
+
+defstate hitscancheck
+	ifn my_target -1 geta[my_target].statnum temp8
+	ife temp8 1024 set my_target -1
+
+	ifn THISACTOR -1 ifn my_target -1 ldist xydist THISACTOR my_target
+
+	state new_calczdist
+
+	geta[].x x
+	geta[].y y
+	geta[].z z
+	sub z zsight_correction
+	geta[].sectnum mysector
+	geta[].ang angvar
+	cos mycos angvar
+	sin mysin angvar
+	shiftvarl zdist 14
+
+	ife xydist 0 set xydist 1
+	divvarvar zdist xydist
+
+	set targetlock 26
+	hitscan x y z mysector mycos mysin zdist hitsector hitwall hitsprite hitx hity hitz 4294901808
+ends
+
+// dist between (my_x, mx), (my_y, my)
+defstate distcoordinate
+	// temp = xdiff
+	ifg my_x mx
+	{
+		set temp my_x
+		subvarvar temp mx
+	}
+	else
+	{
+		set temp mx
+		subvarvar temp my_x
+	}
+
+	// temp2 = ydiff
+	ifg my_y my
+	{
+		set temp2 my_y
+		subvarvar temp2 my
+	}
+	else
+	{
+		set temp2 my
+		subvarvar temp2 my_y
+	}
+
+	calchypotenuse temp3 temp temp2
+	// temp3 is dist...
+ends
+
+// "seekplayer" movflag proxy
+defstate angvartotarget
+	ifn my_target -1
+	{
+		geta[my_target].x mx
+		geta[my_target].y my
+	}
+
+	// go directly to previous target's position
+	else ife seek_previous_target 1
+	{
+		geta[my_previous_target].x mx
+		geta[my_previous_target].y my
+	}
+	// otherwise go to their last spotted location
+	else ifn my_previous_target -1
+	{
+		set mx target_last_x
+		set my target_last_y
+	}
+
+	// do nothing if no target or no previous target
+	ife my_target -1
+		ife my_previous_target -1
+	{
+		nullop
+	}
+	else
+	{
+		geta[].x my_x
+		geta[].y my_y
+
+		ife my_target -1
+		{
+			// if we've made it to the last known coordinate and we still don't have a target, seek it (ie. go directly to its current coordinate)
+			state distcoordinate
+
+			ifl temp3 2000
+				set seek_previous_target 1
+		}
+
+		sub mx my_x
+		sub my my_y
+		getangle angvar mx my
+	}
+ends
+
+defstate doseektarget
+	// if never had a target, do nothing
+	ife my_target -1
+		ife my_previous_target -1
+	{
+		nullop
+	}
+	// Don't update angle constantly -> impacts framerate
+	// Added bonus: Ignore minor temporary deviations in the angle to stop "glitchy" rotation (happens when multiple actors clip into eachother)
+	else ifrnd 128
+	{
+		// angle towards target, or last known position of target
+		state angvartotarget
+		// return value = angvar => angle to face target
+
+		// Now randomize it
+		ifn angle_variance 0
+		{
+			// Random variance of angle so it's not a straight line
+			ifrnd 64
+			{
+				randvarvar temp angle_variance
+				ifrnd 128
+					sub angvar temp
+				else
+					add angvar temp
+			}
+		}
+
+		seta[].ang angvar
+	}
+ends
+
+defstate skill_accuracy_penalty // accuracy penalty based on skill level for enemies
+	ifl SKILL_LEVEL 5
+	{
+		geta[].ang temp
+		ife SKILL_LEVEL 1 randvar temp2 128
+		else ife SKILL_LEVEL 2 randvar temp2 96
+		else ife SKILL_LEVEL 3 randvar temp2 64
+		else ife SKILL_LEVEL 4 randvar temp2 32
+		ifrnd 128 add temp temp2
+		else sub temp temp2
+		seta[].ang temp
+	}
+ends
+
+defstate validateshoot
+	set friendlyfire 0
+	set wallinbetween 0
+
+	ifn my_target -1
+	{
+		set HITSCAN_TO_ACTOR my_target
+		state hitscanTo
+
+		ifn hitwall -1
+			set wallinbetween 1
+
+		ifn hitsprite my_target
+			ifn hitsprite THISACTOR
+				ifn hitsprite -1
+		{
+			// the other sprite has no overlapping faction -> fair game to shoot
+			getav[hitsprite].faction_flag temp
+
+			ifand temp faction_flag
+				nullop
+			else
+				set friendlyfire 1
+		}
+	}
+ends
+
+// "doseektarget" randomizes angles, which means attacking enemies can end up looking in the wrong direction
+// call this state when they're attacking to force a proper rotation towards their target
+defstate fronttowardstarget
+	// angle towards target, or last known position of target
+	state angvartotarget
+	// return value = angvar => angle to face target
+	seta[].ang angvar
+
+	state validateshoot // validate BEFORE randomizing angle
+
+	// If aiming at target, introduce accuracy penalty based on skill level
+	// This is separate from regular angle variance while moving!
+	ifn my_target -1
+		ife accuracy_penalty 1
+	{
+		state skill_accuracy_penalty
+		geta[].ang angvar // output variable
+	}
+ends
+
+defstate adjustforshootme
+	// SHOOTME sprites don't have an own health pool, so we need to adjust them to their owner
+	set temp 0
+
+	ifactor SHOOTME
+		set temp 1
+	else ifactor SHOOTME2
+		set temp 1
+
+	ife temp 1
+	{
+		getav[my_target].myowner temp3
+
+		ifn temp3 -1
+			set my_target temp3
+	}
+ends
+
+defstate checktargetalive
+	ifn my_target -1
+	{
+		state adjustforshootme
+
+		ifn my_target -1
+		{
+			// stop attacking if it is dead
+			geta[my_target].extra temp8
+
+			ifl temp8 1
+				set my_target -1
+		}
+	}
+ends
+
+defstate new_validatetarget
+	ifn my_target -1
+	{
+		state checktargetalive
+
+		ifn my_target -1
+			state new_checksight
+
+		state doseektarget
+	}
+ends
+
+
+var target_player_check 0 2
+var shortestdist -1 2
+var temp_dist -1 2
+var target_shortestdist -1 2 // output
+var temp_target_allowed 0 2
+var target_noweightchk -1 2 // output, if the target hitscan checks etc pass this will always have a value even if weight check does not pass. This is then used as a fallback if no other targets can be found.
+
+// check that a target is allowed based on faction
+defstate targetfactionallowed
+	ifn my_target -1
+	{
+		// compare factions
+		getav[my_target].faction_flag temp
+
+		set temp_target_allowed -1
+
+		// we're in the same faction, not allowed
+		ifand faction_flag temp
+			set temp_target_allowed 0
+		else
+		{
+			// different factions, but now check for global faction
+			ifn global_faction -1
+			{
+				ifand faction_flag ALLIED_FACTION_FLAG
+					nullop // allies can still do whatever
+				else
+				{
+					// I'm an enemy, I can only target allied faction
+					ifand temp ALLIED_FACTION_FLAG
+						nullop
+					else
+					{
+						set my_target -1
+						set temp_target_allowed 0
+					}
+				}
+			}
+		}
+
+		ife temp_target_allowed -1
+			set temp_target_allowed 1
+	}
+	else
+		set temp_target_allowed 0
+ends
+
+// Check that a target is allowed based on weight factor
+defstate targetweightallowed
+	ifn my_target -1
+	{
+		state new_validatetarget
+
+		ifn my_target -1
+		{
+			set target_noweightchk my_target
+
+			getav[my_target].current_weight temp2
+			getav[my_target].max_weight temp
+
+			ifl temp2 temp
+				set temp_target_allowed 2
+		}
+	}
+ends
+
+// Check that a zombie actor (ie. inactive) target is allowed based on distance
+// we don't want friendly followers to try to snipe inactive actors from half the map away
+defstate targetzombieactordistanceallowed
+	ifn my_target -1
+	{
+		ifl temp_dist 16384
+			set temp_target_allowed 3
+		else ifn sprite[my_target].statnum 2
+			set temp_target_allowed 3
+	}
+ends
+
+defstate targetvalidation // need better names for this shit cause I have confusing state names at the moment
+	ife my_target PLAYER_IDENTITY
+		ife target_player_check 0
+	{
+		ife target_noweightchk my_target
+			set target_noweightchk -1
+
+		set my_target -1
+	}
+	else
+		state checktargetalive
+
+	ifn my_target -1 // target alive
+	{
+		set temp 0
+
+		// Save distance
+		ldist temp_dist THISACTOR my_target
+
+		ife shortestdist -1
+			set temp 1
+		else ifl temp_dist shortestdist
+			set temp 1
+		// We have a potential allowed target, check it
+		ife temp 1
+		{
+			// execute weight check only if switching to another target
+			ifn my_previous_target my_target
+			{
+				state targetfactionallowed
+
+				ife temp_target_allowed 1
+				{
+					state targetweightallowed // temp_target_allowed will be set to 2 if weight check passes
+
+					ife temp_target_allowed 2
+					{
+						state targetzombieactordistanceallowed
+						
+						ife temp_target_allowed 3
+						{
+							set shortestdist temp_dist
+							set target_shortestdist my_target
+						}
+						else
+							set temp_target_allowed 0
+					}
+				}
+			}
+			else
+			{
+				state targetfactionallowed
+				ife temp_target_allowed 1
+				{
+					state targetzombieactordistanceallowed
+					
+					ife temp_target_allowed 3
+					{
+						set target_noweightchk my_target
+						set shortestdist temp_dist
+						set target_shortestdist my_target
+					}
+					else
+						set temp_target_allowed 0
+				}
+			}
+
+			ife temp_target_allowed 0 // target not allowed, discard it
+			{
+				// clear existing value of this, if it was equal
+				ife target_noweightchk my_target
+					set target_noweightchk -1
+
+				set my_target -1
+			}
+		}
+	}
+ends
+
+defstate getmytargetviashootme
+	geta[my_target].picnum temp2
+
+	set temp3 0
+
+	ife temp2 SHOOTME
+		set temp3 1
+	else ife temp2 SHOOTME2
+		set temp3 1
+
+	ife temp3 1
+	{
+		getav[THISACTOR].myowner temp4
+
+		ifn temp4 -1
+			set my_target temp4
+	}
+ends
+
+defstate findclosesttargetinternal
+	set temp -1
+	set targets_iterator 0
+
+	whilel targets_iterator targets_range
+	{
+		set temp targets[targets_iterator]
+
+		ife temp -2
+		{
+			set targets_iterator targets_range
+			exit
+		}
+
+		ifge temp 0
+		  ifn temp THISACTOR // quick catch of not targetting yourself. Not catching this early will confuse even target validation code
+		{
+			set my_target temp
+			state getmytargetviashootme // Could be a shootme sprite, in which case work via owner
+			state targetvalidation
+		}
+
+		add targets_iterator 1
+	}
+
+	// try the fallback
+	ife target_shortestdist -1
+		set target_shortestdist target_noweightchk
+ends
+
+defstate findclosesttarget
+	// only target the player if nothing else is found.
+	// Otherwise there is too much bias towards attacking the player ruining the appearance of infighting
+	set target_player_check 0
+	state findclosesttargetinternal
+
+	// only if no target, check against the player. Unless we're in the allied faction...
+	ifand faction_flag ALLIED_FACTION_FLAG
+		nullop
+	else ife my_target -1
+	{
+		set target_player_check 1
+		set my_target PLAYER_IDENTITY
+		state targetvalidation
+
+		// fallback
+		ife target_shortestdist -1
+			set target_shortestdist target_noweightchk
+	}
+ends
+
+defstate validatecurrenttarget
+	ifn my_target -1
+	{
+		// my_target gets reset to -1 if no longer valid, but we need a backup to properly subtract weight value when targets change
+		set my_previous_target my_target
+		state new_validatetarget
+	}
+
+	// if no target but spawned by mons spawner, don't stand idle but just head straight for the player
+	ife my_target -1
+		ife my_previous_target -1
+		ifspawnedby MONS_SPAWNER
+	{
+		set my_target PLAYER_IDENTITY // set my_target once to force them out of their idle state
+		set my_previous_target PLAYER_IDENTITY
+		getp[].posx target_last_x
+		getp[].posy target_last_y
+		getp[].posz target_last_z
+		set seek_previous_target 1
+	}
+	else ifn my_target -1
+	{
+		set seek_previous_target 0
+
+		geta[my_target].x target_last_x
+		geta[my_target].y target_last_y
+		geta[my_target].z target_last_z
+	}
+ends
+
+// Shortcut for any faction to find a target. Will call appropriate states.
+// This requires that the actor has its own faction defined (in per-actor var "faction_flag")
+defstate checkfortargetinternal
+	// if I'm part of a squad, inherit my target from my leader
+	set temp 0
+
+	ife squad_id -1
+		set temp 1
+	else ife squad_leader THISACTOR
+		set temp 1
+
+	ife temp 0 // I'm in a squad and I'm not the leader, inherit target
+	{
+		getav[squad_leader].my_target my_target
+		state doseektarget // for correct orientation
+	}
+	else
+	{
+		// reset values
+		set shortestdist -1
+		set target_shortestdist -1
+
+		state findclosesttarget
+
+		// The target the shortest distance away still matching weight wins
+		ifn target_shortestdist -1
+			ifn my_previous_target target_shortestdist
+		{
+			// deallocate weight from OLD target
+			ifn my_previous_target -1
+			{
+				getav[my_previous_target].current_weight temp2
+				sub temp2 weight_increase
+				ifl temp2 0
+					set temp2 0
+				setav[my_previous_target].current_weight temp2
+			}
+
+			// assign weight to NEW (!!) target
+			getav[target_shortestdist].current_weight temp2
+			add temp2 weight_increase
+			setav[target_shortestdist].current_weight temp2
+		}
+
+		set my_target target_shortestdist // can be -1
+
+		state validatecurrenttarget
+	}
+ends
+
+defstate checkbumpintopossibletarget
+	// am I literally bumping into an actor right now that isn't allied with me? make that my target
+	geta[].htmovflag move_flag
+
+	ifge move_flag 49152
+	{
+		sub move_flag 49152
+
+		getav[move_flag].faction_flag temp
+
+		ifand faction_flag temp
+			nullop
+		else
+			set my_target move_flag
+	}
+ends
+
+defstate checkfortarget
+	state checkbumpintopossibletarget
+
+	ife my_target -1 // I have no target and need a new one
+	{
+		ifrnd 64
+			state checkfortargetinternal
+	}
+	else // I have an existing target
+	{
+		state checktargetalive
+
+		ifn my_target -1
+		{
+			getav[my_target].faction_flag temp
+
+			ifand temp faction_flag // my target is an ally of me now (via FACTION_CHANGER), discard target
+				set my_target -1
+		}
+
+		ife my_target -1 // my target is dead, give a new one immediately (prevent melee attacking dead bodies for too long)
+			state checkfortargetinternal
+		else ifrnd 16 // my target is alive but need to periodically check if something else has crept in closer
+			state checkfortargetinternal
+		else // I wish to stick to my existing target, so I need to validate it
+		{
+			// don't constantly validate it. Part of validation is hitscan checks, they can get quite expensive at long range.
+			// Account for that here:
+			set temp 0
+
+			ldist xydist THISACTOR my_target
+
+			ifg xydist 40000
+			{
+				ifrnd 8
+					set temp 1
+			}
+			else ifrnd 16
+				set temp 1
+
+			// A few actors can check more often, might need to add a variable to make this cleaner if it's gonna end up being more actors
+			else ifactor JEDRIK
+				set temp 1
+			else ifactor NSOUL
+				set temp 1
+			else ifactor MAARTEN
+				set temp 1
+
+			ife temp 1 // validation of target is allowed
+			{
+				state validatecurrenttarget
+
+				// my target is no longer valid, get new one
+				ife my_target -1
+					ifrnd 16
+				{
+					state checkfortargetinternal
+				}
+			}
+		}
+	}
+
+	// don't go to sleep in the middle of battle
+	ifn my_target -1
+		sleeptime 0
+
+ends
+
+useractor notenemy GLOBAL_FACTION
+cstat 32768
+enda
+
+appendevent EVENT_LOADACTOR
+	ifactor FACTION_CHANGER
+	{
+		geta[].xvel XVELSAVED
+		geta[].hitag HITAGSAVED
+		geta[].extra EXTRASAVED
+	}
+	else ifactor ENEMY_WAKER
+	{
+		geta[].xvel XVELSAVED
+		geta[].hitag HITAGSAVED
+		geta[].yvel YVELSAVED
+	}
+endevent
+
+// Faction changer works like this:
+// Check for activation of XVELSAVED
+// For enemies with bitwise AND of faction_flag AND HITAGSAVED
+// Add them to faction EXTRASAVED (via bitwise OR)
+useractor notenemy FACTION_CHANGER
+	cstat 32768
+
+	checkactivatormotion XVELSAVED
+
+	// Store that activation has occurred at some point
+	ife RETURN 1
+		set temp 1
+
+	// Now always check (but not constantly) if there are targets that need to be put into the different faction.
+	// We need to do this rather than killing the sprite on first activation or the effect won't work for sprites spawned after activation
+	ife temp 1
+		ifrnd 96
+	{
+		set targets_iterator 0
+
+		whilel targets_iterator targets_range
+		{
+			set temp2 targets[targets_iterator]
+
+			ife temp2 -2
+			{
+				set targets_iterator targets_range
+				exit
+			}
+
+			ifg temp2 -1
+			{
+				getav[temp2].faction_flag temp3
+
+				ifg temp3 0
+				{
+					ifand temp3 HITAGSAVED
+					{
+						ifand temp3 EXTRASAVED // already converted
+							nullop
+						else
+						{
+							or temp3 EXTRASAVED
+							setav[temp2].faction_flag temp3
+						}
+					}
+				}
+			}
+
+			add targets_iterator 1
+		}
+	}
+enda
+
+// Detect lotag movement stored in XVELSAVED
+// Activate enemies within radius HITAGSAVED
+// Useful for triggering infighting before the player walks into the room
+// Sprite is killed after running
+// if YVEL = 1, set target to player => not implemented actually and seems to work fine so leave it alone for now!
+useractor notenemy ENEMY_WAKER
+	cstat 32768
+
+	checkactivatormotion XVELSAVED
+
+	ife RETURN 1
+	{
+		for temp sprofstat 2 // detect ZOMBIEACTOR
+		{
+			getav[temp].faction_flag temp2
+
+			ifg temp2 0
+			{
+				ldist xydist temp THISACTOR
+				ifle xydist HITAGSAVED
+				{
+					seta[temp].statnum 1
+					setav[temp].my_target PLAYER_IDENTITY
+				}
+			}
+		}
+
+		killit
+	}
+enda

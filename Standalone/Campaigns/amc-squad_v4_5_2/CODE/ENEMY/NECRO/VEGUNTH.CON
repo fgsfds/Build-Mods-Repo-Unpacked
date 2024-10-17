@@ -1,0 +1,288 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+
+--------------------------------------------------------------------------------
+*/
+
+damageeventtile VEGUNTH
+
+var vegunth_attacks 0 2
+
+action A_VEGUNTH_RAISE 0 3 1 1 32
+action A_VEGUNTH_LOWER 3 3 1 -1 32
+action A_VEGUNTH_IDLE 3
+action A_VEGUNTH_PREP 3 3 1 1 32
+action A_VEGUNTH_FIRE 5 2 1 1 8
+action A_VEGUNTH_HIDDEN 0 // cstat 32768
+action A_VEGUNTH_PAIN 7
+action A_VEGUNTH_DYING 3 3 1 -1 32 // not really but yah
+
+move M_VEGUNTH_RAISE 0 -350
+move M_VEGUNTH_LOWER 0 350
+
+appendevent EVENT_SPAWN
+	ifactor VEGUNTHPOINT
+	{
+		state enemyPointsAdd
+	}
+endevent
+
+defstate vegunthHandlePoint
+	ife enemypoint_handled 0
+	{
+		state enemyInvalidateCurrentPoint
+		state enemyFindPoint
+		state enemySetPoint
+
+		ifn cur_enemypoint -1 // disaster recovery mode
+		{
+			// put it lower so that vegunth can "rise up" from the point, using the M_VEGUNTH_RAISE move
+			// at the end of the move the position should match the height of the point sprite
+			add z 75000
+			seta[].z z
+		}
+	}
+ends
+
+defstate vegunth_shoot_fire
+	geta[].ang temp
+
+	set temp2 temp
+	sub temp2 temp4
+	seta[].ang temp2
+	ifstrength 3000 zshoot temp3 22536
+	zshoot temp3 22828
+
+	ifn temp3 0
+	{
+		set temp2 temp
+		add temp2 temp4
+		seta[].ang temp2
+		ifstrength 3000 zshoot temp3 22536
+		zshoot temp3 22828
+	}
+
+	seta[].ang temp
+ends
+
+useractor enemy VEGUNTH
+	ifaction 0
+		nullop
+	else
+		sleeptime 0
+	ifaction 0
+	{
+		cstat 257
+
+		strength 5000
+		sizeat 148 148
+
+		// vegunth is yuge
+		set zsight_correction 56256
+
+		state monst_glow
+		set CURBOSS THISACTOR
+
+		geta[].z z
+		add z 75000
+		seta[].z z
+		set prev_enemypoint 1171 // cheating! need to force the first point...
+		set INTERNALCOUNT 0
+		quake 130
+		action A_VEGUNTH_RAISE
+	}
+	else ifaction A_VEGUNTH_IDLE
+	{
+		move STOP
+		state checkfortarget
+
+		add INTERNALCOUNT 1
+		// if vegunth has attacked at least 3 times, force position change
+		ifge vegunth_attacks 3
+		{
+			set vegunth_attacks 0
+			set INTERNALCOUNT 0
+			quake 130
+			action A_VEGUNTH_LOWER
+		}
+		// otherwise it's all random babyyy, mess with these values to make it more/less aggro
+		else ifge INTERNALCOUNT 45
+		  ifrnd 64
+		{
+			set vegunth_attacks 0
+			set INTERNALCOUNT 0
+			action A_VEGUNTH_LOWER
+		}
+		
+		ifn my_target -1
+		{		
+			ifge INTERNALCOUNT 15
+			  ifrnd 96
+			{
+				add vegunth_attacks 1
+				set INTERNALCOUNT 0
+				action A_VEGUNTH_PREP
+			}
+		}
+	}
+	else ifaction A_VEGUNTH_RAISE
+	{
+		cstat 257
+
+		ifmove M_VEGUNTH_RAISE nullop
+		else move M_VEGUNTH_RAISE geth getv
+
+		ife INTERNALCOUNT 0
+		{
+			globalsound VEG_ATCK
+		}
+		add INTERNALCOUNT 1
+
+		ifactioncount 3
+		{
+			set INTERNALCOUNT 0
+			action A_VEGUNTH_IDLE
+		}
+	}
+	else ifaction A_VEGUNTH_LOWER
+	{
+		ifmove M_VEGUNTH_LOWER nullop
+		else move M_VEGUNTH_LOWER geth getv
+
+		set enemypoint_handled 0 // mark point needs to be updated
+
+		ife INTERNALCOUNT 0
+		{
+			globalsound VEG_LOWER
+		}
+		add INTERNALCOUNT 1
+
+		ifactioncount 3
+		{
+			set INTERNALCOUNT 0
+			action A_VEGUNTH_HIDDEN
+		}
+	}
+	else ifaction A_VEGUNTH_HIDDEN
+	{
+		move STOP
+		cstat 32768
+
+		ife INTERNALCOUNT 0
+			state vegunthHandlePoint
+
+		add INTERNALCOUNT 1
+		ifge INTERNALCOUNT 48
+		{
+			set INTERNALCOUNT 0
+			action A_VEGUNTH_RAISE
+		}
+	}
+	else ifaction A_VEGUNTH_PREP
+	{
+		state fronttowardstarget
+
+		ife INTERNALCOUNT 0
+		{
+			globalsound DGR_ATT1
+			add INTERNALCOUNT 1
+		}
+
+		ifactioncount 3
+		{
+			set INTERNALCOUNT 0
+			action A_VEGUNTH_FIRE
+		}
+	}
+	else ifaction A_VEGUNTH_FIRE
+	{
+		ife INTERNALCOUNT 0
+		{
+			quake 30
+			globalsound VEG_FIRE
+			add INTERNALCOUNT 1
+
+			// offset dragon a bit
+			set CALCZ_TARGET_OFFSET -35000
+
+			// this to make the projectiles originate from the dragon's mouth instead of his belly
+			geta[].z my_z
+			sub my_z 4096
+			seta[].z my_z
+
+			// fire main projectile
+			set PROJECTILE_TO_SHOOT GORO_EXPLODING_FLAME
+			set PROJECTILE_FIRING_SOUND GUARDIAN_BLAST
+			state sang_enemyShootProjectile
+
+			// temp3 contains zvel now so just reuse it in this state
+			set temp4 32 state vegunth_shoot_fire
+			set temp4 64 state vegunth_shoot_fire
+			set temp4 96 state vegunth_shoot_fire
+
+			geta[].z my_z
+			add my_z 4096
+			seta[].z my_z
+		}
+
+		ifactioncount 16
+		{
+			set INTERNALCOUNT 0
+			action A_VEGUNTH_IDLE
+		}
+	}
+	else ifaction A_VEGUNTH_DYING
+	{
+		ifmove M_VEGUNTH_LOWER nullop
+		else move M_VEGUNTH_LOWER geth getv
+
+		ifactioncount 3
+		{
+			add TREASURE_FOUND 3
+			addkills 1
+			move STOP
+			strength 0
+			operateactivators 600 THISACTOR
+			operaterespawns 600
+			operatemasterswitches 600
+			state clearAllEnemyPoints
+			killit
+		}
+	}
+
+	ifhitweapon
+	{
+		state random_wall_jibs
+		ifrnd 8 globalsound VEG_PAIN
+		ifdead
+		{
+			quake 300
+			globalsound VEG_DIE
+			set INTERNALCOUNT 0
+			action A_VEGUNTH_DYING
+		}
+	}
+enda

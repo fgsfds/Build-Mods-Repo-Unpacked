@@ -1,0 +1,368 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+
+--------------------------------------------------------------------------------
+*/
+
+damageeventtile WOOFER
+
+action A_WOOFER_START 0 1 5 1 12
+action A_WOOFER_IDLE 0 1 5 1 12
+action A_WOOFER_DEAD 47
+action A_WOOFER_DYING 40 8 1 1 12
+action A_WOOFER_FREEZE 40 1 1 1 8
+action A_WOOFER_GROW 40 1 1 1 8
+action A_WOOFER_SHRUNK 0 4 5 1 12
+action A_WOOFER_PAIN 40 1 1 1 8
+action A_WOOFER_SEEK 0 4 5 1 10
+action A_WOOFER_ATTACK 30 2 5 1 12 // Bite
+
+// Lunge
+action A_WOOFER_LUNGE_UP 5 1 5 1 0
+action A_WOOFER_LUNGE_HANG 10 1 5 1 0
+action A_WOOFER_LUNGE_DOWN 15 1 5 1 0
+
+move M_WOOFER_WALK 250
+
+defstate WOOFER_LUNGE_HIT
+	// sprite hit, give it some damage
+	// This has friendly fire cause I dunno, it might be a fun tactic?
+	ifge RETURN 49152
+	{
+		set temp RETURN
+		sub temp 49152
+		sound WOLF_ATTACK
+		sound RIPPER_SCRATCH
+
+		// random amount of damage
+		set temp2 25
+		rand temp3 10
+		add temp2 temp3
+		seta[temp].htextra temp2
+	}
+
+	// Ran into sprite or wall -> stop lunge immediately
+	// If we run into a ceiling or floor, keep lunging for a while still
+	ifg RETURN 32768
+		action A_WOOFER_SEEK
+ends
+
+defstate WOOFER_LUNGE
+	ifaction A_WOOFER_LUNGE_UP
+	{
+		spawn 28330
+
+		sound WOLF_ATTACK2
+		ifactorsound THISACTOR WOLF_RUN stopactorsound THISACTOR WOLF_RUN
+
+		ifnotmoving
+			action A_WOOFER_SEEK
+
+		set movesprite_zvel -3000
+		set movesprite_shift 6
+		set movesprite_clipmask CLIPMASK1
+		state movesprite_state
+
+		state WOOFER_LUNGE_HIT
+
+		ifactioncount 10
+			action A_WOOFER_LUNGE_HANG
+	}
+	else ifaction A_WOOFER_LUNGE_HANG
+	{
+		spawn 28330
+
+		set movesprite_zvel -1000
+		set movesprite_shift 6
+		set movesprite_clipmask CLIPMASK1
+		state movesprite_state
+
+		state WOOFER_LUNGE_HIT
+
+		ifnotmoving
+			action A_WOOFER_SEEK
+
+		ifactioncount 5
+			action A_WOOFER_LUNGE_DOWN
+	}
+	else ifaction A_WOOFER_LUNGE_DOWN
+	{
+		spawn 28330
+
+		set movesprite_zvel 4000
+		set movesprite_shift 6
+		set movesprite_clipmask CLIPMASK1
+		state movesprite_state
+
+		state WOOFER_LUNGE_HIT
+
+		ifnotmoving
+			action A_WOOFER_SEEK
+
+		ifactioncount 6
+			action A_WOOFER_SEEK
+	}
+
+ends
+
+// mirages for lunge, cause this seems to look cool
+useractor notenemy 28330
+	ifaction 0
+	{
+		sizeat 30 30
+		spritepal 87
+
+		// give it frames from all angles
+		action A_WOOFER_IDLE
+	}
+	else ifaction A_WOOFER_IDLE
+	{
+		add INTERNALCOUNT 1
+		seta[].blend 255
+
+		ifl INTERNALCOUNT 3
+			cstat 2050
+		else
+			cstat 2562
+
+		ifg INTERNALCOUNT 5
+			killit
+	}
+enda
+
+useractor enemy WOOFER 60 A_WOOFER_START
+fall
+ifaction A_WOOFER_START
+{
+	cstat 256
+	ifspritepal 47
+		{
+		strength 125
+		sizeat 36 36
+		}
+	else
+		{
+		strength 60
+		sizeat 30 30
+		}
+	ifpdistl 16384 sound WOLF_HOWL else globalsound WOLF_DIST
+	state monst_glow
+	spawn SHOOTME
+	action A_WOOFER_IDLE
+}
+
+ifaction A_WOOFER_FREEZE state frozen_code
+else ifaction A_WOOFER_IDLE
+{
+	move STOP
+	state checkfortarget
+	ifn my_target -1
+	{
+		// play alert sound here
+		action A_WOOFER_SEEK
+	}
+}
+// Death & dying
+else ifaction A_WOOFER_DEAD
+{
+	move STOP
+	ifhitweapon
+	{
+		ifwasweapon RADIUSEXPLOSION
+		{
+			state squish_sounds
+			state standard_jibs
+			killit
+		}
+	}
+}
+else ifaction A_WOOFER_DYING
+{
+	cstat 0
+	move STOP
+	strength 0
+	ifactioncount 5 { state rf state BODY_FALL_NOISES action A_WOOFER_DEAD }
+}
+
+// Status effects
+else ifaction A_WOOFER_GROW
+{
+	move STOP
+	state genericgrowcode
+}
+else ifaction A_WOOFER_SHRUNK
+{
+	ifmove M_WOOFER_WALK { } // need to do this cause we're not using ai routines anymore
+	else
+		move M_WOOFER_WALK geth fleeenemy
+
+	ifl SHRUNK_TIME SHRUNKCOUNT // keep shrunk
+		state new_shrunkcode
+	else ifl SHRUNK_TIME SHRUNKDONECOUNT // regrow
+	{
+		state unshrink
+		sizeto 40 40
+	}
+	else // after regrow, switch back to regular action
+	{
+		state endshrunkenstate
+		action A_WOOFER_SEEK
+	}
+}
+
+else ifaction A_WOOFER_PAIN
+{
+	sub PAIN_AMOUNT 1
+	move STOP
+	ife PAIN_AMOUNT 0
+	{
+		ifdead action A_WOOFER_DYING
+		else action A_WOOFER_SEEK
+	}
+}
+
+else ifaction A_WOOFER_SEEK
+{
+	ifg enemy_cooldown1 0
+		sub enemy_cooldown1 1
+
+	ifpdistl 8192 ifrnd 4 sound WOLF_GROWL
+
+	ifactorsound THISACTOR WOLF_RUN nullop else sound WOLF_RUN
+
+	ifmove M_WOOFER_WALK nullop
+	else move M_WOOFER_WALK geth
+
+	state checkfortarget
+
+	ifn my_target -1
+	{
+		// Target acquired, skill setting can still affect decision to shoot.
+		state SKILL_SHOOT_LEVELADJUST
+
+		ifl RANDOM_CHANCE SKILLCHANCE
+		{
+			ldist temp THISACTOR my_target
+			ifl temp 1024 action A_WOOFER_ATTACK // Bite
+			else ifl temp 4096
+			{
+				ife enemy_cooldown1 0
+				{
+					set enemy_cooldown1 100
+					state fronttowardstarget
+					geta[].ang movesprite_angvar
+					action A_WOOFER_LUNGE_UP
+				}
+			}
+		}
+	}
+}
+
+else ifaction A_WOOFER_ATTACK
+{
+	move STOP
+	state new_validatetarget
+
+	ife my_target -1
+		action A_WOOFER_SEEK
+
+	state fronttowardstarget
+
+	ifactioncount 2
+	{
+		sound WOLF_ATTACK
+		set PROJECTILE_TO_SHOOT 17663
+		set PROJECTILE_FIRING_SOUND RIPPER_SCRATCH
+		state sang_enemyShootProjectile
+
+		action A_WOOFER_SEEK
+	}
+}
+
+state WOOFER_LUNGE
+
+state ENEMYKNOCKBACKS
+state enemyfloordamage
+
+state enemy_ice_damage
+state enemy_spirit_damage
+state enemy_fire_damage
+
+ifg sprite[].htextra 0  // if the actor is set to take some damage from a weapon...
+{
+  ife sprite[].htpicnum WOOFER              // if the owner of the weapon IS this actor
+    seta[].htextra -1       // set the damage to zero
+}
+
+ifhitweapon
+{
+		state NEWGUNEFFECTS
+		sound WOLF_PAIN
+		guts JIBS6 1
+		state random_wall_jibs
+		ifdead
+		{
+			addkills 1
+			state rf
+
+			ifwasweapon GROWSPARK { cstat 0 sound ACTOR_GROWING action A_WOOFER_GROW break }
+			else ifg ice_damage 0 { spritepal 1 strength 0 sound SOMETHINGFROZE action A_WOOFER_FREEZE }
+			else ifg spirit_damage 0
+			{
+				shoot SPARK2 shoot SPARK2 shoot SPARK2
+				spritepal 1
+				guts JIBS3 6
+				action A_WOOFER_DYING
+			}
+			else ifg energy_damage 0
+			{
+				shoot SPARK2 shoot SPARK2 shoot SPARK2
+				spritepal 4
+				guts JIBS3 6
+				action A_WOOFER_DYING
+			}
+			else
+			{
+				sound WOLF_DIE
+				action A_WOOFER_DYING
+				spawn BLOODPOOL
+			}
+		}
+		else // not dead
+		{
+			ifwasweapon SHRINKSPARK { sound ACTOR_SHRINKING action A_WOOFER_SHRUNK }
+
+			ifg PAIN_AMOUNT 0 action A_WOOFER_PAIN
+			else ifrnd 32 { state PAIN_SKILL_LEVELADJUST action A_WOOFER_PAIN }
+			// if they were idle, getting hit ALWAYS wakes them up
+			else ifaction A_WOOFER_IDLE { state PAIN_SKILL_LEVELADJUST action A_WOOFER_PAIN }
+		}
+}
+
+
+state checksquished
+
+enda

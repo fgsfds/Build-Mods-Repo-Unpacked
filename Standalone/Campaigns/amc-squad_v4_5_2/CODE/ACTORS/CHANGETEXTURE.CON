@@ -1,0 +1,126 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+Contains actors that swap textures
+--------------------------------------------------------------------------------
+*/
+
+
+// LOTAG = check for tag activation
+// angle = point at wall that needs to change texture
+// HITAG = picnum to change to
+// EXTRA = 1 if only floor texture needs to change, 2 for only ceiling, 3 for both
+// Deletes self when texture change is done (for performance reasons)
+useractor notenemy CHANGETEXTURE
+	cstat 32768
+
+	ifaction 0
+	{
+		checkactivatormotion LOTAGSAVED
+
+		ife RETURN 1
+			action ZERO
+	}
+	else ifaction ZERO
+	{
+		ife EXTRASAVED 0
+		{
+			// hitscan check
+			geta[].ang temp
+
+			sin my temp
+			cos mx temp
+
+			hitscan sprite[].x sprite[].y sprite[].z sprite[].sectnum mx my 0 hitsect hitwall hitsprite hitx hity hitz 16777280
+
+			ifn hitwall -1
+			{
+				setwall[hitwall].picnum HITAGSAVED
+				killit
+			}
+		}
+		else
+		{
+			geta[].sectnum temp
+
+			ife EXTRASAVED 1
+				sets[temp].floorpicnum HITAGSAVED
+			else ife EXTRASAVED 2
+				sets[temp].ceilingpicnum HITAGSAVED
+			else ife EXTRASAVED 3
+			{
+				sets[temp].floorpicnum HITAGSAVED
+				sets[temp].ceilingpicnum HITAGSAVED
+			}
+
+			killit
+		}
+	}
+enda
+
+// *************************************************
+// TEXTURE SWAP
+// *************************************************
+
+useractor notenemy 11198
+cstat 32768
+
+ifaction 0
+	{
+	checkactivatormotion HITAGSAVED
+	ife RETURN 1
+		{
+		ifspritepal 1 state fade_out_white
+		action ZERO
+		}
+	}
+
+ifaction ZERO
+{
+    set temp6 0
+    whilevarvarn temp6 16384
+		{
+		ife sprite[temp6].picnum LOTAGSAVED seta[temp6].picnum EXTRASAVED
+		add temp6 1
+		}
+    set temp7 0
+    whilevarvarn temp7 numsectors
+		{
+		ife sector[temp7].floorpicnum LOTAGSAVED sets[temp7].floorpicnum EXTRASAVED
+		ife sector[temp7].ceilingpicnum LOTAGSAVED sets[temp7].ceilingpicnum EXTRASAVED
+		add temp7 1
+		}
+    set temp8 0
+    whilevarvarn temp8 NUMWALLS
+		{
+		ife wall[temp8].picnum LOTAGSAVED setwall[temp8].picnum EXTRASAVED
+		ife wall[temp8].overpicnum LOTAGSAVED setwall[temp8].overpicnum EXTRASAVED
+		add temp8 1
+		}
+	killit
+}
+
+
+enda

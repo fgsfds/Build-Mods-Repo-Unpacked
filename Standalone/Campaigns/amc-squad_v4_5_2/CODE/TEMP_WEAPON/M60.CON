@@ -1,0 +1,87 @@
+
+
+defstate tw_m60_code
+    setarray WEAPON_TILE[0] M60_SPRITE
+    set WEAPON0_SHOOTS RMAXREVOLVERSHOT
+    set WEAPON0_SHOTSPERBURST 1
+    set WEAPON0_HOLDDELAY 1
+    set WEAPON0_FIRESOUND 4
+    set WEAPON0_INITIALSOUND 0
+    set WEAPON0_FLAGS 22
+    setarray weap_special[0] 16384
+
+    set WEAPON0_FIREDELAY 2
+    set WEAPON0_TOTALTIME 3
+    set WEAPON0_RELOAD 70
+    set WEAPON0_FLAGS 4
+    set WEAPON0_SELECTSOUND SELECT_HMG
+
+    ife cur_weap 0
+        {
+        set GUN_VOLUME 25
+        set weapon_type 0
+        set GUN_SIZE 2
+        set GUN_HANDS 2
+        set GUN_AMMO_TYPES 0
+        set gun_mag temp_wep_mag
+        set max_temp_wep_mag 100
+        ife kickbackpic 2 { espawn SOUND_SPRITE state SPAWN_IN_PLAYER_FRONT setactorvar[RETURN].temp M60_FIRE }
+        ifand gun_firemode 512 // using bipod?
+            {
+            set GUN_ACCURACY 8
+            set GUN_MAX_SPREAD 8
+            ife kickbackpic 1 { add gun_spread 4 set gun_recoil 3 }
+            ife kickbackpic 2 { set gunsmoke_angle 64 state spawn_gunsmoke }
+            }
+        else
+            {
+            set GUN_ACCURACY 12
+            set GUN_MAX_SPREAD 32
+            ife kickbackpic 1 { add gun_spread 7 set gun_recoil 4 }
+            ife kickbackpic 2 { set gunsmoke_angle 64 state spawn_gunsmoke }
+            }
+        ife kickbackpic 18 sound PKM_BOX_OUT
+        ife kickbackpic 35 sound PKM_CHAIN
+        ife kickbackpic 50
+            {
+            sound PKM_BOX_IN
+            ifvarvarl cur_ammo max_temp_wep_mag set temp_wep_mag cur_ammo else set temp_wep_mag max_temp_wep_mag
+            }
+
+        ifg GUN_HEAT[cur_weap] 40
+            {
+            ifg kickbackpic 10 { set gunsmoke_z 9144 set gunsmoke_angle 64 }
+            else { set gunsmoke_z 9144 set gunsmoke_angle 64 }
+            state spawn_gunsmoke_z
+            }
+
+      ifl temp_wep_mag 1
+       ife player[].weapon_pos 0
+        ife kickbackpic 0
+            {
+            ifn cur_ammo 0
+                {
+                setp[].reloading 1
+                setp[].kickback_pic 12
+                }
+            }
+        ifand gun_firemode 512
+            {
+            ifand BITS_PRESS 64
+            ifcount 16
+                {
+                state lower_weapon
+                xorvar gun_firemode 512
+                soundonce PUT_ON_EQUIP
+                resetcount
+                }
+            }
+            else
+            ifp pstanding
+            {
+            state checkwall
+                ife WALL_CLOSE 1
+                    set player_bipod 0
+            }
+        }
+ends

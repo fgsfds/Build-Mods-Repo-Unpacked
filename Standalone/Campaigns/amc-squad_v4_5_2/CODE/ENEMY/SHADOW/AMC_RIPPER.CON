@@ -1,0 +1,410 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+
+--------------------------------------------------------------------------------
+*/
+
+damageeventtile RIPPER
+
+action A_RIPPER_RUN 0 4 5 1 8
+action A_RIPPER_TROT 0 4 5 1 12
+action A_RIPPER_BITE 40 4 5 1 10
+action A_RIPPER_STAND 20 1 5 1 1
+action A_RIPPER_JUMP 20 4 5 1 15
+action A_RIPPER_FALL 35 1 5 1 15
+action A_RIPPER_LAND 20 1 5 1 15
+action A_RIPPER_FLINTCH 55 1 1 1 20
+
+action A_RIPPER_DIE 55 7 1 1 12
+action A_RIPPER_DEAD 61
+
+action A_RIPPER_SLASH_DIE 62 6 1 1 12
+action A_RIPPER_SLASH_DEAD 67
+
+action A_RIPPER_ALERT 68 3 5 1 20
+
+move RIPPER_VELS 300
+move RIPPER_SEARCHVEL 160
+
+move RIPPER_JUMPVEL 256 -24
+move RIPPER_FALLVEL 256
+move RIPPER_SHRUNKVEL 40
+
+ai AI_RIPPER_FROZEN A_RIPPER_STAND STOP geth
+ai AI_RIPPER_SHRUNK A_RIPPER_RUN RIPPER_SHRUNKVEL fleeenemy
+ai AI_RIPPER_CHARGE A_RIPPER_RUN RIPPER_VELS faceplayersmart
+ai AI_RIPPER_BITE A_RIPPER_BITE STOP faceplayer
+ai AI_RIPPER_SEEK A_RIPPER_TROT RIPPER_SEARCHVEL seekplayer
+ai AI_RIPPER_WAIT A_RIPPER_STAND STOP geth
+ai AI_RIPPER_JUMP A_RIPPER_JUMP RIPPER_JUMPVEL jumptoplayer
+ai AI_RIPPER_DYING A_RIPPER_DIE STOP geth
+ai AI_RIPPER_SLASH_DYING A_RIPPER_SLASH_DIE STOP geth
+ai AI_RIPPER_ALERT A_RIPPER_ALERT STOP faceplayer
+
+defstate ripper_gib
+			ife MELEE_RESEARCH[4] 2
+			{
+			ife actor_pal 3
+				spawn RIPPER_HEART
+			else
+			ife actor_pal 50
+				spawn RIPPER_HEART
+			else
+			 ifrnd 48
+				spawn RIPPER_HEART
+			}
+			state standard_jibs
+			state monst_body_jibs
+			state squish_sounds
+			killit
+ends
+
+defstate ripperalertstate
+
+soundonce RIPPER_BEATCHEST
+ifactioncount 8 ai AI_RIPPER_SEEK
+
+ends
+
+defstate rippershrunkstate
+  ifcount SHRUNKDONECOUNT
+    ai AI_RIPPER_SEEK
+  else
+    ifcount SHRUNKCOUNT
+	  {
+	  sound ACTOR_UNSHRINK
+	  ife actor_pal 50 sizeto 32 32 else
+      sizeto 22 22
+	  }
+  else
+    state genericshrunkcode
+ends
+
+defstate ripperdyingstate
+
+	ifaction A_RIPPER_DEAD
+	{
+	strength 0
+		ifhitweapon state ripper_gib
+	}
+	else
+	ifaction A_RIPPER_SLASH_DEAD
+	{
+	strength 0
+		ifhitweapon state ripper_gib
+	}
+	else
+	ifaction A_RIPPER_DIE
+	{
+		ifactioncount 7 { action A_RIPPER_DEAD spawn 16368 ife actor_pal 100 { sound BOSSFALL quake 13 } else state BODY_FALL_NOISES }
+	}
+	else
+	ifaction A_RIPPER_SLASH_DIE
+	{
+		ifactioncount 6 { action A_RIPPER_SLASH_DEAD spawn 16368 ife actor_pal 100 { sound BOSSFALL quake 13 } else state SQUISH_FALL_NOISES }
+	}
+
+ends
+
+defstate ripperjumpstate
+
+	ifaction A_RIPPER_JUMP
+	{
+		ifactioncount 3
+		{
+			action A_RIPPER_FALL
+			move RIPPER_FALLVEL geth
+		}
+	}
+	else
+	ifaction A_RIPPER_FALL
+	{
+		iffloordistl 8
+		{
+			action A_RIPPER_LAND
+			ife actor_pal 100 ifpdistl 8096 quake 13
+			move RIPPER_SEARCHVEL geth
+			ife actor_pal 100 sound BOSSFALL else sound MONSTER_LAND
+		}
+	}
+	else
+	ifaction A_RIPPER_LAND
+	{
+		ifactioncount 2
+		{
+			ai AI_RIPPER_CHARGE
+
+		}
+	}
+
+ends
+
+defstate ripperchargestate
+
+	ifn target -1
+	ifl xydist2 1280
+	{
+		ai AI_RIPPER_BITE
+		break
+	}
+
+	ifcansee
+	{
+		ifpdistl 1280
+		{
+			ai AI_RIPPER_BITE
+			break
+		}
+	}
+	else ifcount 30
+	ife target -1 ai AI_RIPPER_SEEK
+
+	ifpdistg 8192 ifrnd 1 ai AI_RIPPER_SEEK
+	else
+	ifcount 10
+	{
+	geta[].htmovflag move_flag
+		ifn move_flag 0 // this is the same as ifnotmoving, but now we have info about what is hit in the temp var
+		{
+				 andvar move_flag 49152
+				 ife move_flag 32768 // the actor is pushing on a wall
+				 {
+				   geta[].htmovflag move_flag2 // need to get the info again
+				   andvar move_flag2 16383 // temp now stores the wall number
+						   getwall[move_flag2].nextsector sect
+						   ifn sect -1
+						   {
+						   ifand wall[move_flag2].cstat 1 break
+							  ifl sector[sect].floorz sector[].floorz // assumes floors are not sloped!
+								ai AI_RIPPER_JUMP
+							}
+				  }
+		}
+		else
+		ai AI_RIPPER_WAIT
+	}
+
+	ifrnd 1 sound RIPPER_ROAM
+
+ends
+
+defstate ripperseekstate
+
+	ifp phigher ifrnd 2
+	{
+		ai AI_RIPPER_JUMP
+		break
+	}
+	ifcount 60
+	{
+		ifcansee ai AI_RIPPER_CHARGE
+		ifn target -1 ai AI_RIPPER_CHARGE
+	}
+
+	ifcount 10
+	ifnotmoving
+	{
+		ifrnd 128 ai AI_RIPPER_JUMP
+		else
+		ai AI_RIPPER_WAIT
+	}
+
+	ifrnd 1 sound RIPPER_ROAM
+
+ends
+
+defstate ripperwaitstate
+
+	ifcount 10
+	{
+		ai AI_RIPPER_SEEK
+	}
+
+ends
+
+defstate ripperbitestate
+
+	ifn target -1
+	{
+		ifg xydist2 1024 { ifmove STOP move RIPPER_SEARCHVEL geth } else
+		move STOP geth
+	}
+	else
+	{
+		ifpdistg 1024 { ifmove STOP move RIPPER_SEARCHVEL faceplayer } else
+		move STOP faceplayer
+	}
+
+	ifactioncount 4
+	{
+		resetactioncount
+		ifn target -1
+		{
+			ifg xydist2 1280 ai AI_RIPPER_CHARGE
+			shoot 17663
+		}
+		else
+		ifpdistl 1526
+		{
+		ifn SWORD_BLOCK 0
+			 ifp pfacing
+				{
+				shoot SPARK shoot SPARK shoot SPARK shoot SPARK shoot SPARK
+				sub p_stamina 40
+				wackplayer
+				sound SWORD_CLASH
+				ai AI_RIPPER_WAIT
+				}
+			else
+			  shoot 17663
+		}
+			ifpdistg 1280 ai AI_RIPPER_CHARGE
+	}
+
+
+ends
+
+useractor enemy RIPPERJUMP 300 A_RIPPER_JUMP
+	state monst_glow
+	ai AI_RIPPER_JUMP
+	sound RIPPER_ALERT
+	spawn SHOOTME
+	ife actor_pal 0 geta[].pal actor_pal
+	ife actor_pal 50 sizeat 32 32 else
+	sizeat 22 22
+	cstat 257
+	cactor RIPPER
+enda
+
+useractor enemy RIPPER 200 A_RIPPER_STAND
+
+fall
+
+state ENEMYKNOCKBACKS
+state enemyfloordamage
+state enemy_fire_damage
+state enemy_ice_damage
+state enemy_spirit_damage
+
+
+  ifai AI_RIPPER_FROZEN
+  {
+state frozen_code
+  }
+
+ifai 0
+{
+	readarrayfromfile MELEE_RESEARCH F_DOJO_AMCTC
+	state monst_glow
+	sound RIPPER_ALERT
+	spawn SHOOTME
+	ifrnd 128 ai AI_RIPPER_CHARGE else
+	ai AI_RIPPER_ALERT
+	geta[].htflags temp
+	orvar temp SFLAG_NODAMAGEPUSH
+	seta[].htflags temp
+	ife actor_pal 0 geta[].pal actor_pal
+	ife actor_pal 50
+		{
+		sizeat 32 32
+		strength 500
+		}
+	else
+		{
+		sizeat 22 22
+		strength 200
+		}
+	cstat 257
+}
+
+ifaction A_RIPPER_SLASH_DEAD state ripperdyingstate else
+ifaction A_RIPPER_DEAD state ripperdyingstate else
+ifai AI_RIPPER_DYING state ripperdyingstate else
+ifai AI_RIPPER_SLASH_DYING { ifg SLO_MO_SHOWOFF 0 ai AI_RIPPER_SLASH_DYING state ripperdyingstate } else
+ifai AI_RIPPER_SHRUNK state rippershrunkstate else
+ifai AI_RIPPER_CHARGE state ripperchargestate else
+ifai AI_RIPPER_SEEK state ripperseekstate else
+ifai AI_RIPPER_WAIT state ripperwaitstate else
+ifai AI_RIPPER_BITE state ripperbitestate else
+ifai AI_RIPPER_ALERT state ripperalertstate else
+ifai AI_RIPPER_JUMP state ripperjumpstate
+
+ifhitweapon
+{
+	state NEWGUNEFFECTS
+	//spawn BLOOD
+	ifwasweapon SHRINKSPARK
+    {
+      sound ACTOR_SHRINKING
+      ai AI_RIPPER_SHRUNK
+      break
+    }
+    ifrnd 32 sound RIPPER_PAIN
+	guts JIBS6 1
+    ifai AI_RIPPER_ALERT ai AI_RIPPER_CHARGE
+    state random_wall_jibs
+	ifdead
+	{
+	stopactorsound THISACTOR RIPPER_PAIN
+		ifg ice_damage 0
+		{
+			sound SOMETHINGFROZE
+	        spritepal 1
+	        ai AI_RIPPER_FROZEN
+	        strength 0
+	        break
+        }
+		guts JIBS6 5
+		addkills 1
+
+		ifrnd 128 cstat 0 else cstat 4
+		ifstrength -100 state ripper_gib
+		else ifwasweapon RPG state ripper_gib
+		else ifwasweapon RADIUSEXPLOSION state ripper_gib
+		else ifand PROJ_UDATA PROJ_GIB state ripper_gib
+		sound RIPPER_DYING
+		ifand PROJ_UDATA 8
+			{
+			state sword_kill_sounds
+            state random_trigger_showoff
+			ife SWORD_ANIM 1 cstat 0 else cstat 4 state slashed_sounds ai AI_RIPPER_SLASH_DYING
+			}
+		else
+		ai AI_RIPPER_DYING
+	}
+}
+else
+    ifrnd 1
+    {
+
+        ifai AI_RIPPER_SEEK ai AI_RIPPER_ALERT
+        ifai AI_RIPPER_CHARGE ai AI_RIPPER_ALERT
+
+    }
+
+state checksquished
+
+enda

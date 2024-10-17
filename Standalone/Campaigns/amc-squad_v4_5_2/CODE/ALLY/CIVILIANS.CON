@@ -1,0 +1,2673 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+
+--------------------------------------------------------------------------------
+*/
+
+
+// *************************************************
+// CIVILIAN JETPACK
+// *************************************************
+
+defstate SPAWNJETCIV
+sleeptime 0
+ifrnd 64
+{
+ifspritepal 4 espawn 6249
+else
+	{
+	ifrnd 128 espawn JETPACKCIV2
+	else espawn JETPACKCIV1
+	}
+
+ife LOTAGSAVED 1 resetcount
+else
+	{
+	set temp3 sprite[].x
+	randvar temp8 512
+	add temp3 temp8
+
+	rotatepoint sprite[].x sprite[].y temp3 sprite[].y temp4 temp5 temp6
+
+	seta[RETURN].x temp5
+	seta[RETURN].y temp6
+
+
+	geta[RETURN].z temp2
+	randvar temp 20000
+	sub temp 10000
+	add temp2 temp
+	seta[RETURN].z temp2
+	resetcount
+	}
+}
+ends
+
+
+
+useractor notenemy JETPACKCIVSPAWNER
+cstat 32768
+
+ifspritepal 0
+{
+ifcount 52 state SPAWNJETCIV
+}
+else
+ifspritepal 1
+{
+ifcount 26 state SPAWNJETCIV
+}
+else
+ifspritepal 2
+{
+ifcount 13 state SPAWNJETCIV
+}
+else
+ifspritepal 4
+{
+ifaction 0
+	{
+	checkactivatormotion HITAGSAVED
+	ife RETURN 1 action ZERO
+	}
+ifaction ZERO
+  {
+	ifcount 8 state SPAWNJETCIV
+	checkactivatormotion LOTAGSAVED
+	ife RETURN 1 killit
+  }
+}
+
+
+enda
+
+move JETCGLIDE 140
+
+defstate JETPACKCIV
+state lowperf
+
+ifaction FIVE_ANG
+{
+move JETCGLIDE geth
+ifnotmoving killit
+}
+
+ifaction 0
+{
+sizeat 30 30
+ifrnd 16 seta[].pal 10 else
+ifrnd 32 seta[].pal 11 else
+ifrnd 48 seta[].pal 12 else
+ifrnd 64 seta[].pal 13 else
+ifrnd 80 seta[].pal 14 else
+ifrnd 96 seta[].pal 15 else
+ifrnd 112 seta[].pal 16 else
+ifrnd 128 seta[].pal 18 else
+ifrnd 144 seta[].pal 21 else
+ifrnd 160 seta[].pal 22 else
+ifrnd 176 seta[].pal 23 else
+ifrnd 192 seta[].pal 5
+action FIVE_ANG
+}
+ends
+
+useractor notenemy JETPACKCIV1 state JETPACKCIV enda
+useractor notenemy JETPACKCIV2 state JETPACKCIV enda
+
+// ===============================================
+// CIVILIANS
+// ===============================================
+var civ_angle_backup 0 2
+var civ_waypoint_allowed 0 2 // set to 1 if the civ is allowed to use the waypoint
+var civ_cur_waypoint 0 2
+var civ_move_counter 0 2
+
+var civ_spawnedby -1 2 // store which spawner spawned the civ
+var civ_spawn_max 0 2
+var civ_spawn_cur 0 2
+
+var civ_panic_handled 0 2 // only apply initial panic actions (like spawning shootme2) only once
+
+// MISC CIVS
+
+defstate kill_on_hitag
+ifn HITAGSAVED 0
+	{
+	sleeptime 0
+	checkactivatormotion HITAGSAVED
+	ife RETURN 1 killit
+	}
+ends
+
+spriteshadow 8167
+
+useractor notenemy 8167 state kill_on_hitag enda
+
+useractor notenemy 8541 state kill_on_hitag enda
+
+useractor notenemy 8544 state kill_on_hitag enda
+
+useractor notenemy 8542 state kill_on_hitag enda
+
+useractor notenemy 17332 state kill_on_hitag enda
+
+defstate STANDING_CIV
+ifaction 0
+{
+ifspritepal 3 nullop else
+ifspritepal 140 nullop else // ugly manual hack but fuck it
+	{
+	randvar temp 3 add temp 22 seta[].xrepeat temp
+    randvar temp 3 add temp 22 seta[].yrepeat temp
+	}
+
+ifspritepal 27
+	{
+	seta[].mdflags 16
+	 // set command 2048
+	}
+spriteflags 3
+action FIVE_ANG
+ifspritepal 0 state civilian_pals
+}
+ifg CIVS_PANIC 1 killit
+ifaction FIVE_ANG state kill_on_hitag
+ends
+
+useractor notenemy 15574 state STANDING_CIV enda
+useractor notenemy 15579 state STANDING_CIV enda
+useractor notenemy 15584 state STANDING_CIV enda
+useractor notenemy 15589 state STANDING_CIV enda
+useractor notenemy 15594 state STANDING_CIV enda
+useractor notenemy 15599 state STANDING_CIV enda
+useractor notenemy 15604 state STANDING_CIV enda
+useractor notenemy 15609 state STANDING_CIV enda
+
+useractor notenemy 22559 state STANDING_CIV enda
+useractor notenemy 22564 state STANDING_CIV enda
+useractor notenemy 22578 state STANDING_CIV enda
+useractor notenemy 22583 state STANDING_CIV enda
+useractor notenemy 22598 state STANDING_CIV enda
+useractor notenemy 22639 state STANDING_CIV enda
+
+
+action CIV1_IDLE 0 1 5 1 1
+action CIV1_WALK 0 4 5 1 12
+action CIV1_RUN 9577 4 5 1 12
+action CIV1_DUCK 9572 1 5
+action CIV1_DIE 160 3 1 24
+action CIV1_DEAD 162
+
+action CIV2_IDLE 20 1 5 1 1
+action CIV2_WALK 20 4 5 1 12
+action CIV2_RUN 9602 4 5 1 12
+action CIV2_DUCK 9597 1 5
+action CIV2_DIE 163 3 1 24
+action CIV2_DEAD 165
+
+action CIV3_IDLE 40 1 5 1 1
+action CIV3_WALK 40 4 5 1 12
+action CIV3_RUN 9627 4 5 1 12
+action CIV3_DUCK 9622 1 5
+action CIV3_DIE 166 3 1 24
+action CIV3_DEAD 168
+
+action CIV4_IDLE 60 1 5 1 1
+action CIV4_WALK 60 4 5 1 12
+action CIV4_RUN 9652 4 5 1 12
+action CIV4_DUCK 9647 1 5
+action CIV4_DIE 169 3 1 24
+action CIV4_DEAD 171
+
+action CIV5_IDLE 80 1 5 1 1
+action CIV5_WALK 80 4 5 1 12
+action CIV5_RUN 9552 4 5 1 12
+action CIV5_DUCK 9547 1 5
+action CIV5_DIE 172 3 1 24
+action CIV5_DEAD 174
+
+action CIV6_IDLE 100 1 5 1 1
+action CIV6_WALK 100 4 5 1 12
+action CIV6_RUN 9527 4 5 1 12
+action CIV6_DUCK 9522 1 5
+action CIV6_DIE 175 3 1 24
+action CIV6_DEAD 177
+
+action CIV7_IDLE 120 1 5 1 1
+action CIV7_WALK 120 4 5 1 12
+action CIV7_RUN 9502 4 5 1 8
+action CIV7_DUCK 9497 1 5
+action CIV7_DIE 178 3 1 24
+action CIV7_DEAD 180
+
+action CIV8_IDLE 140 1 5 1 1
+action CIV8_WALK 140 4 5 1 12
+action CIV8_RUN 9477 4 5 1 8
+action CIV8_DUCK 9472 1 5
+action CIV8_DIE 181 3 1 24
+action CIV8_DEAD 183
+
+move CIV_WALK 64
+move CIV_RUN 128
+move CIV_DUCK 0
+move CIV_STOP 0
+
+defstate CIV_GETANGLE
+	ifn temp7 0
+	{
+		geta[temp].x mx
+		geta[temp].y my
+		geta[temp].y mz
+		geta[temp].ang angvar
+
+		set temp3 mx
+		add temp3 temp7
+		rotatepoint mx my temp3 my angvar temp5 temp6
+		sub temp5 mx
+		sub temp6 my
+		getangle angvar temp5 temp6
+
+		seta[].ang angvar
+
+		ife temp8 5
+		{
+			seta[].x mx
+			seta[].y my
+			seta[].z mz
+		}
+	}
+	else
+	{
+		geta[temp].ang angvar
+		seta[].ang angvar
+	}
+ends
+
+defstate MOVE_IT_HERE
+	ife INTERNALCOUNT_2 0
+	{
+		getav[temp].LOTAGSAVED temp4
+
+		ife LOTAGSAVED temp4
+		{
+			geta[temp].x mx
+			geta[temp].y my
+			geta[temp].z mz
+
+			seta[].x mx
+			seta[].y my
+			seta[].z mz
+
+			ifspritepal 3
+				set INTERNALCOUNT_2 96
+			else
+				set INTERNALCOUNT_2 30
+		}
+	}
+ends
+
+defstate HANDLE_CIV_INTERESTPOINT
+	state MOVE_IT_HERE
+	set INTERNALCOUNT 128
+	geta[temp].ang temp2 // waypoint angle
+
+	// If no xvel, save previous angle and keep walking in previous direction.
+	// Otherwise, xvel overrules angle post-waypoint handling.
+	ife temp7 0
+	{
+		geta[].ang temp3
+		set civ_angle_backup temp3
+	}
+	else
+		set civ_angle_backup temp7
+
+	seta[].ang temp2 // make civ face in same direction as waypoint angle
+
+	set civ_move_counter 96 // set countdown timer, they will stay put for 56 tics
+ends
+
+defstate CIV_CHECKWAYPOINT
+	findnearactor 15615 512 temp
+
+	ife temp -1
+		ifcount 3
+	{
+		findnearactor 15615 768 temp
+		resetcount
+	}
+
+	ifn temp -1
+	{
+		getav[temp].XVELSAVED temp7
+		geta[temp].pal temp8
+
+		ife temp8 4
+		{
+			// mark as despawned on spawner owner
+			ifn civ_spawnedby -1
+			{
+				getav[civ_spawnedby].civ_spawn_cur temp2
+				sub temp2 1
+				setactorvar[civ_spawnedby].civ_spawn_cur temp2
+			}
+
+			killit
+		}
+		else
+		{
+			set civ_cur_waypoint temp
+
+			// if YVEL = 1 angle towards center of waypoint. Once sprite reached waypoint center, perform action.
+			// else, apply immediately
+			getav[temp].YVELSAVED temp4
+
+			ife temp4 1
+			{
+				// Exact comparison doesn't quite work: we've reached the center if we're within 100 units of both x and y
+				ldist temp3 temp THISACTOR
+
+				ifl temp3 100
+				{
+					set civ_waypoint_allowed 1
+				}
+				else ifn civ_waypoint_allowed 1 // once the waypoint is allowed, it can't be unallowed until after they leave the radius
+				{
+					set civ_waypoint_allowed 0
+				}
+			}
+			else
+			{
+				set civ_waypoint_allowed 1
+			}
+
+			ife civ_waypoint_allowed 1
+			{
+				ifg INTERNALCOUNT_2 0 sub INTERNALCOUNT_2 1
+				ifg INTERNALCOUNT 0 sub INTERNALCOUNT 1
+
+				ife temp8 2 // If it's spritepal is 2, make it a 'random' waypoint
+				{
+					ifrnd 16
+						state CIV_GETANGLE
+				}
+				else ife temp8 1 // If it's spritepal is 1, make it a 'random' interest waypoint
+				{
+					ife civ_move_counter 0
+						ife INTERNALCOUNT 0 // set delay so it doesn't keep triggering
+						ifrnd 128
+					{
+						state HANDLE_CIV_INTERESTPOINT
+					}
+				}
+				else ife temp8 6 // If it's spritepal is 6, make it a compulsory interest waypoint
+				{
+					ife civ_move_counter 0
+						ife INTERNALCOUNT 0 // set delay so it doesn't keep triggering
+					{
+						state HANDLE_CIV_INTERESTPOINT
+					}
+				}
+				else
+					state CIV_GETANGLE
+			}
+			else
+			{
+				geta[temp].x mx
+				geta[temp].y my
+				geta[].x x
+				geta[].y y
+				subvarvar mx x
+				subvarvar my y
+				getangle angvar mx my
+				seta[].ang angvar
+			}
+		}
+	}
+ends
+
+defstate CIVILIAN_RANDOMIZE
+	ifaction 0
+	{
+		strength 25
+		cstat 256
+		randvar temp2 18
+		switch temp2
+			case 0 spritepal 23 break
+			case 1 spritepal 36 break
+			case 2 spritepal 21 break
+			case 3 spritepal 49 break
+			case 4 spritepal 43 break
+			case 5 spritepal 44 break
+			case 6 spritepal 35 break
+			case 7 spritepal 37 break
+			case 8 spritepal 38 break
+			case 9 spritepal 39 break
+			case 10 spritepal 16 break
+			case 12 spritepal 15 break
+			case 13 spritepal 14 break
+			case 14 spritepal 13 break
+			case 15 spritepal 3 break
+			case 16 spritepal 11 break
+			case 17 spritepal 10 break
+			case 18 spritepal 12 break
+		endswitch
+		clipdist 16
+
+		randvar temp 3 add temp 23 seta[].xrepeat temp
+		randvar temp 3 add temp 22 seta[].yrepeat temp
+
+		randvar temp 80
+
+		ifl temp 10 { set GENDER FEMALE set ally_mag 1 action CIV1_IDLE }
+		else ifl temp 20 { set GENDER FEMALE set ally_mag 2 action CIV2_IDLE }
+		else ifl temp 30 { set GENDER MALE set ally_mag 3 action CIV3_IDLE }
+		else ifl temp 40 { set GENDER MALE set ally_mag 4 action CIV4_IDLE }
+		else ifl temp 50 { set GENDER MALE set ally_mag 5 action CIV5_IDLE }
+		else ifl temp 60 { set GENDER MALE set ally_mag 6 action CIV6_IDLE }
+		else ifl temp 70 { set GENDER FEMALE set ally_mag 7 action CIV7_IDLE }
+		else { set GENDER FEMALE set ally_mag 8 action CIV8_IDLE }
+	}
+ends
+
+defstate CIVILIAN_HANDLEWAYPOINT
+ifmove STOP break
+	ifg CIVS_PANIC 0
+	{
+		ife civ_panic_handled 0
+			{
+			ife GENDER FEMALE
+				{
+				ifrnd 64 sound C2_PANIC1
+				else ifrnd 64 sound C2_PANIC2
+				else ifrnd 64 sound C2_PANIC3
+				}
+			else
+				{
+				ifrnd 64 sound C1_PANIC1
+				else ifrnd 64 sound C1_PANIC2
+				else ifrnd 64 sound C1_PANIC3
+				}
+			spawn SHOOTME2
+			}
+
+		ifmove CIV_DUCK nullop
+		else ifrnd 4 move CIV_RUN geth randomangle
+		else ifnotmoving move CIV_RUN geth randomangle
+		else move CIV_RUN geth
+		set civ_panic_handled 1
+	}
+	else
+		move CIV_WALK geth
+
+	// Check for waypoint
+	state CIV_CHECKWAYPOINT
+
+	ifg civ_move_counter 0
+	{
+		sub civ_move_counter 1
+		ifg civ_move_counter 30
+		{
+			move CIV_STOP
+		}
+		else ifg CIVS_PANIC 0
+		{
+		ifrnd 16
+			{
+			ife GENDER FEMALE
+				{
+				ifrnd 64 sound C2_PANIC1
+				else ifrnd 64 sound C2_PANIC2
+				else ifrnd 64 sound C2_PANIC3
+				}
+			else
+				{
+				ifrnd 64 sound C1_PANIC1
+				else ifrnd 64 sound C1_PANIC2
+				else ifrnd 64 sound C1_PANIC3
+				}
+			}
+			move CIV_RUN geth randomangle
+		}
+		else
+		ifbulletnear
+		{
+			ife GENDER MALE
+				{
+				ifrnd 64 sound C1_YELL1
+				else ifrnd 64 sound C1_YELL2
+				else ifrnd 64 sound C1_YELL3
+				}
+			move CIV_RUN geth randomangle
+		}
+		else
+		{
+			seta[].ang civ_angle_backup
+			move CIV_WALK geth
+		}
+	}
+
+	ife civ_waypoint_allowed 1
+	{
+		// set back to 0 if more than 768 units away from "cur" waypoint
+		ldist temp THISACTOR civ_cur_waypoint
+
+		ifg temp 768
+		{
+			set civ_cur_waypoint -1
+			set civ_waypoint_allowed 0
+		}
+	}
+ends
+
+defstate CIVILIAN_HANDLEDEATH // shared death handling code
+
+	ifrnd 64
+		ifpdistl 4096
+		ifcansee
+	{
+		ife CHAR 0 sound JOHSHIT
+		else ife CHAR 2 sound MOHSHIT
+		else ife CHAR 3 sound ROHSHIT
+		else ife CHAR 5 sound RNOHSHIT
+		else ife CHAR 6 sound GOHSHIT
+		else ife CHAR 7 sound MSOHSHIT
+	}
+
+	ife GENDER MALE
+	{
+		randvar temp 40
+		ifl temp 10 sound C1_DIE1
+		else ifl temp 20 sound C1_DIE2
+		else ifl temp 30 sound C1_DIE3
+		else sound C1_DIE4
+	}
+	else ife GENDER FEMALE
+	{
+		randvar temp 30
+		ifl temp 10 sound C2_DIE1
+		else ifl temp 20 sound C2_DIE2
+		else ifl temp 30 sound C2_DIE3
+		else sound C2_DIE4
+	}
+
+	respawnhitag
+	state rf
+	move STOP
+
+	resetactioncount
+	shoot BLOOD
+	spawn BLOODPOOL
+ends
+
+defstate CIVILIAN_HANDLESTATE
+	ifmove STOP
+	{
+		ifaction CIV1_DIE
+		{
+			ifactioncount 2 action CIV1_DEAD
+		}
+
+		else ifaction CIV2_DIE
+		{
+			ifactioncount 2 action CIV2_DEAD
+		}
+
+		else ifaction CIV3_DIE
+		{
+			ifactioncount 2 action CIV3_DEAD
+		}
+
+		else ifaction CIV4_DIE
+		{
+			ifactioncount 2 action CIV4_DEAD
+		}
+
+		else ifaction CIV5_DIE
+		{
+			ifactioncount 2 action CIV5_DEAD
+		}
+
+		else ifaction CIV6_DIE
+		{
+			ifactioncount 2 action CIV6_DEAD
+		}
+
+		else ifaction CIV7_DIE
+		{
+			ifactioncount 2 action CIV7_DEAD
+		}
+
+		else ifaction CIV8_DIE
+		{
+			ifactioncount 2 action CIV8_DEAD
+		}
+	}
+	else ifmove CIV_STOP
+	{
+		ifaction CIV1_WALK action CIV1_IDLE
+		else ifaction CIV2_WALK action CIV2_IDLE
+		else ifaction CIV3_WALK action CIV3_IDLE
+		else ifaction CIV4_WALK action CIV4_IDLE
+		else ifaction CIV5_WALK action CIV5_IDLE
+		else ifaction CIV6_WALK action CIV6_IDLE
+		else ifaction CIV7_WALK action CIV7_IDLE
+		else ifaction CIV8_WALK action CIV8_IDLE
+	}
+	else ifmove CIV_WALK
+	{
+		ifg CIVS_PANIC 0
+		{
+			ife civ_panic_handled 0
+				spawn SHOOTME2
+
+			move CIV_RUN geth randomangle
+			set civ_panic_handled 1
+		}
+
+		ifaction CIV1_IDLE action CIV1_WALK
+		else ifaction CIV2_IDLE action CIV2_WALK
+		else ifaction CIV3_IDLE action CIV3_WALK
+		else ifaction CIV4_IDLE action CIV4_WALK
+		else ifaction CIV5_IDLE action CIV5_WALK
+		else ifaction CIV6_IDLE action CIV6_WALK
+		else ifaction CIV7_IDLE action CIV7_WALK
+		else ifaction CIV8_IDLE action CIV8_WALK
+
+		ifnotmoving ife civ_move_counter 0 move CIV_WALK geth randomangle
+	}
+	else ifmove CIV_RUN
+	{
+
+		ife ally_mag 1 { ifaction CIV1_RUN nullop else action CIV1_RUN }
+		else ife ally_mag 2 { ifaction CIV2_RUN nullop else action CIV2_RUN }
+		else ife ally_mag 3 { ifaction CIV3_RUN nullop else action CIV3_RUN }
+		else ife ally_mag 4 { ifaction CIV4_RUN nullop else action CIV4_RUN }
+		else ife ally_mag 5 { ifaction CIV5_RUN nullop else action CIV5_RUN }
+		else ife ally_mag 6 { ifaction CIV6_RUN nullop else action CIV6_RUN }
+		else ife ally_mag 7 { ifaction CIV7_RUN nullop else action CIV7_RUN }
+		else ife ally_mag 8 { ifaction CIV8_RUN nullop else action CIV8_RUN }
+
+		ifnotmoving move CIV_RUN geth randomangle
+
+		ifpdistl 4096
+			{
+			ifrnd 64
+				{
+				ife GENDER MALE
+					{
+					ifrnd 64 sound C1_BREATH1
+					else ifrnd 64 sound C1_BREATH2
+					else ifrnd 64 sound C1_BREATH3
+					else ifrnd 64 sound C1_BREATH4
+					}
+				else
+					{
+					ifrnd 64 sound C2_BREATH1
+					else ifrnd 64 sound C2_BREATH2
+					else ifrnd 64 sound C2_BREATH3
+					}
+				}
+			move CIV_DUCK
+			}
+	}
+	else ifmove CIV_DUCK
+	{
+	move CIV_DUCK 0
+		ife ally_mag 1 { ifaction CIV1_DUCK nullop else action CIV1_DUCK }
+		else ife ally_mag 2 { ifaction CIV2_DUCK nullop else action CIV2_DUCK }
+		else ife ally_mag 3 { ifaction CIV3_DUCK nullop else action CIV3_DUCK }
+		else ife ally_mag 4 { ifaction CIV4_DUCK nullop else action CIV4_DUCK }
+		else ife ally_mag 5 { ifaction CIV5_DUCK nullop else action CIV5_DUCK }
+		else ife ally_mag 6 { ifaction CIV6_DUCK nullop else action CIV6_DUCK }
+		else ife ally_mag 7 { ifaction CIV7_DUCK nullop else action CIV7_DUCK }
+		else ife ally_mag 8 { ifaction CIV8_DUCK nullop else action CIV8_DUCK }
+
+		ifrnd 1 move CIV_DUCK randomangle
+
+	ifpdistg 8192
+		{
+		ifcansee ifcanseetarget nullop else killit
+		}
+	}
+
+	ifhitweapon
+	{
+	ifmove CIV_DUCK { strength 100 seta[].htextra -1 }
+	ifmove STOP break
+		spawn BLOOD
+		ifdead
+		{
+			state CIVILIAN_HANDLEDEATH
+
+			ife ally_mag 1 { ifaction CIV1_DIE nullop else action CIV1_DIE }
+			else ife ally_mag 2 { ifaction CIV2_DIE nullop else action CIV2_DIE }
+			else ife ally_mag 3 { ifaction CIV3_DIE nullop else action CIV3_DIE }
+			else ife ally_mag 4 { ifaction CIV4_DIE nullop else action CIV4_DIE }
+			else ife ally_mag 5 { ifaction CIV5_DIE nullop else action CIV5_DIE }
+			else ife ally_mag 6 { ifaction CIV6_DIE nullop else action CIV6_DIE }
+			else ife ally_mag 7 { ifaction CIV7_DIE nullop else action CIV7_DIE }
+			else ife ally_mag 8 { ifaction CIV8_DIE nullop else action CIV8_DIE }
+		}
+	}
+ends
+
+damageeventtile 15360 // female civilian
+
+spriteshadow 15360
+
+useractor notenemy 15360
+	fall
+
+	state CIVILIAN_RANDOMIZE
+	state CIVILIAN_HANDLEWAYPOINT // This state is reused for medieval civilians
+	state CIVILIAN_HANDLESTATE
+enda
+
+useractor notenemy 15615 // Civilian waypoint
+	cstat 32768
+	ifg CIVS_PANIC 0 killit
+enda
+
+defstate SPAWN_CIV
+
+	ifl civ_spawn_cur civ_spawn_max
+		ifrnd 64
+	{
+		add civ_spawn_cur 1
+
+		espawn 15360
+
+		setactorvar[RETURN].civ_spawnedby THISACTOR
+
+		set temp3 sprite[].x
+		randvarvar temp8 HITAGSAVED
+		add temp3 temp8
+
+		geta[].ang temp4
+		add temp4 temp3
+
+		rotatepoint sprite[].x sprite[].y temp3 sprite[].y temp4 temp5 temp6
+
+		seta[RETURN].x temp5
+		seta[RETURN].y temp6
+
+		resetcount
+	}
+ends
+
+useractor notenemy 15614 // civilian spawner
+
+cstat 32768
+
+// Default: spawn max 500 civs
+ife civ_spawn_max 0
+{
+	ifn YVELSAVED 0
+		set civ_spawn_max YVELSAVED
+	else
+		set civ_spawn_max 250
+}
+
+ifg CIVS_PANIC 0 killit
+
+ifn LOTAGSAVED 0
+{
+	checkactivatormotion LOTAGSAVED
+	ife RETURN 1
+	{
+		ife EXTRASAVED 1 globalsound CROWD_PANIC
+		killit
+	}
+}
+
+ifspritepal 0
+{
+	ifcount 104 state SPAWN_CIV
+}
+else ifspritepal 1
+{
+	ifcount 26 state SPAWN_CIV
+}
+else ifspritepal 2
+{
+	ifcount 13 state SPAWN_CIV
+}
+else ifspritepal 4
+{
+	ifcount 8 state SPAWN_CIV
+}
+else ifspritepal 5
+{
+	ifcount 208 state SPAWN_CIV
+}
+
+enda
+
+// *************************************************
+// PLEADING RUSSIAN
+// *************************************************
+
+action PLEAD 7324
+action PLEAD2 7324
+action PLEAD_DIE 7328 5 1 1 10
+action PLEAD_DEAD 7332 1
+
+spritenvg 13205
+
+useractor notenemy 13205
+
+ifaction 0
+{
+cstat 256
+strength 50
+espawn 12263
+seta[RETURN].owner THISACTOR
+geta[RETURN].z temp
+sub temp 16384
+seta[RETURN].z temp
+
+action PLEAD
+}
+
+ifaction PLEAD
+{
+ifpdistl 8192
+ifcansee
+	{
+	spawn SHOOTME2
+	action PLEAD2
+	}
+}
+
+ifaction PLEAD2
+{
+
+ifp palive
+ ifp pfacing
+  ifpdistl 1526
+  {
+  ife MOUSEUP 0 set player_use 0
+   ifhitspace
+	{
+		ife MOUSEUP 0
+		ifcount 13
+			{
+			soundonce CONVERSATION
+			set SAVED_MATVEI 1
+			savegamevar SAVED_MATVEI
+			getp[].horiz PHORIZ
+			getp[].ang PANG
+			set PCINTER 11
+			set INFO_SEL 10
+			action PLEAD2
+			set MOUSEUP 1
+			resetcount
+			}
+		else
+		ife MOUSEUP 1
+		ifcount 13
+			{
+			soundonce CONVERSATION
+			set PCINTER 0
+			set MOUSEUP 0
+			resetcount
+			}
+	}
+ }
+
+	ife PCINTER 11
+	 ifpdistl 4096
+		{
+		ifcount 13
+			{
+			getinput[].bits temp
+			shiftvarr temp 8
+			andvar temp 0xF
+			switch temp
+				case 1:
+					soundonce CONVERSATION
+					ife INFO_SEL 10 set INFO_SEL 11
+										resetcount
+					break
+				//etc.
+				case 10:
+					soundonce CONVERSATION
+					ife INFO_SEL 11 state civilian_rescued
+					set PCINTER 0
+					set MOUSEUP 0
+					killit
+					resetcount
+					break
+			endswitch
+			}
+		}
+
+ifhitweapon
+	{
+	spawn BLOOD
+	 ifdead
+		{
+		set SAVED_MATVEI 0
+		savegamevar SAVED_MATVEI
+		sound RUSSIAN_DIE1
+		spawn BLOODPOOL
+		action PLEAD_DIE
+		}
+	}
+}
+
+ifaction PLEAD_DIE
+{
+ifactioncount 4 { state rf action PLEAD_DEAD }
+}
+
+
+enda
+
+
+
+spritenvg 12253
+
+useractor notenemy 12253 // MATVEI IN AMC BASE SMUGGLE ROUTE
+
+ifaction 0
+{
+strength 100
+espawn 12263
+seta[RETURN].owner THISACTOR
+geta[RETURN].z temp
+sub temp 16384
+seta[RETURN].z temp
+action ZERO
+}
+
+ifaction ZERO
+{
+ife SAVED_MATVEI 0 readgamevar SAVED_MATVEI
+ife SAVED_MATVEI 0 killit
+
+ifp palive
+ ifp pfacing
+  ifpdistl 1526
+  {
+  ife MOUSEUP 0 set player_use 0
+   ifhitspace
+	{
+		ife MOUSEUP 0
+		ifcount 13
+			{
+			soundonce CONVERSATION
+			getp[].horiz PHORIZ
+			getp[].ang PANG
+			set PCINTER 11
+			set INFO_SEL 12
+			set MOUSEUP 1
+			resetcount
+			}
+		else
+		ife MOUSEUP 1
+		ifcount 13
+			{
+			soundonce CONVERSATION
+			set PCINTER 0
+			set MOUSEUP 0
+			resetcount
+			}
+	}
+  }
+
+	ife PCINTER 11
+	 ifpdistl 4096
+		{
+		ifcount 13
+			{
+			getinput[].bits temp
+			shiftvarr temp 8
+			andvar temp 0xF
+			switch temp
+				case 10:
+					soundonce CONVERSATION
+					set PCINTER 0
+					set MOUSEUP 0
+					resetcount
+					break
+			endswitch
+			}
+		}
+
+}
+enda
+
+// CAPTURED WEAPONS TECHNICIAN LIZ
+
+spritenvg 17406
+
+useractor notenemy 17406
+
+ifaction 0
+{
+cstat 256
+strength 50
+
+espawn 12263
+seta[RETURN].owner THISACTOR
+geta[RETURN].z temp
+sub temp 16384
+seta[RETURN].z temp
+
+action ZERO
+}
+
+ifaction ZERO
+{
+
+ifp palive
+ ifp pfacing
+  ifpdistl 1526
+  {
+  ife MOUSEUP 0 set player_use 0
+   ifhitspace
+	{
+		ife MOUSEUP 0
+		ifcount 13
+			{
+			soundonce CONVERSATION
+			set inter_id THISACTOR
+			set SAVED_LIZ 1
+			savegamevar SAVED_LIZ
+			getp[].horiz PHORIZ
+			getp[].ang PANG
+			set PCINTER 11
+			set INFO_SEL 120
+			action ZERO
+			set MOUSEUP 1
+			resetcount
+			}
+	}
+ }
+
+ ife inter_id THISACTOR
+	{
+	ife MOUSEUP 1
+		 ifcount 13
+		 ifhitspace
+			{
+			soundonce CONVERSATION
+			set inter_id -1
+			set PCINTER 0
+			set MOUSEUP 0
+			resetcount
+			}
+	}
+
+	ife PCINTER 11
+	 ife inter_id THISACTOR
+		{
+		ifcount 13
+			{
+			getinput[].bits temp
+			shiftvarr temp 8
+			andvar temp 0xF
+			switch temp
+				case 1:
+					soundonce CONVERSATION
+					ife INFO_SEL 120 set INFO_SEL 121
+					else
+						{
+						state civilian_rescued
+						operateactivators 5000 THISACTOR
+						operaterespawns 5000
+						operatemasterswitches 5000
+						set PCINTER 0
+						set MOUSEUP 0
+						killit
+						}
+					resetcount
+					break
+				case 2:
+					soundonce CONVERSATION
+					ife INFO_SEL 121 set INFO_SEL 124
+					resetcount
+					break
+				//etc.
+				case 10:
+				    soundonce CONVERSATION
+					set inter_id -1
+					set PCINTER 0
+					set MOUSEUP 0
+					resetcount
+					break
+			endswitch
+			}
+		}
+}
+
+enda
+
+spritenvg 17407
+
+action LIZ_ONE -8
+action LIZ_TWO -9
+
+useractor notenemy 17407 // LIZ IN AMC BASE
+
+// Garmid version
+ifspritepal 3
+    break
+
+ifmove 0
+{
+seta[].mdflags 16
+gettimedate temp temp temp temp2 temp temp temp temp
+div temp2 7
+ife temp2 2 spritepal 15
+else ife temp2 3 spritepal 12
+else ife temp2 4 spritepal 16
+else ife temp2 5 spritepal 49
+else ife temp2 6 spritepal 36
+else ife temp2 7 spritepal 13
+else spritepal 0
+// liz changes trousers depending on what day it is
+strength 100
+espawn 12263
+seta[RETURN].owner THISACTOR
+geta[RETURN].z temp
+sub temp 16384
+seta[RETURN].z temp
+ifrnd 64 action 0 else
+ifrnd 128 action LIZ_ONE else
+ifrnd 192 action LIZ_TWO else
+action MINUSONE
+move STOP
+}
+
+ifmove STOP
+{
+ife VOLUME 0 killit
+ife SAVED_LIZ 0 readgamevar SAVED_LIZ
+ife SAVED_LIZ 0 killit
+
+ifp palive
+ ifp pfacing
+  ifpdistl 1526
+  {
+  ife MOUSEUP 0 set player_use 0
+   ifhitspace
+	{
+		ife MOUSEUP 0
+		ifcount 13
+			{
+			soundonce CONVERSATION
+			getp[].horiz PHORIZ
+			getp[].ang PANG
+			set inter_id THISACTOR
+			set PCINTER 11
+			set INFO_SEL 122
+			set MOUSEUP 1
+			resetcount
+			}
+	}
+  }
+
+ ife inter_id THISACTOR
+	{
+	 ifhitspace
+ 		ife MOUSEUP 1
+		ifcount 13
+			{
+			soundonce CONVERSATION
+			set inter_id -1
+			set PCINTER 0
+			set MOUSEUP 0
+			resetcount
+			}
+	}
+
+	ife PCINTER 11
+	 ife inter_id THISACTOR
+		{
+		ifcount 13
+			{
+			getinput[].bits temp
+			shiftvarr temp 8
+			andvar temp 0xF
+			switch temp
+				case 10:
+					soundonce CONVERSATION
+					set inter_id -1
+					set PCINTER 0
+					set MOUSEUP 0
+					resetcount
+					break
+			endswitch
+			}
+		}
+}
+enda
+
+// MARTIAL ARTIST YUZUKI
+spritenvg 19673
+spriteshadow 19673
+
+useractor notenemy 19673
+
+ifspritepal 4 break
+
+ifaction 0
+{
+cstat 256
+strength 50
+
+espawn 12263
+seta[RETURN].owner THISACTOR
+geta[RETURN].z temp
+sub temp 16384
+seta[RETURN].z temp
+
+action ZERO
+}
+
+ifaction ZERO
+{
+
+ifp palive
+ ifp pfacing
+  ifpdistl 1526
+  {
+  ife MOUSEUP 0 set player_use 0
+   ifhitspace
+	{
+		ife MOUSEUP 0
+		ifcount 13
+			{
+			soundonce CONVERSATION
+			set SAVED_YUZUKI 1
+			savegamevar SAVED_YUZUKI
+			getp[].horiz PHORIZ
+			getp[].ang PANG
+			set PCINTER 11
+			set INFO_SEL 130
+			action ZERO
+			set MOUSEUP 1
+			resetcount
+			}
+		else
+		ife MOUSEUP 1
+		ifcount 13
+			{
+			soundonce CONVERSATION
+			set PCINTER 0
+			set MOUSEUP 0
+			resetcount
+			}
+	}
+  }
+
+	ife PCINTER 11
+	 ifpdistl 4096
+		{
+		ifcount 13
+			{
+			getinput[].bits temp
+			shiftvarr temp 8
+			andvar temp 0xF
+			switch temp
+				case 1:
+					soundonce CONVERSATION
+					ife INFO_SEL 130 set INFO_SEL 131
+					else
+					ife INFO_SEL 131
+						{
+						state civilian_rescued
+						operateactivators 5000 THISACTOR
+						operaterespawns 5000
+						operatemasterswitches 5000
+						set PCINTER 0
+						set MOUSEUP 0
+						killit
+						}
+					resetcount
+					break
+				//etc.
+				case 10:
+				    soundonce CONVERSATION
+					set PCINTER 0
+					set MOUSEUP 0
+					resetcount
+					break
+			endswitch
+			}
+		}
+}
+
+enda
+
+spritenvg 19672
+spriteshadow 19672
+
+useractor notenemy 19672 // YUZUKI IN AMC BASE
+
+ifaction 0
+{
+ife VOLUME 0 killit
+ife SAVED_YUZUKI 0 readgamevar SAVED_YUZUKI
+ife SAVED_YUZUKI 0 killit
+strength 100
+espawn 12263
+seta[RETURN].owner THISACTOR
+geta[RETURN].z temp
+sub temp 16384
+seta[RETURN].z temp
+action ZERO
+}
+
+ifaction ZERO
+{
+
+ifp palive
+ ifp pfacing
+  ifpdistl 1526
+  {
+  ife MOUSEUP 0 set player_use 0
+   ifhitspace
+		{
+			ife MOUSEUP 0
+			ifcount 13
+				{
+				soundonce CONVERSATION
+				getp[].horiz PHORIZ
+				getp[].ang PANG
+				set PCINTER 11
+				set INFO_SEL 132
+				set MOUSEUP 1
+				resetcount
+				}
+			else
+			ife MOUSEUP 1
+			ifcount 13
+				{
+				soundonce CONVERSATION
+				set PCINTER 0
+				set MOUSEUP 0
+				readarrayfromfile MELEE_RESEARCH F_DOJO_AMCTC
+				ife MELEE_RESEARCH[1] 0 { setarray MELEE_RESEARCH[1] 1 soundonce RESEARCH_DATA quote 1065 }
+				ife MELEE_RESEARCH[2] 0 { setarray MELEE_RESEARCH[2] 1 soundonce RESEARCH_DATA quote 1065 }
+				writearraytofile MELEE_RESEARCH F_DOJO_AMCTC
+				resetcount
+				}
+		}
+   }
+
+	ife PCINTER 11
+	 ifpdistl 4096
+		{
+		ifcount 13
+			{
+			getinput[].bits temp
+			shiftvarr temp 8
+			andvar temp 0xF
+			switch temp
+				case 10:
+					soundonce CONVERSATION
+					set PCINTER 0
+					set MOUSEUP 0
+					readarrayfromfile MELEE_RESEARCH F_DOJO_AMCTC
+					ife MELEE_RESEARCH[1] 0 { setarray MELEE_RESEARCH[1] 1 soundonce RESEARCH_DATA quote 1065 }
+					ife MELEE_RESEARCH[2] 0 { setarray MELEE_RESEARCH[2] 1 soundonce RESEARCH_DATA quote 1065 }
+					writearraytofile MELEE_RESEARCH F_DOJO_AMCTC
+					resetcount
+					break
+			endswitch
+			}
+		}
+
+}
+enda
+
+action SYNN_IDLE 5 1 5
+
+useractor notenemy 8925 // Eva Woodgreen in base
+
+ifaction 0
+{
+ifcfgvar SAVED_EVA readgamevar SAVED_EVA
+gettimedate temp temp temp temp2 temp temp temp temp
+div temp2 7
+ife temp2 2 spritepal 11
+else ife temp2 3 spritepal 16
+else ife temp2 4 spritepal 21
+else ife temp2 5 spritepal 36
+else ife temp2 6 spritepal 49
+else ife temp2 7 spritepal 10
+else spritepal 0
+strength 100
+/*
+espawn 12263
+seta[RETURN].owner THISACTOR
+geta[RETURN].z temp
+sub temp 16384
+seta[RETURN].z temp
+*/
+action FIVE_ANG
+}
+
+ifaction SYNN_IDLE ifrnd 1 action FIVE_ANG
+
+ifaction FIVE_ANG
+{
+ife VOLUME 0 killit
+ife SAVED_EVA 0 killit
+ifrnd 8 action SYNN_IDLE
+/*
+ifp palive
+ ifp pfacing
+  ifpdistl 1526
+  {
+  ife MOUSEUP 0 set player_use 0
+   ifhitspace
+	{
+		ife MOUSEUP 0
+		ifcount 13
+			{
+			soundonce CONVERSATION
+			getp[].horiz PHORIZ
+			getp[].ang PANG
+			set PCINTER 11
+			set INFO_SEL 122
+			set MOUSEUP 1
+			resetcount
+			}
+		else
+		ife MOUSEUP 1
+		ifcount 13
+			{
+			soundonce CONVERSATION
+			set PCINTER 0
+			set MOUSEUP 0
+			resetcount
+			}
+	}
+  }
+
+	ife PCINTER 11
+	 ifpdistl 4096
+		{
+		ifcount 13
+			{
+			getinput[].bits temp
+			shiftvarr temp 8
+			andvar temp 0xF
+			switch temp
+				case 10:
+					soundonce CONVERSATION
+					set PCINTER 0
+					set MOUSEUP 0
+					resetcount
+					break
+			endswitch
+			}
+		}
+	*/
+}
+
+ifaction SYNN_IDLE
+	{
+	ifpdistl 1024
+	ifp pfacing
+		{
+		set player_use 0
+		ifhitspace
+		 ifcount 40
+			{
+			 ifrnd 13 ifand BEAT_EPISODES[3] 65536 soundonce CW_BEYOND
+			 else ifrnd 14 ifand BEAT_EPISODES[3] 262144 soundonce CW_CHOAS
+			 else ifrnd 15 ifand BEAT_EPISODES[3] 64 soundonce CW_COLLAB
+			 else ifrnd 16 ifand BEAT_EPISODES[3] 64 soundonce CW_PBASE1
+			 else ifrnd 17 ifand BEAT_EPISODES[3] 4 soundonce CW_EGYPT
+			 else ifrnd 19 ifand CHAR_APP 1 soundonce CW_JAMES
+			 else ifrnd 20 ifand BEAT_EPISODES[3] 64 soundonce CW_SANG
+			 else ifrnd 22 ifand BEAT_EPISODES[3] 2 soundonce CW_RAMASES
+			 else ifrnd 25 ife MYSTICAL_RESEARCH[4] 2 soundonce CW_SIREN
+			 else ifrnd 27 ife BASE_RESEARCH[5] 1 soundonce CW_SOURCE
+			 else ifrnd 31 ifand BEAT_EPISODES[3] 512 soundonce CW_SPOOKYC
+			 else ifrnd 36 ifg VOLUME 2 soundonce CW_THEMSELF
+			 else ifrnd 42 ifand BEAT_EPISODES[2] 16384 soundonce CW_TRENTON
+			 else ifrnd 50 ife CHAR 4 soundonce CW_VOODOO
+			 else ifrnd 63 ife CHAR 0 soundonce CW_SPILLSALT
+			 else ifrnd 84 soundonce CW_LEYLINE
+			 else ifrnd 127 soundonce CW_HUXTERS
+			 else soundonce CW_THANKS
+			 set hit_key 30
+			 resetcount
+			}
+		}
+	}
+enda
+
+useractor notenemy 16291
+
+ifaction 0
+ifspritepal 3
+	{
+	espawn 12263
+	strength 100
+	seta[RETURN].owner THISACTOR
+	geta[RETURN].z temp
+	sub temp 16384
+	seta[RETURN].z temp
+	action ZERO
+	}
+
+ifspritepal 3
+ifp palive
+ ifp pfacing
+  ifpdistl 1526
+	  {
+	  ife MOUSEUP 0 set player_use 0
+	   ifhitspace
+			{
+				ife MOUSEUP 0
+				ifcount 13
+					{
+					soundonce CONVERSATION
+					getp[].horiz PHORIZ
+					getp[].ang PANG
+					set PCINTER 11
+						set INFO_SEL 200
+							action ZERO
+
+					set MOUSEUP 1
+					resetcount
+					}
+				else
+				ife MOUSEUP 1
+				ifcount 13
+					{
+					soundonce CONVERSATION
+					set PCINTER 0
+					set MOUSEUP 0
+					resetcount
+					}
+			}
+	 }
+
+	ife PCINTER 11
+	 ifpdistl 4096
+		{
+		ifcount 13
+			{
+			getinput[].bits temp
+			shiftvarr temp 8
+			andvar temp 0xF
+			switch temp
+				case 1:
+					soundonce CONVERSATION
+					ife INFO_SEL 200 set INFO_SEL 202
+					ife INFO_SEL 201 set INFO_SEL 202
+										resetcount
+					break
+				case 2:
+					soundonce CONVERSATION
+					ife INFO_SEL 200 set INFO_SEL 201
+										resetcount
+					break
+				//etc.
+				case 10:
+					soundonce CONVERSATION
+					set PCINTER 0
+					set MOUSEUP 0
+					resetcount
+					break
+			endswitch
+			}
+		}
+enda
+
+// *************************************************
+// AMC SQUAD CONVERSATION SOLDIER
+// *************************************************
+
+
+eventloadactor 9404 state GETALLTAGS enda
+
+spriteshadow 9404
+spritenoshade 9404
+spritenvg 9404
+useractor notenemy 9404
+
+
+ifaction 0
+ifspritepal 3
+{
+espawn 12263
+strength 100
+seta[RETURN].owner THISACTOR
+geta[RETURN].z temp
+sub temp 16384
+seta[RETURN].z temp
+action ZERO
+}
+
+ifspritepal 3
+ifp palive
+ ifp pfacing
+  ifpdistl 1526
+  {
+  ife MOUSEUP 0 set player_use 0
+   ifhitspace
+		{
+			ife MOUSEUP 0
+			ifcount 13
+				{
+				soundonce CONVERSATION
+				getp[].horiz PHORIZ
+				getp[].ang PANG
+				set PCINTER 11
+					set INFO_SEL EXTRASAVED
+						action ZERO
+
+				set MOUSEUP 1
+				resetcount
+				}
+			else
+			ife MOUSEUP 1
+			ifcount 13
+				{
+				set PCINTER 0
+				set MOUSEUP 0
+				resetcount
+				}
+		}
+  }
+
+	ife PCINTER 11
+	 ifpdistl 4096
+		{
+		ifcount 13
+			{
+			getinput[].bits temp
+			shiftvarr temp 8
+			andvar temp 0xF
+			switch temp
+				case 1:
+					soundonce CONVERSATION
+					ife INFO_SEL 1 set INFO_SEL 2
+					else ife INFO_SEL 2
+						{
+                        // start training map
+						set amcbase_level LEVEL
+						set amcbase_volume VOLUME
+						startlevel 0 26
+						set PCINTER 0
+						}
+										resetcount
+					break
+				case 2:
+					soundonce CONVERSATION
+					ife INFO_SEL 1 set INFO_SEL 3
+										resetcount
+					break
+				//etc.
+				case 10:
+					soundonce CONVERSATION
+					set PCINTER 0
+					set MOUSEUP 0
+					state fade_out_black
+					resetcount
+					break
+			endswitch
+			}
+		}
+
+enda
+
+// *************************************************
+// Joya Phillips, EDF co-ordinator for New LA
+//*************************************************
+
+spriteshadow 10865
+
+spriteshadow 10865
+
+useractor notenemy 10865 ifaction 0 action FIVE_ANG enda
+
+//
+// ------------------------------------------------------------
+// Axon
+// ------------------------------------------------------------
+//
+
+action AX_GEST -48 1 5 1 10
+action AX_CASTING 9201 3 1 1 20
+
+spriteshadow 21233
+
+useractor notenemy 21233
+ifaction 0 action FIVE_ANG
+state hide_cutscene
+ifaction FIVE_ANG
+{
+ife speaker 21 ifrnd 8 action AX_GEST
+}
+
+ifaction AX_GEST
+	{
+	ifrnd 4 action FIVE_ANG
+	ifn speaker 21 action FIVE_ANG
+	}
+
+ifn LOTAGSAVED 0
+	{
+	checkactivatormotion LOTAGSAVED
+	ife RETURN 1
+		{
+		sound AX_CAST
+		action AX_CASTING
+		resetactioncount
+		set LOTAGSAVED 0
+		}
+	}
+
+ifaction AX_CASTING
+	{
+	ifactioncount 16 action FIVE_ANG
+	}
+
+ifn XVELSAVED 0
+	{
+	cstat 32768
+	checkactivatormotion XVELSAVED
+	ife RETURN 1
+		{
+		globalsound TELEPORT_IN
+        spawn 18623
+		cstat 1
+		set XVELSAVED 0
+		}
+	}
+
+ifn YVELSAVED 0
+	{
+	checkactivatormotion YVELSAVED
+	ife RETURN 1
+		{
+		globalsound TELEPORT_IN
+        spawn 18623
+		set YVELSAVED 0
+		killit
+		}
+	}
+
+enda
+
+
+// *************************************************
+// PRIEST Phereclus
+// *************************************************
+
+spriteshadow 25600
+
+useractor notenemy 25600
+ifaction 0 action FIVE_ANG
+enda
+
+// *************************************************
+// Alea Ilivalur
+//*************************************************
+
+spriteshadow 25605
+
+action ALEA_GEST 187 1 5 1 10
+
+useractor notenemy 25605
+ifaction 0 action FIVE_ANG
+ifaction FIVE_ANG ife speaker 24 action ALEA_GEST
+ifaction ALEA_GEST ifn speaker 24 action FIVE_ANG
+enda
+
+// *************************************************
+// Yuki
+//*************************************************
+
+spriteshadow 25610
+
+useractor notenemy 25610
+ifaction 0 action FIVE_ANG
+enda
+
+// *************************************************
+// FREIJA RAGNULF
+//*************************************************
+
+action FREIJA_LEAN 182 1 5 1 10
+
+spriteshadow 25615
+
+useractor notenemy 25615
+ifaction 0 action FIVE_ANG
+ifaction FIVE_ANG ife speaker 25 action FREIJA_LEAN
+ifaction FREIJA_LEAN ifn speaker 25 action FIVE_ANG
+enda
+
+// *************************************************
+// WIZARD DRABEUS
+//*************************************************
+
+spriteshadow 25620
+
+useractor notenemy 25620
+
+ifaction 0
+	{
+	action FIVE_ANG
+	}
+
+enda
+
+// *************************************************
+// MAGE OVEUS PELLENAS
+//*************************************************
+
+spriteshadow 25625
+
+action OVEUS_LOOKUP 162 1 5 1 10
+
+useractor notenemy 25625
+
+ifaction 0
+	{
+	action FIVE_ANG
+	}
+
+ifaction FIVE_ANG
+{
+ife speaker 23 action OVEUS_LOOKUP
+}
+
+ifaction OVEUS_LOOKUP
+	{
+	ifn speaker 23 action FIVE_ANG
+	}
+
+enda
+
+// *************************************************
+// MATRIARCH
+//*************************************************
+
+spriteshadow 28320
+
+useractor notenemy 28320
+
+ifaction 0
+	{
+	action FIVE_ANG
+	}
+
+enda
+
+// *************************************************
+// PIRATE
+//*************************************************
+
+spriteshadow 26030
+
+spriteshadow 26030
+
+useractor notenemy 26030
+
+ifaction 0
+	{
+	action FIVE_ANG
+	}
+
+enda
+
+// *************************************************
+// TREE ENT
+//*************************************************
+
+spriteshadow 15829
+
+spriteshadow 15829
+
+useractor notenemy 15829
+
+ifaction 0
+	{
+	action FIVE_ANG
+	}
+
+enda
+
+// DUKE WOMEN NPCS
+
+defstate toughgalspeech
+  ifrnd 64
+  {
+    ifnosounds
+      soundonce TOUGHGALSND1
+  }
+  else
+    ifrnd 64
+  {
+    ifnosounds
+      soundonce TOUGHGALSND2
+  }
+  else
+    ifrnd 64
+  {
+    ifnosounds
+      soundonce TOUGHGALSND3
+  }
+  else
+    ifnosounds
+      soundonce TOUGHGALSND4
+ends
+
+action FEMSHRUNK
+action FEMFROZEN1 1
+action FEMGROW
+action FEMFROZEN2
+action FEMDANCE1 19 1 1 1 16
+action FEMDANCE3 19 1 1 1 26
+action FEMDANCE2 20 2 1 1 10
+
+action FEMANIMATESLOW 0 2 1 1 100
+action TOUGHGALANIM   0 5 1 1 25
+action FEMANIMATE
+
+defstate femcode
+
+  ifactor NAKED1 nullop
+  else
+   ifactor NAKED2 nullop
+  else
+   ifactor NAKED3 nullop
+  else
+    ifactor FEM6 nullop
+    else
+    {
+      fall
+      ifactor BLOODYPOLE
+        ifhitweapon
+          ifdead
+      {
+        state standard_jibs
+        killit
+      }
+    }
+
+  ifaction FEMSHRUNK
+  {
+    ifcount SHRUNKDONECOUNT
+    {
+      action FEMANIMATE
+      cstat 257
+    }
+    else
+      ifcount SHRUNKCOUNT
+        {
+        sound ACTOR_UNSHRINK
+        sizeto 40 40
+        }
+    else
+      state genericshrunkcode
+  }
+  else ifaction FEMGROW
+  {
+    ifcount 32
+    {
+      respawnhitag
+      guts JIBS4 20
+      guts JIBS6 20
+      spritepal 6
+      soundonce LADY_SCREAM
+      ifactor NAKED1
+        debris SCRAP3 4
+      else
+      ifactor NAKED2
+        debris SCRAP3 4
+      else
+      ifactor NAKED3
+        debris SCRAP3 4
+      else
+        ifactor PODFEM1
+          debris SCRAP3 4
+      else
+        ifactor PODFEM2
+          debris SCRAP3 4
+      else
+        ifactor PODFEM3
+          debris SCRAP3 4
+      state squish_sounds
+      killit
+    }
+    else
+      sizeto MAXXSTRETCH MAXYSTRETCH
+  }
+
+  else
+    ifaction FEMDANCE1
+  {
+    ifactioncount 2
+      action FEMDANCE2
+  }
+  else
+    ifaction FEMDANCE2
+  {
+    ifactioncount 8
+      action FEMDANCE3
+  }
+  else
+    ifaction FEMDANCE3
+  {
+    ifactioncount 2
+    action FEMANIMATE
+  }
+  else
+    ifaction FEMFROZEN1
+  {
+    ifcount THAWTIME
+    {
+      action FEMANIMATE
+      getlastpal
+    }
+    else
+      ifcount FROZENDRIPTIME
+    {
+      ifactioncount 26
+      {
+        spawn WATERDRIP
+        resetactioncount
+      }
+    }
+
+    ifhitweapon
+    {
+
+
+    state NEWGUNEFFECTS
+
+      ifwasweapon FREEZEBLAST
+      {
+        strength 0
+        break
+      }
+      lotsofglass 30
+      sound GLASS_BREAKING
+      respawnhitag
+      ifrnd 84
+        spawn BLOODPOOL
+      killit
+    }
+    else
+      ifp pfacing
+        ifpdistl FROZENQUICKKICKDIST
+          pkick
+    break
+  }
+  else ifaction FEMFROZEN2
+  {
+    ifcount THAWTIME
+    {
+      ifactor TOUGHGAL
+        action TOUGHGALANIM
+      else
+        ifactor FEM10
+          action FEMANIMATESLOW
+      else
+        action FEMANIMATE
+
+      getlastpal
+    }
+    else
+      ifcount FROZENDRIPTIME
+    {
+      ifactioncount 26
+      {
+        spawn WATERDRIP
+        resetactioncount
+      }
+    }
+
+    ifhitweapon
+    {
+      ifwasweapon FREEZEBLAST
+      {
+        strength 0
+          break
+      }
+
+      lotsofglass 30
+
+      sound GLASS_BREAKING
+      ifrnd 84
+        spawn BLOODPOOL
+      respawnhitag
+
+      ifrnd 128
+        { ife CHAR 0 sound JOHSHIT else
+        ife CHAR 2 sound MOHSHIT else
+        ife CHAR 3 sound ROHSHIT else
+        ife CHAR 5 sound RNOHSHIT else
+        ife CHAR 6 sound GOHSHIT else
+        ife CHAR 7 sound MSOHSHIT else
+        ife CHAR 13 sound MC_OHSHIT }
+
+      killit
+    }
+    else
+      ifp pfacing
+        ifpdistl FROZENQUICKKICKDIST
+          pkick
+    break
+  }
+
+  ifhitweapon
+  {
+
+    geta[].htpicnum temp
+            ife temp 9376 // If you hit them with the MIA Gun, 'teleport' them away to safety
+            {
+                  state civilian_rescued
+                  espawn TRANSPORTERBEAM
+                  seta[RETURN].pal 17
+                  killit
+            }
+    else
+          {
+            state NEWGUNEFFECTS
+            ifdead
+            {
+              ifwasweapon GROWSPARK
+              {
+                cstat 0
+                move 0
+                sound ACTOR_GROWING
+                action FEMGROW
+                break
+              }
+              else ifwasweapon FREEZEBLAST
+              {
+                ifaction FEMSHRUNK
+                  break
+
+                ifactor NAKED1
+                  action FEMFROZEN2
+                else
+                ifactor NAKED2
+                  action FEMFROZEN2
+                else
+                ifactor NAKED3
+                  action FEMFROZEN2
+                else
+                  ifactor FEM5
+                    action FEMFROZEN2
+                else
+                  ifactor FEM6
+                    action FEMFROZEN2
+                else
+                  ifactor FEM8
+                    action FEMFROZEN2
+                else
+                  ifactor FEM9
+                    action FEMFROZEN2
+                else
+                  ifactor FEM10
+                    action FEMFROZEN2
+                else
+                  ifactor TOUGHGAL
+                    action FEMFROZEN2
+                else
+                  ifactor PODFEM1
+                    action FEMFROZEN2
+                else
+                  ifactor PODFEM2
+                    action FEMFROZEN2
+                else
+                  ifactor PODFEM3
+                    action FEMFROZEN2
+                else
+                  action FEMFROZEN1
+
+                move 0
+                spritepal 1
+                strength 0
+
+                sound SOMETHINGFROZE
+
+                break
+              }
+              else ifwasweapon 7160
+              {
+                ifaction FEMSHRUNK
+                  break
+
+                ifactor NAKED1
+                  action FEMFROZEN2
+                else
+                ifactor NAKED2
+                  action FEMFROZEN2
+                else
+                ifactor NAKED3
+                  action FEMFROZEN2
+                else
+                  ifactor FEM5
+                    action FEMFROZEN2
+                else
+                  ifactor FEM6
+                    action FEMFROZEN2
+                else
+                  ifactor FEM8
+                    action FEMFROZEN2
+                else
+                  ifactor FEM9
+                    action FEMFROZEN2
+                else
+                  ifactor FEM10
+                    action FEMFROZEN2
+                else
+                  ifactor TOUGHGAL
+                    action FEMFROZEN2
+                else
+                  ifactor PODFEM1
+                    action FEMFROZEN2
+                else
+                  ifactor PODFEM2
+                    action FEMFROZEN2
+                else
+                  ifactor PODFEM3
+                    action FEMFROZEN2
+                else
+                  action FEMFROZEN1
+
+                move 0
+                spritepal 1
+                strength 0
+
+                sound SOMETHINGFROZE
+
+                break
+              }
+
+              ifrnd 128
+                { ife CHAR 0 sound JOHSHIT else
+                ife CHAR 2 sound MOHSHIT else
+                ife CHAR 3 sound ROHSHIT else
+                ife CHAR 5 sound RNOHSHIT else
+                ife CHAR 6 sound GOHSHIT else
+                ife CHAR 7 sound MSOHSHIT }
+
+
+              respawnhitag
+              state standard_jibs
+              state random_wall_jibs
+              spawn BLOODPOOL
+
+                ifactor FEM2
+              {
+                espawn BARBROKE seta[RETURN].xrepeat sprite[].xrepeat seta[RETURN].yrepeat sprite[].xrepeat
+                cstat 0
+              }
+
+              ifactor FEM5
+              {
+                strength TOUGH
+                cactor BLOODYPOLE
+              }
+              else ifactor FEM6
+              {
+                cstat 0
+                cactor FEM6PAD
+              }
+              else
+                ifactor FEM8
+              {
+                strength TOUGH
+                cactor BLOODYPOLE
+              }
+              else
+              {
+                spritepal 6
+                soundonce LADY_SCREAM
+                ifactor NAKED1
+                  debris SCRAP3 18
+                else
+                ifactor NAKED2
+                  debris SCRAP3 18
+                else
+                ifactor NAKED3
+                  debris SCRAP3 18
+                else
+                  ifactor PODFEM1
+                    debris SCRAP3 18
+                else
+                  ifactor PODFEM2
+                    debris SCRAP3 18
+                else
+                  ifactor PODFEM3
+                    debris SCRAP3 18
+                killit
+              }
+            }
+            else
+            {
+              ifwasweapon SHRINKSPARK
+              {
+                sound ACTOR_SHRINKING
+                move 0
+                action FEMSHRUNK
+                cstat 0
+                break
+              }
+              else
+                ifwasweapon GROWSPARK
+                  sound EXPANDERHIT
+              ifactor FEM8
+                break
+
+              ifactor TOUGHGAL
+                  state toughgalspeech
+              else state squish_sounds
+
+              guts JIBS6 1
+            }
+            }
+  }
+ends
+
+
+useractor notenemy POLECHICKSAVED
+fall
+        ifhitweapon
+      {
+      spritepal 8
+      state squish_sounds
+        state standard_jibs
+        killit
+      }
+enda
+
+useractor notenemy TIEDCHICKSAVED
+fall
+
+        ifhitweapon
+      {
+      state squish_sounds
+      spritepal 8
+        state standard_jibs
+        debris SCRAP3 6
+        killit
+      }
+enda
+
+useractor notenemy PODCHICKSAVED
+fall
+
+        ifhitweapon
+      {
+      state squish_sounds
+      spritepal 8
+        state standard_jibs
+        debris SCRAP3 6
+        killit
+      }
+enda
+
+useractor notenemy CEILCHICKSAVED
+        ifhitweapon
+      {
+      state squish_sounds
+      spritepal 8
+        state standard_jibs
+        debris SCRAP3 6
+        killit
+      }
+enda
+
+defstate savethem
+    ifp pfacing
+      ifpdistl 1280
+      {
+      set player_use 0
+        ifhitspace
+           {
+              ifactor FEM5
+            { state civilian_rescued cactor POLECHICKSAVED } else
+              ifactor FEM6
+            { state civilian_rescued cactor TIEDCHICKSAVED } else
+              ifactor FEM8
+            { state civilian_rescued cactor POLECHICKSAVED } else
+              ifactor PODFEM1
+            { state civilian_rescued cactor PODCHICKSAVED } else
+              ifactor PODFEM2
+            { state civilian_rescued cactor PODCHICKSAVED } else
+              ifactor PODFEM3
+            { state civilian_rescued cactor PODCHICKSAVED } else
+              ifactor NAKED1
+            { state civilian_rescued cactor CEILCHICKSAVED } else
+              ifactor NAKED2
+            { state civilian_rescued cactor CEILCHICKSAVED } else
+              ifactor NAKED3
+            { state civilian_rescued cactor CEILCHICKSAVED }
+            }
+        }
+ends
+
+defstate tipme
+  ifp pfacing
+    ifpdistl 1280
+      ifhitspace
+  {
+    ifp pducking { spawn TRANSPORTERSTAR soundonce SAVE_PERSON killit }  else
+    {
+    ife CHAR 17 ifg kag_blush 0 break
+    ife CHAR 17 set kag_blush 90 else tip
+    ifrnd 128
+      {
+    ife CHAR 0 soundonce JTIP1 else
+    ife CHAR 1 soundonce ZDANCE else
+    ife CHAR 3 soundonce RTIP1 else
+    ife CHAR 4 soundonce STIP1 else
+    ife CHAR 5 soundonce RNTIP1 else
+    ife CHAR 6 soundonce GTIP1 else
+    ife CHAR 10 soundonce BS_TIP1 else
+    ife CHAR 14 soundonce SF_TIP1 else
+    ife CHAR 17 soundonce KG_TIP1
+}
+    else
+      {
+    ife CHAR 0 soundonce JTIP2 else
+    ife CHAR 1 soundonce ZSHAKE else
+    ife CHAR 3 soundonce RTIP2 else
+    ife CHAR 4 soundonce STIP2 else
+    ife CHAR 5 soundonce RNTIP2 else
+    ife CHAR 6 soundonce GTIP2 else
+    ife CHAR 10 soundonce BS_TIP2 else
+    ife CHAR 14 soundonce SF_TIP2 else
+    ife CHAR 17 soundonce KG_TIP2
+}
+    ifactor FEM1
+      action FEMDANCE1
+    }
+  }
+ends
+
+defstate save_npc
+ifaction FIVE_ANG nullop else { move STOP randomangle action FIVE_ANG }
+  ifp pfacing
+    ifpdistl 1280
+	{
+	set player_use 0
+      ifhitspace
+		{
+		set hit_key 30
+		spawn TRANSPORTERSTAR 
+		ifactor 33636 { espawn BARBROKE seta[RETURN].xrepeat sprite[].xrepeat seta[RETURN].yrepeat sprite[].xrepeat }
+		soundonce SAVE_PERSON 
+		killit
+		} 
+	}
+ife enemies_cleared 150
+ ifpdistl 8192
+	{
+	action 0 
+	ifactor 33641 cactor FEM1
+	ifactor 33621 cactor FEM4
+	ifactor 33626 cactor FEM3
+	ifactor 33631 cactor FEM7
+	ifactor 33636 cactor FEM2
+	}
+ends
+
+actor FEM1 TOUGH FEMANIMATE
+  sizeat 30 30
+  state tipme
+  state femcode
+  ifl enemies_cleared 150 ifpdistl 16384 cactor 33641
+enda
+
+useractor notenemy 33641 state save_npc enda
+
+actor FEM2 TOUGH FEMANIMATE
+  sizeat 28 28
+  state tipme
+  state femcode
+  ifl enemies_cleared 150 ifpdistl 16384 cactor 33636
+enda
+
+useractor notenemy 33636 state save_npc enda
+
+actor FEM3 TOUGH FEMANIMATE
+  sizeat 27 27
+  state tipme
+  state femcode
+  ifl enemies_cleared 150 ifpdistl 16384 cactor 33626
+enda
+
+useractor notenemy 33626 state save_npc enda
+
+actor FEM4 TOUGH FEMANIMATE
+  sizeat 30 30
+  state tipme
+  state femcode
+  ifl enemies_cleared 150 ifpdistl 16384 cactor 33621
+enda
+
+useractor notenemy 33621 state save_npc enda
+
+actor FEM5 TOUGH FEMANIMATE
+  state savethem
+  state femcode
+enda
+actor FEM6 TOUGH FEMANIMATE
+  state savethem
+  state femcode
+enda
+
+actor FEM7 TOUGH FEMANIMATE
+  sizeat 30 30
+  state tipme
+  state femcode
+  ifl enemies_cleared 150 ifpdistl 16384 cactor 33631
+enda
+
+useractor notenemy 33631 state save_npc enda
+
+actor FEM8 TOUGH FEMANIMATE
+  state savethem
+  state femcode
+enda
+actor FEM9 TOUGH FEMANIMATE
+   sizeat 30 30
+   state tipme
+  state femcode
+enda
+actor FEM10 TOUGH FEMANIMATESLOW
+  sizeat 32 32
+  state tipme
+  state femcode
+enda
+
+actor TOUGHGAL 100 TOUGHGALANIM
+   sizeat 30 30
+  ifp pfacing
+    ifpdistl 1280
+      ifhitspace
+        state toughgalspeech
+  state femcode
+enda
+
+useractor notenemy NAKED1 TOUGH
+  state savethem
+  state femcode
+enda
+
+useractor notenemy NAKED2 TOUGH
+  state savethem
+  state femcode
+enda
+
+useractor notenemy NAKED3 TOUGH
+  state savethem
+  state femcode
+enda
+
+useractor notenemy PODFEM3 TOUGH
+  state savethem
+  state femcode
+enda
+
+useractor notenemy PODFEM2 TOUGH
+  state savethem
+  state femcode
+enda
+
+useractor notenemy PODFEM1 TOUGH
+  state savethem
+  state femcode
+enda
+
+
+actor BLOODYPOLE TOUGH
+  state femcode
+enda
+actor STATUEFLASH
+  fall
+  ifcount 32
+    cactor STATUE
+enda
+actor STATUE
+  fall
+  ifp pfacing
+    ifpdistl 1280
+      ifhitspace
+  {
+    cactor STATUEFLASH
+    move 0
+  }
+enda

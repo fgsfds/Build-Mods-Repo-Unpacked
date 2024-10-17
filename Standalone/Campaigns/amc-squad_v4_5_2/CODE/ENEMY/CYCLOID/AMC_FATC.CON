@@ -1,0 +1,500 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Based on the Duke3D CON files by 3DRealms, released under the GPL2 at:
+https://github.com/videogamepreservation/dukenukem3d/blob/ef609159bd352985a0c63734a11241d86c873fe5/testdata/GAME.CON
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+
+--------------------------------------------------------------------------------
+*/
+
+damageeventtile COMMANDER
+
+move SMOKEVEL2 36
+
+defstate smokering
+
+// ife temp7 0 { set temp7 1 break }
+// else set temp7 0
+
+geta[].x mx
+set temp5 mx
+geta[].y temp6
+add mx 256
+randvar temp 127
+set temp2 0
+
+whilevarn temp2 1
+{
+	rotatepoint temp5 temp6 mx temp6 temp temp3 temp4
+	add temp 128
+	ifg temp 2047 set temp2 1
+	ifrnd 128
+	{
+		espawn SMALLSMOKE
+		seta[RETURN].x temp3
+		seta[RETURN].y temp4
+		seta[RETURN].ang temp
+		seta[RETURN].cstat 32768
+	}
+}
+
+ends
+
+action ACOMMBREETH  0  4  5  1  40
+action ACOMMFROZEN  30  1  1
+action ACOMMSPIN   -5  1  5  1  12
+action ACOMMGET   0  4  5  1  30
+action ACOMMSHOOT  20  1  5   1 35
+action ACOMMABOUTTOSHOOT 14865 1 5 1 30
+
+action ACOMMDYING  30  8  1  1  12
+action ACOMMDEAD   38  1  1  1  1
+
+action ACOMM_H_DYING 25 5 1 1 12
+action ACOMM_H_DEAD 29 1 1 1 1
+
+
+move COMMGETUPVELS 128 -64
+move COMMGETVELS 128 64
+move COMMSLOW 64 24
+
+ai AICOMMWAIT ACOMMBREETH STOP faceplayerslow
+ai AICOMMGET ACOMMGET COMMGETVELS seekplayer
+
+ai AICOMMSHOOT ACOMMSHOOT STOP faceplayerslow
+ai AICOMMABOUTTOSHOOT ACOMMABOUTTOSHOOT STOP faceplayerslow
+
+ai AICOMMSPIN ACOMMSPIN COMMGETVELS spin
+
+ai AICOMMDYING ACOMMDYING STOP faceplayer
+ai AICOMM_H_DYING ACOMM_H_DYING STOP faceplayer
+
+ai AICOMMSHRUNK ACOMMGET COMMSLOW furthestdir
+ai AICOMMGROW ACOMMGET STOP furthestdir
+
+defstate checkcommhitstate
+
+  ifhitweapon
+  {
+
+	state NEWGUNEFFECTS
+
+    //guts JIBS6 2
+
+    ifdead
+    {
+      ifg ice_damage 0
+      {
+        sound SOMETHINGFROZE
+        spritepal 1
+        move 0
+        action ACOMMFROZEN
+        strength 0
+        break
+      }
+      else
+        ifwasweapon GROWSPARK
+      {
+        sound ACTOR_GROWING
+        ai AICOMMGROW
+        break
+      }
+
+      addkills 1
+
+
+      ifwasweapon RADIUSEXPLOSION
+      {
+        spawn BLOODPOOL
+        state squish_sounds
+      state standard_jibs
+	  sound VENT_BUST
+	   debris SCRAP1 4
+       debris SCRAP2 4
+       debris SCRAP5 4
+	  state standard_jibs
+		 		ifn XVELSAVED 0
+				{
+				operateactivators XVELSAVED THISACTOR
+				operatemasterswitches XVELSAVED
+				operaterespawns XVELSAVED
+				set XVELSAVED 0
+				}
+        killit
+      }
+      else
+        ifwasweapon RPG
+      {
+        state squish_sounds
+        spawn BLOODPOOL
+      state standard_jibs
+	  sound VENT_BUST
+	   debris SCRAP1 4
+       debris SCRAP2 4
+       debris SCRAP5 4
+	  state standard_jibs
+		 ifn XVELSAVED 0
+			{
+			operateactivators XVELSAVED THISACTOR
+			operatemasterswitches XVELSAVED
+			operaterespawns XVELSAVED
+			set XVELSAVED 0
+			}
+        killit
+      }
+      else
+        ifand PROJ_UDATA PROJ_GIB
+      {
+        state squish_sounds
+        spawn BLOODPOOL
+      state standard_jibs
+	  sound VENT_BUST
+	   debris SCRAP1 4
+       debris SCRAP2 4
+       debris SCRAP5 4
+	  state standard_jibs
+		 ifn XVELSAVED 0
+			{
+			operateactivators XVELSAVED THISACTOR
+			operatemasterswitches XVELSAVED
+			operaterespawns XVELSAVED
+			set XVELSAVED 0
+			}
+        killit
+      }
+
+
+	  ife HEADSHOT 2
+		{
+		state random_trigger_showoff
+		state decap_sounds
+		state jib_sounds
+		ai AICOMM_H_DYING shoot NJIB shoot NJIB guts JIBS6 3 guts JIBS2 2
+		}
+	else
+      {
+	  sound COMM_DYING
+	  ai AICOMMDYING
+	  }
+    }
+    else
+    {
+      soundonce COMM_PAIN
+      ifwasweapon SHRINKSPARK
+      {
+        sound ACTOR_SHRINKING
+        ai AICOMMSHRUNK
+      }
+      else
+        ifwasweapon GROWSPARK
+          sound EXPANDERHIT
+      else
+        ifrnd 24
+          ai AICOMMABOUTTOSHOOT
+    }
+  }
+ends
+
+actor COMMANDERSTAYPUT COMMANDERSTRENGTH
+  sizeat 28 28
+  spawn SHOOTME
+  cactor COMMANDER
+  state monst_glow
+  ai AICOMMABOUTTOSHOOT
+enda
+
+actor COMMANDER
+state ENEMYKNOCKBACKS
+state enemy_fire_damage
+state enemy_ice_damage
+state enemy_spirit_damage
+
+  state checksquished
+
+  ifaction ACOMMFROZEN
+  {
+  state frozen_code
+  break
+  }
+  else ifai AICOMMDYING nullop else ifai AICOMM_H_DYING nullop
+  else ifai AICOMMSHRUNK nullop else iffloordistl 16 state smokering
+
+  ifai AICOMMDYING nullop else ifai AICOMM_H_DYING nullop else soundonce COMM_AMB
+
+  ifg npc_talking 0 sub npc_talking 1
+
+  ifai 0
+	{
+	state monst_glow
+	set actor_type TYPE_CASE_SPECIFIC
+	spawn SHOOTME
+	stopsound COMM_RECOG
+	ifrnd 128 ifn CHAR 10 ifn CHAR 12 sound COMM_RECOG3 // AMC squad!
+	else ife CHAR 1 sound COMM_RECOG2 // Die earthling
+	else ife CHAR 14 sound COMM_RECOG2 // Die earthling
+	else sound COMM_RECOG // standard Die Human!
+
+
+	set npc_talking 45
+ifspritepal 20 strength 500 else
+ifspritepal 24 { cactor ADV_COMMANDER spritepal 0 } else
+{ sizeat 28 28 strength COMMANDERSTRENGTH }
+    ai AICOMMSHOOT
+	}
+  else
+    ifai AICOMMWAIT
+  {
+    ifcount 20
+    {
+      ifcansee
+      {
+        ifcanshoottarget
+        {
+          ifrnd 96
+            ai AICOMMGET
+          else
+            ai AICOMMABOUTTOSHOOT
+        }
+      }
+      else
+        ai AICOMMGET
+    }
+  }
+  else
+    ifai AICOMMABOUTTOSHOOT
+  {
+  ifp pshrunk ai AICOMMGET
+    ifactioncount 2
+    {
+      ifcansee
+        ai AICOMMSHOOT
+      else
+      {
+        ai AICOMMGET
+        break
+      }
+    }
+    ifrnd 32
+	 ife npc_talking 0
+		{
+		ifrnd 96 soundonce COMM_ATTACK
+		else ifrnd 128 soundonce COMM_ATTACK2
+		else soundonce COMM_ATTACK3
+		set npc_talking 45
+		}
+  }
+  else
+    ifai AICOMMSHOOT
+  {
+    ifcanshoottarget
+    {
+      ifcount 24
+        ifrnd 16
+          ai AICOMMWAIT
+      ifactioncount 2
+      {
+		sound ERPG_SHOOT
+		shoot RPG
+
+			ife PERFMODE 1
+			ifcansee
+			{
+			set gunsmoke_z 1
+			set gunsmoke_angle 0
+			state spawn_gunsmoke_z
+			set gunsmoke_z 1844
+			espawn 16114
+			ifspritepal 24 seta[RETURN].pal 8
+			state spawn_muzzleflash
+			}
+
+        resetactioncount
+      }
+    }
+    else
+      ai AICOMMGET
+  }
+  else
+    ifai AICOMMSHRUNK
+  {
+    ifcount SHRUNKDONECOUNT
+      ai AICOMMGET
+    else
+      ifcount SHRUNKCOUNT
+	    {
+		sound ACTOR_UNSHRINK
+        sizeto 28 28
+		}
+    else
+      state genericshrunkcode
+  }
+  else
+    ifai AICOMMGROW
+      state genericgrowcode
+  else
+    ifai AICOMMGET
+  {
+    ifnotmoving
+      ifrnd 4
+        operate
+    ifpdistl 1024
+      ifp palive
+	   ife player_in_vehicle 0
+		{
+		state check_actor_hitscan
+			ife hitsprite PLAYER_IDENTITY
+			{
+		  sound COMM_SPIN
+		  ai AICOMMSPIN
+		  break
+			}
+		}
+
+    ifcansee
+    {
+      ifp phigher
+        move COMMGETUPVELS getv geth faceplayer
+      else
+        move COMMGETVELS getv geth faceplayer
+    }
+    ifactioncount 8
+      ifrnd 2
+        ai AICOMMABOUTTOSHOOT
+  }
+  else
+    ifai AICOMMSPIN
+  {
+    soundonce COMM_SPIN
+    ifcount 16
+    {
+      ifpdistl 1280
+      {
+        addphealth CAPTSPINNINGPLAYER
+        sound PLYR_GRUNT
+        palfrom 32
+        16 resetcount
+      }
+      else
+        ifpdistg 2300
+          ai AICOMMWAIT
+    }
+    ifactioncount 52
+      ai AICOMMWAIT
+    ifnotmoving
+      ifrnd 32
+        operate
+  }
+
+  ifai AICOMMDYING
+  {
+ 		ifn XVELSAVED 0
+				{
+				operateactivators XVELSAVED THISACTOR
+				operatemasterswitches XVELSAVED
+				operaterespawns XVELSAVED
+				set XVELSAVED 0
+				}
+    fall
+    strength 0
+
+    ifhitweapon
+      ifwasweapon RADIUSEXPLOSION
+    {
+      state squish_sounds
+      spawn BLOODPOOL
+      state standard_jibs
+	  sound VENT_BUST
+	   debris SCRAP1 4
+       debris SCRAP2 4
+       debris SCRAP5 4
+	  state standard_jibs
+      killit
+    }
+
+    ifaction ACOMMDYING
+      ifactioncount 8
+    {
+	stopactorsound THISACTOR COMM_AMB
+      iffloordistl 8
+	    {
+		sound MECH_F1
+        state BODY_FALL_NOISES
+		}
+      cstat 0
+      action ACOMMDEAD
+    }
+  }
+  else
+  ifai AICOMM_H_DYING
+  {
+ 		ifn XVELSAVED 0
+				{
+				operateactivators XVELSAVED THISACTOR
+				operatemasterswitches XVELSAVED
+				operaterespawns XVELSAVED
+				set XVELSAVED 0
+				}
+    fall
+    strength 0
+
+    ifhitweapon
+      ifwasweapon RADIUSEXPLOSION
+    {
+      state squish_sounds
+      spawn BLOODPOOL
+      state standard_jibs
+	  sound VENT_BUST
+	   debris SCRAP1 4
+       debris SCRAP2 4
+       debris SCRAP5 4
+	  state standard_jibs
+      killit
+    }
+
+    ifaction ACOMM_H_DYING
+      ifactioncount 5
+    {
+	stopactorsound THISACTOR COMM_AMB
+      iffloordistl 8
+		{
+		sound MECH_F1
+        state BODY_FALL_NOISES
+		}
+      cstat 0
+      action ACOMM_H_DEAD
+    }
+  }
+  else
+  {
+    ifrnd 2
+	 ife npc_talking 0
+       {
+	   soundonce COMM_ROAM
+	   set npc_talking 40
+	   }
+    state checkcommhitstate
+  }
+enda

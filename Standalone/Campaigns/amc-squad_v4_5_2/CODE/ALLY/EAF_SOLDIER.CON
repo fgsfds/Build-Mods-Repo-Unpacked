@@ -1,0 +1,468 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+
+--------------------------------------------------------------------------------
+*/
+
+damageeventtile EAFSOLDIER_ACTIVE // Ally
+
+action A_EAFSOLDIER_IDLE 0 1 5 1 11
+action A_EAFSOLDIER_EASE -5 1 5 1 11
+action A_EAFSOLDIER_MOVE 10 4 5 1 4
+
+action A_EAFSOLDIER_RELOAD 10 4 5 1 4
+action A_EAFSOLDIER_RELOADSTAND 0 1 5 1 11
+
+action A_EAFSOLDIER_JUMP 60 1 5
+action A_EAFSOLDIER_FALL 65 1 5
+
+action A_EAFSOLDIER_FIRE 0 2 5 1 8
+action A_EAFSOLDIER_FIRE2 30 2 5 1 8
+
+action A_EAFSOLDIER_NADE 50 2 5 1 12
+
+action A_EAFSOLDIER_PAIN 80 1 5 1 8
+
+action A_EAFSOLDIER_DYING 80 3 1 1 12
+action A_EAFSOLDIER_DEAD 83 1 1 1 1
+
+defstate eaf_idle
+		move STOP
+
+		sleeptime 0
+
+		// If following player, move if they move away
+		ife FOLLOW_PLAYER 1
+		{
+			ifpdistg 1535
+			{
+				set HITSCAN_TO_ACTOR PLAYER_IDENTITY
+				state hitscanTo
+
+				ife hitsprite PLAYER_IDENTITY
+					action A_EAFSOLDIER_MOVE
+			}
+		}
+
+		// Regen health
+		add INTERNALCOUNT 1
+
+		ifge INTERNALCOUNT 6
+		{
+			geta[].extra temp
+
+			ifspritepal 16
+			  ifl temp 200
+			{
+				addstrength 1
+			}
+			else ifl temp 100
+				addstrength 1
+
+			set INTERNALCOUNT 0
+		}
+
+		state checkfortarget
+
+		ifn my_target -1
+		{
+			ifrnd 16
+				state EAFSOLD_INCOMING
+
+			action A_EAFSOLDIER_MOVE
+		}
+		else
+			state rand_lookaround
+		ifaction A_EAFSOLDIER_IDLE ifrnd 2 action A_EAFSOLDIER_EASE
+ends
+
+defstate eaf_fireweapon
+		move STOP
+
+		ifn my_target -1
+		{
+			geta[my_target].extra temp
+
+			ifle temp 0
+				state EAFSOLD_TARGET_DOWN
+		}
+		state checkfortarget
+
+		ifactioncount 1
+		  ifn my_target -1
+		{
+			state fronttowardstarget
+
+			ifspritepal 16
+			{
+				set PROJECTILE_FIRING_SOUND M16_FIRE
+				set PROJECTILE_TO_SHOOT ENEMY_BULLET
+				set PROJECTILE_PAL 8
+				state sang_enemyShootProjectile
+			}
+			else
+			{
+				set PROJECTILE_FIRING_SOUND M16_NPC
+				set PROJECTILE_TO_SHOOT ENEMY_BULLET
+				ifspritepal 13 nullop else set PROJECTILE_PAL 8
+				state sang_enemyShootProjectile
+			}
+
+			state npc_rifleshell
+
+			ife PERFMODE 1
+			 ifcansee
+			{
+				set gunsmoke_z 7244
+				set gunsmoke_angle 256
+				state spawn_gunsmoke_z
+				set gunsmoke_z 6044
+				state spawn_enemy_ARFLASH
+				state spawn_muzzleflash
+			}
+
+			sub ally_mag 1
+			ife ally_mag 0
+			{
+				ifspritepal 16 // M60 guy!
+				{
+					shoot BIG_RIFLE_MAG
+					sound PKM_COVER_U
+				}
+				else
+					state bgar_mag_out_sounds
+
+				action A_EAFSOLDIER_RELOADSTAND
+			}
+			resetactioncount
+		}
+		else ife my_target -1
+			action A_EAFSOLDIER_RELOADSTAND
+ends
+
+defstate EAFSOLDIER_handleplayerusepress
+	ifpdistl 1024
+	  ifp pfacing
+	  ifp palive
+	{
+		set player_use 0
+		ife use_action_allowed 1
+		{
+			set hit_key 30
+			ifspritepal 3
+				break
+
+			ife FOLLOW_PLAYER 0
+				state startfollowplayer
+			else ife FOLLOW_PLAYER 1
+				state stopfollowplayer
+
+			state setIgnoreUse
+		}
+	}
+ends
+
+defstate EAFSOLDIER_reload
+	ife ally_mag 2
+		state EAFSOLD_RELOAD
+
+	ifspritepal 16 // M60 guy?
+	{
+		add ally_mag 2
+		ife ally_mag 40 sound PKM_BOX_IN
+		ifge ally_mag 100 { set ally_mag 100 ife FOLLOW_PLAYER 1 action A_EAFSOLDIER_MOVE else action A_EAFSOLDIER_IDLE }
+	}
+	else
+	{
+		add ally_mag 1
+		ife ally_mag 15 state bgar_mag_in_sounds
+		ifge ally_mag 30 { set ally_mag 30 ife FOLLOW_PLAYER 1 action A_EAFSOLDIER_MOVE else action A_EAFSOLDIER_IDLE }
+	}
+ends
+
+spriteshadow EAFSOLDIER_ACTIVE
+spritenvg EAFSOLDIER_ACTIVE
+
+useractor notenemy EAFSOLDIER_ACTIVE 100 0
+	fall
+
+	  ifpdistl 1024
+		cstat 256
+	else cstat 257
+
+	ifg npc_talking 0 sub npc_talking 1
+
+ifpdistl 16384
+  ife npc_talking 0
+	{
+	ifdead break
+	ife INTERNALCOUNT 0
+		{
+		geta[].sectnum mysector
+		headspritesect spriteid mysector
+		whilevarn spriteid -1
+			{
+				switch sprite[spriteid].picnum
+				case H_GRENADE
+				case GRENADE
+				case NINJA_GRENADE
+				case MS_GRENADE_THROW
+				case MOLOTOV
+				case J_GRENADE
+				case SF_GRENADE
+				case MC_GRENADE
+				case Z_GRENADE
+				case HOLYHANDG
+				case GEO_NADE
+				case 16005
+					set npc_sound EAF_NADE
+					soundoncevar npc_sound
+					set npc_talking 90
+					set spriteid -1
+				break
+				default
+					nextspritesect spriteid spriteid
+				break
+				endswitch
+
+			}
+		set INTERNALCOUNT 30
+		}
+	}
+
+	ifaction 0
+	{
+		seta[].htwaterzoffset 8
+		spawn SHOOTME2
+
+		ifspritepal 16
+		{
+			strength 200
+			set enemy_attack 6
+			set ally_mag 100
+		}
+		else
+		{
+			strength 100
+			set enemy_attack 3
+			set ally_mag 30
+		}
+
+		sizeat 22 22
+		randvar LAST_NAME 40
+		add LAST_NAME 7300
+		cstat 257
+
+		ifspawnedby BLACK_HAWK
+		{
+			set ally_mag 0
+			action A_EAFSOLDIER_RELOAD
+		}
+		else
+			action A_EAFSOLDIER_IDLE
+	}
+
+	state spawn_cold_breathe
+	state ENEMYKNOCKBACKS
+	state enemyfloordamage
+	state enemy_fire_damage
+	state enemy_ice_damage
+	state enemy_spirit_damage
+	state EAF_SOLDIER_MOVE_VOICE
+
+	state EAFSOLDIER_handleplayerusepress
+
+	  ifand npc_killed 64
+		ife npc_talking 0
+		 ifrnd 128
+		{
+		ifdead break
+			ife ally_subt 0
+				{
+				qputs 7502 ^60%s: ^0Man down!
+				qsprintf ALLY_SUBTITLE 7502 LAST_NAME
+				set ally_subt 26
+				}
+			sound EAF_MAND
+			set npc_killed 0
+			set npc_talking 60
+		}
+
+	ifaction A_EAFSOLDIER_DEAD
+	{
+		move STOP
+		strength 0
+	}
+	else
+    ifaction A_EAFSOLDIER_DYING
+	{
+		set ALLY_VOICE 0
+		cstat 0
+		ifactioncount 3 action A_EAFSOLDIER_DEAD
+	}
+	else
+	ifaction A_EAFSOLDIER_IDLE state eaf_idle
+	else ifaction A_EAFSOLDIER_EASE state eaf_idle
+	else ifaction A_EAFSOLDIER_MOVE
+	{
+		move M_EDF_WALK geth
+
+		ifactioncount 3
+		{
+			state npc_footsteps
+			resetactioncount
+		}
+
+		ifpdistl 1536
+		{
+
+			action A_EAFSOLDIER_IDLE
+		}
+
+		state checkfortarget
+
+		ifn my_target -1
+		{
+			ifrnd 16 state EAFSOLD_INCOMING
+			ldist temp THISACTOR my_target
+			ifg temp 8192 action A_EAFSOLDIER_FIRE2
+			else
+				{
+				geta[my_target].extra temp
+				ifge temp 70 ife enemy_cooldown1 0 ifg enemy_attack 0 action A_EAFSOLDIER_NADE else
+				action A_EAFSOLDIER_FIRE
+				}
+		}
+		else ife FOLLOW_PLAYER 1
+			state faceplayerstate
+
+		ifnotmoving
+		{
+			operate
+
+			geta[].ang angvar
+			ifrnd 128
+				add angvar 512
+			else
+				sub angvar 512
+
+			seta[].ang angvar
+		}
+	}
+	else ifaction A_EAFSOLDIER_RELOAD
+	{
+		move M_EDF_SLOW geth
+		state EAFSOLDIER_reload
+	}
+	else ifaction A_EAFSOLDIER_RELOADSTAND
+	{
+		move STOP
+		state EAFSOLDIER_reload
+	}
+	else ifaction A_EAFSOLDIER_NADE
+	{
+	move STOP
+		state checkfortarget
+
+			ifactioncount 2
+			  ifn my_target -1
+			{
+				set enemy_cooldown1 300
+				sub enemy_attack 1
+				state fronttowardstarget
+				set PROJECTILE_TO_SHOOT GRENADE
+				set PROJECTILE_FIRING_SOUND THROWSOMET
+				state sang_enemyShootProjectile
+				action A_EAFSOLDIER_MOVE
+			}
+			else ife my_target -1
+				action A_EAFSOLDIER_MOVE
+	}
+	else ifaction A_EAFSOLDIER_FIRE
+	state eaf_fireweapon
+	else ifaction A_EAFSOLDIER_FIRE2
+	state eaf_fireweapon
+	else ifaction A_EAFSOLDIER_PAIN
+	{
+		move STOP
+
+		ifactioncount 4
+		{
+			ife FOLLOW_PLAYER 1
+				action A_EAFSOLDIER_MOVE
+			else
+				action A_EAFSOLDIER_IDLE
+		}
+	}
+
+	ifhitweapon
+	{
+	ifaction A_EAFSOLDIER_DEAD break
+		ifdead
+		{
+			state clear_ally_death
+			state rf
+			ifpdistl 8192
+				set PLAYER_VOICEOVER 1
+
+			ifand npc_killed 64 nullop else xorvar npc_killed 64
+
+			randvar temp 30
+			ifl temp 10 sound EDFSOLD_DIE1
+			else ifl temp 20 sound EDFSOLD_DIE2
+			else sound EDFSOLD_DIE3
+
+			ifrnd 76
+			{
+				ifspritepal 16
+				{
+					espawn M60_SPRITE
+					setav[RETURN].YVELSAVED ally_mag
+				}
+				else
+				{
+					espawn M16SPRITE
+					add ally_mag 30
+					setav[RETURN].YVELSAVED ally_mag
+				}
+			}
+			ifaction A_EAFSOLDIER_DYING nullop else
+			action A_EAFSOLDIER_DYING
+			ifrnd 76
+				spawn BLOODPOOL
+		}
+		else
+		{
+			spawn BLOOD
+			ifrnd 76 action A_EAFSOLDIER_PAIN
+			ifrnd 8 soundonce EAF_HIT
+			else ifrnd 8 soundonce EAF_UNDERF
+			state ENEMYKNOCKBACKS
+			state random_wall_jibs
+			state NEWGUNEFFECTS
+		}
+	}
+enda

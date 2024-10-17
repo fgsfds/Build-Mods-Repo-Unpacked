@@ -1,0 +1,357 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+
+--------------------------------------------------------------------------------
+*/
+
+damageeventtile SKNIGHT
+
+action A_SKNIGHT_IDLE 0 1 5 1 12
+action A_SKNIGHT_START 0 1 5 1 12
+action A_SKNIGHT_WALK 5 4 5 1 12
+action A_SKNIGHT_SHRUNK 5 4 5 1 12
+action A_SKNIGHT_GROW 40 1 1 1 8
+
+action A_SKNIGHT_ATTACK 25 3 5 1 12
+action A_SKNIGHT_PREPSLASH 25 1 5 1 12
+action A_SKNIGHT_SLASH 25 3 5 1 12
+
+action A_SKNIGHT_PAIN 40 1 1 1 8
+action A_SKNIGHT_FROZEN 40 1 1 1 8
+
+action A_SKNIGHT_DIE 40 6 1 1 12
+action A_SKNIGHT_DEAD 45
+
+action A_SKNIGHT_HEAD_DIE -453 6 1 1 12
+action A_SKNIGHT_HEAD_DEAD -448
+
+action A_SKNIGHT_RES 45 5 1 -1 24
+
+move SKNIGHT_WALK 126
+
+defstate SKNIGHT_deadcode
+	move STOP
+	strength 0
+
+	// resurrect
+	ifaction A_SKNIGHT_DEAD
+	ife silence_damage 0
+	{
+		add INTERNALCOUNT 1
+		ifg INTERNALCOUNT 450 ifg ally_mag 10 { sound SKN_RES state addtotargetarray action A_SKNIGHT_RES  }
+	}
+
+    ifhitweapon
+	{
+		ifwasweapon RADIUSEXPLOSION
+		{
+			spritepal 41
+			state squish_sounds
+			state monst_body_jibs
+			state standard_jibs
+			killit
+		}
+		break
+	}
+ends
+
+defstate SKNIGHT_blastattack // projectile attack
+	move STOP
+
+	ifactioncount 2
+	{
+		sound SKN_BLAST
+
+		// For some reason setthisprojectile[RETURN].EXTRA 35 does not work for kag blast?
+		set PROJECTILE_TO_SHOOT KAG_BLAST_RIGHT
+		set PROJECTILE_FIRING_SOUND SKN_BLAST
+		setprojectile[KAG_BLAST_RIGHT].EXTRA 35
+
+		state sang_enemyShootProjectile
+
+		setthisprojectile[RETURN].ISOUND SKN_IMPACT
+		setprojectile[KAG_BLAST_RIGHT].EXTRA 350
+		resetactioncount
+		action A_SKNIGHT_WALK
+	}
+ends
+
+defstate SKNIGHT_doattack // melee attack
+	move STOP
+	ife my_target -1
+		action A_SKNIGHT_WALK
+	else
+	{
+		ldist temp THISACTOR my_target
+
+		ifg temp 1536 action A_SKNIGHT_WALK
+		else state fronttowardstarget
+
+		ifactioncount 3
+		{
+			set PROJECTILE_TO_SHOOT 4963
+			set PROJECTILE_FIRING_SOUND -1
+			state sang_enemyShootProjectile
+			setthisprojectile[RETURN].RANGE 4
+
+			action A_SKNIGHT_WALK
+		}
+	}
+ends
+
+useractor enemystayput SKNIGHT_STAYPUT 275 A_SKNIGHT_START cactor SKNIGHT enda
+
+useractor enemy SKNIGHT 275 A_SKNIGHT_START
+fall
+
+ifaction A_SKNIGHT_START
+{
+	cstat 257
+	strength 275
+	sizeat 32 32
+	set ally_mag 275
+	geta[].pal PALSAVED
+	state monst_glow
+	espawn SHOOTME seta[RETURN].pal 1
+	// TODO uncomment when we get rid of shootme spawn FLAMMABLE
+	action A_SKNIGHT_IDLE
+}
+
+	ifg silence_damage 0
+		{
+		sub silence_damage 1
+		state spawn_curse_particles
+		}
+
+ifg sprite[].htextra 0
+{
+  ife sprite[sprite[].htowner].picnum SKNIGHT
+    seta[].htextra -1
+}
+
+state ENEMYKNOCKBACKS
+state enemyfloordamage
+state enemy_fire_damage
+state enemy_ice_damage
+state enemy_spirit_damage
+
+ifaction A_SKNIGHT_FROZEN
+{
+	state frozen_code
+}
+else ifaction A_SKNIGHT_DEAD state SKNIGHT_deadcode
+else ifaction A_SKNIGHT_HEAD_DEAD state SKNIGHT_deadcode
+else ifaction A_SKNIGHT_DIE
+	{
+	move STOP
+	strength 0
+	ifactioncount 6 { set INTERNALCOUNT 0 state rf state BODY_FALL_NOISES action A_SKNIGHT_DEAD espawn BLOODPOOL seta[RETURN].pal 1 }
+	}
+else ifaction A_SKNIGHT_HEAD_DIE
+	{
+	move STOP
+	strength 0
+	ifactioncount 6 { state rf state BODY_FALL_NOISES action A_SKNIGHT_HEAD_DEAD espawn BLOODPOOL seta[RETURN].pal 1 }
+	}
+else ifaction A_SKNIGHT_PAIN
+{
+	sub PAIN_AMOUNT 1
+	move STOP
+	ife PAIN_AMOUNT 0
+	{
+		ifdead break
+		action A_SKNIGHT_WALK
+	}
+}
+else ifaction A_SKNIGHT_SHRUNK
+{
+	ifmove SKNIGHT_WALK nullop
+	else move SKNIGHT_WALK geth fleeenemy
+
+	ifl SHRUNK_TIME SHRUNKCOUNT // keep shrunk
+		state new_shrunkcode
+	else ifl SHRUNK_TIME SHRUNKDONECOUNT // regrow
+	{
+		state unshrink
+		sizeto 32 32
+	}
+	else // after regrow, switch back to regular action
+	{
+		state endshrunkenstate
+		action A_SKNIGHT_WALK
+	}
+}
+else ifaction A_SKNIGHT_RES
+{
+	move STOP
+	ifactioncount 5
+	{
+		cstat 257
+		div ally_mag 2
+		seta[].extra ally_mag
+		set weight_increase 1
+		set max_weight 2
+
+		espawn SHOOTME seta[RETURN].pal 1
+		// TODO uncomment when we get rid of shootme spawn FLAMMABLE
+		action A_SKNIGHT_IDLE
+	}
+}
+else ifaction A_SKNIGHT_GROW
+{
+	move STOP
+	state genericgrowcode
+}
+else ifaction A_SKNIGHT_IDLE
+{
+	move STOP
+	state checkfortarget
+	ifn my_target -1
+	{
+		sound SKN_SIGHT
+		action A_SKNIGHT_WALK
+	}
+}
+else ifaction A_SKNIGHT_WALK
+{
+	ifmove SKNIGHT_WALK nullop
+	else move SKNIGHT_WALK geth
+
+	state checkfortarget
+
+	ifn my_target -1
+	{
+		dist temp THISACTOR my_target // if found, get distance
+		ifl temp 1024 { sound SKN_SWING action A_SKNIGHT_ATTACK } // if target is less than distance, attack
+		else ifl temp 8192 ifrnd 8 { sound SKN_SWING action A_SKNIGHT_PREPSLASH }
+	}
+}
+else ifaction A_SKNIGHT_ATTACK
+	state SKNIGHT_doattack
+else ifaction A_SKNIGHT_PREPSLASH // telegraphing
+{
+	move STOP
+
+	ifn my_target -1
+		state fronttowardstarget
+
+	ifactioncount 3
+		action A_SKNIGHT_SLASH
+}
+else ifaction A_SKNIGHT_SLASH
+	state SKNIGHT_blastattack
+
+ifhitweapon
+{
+	state NEWGUNEFFECTS
+	spritepal 41
+	espawn BLOOD
+	seta[RETURN].pal 1
+	guts JIBS6 1
+	state random_wall_jibs
+	ifwasweapon VOID_PLAYER_BOLT { sound EN_CURSE set silence_damage 150 }
+	ifwasweapon VOID_BOLT { sound EN_CURSE set silence_damage 300 }
+	ifwasweapon VOID_BLAST { sound EN_CURSE set silence_damage 900 }
+	getlastpal
+	ifdead
+		{
+		addkills 1
+
+		ifwasweapon GROWSPARK { cstat 0 sound ACTOR_GROWING action A_SKNIGHT_GROW break }
+		else ifg ice_damage 0 { spritepal 1 strength 0 sound SOMETHINGFROZE action A_SKNIGHT_FROZEN }
+		else ifg fire_damage 0
+			{
+			shoot SPARK2 shoot SPARK2 shoot SPARK2
+			spawn ONFIREGUY
+			killit
+			}
+		else ifand PROJ_UDATA 1048576
+			{
+			spritepal 41
+			state squish_sounds
+			state monst_body_jibs
+			state standard_jibs
+			killit
+			}
+		else ifand PROJ_UDATA 256
+			{
+			shoot SPARK2 shoot SPARK2 shoot SPARK2
+			state jib_sounds
+			spritepal 1
+			guts JIBS3 6
+			spawn SPIRIT_DEATH_GUY
+			killit
+			}
+		else ifg spirit_damage 0
+			{
+			shoot SPARK2 shoot SPARK2 shoot SPARK2
+			state jib_sounds
+			spritepal 1
+			guts JIBS3 6
+			spawn SPIRIT_DEATH_GUY
+			killit
+			}
+		else ifg energy_damage 0
+			{
+			state jib_sounds
+			shoot SPARK2 shoot SPARK2 shoot SPARK2
+			spritepal 4
+			guts JIBS3 6
+			spawn DISINTIGRATE_GUY
+			killit
+			}
+		else ife HEADSHOT 2
+			{
+			state rf
+			ifg fire_damage 0 set fire_damage 0
+			state random_trigger_showoff
+			ifrnd 128 sound HEL_HS1 else sound HEL_HS2
+			state jib_sounds
+			state decap_sounds
+			spritepal 41
+			shoot NJIB
+			shoot NJIB
+			guts JIBS6 3
+			guts JIBS2 2
+			getlastpal
+			action A_SKNIGHT_HEAD_DIE
+			}
+		else
+			{
+			sound SKN_DIE
+			state rf
+			action A_SKNIGHT_DIE
+			}
+		}
+	else ifg PAIN_AMOUNT 0 { sound SKN_PAIN action A_SKNIGHT_PAIN }
+	else ifrnd 32 { sound SKN_PAIN state PAIN_SKILL_LEVELADJUST action A_SKNIGHT_PAIN }
+	else ifaction A_SKNIGHT_IDLE { sound SKN_PAIN state PAIN_SKILL_LEVELADJUST action A_SKNIGHT_PAIN }
+	ifwasweapon SHRINKSPARK { sound ACTOR_SHRINKING action A_SKNIGHT_SHRUNK }
+}
+
+state checksquished
+
+enda

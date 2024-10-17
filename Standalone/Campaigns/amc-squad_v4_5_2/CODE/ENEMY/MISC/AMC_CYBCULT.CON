@@ -1,0 +1,329 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+
+--------------------------------------------------------------------------------
+*/
+
+spriteflags CYBERCULTIST NORMAL_ENEMY
+spriteflags CYBERCULTIST_STAYPUT NORMAL_ENEMY
+
+defstate cybercult_fire
+		geta[].z temp3 sub temp3 1024 seta[].z temp3 // change this actor's height so the projectile comes from the right place
+		ife actor_pal 21
+			{
+			soundonce MINIGUN3_FIRE
+			set PROJECTILE_TO_SHOOT ENEMY_BULLET
+			set PROJECTILE_FIRING_SOUND 4
+			state sang_enemyShootProjectile
+			state sang_enemyShootProjectile
+			shoot FAKE_BULLET
+			shoot FAKE_BULLET
+			}
+		else
+			{
+			setprojectile[6857].offset -512
+			set PROJECTILE_STRENGTH 3
+			set PROJECTILE_TO_SHOOT 6857
+			set PROJECTILE_FIRING_SOUND CYBERCULTIST_RIFLE
+			state sang_enemyShootProjectile
+			setprojectile[6857].offset 224
+			}
+		geta[].z temp3 add temp3 1024 seta[].z temp3 // reset height
+		ife PERFMODE 1
+			{
+			set gunsmoke_z 4644
+			set gunsmoke_angle -64
+			state spawn_gunsmoke_z
+			set gunsmoke_z 6044
+			espawn 16113
+			seta[RETURN].pal 21
+			state spawn_muzzleflash
+			}
+		ends
+
+damageeventtile CYBERCULTIST
+
+action ACYBERCULTIST_FROZE   89 1 5 1 0
+action ACYBERCULTIST_GROW   89 1 5 1 0
+action ACYBERCULTISTSTAND    0 1 5 1 0
+action ACYBERCULTISTRUN      5 4 5 1 11
+action ACYBERCULTISTWALK     5 4 5 1 20
+action ACYBERCULTISTSHOOT 25 2 5 1 11
+action ACYBERCULTISTSHOOT_DUCK 35 2 5 1 11
+action ACYBERCULTISTFLINCH 45 1 5 1 20
+action ACYBERCULTISTDYING 45 6 1 1 15
+action ACYBERCULTISTDEAD 50 1 1 1 1
+
+move CYBERCULTISTWALKVELS 72
+move CYBERCULTISTRUNVELS 108
+
+ai AICYBERCULTISTIDLE ACYBERCULTISTSTAND STOP
+ai AICYBERCULTISTSEEKENEMY ACYBERCULTISTWALK CYBERCULTISTWALKVELS geth
+ai AICYBERCULTISTRUSHENEMY ACYBERCULTISTRUN CYBERCULTISTRUNVELS geth
+ai AICYBERCULTISTSHOOT ACYBERCULTISTSHOOT STOP 
+ai AICYBERCULTISTSHOOT_DUCK ACYBERCULTISTSHOOT_DUCK STOP 
+ai AICYBERCULTISTDEAD ACYBERCULTISTDEAD STOP 
+
+appendevent EVENT_GAME
+
+ifactor BLOOD
+ {
+  ifspawnedby CYBERCULTIST spritepal 4
+ }
+
+ifactor BLOODPOOL
+ {
+  ifspawnedby CYBERCULTIST spritepal 4
+
+ }
+
+endevent
+
+useractor enemystayput CYBERCULTIST_STAYPUT
+strength 250
+ife EXTRASAVED -1 set EXTRASAVED 5
+cactor CYBERCULTIST
+enda
+
+useractor enemy CYBERCULTIST 250 ACYBERCULTISTSTAND
+fall
+
+ifai 0
+	{
+	geta[].mdflags temp
+	orvar temp 16
+	seta[].mdflags temp
+	spawn SHOOTME
+	strength 250
+	set actor_type TYPE_CASE_SPECIFIC
+	ife actor_pal 0 geta[].pal actor_pal
+	ife actor_pal 21 set NPC_SHIELD 250
+	ifspritepal 18 cstator 2
+	sizeat 30 30
+	ai AICYBERCULTISTIDLE
+	cstator 257
+	}
+	
+ife actor_pal 21 state ENEMY_SHIELD_STUFF
+
+state ENEMYKNOCKBACKS
+state enemyfloordamage
+state enemy_fire_damage
+state enemy_ice_damage
+
+ifaction ACYBERCULTIST_FROZE { state frozen_code break }
+
+ifp pdead
+{
+ifstrength 0 break else ai AICYBERCULTISTIDLE
+}
+else
+ifai AICYBERCULTISTDEAD
+{
+strength 0
+move 0
+
+    ifhitweapon
+    {
+      ifwasweapon RADIUSEXPLOSION
+      {
+		palfrom 40 40 0 40 spawn EXPLOSION2 sound RPG_EXPLODE
+		sound VENT_BUST
+		debris SCRAP3 6
+        debris SCRAP2 4
+		state termspawnlegparts
+		shoot SPARK shoot SPARK shoot SPARK shoot SPARK shoot SPARK shoot SPARK shoot SPARK
+	  killit
+      }
+      ifwasweapon RPG
+      {
+		palfrom 40 40 0 40 spawn EXPLOSION2 sound RPG_EXPLODE
+		sound VENT_BUST
+		debris SCRAP3 6
+        debris SCRAP2 4
+		state termspawnlegparts
+		shoot SPARK shoot SPARK shoot SPARK shoot SPARK shoot SPARK shoot SPARK shoot SPARK
+	  killit
+      }
+	}
+}
+else
+ifaction ACYBERCULTISTDYING
+{
+strength 0
+ifactioncount 5 { state BODY_FALL_NOISES espawn 7991 state rf ai AICYBERCULTISTDEAD }
+}
+else
+ifaction ACYBERCULTISTFLINCH
+{
+ifdead action ACYBERCULTISTDYING
+move 0
+sub PAIN_AMOUNT 1
+ife PAIN_AMOUNT 0 ai AICYBERCULTISTSEEKENEMY
+}
+else
+ifai AICYBERCULTISTIDLE
+{
+	state checkfortarget
+	ifn my_target -1 ai AICYBERCULTISTSEEKENEMY
+}
+else
+ifai AICYBERCULTISTSEEKENEMY
+	{
+	state checkfortarget
+		ifn my_target -1
+		{
+		state SKILL_SHOOT_LEVELADJUST
+			ifl RANDOM_CHANCE SKILLCHANCE
+			{
+			ifrnd 128 ai AICYBERCULTISTSHOOT_DUCK else
+			ai AICYBERCULTISTSHOOT
+			}
+			dist temp THISACTOR my_target
+		ifl temp 5120
+		 ifrnd 64
+		   ai AICYBERCULTISTRUSHENEMY
+		}
+	}
+else
+ifai AICYBERCULTISTRUSHENEMY
+	{
+	state checkfortarget
+		ifn my_target -1
+		 ifrnd 32
+			{
+			ifn my_target -1 ai AICYBERCULTISTSHOOT
+			else ai AICYBERCULTISTSHOOT
+			}
+	}
+else
+ifai AICYBERCULTISTSHOOT
+{
+  state new_validatetarget
+  ife my_target -1 ai AICYBERCULTISTSEEKENEMY
+   state fronttowardstarget
+	  ifactioncount 1
+		{
+		state cybercult_fire
+		ifrnd 32 { ife actor_pal 21 { stopsound MINIGUN3_FIRE sound MINIGUN3_STOP } ai AICYBERCULTISTSEEKENEMY }
+		resetactioncount
+		}
+}
+else
+	ifai AICYBERCULTISTSHOOT_DUCK
+	{
+	  state new_validatetarget
+	  ife my_target -1 ai AICYBERCULTISTSEEKENEMY
+	   state fronttowardstarget
+		  ifactioncount 1
+			{
+			state cybercult_fire
+			ifrnd 32 ai AICYBERCULTISTSEEKENEMY
+			resetactioncount
+			}
+	}
+
+ifhitweapon
+{
+
+state MIA_GUN_STATE
+
+    ifrnd 64 debris SCRAP2 1
+    ifrnd 72 debris SCRAP5 1
+    ifrnd 48 guts JIBS6 2
+	ifwasweapon SHOTSPARK1
+	{
+     sound DRON_PAIN
+	}
+
+ifdead
+	{
+	ifaction ACYBERCULTISTDYING break
+	ifaction ACYBERCULTISTDEAD break
+
+      ifwasweapon RADIUSEXPLOSION
+      {
+		 palfrom 40 40 0 40 spawn EXPLOSION2 sound RPG_EXPLODE
+		sound VENT_BUST
+        debris SCRAP3 6
+        debris SCRAP2 4
+		state termspawnlegparts
+		shoot SPARK shoot SPARK shoot SPARK shoot SPARK shoot SPARK shoot SPARK shoot SPARK
+	  killit
+      }
+	else
+      ifwasweapon RPG
+      {
+		palfrom 40 40 0 40 spawn EXPLOSION2 sound RPG_EXPLODE
+		sound VENT_BUST
+		debris SCRAP3 6
+        debris SCRAP2 4
+		state termspawnlegparts
+		shoot SPARK shoot SPARK shoot SPARK shoot SPARK shoot SPARK shoot SPARK shoot SPARK
+	  killit
+      }
+	else
+	ifand PROJ_UDATA PROJ_GIB
+      {
+		palfrom 40 40 0 40 spawn EXPLOSION2 sound RPG_EXPLODE
+		sound VENT_BUST
+		debris SCRAP3 6
+        debris SCRAP2 4
+		state termspawnlegparts
+		shoot SPARK shoot SPARK shoot SPARK shoot SPARK shoot SPARK shoot SPARK shoot SPARK
+	  killit
+      }
+	else
+		{
+		ifstrength -50
+			{
+			palfrom 40 40 0 40 spawn EXPLOSION2 sound RPG_EXPLODE
+			sound VENT_BUST
+			debris SCRAP3 6
+			debris SCRAP2 4
+			state termspawnlegparts
+			shoot SPARK shoot SPARK shoot SPARK shoot SPARK shoot SPARK shoot SPARK shoot SPARK
+		  killit
+			}
+		else
+			{
+			ifrnd 16 ife CHAR 7 globalsound MS_CULTISTK
+			randvar temp 30
+			ifl temp 10 sound CYBERCULTIST_DIE1 else
+			ifl temp 20 sound CYBERCULTIST_DIE2 else
+			sound CYBERCULTIST_DIE3
+			action ACYBERCULTISTDYING
+			}
+		}
+	}
+else
+ifg PAIN_AMOUNT 0 action ACYBERCULTISTFLINCH
+else ifrnd 32 { sound ZSCI_PAIN state PAIN_SKILL_LEVELADJUST action ACYBERCULTISTFLINCH }
+}
+
+state check_metal_squished
+
+enda

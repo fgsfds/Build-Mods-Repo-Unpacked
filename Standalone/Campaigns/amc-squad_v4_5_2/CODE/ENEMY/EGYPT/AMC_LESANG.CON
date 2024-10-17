@@ -1,0 +1,360 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+
+--------------------------------------------------------------------------------
+*/
+
+damageeventtile LESANG
+
+spriteshadow LESANG_DUMMY
+
+action LESANGD -1 1 5 1 1
+
+useractor notenemy LESANG_DUMMY
+ifspritepal 4 nullop else
+sizeat 24 24
+action LESANGD
+state hide_cutscene
+enda
+
+action A_LESANG_STAND 0 0 5 1 0
+action A_LESANG_WALK 30 0 5 1 12
+action A_LESANG_ATTACK 5 3 5 1 40
+action A_LESANG_TELEP 20 2 1 1 45
+action A_LESANG_DIE 35 4 1 1 45
+action A_LESANG_LEV 38 1
+
+move LESANGWALK 120
+
+ai AI_LESANG_WALK A_LESANG_WALK LESANGWALK seekplayer
+ai AI_LESANG_TELEP A_LESANG_TELEP STOP
+ai AI_LESANG_ATTACK A_LESANG_ATTACK STOP faceplayersmart
+ai AI_LESANG_ATTACK2 A_LESANG_ATTACK STOP faceplayersmart
+ai AI_LESANG_ATTACK3 A_LESANG_ATTACK STOP faceplayersmart
+ai AI_LESANG_SUMMON A_LESANG_ATTACK STOP
+ai AI_LESANG_SPECIAL A_LESANG_ATTACK STOP
+ai AI_LESANG_DIE A_LESANG_DIE STOP
+ai AI_LESANG_LEV A_LESANG_LEV STOP
+
+useractor enemy LESANG 8000 A_LESANG_STAND
+fall
+
+ifai 0
+	{
+	state monst_glow
+	set MONSTER_FLAGS 1
+	geta[].htflags temp
+	orvar temp SFLAG_NODAMAGEPUSH
+	seta[].htflags temp
+	geta[].pal actor_pal
+	ife actor_pal 3
+		{
+		set BOSS_TYPE 7
+		set CURBOSS THISACTOR
+		strength 12000
+		set ally_mag 20
+		set INTERNALCOUNT_3 0
+		}
+	else
+		{
+		globalsound LESANG_LAUGH
+		set BOSS_TYPE 7
+		set CURBOSS THISACTOR
+		ife SKILL_LEVEL 1 set ally_mag 10
+		ife SKILL_LEVEL 2 set ally_mag 20
+		ife SKILL_LEVEL 3 set ally_mag 30
+		ife SKILL_LEVEL 4 set ally_mag 40
+		ife SKILL_LEVEL 5 set ally_mag 50
+		strength 8000
+		set INTERNALCOUNT_3 2
+		}
+	ai AI_LESANG_WALK
+	sizeat 24 24
+	cstat 257
+	}
+
+ifstrength 8000 ife INTERNALCOUNT_3 0
+	{
+	set INTERNALCOUNT_3 1
+	globalsound LESANG_ATTACK2
+	flash
+	set INTERNALCOUNT 0
+	ai AI_LESANG_SPECIAL
+	}
+
+ifstrength 6000 ife INTERNALCOUNT_3 2
+	{
+	ife SKILL_LEVEL 1 set ally_mag 5
+	ife SKILL_LEVEL 2 set ally_mag 10
+	ife SKILL_LEVEL 3 set ally_mag 15
+	ife SKILL_LEVEL 4 set ally_mag 20
+	ife SKILL_LEVEL 5 set ally_mag 25
+	set INTERNALCOUNT_3 3
+	}
+
+ifai AI_LESANG_LEV
+	{
+	soundonce SPELL2AMB
+	ifrnd 4 shoot SPARK2
+	add INTERNALCOUNT 1
+	ifg INTERNALCOUNT 60
+		{
+		state fade_out_white
+		operateactivators 601 THISACTOR
+		operaterespawns 601
+		operatemasterswitches 601
+		killit
+		}
+	}
+else
+ifai AI_LESANG_DIE
+	{
+	spritepal 0
+	globalsound THUNDERBALL_HIT
+	flash
+	shoot SPARK2
+	ifactioncount 4 ai AI_LESANG_LEV
+	}
+else
+ifai AI_LESANG_WALK
+	{
+	ifcansee
+	 ifcanseetarget
+	  ifrnd 4
+	   ifg ally_mag 0
+	    ifstrength 8000
+		 ife silence_damage 0
+			{
+			globalsound LESANG_AID
+			set INTERNALCOUNT 0
+			sub ally_mag 1
+			ai AI_LESANG_SUMMON
+			}
+
+	ifcansee
+	 ifcanseetarget
+	  ifrnd 8
+		{
+		globalsound LESANG_ATTACK1
+		set INTERNALCOUNT 0
+		sub ally_mag 1
+		ifg INTERNALCOUNT_3 1 ifrnd 128 ai AI_LESANG_ATTACK3 else
+		ifrnd 128 ai AI_LESANG_ATTACK2 else
+		ai AI_LESANG_ATTACK
+		}
+	}
+else
+ifai AI_LESANG_SPECIAL
+	{
+	spritepal 11
+	add INTERNALCOUNT 1
+		ife INTERNALCOUNT 10
+			{
+			sound THUNDERBALL_HIT
+			}
+		ife INTERNALCOUNT 25
+			{
+			state fade_out_white
+			screensound USE_PORTAL
+			operateactivators 600 THISACTOR
+			operaterespawns 600
+			operatemasterswitches 600
+			}
+		ifg INTERNALCOUNT 30
+			{
+			killit
+			}
+	}
+else
+ifai AI_LESANG_SUMMON
+	{
+	spritepal 21
+	add INTERNALCOUNT 1
+		ife INTERNALCOUNT 10
+			{
+			sound THUNDERBALL_HIT
+			}
+		ife INTERNALCOUNT 30
+			{
+				getp[].posx temp
+				getp[].posy temp2
+				set temp3 temp
+				add temp3 1024
+				randvar temp4 2048
+				rotatepoint temp temp2 temp3 temp2 temp4 temp5 temp6
+				geta[].sectnum upd_sect
+				updatesector temp5 temp6 upd_sect
+				ifn upd_sect -1
+					{
+					espawn 8433
+					shoot SPARK shoot SPARK shoot SPARK shoot SPARK
+					seta[RETURN].x temp5
+					seta[RETURN].y temp6
+					getp[].posz temp8
+					seta[RETURN].z temp8
+					ifstrength 6000 ifrnd 96 espawn SIREN else
+					ifrnd 128 espawn ANUBIS_MUMMY else
+					espawn THOTH
+					changespritesect RETURN upd_sect
+					seta[RETURN].x temp5
+					seta[RETURN].y temp6
+					getp[].posz temp8
+					sub temp8 1024
+					seta[RETURN].z temp8
+					}
+			ai AI_LESANG_WALK
+			}
+	}
+else
+ifai AI_LESANG_ATTACK
+	{
+	spritepal 0
+	add INTERNALCOUNT 1
+		ife INTERNALCOUNT 10
+			{
+			sound THUNDERBALL_HIT
+			}
+		ife INTERNALCOUNT 25
+			{
+			flash
+			soundonce THUNDER
+			shoot SPELL2
+			ifg INTERNALCOUNT_3 1
+			 ife silence_damage 0
+				{
+				eshoot 6198 geta[RETURN].ang temp sub temp 128 seta[RETURN].ang temp
+				eshoot 6198 geta[RETURN].ang temp add temp 128 seta[RETURN].ang temp
+				eshoot 6198 geta[RETURN].ang temp sub temp 64 seta[RETURN].ang temp
+				eshoot 6198 geta[RETURN].ang temp add temp 64 seta[RETURN].ang temp
+				}
+			}
+		ife INTERNALCOUNT 30
+			{
+			ai AI_LESANG_WALK
+			}
+	}
+else
+ifai AI_LESANG_ATTACK2
+	{
+	spritepal 10
+	add INTERNALCOUNT 1
+		ife INTERNALCOUNT 10
+			{
+			sound THUNDERBALL_HIT
+			}
+		ife INTERNALCOUNT 25
+			{
+			flash
+			soundonce GREMGUN_FIRE
+			shoot 7163
+			ifg INTERNALCOUNT_3 1
+			 ife silence_damage 0
+				{
+				eshoot 7526 geta[RETURN].ang temp sub temp 128 seta[RETURN].ang temp
+				eshoot 7526 geta[RETURN].ang temp add temp 128 seta[RETURN].ang temp
+				eshoot 7526 geta[RETURN].ang temp sub temp 64 seta[RETURN].ang temp
+				eshoot 7526 geta[RETURN].ang temp add temp 64 seta[RETURN].ang temp
+				}
+			}
+		ife INTERNALCOUNT 30
+			{
+			ai AI_LESANG_WALK
+			}
+	}
+else
+ifai AI_LESANG_ATTACK3
+	{
+	spritepal 49
+	add INTERNALCOUNT 1
+		ife INTERNALCOUNT 10
+			{
+			sound THUNDERBALL_HIT
+			}
+		ife INTERNALCOUNT 25
+			{
+			flash
+			shoot HADESBLASTH
+			ife silence_damage 0
+				{
+				eshoot HADESBLAST geta[RETURN].ang temp sub temp 64 seta[RETURN].ang temp
+				eshoot HADESBLAST geta[RETURN].ang temp add temp 64 seta[RETURN].ang temp
+				}
+			}
+		ife INTERNALCOUNT 30
+			{
+			ai AI_LESANG_WALK
+			}
+	}
+
+ifg silence_damage 0
+	{
+	sub silence_damage 1
+	state spawn_curse_particles
+	}
+
+ifhitweapon
+	{
+	set CURBOSS THISACTOR
+	ifwasweapon VOID_PLAYER_BOLT { sound EN_CURSE set silence_damage 75 }
+	ifwasweapon VOID_BOLT { sound EN_CURSE set silence_damage 150 }
+	ifwasweapon VOID_BLAST { sound EN_CURSE set silence_damage 450 }
+	shoot BLOOD
+		ifdead
+			{
+			set CURBOSS -1
+			set SLO_MO_SHOWOFF 40
+			ai AI_LESANG_DIE
+			add TREASURE_FOUND 10
+			addkills 1
+			}
+	}
+
+enda
+
+action LESANG_FDIE
+
+spriteshadow 9844
+
+useractor notenemy 9844
+
+ifaction 0
+	{
+	spritepal 21
+	sizeat 25 25
+	ifrnd 4 shoot SPARK2
+	soundonce SPELL2AMB
+	checkactivatormotion 605
+	 ife RETURN 1
+		{
+		quake 52
+		spawn 8433
+		spawn SPIRIT_DEATH_GUY
+		screensound FORCE_BLAST
+		killit
+		}
+	}
+
+enda

@@ -1,0 +1,572 @@
+
+
+// Input
+var ammo_doreduce 0 1 // reduce ammo by value passed here before returning
+var ammo_forweaponidx 0 1
+var ammo_checkcanswitch 0 1 // if set, check if we can switch
+
+// Output
+var ammo_switch_sound -1 1
+var ammo_switch_quote -1 1
+var ammo_remaining -1 1
+var ammo_normalammoremaining -1 1 // will always have the normal ammo remaining
+var ammo_canswitchto -1 1 // returns the first ammo type that has ammo remaining for the given weapon data
+// if canswitchto equals -2, then we have alternate ammo, but we don't want to automatically switch (this is in the case of regular firing mode vs grenade launcher)
+
+var ammo_switchtofiremode -1 1 // if can switch to an alternate ammo type but this requires also switching fire modes, that will be returned here (gun_firemode)
+var ammo_switchtofiremode_two -1 1 // this marks what value gun_firemode_two should get
+
+defstate ammo_getshelldefs
+	set ammo_normalammoremaining normal_ammo
+
+	ifand AMMO_TYPES[ammo_forweaponidx] 1 // Explosive shells
+	{
+		ifg ammo_doreduce 0 ifg explosive_shells 0 sub explosive_shells ammo_doreduce
+		set ammo_remaining explosive_shells
+	}
+	else ifand AMMO_TYPES[ammo_forweaponidx] 4 // Flechette shells
+	{
+		ifg ammo_doreduce 0 ifg flechete_shells 0 sub flechete_shells ammo_doreduce
+		set ammo_remaining flechete_shells
+	}
+	else
+	{
+		ifg ammo_doreduce 0 ifg normal_ammo 0 sub normal_ammo ammo_doreduce
+		set ammo_remaining normal_ammo
+	}
+
+	ife ammo_checkcanswitch 1
+	{
+		ifg explosive_shells 0
+		{
+			set ammo_canswitchto 1
+			set ammo_remaining explosive_shells
+			set ammo_switch_quote 207
+		}
+		else ifg flechete_shells 0
+		{
+			set ammo_canswitchto 4
+			set ammo_remaining flechete_shells
+			set ammo_switch_quote 268
+		}
+		else ifg normal_ammo 0
+		{
+			set ammo_canswitchto 0
+			set ammo_remaining normal_ammo
+			set ammo_switch_quote 208
+		}
+	}
+ends
+
+defstate ammo_getadvancedshelldefs
+	set ammo_normalammoremaining normal_ammo
+
+	ifand AMMO_TYPES[ammo_forweaponidx] 64 // Magnum shells
+	{
+		ifg ammo_doreduce 0 ifg magnum_shells 0 sub magnum_shells ammo_doreduce
+		set ammo_remaining magnum_shells
+	}
+	else ifand AMMO_TYPES[ammo_forweaponidx] 1024 // Dragon shells
+	{
+		ifg ammo_doreduce 0 ifg dragon_shells 0 sub dragon_shells ammo_doreduce
+		set ammo_remaining dragon_shells
+	}
+
+	ife ammo_checkcanswitch 1
+	{
+		ifg magnum_shells 0
+		{
+			set ammo_canswitchto 64
+			set ammo_remaining magnum_shells
+			set ammo_switch_quote 286
+		}
+		else ifg dragon_shells 0
+		{
+			set ammo_canswitchto 1024
+			set ammo_remaining dragon_shells
+			set ammo_switch_quote 297
+		}
+	}
+ends
+
+defstate ammo_get45defs
+	set ammo_normalammoremaining normal_ammo
+
+	ifand AMMO_TYPES[ammo_forweaponidx] 32768 // incendiary
+	{
+		ifg ammo_doreduce 0 ifg incend_ammo 0 sub incend_ammo ammo_doreduce
+		set ammo_remaining incend_ammo
+	}
+	else ifand AMMO_TYPES[ammo_forweaponidx] 2 // silver
+	{
+		ifg ammo_doreduce 0 ifg silver_ammo 0 sub silver_ammo ammo_doreduce
+		set ammo_remaining silver_ammo
+	}
+	else
+	{
+		ifg ammo_doreduce 0 ifg normal_ammo 0 sub normal_ammo ammo_doreduce
+		ifg normal_ammo 0 set ammo_canswitchto 0
+		set ammo_remaining normal_ammo
+	}
+
+	ife ammo_checkcanswitch 1
+	{
+		ifg incend_ammo 0
+		{
+			set ammo_canswitchto 32768
+			set ammo_remaining incend_ammo
+			set ammo_switch_quote 522
+		}
+		else ifg silver_ammo 0
+		{
+			set ammo_canswitchto 2
+			set ammo_remaining silver_ammo
+			set ammo_switch_quote 205
+		}
+		else ifg normal_ammo 0
+		{
+			set ammo_canswitchto 0
+			set ammo_remaining normal_ammo
+			set ammo_switch_quote 206
+		}
+	}
+ends
+
+defstate ammo_getriotgundefs
+	set ammo_normalammoremaining normal_ammo
+
+	ifand AMMO_TYPES[ammo_forweaponidx] 8 // Tesla ammo
+	{
+		ifg ammo_doreduce 0 ifg tesla_ammo 0 sub tesla_ammo ammo_doreduce
+		set ammo_remaining tesla_ammo
+	}
+	else
+	{
+		ifg ammo_doreduce 0 ifg normal_ammo 0 sub normal_ammo ammo_doreduce
+		set ammo_remaining normal_ammo
+	}
+
+	ife ammo_checkcanswitch 1
+	{
+		ifg tesla_ammo 0
+		{
+			set ammo_canswitchto 8
+			set ammo_remaining tesla_ammo
+			set ammo_switch_sound RIOTGUN_COCK
+
+			ifand gun_firemode 16
+				xorvar gun_firemode 16
+		}
+		else ifg normal_ammo 0
+		{
+			set ammo_canswitchto 0
+			set ammo_remaining normal_ammo
+			set ammo_switch_sound RIOTGUN_COCK
+			set ammo_switch_quote 208
+		}
+	}
+ends
+
+defstate ammo_getboltdefs
+	set ammo_normalammoremaining normal_ammo
+
+	ifand AMMO_TYPES[ammo_forweaponidx] 16 // silver bolts
+	{
+		ifg ammo_doreduce 0 ifg silver_bolts 0 sub silver_bolts ammo_doreduce
+		set ammo_remaining silver_bolts
+	}
+	else ifand AMMO_TYPES[ammo_forweaponidx] 16384 // void bolts
+	{
+		ifg ammo_doreduce 0 ifg void_bolts 0 sub void_bolts ammo_doreduce
+		set ammo_remaining void_bolts
+	}
+	else
+	{
+		ifg ammo_doreduce 0 ifg normal_ammo 0 sub normal_ammo ammo_doreduce
+		set ammo_remaining normal_ammo
+	}
+
+	ife ammo_checkcanswitch 1
+	{
+		ifg silver_bolts 0
+		{
+			set ammo_canswitchto 16
+			set ammo_remaining silver_bolts
+			set ammo_switch_quote 278
+		}
+		else ifg void_bolts 0
+		{
+			set ammo_canswitchto 16384
+			set ammo_remaining void_bolts
+			set ammo_switch_quote 412
+		}
+		else ifg normal_ammo 0
+		{
+			set ammo_canswitchto 0
+			set ammo_remaining normal_ammo
+			set ammo_switch_quote 279
+		}
+	}
+ends
+
+defstate ammo_get40mmglcaseddefs
+	set ammo_normalammoremaining normal_ammo
+
+	ifand gun_firemode 32768
+	{
+		ifand AMMO_TYPES[ammo_forweaponidx] 32 // 40mm HE shells
+		{
+			ifg ammo_doreduce 0 ifg fortymm_shells 0 sub fortymm_shells ammo_doreduce
+			set ammo_remaining fortymm_shells
+		}
+		else ifand AMMO_TYPES[ammo_forweaponidx] 128 // 40mm MIA shells
+		{
+			ifg ammo_doreduce 0 ifg fortymm_MIA_shells 0 sub fortymm_MIA_shells ammo_doreduce
+			set ammo_remaining fortymm_MIA_shells
+		}
+		else ifand AMMO_TYPES[ammo_forweaponidx] 256 // 40mm plasma shells
+		{
+			ifg ammo_doreduce 0 ifg fortymm_plasma 0 sub fortymm_plasma ammo_doreduce
+			set ammo_remaining fortymm_plasma
+		}
+		else ifand GUN_AMMO_TYPES 2048 // in GL mode, but didn't match any of the previous cases, so must be using regular 40 mm grenades THAT DON'T HAVE AN AMMO_TYPES ARRAY ENTRY CAUSE ARGH
+		{
+			ifg ammo_doreduce 0 ifg fortymm_grenades 0 sub fortymm_grenades ammo_doreduce
+			set ammo_remaining fortymm_grenades
+		}
+	}
+	else
+	{
+		ifg ammo_doreduce 0 ifg normal_ammo 0 sub normal_ammo ammo_doreduce
+		set ammo_remaining normal_ammo
+	}
+
+	ife ammo_checkcanswitch 1
+	{
+		ifg fortymm_shells 0
+		{
+			set ammo_canswitchto 32
+			set ammo_remaining fortymm_shells
+			//set ammo_switch_quote 278
+			set ammo_switchtofiremode 32768
+		}
+		else ifg fortymm_MIA_shells 0
+		{
+			set ammo_canswitchto 128
+			set ammo_remaining fortymm_MIA_shells
+			//set ammo_switch_quote 412
+			set ammo_switchtofiremode 32768
+		}
+		else ifg fortymm_plasma 0
+		{
+			set ammo_canswitchto 256
+			set ammo_remaining fortymm_plasma
+			//set ammo_switch_quote 412
+			set ammo_switchtofiremode 32768
+		}
+		else ifg fortymm_grenades 0
+		{
+			set ammo_canswitchto 0
+			set ammo_remaining fortymm_grenades
+			//set ammo_switch_quote 412
+			set ammo_switchtofiremode 32768
+		}
+		else ifg normal_ammo 0
+		{
+			set ammo_canswitchto 0
+			set ammo_remaining normal_ammo
+			//set ammo_switch_quote 279
+			set ammo_switchtofiremode 0
+		}
+
+		ifn ammo_canswitchto -1
+			set ammo_canswitchto -2
+	}
+ends
+
+defstate ammo_get40mmglcaselessdefs
+	set ammo_normalammoremaining normal_ammo
+
+	ifand gun_firemode 32768
+	{
+		ifand AMMO_TYPES[ammo_forweaponidx] 512 // 40mm caseless slug
+		{
+			ifg ammo_doreduce 0 ifg fortymm_slug 0 sub fortymm_slug ammo_doreduce
+			set ammo_remaining fortymm_slug
+		}
+		else ifand AMMO_TYPES[ammo_forweaponidx] 2048 // 40mm caseless electro
+		{
+			ifg ammo_doreduce 0 ifg fortymm_electro 0 sub fortymm_electro ammo_doreduce
+			set ammo_remaining fortymm_electro
+		}
+		else ifand AMMO_TYPES[ammo_forweaponidx] 4096 // 40mm caseless cryo
+		{
+			ifg ammo_doreduce 0 ifg fortymm_cryo 0 sub fortymm_cryo ammo_doreduce
+			set ammo_remaining fortymm_cryo
+		}
+		else ifand GUN_AMMO_TYPES 4096 // in GL mode, but didn't match any of the previous cases, so must be using regular 40 mm caseless THAT DON'T HAVE AN AMMO_TYPES ARRAY ENTRY CAUSE ARGH
+		{
+			ifg ammo_doreduce 0 ifg fortymm_caseless 0 sub fortymm_caseless ammo_doreduce
+			set ammo_remaining fortymm_caseless
+		}
+	}
+	else
+	{
+		ifg ammo_doreduce 0 ifg normal_ammo 0 sub normal_ammo ammo_doreduce
+		set ammo_remaining normal_ammo
+	}
+
+	ife ammo_checkcanswitch 1
+	{
+		ifg fortymm_slug 0
+		{
+			set ammo_canswitchto 512
+			set ammo_remaining fortymm_slug
+			//set ammo_switch_quote 278
+			set ammo_switchtofiremode 32768
+		}
+		else ifg fortymm_electro 0
+		{
+			set ammo_canswitchto 2048
+			set ammo_remaining fortymm_electro
+			//set ammo_switch_quote 412
+			set ammo_switchtofiremode 32768
+		}
+		else ifg fortymm_cryo 0
+		{
+			set ammo_canswitchto 4096
+			set ammo_remaining fortymm_cryo
+			//set ammo_switch_quote 412
+			set ammo_switchtofiremode 32768
+		}
+		else ifg fortymm_caseless 0
+		{
+			set ammo_canswitchto 0
+			set ammo_remaining fortymm_caseless
+			//set ammo_switch_quote 412
+			set ammo_switchtofiremode 32768
+		}
+		else ifg normal_ammo 0
+		{
+			set ammo_canswitchto 0
+			set ammo_remaining normal_ammo
+			//set ammo_switch_quote 279
+			set ammo_switchtofiremode 0
+		}
+
+		ifn ammo_canswitchto -1
+			set ammo_canswitchto -2
+	}
+ends
+
+defstate ammo_getmissiledefs
+	set ammo_normalammoremaining normal_ammo
+
+	// Apply this immediately
+	ifle heat_seek_card 0
+	  ifand gun_firemode_two 1
+	{
+		xor gun_firemode_two 1
+	}
+
+	ifle DUP_missile_ammo 0
+	  ifand gun_firemode_two 4
+	{
+		xor gun_firemode_two 4
+	}
+
+	ifle atomic_bomb 0
+	  ifand gun_firemode_two 2
+	{
+		xor gun_firemode_two 2
+	}
+
+	// handle ammo subtraction for heat seeking missiles
+	ifand gun_firemode_two 1 // Heat seeker
+		ifg ammo_doreduce 0
+	{
+		ifg heat_seek_card 0 sub heat_seek_card ammo_doreduce
+
+		ifand gun_firemode_two 4
+			ifg ammo_doreduce 0 ifg DUP_missile_ammo 0 sub DUP_missile_ammo ammo_doreduce
+		else
+			ifg ammo_doreduce 0 ifg normal_ammo 0 sub normal_ammo ammo_doreduce
+	}
+
+
+	ifand gun_firemode_two 2 // Nuke / Atomic bomb
+	{
+		ifg ammo_doreduce 0 ifg atomic_bomb 0 sub atomic_bomb ammo_doreduce
+		set ammo_remaining atomic_bomb
+	}
+	else ifand gun_firemode_two 4 // DUP missiles
+	{
+		ifand gun_firemode_two 1
+			nullop
+		else
+			ifg ammo_doreduce 0 ifg DUP_missile_ammo 0 sub DUP_missile_ammo ammo_doreduce
+
+		set ammo_remaining DUP_missile_ammo
+	}
+	else
+	{
+		ifand gun_firemode_two 1
+			nullop
+		else
+			ifg ammo_doreduce 0 ifg normal_ammo 0 sub normal_ammo ammo_doreduce
+
+		set ammo_remaining normal_ammo
+	}
+
+	ife ammo_checkcanswitch 1
+	{
+		ifg DUP_missile_ammo 0
+		{
+			set ammo_canswitchto 0
+			set ammo_remaining DUP_missile_ammo
+
+			set ammo_switchtofiremode_two gun_firemode_two
+
+			// Remove other firemodes
+			ifle heat_seek_card 0
+			{
+			  ifand ammo_switchtofiremode_two 1
+				xor ammo_switchtofiremode_two 1
+			}
+
+			ifand ammo_switchtofiremode_two 2
+				xor ammo_switchtofiremode_two 2
+
+			or ammo_switchtofiremode_two 4
+		}
+		else ifg normal_ammo 0
+		{
+			set ammo_canswitchto 0
+			set ammo_remaining normal_ammo
+			set ammo_switchtofiremode_two 0
+		}
+		else ifg atomic_bomb 0
+		{
+			set ammo_canswitchto -2
+			set ammo_remaining atomic_bomb
+
+			set ammo_switchtofiremode_two 2
+		}
+	}
+ends
+
+defstate ammo_getdefaultdefs
+	ife ammo_forweaponidx 0
+	{
+		ifg ammo_doreduce 0 ifg normal_ammo 0 sub normal_ammo ammo_doreduce
+		set ammo_remaining normal_ammo
+		set ammo_normalammoremaining normal_ammo
+	}
+	else
+	{
+		set ammo_remaining 0
+		set temp 0
+
+		ifn gun_ammopools[ammo_forweaponidx] -1
+		{
+			add ammo_remaining gun_ammopools[ammo_forweaponidx]
+			ife gun_mags[ammo_forweaponidx] -1
+			{
+				ifg ammo_doreduce 0 ifg ammo_remaining 0 { sub ammo_remaining ammo_doreduce setarray gun_ammopools[ammo_forweaponidx] ammo_remaining}
+				set ammo_normalammoremaining ammo_remaining
+			}
+			set temp 1
+		}
+
+		ifn gun_mags[ammo_forweaponidx] -1
+		{
+			add ammo_remaining gun_mags[ammo_forweaponidx]
+			ifg ammo_doreduce 0 ifg ammo_remaining 0 { sub ammo_remaining ammo_doreduce setarray gun_mags[ammo_forweaponidx] ammo_remaining}
+			set ammo_normalammoremaining ammo_remaining
+			set temp 1
+		}
+		// Using old logic, go straight to ammo_amount
+		ife temp 0
+		{
+			getp[].ammo_amount ammo_forweaponidx ammo_remaining
+			ifg ammo_doreduce 0 ifg ammo_remaining 0 { sub ammo_remaining ammo_doreduce setp[].ammo_amount ammo_forweaponidx ammo_remaining}
+			set ammo_normalammoremaining ammo_remaining
+		}
+	}
+
+	ife ammo_checkcanswitch 1
+	{
+		ifg ammo_normalammoremaining 0 { set ammo_canswitchto 0 set ammo_remaining ammo_normalammoremaining }
+	}
+ends
+
+defstate ammo_getdefs
+	set ammo_switch_sound -1
+	set ammo_switch_quote -1
+	set ammo_remaining -1
+	set ammo_canswitchto -1
+	set ammo_switchtofiremode -1
+	set ammo_switchtofiremode_two -1
+
+	ifn ammo_forweaponidx 0
+		state ammo_getdefaultdefs
+	else ifand GUN_AMMO_TYPES_ARR[ammo_forweaponidx] 1 ifand GUN_AMMO_TYPES_ARR[ammo_forweaponidx] 4  // shells + advanced shells
+	{
+		state ammo_getadvancedshelldefs
+		
+		ife ammo_checkcanswitch 1
+		  ife ammo_canswitchto -1
+			state ammo_getshelldefs
+			
+		else ife ammo_remaining -1
+			state ammo_getshelldefs
+			
+		set ammo_normalammoremaining normal_ammo
+	}
+	else ifand GUN_AMMO_TYPES_ARR[ammo_forweaponidx] 1 // shells
+		state ammo_getshelldefs
+	else ifand GUN_AMMO_TYPES_ARR[ammo_forweaponidx] 2 // .45
+		state ammo_get45defs
+	else ifand GUN_AMMO_TYPES_ARR[ammo_forweaponidx] 8 // Riotgun
+		state ammo_getriotgundefs
+	else ifand GUN_AMMO_TYPES_ARR[ammo_forweaponidx] 16 // bolts
+		state ammo_getboltdefs
+	else ifand GUN_AMMO_TYPES_ARR[ammo_forweaponidx] 32 // Has 40mm grenade launcher option - CASED
+		state ammo_get40mmglcaseddefs
+	else ifand GUN_AMMO_TYPES_ARR[ammo_forweaponidx] 2048 // GL mode - CASED
+		state ammo_get40mmglcaseddefs
+	else ifand GUN_AMMO_TYPES_ARR[ammo_forweaponidx] 64 // Has 40mm grenade launcher option - CASELESS
+		state ammo_get40mmglcaselessdefs
+	else ifand GUN_AMMO_TYPES_ARR[ammo_forweaponidx] 4096 // GL mode - CASELESS
+		state ammo_get40mmglcaselessdefs	
+	else ifand GUN_AMMO_TYPES_ARR[ammo_forweaponidx] 512 // Missiles
+		state ammo_getmissiledefs
+	else
+	{
+		// we have a temp weapon with an as of right now unhandled ammo type
+		// don't fall back to default but mark as not supported so that the "old" code is used
+		set ammo_remaining -1
+		
+		// even the normal_ammo variable is not reliable here
+		getp[].ammo_amount 0 ammo_normalammoremaining
+	}
+
+	set ammo_doreduce 0
+	set ammo_forweaponidx 0
+	set ammo_checkcanswitch 0
+ends
+
+defstate ammo_getaltdefs
+	set ammo_switch_sound -1
+	set ammo_switch_quote -1
+	set ammo_remaining -1
+
+	ifand GUN_AMMO_TYPES_ARR[ammo_forweaponidx] 8192 // blue mana
+	{
+		ifg ammo_doreduce 0 ifg p_blue_mana 0 sub p_blue_mana ammo_doreduce
+		set ammo_remaining p_blue_mana
+	}
+
+	set ammo_doreduce 0
+	set ammo_forweaponidx 0
+ends

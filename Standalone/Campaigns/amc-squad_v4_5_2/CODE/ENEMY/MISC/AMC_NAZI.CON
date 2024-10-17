@@ -1,0 +1,363 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+
+--------------------------------------------------------------------------------
+*/
+
+damageeventtile NAZI
+
+action ANAZI_FROZE 0 1 5 1 10
+action ANAZI_GROW 30 1 1 1 10
+
+action ANAZI_START 49 1 5 1 20
+action ANAZI_IDLE 49 1 5 1 20
+
+action ANAZIRUN  0  4 5 1 12
+action ANAZIRUSH  0  4 5 1 8
+action ANAZIFIRE 20 2 5 1 4
+action ANAZIFLINCH 44 1 5 1 10
+
+action ANAZIDYING 30 6 1 1 12
+action ANAZIDEAD 35 1 1 1 10
+
+action ANAZI_HEADSHOT 37 6 1 1 12
+action ANAZI_HEADDEAD 43 1 1 1 10
+
+action A_NAZI_BIDIE 7816 2 1 1 16
+action A_NAZI_BIDEAD 7817
+
+defstate nazi_torsofly
+	state random_trigger_showoff
+	sound TORS_BISEC
+	setprojectile[NAZI_TORSO_FLY].pal sprite[].pal
+	ezshoot -4096 NAZI_TORSO_FLY
+	setprojectile[NAZI_TORSO_FLY].pal 0
+	geta[].htang temp4
+	seta[RETURN].ang temp4
+	espawn BIG_BLOOD_EXE
+	action A_NAZI_BIDIE
+ends
+
+move NAZI_RUN 128
+
+ai AINAZI_IDLE ANAZI_IDLE STOP
+
+ai AI_NAZI_SEEKENEMY ANAZIRUN NAZI_RUN geth
+ai AINAZIRUSHENEMY ANAZIRUSH NAZI_RUN geth
+
+ai AINAZISHOOTENEMY ANAZIFIRE STOP 
+
+ai AINAZIDEAD ANAZIDEAD STOP faceplayer
+
+ai AINAZI_HEADDEAD ANAZI_HEADDEAD STOP faceplayer
+ai AINAZISHRUNK ANAZIRUN NAZI_RUN furthestdir
+ai AINAZI_GROW ANAZI_GROW STOP faceplayer
+
+useractor enemystayput NAZI_STAYPUT 75 ANAZI_START
+cactor NAZI
+enda
+
+useractor enemy NAZI 75 ANAZI_START
+fall
+
+ifai 0
+	{
+	set MONSTER_FLAGS 2
+	state monst_glow
+	spriteflags NORMAL_ENEMY_TRU
+	spawn SHOOTME
+	strength 75
+	sizeat 24 24
+	ai AINAZI_IDLE
+	cstat 257
+	}
+
+state ENEMYKNOCKBACKS
+state enemyfloordamage
+state enemy_fire_damage
+state enemy_ice_damage
+state enemy_spirit_damage
+
+ifaction ANAZI_FROZE state frozen_code
+else
+ifaction ANAZIFLINCH
+{
+	sub PAIN_AMOUNT 1
+	move STOP
+	ife PAIN_AMOUNT 0 ai AI_NAZI_SEEKENEMY
+}
+else
+ifaction A_NAZI_BIDEAD
+{
+move STOP
+    ifhitweapon
+	    {
+	      ifwasweapon RADIUSEXPLOSION
+	      {
+	        state squish_sounds
+			state standard_jibs
+			state human_jibs
+	        killit
+	      }
+	      break
+	    }
+}
+else
+ifai AINAZIDEAD
+{
+move STOP
+    ifhitweapon
+	    {
+	      ifwasweapon RADIUSEXPLOSION
+	      {
+	        state squish_sounds
+			state standard_jibs
+			state human_jibs
+	        killit
+	      }
+	      break
+	    }
+}
+else
+ifai AINAZI_HEADDEAD
+{
+move STOP
+    ifhitweapon
+	    {
+	      ifwasweapon RADIUSEXPLOSION
+	      {
+	        state squish_sounds
+			state standard_jibs
+			state human_jibs
+	        killit
+	      }
+	      break
+	    }
+}
+else
+ifaction A_NAZI_BIDIE
+	{
+	strength 0
+	ifactioncount 2 { state rf state BODY_FALL_NOISES action A_NAZI_BIDEAD espawn BLOODPOOL }
+	}
+else
+ifaction ANAZIDYING
+{
+strength 0
+	ifactioncount 6 { state BODY_FALL_NOISES spawn BLOODPOOL ai AINAZIDEAD }
+}
+else
+ifaction ANAZI_HEADSHOT
+{
+strength 0
+	ifactioncount 6 { state BODY_FALL_NOISES spawn BLOODPOOL ai AINAZI_HEADDEAD }
+}
+else
+ifai AINAZI_GROW state genericgrowcode
+else
+ifai AINAZISHRUNK
+{
+    ifcount SHRUNKDONECOUNT
+      ai AI_NAZI_SEEKENEMY
+    else ifcount SHRUNKCOUNT
+	  {
+	  sound ACTOR_UNSHRINK
+      sizeto 24 24
+	  }
+    else
+      state genericshrunkcode
+    break
+}
+else
+ifai AINAZI_IDLE
+	{
+	state checkfortarget
+	ifn my_target -1 
+		{
+		ifrnd 96 sound NAZI_SPOT1 else
+		ifrnd 96 sound NAZI_SPOT2 else
+		sound NAZI_SPOT3
+		ai AI_NAZI_SEEKENEMY
+		}
+	}
+else
+ifai AI_NAZI_SEEKENEMY
+	{
+	state checkfortarget
+		ifrnd 1
+			{
+			ifrnd 96 sound NAZI_SPOT1 else
+			ifrnd 96 sound NAZI_SPOT2 else
+			sound NAZI_SPOT3
+			}
+		state SKILL_SHOOT_LEVELADJUST
+		 ifn my_target -1 ifl RANDOM_CHANCE SKILLCHANCE ai AINAZISHOOTENEMY
+		 
+	ife my_target -1 ifp pdead ai AINAZI_IDLE
+	}
+else
+ifai AINAZISHOOTENEMY
+	{
+		state new_validatetarget
+		ife my_target -1 ai AI_NAZI_SEEKENEMY
+		state fronttowardstarget
+		ifactioncount 2
+		{
+			state SKILL_ENEMY_ACCURACY
+			set PROJECTILE_TO_SHOOT ENEMY_BULLET
+			set PROJECTILE_FIRING_SOUND MP40_FIRE
+			state sang_enemyShootProjectile
+				ife PERFMODE 1
+				 ifcansee
+					{
+					set gunsmoke_z 7644
+					set gunsmoke_angle 256
+					state spawn_gunsmoke_z
+					state npc_pistolshell
+					set gunsmoke_z 7044
+					espawn 16115
+					state spawn_muzzleflash
+					}
+			ifrnd 16 ai AI_NAZI_SEEKENEMY
+			resetactioncount
+		}
+	}
+
+ifhitweapon
+{
+	state NEWGUNEFFECTS
+	//spawn BLOOD
+	guts JIBS6 1
+	state random_wall_jibs
+	ifdead
+		{
+		ifwasweapon GROWSPARK { cstat 0 sound ACTOR_GROWING ai AINAZI_GROW break }
+		else ifg ice_damage 0 { spritepal 1 strength 1 sound SOMETHINGFROZE action ANAZI_FROZE }
+		else
+			{
+			state rf
+			addkills 1
+
+			ifwasweapon RPG
+			  {
+				state squish_sounds
+				state standard_jibs
+				state human_jibs
+				killit
+			  }
+			ifwasweapon RADIUSEXPLOSION
+			  {
+				state squish_sounds
+				state standard_jibs
+				state human_jibs
+				killit
+			  }
+			  ifand PROJ_UDATA PROJ_GIB // gibbable weapon
+			  {
+				state squish_sounds
+				state standard_jibs
+			  state human_jibs
+			  killit
+			  }
+			ifand PROJ_UDATA 8192
+			 {
+			 ifrnd 32 { spawn ELECTROCUTE_MARV soundonce MALE_ELECT1 } else spawn ELECTROCUTE_GUY
+			 shoot SPARK2 shoot SPARK2 shoot SPARK2
+			 killit
+			 }
+			ifwasweapon SAWBLADE state nazi_torsofly
+			else ifwasweapon SAWBLADE_BOUNCE state nazi_torsofly
+			else ifwasweapon SNOWFALL_DISC state nazi_torsofly
+			else ifwasweapon 6875 ife CHAR 2 state nazi_torsofly
+			else
+			ifg fire_damage 0
+			{
+			shoot SPARK2 shoot SPARK2 shoot SPARK2
+			ifrnd 64 sound MALE_ONFIRE1
+			else ifrnd 64 sound MALE_ONFIRE2
+			else ifrnd 64 sound MALE_ONFIRE3
+			else sound MALE_ONFIRE4
+			spawn ONFIREGUY
+			killit
+			}
+			else
+			ife HEADSHOT 2
+			{
+			ifg fire_damage 0 set fire_damage 0
+				state random_trigger_showoff
+				state jib_sounds
+				state decap_sounds
+				shoot NJIB
+				shoot NJIB
+				guts JIBS6 3
+				guts JIBS2 2
+				action ANAZI_HEADSHOT
+			}
+			else ifg spirit_damage 0
+			{
+			shoot SPARK2 shoot SPARK2 shoot SPARK2
+			spritepal 1
+			guts JIBS3 6
+			spawn SPIRIT_DEATH_GUY
+			killit
+			}
+			else
+			ifg energy_damage 0
+				{
+				shoot SPARK2 shoot SPARK2 shoot SPARK2
+				spritepal 4
+				guts JIBS3 6
+				spawn DISINTIGRATE_GUY
+				killit
+				}
+			else
+				{
+				ifrnd 128 sound NAZI_DEATH1
+				else sound NAZI_DEATH2
+				action ANAZIDYING
+				}
+			}
+		ifrnd 32
+			{
+			espawn MP40SPRITE randvar temp 10
+			add temp 20
+			setactorvar[RETURN].YVELSAVED temp
+			}
+		}
+else
+	ifg PAIN_AMOUNT 0 action ANAZIFLINCH
+	else ifrnd 16
+		{
+		ifrnd 128 sound NAZI_PAIN1 else sound NAZI_PAIN2
+		state PAIN_SKILL_LEVELADJUST
+		action ANAZIFLINCH
+		}
+	else ifwasweapon SHRINKSPARK { sound ACTOR_SHRINKING ai AINAZISHRUNK }
+}
+
+state checksquished
+
+enda

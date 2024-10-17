@@ -1,0 +1,490 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Based on the Duke3D CON files by 3DRealms, released under the GPL2 at:
+https://github.com/videogamepreservation/dukenukem3d/blob/ef609159bd352985a0c63734a11241d86c873fe5/testdata/GAME.CON
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+Cycloid Emporer
+--------------------------------------------------------------------------------
+*/
+
+damageeventtile BOSS2
+
+action ABOSS2_INJURE 213 4 1 1 12
+action ABOSS2_HOLD 216
+action ABOSS2_CHECK 217
+
+action ABOSS2_BERSERK 314 2 1 1 12
+action ABOSS2_BDIE 317 4 1 1 20
+action ABOSS2_BDEAD 320
+
+action ABOSS2WALK        0  4  5  1  30
+action ABOSS2FROZEN        0  1  5
+action ABOSS2RUN         0  4  5  1  15
+action ABOSS2SHOOT         20 2  5  1  15
+action ABOSS2LOB         30 2  5  1  105
+action ABOSS2DYING        40 8  1  1  35
+action BOSS2FLINTCH       40 1  1  1  1
+action ABOSS2DEAD         48
+
+move PALBOSS2SHRUNKRUNVELS 32
+move PALBOSS2RUNVELS 84
+move BOSS2WALKVELS 192
+move BOSS2RUNVELS 256
+
+ai AIBOSS2SEEKENEMY ABOSS2WALK BOSS2WALKVELS seekplayer
+ai AIBOSS2RUNENEMY ABOSS2RUN BOSS2RUNVELS faceplayer
+ai AIBOSS2SHOOTENEMY ABOSS2SHOOT STOP faceplayer
+ai AIBOSS2LOBBED ABOSS2LOB STOP faceplayer
+ai AIBOSS2DYING ABOSS2DYING STOP faceplayer
+ai AIBOSS2PALSHRINK ABOSS2WALK PALBOSS2SHRUNKRUNVELS furthestdir
+
+defstate boss2palshrunkstate
+  ifcount SHRUNKDONECOUNT
+  {
+    cstat 257
+    ai AITROOPSEEKENEMY
+  }
+  else
+    ifcount SHRUNKCOUNT
+	  {
+	  sound ACTOR_UNSHRINK
+      sizeto 40 40
+	  }
+  else
+    state genericshrunkcode
+ends
+
+defstate checkboss2seekstate
+  ai AIBOSS2SEEKENEMY
+  ifspritepal 0 nullop
+  else   // a fake way of doing a ifspritepal NOT.
+    move PALBOSS2RUNVELS seekplayer
+ends
+
+defstate boss2runenemystate
+  ifcansee
+  {
+    ifactioncount 3
+    {
+      ifcanshoottarget
+      {
+	   ifpdistl 8192 { quake 6 }
+        resetactioncount
+        sound BOS1_WALK
+      }
+      else
+        ai AIBOSS2SEEKENEMY
+    }
+    ifcount 48
+      ifrnd 2
+    {
+      ifp palive
+      {
+        sound BOS2_ATTACK
+        ai AIBOSS2SHOOTENEMY
+      }
+      break
+    }
+  }
+  else
+    ai AIBOSS2SEEKENEMY
+ends
+
+defstate boss2seekenemystate
+  ifrnd 2
+    soundonce BOS2_ROAM
+  else
+    ifactioncount 3
+  {
+        ifpdistl 8192 { quake 6 }
+    resetactioncount
+    sound BOS1_WALK
+  }
+
+  ifcansee
+    ifcount 32
+      ifp palive
+        ifrnd 48
+          ifcanshoottarget
+  {
+    ifrnd 64
+      ifpdistg 4096
+    {
+      ai AIBOSS2RUNENEMY
+      ifspritepal 0 nullop
+      else
+        move PALBOSS2RUNVELS seekplayer
+      break
+    }
+
+    ifpdistl 10240
+    {
+      ifrnd 128
+      {
+        sound BOS2_ATTACK
+        ai AIBOSS2LOBBED
+      }
+    }
+    else
+    {
+      sound BOS2_ATTACK
+      ai AIBOSS2SHOOTENEMY
+    }
+  }
+ends
+
+defstate boss2dyingstate
+  ifaction ABOSS2DEAD
+  {
+    ifspritepal 0
+      break
+
+
+    {
+      strength 0
+      ifhitweapon
+        ifwasweapon RADIUSEXPLOSION
+      {
+        state squish_sounds
+        guts JIBS2 5              // Instead of the normal "standard_jibs"
+        guts JIBS3 5              // amount, I found that ,because these
+        guts JIBS4 5              // bodies are so huge, they should spawn
+        guts JIBS5 15             // a more realistic amount of gutter!
+        guts JIBS6 15
+        debris SCRAP1 5           // There are also spawned some metal
+        debris SCRAP2 5           // scraps, since this boss has a lot
+        debris SCRAP5 5           // of metalware with him.
+        state standard_jibs
+        killit
+      }
+      break
+    }
+  }
+  ifactioncount 8
+  {
+    iffloordistl 8
+      sound BOSSFALL
+	ifspritepal 0 quake 26
+  	ifn XVELSAVED 0
+		{
+		operateactivators XVELSAVED THISACTOR
+		operatemasterswitches XVELSAVED
+		operaterespawns XVELSAVED
+		set XVELSAVED 0
+		}
+    action ABOSS2DEAD
+    cstat 0
+    ifspritepal 0
+    {
+        ife VOLUME 0 ife LEVEL 7
+        {
+            state save_arrays
+            state fatigue_system
+            state budget_system
+            endofgame 52
+        }
+    }
+  }
+ends
+
+defstate boss2lobbedstate
+  ifcansee
+  {
+    ifactioncount 2
+      resetactioncount
+    else
+      ifactioncount 1
+    {
+      ifrnd 128
+        shoot COOLEXPLOSION1
+    }
+    else
+      ifcount 64
+        ifrnd 16
+          state checkboss2seekstate
+  }
+  else
+    state checkboss2seekstate
+ends
+
+defstate boss2shootenemy
+  ifcount 72
+    state checkboss2seekstate
+  else
+    ifaction ABOSS2SHOOT
+      ifactioncount 2
+  {
+    sound ERPG_SHOOT
+    shoot RPG
+    resetactioncount
+  }
+ends
+
+defstate checkboss2hitstate
+set CURBOSS THISACTOR
+  ifrnd 2
+    spawn BLOODPOOL
+  ifdead
+  {
+  	ifn LOTAGSAVED 0
+		{
+		globalsound MUS_CY_DEFEAT
+		operateactivators LOTAGSAVED THISACTOR
+		operatemasterswitches LOTAGSAVED
+		operaterespawns LOTAGSAVED
+		set LOTAGSAVED 0
+		}
+
+      ifg ice_damage 0
+      {
+        sound SOMETHINGFROZE
+        spritepal 1
+        move 0
+        action ABOSS2FROZEN
+        strength 0
+        break
+      }
+
+    globalsound BOS2_DYING
+
+	add TREASURE_FOUND 5
+    addkills 1
+
+  ifaction ABOSS2_BERSERK action ABOSS2_BDIE else
+    ai AIBOSS2DYING
+  }
+  else
+  {
+  geta[].htextra temp6
+  div temp6 4
+  ifaction ABOSS2_INJURE seta[].htextra temp6 else
+  ifaction ABOSS2_HOLD seta[].htextra temp6 else
+  ifaction ABOSS2_CHECK seta[].htextra temp6 else
+  ifaction ABOSS2_BERSERK nullop else
+   ifaction ABOSS2_BDIE nullop else
+    ifaction ABOSS2_BDEAD nullop else
+	{
+	ifstrength 1000 ifspritepal 0 action ABOSS2_INJURE
+		ifrnd 144
+		{
+		  ifrnd 32
+		  {
+			action BOSS2FLINTCH
+			move 0
+		  }
+		  else
+		  {
+			sound BOS2_ATTACK
+			ai AIBOSS2SHOOTENEMY
+		  }
+		}
+	}
+
+    ifspritepal 0 nullop
+    else
+      ifwasweapon SHRINKSPARK
+    {
+      sound ACTOR_SHRINKING
+      ai AIBOSS2PALSHRINK
+      break
+    }
+
+    soundonce BOS2_PAIN
+
+
+    debris SCRAP1 1
+    guts JIBS6 1
+  }
+ends
+
+defstate boss2code
+
+  ifaction ABOSS2FROZEN
+  {
+    ifcount THAWTIME
+    {
+      ai AIBOSS2SEEKENEMY
+        spritepal 21
+    }
+    else
+      ifcount FROZENDRIPTIME
+    {
+      ifactioncount 26
+      {
+        spawn WATERDRIP
+        resetactioncount
+      }
+    }
+
+    ifhitweapon
+    {
+      ifwasweapon FREEZEBLAST
+      {
+        strength 0
+        break
+      }
+      addkills 1
+
+
+      lotsofglass 20
+	  shoot ICE_DEBRIS shoot ICE_DEBRIS shoot ICE_DEBRIS shoot ICE_DEBRIS shoot ICE_DEBRIS
+	  shoot ICE_DEBRIS shoot ICE_DEBRIS shoot ICE_DEBRIS shoot ICE_DEBRIS shoot ICE_DEBRIS
+      sound ICE_SMASH
+      ifrnd 84 spawn BLOODPOOL
+      killit
+    }
+    ifp pfacing
+      ifpdistl FROZENQUICKKICKDIST ife MELEE_WEAPON_LOADOUT[CHAR] 0
+        pkick
+    break
+  }
+  ifai 0
+  {
+  sizeat 45 45
+	state monst_glow
+  globalsound BOS2_RECOG
+  spawn SHOOTME
+    ifspritepal 0
+	  {
+	  set CURBOSS THISACTOR
+	  set BOSS_TYPE 1
+      ai AIBOSS2RUNENEMY
+	  }
+    else
+    {
+      strength 1500
+      sound BOS2_ATTACK ai AIBOSS2SHOOTENEMY
+    }
+  }
+  else
+  ifaction ABOSS2_BDEAD
+  {
+  move STOP
+  }
+
+  else
+  ifaction ABOSS2_BDIE
+	  {
+	  move STOP
+	  strength 0
+	  cstat 0
+	  ifactioncount 4
+		{
+			iffloordistl 8
+			  sound BOSSFALL
+			ifspritepal 0 quake 26
+			ifn XVELSAVED 0
+				{
+				operateactivators XVELSAVED THISACTOR
+				operatemasterswitches XVELSAVED
+				operaterespawns XVELSAVED
+				set XVELSAVED 0
+				}
+			ife VOLUME 0 ife LEVEL 7
+			{
+				state save_arrays
+				state fatigue_system
+				state budget_system
+				endofgame 52
+			}
+		action ABOSS2_BDEAD
+		resetactioncount
+		}
+	  }
+  else
+  ifaction ABOSS2_BERSERK
+  {
+  move STOP faceplayersmart
+  ifactioncount 2
+	{
+	sound ERPG_SHOOT
+    shoot RPG
+    resetactioncount
+	}
+  }
+  else
+  ifaction ABOSS2_CHECK
+  {
+  move STOP
+  ifactioncount 32 { action ABOSS2_BERSERK resetactioncount }
+  }
+  else
+  ifaction ABOSS2_HOLD
+  {
+  move STOP
+  ifactioncount 16 { soundonce BOS2_PAIN action ABOSS2_CHECK resetactioncount }
+  }
+  else
+  ifaction ABOSS2_INJURE
+  {
+  move STOP
+  ifactioncount 3 { action ABOSS2_HOLD resetactioncount }
+  }
+  else
+    ifaction BOSS2FLINTCH
+  {
+    ifactioncount 3
+      ai AIBOSS2SEEKENEMY
+  }
+  else
+    ifai AIBOSS2SEEKENEMY
+      state boss2seekenemystate
+  else
+    ifai AIBOSS2RUNENEMY
+      state boss2runenemystate
+  else
+    ifai AIBOSS2SHOOTENEMY
+      state boss2shootenemy
+  else
+    ifai AIBOSS2LOBBED
+      state boss2lobbedstate
+  else
+    ifai AIBOSS2PALSHRINK
+      state boss2palshrunkstate
+
+  ifai AIBOSS2DYING
+    state boss2dyingstate
+  else
+  {
+geta[].htextra temp6
+ifhitweapon
+	state checkboss2hitstate
+    else
+      ifp palive
+        ifspritepal 0
+		ifpdistl 1280
+		 ifcansee
+		  ifg sprite[].extra 0
+    {
+      addphealth -1000
+      palfrom 63 63
+    }
+  }
+
+
+ends
+
+actor BOSS2 BOSS2STRENGTH fall state monst_glow state boss2code enda

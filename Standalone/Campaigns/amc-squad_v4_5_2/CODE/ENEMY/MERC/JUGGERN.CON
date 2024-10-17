@@ -1,0 +1,354 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+
+--------------------------------------------------------------------------------
+*/
+
+
+damageeventtile JUGGERNAUT
+
+action A_JUGGERNAUT_START 0 1 5 1 12 // Starting frame, different from the idle frame
+action A_JUGGERNAUT_IDLE 0 1 5 1 12
+
+action A_JUGGERNAUT_DEAD 34
+action A_JUGGERNAUT_DYING 30 5 1 1 16
+
+action A_JUGGERNAUT_FREEZE 30 1 1 1 8
+action A_JUGGERNAUT_GROW 30 1 1 1 8
+
+action A_JUGGERNAUT_SHRUNK 0 4 5 1 12
+
+action A_JUGGERNAUT_PAIN 30 1 1 1 8
+
+action A_JUGGERNAUT_SEEK 0 4 5 1 12
+action A_JUGGERNAUT_SPINUP 20 1 5 1 12
+action A_JUGGERNAUT_ATTACK 20 2 5 1 4
+
+move M_JUGGERNAUT_WALK 126
+
+useractor enemystayput JUGGERNAUT_STAYPUT 400 A_JUGGERNAUT_START
+cactor JUGGERNAUT
+enda
+
+useractor enemy JUGGERNAUT 400 A_JUGGERNAUT_START
+fall
+ifaction A_JUGGERNAUT_START
+{
+	cstat 257
+	set actor_type TYPE_FULL_BODY_ARMOUR
+	strength 400
+	sizeat 20 20
+	state monst_glow
+	ife actor_pal 0 geta[].pal actor_pal
+	espawn SHOOTME // Controls stuff like fire damage, targetting, .etc .etc - still used as a backup for the ally fighting stuff in-case an actor isn't set up with it yet
+	seta[RETURN].pal 1 // basically done just to make it clear that this actor is onboarded to the new targetting stuff, and is using SHOOTME for other purposes
+	ife actor_pal 10 set faction_flag 2
+	action A_JUGGERNAUT_IDLE
+}
+
+state ENEMYKNOCKBACKS
+state enemyfloordamage
+state enemy_fire_damage
+state enemy_ice_damage
+state enemy_spirit_damage
+
+ifg INTERNALCOUNT_3 0 sub INTERNALCOUNT_3 1
+
+ifaction A_JUGGERNAUT_IDLE
+{
+	move STOP
+	state checkfortarget
+	ifn my_target -1
+	{
+	ife actor_pal 10  // Paradigm
+		{
+		ifrnd 64 soundonce PE_FORTHEPE1
+		else ifrnd 64 soundonce PE_FORTHEPE2
+		else ifrnd 64 soundonce PE_OVERTHERE
+		else soundonce PE_HAHAHA
+		}
+	else
+	ife actor_pal 11 // Fascist
+		{
+		ifl temp6 10 soundonce FASCIST_1 else
+		ifl temp6 20 soundonce FASCIST_2 else
+		ifl temp6 30 soundonce FASCIST_3 else
+		ifl temp6 40 soundonce FASCIST_4 else
+		soundonce FASCIST_5
+		}
+	else
+		{
+		ifl temp6 10 soundonce MERC_SIGHT1
+		else ifl temp6 20 soundonce MERC_SIGHT2
+		else ifl temp6 30 soundonce MERC_SIGHT3
+		else ifl temp6 40 soundonce MERC_SIGHT4
+		else soundonce MERC_SIGHT5
+		}
+
+		action A_JUGGERNAUT_SEEK
+	}
+}
+
+// Death & dying
+else ifaction A_JUGGERNAUT_DEAD
+{
+	move STOP
+	ifhitweapon
+	{
+		ifwasweapon RADIUSEXPLOSION
+		{
+			state squish_sounds
+			state standard_jibs
+			killit
+		}
+	}
+}
+else ifaction A_JUGGERNAUT_DYING
+{
+	move STOP // optional, could also keep momentum by not applying a move action here, or mess with angle or something
+	strength 0
+	ifactioncount 5 { state rf state BODY_FALL_NOISES action A_JUGGERNAUT_DEAD }
+}
+
+// Status effects
+else ifaction A_JUGGERNAUT_FREEZE state frozen_code
+else ifaction A_JUGGERNAUT_GROW
+{
+	move STOP
+	state genericgrowcode
+}
+else ifaction A_JUGGERNAUT_SHRUNK
+{
+	ifmove M_JUGGERNAUT_WALK { } // need to do this cause we're not using ai routines anymore
+	else
+		move M_JUGGERNAUT_WALK geth fleeenemy
+
+	ifl SHRUNK_TIME SHRUNKCOUNT // keep shrunk
+		state new_shrunkcode
+	else ifl SHRUNK_TIME SHRUNKDONECOUNT // regrow
+	{
+		state unshrink
+		sizeto 25 25
+	}
+	else // after regrow, switch back to regular action
+	{
+		state endshrunkenstate
+		action A_JUGGERNAUT_SEEK
+	}
+}
+
+else ifaction A_JUGGERNAUT_PAIN
+{
+	stopactorsound THISACTOR MINIGUN_FIRE
+	sub PAIN_AMOUNT 1
+	move STOP
+	ife PAIN_AMOUNT 0
+	{
+		ifdead action A_JUGGERNAUT_DYING
+		else action A_JUGGERNAUT_SEEK
+	}
+}
+
+else ifaction A_JUGGERNAUT_SEEK
+{
+	ifmove M_JUGGERNAUT_WALK nullop
+	else move M_JUGGERNAUT_WALK geth
+
+	state checkfortarget
+
+		ife INTERNALCOUNT_3 0
+			{
+			randvar temp8 40
+			ifl temp8 10 sound SUIT_STEP1 else
+			ifl temp8 20 sound SUIT_STEP2 else
+			ifl temp8 30 sound SUIT_STEP3 else
+			sound SUIT_STEP4
+			set INTERNALCOUNT_3 20
+			}
+
+	ifg ally_mag 0 sub ally_mag 1
+
+	ifn my_target -1
+	ife ally_mag 0
+	{
+		// Target acquired, skill setting can still affect decision to shoot.
+		state SKILL_SHOOT_LEVELADJUST
+
+		ifl RANDOM_CHANCE SKILLCHANCE
+		{
+			// Assume target still acquired, is rechecked on next tic anyway
+
+			// Optional: apply dist check to target
+			// Basically any check here to decide whether or not to ATTACK goes. But there is no need to check for my_target again.
+			// my_target can be the player or another target, the actor shouldn't care about that (for now)
+			ldist temp THISACTOR my_target
+			action A_JUGGERNAUT_SPINUP
+		}
+	}
+	else
+	ife my_target -1 ifp pdead action A_JUGGERNAUT_IDLE
+}
+else ifaction A_JUGGERNAUT_SPINUP
+{
+	state fronttowardstarget
+	move STOP
+	soundonce MINIGUN2_START
+	ifactioncount 8 action A_JUGGERNAUT_ATTACK
+}
+
+else ifaction A_JUGGERNAUT_ATTACK
+{
+	move STOP
+	state new_validatetarget
+	soundonce MINIGUN_FIRE
+
+	ife my_target -1
+	 ifge ally_mag 45
+		{
+		stopactorsound THISACTOR MINIGUN_FIRE
+		soundonce MINIGUN2_STOP
+		action A_JUGGERNAUT_SEEK
+		}
+
+	state fronttowardstarget
+
+	ifactioncount 2
+	{
+	set PROJECTILE_TO_SHOOT ENEMY_BULLET
+	set PROJECTILE_FIRING_SOUND 4
+	state sang_enemyShootProjectile
+	state sang_enemyShootProjectile
+	shoot FAKE_BULLET
+	shoot FAKE_BULLET
+		add ally_mag 1
+		globalsound DISTANT_RIFLE
+		ife PERFMODE 1
+		 ifcansee
+			{
+			shoot SHELL_LINK
+			set gunsmoke_z 4096
+			set gunsmoke_angle 256
+			state spawn_gunsmoke_z
+			state npc_rifleshell
+			set gunsmoke_z 4096
+			state spawn_enemy_ARFLASH
+			state spawn_muzzleflash
+			}
+		ifge ally_mag 45
+			{
+			stopactorsound THISACTOR MINIGUN_FIRE
+			soundonce MINIGUN2_STOP
+			action A_JUGGERNAUT_SEEK
+			}
+		else
+		action A_JUGGERNAUT_ATTACK
+	}
+}
+
+ifhitweapon
+{
+	state NEWGUNEFFECTS
+	sound BERSERK_PAIN
+	//spawn BLOOD
+	guts JIBS6 1
+	state random_wall_jibs
+	ifdead
+	{
+		addkills 1
+		state rf
+		stopactorsound THISACTOR MINIGUN_FIRE
+		ifwasweapon GROWSPARK { cstat 0 sound ACTOR_GROWING action A_JUGGERNAUT_GROW break }
+		else ifg ice_damage 0 { spritepal 1 strength 0 sound SOMETHINGFROZE action A_JUGGERNAUT_FREEZE }
+		else ifg fire_damage 0
+		{
+			shoot SPARK2 shoot SPARK2 shoot SPARK2
+			ifrnd 128 sound ZSOLD_DIE1
+			else sound ZSOLD_DIE2
+			spawn ONFIREGUY
+			killit
+		}
+		else ife HEADSHOT 2
+		{
+			ifg fire_damage 0 set fire_damage 0
+			ifrnd 32 state trigger_showoff
+			state jib_sounds
+			sound DECAPITATE
+			shoot NJIB
+			shoot NJIB
+			guts JIBS6 3
+			guts JIBS2 2
+			action A_JUGGERNAUT_DYING
+		}
+		else ifg spirit_damage 0
+		{
+			shoot SPARK2 shoot SPARK2 shoot SPARK2
+			spritepal 1
+			guts JIBS3 6
+			spawn SPIRIT_DEATH_GUY
+			killit
+		}
+		else ifg energy_damage 0
+		{
+			shoot SPARK2 shoot SPARK2 shoot SPARK2
+			spritepal 4
+			guts JIBS3 6
+			spawn DISINTIGRATE_GUY
+			killit
+		}
+		else
+		{
+		ife actor_pal 11
+			{
+			ifrnd 96 sound FASC_DIE1
+			else ifrnd 96 sound FASC_DIE2
+			else ifrnd 96 sound FASC_DIE3
+			else sound FASC_DIE4
+			}
+		else
+			{
+			ifrnd 96 sound MERC_DIE1
+			else ifrnd 96 sound MERC_DIE2
+			else sound MERC_DIE3
+			}
+			action A_JUGGERNAUT_DYING
+			spawn BLOODPOOL
+		}
+	}
+
+	else // not dead
+	{
+		ifwasweapon SHRINKSPARK { sound ACTOR_SHRINKING action A_JUGGERNAUT_SHRUNK }
+
+		ifg PAIN_AMOUNT 0 action A_JUGGERNAUT_PAIN
+		else ifrnd 32 ifstrength 200 { state PAIN_SKILL_LEVELADJUST action A_JUGGERNAUT_PAIN }
+		// if they were idle, getting hit ALWAYS wakes them up
+		else ifaction A_JUGGERNAUT_IDLE { state PAIN_SKILL_LEVELADJUST action A_JUGGERNAUT_PAIN }
+	}
+}
+
+state checksquished
+
+enda

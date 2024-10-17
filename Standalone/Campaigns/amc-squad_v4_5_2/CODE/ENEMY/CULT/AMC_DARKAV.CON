@@ -1,0 +1,309 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+
+--------------------------------------------------------------------------------
+*/
+
+
+// ******************************************************************************
+// DARK AVATAR
+// ******************************************************************************
+
+action ADARKA_IDLE 30 1 5 1 10
+action ADARKA_RUN 0 4 5 1 15
+action ADARKA_PREP_CAST 20 1 5 1 30
+action ADARKA_CAST 25 1 5 1 15
+action ADARKA_PAIN 35 1 1 1 15
+action ADARKA_DIE 35 7 1 1 20
+action ADARKA_DEAD 42 1 1 1 10
+
+move DARKA_STOP 0
+move DARKA_MOVE 130
+
+ai AIDARKAV_IDLE ADARKA_IDLE DARKA_STOP
+ai AIDARKAV_MOVE ADARKA_RUN DARKA_MOVE seekplayer
+
+ai AIDARKAV_PREP_FIRE ADARKA_PREP_CAST DARKA_STOP faceplayer
+ai AIDARKAV_CAST_FIRE ADARKA_CAST DARKA_STOP faceplayersmart
+
+ai AIDARKAV_PREP_ICE ADARKA_PREP_CAST DARKA_STOP faceplayer
+ai AIDARKAV_CAST_ICE ADARKA_CAST DARKA_STOP faceplayersmart
+
+ai AIDARKAV_PREP_THUND ADARKA_PREP_CAST DARKA_STOP faceplayer
+ai AIDARKAV_CAST_THUND ADARKA_CAST DARKA_STOP faceplayersmart
+
+ai AIDARKAV_PREP_SPIRIT ADARKA_PREP_CAST DARKA_STOP faceplayer
+ai AIDARKAV_CAST_SPIRIT ADARKA_CAST DARKA_STOP faceplayersmart
+
+ai AIDARKAV_WACK_PLAYER ADARKA_CAST DARKA_STOP faceplayer
+
+ai AIDARKAV_DIE ADARKA_DIE DARKA_STOP
+
+spriteshadow 10946
+
+useractor enemystayput 10946
+ifaction 0
+{
+action FIVE_ANG
+sizeat 34 34
+cstat 257
+}
+
+ifaction FIVE_ANG
+{
+checkactivatormotion LOTAGSAVED
+	ife RETURN 1
+		{
+		globalsound DARKAV_SIGHT
+		quake 52
+		set HITAGSAVED 1110
+		cactor DARKAVATAR_STAYPUT
+		}
+}
+
+enda
+
+damageeventtile DARKAVATAR
+
+useractor enemystayput DARKAVATAR_STAYPUT 8000 ADARKA_IDLE
+ifai 0
+{
+state monst_glow
+cactor DARKAVATAR
+}
+enda
+
+useractor enemy DARKAVATAR 8000 ADARKA_IDLE
+fall
+
+ifai 0
+	{
+	set actor_pal sprite[].pal
+	set blood_type 1
+	state monst_glow
+	spawn SHOOTME
+	spriteflags NORMAL_ENEMY
+	set actor_type TYPE_SUPERNATURAL
+	ife actor_pal 9 { sizeat 28 28 strength 2500 } else
+		{
+		sizeat 34 34
+		strength 8000
+		set CURBOSS THISACTOR
+		set BOSS_TYPE 5
+		}
+
+	cstat 257
+	ifspritepal 3 set HITAGSAVED 1110
+
+		ifcansee
+		 ifcanseetarget
+			{
+			ifrnd 128 set PLAYER_VOICEOVER 9
+			}
+	globalsound DARKAV_SIGHT
+	ai AIDARKAV_IDLE
+	}
+else
+ifaction ADARKA_DEAD break
+else
+ifaction ADARKA_PAIN
+{
+sub PAIN_AMOUNT 2
+move DARKA_STOP
+ifl PAIN_AMOUNT 1 ai AIDARKAV_IDLE
+}
+else
+ifai AIDARKAV_DIE
+{
+ifactioncount 7 action ADARKA_DEAD
+}
+else
+ifai AIDARKAV_IDLE
+{
+  state correctcansee
+    ife sightvar YES
+  ai AIDARKAV_MOVE
+  else ifrnd 16 ai AIDARKAV_MOVE
+}
+else
+ifai AIDARKAV_MOVE
+{
+ifcanseetarget
+ ifcanshoottarget
+  ifrnd 4
+  {
+  randvar temp2 3
+  ife temp2 0 { sound DAVA_FIRE ai AIDARKAV_PREP_FIRE }
+  else ife temp2 1 { sound DAVA_ICE ai AIDARKAV_PREP_ICE }
+  else ife temp2 2 { sound DARKAV_SHOOT ai AIDARKAV_PREP_THUND }
+  else ife temp2 3 { sound DAVA_DARK ai AIDARKAV_PREP_SPIRIT }
+  }
+else
+ifpdistl 2048
+ ifrnd 64
+  ife silence_damage 0
+  {
+  ife CHAR 2 ifand CHAR_APP 4 nullop else
+  ai AIDARKAV_WACK_PLAYER
+ }
+ifrnd 1 { soundonce DARKAV_ROAM ai AIDARKAV_IDLE }
+}
+else
+ifai AIDARKAV_WACK_PLAYER
+{
+ifactioncount 0 spritepal 23
+ifactioncount 1
+	{
+	state setknockback
+	sound FORCE_BLAST
+	wackplayer
+	palfrom 20 30 0 0
+	addphealth -15
+	getlastpal
+	ai AIDARKAV_MOVE
+	resetactioncount
+	}
+}
+else
+ifai AIDARKAV_PREP_FIRE
+{
+spritepal 21
+ifactioncount 4 { soundonce BRUISER_FLAME ai AIDARKAV_CAST_FIRE resetactioncount }
+}
+else
+ifai AIDARKAV_CAST_FIRE
+{
+flash
+shoot 7163
+ife silence_damage 0
+	{
+	eshoot BRUISERFIREBALL geta[RETURN].ang temp sub temp 48 seta[RETURN].ang temp
+	eshoot BRUISERFIREBALL geta[RETURN].ang temp add temp 48 seta[RETURN].ang temp
+	}
+ifactioncount 1 { getlastpal ai AIDARKAV_MOVE resetactioncount }
+}
+else
+ifai AIDARKAV_PREP_ICE
+{
+spritepal 3
+ifactioncount 4 { soundonce GREMGUN_ICE ai AIDARKAV_CAST_ICE resetactioncount }
+}
+else
+ifai AIDARKAV_CAST_ICE
+{
+flash
+setprojectile[7160].extra 50
+shoot 7160
+setprojectile[7160].extra 250
+ife silence_damage 0
+	{
+	eshoot FREEZEBLAST geta[RETURN].ang temp sub temp 48 seta[RETURN].ang temp
+	eshoot FREEZEBLAST geta[RETURN].ang temp add temp 48 seta[RETURN].ang temp
+	}
+ifactioncount 1 { getlastpal ai AIDARKAV_MOVE resetactioncount }
+}
+else
+ifai AIDARKAV_PREP_THUND
+{
+spritepal 16
+ifactioncount 4 { soundonce THUNDER ai AIDARKAV_CAST_THUND resetactioncount }
+}
+else
+ifai AIDARKAV_CAST_THUND
+{
+flash
+shoot SPELL2
+ife silence_damage 0
+	{
+	eshoot 6198 geta[RETURN].ang temp sub temp 48 seta[RETURN].ang temp
+	eshoot 6198 geta[RETURN].ang temp add temp 48 seta[RETURN].ang temp
+	}
+ifactioncount 1 { getlastpal ai AIDARKAV_MOVE resetactioncount }
+}
+else
+ifai AIDARKAV_PREP_SPIRIT
+{
+spritepal 12
+ifactioncount 4 { soundonce CULTIST_HAUNT ai AIDARKAV_CAST_SPIRIT resetactioncount }
+}
+else
+ifai AIDARKAV_CAST_SPIRIT
+{
+flash
+shoot SPELL8
+ife silence_damage 0
+	{
+	eshoot DAYBLAST geta[RETURN].ang temp sub temp 48 seta[RETURN].ang temp
+	eshoot DAYBLAST geta[RETURN].ang temp add temp 48 seta[RETURN].ang temp
+	}
+ifactioncount 1 { getlastpal ai AIDARKAV_MOVE resetactioncount }
+}
+
+	ifg silence_damage 0
+		{
+		sub silence_damage 1
+		state spawn_curse_particles
+		}
+
+geta[].htextra temp7
+ifhitweapon
+	{
+	ife actor_pal 9 state MIA_GUN_STATE
+	
+	  ife sprite[].htowner THISACTOR              // if the owner of the weapon IS this actor
+		seta[].htextra -1       // set the damage to zero
+		else ifn actor_pal 9 set CURBOSS THISACTOR
+	ifwasweapon RPG seta[].xvel 0
+	ifwasweapon RADIUSEXPLOSION seta[].xvel 0
+	ifwasweapon VOID_BOLT { sound EN_CURSE set silence_damage 300 }
+	ifwasweapon VOID_PLAYER_BOLT { sound EN_CURSE set silence_damage 150 }
+	ifwasweapon VOID_BLAST { sound EN_CURSE set silence_damage 900 }
+	espawn BLOOD seta[RETURN].pal 1
+	spritepal 1
+	guts JIBS6 1
+	state random_wall_jibs
+	getlastpal
+	ifdead
+		{
+		    ifn YVELSAVED 0 espawnvar YVELSAVED
+			ifn HITAGSAVED 0
+				{
+				operateactivators HITAGSAVED THISACTOR
+				operatemasterswitches HITAGSAVED
+				operaterespawns HITAGSAVED
+				}
+			sound DARKAV_DIE
+			state rf
+			add TREASURE_FOUND 10
+			addkills 1
+
+			ai AIDARKAV_DIE
+		}
+	else ifg PAIN_AMOUNT 0 action ADARKA_PAIN
+	else ifrnd 6 { action ADARKA_PAIN state PAIN_SKILL_LEVELADJUST sound DARKAV_PAIN }
+}
+
+enda

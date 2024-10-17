@@ -1,0 +1,421 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+This does not contain code for the player character.
+--------------------------------------------------------------------------------
+*/
+
+damageeventtile JANE
+
+action A_JANEIDLE 0 1 5 1 11
+action A_JANEMOVE 10 4 5 1 11
+action A_JANEFIRE 0 2 5 1 3
+action A_JANEDYING 70 6 1 1 11
+action A_JANEDEAD 76 1 1 1 1
+action A_JANEJUMP 40 3 5 1 20
+action A_JANEFALL 50 1 5 1 30
+
+move JANESTILL 0
+move JANEMOVE 266
+move JANEMOVESLOW 128
+
+ai AIJANEIDLE A_JANEIDLE JANESTILL 0
+ai AIJANEMOVE A_JANEMOVE JANEMOVE faceplayer seekplayer
+ai AIJANERELOAD A_JANEMOVE JANEMOVESLOW seekplayer
+ai AIJANEFIRE A_JANEFIRE JANESTILL 0
+ai AIJANEDYING A_JANEDYING JANESTILL 0
+ai AIJANEJUMPING A_JANEJUMP JANEMOVE jumptoplayer
+ai AIJANEFALL A_JANEFALL JANEMOVE seekplayer
+
+spriteshadow JANE
+spritenvg JANE
+
+useractor notenemy 12800
+sizeat 48 48
+geta[temp4].x temp5 seta[].x temp5
+geta[temp4].y temp5 seta[].y temp5
+geta[temp4].ang temp5 seta[].ang temp5
+geta[temp4].pal temp6 seta[].pal temp6
+
+getu .overhead_on temp
+ife temp 2
+	{
+	action ZERO
+	cstat 32
+	}
+else
+	{
+	cstat 32768
+	}
+enda
+
+useractor notenemy JANE
+fall
+
+ifpdistl 1024 cstat 256 else cstat 257
+
+ifai 0
+	{
+	set actor_type TYPE_ARMOURED
+	seta[].htwaterzoffset 8
+	spawn SHOOTME2
+	spawn 12800
+	strength 1500
+	sizeat 22 22
+	ai AIJANEIDLE
+	}
+
+geta[].zvel temp
+ifg temp 40 { ifstrength 0 break else ai AIJANEFALL }
+
+ifg targetlock 0 sub targetlock 1
+
+ifg ALLY_VOICE 0
+	{
+	sub ALLY_VOICE 1
+	ife ALLY_VOICE 1
+		{
+		ifrnd 96
+			{
+			ife ally_subt 0
+				{
+				qstrcpy 7501 5120
+				// ^1Jane: ^0I've got your six.
+				set ally_subt 32
+				}
+			soundonce JA_FOLLOW1
+			}
+		else
+		ifrnd 96
+			{
+			ife ally_subt 0
+				{
+				qstrcpy 7501 5121
+				// ^1Jane: ^0I'll follow you.
+				set ally_subt 27
+				}
+			soundonce JA_FOLLOW2
+			}
+		else
+			{
+			ife ally_subt 0
+				{
+				qstrcpy 7501 5122
+				// ^1Jane: ^0Following.
+				set ally_subt 17
+				}
+			soundonce JA_FOLLOW3
+			}
+		}
+	}
+else
+ifl ALLY_VOICE 0
+	{
+	add ALLY_VOICE 1
+	ife ALLY_VOICE -1
+		{
+		ifrnd 96
+			{
+			ife ally_subt 0
+				{
+				qstrcpy 7501 5123
+				// ^1Jane: ^0Alright, I'll watch this area.
+				set ally_subt 52
+				}
+			soundonce JA_WAIT1
+			}
+		else
+		ifrnd 96
+			{
+			ife ally_subt 0
+				{
+				qstrcpy 7501 5124
+				// ^1Jane: ^0Copy that.
+				set ally_subt 27
+				}
+			soundonce JA_ROGER
+			}
+		else
+			{
+			ife ally_subt 0
+				{
+				qstrcpy 7501 5125
+				// 7501 ^1Jane: ^0Alrighty.
+				set ally_subt 27
+				}
+			soundonce JA_ROGER2
+			}
+		}
+	}
+
+ifaction A_JANEDEAD
+	{
+	strength 0
+	break
+	}
+else
+ifai AIJANEDYING
+	{
+	set ALLY_VOICE 0
+	ifactioncount 6 { state BODY_FALL_NOISES action A_JANEDEAD }
+	}
+ifai AIJANEFIRE
+	{
+	state checkfortarget
+	ifactioncount 3
+			{
+			geta[].z temp5 sub temp5 2560 seta[].z temp5
+			state fronttowardstarget
+			// JANE can fire Armour-piercing laser shots as well as standard ones
+			getav[my_target].actor_type temp6
+				switch temp6
+				default
+					set HITSCAN_FIRING_SOUND LASERGUN_FIRE
+					set HITSCAN_TO_SHOOT BLUELASERSHOT
+				break
+				case TYPE_ARMOURED_HELMET
+				case TYPE_ARMOURED
+				case TYPE_ROBOTIC
+				case TYPE_VEHICLE
+					set HITSCAN_FIRING_SOUND LASERGUN_FIRE
+					set HITSCAN_TO_SHOOT REDLASERSHOT
+				break
+				endswitch
+			state sang_enemyShootHitscanNoTargetSeek
+			geta[].z temp5 add temp5 2560 seta[].z temp5
+			resetactioncount
+			}
+	ife my_target -1
+		{
+		ife ALLY_ORDER 0
+			{
+			ifrnd 16 soundonce JA_TAUNT_1 else
+			ifrnd 16 soundonce JA_TAUNT_2 else
+			ifrnd 16 soundonce JA_TAUNT_3 else
+			ifrnd 16 soundonce JA_TAUNT_4 else
+			ifrnd 16 soundonce JA_TAUNT_5 else
+			ifrnd 16 soundonce JA_TAUNT_6 else
+			ifrnd 16 soundonce JA_TAUNT_7
+			}
+		ai AIJANEIDLE
+		}
+	}
+else
+ifai AIJANEFALL
+	{
+	iffloordistl 8
+		{
+		soundonce LAND_NORM
+		ai AIJANEMOVE
+		}
+	}
+else
+ifai AIJANEJUMPING
+	{
+	soundonce SERVO
+	ifactioncount 3 ai AIJANEFALL
+	}
+else
+ifai AIJANEMOVE
+	{
+	ifactioncount 3
+		{
+		state npc_footsteps
+		sound BIG_BOOT_STEP
+		resetactioncount
+		}
+	ifnotmoving operate
+	ifp phigher ifnotmoving ifrnd 128 ai AIJANEJUMPING else
+	ifpdistl 1024
+		{
+		ifphealthl 30 ifrnd 32
+			{
+			ife CHAR 0
+				{
+				ifrnd 128
+					{
+					ife ally_subt 0
+					 ifcansee
+						{
+						qstrcpy 7501 5126
+						// 7501 ^1Jane: ^0You don't look so good, be careful.
+						set ally_subt 67
+						}
+					soundonce JA_JS_HURT1
+					}
+					else
+					{
+					ife ally_subt 0
+					 ifcansee
+						{
+						qstrcpy 7501 5127
+						// 7501 ^1Jane: ^0You're hurt...don't over do it okay?
+						set ally_subt 90
+						}
+					soundonce JA_JS_HURT2
+					}
+				}
+				else
+				ifrnd 128
+					{
+					ife ally_subt 0
+					 ifcansee
+						{
+						qstrcpy 7501 5128
+						// 7501 ^1Jane: ^0You don't look so good, be careful.
+						set ally_subt 76
+						}
+					soundonce JA_HURT1
+					}
+					else
+					{
+					ife ally_subt 0
+					 ifcansee
+						{
+						qstrcpy 7501 5129
+						// 7501 ^1Jane: ^0You're hurt...don't over do it okay?
+						set ally_subt 89
+						}
+					soundonce JA_HURT2
+					}
+			}
+		ai AIJANEIDLE
+		}
+	}
+else
+ifai AIJANEIDLE
+	{
+	sleeptime 0
+	state rand_lookaround
+	add temp7 1
+	ife FOLLOW_PLAYER 1
+		{
+		ifpdistg 1735
+		 ifcansee
+		  ifcanseetarget
+		   ai AIJANEMOVE
+		}
+	else
+	 ifn camerasprite -1
+		{
+		checkactivatormotion HITAGSAVED
+		 ife RETURN 1 move JANESTILL faceplayer
+		checkactivatormotion LOTAGSAVED
+		 ife RETURN 1 killit
+		checkactivatormotion XVELSAVED
+		 ife RETURN 1 killit
+		}
+	ifstrength 1499 ifcount 6 { addstrength 1 resetcount }
+	}
+
+	ifpdistl 1024
+		  ifp pfacing
+		  {
+		  set player_use 0
+		   ifhitspace
+		    ife INTERNALCOUNT 0
+			{
+			set hit_key 30
+			ife FOLLOW_PLAYER 0 state startfollowplayer
+			else
+			ife FOLLOW_PLAYER 1 state stopfollowplayer
+			set INTERNALCOUNT 26
+			}
+		}
+
+ifhitweapon
+	{
+	spawn BLOOD
+	state ENEMYKNOCKBACKS
+	state random_wall_jibs
+	state NEWGUNEFFECTS
+	ifdead
+		{
+		state clear_ally_death
+		state rf
+		ai AIJANEDYING
+		state removefollower
+		ifrnd 76 spawn BLOODPOOL
+		ifmultiplayer nullop else
+			{
+			palfrom 63 63 63 63
+			set SLO_MO_SHOWOFF 70
+			set FISSION_MAILED 1
+			}
+		}
+	}
+
+ifg INTERNALCOUNT 0 sub INTERNALCOUNT 1
+ifg SEEK_ENEMY_COUNT 0 sub SEEK_ENEMY_COUNT 1
+ifg player_taunt 0 sub player_taunt 1
+
+	ife SEEK_ENEMY_COUNT 0
+	{
+	ifdead break
+	ifai AIJANERELOAD break
+	state checkfortarget
+	ifn my_target -1
+		{
+		ife player_taunt 0
+			{
+			ifrnd 96
+				{
+				ife ally_subt 0
+					{
+					qstrcpy 7501 5130
+					// 7501 ^1Jane: ^0Contact!
+					set ally_subt 26
+					}
+				soundonce JA_INCOMING
+				}
+			else
+			ifrnd 96
+				{
+				ife ally_subt 0
+					{
+					qstrcpy 7501 5131
+					// 7501 ^1Jane: ^0Hostiles!
+					set ally_subt 29
+					}
+				soundonce JA_INCOMING2
+				}
+			else ifrnd 96
+				{
+				ife ally_subt 0
+					{
+					qstrcpy 7501 5132
+					// 7501 ^1Jane: ^0We've got company!
+					set ally_subt 40
+					}
+				soundonce JA_INCOMING3
+				}
+			set player_taunt 600
+			}
+		ai AIJANEFIRE
+		}
+	set SEEK_ENEMY_COUNT 6
+	}
+
+enda

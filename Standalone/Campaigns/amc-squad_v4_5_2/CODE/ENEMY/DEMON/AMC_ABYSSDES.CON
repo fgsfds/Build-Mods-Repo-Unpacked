@@ -1,0 +1,225 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+
+--------------------------------------------------------------------------------
+*/
+
+damageeventtile ABYSS_DESPOT
+
+action ADESPOTFLOAT 0 1 5 1 0
+action ADESPOTBLAST 5 3 5 1 10
+action ADESPOTBIGBLAST 20 3 5 1 25
+action ADESPOTCAST 35 2 5 1 20
+action ADESPOTPAIN 45 1 5 1 10
+action ADESPOTDYING 50 10 1 1 20
+
+move MDESPOTFLOAT 128 0
+move MDESPOTFLOATUP 128 -128
+move MDESPOTFLOATDOWN 128 128
+
+ai AIDESPOTFLOAT ADESPOTFLOAT MDESPOTFLOAT seekplayer
+ai AIDESPOTFLOATUP ADESPOTFLOAT MDESPOTFLOATUP seekplayer getv
+ai AIDESPOTFLOATDOWN ADESPOTFLOAT MDESPOTFLOATDOWN seekplayer getv
+ai AIDESPOTSHOOT ADESPOTBLAST MDESPOTFLOAT faceplayer
+ai AIDESPOTBIGSHOOT ADESPOTBIGBLAST STOP faceplayerslow
+ai AIDESPOTCAST ADESPOTCAST STOP faceplayer
+ai AIDESPOTPAIN ADESPOTPAIN STOP faceplayer
+ai AIDESPOTDYING ADESPOTDYING STOP faceplayer
+
+useractor enemy ABYSS_DESPOT
+
+ifaction 0
+{
+	state monst_glow
+spawn SHOOTME
+spriteflags NORMAL_ENEMY_TRU
+globalsound DESPOT_SIGHT
+ifspritepal 3 strength 6000 else
+strength 12000
+sizeat 34 34
+action ADESPOTFLOAT
+ai AIDESPOTFLOAT
+set ally_mag SKILL_LEVEL
+add ally_mag 5
+set CURBOSS THISACTOR
+set BOSS_TYPE 2
+cstator 257
+}
+
+ifg sprite[].htextra 0                            // if the actor is set to take some damage from a weapon...
+{
+  ife sprite[].htowner THISACTOR              // if the owner of the weapon IS this actor
+    seta[].htextra -1       // set the damage to zero
+}
+
+ifai AIDESPOTDYING
+	{
+	cstat 0
+	ifactioncount 3
+	ifn temp4 1
+		{
+		quake 26
+		shoot 11426
+		shoot 11426
+		shoot 11426
+		shoot 11426
+		shoot 11426
+		shoot 11426
+		shoot 11426
+		shoot 11426
+		shoot 11426
+		shoot 11431
+		shoot 11431
+		palfrom 40 40 0 0
+		set temp4 1
+		}
+	ifactioncount 10 { ifn HITAGSAVED 0 { operateactivators HITAGSAVED THISACTOR } killit }
+	}
+else
+ifai AIDESPOTPAIN
+	{
+	move STOP
+	ifactioncount 3 ai AIDESPOTFLOAT
+	}
+else
+ifai AIDESPOTFLOAT
+{
+ifcansee
+ ifcanseetarget
+  ifrnd 8
+  {
+  sound DESPOT_ACTION
+  set INTERNALCOUNT 0
+  ifstrength 6000 ifg ally_mag 0 ifrnd 64 ai AIDESPOTCAST else
+  ifrnd 64 ai AIDESPOTBIGSHOOT else
+   ai AIDESPOTSHOOT
+   }
+   else
+ifrnd 64
+	{
+	 ifp phigher
+        ai AIDESPOTFLOATUP
+      else
+		{
+		geta[].z z
+		getp[].posz temp
+		ifg temp z ai AIDESPOTFLOATDOWN
+		}
+	}
+}
+else
+ifai AIDESPOTFLOATUP
+{
+state thisactor_getzrange
+ifcansee
+ ifcanseetarget
+  ifrnd 8
+  {
+  sound DESPOT_ACTION
+  set INTERNALCOUNT 0
+  ifstrength 6000 ifg ally_mag 0 ifrnd 64 ai AIDESPOTCAST else
+  ifrnd 64 ai AIDESPOTBIGSHOOT else
+   ai AIDESPOTSHOOT
+   }
+   else
+ifrnd 16 ai AIDESPOTFLOAT
+}
+else
+ifai AIDESPOTFLOATDOWN
+{
+state thisactor_getzrange
+ifcansee
+ ifcanseetarget
+  ifrnd 8
+  {
+  sound DESPOT_ACTION
+  set INTERNALCOUNT 0
+  ifstrength 6000 ifg ally_mag 0 ifrnd 64 ai AIDESPOTCAST else
+  ifrnd 64 ai AIDESPOTBIGSHOOT else
+   ai AIDESPOTSHOOT
+   }
+   else
+ifrnd 16 ai AIDESPOTFLOAT
+}
+else
+ifai AIDESPOTCAST
+{
+ifactioncount 2
+	{
+
+	set temp3 sprite[].x
+	add temp3 1536
+	randvar temp4 2048
+
+	rotatepoint sprite[].x sprite[].y temp3 sprite[].y temp4 temp5 temp6
+
+	espawn HADESPHERE
+
+	seta[RETURN].x temp5
+	seta[RETURN].y temp6
+
+	sub ally_mag 1
+	sound DEMON_TELEPORT
+	ai AIDESPOTFLOAT
+	resetactioncount
+	}
+}
+else
+ifai AIDESPOTSHOOT
+{
+add INTERNALCOUNT 1
+ife INTERNALCOUNT 3 { sound HADES_BIGBLAST geta[].z temp sub temp 2048 seta[].z temp shoot HADESBLASTH geta[].z temp add temp 2048 seta[].z temp }
+else ife INTERNALCOUNT 4 { ai AIDESPOTFLOAT set INTERNALCOUNT 0 }
+}
+else
+ifai AIDESPOTBIGSHOOT
+{
+ifactioncount 4 { sound HADES_BIGBLAST eshoot REDM_BLAST setthisprojectile[RETURN].extra 140 ai AIDESPOTFLOAT }
+}
+
+geta[].htextra temp7
+ifhitweapon
+	{
+	set CURBOSS THISACTOR
+	soundonce DESPOT_PAIN
+	//spawn BLOOD
+	guts JIBS6 1
+	state random_wall_jibs
+	seta[].xvel 0
+	ifdead
+		{
+		globalsound DESPOT_DIE
+		ai AIDESPOTDYING
+		state rf
+		add TREASURE_FOUND 5
+		addkills 1
+		set temp4 0
+
+		}
+	else ifrnd 4 ai AIDESPOTPAIN
+	}
+
+enda

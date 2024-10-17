@@ -1,0 +1,486 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+
+--------------------------------------------------------------------------------
+*/
+
+// ************************************************************************************
+// PARADIGM ESCHATON ELDER
+// ************************************************************************************
+
+damageeventtile PE_ELDER
+
+action APE_DUP_WANDER -2 4 5 1 11
+action APE_ELDER_START 0 1 5 1 20
+action APE_ELDER_IDLE 0 1 5 1 20
+action APE_ELDER_SEEK  0 4 5 1 11
+action APE_ELDER_SHRUNK  0 4 5 1 11
+action APE_ELDER_OBFUSCATE  0 4 5 1 11
+action APE_ELDER_FROZE 0 1 5 1 10
+action APE_ELDER_FIRE 20 2 5 1 12
+action APE_ELDER_FLINCH 30 1 1 1 10
+action APE_ELDER_DYING 30 5 1 1 16
+action APE_ELDER_GROW 31 1 1 1 10
+action APE_ELDER_DEAD 34 1 1 1 10
+action APE_ELDER_HEADSHOT 35 6 1 1 16
+action APE_ELDER_HEADDEAD 40 1 1 1 10
+
+move PEELDERWALKVELS 120
+move PEELDERRUNVELS 160
+
+defstate PE_ELDER_STARTOBFUSCATE
+	ifrnd 8
+		ifpdistg 8192
+	{
+		spawn BIG_SMOKE2
+		sound BL_SPELL1
+		set enemy_cooldown1 1
+		espawn 18768
+		set THISSHADOW RETURN
+		setav[RETURN].my_target my_target
+		seta[].cstat 2
+		seta[].blend 128
+		action APE_ELDER_OBFUSCATE
+	}
+ends
+
+
+// Obfuscated "fake" Elder, walks towards last known target
+useractor enemy 18768
+	fall
+	seta[].pal sector[].floorpal
+	ifaction 0
+	{
+		set actor_type TYPE_FULL_BODY_ARMOUR
+		action APE_DUP_WANDER
+		randvar temp 2048
+		seta[].ang temp
+		
+		ifn my_target -1
+			state fronttowardstarget
+		else
+			move PEELDERWALKVELS seekplayer
+			
+		sizeat 24 24
+		set temp5 0
+		strength 10
+		cstat 256
+	}
+
+	ifaction APE_DUP_WANDER
+	{
+		ifmove PEELDERWALKVELS { } 
+		else
+		move PEELDERWALKVELS faceplayer seekplayer
+		ifhitweapon set temp5 1
+	}
+
+	ife temp5 1
+	{
+		ifl temp4 254 add temp4 8
+		set alpha temp4
+		state SPRITE_FADE
+		ifg temp4 254
+		{
+			setactorvar[myowner].enemy_cooldown1 0
+			espawn BIG_SMOKE2 geta[RETURN].z temp sub temp 4096 seta[RETURN].z temp
+			killit
+		}
+	}
+
+enda
+
+useractor enemystayput PE_ELDER_STAYPUT 175 APE_ELDER_START
+	state monst_glow
+	cactor PE_ELDER
+enda
+
+useractor enemy PE_ELDER 175 APE_ELDER_START
+	fall
+
+	ifaction APE_ELDER_START
+	{
+		cstat 257
+		state monst_glow
+		spawn SHOOTME
+		set actor_type TYPE_BODY_ARMOUR
+		ifspritepal 24 { strength 300 sizeat 26 26 set GENDER MALE } 
+		else { strength 125 ifrnd 128 { sizeat 22 23 set GENDER FEMALE } else { sizeat 24 24 set GENDER MALE } }
+		set temp9 5
+		spriteflags NORMAL_ENEMY
+		set INTERNALCOUNT 0
+		action APE_ELDER_IDLE
+	}
+
+	state ENEMYKNOCKBACKS
+	state enemyfloordamage
+	
+	ifaction APE_ELDER_IDLE
+	{
+		move STOP
+		state checkfortarget
+		ifn my_target -1 
+		{
+			state pegrunt_recog_sound
+			action APE_ELDER_SEEK
+		}
+	}
+	else ifaction APE_ELDER_SEEK
+	{
+		ifmove PEELDERWALKVELS nullop 
+		else move PEELDERWALKVELS geth
+			
+		state checkfortarget
+		
+		ifg ally_mag 0 sub ally_mag 1
+
+		ifg temp9 0
+		  ifg INTERNALCOUNT 5
+		{
+			sub temp9 1
+			soundonce HEAT_SINK_EJECT
+			shoot HEAT_SINK
+			set INTERNALCOUNT 0
+		}
+
+		ifnotmoving ifrnd 32 operate
+		
+		// Control when the Elder turns invisible
+		ife silence_damage 0
+		{
+			ifcansee
+				ifcanseetarget
+					ifrnd 128
+						nullop // High chance of not doing anything if player has line of sight
+					else
+						state PE_ELDER_STARTOBFUSCATE
+						
+				else
+					state PE_ELDER_STARTOBFUSCATE
+
+		}
+
+		ifrnd 4
+		{
+			ifcansee nullop 
+			else
+			{
+				set npc_sound 0
+				ife GENDER MALE
+				{
+					ifrnd 8 set npc_sound PE_STAYALERT
+					else ifrnd 8 set npc_sound PE_SALES
+					else ifrnd 8 set npc_sound PE_SHOWYOURSELF
+				}
+				else
+				{
+					ifrnd 8 set npc_sound PE_F_SALE
+					else ifrnd 8 set npc_sound PE_F_SALES
+					else ifrnd 8 set npc_sound PE_F_SHOW
+				}
+				ifn npc_sound 0
+				{
+					sound npc_sound
+					setactorsoundpitch THISACTOR npc_sound -128
+					set npc_sound 0
+				}
+			}
+		}
+		
+		
+		ifn my_target -1
+			ife ally_mag 0
+		{
+			state SKILL_SHOOT_LEVELADJUST
+			ifl RANDOM_CHANCE SKILLCHANCE 
+				action APE_ELDER_FIRE
+		}
+	}
+	else ifaction APE_ELDER_SHRUNK
+	{
+		ifmove PEELDERRUNVELS nullop
+		else move PEELDERRUNVELS geth fleeenemy
+			
+		ifl SHRUNK_TIME SHRUNKCOUNT // keep shrunk
+			state new_shrunkcode
+		else ifl SHRUNK_TIME SHRUNKDONECOUNT // regrow
+		{
+			state unshrink
+			ifspritepal 24 { sizeto 26 26 } 
+			else
+			{
+				ife GENDER FEMALE
+					sizeto 22 23
+				else
+					sizeto 24 24
+			}
+		}
+		else // after regrow, switch back to regular action
+		{
+			state endshrunkenstate
+			action APE_ELDER_SEEK
+		}	
+	}
+	else ifaction APE_ELDER_OBFUSCATE
+	{
+		ifmove PEELDERWALKVELS nullop
+		else move PEELDERWALKVELS geth
+		
+		state checkfortarget
+		
+		ifpdistl 4096 set enemy_cooldown1 0 // disengage ghost mode
+
+		ife enemy_cooldown1 0
+		{
+			sound BL_SPELL2
+			spawn BIG_SMOKE2
+			setactorvar[THISSHADOW].temp5 1
+			set npc_sound 0
+			ife GENDER FEMALE 		
+			{
+				ifrnd 24 set npc_sound PE_F_SEAS else ifrnd 24 set npc_sound PE_F_SIMPLE
+			} 
+			else
+			{
+				ifrnd 24 set npc_sound PE_SEAS else ifrnd 24 set npc_sound PE_SIMPLE
+			}
+			ifn npc_sound 0
+			{
+				sound npc_sound
+				setactorsoundpitch THISACTOR npc_sound -128
+				set npc_sound 0
+			}
+			seta[].cstat 257
+			seta[].blend 0
+
+			state SKILL_LEVELADJUST
+			ifl RANDOM_CHANCE SKILLCHANCE
+				action APE_ELDER_SEEK
+			else
+				action APE_ELDER_FIRE
+		}
+	}
+	else ifaction APE_ELDER_FROZE state frozen_code
+	else ifaction APE_ELDER_FIRE
+	{
+		move STOP
+		
+		state new_validatetarget
+		
+		ife my_target -1
+		{
+			ifrnd 32 ife npc_talking 0 { ife GENDER MALE set npc_sound PE_HAHAHA else set npc_sound PE_F_HAHA soundoncevar npc_sound setactorsoundpitch THISACTOR npc_sound -128 }
+			action APE_ELDER_SEEK
+		}
+		else
+		{
+			// Not too sure if this code is still necessary
+			ifactioncount 1
+			ifn my_target PLAYER_IDENTITY
+			{
+				ifg INTERNALCOUNT 5 add ally_mag 30 else add ally_mag 10
+				add INTERNALCOUNT 1
+			}
+			
+			state fronttowardstarget
+			
+			ifactioncount 2
+			{
+				set ally_mag 10
+				setprojectile[RUBYBLAST].extra_rand 30
+				set PROJECTILE_TO_SHOOT RUBYBLAST
+				set PROJECTILE_FIRING_SOUND MC_MESONC_FIRE
+				state sang_enemyShootProjectile
+				setprojectile[RUBYBLAST].extra_rand 50
+				ife PERFMODE 1
+				 ifcansee
+				{
+					set gunsmoke_z 8244
+					set gunsmoke_angle -64
+					state spawn_gunsmoke_z
+					set gunsmoke_z 5344
+					espawn 16113
+					state spawn_muzzleflash
+				}
+				
+				ifg ally_mag 10 action APE_ELDER_SEEK
+				ifrnd 32 action APE_ELDER_SEEK
+				resetactioncount
+			}
+		}
+	}
+	else ifaction APE_ELDER_FLINCH
+	{
+		sub PAIN_AMOUNT 1
+		move STOP
+		ife PAIN_AMOUNT 0
+		{
+			ifdead action APE_ELDER_DYING 
+			else action APE_ELDER_SEEK
+		}
+	}
+	else ifaction APE_ELDER_DYING
+	{
+		ifactioncount 5 { state BODY_FALL_NOISES spawn BLOODPOOL state rf action APE_ELDER_DEAD }
+	}
+	else ifaction APE_ELDER_GROW
+	{
+		move STOP
+		state genericgrowcode
+	}
+	else ifaction APE_ELDER_DEAD
+	{
+		move STOP
+		ifhitweapon
+		{
+			ifwasweapon RADIUSEXPLOSION
+			{
+				state squish_sounds
+				state standard_jibs
+				state human_jibs
+				killit
+			}
+		}
+	}
+	else ifaction APE_ELDER_HEADSHOT
+	{
+		ifactioncount 6 { state BODY_FALL_NOISES spawn BLOODPOOL state rf action APE_ELDER_HEADDEAD }
+	}
+	else ifaction APE_ELDER_HEADDEAD
+	{
+		move STOP
+		ifhitweapon
+		{
+			ifwasweapon RADIUSEXPLOSION
+			{
+				state squish_sounds
+				state standard_jibs
+				state human_jibs
+				killit
+			}
+			break
+		}
+	}
+
+
+
+	ifg silence_damage 0
+	{
+		sub silence_damage 1
+		state spawn_curse_particles
+	}
+
+	ifhitweapon
+	{
+		state NEWGUNEFFECTS
+		ifwasweapon VOID_PLAYER_BOLT { sound EN_CURSE set silence_damage 150 }
+		ifwasweapon VOID_BOLT { sound EN_CURSE set silence_damage 300 }
+		ifwasweapon VOID_BLAST { sound EN_CURSE set silence_damage 900 }
+		
+		state random_wall_jibs
+		ifdead
+		{
+			ifn npc_sound 0 stopactorsound THISACTOR npc_sound
+			ifand npc_killed 32 nullop else xorvar npc_killed 32
+			addkills 1
+
+			ifwasweapon RADIUSEXPLOSION
+			{
+				state squish_sounds
+				state standard_jibs
+				state human_jibs
+				killit
+			}
+			else ifwasweapon RPG
+			{
+				state squish_sounds
+				state standard_jibs
+				state human_jibs
+				killit
+			}
+			else ifwasweapon GROWSPARK { cstat 0 sound ACTOR_GROWING action APE_ELDER_GROW break }
+			else ifg ice_damage 0 { spritepal 1 strength 1 sound SOMETHINGFROZE action APE_ELDER_FROZE }
+			else
+			{
+				state rf
+				ife HEADSHOT 2
+				{
+					ifg fire_damage 0 set fire_damage 0
+					state random_trigger_showoff
+					state jib_sounds
+					ifrnd 128 sound HEL_HS1 else sound HEL_HS2
+					shoot NJIB
+					shoot NJIB
+					guts JIBS6 3
+					guts JIBS2 2
+					action APE_ELDER_HEADSHOT
+				}
+				else ifg spirit_damage 0
+				{
+					shoot SPARK2 shoot SPARK2 shoot SPARK2
+					spritepal 1
+					guts JIBS3 6
+					spawn SPIRIT_DEATH_GUY
+					killit
+				}
+				else ifg energy_damage 0
+				{
+					shoot SPARK2 shoot SPARK2 shoot SPARK2
+					spritepal 4
+					guts JIBS3 6
+					spawn DISINTIGRATE_GUY
+					killit
+				}
+				else
+				{
+					ife GENDER MALE { ifrnd 128 sound PE_PAIN1 else sound PE_PAIN2 }
+					else { ifrnd 128 sound PE_F_PAIIN1 else sound PE_F_PAIN2 }
+					action APE_ELDER_DYING
+				}
+				
+				ifrnd 32 ifg temp9 0 spawn HEAT_SINK_PACK
+			}
+			ifphealthl 50
+			{
+				state SKILL_LEVELADJUST
+				ifl RANDOM_CHANCE SKILLCHANCE spawn HYPOSPRAY
+			}
+		}
+		else
+		{
+			ifwasweapon SHRINKSPARK { sound ACTOR_SHRINKING action APE_ELDER_SHRUNK }
+		
+			ifg PAIN_AMOUNT 0 action APE_ELDER_FLINCH
+			else ifrnd 16 { state PAIN_SKILL_LEVELADJUST action APE_ELDER_FLINCH }
+			// if they were idle, getting hit ALWAYS wakes them up
+			else ifaction APE_ELDER_IDLE { state PAIN_SKILL_LEVELADJUST action APE_ELDER_FLINCH }
+			else ifaction APE_ELDER_START { state PAIN_SKILL_LEVELADJUST action APE_ELDER_FLINCH }
+		}
+	}
+
+	state checksquished
+
+enda

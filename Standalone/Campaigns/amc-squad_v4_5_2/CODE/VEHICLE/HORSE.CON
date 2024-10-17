@@ -1,0 +1,531 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+This file defines behavior and controls for the rideable horse actor.
+--------------------------------------------------------------------------------
+*/
+
+appendevent EVENT_STRAFELEFT
+ifn player_using_horse -1 set RETURN 1
+endevent
+
+appendevent EVENT_STRAFERIGHT
+ifn player_using_horse -1 set RETURN 1
+endevent
+
+appendevent EVENT_TURNLEFT
+ifn player_using_horse -1 set RETURN 1
+endevent
+
+appendevent EVENT_TURNRIGHT
+ifn player_using_horse -1 set RETURN 1
+endevent
+
+// *************************************************
+// HORSE
+// *************************************************
+
+defstate horse_neighs
+	ifrnd 64
+    {
+		ifrnd 64 sound HORSE_NEIGH1
+		else ifrnd 64 sound HORSE_NEIGH2
+		else ifrnd 64 sound HORSE_NEIGH3
+		else ifrnd 64 sound HORSE_NEIGH4
+		else ifrnd 64 sound HORSE_NEIGH5
+    }
+ends
+
+defstate horse_step_sounds
+    getsector[].floorpicnum FLOORTEX
+    state CHECKSTEPS
+    switch STEPSOUNDFX
+    case 10
+    case 27
+    case 33
+        ifrnd 64 set playsound HOR_DRT_1 else
+        ifrnd 64 set playsound HOR_DRT_2 else
+        ifrnd 64 set playsound HOR_DRT_3 else
+        set playsound HOR_DRT_4
+        break
+    case 4
+        ifrnd 64 set playsound HOR_GRS_1 else
+        ifrnd 64 set playsound HOR_GRS_2 else
+        ifrnd 64 set playsound HOR_GRS_3 else
+        set playsound HOR_GRS_4
+        break
+    case 2
+    case 3
+    case 24
+    case 31
+        ifrnd 64 set playsound HOR_MTL_1 else
+        ifrnd 64 set playsound HOR_MTL_2 else
+        ifrnd 64 set playsound HOR_MTL_3 else
+        set playsound HOR_MTL_4
+        break
+    case 20
+    case 21
+    case 32
+        ifrnd 64 set playsound HOR_MUD_1 else
+        ifrnd 64 set playsound HOR_MUD_2 else
+        ifrnd 64 set playsound HOR_MUD_3 else
+        set playsound HOR_MUD_4
+        break
+    case 28
+        ifrnd 64 set playsound HOR_SND_1 else
+        ifrnd 64 set playsound HOR_SND_2 else
+        ifrnd 64 set playsound HOR_SND_3 else
+        set playsound HOR_SND_4
+        break
+    case 1
+    case 23
+        ifrnd 64 set playsound HOR_WOD_1 else
+        ifrnd 64 set playsound HOR_WOD_2 else
+        ifrnd 64 set playsound HOR_WOD_3 else
+        set playsound HOR_WOD_4
+        break
+    case 8
+        ifrnd 64 set playsound HOR_SNW_1 else
+        ifrnd 64 set playsound HOR_SNW_2 else
+        ifrnd 64 set playsound HOR_SNW_3 else
+        set playsound HOR_SNW_4
+        break
+    case 9
+    case 14
+    case 15
+    case 16
+        ifrnd 64 set playsound HOR_WTR_1 else
+        ifrnd 64 set playsound HOR_WTR_2 else
+        ifrnd 64 set playsound HOR_WTR_3 else
+        set playsound HOR_WTR_4
+        break
+    case 22
+        ifrnd 64 set playsound HOR_LEF_1 else
+        ifrnd 64 set playsound HOR_LEF_2 else
+        ifrnd 64 set playsound HOR_LEF_3 else
+        set playsound HOR_LEF_4
+        break
+    default
+        ifrnd 64 set playsound HOR_DEF_1 else
+        ifrnd 64 set playsound HOR_DEF_2 else
+        ifrnd 64 set playsound HOR_DEF_3 else
+        set playsound HOR_DEF_4
+        break
+    endswitch
+    espawn SOUND_SPRITE
+    setactorvar[RETURN].temp playsound
+ends
+
+move HORSE_FORWARD 10 0
+action HORSE_INACTION 5
+
+// Current horse movement state.
+// -1 => reversing
+// 0 => standing still
+// 1 => walk speed
+// 2 => running
+// 3 => galloping
+var horse_curmovestate 0 2
+var horse_onground 0 2
+
+spriteshadow HORSE
+
+defstate horse_turn_left
+    geta[].ang temp
+    sub temp 16
+    ifg temp 2048 sub temp 2048
+    ifl temp -2048 add temp 2048
+    seta[].ang temp
+ends
+
+defstate horse_turn_right
+    geta[].ang temp
+    add temp 16
+    ifg temp 2048 sub temp 2048
+    ifl temp -2048 add temp 2048
+    seta[].ang temp
+ends
+
+useractor notenemy HORSE
+	fall
+
+	ifaction 0
+	{
+		spawn 9302
+		cstat 257
+		strength 500
+		clipdist 40
+		sizeat 29 29
+		action FIVE_ANG
+
+		ifspritepal 3 // starts player on horse
+		 ifpdistl 8192 // so testing the map in mapster won't lock you into the horse automatically
+		{
+			set CUS_WACK 1 // wackplayer messes up skyboxes
+			sound HORSE_ON
+			set player_in_vehicle 2
+			move STOP
+			set forward_accelerate 0
+			set player_using_horse THISACTOR
+			action HORSE_INACTION
+		}
+	}
+
+	else ifaction FIVE_ANG
+	{
+		ifcansee ifrnd 1 state horse_neighs
+
+		ifpdistl 1524
+		  ife player_in_vehicle 0
+		  ifp palive
+		  ifp pfacing
+		{
+			ifg scope 0 break
+			ifand gun_firemode 16384 break
+
+			set player_use 0
+			ife use_action_allowed 1
+			{
+				set CUS_WACK 1 // wackplayer messes up skyboxes
+				sound HORSE_ON
+				set player_in_vehicle 2
+				set player_using_horse THISACTOR
+				action HORSE_INACTION
+				state setIgnoreUse
+			}
+		}
+	}
+
+	else ifaction HORSE_INACTION
+	{
+		cstat 0
+		ife GUN_HANDS 2 { setp[].weapon_pos -9 set HANDS_DRAW 2 }
+		else ife GUN_HANDS 1  set HANDS_DRAW 1
+
+		// Bind player movement to horse
+		setp[].movement_lock 15
+		geta[].x temp
+		setp[].posx temp
+		geta[].y temp2
+		setp[].posy temp2
+		geta[].z temp3
+		sub temp3 8192
+		geta[].sectnum upd_sect
+		updatesectorz temp temp2 temp3 upd_sect
+		ifn upd_sect -1 // Make sure it's a a valid sector
+		{
+			changespritesect APLAYER upd_sect
+			setp[].cursectnum upd_sect
+		}
+		sub temp3 8192
+
+		// Bind horse fall to player fall
+		// only if the horse actor is sufficiently far removed from the floor do we count him as falling
+		geta[].z z
+		getflorzofslope sprite[].sectnum sprite[].x sprite[].y mz
+		sub z mz
+		abs z
+
+		ifge z 7000
+		{
+			set horse_onground 0
+			add FALL_COUNTER 1
+		}
+		else
+			set horse_onground 1
+
+		// set player Z position to simulate being on horseback
+		setp[].posz temp3
+		setp[].oposz temp3
+		// and equate their Z velocity to that of the horse actor.
+		geta[].zvel temp7
+		setp[].poszv temp7
+
+		// and connect the player's falling_counter to the horse actor's FALL_COUNTER
+		setp[].falling_counter FALL_COUNTER
+
+		iffloordistl 16
+		{
+			ifg FALL_COUNTER 20
+			{
+				set CUS_WACK 3
+				sound LAND_HEAVY
+				quake 26
+				getp[].i temp
+				set temp2 FALL_COUNTER
+				div temp2 2
+				seta[temp].htextra temp2
+				seta[].htextra temp2
+				set FALL_COUNTER 0
+			}
+			set FALL_COUNTER 0
+		}
+
+		// If horse is not on ground, don't allow change in speed/direction by player
+		ife horse_onground 1
+		{
+			// Turn code
+			ifand EXTBITS_PRESS 4 // Strafe left
+				state horse_turn_left
+			else ifand EXTBITS_PRESS 16 // Turn left
+				state horse_turn_left
+			else ifand EXTBITS_PRESS 8 // Strafe right
+				state horse_turn_right
+			else ifand EXTBITS_PRESS 32 // Turn right
+				state horse_turn_right
+
+
+			// Move code
+			// Walk
+			ifand EXTBITS_PRESS 1
+			{
+				ife INTERNALCOUNT_3 0
+				{
+					ife horse_curmovestate 0 // stopped
+					{
+						set horse_curmovestate 1
+						set forward_accelerate 400
+					}
+					else ife horse_curmovestate -1 // reverse
+					{
+						set horse_curmovestate 0
+						set forward_accelerate 0
+						move 0
+					}
+					add INTERNALCOUNT_3 1
+				}
+			}
+			else
+			{
+				set INTERNALCOUNT_3 0
+			}
+
+			// Run is below
+
+			// Stop
+			ifand EXTBITS_PRESS 2 // backwards
+			{
+				ife INTERNALCOUNT_2 0
+				{
+					ife horse_curmovestate 3 // galloping
+					{
+						state HORSE_STOP
+						state horse_neighs
+						set horse_curmovestate 1 // walking
+						set forward_accelerate 400
+					}
+					else ife horse_curmovestate 2 // running
+					{
+						set horse_curmovestate 1 // walking
+						set forward_accelerate 400
+					}
+					else ife horse_curmovestate 1 // walking
+					{
+						set forward_accelerate 0
+						set horse_curmovestate 0 // stopped
+						move 0
+					}
+					else ife horse_curmovestate 0 // stopped
+					{
+						set forward_accelerate -128
+						set horse_curmovestate -1 // reverse walk
+					}
+					add INTERNALCOUNT_2 1
+				}
+			}
+			else
+			{
+				set INTERNALCOUNT_2 0
+			}
+
+			// Run
+			ifg horse_curmovestate 0 // moving forward
+			{
+				// Handle shift (accelerate to next speed)
+				ife horse_curmovestate 3 nullop
+				else
+				{
+					ifand BITS_PRESS P_SPRINTING
+					{
+						ife temp6 0
+						{
+							ife horse_curmovestate 1
+							{
+								set horse_curmovestate 2 // sprinting
+								set forward_accelerate 1600
+							}
+							else ife horse_curmovestate 2
+							{
+								set horse_curmovestate 3 // galloping
+								state HORSE_START
+								set forward_accelerate 2400
+							}
+							add temp6 1
+						}
+					}
+					else
+					{
+						set temp6 0
+					}
+				}
+
+
+				add ally_mag 1
+				// Sounds for running / stopping
+				ife horse_curmovestate 1 // walking
+				{
+					ifrnd 2 state horse_neighs
+					ifg ally_mag 10
+					{
+						state horse_step_sounds
+						set ally_mag 0
+					}
+				}
+				else ife horse_curmovestate 2
+				{
+					ife ally_mag 8 state horse_step_sounds
+					ifg ally_mag 10
+					{
+						state horse_step_sounds
+						set ally_mag 0
+					}
+					ifrnd 4 state horse_neighs
+				}
+				else ife horse_curmovestate 3
+				{
+					ife ally_mag 6 state horse_step_sounds
+					ifg ally_mag 8
+					{
+						state horse_step_sounds
+						set ally_mag 0
+					}
+					add temp8 1
+					ifg temp8 15
+					{
+						ifrnd 64 sound GALLOP_1
+						else ifrnd 64 sound GALLOP_2
+						else ifrnd 64 sound GALLOP_3
+						else sound GALLOP_4
+						set temp8 0
+					}
+					ifrnd 8 state horse_neighs
+				}
+			}
+			else ife horse_curmovestate -1
+			{
+				ifg ally_mag 10
+				{
+					state horse_step_sounds
+					set ally_mag 0
+				}
+			}
+		}
+
+		// Handle move & xvel manipulation
+		ifg horse_curmovestate 0
+		{
+			set temp2 forward_accelerate
+			move HORSE_FORWARD geth
+			geta[].xvel temp
+			set temp forward_accelerate
+			ifonwater divvar temp 4 else divvar temp 2
+			seta[].xvel temp
+
+			// handle sudden stop moving
+			ifg horse_curmovestate 1
+				ifnotmoving
+			{
+				ifrnd 64 state horse_neighs
+				set CUS_WACK 1 // wackplayer messes up skyboxes
+				set forward_accelerate 0
+				set horse_curmovestate 0
+				move 0
+			}
+		}
+		else ife horse_curmovestate -1
+		{
+			move HORSE_FORWARD geth
+			geta[].xvel temp
+			add temp forward_accelerate
+			seta[].xvel temp
+		}
+
+		// exit
+		ife use_action_allowed 1
+		{
+			move 0
+			set forward_accelerate 0
+			state horse_neighs
+			setp[].jumping_counter 0
+			soundonce HORSE_OFF
+			getp[].posxv temp
+			mulvar temp 2
+			setp[].posxv temp
+			// jumping off height depends on movement speed
+			ife horse_curmovestate -1
+				setp[].poszv -512
+			else ife horse_curmovestate 0
+				setp[].poszv -2048
+			else
+			{
+				setp[].jumping_counter 181
+				setp[].poszv -6536
+			}
+
+			set horse_curmovestate 0
+			set player_in_vehicle 0
+			set player_using_horse -1
+			setp[].over_shoulder_on 0
+			setp[].movement_lock 0
+			set just_changed 1
+			action FIVE_ANG
+			cstat 257
+			state setIgnoreUse
+		}
+
+		ifp pdead
+		{
+			move 0
+			set player_in_vehicle 0
+			set player_using_horse -1
+			setp[].over_shoulder_on 0
+			setp[].movement_lock 0
+			set just_changed 1
+			action FIVE_ANG
+		}
+
+		ifdead
+		{
+			move 0
+			set player_in_vehicle 0
+			set player_using_horse -1
+			setp[].over_shoulder_on 0
+			setp[].movement_lock 0
+			set just_changed 1
+			strength 1
+			action FIVE_ANG
+		}
+	}
+enda

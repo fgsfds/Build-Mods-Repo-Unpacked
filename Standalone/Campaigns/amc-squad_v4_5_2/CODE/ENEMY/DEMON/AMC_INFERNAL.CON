@@ -1,0 +1,214 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+
+--------------------------------------------------------------------------------
+*/
+
+damageeventtile INFERNAL
+
+action A_INFERNAL_FROZEN 50 1 5 1 10
+action A_INFERNAL_GROW 50 1 5 1 10
+action A_INFERNAL_IDLE  0 1 5 1 20
+action A_INFERNAL_WALK 0  4 5 1 16
+action A_INFERNAL_RUN  0  4 5 1 8
+action A_INFERNAL_FIRE 20 6 5 1 25
+action A_INFERNAL_FLINCH 50 1 5 1 10
+action A_INFERNAL_DYING 55 6 1 1 10
+action A_INFERNAL_DEAD 60 1 1 1 10
+
+
+move _INFERNAL_WALKVELS 180
+move _INFERNAL_RUNVELS 208
+
+ai AI_INFERNAL_SEEKENEMY A_INFERNAL_WALK _INFERNAL_WALKVELS seekplayer
+ai AI_INFERNAL_RUSHENEMY A_INFERNAL_RUN _INFERNAL_RUNVELS faceplayer
+ai AI_INFERNAL_SHOOTENEMY A_INFERNAL_FIRE STOP faceplayer
+ai AI_INFERNAL_DEAD A_INFERNAL_DEAD STOP faceplayer
+ai AI_INFERNAL_SHRUNK A_INFERNAL_RUN STOP furthestdir
+ai AI_INFERNAL_GROW A_INFERNAL_GROW STOP seekplayer
+
+useractor enemystayput INFERNAL_STAYPUT
+cactor INFERNAL
+state monst_glow
+enda
+
+useractor enemy INFERNAL 75 A_INFERNAL_IDLE
+fall
+
+ifai 0
+{
+	spawn SHOOTME
+	state monst_glow
+	sound INFERNAL_ALERT
+	strength 75
+	sizeat 32 32
+	action A_INFERNAL_RUN
+	ai AI_INFERNAL_SEEKENEMY
+	cstator 257
+}
+
+ifg sprite[].htextra 0                            // if the actor is set to take some damage from a weapon...
+{
+  ife sprite[].htowner THISACTOR              // if the owner of the weapon IS this actor
+    seta[].htextra -1       // set the damage to zero
+}
+
+state ENEMYKNOCKBACKS
+state enemy_ice_damage
+state enemy_spirit_damage
+
+ifaction A_INFERNAL_FROZEN
+{
+state frozen_code
+}
+else
+ifaction A_INFERNAL_FLINCH
+{
+sub PAIN_AMOUNT 1
+	move STOP
+	ife PAIN_AMOUNT 0 ai AI_INFERNAL_SEEKENEMY
+}
+else
+ifai AI_INFERNAL_DEAD
+{
+move STOP
+strength 0
+    ifhitweapon
+    {
+      ifwasweapon RADIUSEXPLOSION
+      {
+        state squish_sounds
+		spritepal 4
+	  state standard_jibs
+        killit
+      }
+      break
+    }
+}
+else
+ifaction A_INFERNAL_DYING
+{
+	strength 0
+	ifactioncount 6 { spawn BLOODPOOL ai AI_INFERNAL_DEAD }
+}
+else
+ifai AI_INFERNAL_GROW state genericgrowcode
+else
+ifai AI_INFERNAL_SHRUNK
+{
+    ifcount SHRUNKDONECOUNT
+      ai AI_INFERNAL_SEEKENEMY
+    else ifcount SHRUNKCOUNT
+      {
+	  sound ACTOR_UNSHRINK
+	sizeto 26 26
+	}
+    else
+      state genericshrunkcode
+    break
+}
+else
+ifai AI_INFERNAL_SEEKENEMY
+{
+ifrnd 4
+	{
+	ifrnd 128 soundonce INF_AMB2 else soundonce INF_AMB2
+	}
+ifcansee { }
+	ifpdistl 8012 ai AI_INFERNAL_RUSHENEMY
+	else ifcansee ifcanshoottarget ifrnd 4 { sound INFERNAL_CHARGE ai AI_INFERNAL_SHOOTENEMY }
+}
+else
+ifai AI_INFERNAL_RUSHENEMY
+{
+ifrnd 4
+	{
+	ifrnd 128 soundonce INF_AMB2 else soundonce INF_AMB2
+	}
+set ally_mag 4
+state SKILL_SHOOT_LEVELADJUST
+	ifpdistg 8012 ai AI_INFERNAL_SEEKENEMY
+	else ifcansee ifcanshoottarget ifl RANDOM_CHANCE SKILLCHANCE { sound INFERNAL_CHARGE ai AI_INFERNAL_SHOOTENEMY }
+}
+else
+ifai AI_INFERNAL_SHOOTENEMY
+{
+	geta[].htflags temp2
+	ifand temp2 4 xorvar temp2 4
+	seta[].htflags temp2
+	seta[].shade -64
+	ifactioncount 5
+	{
+	ifn ally_mag 0
+		{
+		sound DEMON_THROWFIRE
+		setprojectile[SPELL4].extra 75
+		shoot SPELL4
+		setprojectile[SPELL4].extra 300
+		set ally_mag 0
+		}
+	}
+	ifactioncount 6
+	{
+	geta[].htflags temp2
+	ifand temp2 4 nullop else xorvar temp2 4
+	seta[].htflags temp2
+
+		resetactioncount
+		ai AI_INFERNAL_RUSHENEMY
+	}
+}
+
+ifhitweapon
+{
+	state NEWGUNEFFECTS
+	//spawn BLOOD
+	state random_wall_jibs
+	ifdead
+		{
+		ifwasweapon GROWSPARK { cstat 0 sound ACTOR_GROWING ai AI_INFERNAL_GROW break }
+		else ifg ice_damage 0 { spritepal 1 strength 1 sound SOMETHINGFROZE action A_INFERNAL_FROZEN }
+		else
+			{
+			state rf
+			sound INFERNAL_DIE
+			addkills 1
+			ifwasweapon CHAINSAW_PROJ
+				{
+				set npc_chainsaw_struggle 54
+				set npc_chainsaw_id 6
+				set cultist_pal sprite[].pal
+				}
+			action A_INFERNAL_DYING
+			}
+		}
+else
+    ifg PAIN_AMOUNT 0 { sound INFERNAL_PAIN action A_INFERNAL_FLINCH } else
+	ifrnd 64 { sound INFERNAL_PAIN state PAIN_SKILL_LEVELADJUST action A_INFERNAL_FLINCH }
+	ifwasweapon SHRINKSPARK { sound ACTOR_SHRINKING ai AI_INFERNAL_SHRUNK }
+}
+
+enda

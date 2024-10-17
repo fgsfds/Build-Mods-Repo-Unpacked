@@ -1,0 +1,238 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+Added shield code by Kaostico
+--------------------------------------------------------------------------------
+*/
+
+
+defstate bombshell_hud
+
+	ifvarl PHEALTH 30 setvar temp2 2 else setvar temp2 32
+	rotatesprite 26 175 HALFSIZE 0 14585 0 temp2 257 0 0 xdim ydim // HEALTH ICON
+
+    ifg PHEALTH pmax_health digitalnumberz DIGITALNUM 64 186 PHEALTH disp_pulse 30 257 0 0 xdim ydim 98304
+	else digitalnumberz DIGITALNUM 64 186 PHEALTH 0 temp2 257 0 0 xdim ydim 98304
+
+	ifvarg PARMOUR 0
+		{
+		ifvarl PARMOUR 30 setvar temp2 2 else setvar temp2 32
+		rotatesprite 26 20 NORMALSIZE 0 14590 0 temp2 257 0 0 xdim ydim
+		digitalnumberz DIGITALNUM 64 27 PARMOUR 0 temp2 257 0 0 xdim ydim 98304 // ARMOUR ICON
+		}
+
+    ifg P_HAS_SHIELD 0
+        {
+        ifvarl P_ENERGYSHIELD 10 setvar temp2 2 else setvar temp2 32
+        rotatesprite 26 44 23000 0 12933 0 temp2 257 0 0 xdim ydim // PSHIELD ICON
+        digitalnumberz DIGITALNUM 64 47 P_ENERGYSHIELD 0 temp2 257 0 0 xdim ydim 98304 // PSHIELD NUMBERS
+        }
+
+     // This state tells the HUD when to change the colour to red for low ammo
+    getplayer[THISACTOR].ammo_amount cur_weap hud_disp_pammo
+    switch cur_weap
+        case 0:
+            setvar temp2 32
+            break
+        case 1:
+            ifvarl hud_disp_pammo 25 setvar temp2 2 else setvar temp2 32
+            break
+        case 2:
+            ifvarl hud_disp_pammo 10 setvar temp2 2 else setvar temp2 32
+            break
+        case 3:
+            ifvarl hud_disp_pammo 30 setvar temp2 2 else setvar temp2 32
+            break
+        case 4:
+            ifvarl hud_disp_pammo 5 setvar temp2 2 else setvar temp2 32
+            break
+        case 5:
+        case 6:
+        case 10:
+            ifvarl hud_disp_pammo 5 setvar temp2 2 else setvar temp2 32
+            break
+        case 8:
+            ifvarl hud_disp_pammo 3 setvar temp2 2 else setvar temp2 32
+            break
+        case 7:
+        case 9:
+            ifvarl hud_disp_pammo 15 setvar temp2 2 else setvar temp2 32
+            break
+        case 11:
+            ifvarl hud_disp_pammo 10 setvar temp2 2 else setvar temp2 32
+            break
+    endswitch
+
+    // get correct ammo type count
+    ife cur_weap 0
+    {
+        ifand GUN_AMMO_TYPES 1 ifand AMMO_TYPES[cur_weap] 1
+            set hud_disp_pammo explosive_shells
+        else ifand GUN_AMMO_TYPES 1 ifand AMMO_TYPES[cur_weap] 4
+            set hud_disp_pammo flechete_shells
+        else ifand GUN_AMMO_TYPES 4 ifand AMMO_TYPES[cur_weap] 64
+            set hud_disp_pammo magnum_shells
+        else ifand GUN_AMMO_TYPES 4 ifand AMMO_TYPES[cur_weap] 1024
+            set hud_disp_pammo dragon_shells
+        else ifand GUN_AMMO_TYPES 2 ifand AMMO_TYPES[cur_weap] 2
+            set hud_disp_pammo silver_ammo
+        else ifand GUN_AMMO_TYPES 2 ifand AMMO_TYPES[cur_weap] 32768
+            set hud_disp_pammo incend_ammo
+        else ifand GUN_AMMO_TYPES 8 ifand AMMO_TYPES[cur_weap] 8
+            set hud_disp_pammo tesla_ammo
+        else ifand GUN_AMMO_TYPES 16 ifand AMMO_TYPES[cur_weap] 16
+            set hud_disp_pammo silver_bolts
+        else ifand GUN_AMMO_TYPES 16 ifand AMMO_TYPES[cur_weap] 16384
+            set hud_disp_pammo void_bolts
+        else ife temp_weap 32 ifand gun_firemode_two 4
+            set hud_disp_pammo DUP_missile_ammo
+        else
+		{
+			set ammo_forweaponidx 0
+			state ammo_getdefs
+			set hud_disp_pammo ammo_normalammoremaining
+		}
+    } // pipebomb trigger
+	else ife currentweapon 10 getp[].ammo_amount 5 hud_disp_pammo
+	else getp[].ammo_amount cur_weap hud_disp_pammo
+
+	digitalnumberz DIGITALNUM 282 186 hud_disp_pammo 0 temp2 513 0 0 xdim ydim 98304 // AMMO NUMBER
+    rotatesprite 250 176 HALFSIZE 0 14586 0 temp2 513 0 0 xdim ydim // AMMO ICON
+
+    switch cur_weap
+	case 0
+		ifn gun_mag -1
+			{
+            rotatesprite 272 150 HALFSIZE 0 14581 0 32 513 0 0 xdim ydim
+            digitalnumberz DIGITALNUM 292 160 gun_mag 10 temp2 513 0 0 xdim ydim 98304 // MAG
+			}
+            break
+    case 1
+            ifvarl gun_mag 3 setvar temp2 2 else setvar temp2 32
+            rotatesprite 272 150 HALFSIZE 0 14581 0 temp2 513 0 0 xdim ydim
+            digitalnumberz DIGITALNUM 292 160 gun_mag 10 temp2 513 0 0 xdim ydim 98304 // MAG
+            break
+    case 2
+            ifvarl slot6_mag 5 setvar temp2 2 else setvar temp2 32
+            rotatesprite 272 150 HALFSIZE 0 13321 0 temp2 513 0 0 xdim ydim
+            digitalnumberz DIGITALNUM 292 160 gun_mag 10 temp2 513 0 0 xdim ydim 98304 // MAG
+            break
+    case 3
+        ifand gun_firemode 32768
+            {
+            rotatesprite 272 150 HALFSIZE 0 FORTYMM_NADES 0 32 513 0 0 xdim ydim // AMMO BOX
+            ifand AMMO_TYPES[cur_weap] 32 digitalnumberz DIGITALNUM 292 160 fortymm_shells 10 2 513 0 0 xdim ydim 98304 // AMMO
+            else ifand AMMO_TYPES[cur_weap] 128 digitalnumberz DIGITALNUM 292 160 fortymm_MIA_shells 10 7 513 0 0 xdim ydim 98304 // AMMO
+            else ifand AMMO_TYPES[cur_weap] 256 digitalnumberz DIGITALNUM 292 160 fortymm_plasma 10 8 513 0 0 xdim ydim 98304 // AMMO
+            else digitalnumberz DIGITALNUM 292 160 fortymm_grenades 10 32 513 0 0 xdim ydim 98304 // AMMO
+            }
+            else
+                {
+                ifvarl MGUNMAG 15 setvar temp2 2 else setvar temp2 32
+                rotatesprite 272 150 HALFSIZE 0 10474 0 temp2 513 0 0 xdim ydim
+                digitalnumberz DIGITALNUM 292 160 gun_mag 10 temp2 513 0 0 xdim ydim 98304 // MAG
+                }
+            break
+    case 4
+            ifvarl ROCKETMAG 3 setvar temp2 2 else setvar temp2 32
+            rotatesprite 272 150 HALFSIZE 0 14580 0 temp2 513 0 0 xdim ydim
+            digitalnumberz DIGITALNUM 292 160 gun_mag 10 temp2 513 0 0 xdim ydim 98304 // MAG
+            break
+    default
+            ifn gun_mag -1
+            rotatesprite 272 150 HALFSIZE 0 101 0 temp2 513 0 0 xdim ydim
+            break
+    endswitch
+
+
+	ifvarand player[THISACTOR].got_access 1 rotatesprite 26 176 HALFSIZE 0 14587 0 0 256 0 0 xdim ydim
+	ifvarand player[THISACTOR].got_access 2 rotatesprite 26 176 HALFSIZE 0 14588 0 21 256 0 0 xdim ydim
+	ifvarand player[THISACTOR].got_access 4 rotatesprite 26 176 HALFSIZE 0 14589 0 23 256 0 0 xdim ydim
+
+	ifvarand ACCESSKEY2 1 rotatesprite 26 176 HALFSIZE 0 14587 0 12 256 0 0 xdim ydim
+	ifvarand ACCESSKEY2 2 rotatesprite 26 176 HALFSIZE 0 14588 0 11 256 0 0 xdim ydim
+	ifvarand ACCESSKEY2 4 rotatesprite 26 176 HALFSIZE 0 14589 0 15 256 0 0 xdim ydim
+
+	getplayer[THISACTOR].inven_icon temp
+	ifvarn temp 0
+        {
+        ife temp 1 // MEDKIT
+            {
+            getplayer[THISACTOR].firstaid_amount temp2
+            ifvarl temp2 30 setvar temp3 2 else setvar temp3 32
+            rotatesprite 250 20 HALFSIZE 0 c_medikit 0 temp3 513 0 0 xdim ydim
+            digitalnumberz DIGITALNUM 282 27 temp2 0 temp3 513 0 0 xdim ydim 98304
+            }
+        ife temp 2 // STEROIDS
+            {
+            getplayer[THISACTOR].steroids_amount temp2
+            divvar temp2 4
+            ifvarl temp2 30 setvar temp3 2 else setvar temp3 32
+            rotatesprite 250 20 HALFSIZE 0 55 0 temp3 513 0 0 xdim ydim
+            digitalnumberz DIGITALNUM 282 27 temp2 0 temp3 513 0 0 xdim ydim 98304
+            }
+        ife temp 3 // HOLODUKE
+            {
+            getplayer[THISACTOR].holoduke_amount temp2
+            divvar temp2 24
+            ifvarl temp2 30 setvar temp3 2 else setvar temp3 32
+            rotatesprite 250 20 HALFSIZE 0 c_holoduke 0 temp3 513 0 0 xdim ydim
+            digitalnumberz DIGITALNUM 282 27 temp2 0 temp3 513 0 0 xdim ydim 98304
+            }
+        ife temp 4 // JETPACK
+            {
+            getplayer[THISACTOR].jetpack_amount temp2
+            divvar temp2 16
+            ifvarl temp2 30 setvar temp3 2 else setvar temp3 32
+            rotatesprite 250 20 HALFSIZE 0 57 0 temp3 513 0 0 xdim ydim
+            digitalnumberz DIGITALNUM 282 27 temp2 0 temp3 513 0 0 xdim ydim 98304
+            }
+        ife temp 5 // NIGHT VISION GOGGLES
+            {
+            getplayer[THISACTOR].heat_amount temp2
+            divvar temp2 48
+            ifvarl temp2 30 setvar temp3 2 else setvar temp3 32
+            rotatesprite 250 20 NORMALSIZE 0 59 0 temp3 513 0 0 xdim ydim
+            digitalnumberz DIGITALNUM 282 27 temp2 0 temp3 513 0 0 xdim ydim 98304
+            }
+        ife temp 6 // SCUBA GEAR
+            {
+            getplayer[THISACTOR].scuba_amount temp2
+            divvar temp2 64
+            ifvarl temp2 30 setvar temp3 2 else setvar temp3 32
+            rotatesprite 250 20 HALFSIZE 0 56 0 temp3 513 0 0 xdim ydim
+            digitalnumberz DIGITALNUM 282 27 temp2 0 temp3 513 0 0 xdim ydim 98304
+            }
+        ife temp 7 // BOOTS
+            {
+            getplayer[THISACTOR].boot_amount temp2
+            divvar temp2 2
+            ifvarl temp2 30 setvar temp3 2 else setvar temp3 32
+            rotatesprite 250 20 NORMALSIZE 0 61 0 temp3 513 0 0 xdim ydim
+            digitalnumberz DIGITALNUM 282 27 temp2 0 temp3 513 0 0 xdim ydim 98304
+            }
+
+        }
+ends

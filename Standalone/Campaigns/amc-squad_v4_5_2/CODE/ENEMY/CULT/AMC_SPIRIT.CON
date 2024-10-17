@@ -1,0 +1,234 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+
+--------------------------------------------------------------------------------
+*/
+
+damageeventtile SPIRIT
+
+action ASPIRIT_FROZEN 45 1 1 1 10
+action ASPIRIT_GROW 45 1 1 1 10
+action ASPIRITIDLE  0 1 5 1 20
+action ASPIRITWALK      0  4 5 1 20
+action ASPIRITRUN      0  4 5 1 11
+action ASPIRITFIRE    20 5 5 1 16
+action ASPIRITFLINCH 45 1 1 1 10
+action ASPIRITDYING 45 9 1 1 10
+action ASPIRITDEAD 50 1 1 1 10
+
+move SPIRITWALKVELS 90
+move SPIRITRUNVELS 118
+
+ai AISPIRIT_IDLE ASPIRITIDLE STOP geth
+ai AISPIRIT_SEEKENEMY ASPIRITWALK SPIRITWALKVELS geth
+ai AISPIRIT_RUSHENEMY ASPIRITRUN SPIRITRUNVELS geth
+ai AISPIRIT_SHOOTENEMY ASPIRITFIRE STOP 
+ai AISPIRIT_DEAD ASPIRITDEAD STOP 
+ai AISPIRIT_SHRUNK ASPIRITRUN SPIRITRUNVELS furthestdir
+ai AISPIRIT_GROW ASPIRIT_GROW STOP 
+
+spritenoshade SPIRIT
+spritenoshade SPIRITSTAYPUT
+
+useractor enemystayput SPIRITSTAYPUT
+state monst_glow
+cactor SPIRIT
+enda
+
+useractor enemy SPIRIT 125 ASPIRITIDLE
+fall
+
+ifai 0
+{
+	spawn SHOOTME
+	state monst_glow
+	seta[].blend 255
+	seta[].shade 0
+	set actor_type TYPE_SUPERNATURAL
+	ifspritepal 24 { strength 200 sizeat 28 28 }
+	else { strength 125 sizeat 24 24 }
+	ai AISPIRIT_IDLE
+	cstator 33
+	cstator 257
+}
+
+state ENEMYKNOCKBACKS
+state enemy_ice_damage
+state enemy_spirit_damage
+
+ifaction ASPIRIT_FROZEN
+{
+state frozen_code
+}
+else
+ifaction ASPIRITFLINCH
+{
+sub PAIN_AMOUNT 1
+	move STOP
+	ife PAIN_AMOUNT 0 ai AISPIRIT_SEEKENEMY
+}
+else
+ifai AISPIRIT_DEAD
+{
+move STOP
+cstat 2
+    ifhitweapon
+    {
+      ifwasweapon RADIUSEXPLOSION
+      {
+        state squish_sounds
+		spritepal 4
+	  state standard_jibs
+        killit
+      }
+      break
+    }
+}
+else
+ifaction ASPIRITDYING
+{
+	strength 0
+	ifactioncount 6 ai AISPIRIT_DEAD
+}
+else
+ifai AISPIRIT_GROW state genericgrowcode
+else
+ifai AISPIRIT_SHRUNK
+{
+    ifcount SHRUNKDONECOUNT
+      ai AISPIRIT_SEEKENEMY
+    else ifcount SHRUNKCOUNT
+      {
+	  sound ACTOR_UNSHRINK
+	ifspritepal 4 sizeto 55 55
+	else ifspritepal 24 sizeto 60 60
+	else sizeto 50 50
+	}
+    else
+      state genericshrunkcode
+    break
+}
+else
+ifai AISPIRIT_IDLE
+	{
+		state checkfortarget
+		ifn my_target -1 
+		{
+			sound SPIRIT_ALERT
+			ai AISPIRIT_SEEKENEMY
+		}
+	}
+else
+ifai AISPIRIT_SEEKENEMY
+	{
+	state checkfortarget
+
+		ifspritepal 4 cstat 32768 else cstat 514
+		ifn my_target -1
+			{
+			dist temp THISACTOR my_target
+			ifl temp 8012 ai AISPIRIT_RUSHENEMY
+			else ifrnd 16 ai AISPIRIT_SHOOTENEMY
+			}
+	}
+else
+ifai AISPIRIT_RUSHENEMY
+	{
+	state checkfortarget
+		ifspritepal 4 cstat 771 else cstat 259
+		ifn my_target -1
+			{
+			dist temp THISACTOR my_target
+			ifg temp 8012 ai AISPIRIT_SEEKENEMY
+			else ifrnd 32 ai AISPIRIT_SHOOTENEMY
+			}
+	}
+else
+ifai AISPIRIT_SHOOTENEMY
+	{
+	cstat 259
+	state new_validatetarget
+	ife my_target -1 ai AISPIRIT_RUSHENEMY
+	state fronttowardstarget
+		ifactioncount 5
+		{
+			set PROJECTILE_TO_SHOOT SPELL8
+			set PROJECTILE_STRENGTH 30
+			set PROJECTILE_FIRING_SOUND DEMON_THROWFIRE
+			state sang_enemyShootProjectile
+
+			ifspritepal 24
+			 ife silence_damage 0
+				{
+				sound DEMON_THROWFIRE
+				eshoot SPELL8
+				setthisprojectile[RETURN].extra 30
+				geta[RETURN].ang temp add temp 128 seta[RETURN].ang temp
+				sound DEMON_THROWFIRE
+				eshoot SPELL8
+				setthisprojectile[RETURN].extra 30
+				geta[RETURN].ang temp sub temp 128 seta[RETURN].ang temp
+				}
+			resetactioncount
+		ai AISPIRIT_RUSHENEMY
+		}
+	}
+
+ifg silence_damage 0
+		{
+		sub silence_damage 1
+		state spawn_curse_particles
+		}
+
+ifhitweapon
+{
+	state NEWGUNEFFECTS
+	ifwasweapon VOID_PLAYER_BOLT { sound EN_CURSE set silence_damage 150 }
+	ifwasweapon VOID_BOLT { sound EN_CURSE set silence_damage 300 }
+	ifwasweapon VOID_BLAST { sound EN_CURSE set silence_damage 900 }
+	//spawn BLOOD
+	//guts JIBS6 1
+	state random_wall_jibs
+	ifdead
+		{
+		ifwasweapon GROWSPARK { cstat 0 sound ACTOR_GROWING ai AISPIRIT_GROW break }
+		else ifg ice_damage 0 { spritepal 1 strength 1 sound SOMETHINGFROZE action ASPIRIT_FROZEN }
+		else
+			{
+
+			state rf
+			sound SPIRIT_DIE
+			addkills 1
+			action ASPIRITDYING
+			}
+		}
+else
+    ifg PAIN_AMOUNT 0 action ASPIRITFLINCH else
+	ifrnd 64 { ifspritepal 24 nullop else { state PAIN_SKILL_LEVELADJUST action ASPIRITFLINCH } }
+	ifwasweapon SHRINKSPARK { sound ACTOR_SHRINKING ai AISPIRIT_SHRUNK }
+}
+
+enda

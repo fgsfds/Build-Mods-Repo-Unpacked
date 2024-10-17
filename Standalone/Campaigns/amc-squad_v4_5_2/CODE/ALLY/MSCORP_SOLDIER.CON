@@ -1,0 +1,322 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+
+--------------------------------------------------------------------------------
+*/
+
+damageeventtile MSSOLDIER_ACTIVE // Ally
+
+action A_MSSOLDIERIDLE 0 1 5 1 11
+action A_MSSOLDIERMOVE 0 4 5 1 11
+action A_MSSOLDIERFIRE 20 2 5 1 3
+action A_MSSOLDIERDYING 30 6 1 1 11
+action A_MSSOLDIERDEAD 35 1 1 1 1
+
+move MSSTILL 0
+move MSMOVE 266
+move MSMOVESLOW 96
+
+ai AIMSSOLDIERIDLE A_MSSOLDIERIDLE MSSTILL 0
+ai AIMSSOLDIERMOVE A_MSSOLDIERMOVE MSMOVE faceplayer seekplayer
+ai AIMSSOLDIERRELOAD A_MSSOLDIERMOVE MSMOVESLOW seekplayer
+ai AIMSSOLDIERFIRE A_MSSOLDIERFIRE MSSTILL 0
+ai AIMSSOLDIERDYING A_MSSOLDIERDYING MSSTILL 0
+
+spriteshadow MSSOLDIER_ACTIVE
+spritenvg MSSOLDIER_ACTIVE
+
+useractor notenemy MSSOLDIER_ACTIVE
+fall
+
+ifpdistl 1024 cstat 256 else cstat 257
+
+ife CHAR 7
+{
+getp[].palookup temp
+ife temp 0 set temp 11
+seta[].pal temp
+}
+else spritepal 11
+
+ifai 0
+	{
+	seta[].htwaterzoffset 8
+	spawn SHOOTME2
+	set ally_mag 25
+	strength 200
+	sizeat 24 24
+	ai AIMSSOLDIERIDLE
+	}
+
+state spawn_cold_breathe
+
+state ENEMYKNOCKBACKS
+state enemyfloordamage
+
+	ife PERSONNEL_RESEARCH[8] 2 // player has thermal weaving research? make fire die down quicker
+		{
+		ifg fire_damage 5 sub fire_damage 1
+		}
+
+state enemy_fire_damage
+state enemy_ice_damage
+state enemy_spirit_damage
+
+ifg ALLY_VOICE 0
+	{
+	sub ALLY_VOICE 1
+	ife ALLY_VOICE 1
+		{
+		ife CHAR 7
+			{
+			ifrnd 128
+				{
+				ife ally_subt 0
+					{
+					qstrcpy 7501 5160
+					// 7501 ^1Ms-Corp Sardaukar: ^0As Lord Sandt commands.
+					set ally_subt 70
+					}
+				soundonce MS_SOLD_MMOVE1
+				}
+			else
+				{
+				ife ally_subt 0
+					{
+					qstrcpy 7501 5161
+					// 7501 ^1Ms-Corp Sardaukar: ^0Hail lord Mikko.
+					set ally_subt 60
+					}
+				soundonce MS_SOLD_MMOVE2
+				}
+			}
+		else
+			{
+			ife ally_subt 0
+				{
+				qstrcpy 7501 5162
+				// 7501 ^1Ms-Corp Sardaukar: ^0Lord Mikko bid that I follow your will.
+				set ally_subt 70
+				}
+			soundonce MS_SOLD_MOVE1
+			}
+		}
+	}
+else
+ifl ALLY_VOICE 0
+	{
+	add ALLY_VOICE 1
+	ife ALLY_VOICE -1
+		{
+		ife CHAR 7 ifrnd 128
+			{
+			ife ally_subt 0
+				{
+				qstrcpy 7501 5163
+				// 7501 ^1Ms-Corp Sardaukar: ^0I shall guard this area with my life Master.
+				set ally_subt 90
+				}
+			soundonce MS_SOLD_MSTAY1
+			}
+		else
+		ifrnd 128
+			{
+			ife ally_subt 0
+				{
+				qstrcpy 7501 5164
+				// 7501 ^1Ms-Corp Sardaukar: ^0I will maintain vigil here.
+				set ally_subt 80
+				}
+			soundonce MS_SOLD_STAY1
+			}
+		else
+			{
+			ife ally_subt 0
+				{
+				qstrcpy 7501 5165
+				// 7501 ^1Ms-Corp Sardaukar: ^0As you wish.
+				set ally_subt 70
+				}
+			soundonce MS_SOLD_STAY2
+			}
+		}
+	}
+
+ifg targetlock 0 sub targetlock 1
+
+ifaction A_MSSOLDIERDEAD
+	{
+	strength 0
+	break
+	}
+else
+ifai AIMSSOLDIERDYING
+	{
+	ifactioncount 5 action A_MSSOLDIERDEAD
+	}
+ifai AIMSSOLDIERFIRE
+	{
+	state checkfortarget
+	state fronttowardstarget
+	ifactioncount 3
+			{				
+			getav[my_target].actor_type temp6
+				switch temp6
+				default
+					set HITSCAN_FIRING_SOUND MACYFIRE
+					set HITSCAN_TO_SHOOT BLUELASERSHOT
+				break
+				case TYPE_ARMOURED_HELMET
+				case TYPE_ARMOURED
+				case TYPE_ROBOTIC
+				case TYPE_VEHICLE
+					set HITSCAN_FIRING_SOUND MSRIFLE_AP
+					set HITSCAN_TO_SHOOT REDLASERSHOT
+				break
+				endswitch
+			state sang_enemyShootHitscanNoTargetSeek
+			state npc_rifleshell
+
+			ife PERFMODE 1
+			 ifcansee
+				 {
+				set gunsmoke_z 7244
+				set gunsmoke_angle 256
+				state spawn_gunsmoke_z
+				set gunsmoke_z 4344
+				state spawn_enemy_ARFLASH
+				state spawn_muzzleflash
+				}
+
+
+			sub ally_mag 1
+			ife ally_mag 0 { state bgar_mag_out_sounds shoot SHOTGUNBOXMAGAZINE ai AIMSSOLDIERRELOAD }
+			resetactioncount
+			}
+	ife my_target -1 ai AIMSSOLDIERIDLE
+	}
+else
+ifai AIMSSOLDIERMOVE
+	{
+	ifactioncount 3
+		{
+		state npc_footsteps
+		resetactioncount
+		}
+	ifpdistl 1536
+		{
+		ife CHAR 7
+		 ifphealthl 25
+		  ifrnd 16
+			{
+			ife ally_subt 0
+				{
+				qstrcpy 7501 5166
+				// 7501 ^1Ms-Corp Sardaukar: ^0Forgive my insolence Master, but you need healing.
+				set ally_subt 143
+				}
+			soundonce MS_SOLD_YHURT
+			}
+		ai AIMSSOLDIERIDLE
+		}
+	ifnotmoving operate
+	}
+else
+ifai AIMSSOLDIERRELOAD
+	{
+	add ally_mag 1
+	ife ally_mag 20 state bgar_mag_in_sounds
+	ife ally_mag 25 { ife FOLLOW_PLAYER 1 ai AIMSSOLDIERMOVE else ai AIMSSOLDIERIDLE }
+	}
+else
+ifai AIMSSOLDIERIDLE
+	{
+	sleeptime 0
+	ife FOLLOW_PLAYER 1
+		{ ifpdistg 1535 ifcansee ifcanseetarget ai AIMSSOLDIERMOVE }
+	ifstrength 300 ifcount 3 { addstrength 1 resetcount }
+	state rand_lookaround
+	}
+
+state player_follow_commands
+
+ifhitweapon
+	{
+	spawn BLOOD
+	state ENEMYKNOCKBACKS
+	state random_wall_jibs
+	state NEWGUNEFFECTS
+	ifrnd 2
+		{
+		ife ally_subt 0
+			{
+			qstrcpy 7501 5167
+			// 7501 ^1Ms-Corp Sardaukar: ^0Lord Mikko protect me!
+			set ally_subt 78
+			}
+		soundonce MS_SOLD_HURT
+		}
+	ifdead
+		{
+		state clear_ally_death
+		state rf
+		ifpdistl 8192 set PLAYER_VOICEOVER 1
+		randvar temp 30
+		ifl temp 10 sound EDFSOLD_DIE1 else
+		ifl temp 20 sound EDFSOLD_DIE2 else
+		sound EDFSOLD_DIE3
+		ai AIMSSOLDIERDYING
+		ifrnd 76 spawn BLOODPOOL
+		}
+	}
+
+ifg INTERNALCOUNT 0 sub INTERNALCOUNT 1
+ifg SEEK_ENEMY_COUNT 0 sub SEEK_ENEMY_COUNT 1
+
+	ife SEEK_ENEMY_COUNT 0
+	{
+	ifdead break
+	ifai AIMSSOLDIERRELOAD break
+	state checkfortarget
+	ifn my_target -1
+		{
+		ifrnd 2
+			{
+			ife ally_subt 0
+			 ifcansee
+				{
+				qstrcpy 7501 5168
+				// 7501 ^1Ms-Corp Sardaukar: ^0More enemies to bring our Lord's wrath onto.
+				set ally_subt 120
+				}
+			soundonce MS_SOLD_INC
+			}
+		ai AIMSSOLDIERFIRE
+		}
+	set SEEK_ENEMY_COUNT 13
+	}
+
+enda

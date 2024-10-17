@@ -1,0 +1,590 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+
+--------------------------------------------------------------------------------
+*/
+
+damageeventtile SPIDER2
+
+useractor notenemy 23526 0
+
+	ife actor_pal 3
+	{
+		sizeto 20 255
+		sizeto 20 255
+		sizeto 20 255
+		sizeto 20 255
+	}
+	else
+	{
+		sizeto 40 255
+		sizeto 40 255
+		sizeto 40 255
+		sizeto 40 255
+	}
+	ifcount 780 killit
+
+enda
+
+action A_SPIDER_IDLE 5 1 5 1 10
+action A_SPIDER_FREEZE 5 1 5 1 10
+action A_SPIDER_PREPSHOOT 5 1 5 1 10
+action A_SPIDER_SHOOT 0 1 5 1 20
+action A_SPIDER_SEEK 5 4 5 1 6
+action A_SPIDER_SHRUNK 5 4 5 1 6
+action A_SPIDER_CHARGE 5 4 5 1 6
+action A_SPIDER_SUFFER 6 6 1 1 10
+action A_SPIDER_FLIPUP 6 6 1 1 10
+action A_SPIDER_FLIPDOWN 6 6 1 1 10
+action A_SPIDER_DYING 30 6 1 1 10
+action A_SPIDER_DEAD 35 1 1 1 1
+action A_SPIDER_JUMP 25 1 5 1 10
+action A_SPIDER_FIREDIE -81
+
+move M_SPIDER_WALK 128
+move M_SPIDER_CHARGE 192
+move M_SPIDER_FLIPUP 0 -196
+move M_SPIDER_JUMP 192
+
+defstate spider_flipchecks // RETURN 1 if action changed
+	set RETURN 0
+
+	ifoutside
+	{
+		ife ally_mag 0
+			nullop
+		else
+		{
+			set ally_mag 0
+			action A_SPIDER_FLIPDOWN
+			set RETURN 1
+		}
+	}
+
+	else ife ally_mag 0
+	  iffloordistl 8
+	  ifrnd 6
+	  ifn sector[].ceilingpicnum 179 // make sure it's not the sky
+	  ife enemy_cooldown1 0
+	{
+		ifgapzl 48 nullop
+		else
+		{
+			action A_SPIDER_FLIPUP
+			espawn 23526
+			ifl sprite[].xrepeat 30
+			seta[RETURN].pal 3
+			set RETURN 1
+		}
+	}
+ends
+
+useractor enemy SPIDER2 100 0
+	// ally_mag used to note whether the spider is on the floor or ceiling
+
+	ife opt_spiders_disable YES killit
+
+	ifaction 0
+	{
+		set enemy_cooldown1 0 // spider flipping up on a cooldown so they don't continously do it as soon as they're on the floor
+		set enemy_cooldown2 0 // sprint is on a cooldown as well
+		set enemy_cooldown3 0 // shoot cooldown
+
+		cstat 257
+		spawn SHOOTME
+		state monst_glow
+		spriteflags NORMAL_ENEMY
+		set blood_type 8
+		geta[].pal actor_pal
+		ife actor_pal 0 { strength 80 sizeat 22 22 set HEAL_COUNT 64 }
+		ife actor_pal 11 { strength 40 sizeat 16 16 set HEAL_COUNT 256 }
+		ife actor_pal 21 { strength 20 sizeat 10 10 set HEAL_COUNT 512 }
+		ife actor_pal 36 { strength 160 sizeat 20 20 set HEAL_COUNT 128 }
+		ife actor_pal 56 { strength 160 sizeat 40 40 set HEAL_COUNT 0 }
+		ife actor_pal 12 { strength 800 sizeat 40 40 set HEAL_COUNT -512 }
+		setactorsoundpitch THISACTOR SPIDER_SIGHT HEAL_COUNT
+
+		action A_SPIDER_IDLE
+	}
+
+	state ENEMYKNOCKBACKS
+	state enemyfloordamage
+	state enemy_fire_damage
+	state enemy_ice_damage
+	state enemy_spirit_damage
+
+	// hack around TROR fuckery
+	geta[].sectnum upd_sect
+	updatesectorz sprite[].x sprite[].y sprite[].z upd_sect
+	ifn upd_sect -1 changespritesect THISACTOR upd_sect
+
+	ifg enemy_cooldown2 0
+		sub enemy_cooldown2 1
+	ifg enemy_cooldown3 0
+		sub enemy_cooldown3 1
+
+	// if spider on floor
+	ife ally_mag 0
+	{
+		ifg enemy_cooldown1 0
+			sub enemy_cooldown1 1
+		fall
+	}
+	// if spider on ceiling
+	else ife ally_mag 3
+	{
+		// if close to target high chance of dropping down (don't do it instantly but don't stay up there forever)
+		ifn my_target -1
+		{
+			ldist temp THISACTOR my_target
+
+			ifl temp 2048
+			  ifrnd 96
+				action A_SPIDER_FLIPDOWN
+		}
+
+		// if getting shot at
+		ifbulletnear
+			action A_SPIDER_FLIPDOWN
+
+		// if stuck
+		ifnotmoving
+		  ifrnd 16
+		{
+			action A_SPIDER_FLIPDOWN
+		}
+		else ifoutside
+			action A_SPIDER_FLIPDOWN
+	}
+
+	ifaction A_SPIDER_IDLE
+	{
+		move STOP
+
+		state checkfortarget
+
+		ifn my_target -1
+		{
+			state spider_flipchecks
+
+			ife RETURN 0
+			  ifrnd 8
+			{
+				sound SPIDER_SIGHT
+				action A_SPIDER_SEEK
+			}
+		}
+	}
+	else ifaction A_SPIDER_FREEZE
+		state frozen_code
+	else ifaction A_SPIDER_PREPSHOOT
+	{
+		set enemy_cooldown3 240
+
+		state checkfortarget
+		ife my_target -1
+			action A_SPIDER_SEEK
+		else
+		{
+			add INTERNALCOUNT 1
+
+			ife my_target PLAYER_IDENTITY
+				move STOP faceplayersmart
+			else
+			{
+				move STOP
+				state fronttowardstarget
+			}
+
+			ifge INTERNALCOUNT 20
+			{
+				set INTERNALCOUNT 0
+				action A_SPIDER_SHOOT
+			}
+		}
+	}
+	else ifaction A_SPIDER_SHOOT
+	{
+		move STOP
+		add INTERNALCOUNT 1
+
+		ife actor_pal 12
+		{
+			sound SPD_DIE2
+			espawn SPIDER2
+
+			ifrnd 128 { seta[RETURN].xrepeat 24 seta[RETURN].yrepeat 24 seta[RETURN].pal 11 }
+			else { seta[RETURN].xrepeat 16 seta[RETURN].yrepeat 16 seta[RETURN].pal 21 }
+			action A_SPIDER_SEEK
+		}
+		else
+		{
+			sound COBR_SPIT
+			shoot SPIT
+			action A_SPIDER_SEEK
+		}
+	}
+	else ifaction A_SPIDER_SEEK
+	{
+		ifmove M_SPIDER_WALK nullop
+		else move M_SPIDER_WALK geth
+
+		ifrnd 4
+		{
+			sound SPIDER_ROAM
+			setactorsoundpitch THISACTOR SPIDER_ROAM HEAL_COUNT
+		}
+
+		state checkfortarget
+
+		ifn my_target -1
+		{
+			state spider_flipchecks
+
+			ife RETURN 0
+			{
+				dist temp THISACTOR my_target
+
+				// prioritize shooting over charging
+				ifl temp 3072
+				  ife enemy_cooldown3 0
+				{
+					set INTERNALCOUNT 0
+					action A_SPIDER_PREPSHOOT
+					break
+				}
+				else ifl temp 8192
+				  ife enemy_cooldown2 0
+				{
+					sound SPIDER_PAIN
+					action A_SPIDER_CHARGE
+					break
+				}
+				// if no actions allowed, shoot anyway but randomly
+				else ifl temp 3072
+				  ifrnd 8
+				{
+					set INTERNALCOUNT 0
+					action A_SPIDER_PREPSHOOT
+					break
+				}
+			}
+		}
+
+		ife ally_mag 0 // on floor
+		  ifnotmoving
+		  ifrnd 32
+		  iffloordistl 4
+		{
+			action A_SPIDER_JUMP
+		}
+	}
+	else ifaction A_SPIDER_SHRUNK
+	{
+		ifmove M_SPIDER_WALK nullop
+		else move M_SPIDER_WALK geth fleeenemy
+
+		ifl SHRUNK_TIME SHRUNKCOUNT // keep shrunk
+			state new_shrunkcode
+		else ifl SHRUNK_TIME SHRUNKDONECOUNT // regrow
+		{
+			state unshrink
+
+			ife actor_pal 0 { sizeto 22 22 sizeto 22 22 sizeto 22 22 sizeto 22 22 }
+			ife actor_pal 11 { sizeto 16 16 sizeto 16 16 sizeto 16 16 sizeto 16 16   }
+			ife actor_pal 21 { sizeto 10 10 sizeto 10 10 sizeto 10 10 sizeto 10 10 }
+			ife actor_pal 36 { sizeto 20 20 sizeto 20 20 sizeto 20 20 sizeto 20 20  }
+			ife actor_pal 56 { sizeto 40 40 sizeto 40 40 sizeto 40 40 sizeto 40 40  }
+			ife actor_pal 12 { sizeto 40 40 sizeto 40 40 sizeto 40 40 sizeto 40 40  }
+		}
+		else
+		{
+			state endshrunkenstate
+			action A_SPIDER_SEEK
+		}
+	}
+	else ifaction A_SPIDER_CHARGE
+	{
+		ifmove M_SPIDER_CHARGE nullop
+		else move M_SPIDER_CHARGE geth
+
+		set enemy_cooldown2 180
+
+		add INTERNALCOUNT 1
+
+		ifn my_target -1
+			state fronttowardstarget
+
+		dist temp THISACTOR my_target
+
+		ifl temp 1024
+		{
+			sound SCRATCHS
+			ife actor_pal 11 shoot 23533
+			else ife actor_pal 21 shoot 23533
+			else ife actor_pal 56 { shoot 4609 shoot 4609 }
+			else
+				shoot 4609
+			action A_SPIDER_SEEK
+		}
+
+		ife ally_mag 0
+		{
+			ifnotmoving
+			  iffloordistl 4
+				action A_SPIDER_JUMP
+		}
+
+		ife ally_mag 3
+		{
+			ldist xydist THISACTOR my_target
+			ifl xydist 4096
+				action A_SPIDER_FLIPDOWN
+			else ifnotmoving
+				action A_SPIDER_FLIPDOWN
+		}
+
+		ifge INTERNALCOUNT 104
+		{
+			sound SPD_DIE2
+			action A_SPIDER_SEEK
+		}
+	}
+	else ifaction A_SPIDER_SUFFER
+	{
+		move STOP
+
+		cstator 8 // flip y
+
+		ifrnd 4
+		{
+			sound SPIDER_PAIN
+			setactorsoundpitch THISACTOR SPIDER_PAIN HEAL_COUNT
+		}
+
+		ifpdistl 1024 ifl sprite[].yrepeat 25 { sound SMALL_CRUSH pstomp }
+
+		ifhitweapon
+		{
+			addkills 1
+
+			shoot NJIB2 shoot NJIB2 shoot NJIB2
+			ifrnd 128
+			{
+				sound SPIDER_DIE
+				setactorsoundpitch THISACTOR SPIDER_DIE HEAL_COUNT
+			}
+			else
+			{
+				sound SPD_DIE2
+				setactorsoundpitch THISACTOR SPD_DIE2 HEAL_COUNT
+			}
+			cstat 0
+			action A_SPIDER_DYING
+			break
+		}
+
+		ifle INTERNALCOUNT 208
+			add INTERNALCOUNT 1
+
+		ifge INTERNALCOUNT 208
+		{
+			// unflip
+			ifstrength 1 strength 1
+			geta[].cstat temp
+
+			ifand temp 8
+				sub temp 8
+
+			seta[].cstat temp
+
+			action A_SPIDER_SEEK
+		}
+	}
+	else ifaction A_SPIDER_FLIPUP
+	{
+		move STOP
+
+		cstator 8 // y flip
+		set enemy_cooldown1 240
+
+		set ally_mag 3
+
+		getceilzofslope sprite[].sectnum sprite[].x sprite[].y z
+		add z 8192
+
+		ifg z sprite[].z
+			action A_SPIDER_SEEK
+		else
+		{
+			geta[].z my_z
+			sub my_z 1024
+			seta[].z my_z
+		}
+	}
+	else ifaction A_SPIDER_FLIPDOWN
+	{
+		move STOP
+
+		geta[].cstat temp
+
+		ifand temp 8
+		{
+			sub temp 8
+			seta[].cstat temp
+		}
+
+		set ally_mag 0
+
+		iffloordistl 48
+		{
+			action A_SPIDER_SEEK
+		}
+	}
+	else ifaction A_SPIDER_DYING
+	{
+		set ally_mag 0
+		move STOP
+		ifactioncount 6
+			action A_SPIDER_DEAD
+	}
+	else ifaction A_SPIDER_DEAD
+	{
+		move STOP
+		cstat 0
+		strength 0
+		ifhitweapon { state squish_sounds spritepal 5 guts JIBS6 5 killit }
+	}
+	else ifaction A_SPIDER_JUMP
+	{
+		ifmove M_SPIDER_JUMP nullop
+		else move M_SPIDER_JUMP geth jumptoplayer
+
+		ifactioncount 8
+			action A_SPIDER_SEEK
+	}
+	else ifaction A_SPIDER_FIREDIE
+	{
+		geta[].htflags temp
+		ifand temp 4 nullop else
+			{
+			xor temp 4
+			seta[].htflags temp
+			}
+		seta[].shade -127
+		move STOP
+		add INTERNALCOUNT 1
+		set ally_mag 0
+		soundonce FLESH_BURNING
+		set COSMETIC_FLAME 30
+		ifrnd 4 shoot SPARK
+		ifrnd 64 ifge INTERNALCOUNT 150 { spritepal 5 state squish_sounds state standard_jibs spawn BIG_SMOKE2 killit }
+	}
+
+	ifhitweapon
+	{
+		state NEWGUNEFFECTS
+
+		// flip down if on ceiling
+		ife ally_mag 0 nullop
+		else
+			action A_SPIDER_FLIPDOWN
+
+		ifaction A_SPIDER_IDLE
+			action A_SPIDER_SEEK
+
+		ifdead
+		{
+			ifg ice_damage 0
+			{
+				sound SOMETHINGFROZE
+				spritepal 1
+				move 0
+				action A_SPIDER_FREEZE
+				strength 0
+			}
+			else ifg fire_damage 0
+			{
+				shoot NJIB2 shoot NJIB2 shoot NJIB2
+				sound SPIDER_DIE
+				setactorsoundpitch THISACTOR SPIDER_DIE 512
+				sound ENGULF_FIRE
+				shoot SPARK shoot SPARK shoot SPARK shoot SPARK shoot SPARK
+				addkills 1
+				geta[].htflags temp
+				xor temp 68
+				seta[].htflags temp
+				seta[].shade -127
+				seta[].pal 0
+				set INTERNALCOUNT 0
+				action A_SPIDER_FIREDIE
+				cstat 0
+			}
+			else ifg sprite[].htextra 60
+			{
+				shoot NJIB2 shoot NJIB2 shoot NJIB2
+				addkills 1
+
+				action A_SPIDER_DYING
+				cstat 0
+			}
+			else ifwasweapon RPG
+			{
+				shoot NJIB2 shoot NJIB2 shoot NJIB2
+				addkills 1
+
+				action A_SPIDER_DYING
+				cstat 0
+			}
+			else ifwasweapon RADIUSEXPLOSION
+			{
+				shoot NJIB2 shoot NJIB2 shoot NJIB2
+				addkills 1
+
+				action A_SPIDER_DYING
+				cstat 0
+			}
+			else
+			{
+				addkills 1
+				action A_SPIDER_DYING
+				cstat 0
+			}
+		}
+		else
+		{
+			geta[].extra temp
+
+			ifle temp 50
+			  ifrnd 96
+			{
+				set INTERNALCOUNT 0
+				action A_SPIDER_SUFFER
+			}
+		}
+	}
+
+enda

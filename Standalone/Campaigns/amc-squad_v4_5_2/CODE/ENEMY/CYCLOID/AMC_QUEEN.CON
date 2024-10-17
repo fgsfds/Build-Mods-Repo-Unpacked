@@ -1,0 +1,290 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Based on the Duke3D CON files by 3DRealms, released under the GPL2 at:
+https://github.com/videogamepreservation/dukenukem3d/blob/ef609159bd352985a0c63734a11241d86c873fe5/testdata/GAME.CON
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+
+--------------------------------------------------------------------------------
+*/
+
+damageeventtile BOSS4
+
+action ABOSS4WALK          0 4  5  1  30
+action ABOSS4DYING        35 9  1  1  20
+action ABOSS4ABOUTTOSHOOT 20 1  5  1  40
+action ABOSS4SHOOT        25 2  5  1  10
+action ABOSS4LAYIT        45 3  5  1  120
+action BOSS4FLINTCH       35 1  1  1  1
+action ABOSS4DEAD         44
+
+move BOSS4WALKVELS 128
+
+ai AIBOSS4LAYEGGS ABOSS4WALK BOSS4WALKVELS seekplayer
+ai AIBOSS4SHOOT ABOSS4ABOUTTOSHOOT STOP faceplayer
+ai AIBOSS4DYING ABOSS4DYING STOP faceplayer
+
+defstate boss4shootstate
+  ifaction ABOSS4ABOUTTOSHOOT
+    ifactioncount 3
+      action ABOSS4SHOOT
+
+  ifaction ABOSS4SHOOT
+  {
+    ifcount 48
+    {
+      ifrnd 4
+        ai AIBOSS4LAYEGGS
+    }
+    ifcount 26
+      ifrnd 32
+	   ifpdistl 16384
+    {
+	flash
+      ifrnd 128
+      {
+        sound SHORT_CIRCUIT
+        ifinwater { palfrom 32 32 0 0 sound PLYR_GRUNT addphealth -2 } else shoot 22610
+      }
+      else
+	  ifcansee
+      {
+      sound SHORT_CIRCUIT
+        ifinwater { palfrom 32 32 0 0 sound PLYR_GRUNT addphealth -1 } else shoot 22610
+      }
+    }
+  }
+
+ends
+
+defstate boss4layeggs
+  ifrnd 2
+	{
+	setactorsoundpitch THISACTOR BOS4_ROAM 0
+    sound BOS4_ROAM
+	}
+
+	ifaction ABOSS4WALK
+		{
+		ifactioncount 4
+			{
+			ifpdistl 8192 { quake 6 }
+			ife temp6 1 sound BIG_BOSS_WALK2 else sound BOS1_WALK
+	        resetactioncount
+			}
+		else
+		ifactioncount 8
+			{
+			ifpdistl 8192 { quake 6 }
+			ife temp6 1 sound BIG_BOSS_WALK1 else sound BOS1_WALK
+			}
+		}
+
+  ifaction ABOSS4LAYIT
+  {
+    ifactioncount 3
+      ifcount 32
+    {
+      ai AIBOSS4LAYEGGS
+      ifrnd 32
+        move BOSS4WALKVELS furthestdir geth
+      spawn NEWBEASTHANG
+    }
+  }
+  else
+    ifcount 64
+      ifrnd 4
+  {
+    move 0
+
+    ifrnd 88
+    {
+      action ABOSS4LAYIT
+	  setactorsoundpitch THISACTOR BOS4_LAY 0
+      sound BOS4_LAY
+    }
+    else
+      ifp palive
+        ifcansee
+    {
+      ai AIBOSS4SHOOT
+	  setactorsoundpitch THISACTOR BOS4_ATTACK 0
+      sound BOS4_ATTACK
+    }
+  }
+
+ends
+
+defstate boss4dyingstate
+  ifaction ABOSS4DEAD
+    break
+  else
+    ifactioncount 9
+  {
+    iffloordistl 8
+      sound BOSSFALL
+	quake 26
+	ifn VOLUME 5
+		{
+		ife VOLUME 6 { state save_arrays state fatigue_system state budget_system setp[].fist_incs 32 }
+		else { ife VOLUME 0 ife LEVEL 7 { state save_arrays state fatigue_system state budget_system endofgame 52 } }
+		}
+
+    action ABOSS4DEAD
+    cstat 0
+  }
+ends
+
+defstate checkboss4hitstate
+  ifrnd 2
+    spawn BLOODPOOL
+
+  ifdead
+  {
+  	ifn XVELSAVED 0
+		{
+		operateactivators XVELSAVED THISACTOR
+		operatemasterswitches XVELSAVED
+		operaterespawns XVELSAVED
+		set XVELSAVED 0
+		}
+	ifspritepal 0 add TREASURE_FOUND 5
+	else add TREASURE_FOUND 1
+    addkills 1
+
+    ai AIBOSS4DYING
+
+	setactorsoundpitch THISACTOR BOS4_DYING 0
+    sound BOS4_DYING
+  }
+  else
+  {
+  setactorsoundpitch THISACTOR BOS4_PAIN 0
+    soundonce BOS4_PAIN
+    debris SCRAP1 1
+    guts JIBS6 1
+
+    ifaction ABOSS4LAYIT
+      break
+
+    ifrnd 16
+    {
+      action BOSS4FLINTCH
+      move 0
+    }
+  }
+ends
+
+defstate boss4code
+
+  ifai 0
+    {
+	state monst_glow
+	ifspritepal 0
+		{
+		set CURBOSS THISACTOR
+		set BOSS_TYPE 1
+		}
+	setactorsoundpitch THISACTOR BOS4_RECOG 0
+	globalsound BOS4_RECOG
+	spawn SHOOTME
+	ai AIBOSS4LAYEGGS
+	}
+  else
+    ifaction BOSS4FLINTCH
+    {
+      ifactioncount 3
+        ai AIBOSS4LAYEGGS
+    }
+  else
+    ifai AIBOSS4LAYEGGS
+      state boss4layeggs
+  else
+    ifai AIBOSS4SHOOT
+      state boss4shootstate
+
+  ifai AIBOSS4DYING
+    state boss4dyingstate
+  else
+  {
+geta[].htextra temp7
+ifhitweapon
+	{
+	set CURBOSS THISACTOR
+    state checkboss4hitstate
+      ifp palive
+        ifpdistl 1280
+      {
+        addphealth -1000
+        palfrom 63 63
+      }
+	}
+  }
+ends
+
+actor BOSS4STAYPUT BOSS4STRENGTH
+
+  fall
+  cactor BOSS4
+  ifspritepal 49 { sizeat 100 100 set temp6 1 }
+  else ifspritepal 0 sizeat 45 45
+  else sizeat 30 30
+  //spritepal 6
+  state boss4code
+  getlastpal
+
+enda
+
+actor BOSS4 BOSS4STRENGTH
+
+  fall
+  ifspritepal 49 { sizeat 100 100 set temp6 1 }
+  else ifspritepal 0 sizeat 45 45
+  else sizeat 30 30
+  //spritepal 6
+  state boss4code
+  getlastpal
+
+enda
+
+action QUEEN_SHOCK 0 2 5 1 5
+
+spriteshadow 4765
+
+useractor notenemy 4765
+
+ifspritepal 49
+		{
+		ifaction 0 action QUEEN_SHOCK
+		}
+
+ifaction QUEEN_SHOCK
+	{
+	soundonce TESLA_ARC
+	ifactioncount 1 sets[].visibility 240
+	ifactioncount 2 { sets[].visibility 244 resetactioncount }
+	}
+
+enda

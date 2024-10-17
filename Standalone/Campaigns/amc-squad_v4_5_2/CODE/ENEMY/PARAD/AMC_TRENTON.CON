@@ -1,0 +1,580 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+
+--------------------------------------------------------------------------------
+*/
+
+
+damageeventtile TRENTON_SOLARI
+
+spriteshadow 14228
+spritenoshade 14228
+
+action TRENTON_WALK_AWAY 4716 4 5 1 8
+
+useractor notenemy 14228
+
+ifaction 0 { sizeat 27 27 action FIVE_ANG }
+
+ifaction FIVE_ANG
+	{
+	ifn LOTAGSAVED 0
+		{
+		checkactivatormotion LOTAGSAVED
+			ife RETURN 1
+				{
+				action TRENTON_WALK_AWAY
+				}
+		}
+	}
+
+ifaction TRENTON_WALK_AWAY // 'Running'
+	{
+	fall
+	move fake_player_run geth
+	randvar footstep_count 3
+	add temp4 1
+	ifg temp4 8
+		{
+		ife footstep_count 0 globalsound NPC_STEP1 else
+		ife footstep_count 1 globalsound NPC_STEP2 else
+		ife footstep_count 2 globalsound NPC_STEP3 else
+		ife footstep_count 3 globalsound NPC_STEP4
+		set temp4 0
+		}
+	sub YVELSAVED 1
+	ife YVELSAVED 0
+		{
+		move 0
+		action FIVE_ANG
+		ifspritepal 3 killit
+		}
+	}
+
+enda
+
+action A_TRENTON_STAND -4716 1 5 1 0
+action A_TRENTON_WALK 0 4 5 1 12
+
+action A_TRENTON_ATTACK 20 4 5 1 12
+action A_TRENTON_ATTACK2 55 4 5 1 12
+
+action A_TRENTON_PARRY 40 1 5 1 8
+action A_TRENTON_DEFLECT 143 3 5 1 12
+
+action A_TRENTON_DODGE_RIGHT 158 1 5 1 8
+action A_TRENTON_DODGE_LEFT 163 1 5 1 8
+
+action A_TRENTON_PAIN 50 1 5 1 0
+
+move TREN_WALK 140
+
+ai AI_TRENTON_STAND A_TRENTON_STAND STOP 
+ai AI_TRENTON_WALK A_TRENTON_WALK TREN_WALK geth
+ai AI_TRENTON_ATTACK A_TRENTON_ATTACK STOP 
+ai AI_TRENTON_ATTACK2 A_TRENTON_ATTACK2 STOP 
+ai AI_TRENTON_SPELL A_TRENTON_PARRY STOP 
+ai AI_TRENTON_DEFLECT A_TRENTON_DEFLECT STOP 
+ai AI_TRENTON_PARRY A_TRENTON_PARRY STOP 
+ai AI_TRENTON_TELEPORT A_TRENTON_STAND STOP
+
+spriteflags TRENTON_SOLARI SFLAG_NODAMAGEPUSH
+
+useractor enemy TRENTON_SOLARI
+fall
+
+ifaction 0
+	{
+	state monst_glow
+	spawn SHOOTME
+	sizeat 27 27
+	cstat 257
+	ifspawnedby APLAYER
+		{
+		set ally_mag 0
+		strength 1000
+		ai AI_TRENTON_WALK
+		}
+	else
+	ifspritepal 3
+		{
+		set ally_mag 0
+		strength 3000
+
+		ife gp_subt 0
+			{
+			set subt_id 13017
+			set gp_subt 130
+			}
+
+		ai AI_TRENTON_WALK
+		}
+	else
+	ifspritepal 10
+		{
+		globalsound BLOOD_EXPLOSION
+		spawn BIG_BLOOD_EXE
+		strength 1500
+		ai AI_TRENTON_WALK
+		}
+	else
+		{
+		set ally_mag 0
+		strength 2000
+		ai AI_TRENTON_STAND
+		}
+	}
+
+ife ally_mag 2
+ ife global_trigger 5108
+		{
+		globalsound BLOOD_EXPLOSION
+		spawn BIG_BLOOD_EXE
+		killit
+		}
+
+ifg targetlock 0 sub targetlock 1
+
+ifai AI_TRENTON_TELEPORT
+	{
+	ifl temp4 254 add temp4 8
+	set alpha temp4
+	state SPRITE_FADE
+	ifg temp4 254
+		{
+		globalsound BLOOD_EXPLOSION
+		spawn BIG_BLOOD_EXE
+		ife ally_mag 2 { spawn BRIMSTONE killit }
+		globalsound TRENTON_BAT_LAUGH
+		globalsound BATS_FLYBY
+		screensound TRENTON_BAT_LAUGH
+		screensound BATS_FLYBY
+		ifrnd 128 spawn 10644 else spawn 10643
+		set temp 20
+		whilevarn temp 0
+			{
+			set temp3 sprite[].x
+			add temp3 256
+			randvar temp4 2048
+			rotatepoint sprite[].x sprite[].y temp3 sprite[].y temp4 temp5 temp6
+			espawn 6200
+			seta[RETURN].x temp5
+			seta[RETURN].y temp6
+			geta[].z temp7
+			sub temp7 4096
+			randvar temp8 1024
+			sub temp7 temp8
+			seta[RETURN].z temp7
+			espawn BIG_BLOOD_EXE
+			seta[RETURN].x temp5
+			seta[RETURN].y temp6
+			seta[].z temp7
+			sub temp 1
+			}
+		ifn HITAGSAVED 0
+			{
+			operateactivators HITAGSAVED THISACTOR
+			operatemasterswitches HITAGSAVED
+			operaterespawns HITAGSAVED
+			}
+		else
+			{
+			ife ally_mag 3 set global_trigger 5108
+			operateactivators 5108 THISACTOR
+			operatemasterswitches 5108
+			operaterespawns 5108
+			}
+
+			readarrayfromfile WEAPONS_RESEARCH F_WEAPONS_AMCTC
+			ife WEAPONS_RESEARCH[10] 0 // Unlock beamsabre research
+				{
+				setarray WEAPONS_RESEARCH[10] 1
+				writearraytofile WEAPONS_RESEARCH F_WEAPONS_AMCTC
+				}
+		killit
+		}
+	}
+else
+ifai AI_TRENTON_STAND
+	{
+	ifn LOTAGSAVED 0
+		checkactivatormotion LOTAGSAVED
+	else
+		checkactivatormotion 10018
+		ife RETURN 1 ai AI_TRENTON_WALK
+	}
+else
+ifai AI_TRENTON_WALK
+	{
+	state checkfortarget
+	add INTERNALCOUNT 1
+	 ifg INTERNALCOUNT 9
+		{
+		state npc_footsteps
+		set INTERNALCOUNT 0
+		}
+
+	ifstrength 2000
+	ife ally_mag 1
+		{
+
+		ife gp_subt 0
+			{
+			set subt_id 13018
+			set gp_subt 130
+			}
+
+		strength 3000
+		espawn TRENTON_SOLARI
+		seta[RETURN].pal 10
+		setactorvar[RETURN].ally_mag 2
+		geta[].x temp
+		geta[].y temp2
+		set temp3 temp
+		add temp3 2048
+		set temp4 256
+		rotatepoint temp temp2 temp3 temp2 temp4 temp5 temp6
+		seta[RETURN].x temp5
+		seta[RETURN].y temp6
+
+		espawn TRENTON_SOLARI
+		seta[RETURN].pal 10
+		setactorvar[RETURN].ally_mag 2
+		geta[].x temp
+		geta[].y temp2
+		set temp3 temp
+		add temp3 2048
+		set temp4 -256
+		rotatepoint temp temp2 temp3 temp2 temp4 temp5 temp6
+		seta[RETURN].x temp5
+		seta[RETURN].y temp6
+
+		espawn TRENTON_SOLARI
+		seta[RETURN].pal 10
+		setactorvar[RETURN].ally_mag 2
+		geta[].x temp
+		geta[].y temp2
+		set temp3 temp
+		add temp3 2048
+		set temp4 -512
+		rotatepoint temp temp2 temp3 temp2 temp4 temp5 temp6
+		seta[RETURN].x temp5
+		seta[RETURN].y temp6
+
+		espawn TRENTON_SOLARI
+		seta[RETURN].pal 10
+		setactorvar[RETURN].ally_mag 2
+		geta[].x temp
+		geta[].y temp2
+		set temp3 temp
+		add temp3 2048
+		set temp4 -512
+		rotatepoint temp temp2 temp3 temp2 temp4 temp5 temp6
+		seta[RETURN].x temp5
+		seta[RETURN].y temp6
+		set ally_mag 3
+		}
+
+ifg INTERNALCOUNT_2 0 sub INTERNALCOUNT_2 1
+
+	ife ally_mag 1 ifrnd 8 ai AI_TRENTON_SPELL else
+	ifn my_target -1
+	 ifl xydist 1280
+	  ifrnd 64
+	   ife INTERNALCOUNT_2 0
+		{
+		ifrnd 64 sound TRENT_EXH1
+		else ifrnd 128 sound TRENT_EXH2
+		else ifrnd 196 sound TRENT_EXH3
+		else sound TRENT_EXH4
+		ifrnd 128 ai AI_TRENTON_ATTACK2
+		else ai AI_TRENTON_ATTACK
+		}
+
+	ifhitweapon
+		{
+		ifspritepal 3 set CURBOSS THISACTOR
+		geta[].htpicnum temp
+		getprojectile[temp].userdata temp2
+		ifg INTERNALCOUNT_2 0
+			{
+			 ifand temp2 131072
+				{
+				ifrnd 96
+					{
+					ifrnd 64 sound TRENT_PAIN1
+					else ifrnd 128 sound TRENT_PAIN2
+					else ifrnd 196 sound TRENT_PAIN3
+					else sound TRENT_PAIN4
+					}
+				spawn BLOOD
+				sound SLASH
+				set INTERNALCOUNT_2 0
+				set temp2 0
+				}
+			}
+		else
+			{
+			ifand temp2 131072
+				{
+				ai AI_TRENTON_PARRY
+				}
+				else
+				{
+				ifrnd 64
+					{
+					ifrnd 64 sound TRENT_MOCK1
+					else ifrnd 128 sound TRENT_MOCK2
+					else ifrnd 196 sound TRENT_MOCK3
+					else sound TRENT_MOCK4
+					}
+				ai AI_TRENTON_DEFLECT
+				}
+			}
+		}
+
+	}
+else
+ifai AI_TRENTON_ATTACK
+	{
+	state checkfortarget
+	state fronttowardstarget
+	ifactioncount 3
+		{
+		ife my_target -1 ai AI_TRENTON_WALK
+		else ifg xydist 1280 ai AI_TRENTON_WALK
+		else ai AI_TRENTON_ATTACK2
+		}
+	else ifactioncount 2
+		{
+		   ifn SWORD_BLOCK 0
+			 ifp pfacing
+				{
+				shoot SPARK shoot SPARK shoot SPARK shoot SPARK shoot SPARK
+				shoot SPARK shoot SPARK shoot SPARK shoot SPARK shoot SPARK
+				sub p_stamina 80
+				ifn skybox -1 nullop else wackplayer
+				state setknockback
+				sound BEAMSABRE_CLASH
+				ifl SKILL_LEVEL 3 set INTERNALCOUNT_2 90 else
+				set INTERNALCOUNT_2 50
+				ai AI_TRENTON_WALK
+				}
+			else
+			{
+			set PROJECTILE_TO_SHOOT 12053
+			set PROJECTILE_FIRING_SOUND 4
+			state sang_enemyShootProjectile
+			}
+		}
+	else ifactioncount 1 soundonce BEAMSABRE_SWING
+	ife my_target -1 ai AI_TRENTON_WALK
+	ifg xydist 1280 ai AI_TRENTON_WALK
+	}
+else
+ifai AI_TRENTON_ATTACK2
+	{
+	state checkfortarget
+	state fronttowardstarget
+	ifactioncount 3
+		{
+		ife my_target -1 ai AI_TRENTON_WALK
+		else ifg xydist 1280 ai AI_TRENTON_WALK
+		else ai AI_TRENTON_ATTACK
+		}
+	else ifactioncount 2
+		{
+		   ifn SWORD_BLOCK 0
+			 ifp pfacing
+				{
+				shoot SPARK shoot SPARK shoot SPARK shoot SPARK shoot SPARK
+				shoot SPARK shoot SPARK shoot SPARK shoot SPARK shoot SPARK
+				sub p_stamina 80
+				ifn skybox -1 nullop else wackplayer
+				state setknockback
+				sound BEAMSABRE_CLASH
+				ifl SKILL_LEVEL 3 set INTERNALCOUNT_2 90 else
+				set INTERNALCOUNT_2 50
+				ai AI_TRENTON_WALK
+				}
+			else
+			{
+			set PROJECTILE_TO_SHOOT 12053
+			set PROJECTILE_FIRING_SOUND 4
+			state sang_enemyShootProjectile
+			}
+		}
+	else ifactioncount 1 soundonce BEAMSABRE_SWING
+	ife my_target -1 ai AI_TRENTON_WALK
+	ifg xydist 1280 ai AI_TRENTON_WALK
+	}
+else ifai AI_TRENTON_SPELL
+	{
+	state fronttowardstarget
+	ifactioncount 8
+		{
+		ifrnd 128
+			{
+			spawn 6204 spawn 6204 spawn 6204 spawn 6204 spawn 6204 spawn 6204 spawn 6204 spawn 6204
+			spawn 6204 spawn 6204 spawn 6204 spawn 6204 spawn 6204 spawn 6204 spawn 6204 spawn 6204
+			sound TRENTON_BAT_LAUGH
+			}
+		else
+			{
+			shoot BLOOD_BLAST
+			sound REDMGUN_FIRE
+			}
+		ai AI_TRENTON_WALK
+		}
+	}
+else ifai AI_TRENTON_DEFLECT
+	{
+	state fronttowardstarget
+	ifactioncount 2
+		{
+		seta[].htextra -1
+		sound BEAMSABRE_CLASH
+		 ifn sprite[].htpicnum -1
+			{
+			eshootvar sprite[].htpicnum
+			ifn RETURN -1 seta[RETURN].ang sprite[].htang
+			}
+		ifl SKILL_LEVEL 3 set INTERNALCOUNT_2 30 else
+		set INTERNALCOUNT_2 15
+		ifn my_target -1 ifl xydist 1280 { ifrnd 128 ai AI_TRENTON_ATTACK2 else ai AI_TRENTON_ATTACK }
+		else ai AI_TRENTON_WALK
+		resetactioncount
+		}
+	}
+else ifai AI_TRENTON_PARRY
+	{
+	state fronttowardstarget
+	ifactioncount 2
+		{
+		seta[].htextra -1
+		shoot SPARK shoot SPARK shoot SPARK shoot SPARK shoot SPARK
+		shoot SPARK shoot SPARK shoot SPARK shoot SPARK shoot SPARK
+		getav[my_target].myowner temp4
+				ife temp4 PLAYER_IDENTITY
+				 ifpdistl 1536
+				{
+				sub p_stamina 40
+				state setknockback
+				ifl SKILL_LEVEL 3 set INTERNALCOUNT_2 60 else
+				set INTERNALCOUNT_2 30
+				}
+				else
+				{
+				state checkfortarget
+				set INTERNALCOUNT_2 30
+				}
+		sound BEAMSABRE_CLASH
+
+		set temp2 0
+		ifrnd 128 ai AI_TRENTON_ATTACK2
+		else ai AI_TRENTON_ATTACK
+		resetactioncount
+		}
+	}
+
+ifdead
+	{
+	ifspritepal 3
+		{
+		strength 6000
+		set CURBOSS THISACTOR
+		set ally_mag 1
+		set BOSS_TYPE 8
+		quake 104
+		globalsound TRENTON_BAT_LAUGH
+		palfrom 10 64 0 0
+		operateactivators 1000 THISACTOR
+		operatemasterswitches 1000
+		operaterespawns 1000
+
+		ife gp_subt 0
+			{
+			set subt_id 13019
+			set gp_subt 130
+			}
+
+		espawn TRENTON_SOLARI
+		seta[RETURN].pal 10
+		setactorvar[RETURN].ally_mag 2
+		geta[].x temp
+		geta[].y temp2
+		set temp3 temp
+		add temp3 2048
+		set temp4 256
+		rotatepoint temp temp2 temp3 temp2 temp4 temp5 temp6
+		seta[RETURN].x temp5
+		seta[RETURN].y temp6
+
+		espawn TRENTON_SOLARI
+		seta[RETURN].pal 10
+		setactorvar[RETURN].ally_mag 2
+		geta[].x temp
+		geta[].y temp2
+		set temp3 temp
+		add temp3 2048
+		set temp4 -256
+		rotatepoint temp temp2 temp3 temp2 temp4 temp5 temp6
+		seta[RETURN].x temp5
+		seta[RETURN].y temp6
+		spritepal 9
+		ai AI_TRENTON_WALK
+		}
+	else
+		{
+		ife VOLUME 1 ife LEVEL 54
+		 ifn rendmode 0 // using polymost and in the arsia mons broadcasting level?
+			{
+			state fade_out_black
+			stopallsounds
+			stopallmusic
+			set music_fade 1
+			readarrayfromfile WEAPONS_RESEARCH F_WEAPONS_AMCTC
+			ife WEAPONS_RESEARCH[10] 0 // Unlock beamsabre research
+				{
+				setarray WEAPONS_RESEARCH[10] 1
+				writearraytofile WEAPONS_RESEARCH F_WEAPONS_AMCTC
+				}
+			startcutscene 1315
+			operateactivators 10003 THISACTOR
+			operatemasterswitches 10003
+			operaterespawns 10003
+			killit
+			}
+			else
+			{
+			ifai AI_TRENTON_TELEPORT nullop
+			else { set temp4 0 ai AI_TRENTON_TELEPORT }
+			}
+		}
+	}
+
+
+enda

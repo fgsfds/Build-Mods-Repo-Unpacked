@@ -1,0 +1,2399 @@
+defstate bst_clear_list
+	for temp range MAX_BESTIARY_COUNT
+	{
+		setarray bst_currentlist[temp] 0
+	}
+ends
+
+// INPUT: ui_query_id set to define of the enemy. This should generally be equal to the picnum (or to be more precise, the id for the enemy that gets put into ENEMIES_BESTIARY)
+// I generally don't put single use boss enemies in here, dunno how you feel about that, I'm not married to that.
+
+// output:
+// Text header in qputs 1380
+// Standard description in qputs 1381 thru 1389
+// Extra MIA'd description in 1390 thru 1394
+// Limit each line of the text description to 44 characters!
+// And then the ones found in BESTIARY_DEFVARS
+// ignore bst_hasdef, is used for ui processing, do not touch!!
+
+defstate bst_is_miad
+	set temp8 0
+	set bst_item_ismiad 0
+	for temp8 range MAX_BESTIARY_COUNT
+	{
+		ife ENEMIES_MIAD[temp8] ui_query_id
+			set bst_item_ismiad 1
+	}
+ends
+
+defstate bst_clear_defs
+	// clear strings
+	qsprintf 1380 0
+	qsprintf 1381 0
+	qsprintf 1382 0
+	qsprintf 1383 0
+	qsprintf 1384 0
+	qsprintf 1385 0
+	qsprintf 1386 0
+	qsprintf 1387 0
+	qsprintf 1388 0
+	qsprintf 1389 0
+	qsprintf 1390 0
+	qsprintf 1391 0
+	qsprintf 1392 0
+	qsprintf 1393 0
+	qsprintf 1394 0
+	qsprintf 1395 0
+
+	qsprintf 1501 0
+	qsprintf 1502 0
+	qsprintf 1503 0
+	qsprintf 1504 0
+
+	// By default armor is set to none
+	// If an enemy has armor in all cases, overwrite this flag
+	// If an enemy has armor only in specific cases, OR the flag with the armor in question
+	set bst_item_armorflags ARMOR_FLAG_NONE
+
+	// By default the query id IS the picnum, but you can overrule it if you want
+	set bst_item_sound -1
+	set bst_icon_id 0
+	set bst_item_pal 0
+	set bst_item_research -1
+	set bst_item_res_cat -1
+	set bst_item_picnum ui_query_id
+	set bst_hasdef 0
+	state bst_is_miad
+ends
+
+defstate bst_check_hasdef
+	// if string 1380 is not an empty string then we had a def
+	qstrcmp 1380 1399 bst_hasdef
+	ifn bst_hasdef 0
+		set bst_hasdef 1
+ends
+
+defstate bst_cycloid_defs
+	state bst_clear_defs
+
+	switch ui_query_id
+		case BATTLELORD
+			qputs 1380 Battlelord
+			qputs 1381 A giant, angry alien creature who makes
+			qputs 1382 a silverback look like a pencil pusher.
+			qputs 1383 Ranging anywhere from 8ft to 20ft tall,
+			qputs 1384 they are never far from their handheld
+			qputs 1385 gatling gun. The best way to put one of
+			qputs 1386 these down is to simply pour as much
+			qputs 1387 firepower into it as possible, before it
+			qputs 1388 tears you to shreds.
+
+			qputs 1390 We can only speculate on the origin of
+			qputs 1391 these beasts; it has enough intelligence
+			qputs 1392 to learn languages and use relatively
+			qputs 1393 simple technology.
+			set bst_item_sound BOS1MRG
+			set bst_icon_id 11
+			break
+		case BLORD_BESTIARY_PAL0
+			qputs 1380 Battlebaron
+			qputs 1381 These monsters, ostensibly Cycloids,
+			qputs 1382 lead the Cycloid armies and presumably
+			qputs 1383 act as Generals. Subservient only to
+			qputs 1384 Overlords and Emperors, they wield a
+			qputs 1385 massive gatling gun alongside powerful
+			qputs 1386 mortars. Hold fire and don't release
+			qputs 1387 the trigger till it's dead.
+
+			set bst_item_sound BOS1_RECOG
+			set bst_icon_id 87
+			break
+		case BOSS3
+			qputs 1380 Overlord
+			qputs 1381 A hideous, frog-like monstrosity with
+			qputs 1382 a huge missile launcher strapped to its
+			qputs 1383 back. Get too far away from it and it'll
+			qputs 1384 launch a huge barrage of missiles into
+			qputs 1385 the sky to rain down destruction. As
+			qputs 1386 with most Cycloid forces, just keep
+			qputs 1387 firing at it until it eventually drops.
+			set bst_item_sound BOS3_RECOG
+			set bst_icon_id 9
+			break
+		case BOSS2
+			qputs 1380 Cycloid Emperor
+			qputs 1381 It's safe to assume the Emperors are
+			qputs 1382 leaders of the Cycloid Empire. We don't
+			qputs 1383 know how many of these there actually
+			qputs 1384 are throughout the Empire, but it's
+			qputs 1385 reasonable to assume that there is most
+			qputs 1386 likely something even bigger in charge
+			qputs 1387 giving these things the orders.
+			set bst_item_sound BOS2_RECOG
+			set bst_icon_id 10
+			break
+		case BOSS4
+			qputs 1380 Alien Queen
+			qputs 1381 All we know for certain is that these
+			qputs 1382 creatures were born from humans; we
+			qputs 1383 cannot ascertain why or for what purpose.
+			qputs 1384 They can give rapid birth to a constant
+			qputs 1385 stream of Protector Drones; your only
+			qputs 1386 choice of action is to fight and kill
+			qputs 1387 these tragic creations.
+			set bst_item_sound BOS4_RECOG
+			set bst_icon_id 14
+			break
+		case CYBERALIEN
+			qputs 1380 Cyberalien
+			qputs 1381 A cybernetic variant; we're not sure
+			qputs 1382 how willing the lizard trooper was when
+			qputs 1383 it had all these cybernetics implanted
+			qputs 1384 in it. The process is irreversible, but
+			qputs 1385 the heavy armour plating and homing
+			qputs 1386 missiles means the Cyberalien will most
+			qputs 1387 likely live longer this way regardless.
+
+			qputs 1390 On closer inspection of this creation,
+			qputs 1391 the only organic parts are the original
+			qputs 1392 liztroop's head and spinal chord.
+			qputs 1393 Everything else is completely cybernetic.
+			set bst_item_sound CYBERA_RECOG
+
+			set bst_item_research RS_P_ENHANCEDHEATSEEKERCARD
+			set bst_item_res_cat RS_TAB_PERSONNEL
+
+			set bst_item_armorflags ARMOR_FLAG_MECH
+			set bst_icon_id 58
+			break
+		case LIZMAN
+			qputs 1380 Lizmen
+			qputs 1381 Reptilian humanoid soldiers of the 
+			qputs 1382 Cycloid Army. More hardy and durable 
+			qputs 1383 than the lizard troopers; their powerful
+			qputs 1384 legs allow them to leap great distances 
+			qputs 1385 in order to close the gap on their prey
+			qputs 1386 and pepper them with gunfire.
+
+			qputs 1390 The Lizmen are carnivorous and have been
+			qputs 1391 seen not only eating but even defecating
+			qputs 1392 on the battlefield itself. Agents should
+			qputs 1393 watch their step quite literally.
+			set bst_item_sound CAPT_RECOG
+
+			set bst_item_research RS_W_LIZRFMOD
+			set bst_item_res_cat RS_TAB_WEAPONS
+
+			set bst_icon_id 7
+			break
+		case ELITE_LIZMAN
+			qputs 1380 Elite Lizmen
+			qputs 1381 This lizman has climbed the ranks and
+			qputs 1382 proven their ferocity to the Cycloid
+			qputs 1383 Empire. The Energy shield they have
+			qputs 1384 can soak up any amount of firepower
+			qputs 1385 and recharges rapidly once depleted.
+			qputs 1386 It is imperative that we study this
+			qputs 1387 technology as soon as possible.
+
+			qputs 1390 This Elite variant seem to be smarter
+			qputs 1391 than usual. It's entirely possible we
+			qputs 1392 may be able to communicate with one of
+			qputs 1393 them, should they speak our tongue.
+			set bst_item_sound CAPT_RECOG
+
+			set bst_item_research RS_P_PES
+			set bst_item_res_cat RS_TAB_PERSONNEL
+
+			set bst_item_pal 21
+			set bst_icon_id 99
+			break
+		case LIZ_SNIPER
+			qputs 1380 Lizard Sniper
+			qputs 1381 A very rare sight; a female lizard
+			qputs 1382 trooper. They wield light railguns
+			qputs 1383 that fire both a powerful singular
+			qputs 1384 blast as well as a burst of rapid
+			qputs 1385 fire energy incase a potential
+			qputs 1386 target gets too close.
+
+			qputs 1390 Like the other lizard troopers, these
+			qputs 1391 are clones.
+
+			set bst_item_sound CYSN_RCG
+
+			set bst_icon_id 160
+			break
+		case NEWBEAST
+			qputs 1380 Protector Drone
+			qputs 1381 These inhuman creatures are tough,
+			qputs 1382 covered in Chitin and can even fire a
+			qputs 1383 shrinkblast from the mouth. They seem
+			qputs 1384 to exist purely to protect Alien Queens.
+			qputs 1385 They don't seem to be able to reproduce
+			qputs 1386 or perform any higher function beyond
+			qputs 1387 killing.
+
+			qputs 1390 Tests have shown these creatures are all
+			qputs 1391 female. Whatever species this used to be
+			qputs 1392 was clearly monogendered.
+			set bst_item_sound NEWBEAST_RECOG
+			set bst_item_armorflags ARMOR_FLAG_CHITIN
+
+			set bst_item_research RS_P_ACIDPROTECTION
+			set bst_item_res_cat RS_TAB_PERSONNEL
+
+			set bst_item_pal 15
+			set bst_icon_id 13
+			break
+		case PIGBOSS
+			qputs 1380 Pig Cop Chieftain
+			qputs 1381 It's hard to say whether this thing
+			qputs 1382 was intentionally created or just a
+			qputs 1383 a freak occurence with the regular
+			qputs 1384 pig cop mutation process.
+			qputs 1385 Take a Pig Cop, increase its size,
+			qputs 1386 strength, and utter hatred of people.
+			qputs 1387 And then give it a bunch of big guns
+			qputs 1388 strapped together.
+
+			qputs 1390 Mutated beyond any possible hope of
+			qputs 1391 recovery, the most moral thing we can do
+			qputs 1392 with these monstrosities is euthanize
+			qputs 1393 them.
+			set bst_item_sound PIGBROAR
+			set bst_icon_id 103
+			break
+		case LIZBOSS
+			qputs 1380 Mecha Lizard
+			qputs 1381 These huge creatures are loaded to the
+			qputs 1382 brim with weaponry, and a massive jet
+			qputs 1383 pack to boot. Fortunately all this
+			qputs 1384 weight means they couldn't armour-plate
+			qputs 1385 the thing. Watch your step for their
+			qputs 1386 explosive mines, and just lay down as
+			qputs 1387 much firepower as possible when it's
+			qputs 1388 stationary.
+
+			qputs 1390 Hardly anything remains of the original
+			qputs 1391 lizman entombed inside all of this
+			qputs 1392 machinery; the head seems to be almost
+			qputs 1393 ornamental.
+			set bst_item_sound CYBOSS_RECOG
+
+			set bst_item_research RS_P_JETPACKEFFICMOD
+			set bst_item_res_cat RS_TAB_PERSONNEL
+
+			set bst_icon_id 104
+			break
+		case PIGCOP
+			qputs 1380 Pig Cop
+			qputs 1381 Mutated former service members; we're
+			qputs 1382 still not exactly sure why they picked
+			qputs 1383 a piglike form for this mutation. What
+			qputs 1384 we do know is that they are consumed by
+			qputs 1385 a murderous hatred of the human race,
+			qputs 1386 and will attack on sight. Armed with
+			qputs 1387 Shotguns, the Pig cops are dangerous
+			qputs 1388 to combat in close quarters.
+
+			qputs 1390 Reversing the mutation process is not
+			qputs 1391 yet possible; it is unlikely that the
+			qputs 1392 subject would be able to handle either
+			qputs 1393 the physical or mental trauma of another
+			qputs 1394 complete body transformation.
+			set bst_item_sound PIG_RECOG
+
+			set bst_item_research RS_P_ARMOURSTRENGTH
+			set bst_item_res_cat RS_TAB_PERSONNEL
+
+			set bst_item_armorflags ARMOR_FLAG_BODY
+			set bst_icon_id 6
+			break
+		case PIGCOP_RIOT
+			qputs 1380 Riot Pig Cop
+			qputs 1381 Rather than being armed with a shotgun
+			qputs 1382 and bulky body armour, these enemies use
+			qputs 1383 a riot shield and a pistol. Relatively
+			qputs 1384 impervious to normal attacks, the best
+			qputs 1385 way to fight these is to shoot them
+			qputs 1386 around the shield.
+
+			qputs 1390 The Riot shield these pigs utilise was
+			qputs 1391 intended for powered armour; it is too
+			qputs 1392 heavy and unwieldy for a human to use.
+			set bst_item_sound PIG_RECOG
+
+			set bst_item_research RS_P_ARMOURSTRENGTH
+			set bst_item_res_cat RS_TAB_PERSONNEL
+
+			set bst_icon_id 64
+			break
+		case RECON
+			qputs 1380 Pig Cop Recon Flier
+			qputs 1381 We finally have an answer to that age
+			qputs 1382 old question; yes they can fly, and yes
+			qputs 1383 it was a stupid idea. Once used as yet
+			qputs 1384 another tool of the state, now it simply
+			qputs 1385 just shoots to kill on sight. Whilst
+			qputs 1386 lightly armoured and relatively easy to
+			qputs 1387 shoot down, sadly the occupant will
+			qputs 1388 always somehow manage to survive.
+			set bst_item_sound PIG_RECOG
+			set bst_icon_id 153
+			break
+		case TANK
+			qputs 1380 Pig Cop Tank
+			qputs 1381 Police Riot tanks, a truly valuable
+			qputs 1382 use of taxpayer's money, with all the
+			qputs 1383 weaponry converted to lethal ammunition.
+			qputs 1384 For reasons unknown to anyone, the tanks
+			qputs 1385 have a self destruct button at the back.
+			qputs 1386 If you don't have the means to penetrate
+			qputs 1387 the armour, circle round it and smash
+			qputs 1388 that button to blow it up.
+			set bst_item_sound PIG_RECOG
+			set bst_item_armorflags ARMOR_FLAG_MECH
+			set bst_icon_id 12
+			break
+		case PIG_SF
+			qputs 1380 Special Forces Pig
+			qputs 1381 A step up from regular Pig Cops; these
+			qputs 1382 foes wear full body armour and wield
+			qputs 1383 automatic shotguns. They are just as
+			qputs 1384 angry and rabid as the regular Pig cops,
+			qputs 1385 but can maintain their composure better.
+
+			qputs 1390 Despite their increased killing prowess,
+			qputs 1391 this enemy is still viewed as cannon
+			qputs 1392 fodder by the Cycloids, and are merely
+			qputs 1393 thrown indiscriminately at enemy forces.
+			set bst_item_sound PIGC_TAUNT01
+
+			set bst_item_research RS_P_ARMOURSTRENGTH
+			set bst_item_res_cat RS_TAB_PERSONNEL
+
+			set bst_item_armorflags ARMOR_FLAG_BODY
+			set bst_icon_id 97
+			break
+		case SPACE_LIZTROOP
+			qputs 1380 Space Liztroop
+			qputs 1381 Whilst the standard liztroops can
+			qputs 1382 actually survive in a vacuum for a
+			qputs 1383 limited time, their ability to fight
+			qputs 1384 was hampered. The Space suit these
+			qputs 1385 troops wear protect them and allow for
+			qputs 1386 much longer operations, but it does
+			qputs 1387 not afford additional protection against
+			qputs 1388 combat.
+
+			qputs 1390 These liztroops seemed to be cloned from
+			qputs 1391 civilian liztroop engineers; presumably
+			qputs 1392 they were intended to perform external
+			qputs 1393 repair work on Cycloid ships.
+			set bst_item_sound PRED_RECOG
+
+			set bst_item_research RS_P_IMPROXYGENCIRC
+			set bst_item_res_cat RS_TAB_PERSONNEL
+
+			set bst_icon_id 105
+			break
+		case LIZTROOP
+			qputs 1380 Lizard Trooper
+			qputs 1381 Liztroops are the footsoldiers of the
+			qputs 1382 Cycloid army. Evidently cloned from a
+			qputs 1383 small stock of the original species;
+			qputs 1384 it's not known if they are willing
+			qputs 1385 members of the Cycloid empire or just
+			qputs 1386 a subjugated race. There are a variety
+			qputs 1387 of ranks to the Liztroop forces, but
+			qputs 1388 only an incredible rare few manage to
+			qputs 1389 climb any higher.
+
+			qputs 1390 Liztroops who perform exceptionally are
+			qputs 1391 utilised as cloning stock; it is highly
+			qputs 1392 likely that the EDF has been battling
+			qputs 1393 just a mere handful of individuals this
+			qputs 1394 entire time.
+			set bst_item_sound PRED_RECOG
+
+			set bst_item_research RS_P_CYCLOIDJETPACKCONTR
+			set bst_item_res_cat RS_TAB_PERSONNEL
+
+			set bst_item_pal 11
+			set bst_icon_id 2
+			break
+		case LIZTROOP_BESTIARY_PAL10
+			qputs 1380 Lizard Major
+			qputs 1381 A high-ranking Liztroop, armed with
+			qputs 1382 a more powerful laser and a phase
+			qputs 1383 device that allows it to ambush
+			qputs 1384 enemies from any angle.
+
+			set bst_item_sound PRED_RECOG
+
+			set bst_item_research RS_P_TELEPORTDEVICE
+			set bst_item_res_cat RS_TAB_PERSONNEL
+			set bst_item_picnum LIZTROOP_BESTIARY_PAL10
+
+			set bst_item_pal 10
+			set bst_icon_id 158
+			break
+		case LIZTROOP_BESTIARY_PAL23
+			qputs 1380 Lizard Freezer
+			qputs 1381 Armed with a potent Freezeray
+			qputs 1382 weapon, though not much more
+			qputs 1383 tougher than a regular trooper.
+
+			set bst_item_sound PRED_RECOG
+
+			set bst_item_research RS_P_DETHAWINGKIT
+			set bst_item_res_cat RS_TAB_PERSONNEL
+			set bst_item_picnum LIZTROOP_BESTIARY_PAL23
+
+			set bst_item_pal 23
+			set bst_icon_id 158
+			break
+		case DRONE
+			qputs 1380 Drone
+			qputs 1381 Despite being robotic, these drones are
+			qputs 1382 very lightweight and don't have thick
+			qputs 1383 armour plating. Once close, they'll
+			qputs 1384 explode. Not much more needs to be said,
+			qputs 1385 blow them up before they get close.
+			set bst_item_sound DRON_RECOG
+			set bst_item_pal 11
+			set bst_icon_id 4
+			break
+		case COMMANDER
+			qputs 1380 Commander
+			qputs 1381 These oversee the Cycloid ground forces.
+			qputs 1382 As with most of their army, we cannot
+			qputs 1383 really tell what their original species
+			qputs 1384 was. Underneath they carry a small RPG.
+
+			qputs 1390 We've discovered that the Commander is
+			qputs 1391 permanently attached to the hover unit,
+			qputs 1392 and that it serves as a life support as
+			qputs 1393 well as a weapons unit. Quality of life
+			qputs 1394 was clearly a secondary concern.
+			set bst_item_sound COMM_RECOG3
+
+			set bst_item_research RS_P_DRONESECURITYCODES
+			set bst_item_res_cat RS_TAB_PERSONNEL
+
+			set bst_icon_id 5
+			break
+		case ADV_COMMANDER
+			qputs 1380 Plasma Commander
+			qputs 1381 These oversee the Cycloid ground forces;
+			qputs 1382 as with most of their army, we cannot
+			qputs 1383 really tell what their original species
+			qputs 1384 was. Underneath they carry a small RPG,
+			qputs 1385 and mounted to their arm is a shrinkray.
+			qputs 1386 The latter makes these a significantly
+			qputs 1387 more dangerous threat, as their mobile
+			qputs 1388 hover unit doesn't really offer that
+			qputs 1389 much actual mobility.
+
+			qputs 1390 We've discovered that the Commander is
+			qputs 1391 permanently attached to the hover unit,
+			qputs 1392 and that it serves as a life support as
+			qputs 1393 well as a weapons unit. Quality of life
+			qputs 1394 was clearly a secondary concern.
+			set bst_item_sound ACOMM_01
+
+			set bst_item_research RS_W_CYCLOIDPLASMA
+			set bst_item_res_cat RS_TAB_WEAPONS
+
+			set bst_icon_id 155
+			break
+		case OCTABRAIN
+			qputs 1380 Octabrain
+			qputs 1381 Large physically powerful creatures; we
+			qputs 1382 believe they are also responsible for
+			qputs 1383 green slimy tentacles endemic to the
+			qputs 1384 Cycloid army. Their attacks are slow but
+			qputs 1385 are extremely dangerous if it manages
+			qputs 1386 to hit. We've also observed them being
+			qputs 1387 able to suck the oxygen from an agent's
+			qputs 1388 lungs if battled underwater; practice
+			qputs 1389 extreme caution.
+
+			qputs 1390 Autopsy confirms the Megabase scientists'
+			qputs 1391 findings; they are indeed engineered
+			qputs 1392 from a different creature, one with
+			qputs 1393 incredible powers. We can only hope
+			qputs 1394 we never meet one.
+			set bst_item_sound OCTA_RECOG
+
+			set bst_item_research RS_M_MINDSHIELD_LVL1
+			set bst_item_res_cat RS_TAB_MYSTIC
+
+			set bst_icon_id 3
+			break
+	endswitch
+
+	state bst_check_hasdef
+ends
+
+defstate bst_zombie_defs
+	state bst_clear_defs
+
+	switch ui_query_id
+		case ZCHAING
+			qputs 1380 Zombie Chaingunner
+			qputs 1381 An undead soldier wielding a large
+			qputs 1382 portable chaingun; this animated corpse
+			qputs 1383 can basically one-hand the thing with
+			qputs 1384 minimal recoil, but fortunately since
+			qputs 1385 there's not much brain left for it to
+			qputs 1386 work with it can't hit the broadside of
+			qputs 1387 a barn.
+
+			qputs 1390 A brief autopsy confirms the obvious,
+			qputs 1391 that this was once a living human. The
+			qputs 1392 most we can do for them is to trace and
+			qputs 1393 then notify their families so they can
+			qputs 1394 be put to rest one last time.
+			set bst_item_sound ZSOLD_SIGHT
+			or bst_item_armorflags ARMOR_FLAG_BODY
+			set bst_item_pal 10
+			set bst_icon_id 22
+			break
+		case Z_GRENADEL
+			qputs 1380 Zombie Grenadier
+			qputs 1381 A significantly greater threat than most
+			qputs 1382 of the other zombies we've encountered;
+			qputs 1383 with zero regard for itself or anything
+			qputs 1384 around it, it uses its automated grenade
+			qputs 1385 launcher with reckless abandon. Clad in
+			qputs 1386 body armour, though thankfully still not
+			qputs 1387 terribly hard to put down.
+
+			qputs 1390 We're still unable to determine what
+			qputs 1391 causes these corpses to rise; there's no
+			qputs 1392 traces of any kind of chemical, reagent
+			qputs 1393 or modification to give these once
+			qputs 1394 deceased people animation.
+			set bst_item_sound ZSOLD_SIGHT
+
+			set bst_item_research RS_P_BLASTPADDING
+			set bst_item_res_cat RS_TAB_PERSONNEL
+
+			set bst_item_armorflags ARMOR_FLAG_BODY
+			set bst_icon_id 60
+			set bst_item_pal 21
+			break
+		case ZOMBIE
+			qputs 1380 Zombie
+			qputs 1381 Simply put, the body of a person brought
+			qputs 1382 back to life. The body has degraded to
+			qputs 1383 the point where any trace of their past
+			qputs 1384 existence has long gone. So far at least
+			qputs 1385 once slain they don't appear to rise
+			qputs 1386 again. We don't believe they carry any
+			qputs 1387 kind of infectious diseases, but take
+			qputs 1388 extreme caution around them regardless.
+
+			qputs 1390 We're unable to confirm what is causing
+			qputs 1391 this corpse to reanimate. We may be
+			qputs 1392 dealing with supernatural resurrection
+			qputs 1393 of some kind, which is above our field
+			qputs 1394 of expertise.
+			set bst_item_sound ZOMBIE_ROAM1
+			set bst_icon_id 31
+			break
+		case ZSCIEN
+			qputs 1380 Zombie Scientist
+			qputs 1381 There but for the grace of God go we;
+			qputs 1382 Whilst not as much of a threat as the
+			qputs 1383 body of a well trained soldier, they
+			qputs 1384 still carry a service pistol and seem to
+			qputs 1385 know how to use it.
+
+			qputs 1390 Whilst these retain some more brain
+			qputs 1391 power than regular zombies, it's still
+			qputs 1392 nothing more than a shadow of the person
+			qputs 1393 they used to be; A beloved member of the
+			qputs 1394 science team.
+			set bst_item_sound ZSOLD_SIGHT
+
+			set bst_item_research RS_B_SCANMODULE
+			set bst_item_res_cat RS_TAB_BASE
+
+			set bst_icon_id 18
+			break
+		case ZSOLDIER
+			qputs 1380 Zombie Soldier
+			qputs 1381 Wielding a simple assault rifle, this
+			qputs 1382 resurrected corpse of a slain soldier
+			qputs 1383 fires at any living being in sight. We
+			qputs 1384 don't know who or what is driving this
+			qputs 1385 homicidal behaviour; what we do know is
+			qputs 1386 any trace of the human this once was is
+			qputs 1387 gone. Show no mercy, for it isn't even
+			qputs 1388 capable of the concept itself.
+
+			qputs 1390 We can trace who this unfortunate woman
+			qputs 1391 once was, and notify their next of kin.
+			qputs 1392 It's not much, but we can try and
+			qputs 1393 preserve some dignity for them after this
+			qputs 1394 second death.
+			set bst_item_sound FZOM_SIGHT
+
+			set bst_item_research RS_P_AMCXTMAG
+			set bst_item_res_cat RS_TAB_PERSONNEL
+
+			or bst_item_armorflags ARMOR_FLAG_BODY
+			set bst_icon_id 47
+			break
+		case ZSOLDIER2
+			qputs 1380 Zombie Soldier
+			qputs 1381 Wielding a simple assault rifle, this
+			qputs 1382 resurrected corpse of a slain soldier
+			qputs 1383 fires at any living being in sight. We
+			qputs 1384 don't know who or what is driving this
+			qputs 1385 homicidal behaviour; what we do know is
+			qputs 1386 any trace of the human this once was is
+			qputs 1387 gone. Show no mercy, for it isn't even
+			qputs 1388 capable of the concept itself.
+
+			qputs 1390 We can trace who this unfortunate man
+			qputs 1391 once was, and notify their next of kin.
+			qputs 1392 It's not much, but we can try and
+			qputs 1393 preserve some dignity for them after this
+			qputs 1394 second death.
+			set bst_item_sound ZSOLD_SIGHT
+
+			set bst_item_research RS_P_AMCXTMAG
+			set bst_item_res_cat RS_TAB_PERSONNEL
+
+			or bst_item_armorflags ARMOR_FLAG_BODY
+			set bst_icon_id 56
+			break
+	endswitch
+
+	state bst_check_hasdef
+ends
+
+defstate bst_demon_defs
+	state bst_clear_defs
+
+	switch ui_query_id
+		case BRUISER
+			qputs 1380 Bruiser
+			qputs 1381 A giant slab of blazing meat, that can
+			qputs 1382 summon balls of flame seemingly out of
+			qputs 1383 nothing. Whilst nitrogen and freeze
+			qputs 1384 rays seem to hurt it more than most,
+			qputs 1385 it still has incredible strength. Take
+			qputs 1386 extreme care when fighting these beasts,
+			qputs 1387 and remember to stop drop and roll if
+			qputs 1388 you're caught on fire.
+
+			qputs 1390 An autopsy reveals that the insides of
+			qputs 1391 this creature defy all expectation. It
+			qputs 1392 seems that all the organs inside don't
+			qputs 1393 actually seem to perform any function.
+			qputs 1394 How this thing lives is a true mystery.
+			set bst_item_sound BRUISER_ALERT
+
+			set bst_item_research RS_M_BRUISER
+			set bst_item_res_cat RS_TAB_MYSTIC
+
+			set bst_icon_id 17
+			break
+		case CYBERDEMON
+			qputs 1380 Cyberdemon
+			qputs 1381 A horrifying skyscraper of muscle and
+			qputs 1382 steel, with a rocket launcher for an
+			qputs 1383 arm. We're aware this advice is for the
+			qputs 1384 most part obvious and basically useless,
+			qputs 1385 but still - shoot at it until it dies.
+			qputs 1386 Oh! And avoid the rockets, as they will
+			qputs 1387 cause you significant harm if you let it
+			qputs 1388 hit you. You're welcome, and good luck!
+
+			qputs 1390 As with every other creature from 'Hell'
+			qputs 1391 we've examined, the insides of this
+			qputs 1392 thing defy explanation. It feels like
+			qputs 1393 it operates on pure willpower alone,
+			qputs 1394 and the flesh is just a formality.
+			set bst_item_sound CYBERDEMON_SEE
+			set bst_icon_id 33
+			break
+		case CYBERTOUR
+			qputs 1380 Cybertour
+			qputs 1381 A demon with a sinister twist; it has
+			qputs 1382 cybernetics implanted throughout the
+			qputs 1383 entire body. Whilst this mainly seems to
+			qputs 1384 control the guided rocket launcher and
+			qputs 1385 regulate the armour plating, the much
+			qputs 1386 more concerning question is how exactly
+			qputs 1387 this creature became augmented in the
+			qputs 1388 first place.
+
+			qputs 1390 The autospy confirms our worst fears;
+			qputs 1391 the metallic implants were manufactured.
+			qputs 1392 Not only that, but there are personal
+			qputs 1393 flourishes to the work as well. We can
+			qputs 1394 only conclude that a human was involved
+			qputs 1395 in the creative process.
+			set bst_item_sound CYBERT_ALERT
+
+			set bst_item_research RS_P_CYBERTSHEATHING
+			set bst_item_res_cat RS_TAB_PERSONNEL
+
+			set bst_item_armorflags ARMOR_FLAG_MECH
+			set bst_icon_id 21
+			break
+		case FLESHWIZARD
+			qputs 1380 Flesh Wizard
+			qputs 1381 This walking shape of muscle and sinew
+			qputs 1382 fires boiling blood through its palm.
+			qputs 1383 Tough and extremely dangerous, but we
+			qputs 1384 also concluded that unlike most demons
+			qputs 1385 the head is an actual weak spot, and
+			qputs 1386 should be targetted in combat for the
+			qputs 1387 most optimal damage.
+
+			qputs 1390 The blood in this creature is cool to
+			qputs 1391 the touch; we're not sure how it turns
+			qputs 1392 from that into the boiling blasts that
+			qputs 1393 deal terrific damage to our agents. No
+			qputs 1394 biological function that can perform
+			qputs 1395 this was found in the body.
+			set bst_item_sound FLW_RCG
+
+			set bst_item_research RS_P_NUTRIENTSOLUTION
+			set bst_item_res_cat RS_TAB_PERSONNEL
+
+			set bst_icon_id 23
+			break
+		case ABYSS_DESPOT
+			qputs 1380 Abyss Despot
+			qputs 1381 We can only conclude that this is some
+			qputs 1382 kind of minor ruling entity in the Abyss.
+			qputs 1383 The slaying of it triggered a massive
+			qputs 1384 shockwave that went through all of Sol
+			qputs 1385 system. Whilst it seemed to have had no
+			qputs 1386 physical effects, it is still much too
+			qputs 1387 early to write off any potential
+			qputs 1388 consequences. As the saying goes, time
+			qputs 1389 will tell.
+			set bst_item_sound DESPOT_SIGHT
+			set bst_icon_id 37
+			break
+		case HADESPHERE
+			qputs 1380 Hadesphere
+			qputs 1381 Floating balls of hate that spit blasts
+			qputs 1382 of deadly energy, and periodically it
+			qputs 1383 can even fire a larger tracking orb. Be
+			qputs 1384 cautious, the main hazard is being
+			qputs 1385 blindsided by one that slipped by unseen
+			qputs 1386 rather than a direct assault. They're
+			qputs 1387 surprisingly tough for airborne targets.
+
+			qputs 1390 It seems to be a running theme with these
+			qputs 1391 abyssal entities that their biology has
+			qputs 1392 zero correlation with their abilities.
+			qputs 1393 No known source of their levitating
+			qputs 1394 ability can be found.
+			set bst_item_sound HADES_ALERT
+			set bst_icon_id 20
+			break
+		case INFERNAL
+			qputs 1380 Infernal
+			qputs 1381 This scrawny creature can summon blasts
+			qputs 1382 of incredible explosive power; they're
+			qputs 1383 relatively weak, so absolutely prioritise
+			qputs 1384 these on the battlefield when you can.
+
+			qputs 1390 The skin on the Infernal is actually a
+			qputs 1391 very thin sliver of metal; thin enough
+			qputs 1392 that it's basically paper, but it also
+			qputs 1393 explains their faintly metallic look.
+			set bst_item_sound INFERNAL_ALERT
+			set bst_icon_id 54
+			break
+		case MAEPHISTO
+			qputs 1380 Maephisto
+			qputs 1381 A strange metallic demon, similar to the
+			qputs 1382 Cybertour in that it has extensive mech
+			qputs 1383 augmentation. This 'platform' carries
+			qputs 1384 many more weapons however, including an
+			qputs 1385 incredibly powerful beam with a lengthy
+			qputs 1386 charge up time. For this reason alone,
+			qputs 1387 it seems to specialise in ambushes.
+			qputs 1388 Whilst it doesn't have armour plating,
+			qputs 1389 it's still incredibly tough to kill.
+
+			qputs 1390 Again, another demon with troubling
+			qputs 1391 implications; someone, somewhere, is
+			qputs 1392 rigging up these creatures with deadly
+			qputs 1393 cybernetics.
+			set bst_item_sound MAEPH_ALERT
+
+			set bst_item_research RS_P_MAEPH_CHARGE
+			set bst_item_res_cat RS_TAB_PERSONNEL
+
+			set bst_icon_id 52
+			break
+		case SATYR
+			qputs 1380 Satyr
+			qputs 1381 This goatlike mockery of an animal has
+			qputs 1382 the strength of a grizzly bear, and
+			qputs 1383 a psychotic rage that drives it to kill.
+			qputs 1384 Unlike most of the other demons though,
+			qputs 1385 it can only seem to attack up close.
+			qputs 1386 Keep your distance, and aim for the head.
+
+			qputs 1390 The organs throughout this creature are
+			qputs 1391 similar to a goat's, but don't seem to do
+			qputs 1392 anything. Whether goat cheese can be
+			qputs 1393 made from these is a question best left
+			qputs 1394 for another day.
+			set bst_item_sound SATYR_ALERT
+
+			set bst_item_research RS_P_THERMALWEAVING
+			set bst_item_res_cat RS_TAB_PERSONNEL
+
+			set bst_icon_id 16
+			break
+		case SHADE
+			qputs 1380 Shade
+			qputs 1381 Strange, shadow-like monsters that can
+			qputs 1382 slip in and out of darkness to attack
+			qputs 1383 with fireballs. Thankfully they are at
+			qputs 1384 least corporeal when doing this, and
+			qputs 1385 regular conventional weapons seem to
+			qputs 1386 work just fine on killing them. Try and
+			qputs 1387 fight them in bright areas to make your
+			qputs 1388 life easier.
+
+			qputs 1390 An autopsy of this thing isn't possible,
+			qputs 1391 as the body seems to revert to almost a
+			qputs 1392 vapor and cannot be cut into. We can
+			qputs 1393 only prod at the holes left in it by
+			qputs 1394 your guns.
+			set bst_item_sound SHADE_ALERT
+
+			set bst_item_research RS_M_SHADE
+			set bst_item_res_cat RS_TAB_MYSTIC
+
+			set bst_icon_id 15
+			break
+	endswitch
+
+	state bst_check_hasdef
+ends
+
+defstate bst_merc_defs
+	state bst_clear_defs
+
+	switch ui_query_id
+		case HPOWERSUIT
+			qputs 1380 Heavy Powersuit
+			qputs 1381 A standardised framework for a very
+			qputs 1382 powerful attack unit; Heavy Powersuits
+			qputs 1383 can be seen in the service of many kinds
+			qputs 1384 of armies, mercs, and even individuals.
+			qputs 1385 It has armour plating, and weapons that
+			qputs 1386 can damage both vehicles and infantry
+			qputs 1387 alike.
+			set bst_item_sound PA_FOOTSTEP1
+			set bst_item_armorflags ARMOR_FLAG_MECH
+			
+			set bst_item_pal 11
+			
+			set bst_icon_id 25
+			break
+		case LPOWERSUIT
+			qputs 1380 Light Powersuit
+			qputs 1381 Whilst clearly smaller than the heavy
+			qputs 1382 variant, this personalised mech suit
+			qputs 1383 will still require anti-armour to take
+			qputs 1384 out. It carries a dual machinegun and
+			qputs 1385 flamethrower, so take the utmost care to
+			qputs 1386 avoid getting close as you'll be cooked
+			qputs 1387 alive. The helmet is armoured, but not
+			qputs 1388 as heavily as the rest so try and aim
+			qputs 1389 for it when fighting.
+			set bst_item_sound LP_SIGHT1
+			set bst_item_armorflags ARMOR_FLAG_MECH
+			set bst_icon_id 24
+			break
+		case MADRAX
+			qputs 1380 Madrax
+			qputs 1381 A background search reveals that Madrax
+			qputs 1382 was the leader of a squadron of World
+			qputs 1383 Government soldiers; it is highly likely
+			qputs 1384 that James merely passed by this man
+			qputs 1385 on one of his earlier adventures, and
+			qputs 1386 Madrax had carried a grudge ever since.
+			qputs 1387 For his part, James still doesn't ever
+			qputs 1388 recall having met or even interacted
+			qputs 1389 with this strange man.
+			set bst_item_sound MX_THROWD
+			set bst_icon_id 95
+			break
+		case MERC
+			qputs 1380 Shotgun Merc
+			qputs 1381 Soldiers of Fortune, Dogs of War; call
+			qputs 1382 them what you like, they are merely just
+			qputs 1383 soldiers for hire and nothing more. This
+			qputs 1384 Merc in particular is equipped with a
+			qputs 1385 shotgun and a flashbang grenade; avoid
+			qputs 1386 baiting him around corners since he'll
+			qputs 1387 try and flash you. With the flashbang,
+			qputs 1388 we mean.
+
+			qputs 1390 Just your standard, average homo sapiens.
+			qputs 1391 Health and fitness levels are on average
+			qputs 1392 for an adult male in the military. We're
+			qputs 1393 not paid enough to come up with anything
+			qputs 1394 more interesting for a normal human!
+			set bst_item_sound MERC_SIGHT1
+
+			set bst_item_research RS_P_AMCCARAPACE
+			set bst_item_res_cat RS_TAB_PERSONNEL
+
+			set bst_icon_id 26
+			break
+		case MERC2
+			qputs 1380 Rifle Merc
+			qputs 1381 Soldiers of Fortune, Dogs of War; call
+			qputs 1382 them what you like, they are merely just
+			qputs 1383 soldiers for hire and nothing more. This
+			qputs 1384 Merc in particular is equipped with a
+			qputs 1385 rifle and body-armour; aim for the head
+			qputs 1386 and try and stay in cover, as their
+			qputs 1387 rifles can shred through YOUR armour.
+
+			qputs 1390 Just your standard, average homo sapiens.
+			qputs 1391 Health and fitness levels are on average
+			qputs 1392 for an adult male in the military. I
+			qputs 1393 can't think of anything more interesting
+			qputs 1394 to say about these guys I'm afraid.
+			set bst_item_sound MERC_SIGHT2
+
+			set bst_item_research RS_P_ABLATIVEARMOURPLATING
+			set bst_item_res_cat RS_TAB_PERSONNEL
+
+			set bst_item_armorflags ARMOR_FLAG_BODY
+			set bst_icon_id 46
+			break
+		case FASCIST
+			qputs 1380 Assault Rifle Merc
+			qputs 1381 Soldiers of Fortune, Dogs of War; call
+			qputs 1382 them what you like, they are merely just
+			qputs 1383 soldiers for hire and nothing more. This
+			qputs 1384 Merc in particular is equipped with an
+			qputs 1385 assault rifle, and not much else. As
+			qputs 1386 usual, aim for the head to dispatch
+			qputs 1387 as quickly as possible.
+
+			qputs 1390 Just your standard, average homo sapiens.
+			qputs 1391 Health and fitness levels are on average
+			qputs 1392 for an adult male in the military. Not
+			qputs 1393 out of the ordinary in any way. Just a
+			qputs 1394 plain, vanilla, boring, human.
+			set bst_item_sound MERC_SIGHT3
+
+			set bst_item_research RS_P_AMCLASGUN
+			set bst_item_res_cat RS_TAB_PERSONNEL
+
+			set bst_icon_id 43
+			break
+		case JUGGERNAUT
+			qputs 1380 Juggernaut
+			qputs 1381 Equipped with a portable micro minigun
+			qputs 1382 and clad in heavy padding, this bastard
+			qputs 1383 excels in locking down areas by himself.
+			qputs 1384 Whilst you can punch through his armour
+			qputs 1385 with assault rifles, there's still a lot
+			qputs 1386 to chew through. Wait for his gun to
+			qputs 1387 cool down before tearing him a new one.
+
+			qputs 1390 Pumped up with combat stims to help deal
+			qputs 1391 with the huge weight that his armour and
+			qputs 1392 weaponry have. I doubt they're aware of
+			qputs 1393 their reduced lifespan.
+			set bst_item_sound SD_TDESTR
+
+			set bst_item_research RS_W_DEVASFRAMEW
+			set bst_item_res_cat RS_TAB_WEAPONS
+
+			set bst_item_armorflags ARMOR_FLAG_BODY
+			set bst_icon_id 131
+			set bst_item_pal 11
+			break
+		case VILMOS_ROBOT
+			qputs 1380 Soviet Mech
+			qputs 1381 A heavy mechsuit, produced during the
+			qputs 1382 Soviet Union's twilight days. Whilst it
+			qputs 1383 lacks any flashy features that you might
+			qputs 1384 see in a modern mech, it is still very
+			qputs 1385 dangerous with a HMG and an automatic
+			qputs 1386 grenade launcher. Use armour piercing
+			qputs 1387 weapons to tackle this effectively.
+			set bst_item_sound PA_FOOTSTEP2
+			set bst_item_armorflags ARMOR_FLAG_MECH
+			set bst_icon_id 44
+			break
+	endswitch
+
+	state bst_check_hasdef
+ends
+
+defstate bst_cult_defs
+	state bst_clear_defs
+
+	switch ui_query_id
+		case CULTIST
+			qputs 1380 Cultist
+			qputs 1381 Usually a normal human, swayed by one of
+			qputs 1382 many cults; The Cabal are among the most
+			qputs 1383 infamous. Wielding a wide variety of
+			qputs 1384 guns, with varying abilities based on
+			qputs 1385 the colours of their robes. As with most
+			qputs 1386 humans, a headshot is the most effective
+			qputs 1387 way of taking one down.
+
+			qputs 1390 Most Cultists are humans; but certain
+			qputs 1391 ones have paranormal enhancements. The
+			qputs 1392 Purple robed ones in particular seem to
+			qputs 1393 have a telekinetic choking attack.
+			set bst_item_sound CULTIST_DIE1
+
+			set bst_item_research RS_P_CULTROBETECH
+			set bst_item_res_cat RS_TAB_PERSONNEL
+			
+			set bst_item_pal 15
+
+			or bst_item_armorflags ARMOR_FLAG_BODY
+			set bst_icon_id 19
+			break
+		case DARKAVATAR
+			qputs 1380 Dark Avatar
+			qputs 1381 A towering creature with incredible magic
+			qputs 1382 powers; it can summon 4 different types
+			qputs 1383 of elemental attacks. One weakness is
+			qputs 1384 regular guns can damage it whilst it's
+			qputs 1385 preparing the attack. We're not sure
+			qputs 1386 who or what these things are, where
+			qputs 1387 they came from, or how they come into
+			qputs 1388 existence.
+
+			qputs 1390 An autopsy revealed nothing; the insides
+			qputs 1391 of a Dark Avatar are a jumbled mess of
+			qputs 1392 seemingly nonsensical organs and viscera.
+			set bst_item_sound DARKAV_SIGHT
+
+			set bst_item_research RS_M_MINDSHIELD_LVL3
+			set bst_item_res_cat RS_TAB_MYSTIC
+
+			set bst_item_armorflags ARMOR_FLAG_SUPERNATURAL
+			set bst_icon_id 35
+			break
+		case 10752
+			qputs 1380 Entity
+			qputs 1381 We have only conjecture to go with here;
+			qputs 1382 whether this thing was actually some
+			qputs 1383 kind of ancient deity, an abyssal, or
+			qputs 1384 something even more sinister. Whatever
+			qputs 1385 the origins, conventional weapons hurt it
+			qputs 1386 just fine and James was able to put it
+			qputs 1387 down.
+			set bst_item_sound ENTITY_AWAKEN
+			set bst_icon_id 134
+			break
+		case LOST
+			qputs 1380 Lost
+			qputs 1381 This horror merely glides towards its
+			qputs 1382 target, and screams it out of existence.
+			qputs 1383 We don't know what it is, how it is
+			qputs 1384 made, or anything beyond the damage it
+			qputs 1385 can inflict. Use whatever means you
+			qputs 1386 have at your disposal to destroy it.
+
+			qputs 1390 An autopsy is impossible; we don't
+			qputs 1391 believe there is anything corporeal to
+			qputs 1392 conduct one on anyway. This is truly
+			qputs 1393 a paracausal entity in every way.
+			set bst_item_sound LOST_ATTACK
+
+			set bst_item_research RS_M_MINDSHIELD_LVL3
+			set bst_item_res_cat RS_TAB_MYSTIC
+
+			set bst_item_armorflags ARMOR_FLAG_SUPERNATURAL
+			set bst_icon_id 27
+			break
+		case LILITH
+			qputs 1380 Lilith
+			qputs 1381 A witch for hire; the concept seems
+			qputs 1382 almost alien to us, but apparantly it is
+			qputs 1383 a thing that happens in the more esoteric
+			qputs 1384 circles.
+			set bst_item_armorflags ARMOR_FLAG_SUPERNATURAL
+			set bst_icon_id 28
+			break
+		case DOCTORJ
+			qputs 1380 Doctor Jekyll
+			qputs 1381 Rusty has shared precious little info
+			qputs 1382 about this man; a man matching his
+			qputs 1383 description had been spotted both in
+			qputs 1384 Nazi Germany but also the American West.
+			qputs 1385 Who he is, or where his allegiance lies,
+			qputs 1386 is hard to tell at this time.
+			set bst_item_sound JEK_TAUNT1
+
+			set bst_icon_id 36
+			break
+		case MISTERH
+			qputs 1380 Mister Hyde
+			qputs 1381 Jekyll turned himself into this monster;
+			qputs 1382 we're not sure if it's a permanent thing
+			qputs 1383 or merely some kind of transitional stage
+			qputs 1384 into something else entirely. The formula
+			qputs 1385 he used was lost in Millhaven.
+			set bst_item_sound MRH_LAUGH
+			set bst_icon_id 34
+			break
+		case SHAMBLER
+			qputs 1380 Dimensional Shambler
+			qputs 1381 We can only conclude that this thing is
+			qputs 1382 not of our reality; it has terribly
+			qputs 1383 sharp claws and tremendous electrical
+			qputs 1384 powers.
+
+			qputs 1390 Inside the creature's corpse is a single
+			qputs 1391 tattered page, referencing some eldritch
+			qputs 1392 entity named only as 'Shub-Niggurath'.
+			set bst_item_sound SHAMB_SIGHT
+			set bst_icon_id 101
+			break
+		case SORCERER
+			qputs 1380 Sorcerer
+			qputs 1381 A humanoid entity that can teleport at
+			qputs 1382 will, and fires magical blasts out of
+			qputs 1383 its palm. Conventional weaponry isn't
+			qputs 1384 effective; you'll need to use weapons
+			qputs 1385 with either silver ammo, energy, or
+			qputs 1386 magic itself to hurt it properly.
+
+			qputs 1390 Autopsies kept providing varying results;
+			qputs 1391 sometimes this thing was once a human,
+			qputs 1392 other times it seems to be something else
+			qputs 1393 entirely. The blue 'blood' is even more
+			qputs 1394 confusing.
+			set bst_item_sound PRIEST_RECOG
+
+			set bst_item_research RS_M_MINDSHIELD_LVL2
+			set bst_item_res_cat RS_TAB_MYSTIC
+
+			set bst_item_pal 21
+
+			set bst_item_armorflags ARMOR_FLAG_SUPERNATURAL
+			set bst_icon_id 29
+			break
+		case SPIRIT
+			qputs 1380 Spirit
+			qputs 1381 This human-looking figure can cast balls
+			qputs 1382 of spirit energy that will just go right
+			qputs 1383 through armour and energy shields. You'll
+			qputs 1384 need to use the appropriate weaponry to
+			qputs 1385 kill it, though fortunately it is fairly
+			qputs 1386 frail beyond its supernatural nature.
+
+			qputs 1390 Much like the Lost, an autopsy isn't
+			qputs 1391 really possible. Whether this is an
+			qputs 1392 actual 'ghost' of someone who's died
+			qputs 1393 is impossible to know.
+			set bst_item_sound SPIRIT_ALERT
+			set bst_item_armorflags ARMOR_FLAG_SUPERNATURAL
+			set bst_icon_id 79
+			break
+		case CULT_CHAINSAW
+			qputs 1380 Chainsaw Cultist
+			qputs 1381 A towering cultist armed with a chainsaw.
+			qputs 1382 Not much more information is necessary,
+			qputs 1383 surely? Don't let him get close to you.
+
+			qputs 1390 This Cultist was hopped up on so many
+			qputs 1391 drugs it's hard to tell where the man
+			qputs 1392 stops and the chemicals start. It at
+			qputs 1393 least explains why he could take so much
+			qputs 1394 punishment and still charge at you.
+			set bst_item_sound CHAINS_SCRM
+			set bst_icon_id 32
+			break
+		case CULT_FLAME
+			qputs 1380 Flame/Plasma Cultist
+			qputs 1381 This sinister looking Cultist is usually
+			qputs 1382 armed with a flamethrower; blue robed
+			qputs 1383 variants seem to carry stolen GDF plasma
+			qputs 1384 rifles. Needless to say, both are very
+			qputs 1385 dangerous and should be considered high
+			qputs 1386 priority targets.
+
+			qputs 1390 Perhaps not surprisingly, behind the mask
+			qputs 1391 the Cultist was terribly disfigured. It
+			qputs 1392 seems to be almost ritualistic in nature,
+			qputs 1393 as the chemical burns are all similar
+			qputs 1394 and uniform in nature.
+			set bst_item_sound CULTIST_DIE2
+
+			set bst_icon_id 94
+			break
+		case CULT_HMG
+			qputs 1380 Stag Cultist
+			qputs 1381 Clad in body armour and with an M60 HMG,
+			qputs 1382 these cultists are tough enough that they
+			qputs 1383 even can fire off a few last ditch effort
+			qputs 1384 pistol shots when downed. Use headshots
+			qputs 1385 to prevent this from happening where
+			qputs 1386 possible.
+
+			qputs 1390 The Stag Cultist is decked head to toe in
+			qputs 1391 strange tattoos. Usually dedicated to the
+			qputs 1392 entity in question that they worship. Why
+			qputs 1393 this is done when they are completely
+			qputs 1394 concealed in clothing is unknown.
+			set bst_item_sound CULTIST_DIE3
+			set bst_item_armorflags ARMOR_FLAG_BODY
+
+			set bst_item_pal 11
+
+			set bst_icon_id 93
+			break
+	endswitch
+
+	state bst_check_hasdef
+ends
+
+defstate bst_misc_defs
+	state bst_clear_defs
+
+	switch ui_query_id
+		case CYBERCULTIST
+			qputs 1380 Cybercultist
+			qputs 1381 Decked out in very basic augmentations
+			qputs 1382 that merely make this a slightly tougher
+			qputs 1383 than normal human. It seems to be an act
+			qputs 1384 of worship rather than having any kind of
+			qputs 1385 logic. Thankfully not armoured, so can be
+			qputs 1386 put down with regular weaponry.
+			set bst_item_sound CYBERCULTIST_DIE1
+
+			set bst_item_research RS_P_ENHANCED_TARG
+			set bst_item_res_cat RS_TAB_PERSONNEL
+
+			set bst_icon_id 72
+			break
+		case CHRYSSALID
+			qputs 1380 Chryssalid
+			qputs 1381 What happens when a human is infected
+			qputs 1382 with the Chryssalid virus. This hatches
+			qputs 1383 from whatever remains of the human, and
+			qputs 1384 goes on to kill. Whatever it kills, gets
+			qputs 1385 up and kills. When THAT thing is put down
+			qputs 1386 another Chryssalid is hatched. It goes
+			qputs 1387 without saying that this could very well
+			qputs 1388 be a world ending scenario.
+
+			qputs 1390 It gets worse - the virus works through
+			qputs 1391 some form of reality manipulation. The
+			qputs 1392 matter of the infected victim is just
+			qputs 1393 changed to that of a Chryssalid. No form
+			qputs 1394 of mutation actually seems to take place.
+			set bst_item_sound CHRYSS_SIGHT
+			set bst_item_armorflags ARMOR_FLAG_CHITIN
+			set bst_icon_id 100
+			break
+		case CONSERVATOR
+			qputs 1380 Conservator
+			qputs 1381 What little we can piece together shows
+			qputs 1382 that this formidable foe is merely just
+			qputs 1383 a maintenance drone for the Engineers.
+			qputs 1384 Considering how deadly it is, we can only
+			qputs 1385 wonder just how dangerous an actual
+			qputs 1386 combat machine designed by them would be.
+			set bst_item_sound CONS_RECOG
+			set bst_icon_id 81
+			break
+		case GORILLA
+			qputs 1380 Gorilla
+			qputs 1381 A gorilla of human intelligence. We're
+			qputs 1382 not sure how or why this occurred. These
+			qputs 1383 ones sell their services as mercs, but
+			qputs 1384 it's highly likely that they would be
+			qputs 1385 capable of much more than combat. More
+			qputs 1386 investigation on where these come from
+			qputs 1387 is needed.
+
+			qputs 1390 Autopsy reveals this is still just a
+			qputs 1391 gorilla. Whilst some have hacking devices
+			qputs 1392 implanted, they have no connection to the
+			qputs 1393 intelligence levels on display. Just a
+			qputs 1394 bizarre mystery all together.
+			set bst_item_sound GORILLA_ALERT1
+			set bst_icon_id 88
+			break
+		case GORILLA_BESTIARY_PAL13
+			qputs 1380 Gorilla Leader
+			qputs 1381 A higher up gorilla, clad in an extremely
+			qputs 1382 high-tech energy shield and wielding a
+			qputs 1383 minigun.
+
+			qputs 1390 Autopsy reveals this is still just a
+			qputs 1391 gorilla. Whilst some have hacking devices
+			qputs 1392 implanted, they have no connection to the
+			qputs 1393 intelligence levels on display. Just a
+			qputs 1394 bizarre mystery all together.
+			set bst_item_sound GORILLA_ALERT1
+
+			or bst_item_armorflags ARMOR_FLAG_BODY
+			set bst_item_picnum GORILLA_BESTIARY_PAL13
+
+			set bst_item_research RS_P_PESBATMK2
+			set bst_item_res_cat RS_TAB_PERSONNEL
+
+			set bst_icon_id 159
+			break
+		case LIL_SCORP
+			qputs 1380 Scorpion
+			qputs 1381 An unusually aggressive Scorpion; the
+			qputs 1382 only remarkable thing is why they only
+			qputs 1383 attack us and not the forces of Le Sang.
+			set bst_item_sound SC_ATK
+			set bst_icon_id 83
+			break
+		case NAZI
+			qputs 1380 Nazi Soldier
+			qputs 1381 A soldier of the failed Third Reich.
+			qputs 1382 Equipped with an MP40, and a standard
+			qputs 1383 human in every way apart from their
+			qputs 1384 devotion to a hateful evil regime.
+
+			qputs 1390 An autopsy confirms that this Nazi is
+			qputs 1391 unfortunately a member of the human race.
+			set bst_item_sound NAZI_SPOT1
+
+			set bst_item_research RS_P_NAZI_INTEL
+			set bst_item_res_cat RS_TAB_PERSONNEL
+
+			set bst_icon_id 90
+			break
+		case PITFIEND
+			qputs 1380 Pitfiend
+			qputs 1381 A strange hostile race that James fought
+			qputs 1382 quite extensively in his time before AMC.
+			qputs 1383 Covered head to toe in cybernetic life
+			qputs 1384 support systems, with a small rocket
+			qputs 1385 launcher embedded within. They also
+			qputs 1386 have a sophisticated communications
+			qputs 1387 framework, for commanding their
+			qputs 1388 mercenary support network.
+
+			qputs 1390 It's hard to tell what their original
+			qputs 1391 form was; it seems that life without
+			qputs 1392 all the machinery around them was just
+			qputs 1393 no longer possible to maintain.
+			set bst_item_sound PITF_RECOG
+
+			set bst_item_research RS_P_PITFIEND_COMMS
+			set bst_item_res_cat RS_TAB_PERSONNEL
+
+			set bst_icon_id 42
+			break
+		case SPIDER2
+			qputs 1380 Spider
+			qputs 1381 Extremely large spiders; how they came
+			qputs 1382 to be quite so large is unknown.
+			set bst_item_sound SPIDER_SIGHT
+
+			set bst_item_pal 36
+
+			set bst_item_research RS_P_ANTITOXIN
+			set bst_item_res_cat RS_TAB_PERSONNEL
+
+			set bst_icon_id 96
+			break
+		case TERMINATOR
+			qputs 1380 Terminator
+			qputs 1381 A standard issue defensive robot. Used
+			qputs 1382 throughout the Sol System, usually in
+			qputs 1383 places where life is expensive to fully
+			qputs 1384 support. Armoured, and can still work
+			qputs 1385 even when bisected. The heat vent on
+			qputs 1386 their chest is a weak spot, and can be
+			qputs 1387 damaged with normal weaponry.
+			set bst_item_sound TERMTAUNT1
+			set bst_item_armorflags ARMOR_FLAG_ROBOTIC
+			set bst_icon_id 106
+			break
+		case WASP_DRONE
+			qputs 1380 Wasp Drone
+			qputs 1381 An off the shelf defense drone that has
+			qputs 1382 both machine guns and missiles. Luckily
+			qputs 1383 the metal used to construct it is very
+			qputs 1384 fragile, so only a few hits from a
+			qputs 1385 professional is needed to take it down.
+			set bst_item_sound WASP_DR_RECOG
+
+			set bst_item_pal 11
+
+			set bst_icon_id 45
+			break
+		case MAKARA
+			qputs 1380 Makara
+			qputs 1381 An aquatic monster first encountered in
+			qputs 1382 Egypt. We doubt they were created by Le
+			qputs 1383 Sang himself; they may very well be a life
+			qputs 1384 native to another realm entirely. Their
+			qputs 1385 attacks are magical in nature, and don't
+			qputs 1386 seem to be generated by some internal
+			qputs 1387 function of the creature.
+
+			qputs 1390 We believe these beasts are one of a
+			qputs 1391 multitude of species, as they seem to
+			qputs 1392 show signs of magical tampering.
+			set bst_item_sound MAK_ATCK
+			set bst_icon_id 86
+			break
+		case SENTRY
+			qputs 1380 Sentry
+			qputs 1381 An off the shelf defense drone that has
+			qputs 1382 both machine guns and missiles. Heavily
+			qputs 1383 armoured, use appropriate weaponry when
+			qputs 1384 fighting one.
+			set bst_item_sound GDR_RECOG1
+			set bst_item_armorflags ARMOR_FLAG_ROBOTIC
+			set bst_icon_id 151
+			break
+	endswitch
+
+	state bst_check_hasdef
+ends
+
+defstate bst_shadowrealm_defs
+	state bst_clear_defs
+
+	switch ui_query_id
+		case GUARDIAN
+			qputs 1380 Guardian
+			qputs 1381 A large humanoid that you'd be forgiven
+			qputs 1382 for assuming was an Orc. Native to the
+			qputs 1383 Shadow Realm, they appear to be skilled
+			qputs 1384 swordsmen as well as having a natural
+			qputs 1385 ability to shoot fire from their eyes.
+			qputs 1386 Fortunately, conventional attacks work
+			qputs 1387 just fine on these things.
+
+			qputs 1390 By manipulating nerve endings in the
+			qputs 1391 Guardian's skull, its innate fire attacks
+			qputs 1392 can be utilised by anyone with the
+			qputs 1393 knowledge.
+			set bst_item_sound GUARDIAN_ALERT
+
+			set bst_item_research RS_D_GUARDIANHEAD
+			set bst_item_res_cat RS_TAB_DOJO
+
+			set bst_item_pal 11
+			set bst_icon_id 65
+			break
+		case MAMANO
+			qputs 1380 Mamano
+			qputs 1381 A hulking beast covered in thick Chitin;
+			qputs 1382 by slamming the ground it can hurl its
+			qputs 1383 target into the air towards it. Then
+			qputs 1384 it makes short work with its sharp claws.
+			qputs 1385 Fire is a great countermeasure to Chitin.
+
+			qputs 1390 The large beads around its neck serve an
+			qputs 1391 unknown purpose; perhaps some ancient
+			qputs 1392 religion still practiced in the Shadow
+			qputs 1393 Realm?
+			set bst_item_sound MAMANO_ALERT
+
+			set bst_item_research RS_D_MAMANOHEART
+			set bst_item_res_cat RS_TAB_DOJO
+
+			set bst_item_armorflags ARMOR_FLAG_CHITIN
+			set bst_icon_id 59
+			break
+		case NINJA
+			qputs 1380 Ninja
+			qputs 1381 Skilled and deadly humans, wielding a
+			qputs 1382 variety of weapons. They are not above
+			qputs 1383 using firearms however, so treat them
+			qputs 1384 as you'd treat any other hostile armed
+			qputs 1385 combatant.
+
+			qputs 1390 Strangely enough, the sword and the
+			qputs 1391 classic garb seem ceremonial in purpose
+			qputs 1392 and don't really help them much in
+			qputs 1393 battle.
+			set bst_item_sound NINJA_JUMP
+
+			set bst_item_research RS_D_NINJAROLL
+			set bst_item_res_cat RS_TAB_DOJO
+
+			set bst_item_pal 21
+
+			set bst_icon_id 51
+			break
+		case RIPPER
+			qputs 1380 Ripper
+			qputs 1381 This creature, loosely resembling a
+			qputs 1382 large gorilla, is not a native of the
+			qputs 1383 terrestrial world. Like the Guardian and
+			qputs 1384 Mamano, it comes from the Shadow Realm.
+			qputs 1385 Be careful of its claws.
+
+			qputs 1390 A gruesome discovery; the beating heart
+			qputs 1391 of the Ripper can be used to summon a
+			qputs 1392 shadow clone of the wielder for a limited
+			qputs 1393 period of time.
+			set bst_item_sound RIPPER_ALERT
+
+			set bst_item_research RS_D_RIPPERHEART
+			set bst_item_res_cat RS_TAB_DOJO
+
+			set bst_icon_id 63
+			break
+		case SERPENT_GOD
+			qputs 1380 Serpent God
+			qputs 1381 A deity of the Shadow Realm; it's very
+			qputs 1382 unlikely that we managed to actually
+			qputs 1383 kill it. Whether there is just one of
+			qputs 1384 these beasts, able to manifest itself
+			qputs 1385 multiple times, or just one is unknown.
+			set bst_item_sound SERPGOD_ALERT
+			set bst_icon_id 61
+			break
+		case TRIAD
+			qputs 1380 Triad
+			qputs 1381 An average criminal member of the Triad;
+			qputs 1382 they carry a variety of weapons, usually
+			qputs 1383 SMGs. Some may even have grenades or body
+			qputs 1384 armour.
+
+			qputs 1390 Nothing unremarkable about the autopsy;
+			qputs 1391 this is simply an ordinary human.
+			set bst_item_sound TRIADALERT
+
+			set bst_item_research RS_P_TRIAD_INTEL
+			set bst_item_res_cat RS_TAB_PERSONNEL
+
+			or bst_item_armorflags ARMOR_FLAG_BODY
+			set bst_icon_id 8
+			break
+		case YUKI_ONNA
+			qputs 1380 Yuki Onna
+			qputs 1381 This ghostly figure, in the shape of a
+			qputs 1382 woman, can fire blasts of ice. It can
+			qputs 1383 also teleport to its target at will;
+			qputs 1384 luckily, they are vulnerable to
+			qputs 1385 conventional weaponry.
+
+			qputs 1390 Another native of the Shadow Realm, we
+			qputs 1391 discovered that external heat does not
+			qputs 1392 seem to affect the Yuki Onna at all.
+			qputs 1393 It can maintain its temperate of -75c
+			qputs 1394 no matter what it is outside.
+			set bst_item_sound YUK_ATT
+
+			set bst_item_research RS_P_DETHAWINGKIT
+			set bst_item_res_cat RS_TAB_PERSONNEL
+
+			set bst_icon_id 75
+			break
+	endswitch
+
+	state bst_check_hasdef
+ends
+
+defstate bst_paradigm_defs
+	state bst_clear_defs
+
+	switch ui_query_id
+		case PE_ELDER
+			qputs 1380 Paradigm Elder
+			qputs 1381 Vampires; leaders of the countless
+			qputs 1382 grunts you will encounter. They can use
+			qputs 1383 potent blood magic to obfuscate their
+			qputs 1384 location, creating a doppleganger to
+			qputs 1385 trick enemies.
+
+			qputs 1390 What little we know of Vampires seems to
+			qputs 1391 suggest these are artificially created
+			qputs 1392 rather than being either turned humans
+			qputs 1393 or pureblooded vampires. How this is
+			qputs 1394 done is unknown.
+			set bst_item_sound PE_SEAS
+
+			set bst_item_research RS_P_BLOOD_STORAGE
+			set bst_item_res_cat RS_TAB_PERSONNEL
+
+			set bst_item_armorflags ARMOR_FLAG_BODY
+			set bst_icon_id 66
+			break
+		case PE_TROOP
+			qputs 1380 Paradigm Grunt
+			qputs 1381 One of many countless thousands of people
+			qputs 1382 caught up in the lies of the Paradigm.
+			qputs 1383 Handed an SMG and a promise of salvation,
+			qputs 1384 they turn their weapons on whoever their
+			qputs 1385 Elders demand them to.
+
+			qputs 1390 The trenchcoat and helmet seem to serve
+			qputs 1391 a psychological purpose rather than any
+			qputs 1392 practical one. These are still normal
+			qputs 1393 humans and not vampires, if turning them
+			qputs 1394 was ever even considered.
+			set bst_item_sound PE_F_FTP1
+
+			set bst_item_research RS_P_PARAD_INTEL
+			set bst_item_res_cat RS_TAB_PERSONNEL
+
+			set bst_icon_id 48
+			break
+		case PE_SHOTGUNNER
+			qputs 1380 Paradigm Shotgunner
+			qputs 1381 One of many countless thousands of people
+			qputs 1382 caught up in the lies of the Paradigm.
+			qputs 1383 Handed a Shotgun and a promise of hope,
+			qputs 1384 they turn their weapons on whoever their
+			qputs 1385 Elders demand them to.
+
+			qputs 1390 The trenchcoat and helmet seem to serve
+			qputs 1391 a psychological purpose rather than any
+			qputs 1392 practical one. These are still normal
+			qputs 1393 humans and not vampires, if turning them
+			qputs 1394 was ever even considered.
+			set bst_item_sound PE_HAHAHA
+			set bst_item_pal 12
+			set bst_icon_id 135
+			break
+		case PE_SENTRY
+			qputs 1380 Sentry
+			qputs 1381 Custom built security drones that the
+			qputs 1382 Paradigm use to bolster their weaker
+			qputs 1383 forces. Armed with potent energy guns.
+			qputs 1384 As with all robotic targets, they are
+			qputs 1385 vulnerable to armour piercing ammunition.
+			set bst_item_sound PES_ONLINE1
+			set bst_item_armorflags ARMOR_FLAG_ROBOTIC
+			set bst_icon_id 67
+			break
+		case TRENTON_SOLARI
+			qputs 1380 Trenton Solari
+			set bst_item_sound TRENT_MOCK1
+			set bst_icon_id 49
+			break
+	endswitch
+
+	state bst_check_hasdef
+ends
+
+defstate bst_mj12_defs
+	state bst_clear_defs
+
+	switch ui_query_id
+		case MJ12_ASSASSIN
+			qputs 1380 Assassin
+			qputs 1381 Wearing a thermoptic camo muscle suit
+			qputs 1382 and thermic blades alongside flashbangs,
+			qputs 1383 the Assassin excels at flanking and
+			qputs 1384 catching their targets by surpirse, to
+			qputs 1385 deadly affect.
+
+			qputs 1390 Despite our best efforts we can't remake
+			qputs 1391 the camouflage effect; the muscle suit
+			qputs 1392 they wear which allows them far superior
+			qputs 1393 strength and stamina is at least within
+			qputs 1394 our capabilities.
+			set bst_icon_id 68
+
+			set bst_item_research RS_P_MUSCLESKIN
+			set bst_item_res_cat RS_TAB_PERSONNEL
+
+			break
+		case MJ12_TROOP
+			qputs 1380 Trooper
+			qputs 1381 The highly trained, deadly footsoldiers
+			qputs 1382 of Majestic 12. Their weapon has a combo
+			qputs 1383 of rifle, shotgun, and grenades; and their
+			qputs 1384 combat suits provide effective protection
+			qputs 1385 against small arms fire.
+
+			qputs 1390 Not only is the trooper a Clone, but they
+			qputs 1391 have the troubling ability to active a
+			qputs 1392 sapiance switch; become pure machines of
+			qputs 1393 logic, reaction, and violence.
+			set bst_item_sound MJ12_AMCSQUAD
+			set bst_item_pal 12
+
+			set bst_item_research RS_P_MJ12_COMMS
+			set bst_item_res_cat RS_TAB_PERSONNEL
+
+			set bst_item_armorflags ARMOR_FLAG_BODY
+			or bst_item_armorflags ARMOR_FLAG_MECH
+
+			qputs 1501 Regular Troopers have body armor
+			qputs 1502 Red Troopers have mech armor
+			set bst_icon_id 53
+			break
+		case PATCOS // patcos is fought multiple times so makes sense it would show up right?
+			qputs 1380 PATCOS
+			qputs 1381 Psychic and Telekinetic Operation system;
+			qputs 1382 a machine with incredible psychic power
+			qputs 1383 designed by MJ12.
+			set bst_item_sound PATCOS_1
+			set bst_icon_id 70
+			break
+	endswitch
+
+	state bst_check_hasdef
+ends
+
+defstate bst_egypt_defs
+	state bst_clear_defs
+
+	switch ui_query_id
+		case ALUDRAN
+			qputs 1380 Aludran
+			qputs 1381 We're not entirely sure where this beast
+			qputs 1382 came from, or why it's in the employ of
+			qputs 1383 Le Sang; we can only speculate that perhaps
+			qputs 1384 it is some strange alien life form capable
+			qputs 1385 of using magic.
+
+			qputs 1390 The Aludran is a reptilian; further
+			qputs 1391 studies show it has genetic defects,
+			qputs 1392 similar to those that appear in humans
+			qputs 1393 after generations of inbreeding.
+			set bst_item_sound AL_SIG
+			set bst_icon_id 85
+			break
+		case ANUBIS_MUMMY
+			qputs 1380 Anubis Mummy
+			qputs 1381 We're not sure what this creature was in
+			qputs 1382 its former life. Whilst it is supernatural
+			qputs 1383 in nature, it also has a rather obvious
+			qputs 1384 extra weakness; fire will set the bandages
+			qputs 1385 keeping it together ablaze.
+
+			qputs 1390 A basic autopsy provided no conclusive
+			qputs 1391 answer as to what this creature is.
+			qputs 1392 Thankfully, they are not a terrible
+			qputs 1393 threat.
+			set bst_item_sound ANUBIS_SIGHT
+
+			set bst_item_research RS_M_IMPROVEDFIRSTAID
+			set bst_item_res_cat RS_TAB_MYSTIC
+
+			set bst_item_armorflags ARMOR_FLAG_SUPERNATURAL
+			set bst_icon_id 41
+			break
+		case COBRA
+			qputs 1380 Cobra
+			qputs 1381 A massive oversized Cobra; it has some
+			qputs 1382 magical power as it can shoot fireballs
+			qputs 1383 at any prey. It also has an incredibly
+			qputs 1384 corrosive spit; avoid getting close if
+			qputs 1385 possible at all.
+
+			qputs 1390 This used to be an ordinary Cobra; we
+			qputs 1391 theorize that Le Sang had a fondness for
+			qputs 1392 these serpents and enhanced their powers
+			qputs 1393 considerably for his army.
+			set bst_item_sound COBR_RECOG
+
+			set bst_item_research RS_P_SNAKESKINBOOTS
+			set bst_item_res_cat RS_TAB_PERSONNEL
+
+			set bst_icon_id 89
+			break
+		case LAVA_BEAST
+			qputs 1380 Lava Beast
+			qputs 1381 A massive creature that has the ability to
+			qputs 1382 not just survive, but thrive in lava; an
+			qputs 1383 act we previously believed impossible.
+			qputs 1384 It's possible this is some monstrous form
+			qputs 1385 of extremophile. It can regenerate its
+			qputs 1386 tissue by submerging itself back into
+			qputs 1387 lava.
+			set bst_item_sound LAV_RIS
+			set bst_icon_id 80
+			break
+		case SCORPIONESS
+			qputs 1380 Scorpioness
+			qputs 1381 Another terrifying, unexplainable part
+			qputs 1382 of Le Sang's army. Armed with magical
+			qputs 1383 plasma weapons, and what appears to be
+			qputs 1384 a missile launcher. Is it possible that
+			qputs 1385 they have some distant ties to the
+			qputs 1386 Cybertours and Maephisto?
+
+			set bst_item_sound SCORP_SIGHT
+			set bst_item_armorflags ARMOR_FLAG_CHITIN
+			set bst_icon_id 84
+			break
+		case SCARAB_DEMON
+			qputs 1380 Scarab Demon
+			qputs 1381 This Chitin-covered nightmare, much like
+			qputs 1382 the Scorpioness, wields both magical and
+			qputs 1383 technological weapons. The worst part?
+			qputs 1384 The Mini-Nukes these things can fire off
+			qputs 1385 in desperation.
+			set bst_item_sound SCARAB_DEMON_SIGHT
+			set bst_item_armorflags ARMOR_FLAG_CHITIN
+			set bst_icon_id 138
+			break
+		case SIREN
+			qputs 1380 Siren
+			qputs 1381 This sorceress can fire curses at our
+			qputs 1382 agents, blocking them from healing.
+			qputs 1383 Coupled with a teleport, a Siren should
+			qputs 1384 be considered a priority target.
+
+			qputs 1390 A Siren used to be an ordinary woman; we
+			qputs 1391 can only hope they willingly joined up
+			qputs 1392 with Le Sang for power rather than the
+			qputs 1393 more sinister alternative.
+			set bst_item_sound SIREN_SIGHT
+
+			set bst_item_research RS_M_SIRENCURSEPROTECT
+			set bst_item_res_cat RS_TAB_MYSTIC
+
+			set bst_icon_id 82
+			break
+		case THOTH
+			qputs 1380 Thoth
+			qputs 1381 The Thoth are remnant of the Kilmaat's
+			qputs 1382 army; Le Sang used his magic to convert
+			qputs 1383 their appearence from Anubis to Thoth.
+			qputs 1384 It's possible that this was mainly for
+			qputs 1385 aesthetic purposes rather than carrying
+			qputs 1386 any deeper meaning.
+
+			qputs 1390 Thoths, and subsequently Anubises, were
+			qputs 1391 human men converted into beasts by pure
+			qputs 1392 magical power.
+			set bst_item_sound THOTH_SIGHT
+			set bst_icon_id 39
+			break
+		case LESANG
+			qputs 1380 Le Sang
+			qputs 1381 Sang's alter ego, spawned when he was
+			qputs 1382 de-coupled from his Warlock powers by
+			qputs 1383 his mentor Caer Dore. We're not sure
+			qputs 1384 what actually happened to Le Sang after
+			qputs 1385 his defeat by Sang and the AMC squad.
+			set bst_item_sound LESANG_LAUGH
+			set bst_icon_id 30
+			break
+	endswitch
+
+	state bst_check_hasdef
+ends
+
+defstate bst_necro_defs
+	state bst_clear_defs
+
+	switch ui_query_id
+		case ARCHER
+			qputs 1380 Archer
+			qputs 1381 Humanoid enemies who wield potent magical
+			qputs 1382 bows; strangely enough, they don't seem
+			qputs 1383 to be from either Elysion or Earth. We
+			qputs 1384 speculate that these must hail from some
+			qputs 1385 other distant world, one where magic is
+			qputs 1386 abundant.
+
+			qputs 1390 Archers are indeed humans, though they
+			qputs 1391 have been corrupted by an immense power.
+			qputs 1392 We suspect this might not actually be
+			qputs 1393 Naaldir's influence, but something else.
+			set bst_item_sound ARCH_SIGHT1
+
+			set bst_item_research RS_P_ARCHERQUIVER
+			set bst_item_res_cat RS_TAB_PERSONNEL
+
+			set bst_icon_id 98
+			break
+		case BEHOLDER
+			qputs 1380 Beholder
+			qputs 1381 Terrifying floating spheres of pure
+			qputs 1382 malignant energy. They can curse anyone
+			qputs 1383 caught in their gaze, and must then be
+			qputs 1384 killed to break the curse. Their eye is
+			qputs 1385 a weakpoint however, and can be shot to
+			qputs 1386 deal extra damage.
+
+			qputs 1390 These creatures were once subterranean,
+			qputs 1391 though this hasn't affect their ability
+			qputs 1392 to see in daylight.
+			set bst_item_sound BEH_RECOG
+
+			set bst_item_research RS_M_BEHOLDER
+			set bst_item_res_cat RS_TAB_MYSTIC
+
+			set bst_icon_id 119
+			break
+		case BERSERKER
+			qputs 1380 Berserker
+			qputs 1381 These meatheads aren't terribly tough at
+			qputs 1382 first, but if the name didn't give the
+			qputs 1383 game away they have the ability to go
+			qputs 1384 berserk. Much more dangerous in this
+			qputs 1385 form, and they can soak up damage much
+			qputs 1386 better too.
+
+			qputs 1390 Berserkers are full of magic energy; so
+			qputs 1391 much in fact that when killed, this
+			qputs 1392 energy rupture and basically explodes
+			qputs 1393 the creature into tiny giblets.
+			set bst_item_sound BERSERK_SIGHT
+
+			set bst_item_research RS_D_BESERKERATK
+			set bst_item_res_cat RS_TAB_DOJO
+
+			set bst_icon_id 38
+			break
+		case DRAGON
+			qputs 1380 Dragon
+			qputs 1381 An actual dragon; the very same beast
+			qputs 1382 that countless tales have been told of.
+			qputs 1383 Whether Dragons ever actually lived on
+			qputs 1384 Earth is impossible to tell, but in any
+			qputs 1385 case they're extremely dangerous.
+
+			qputs 1390 A fusion of magic and conventional organic
+			qputs 1391 life; they are indeed reptillian in nature
+			qputs 1392 and may be some bizarre offshoot of
+			qputs 1393 prehistoric life.
+			set bst_item_sound DGR_ROAR1
+			set bst_icon_id 118
+			break
+		case SKNIGHT
+			qputs 1380 Skull Knight
+			qputs 1381 A large, walking skeleton incased in
+			qputs 1382 armour; they also possess the ability
+			qputs 1383 to return from the dead unless killed
+			qputs 1384 with either a headshot or supernatural
+			qputs 1385 damage...or if the remains are blown
+			qputs 1386 into oblivion.
+
+			qputs 1390 We can only presume that it's just pure
+			qputs 1391 magic animating this thing, as it clearly
+			qputs 1392 does not have any kind of musculature
+			qputs 1393 capable of moving it.
+			set bst_item_sound SKN_SIGHT
+			set bst_icon_id 112
+			break
+		case SSQUIRE
+			qputs 1380 Skull Squire
+			qputs 1381 A smaller offshoot of the Skull Knight,
+			qputs 1382 though it's no less dangerous in numbers.
+			qputs 1383 Dispose of it the same way; with either
+			qputs 1384 a headshot or supernatural damage.
+
+			qputs 1390 We can only presume that it's just pure
+			qputs 1391 magic animating this thing, as it clearly
+			qputs 1392 does not have any kind of musculature
+			qputs 1393 capable of moving it.
+			set bst_item_sound SKN_SIGHT
+			set bst_icon_id 162
+			break
+		case GOBLINBROS
+			qputs 1380 Goblins
+			qputs 1381 We didn't believe it until we saw it;
+			qputs 1382 two goblins, one sat on the other,
+			qputs 1383 working together to be a royal pain in
+			qputs 1384 the backside.
+
+			qputs 1390 Goblins are humanoid in nature, and not
+			qputs 1391 too dissimilar to Orcs.
+			set bst_item_sound GOB_RCG
+			set bst_icon_id 132
+			break
+		case GOLEM
+			qputs 1380 Golem
+			qputs 1381 Magical constructs of ice; though fairly
+			qputs 1382 fragile, they still fire off dangerous
+			qputs 1383 blasts of ice and need to be disposed
+			qputs 1384 of as soon as possible.
+
+			qputs 1390 Once the ice is shattered, the energy
+			qputs 1391 controlling the Golem disapears and it
+			qputs 1392 is rendered completely inert.
+			set bst_item_sound GOL_SIGHT
+			set bst_icon_id 147
+			break
+		case HYDRA
+			qputs 1380 Hydra
+			qputs 1381 A huge sea creature with muliple heads
+			qputs 1382 that can fire massive jets of water.
+			qputs 1383 You'll need to dispose of each head in
+			qputs 1384 order to slay the beast.
+			set bst_item_sound HYD_RCG1
+			set bst_icon_id 110
+			break
+		case JEDRIK
+			qputs 1380 Jedrik Demonhorn
+			qputs 1381 The Oostrum brothers' paternal father;
+			qputs 1382 once a hero of Titan, a distant realm,
+			qputs 1383 he was slain by Naaldir and resurrected.
+			qputs 1384 He possessed enough will power to retain
+			qputs 1385 his intelligence...and most of his soul.
+			set bst_item_sound SBJ_LAUGH
+			set bst_icon_id 115
+			break
+		case KRAKEN
+			qputs 1380 Kraken
+			qputs 1381 Another massive sea creature, with skin
+			qputs 1382 harder than steel. The only way to kill
+			qputs 1383 it was with the spirit blast from Yo.
+			set bst_item_sound KRAK_RISE
+			set bst_icon_id 121
+			break
+		case MONGUR
+			qputs 1380 Mongur
+			qputs 1381 A genuine Minotaur; whether Mongur is
+			qputs 1382 one of the fabled beasts of ancient Greece
+			qputs 1383 is yet to be discovered, but regardless
+			qputs 1384 he's incredibly mean and ready to kill.
+			set bst_item_sound MON_YELL1
+			set bst_icon_id 109
+			break
+		case NAALDIR
+			qputs 1380 Naaldir's Body
+			qputs 1381 The physical body of Naaldir, the wicked
+			qputs 1382 necromancer. The body itself is fairly
+			qputs 1383 frail...for a demi-god in anycase.
+			set bst_item_sound NMIND_LAUGH
+			set bst_icon_id 108
+			break
+		case NMIND
+			qputs 1380 Naaldir's Mind
+			qputs 1381 Naaldir's mind, poisoned by pure hatred
+			qputs 1382 for all life. Having learned what the
+			qputs 1383 Engineers did, it's not entirely without
+			qputs 1384 merit.
+			set bst_item_sound NMIND_RCG
+			set bst_icon_id 143
+			break
+		case NSOUL
+			qputs 1380 Naaldir's Soul
+			qputs 1381 The final piece of Naaldir; the conjoined
+			qputs 1382 soul of countless lives, murdered by the
+			qputs 1383 Engineers in their abominable galactic
+			qputs 1384 experiment to achieve the impossible.
+			qputs 1385 We can only hope that destroying it has
+			qputs 1386 finally granted them all peace.
+			set bst_item_sound NAL3_ATCK1
+			set bst_icon_id 144
+			break
+		case NETHERBRUTE
+			qputs 1380 Netherbrute
+			qputs 1381 An ugly creature with thick leathery
+			qputs 1382 skin, and covered with nasty spikes
+			qputs 1383 that it can shoot off and regrow at
+			qputs 1384 incredible speed. That's alongside the
+			qputs 1385 nasty balls of flame it can belch.
+
+			qputs 1390 Somewhat related to the Makara, we have
+			qputs 1391 reason to believe they're all of some
+			qputs 1392 kind of connecting species.
+			set bst_item_sound NBRUTE_SIGHT
+			set bst_icon_id 55
+			break
+		case OGRE
+			qputs 1380 Ogre
+			qputs 1381 A strange duel-headed beast; one head
+			qputs 1382 wields magic, and the other pure strength.
+			qputs 1383 They're also clad in impossibly thick
+			qputs 1384 armour; whilst only steel there's so much
+			qputs 1385 of it that it's just as effective as
+			qputs 1386 reinforced power armour.
+
+			qputs 1390 We can't determine if the two heads are
+			qputs 1391 seperate intelligences, or just the result
+			qputs 1392 of some bizarre and unpleasant magical
+			qputs 1393 activity.
+			set bst_item_sound OGRE_RCG
+
+			set bst_item_research RS_P_IMPRSHIELDMATERIAL
+			set bst_item_res_cat RS_TAB_PERSONNEL
+
+			set bst_item_armorflags ARMOR_FLAG_MECH
+			set bst_icon_id 40
+			break
+		case SUCCUBUS
+			qputs 1380 Succubus
+			qputs 1381 A powerful demon from the depths of Hell;
+			qputs 1382 She drains the lifeforce of anyone who
+			qputs 1383 falls for her guile, and absolutely does
+			qputs 1384 not discriminate with her victims. We
+			qputs 1385 speculate that there might be many more
+			qputs 1386 forms of Succubus, perhaps shaped by
+			qputs 1387 whatever layer of the Abyss they came from.
+			set bst_icon_id 69
+			break
+		case SVEDR
+			qputs 1380 Svedr
+			qputs 1381 We can determine very little of who or
+			qputs 1382 what this is; seemingly a very tall woman
+			qputs 1383 clad in armour, who wields devastating
+			qputs 1384 power with her magical sword.
+			set bst_item_sound SVD_ATCK1
+			set bst_icon_id 116
+			break
+		case ORC
+			qputs 1380 Orc
+			qputs 1381 Green humanoids; they seem to be roughly
+			qputs 1382 of human intelligence, but Naaldir's
+			qputs 1383 presence has sapped their will and turned
+			qputs 1384 them into indiscriminate killers.
+
+			qputs 1390 Again, extremely similar to humans; infact
+			qputs 1391 so similar that it's entirely possible
+			qputs 1392 there may be half-orcs roaming around
+			qputs 1393 Elysion somewhere.
+			set bst_item_sound ORC_SIGHT1
+
+			set bst_item_research RS_P_ORCBANDOLIER
+			set bst_item_res_cat RS_TAB_PERSONNEL
+
+			set bst_icon_id 102
+			break
+		case TROLL
+			qputs 1380 Troll
+			qputs 1381 Of course they have gigantic house
+			qputs 1382 sized monsters who wield giant hammers.
+			qputs 1383 What can we really say here? It's big,
+			qputs 1384 mean, and stinks. Once again, you just
+			qputs 1385 need to hold down the trigger and pray
+			qputs 1386 your clip - sorry, 'magazine', doesn't
+			qputs 1387 empty before it can reach you.
+
+			qputs 1390 Perhaps unsurprisingly, it has a huge
+			qputs 1391 stomach and could easily eat a horse
+			qputs 1392 whole.
+			set bst_item_sound TROLL_RECOG
+
+			set bst_item_research RS_M_TROLL
+			set bst_item_res_cat RS_TAB_MYSTIC
+
+			set bst_icon_id 113
+			break
+		case VEGUNTH
+			qputs 1380 Vegunth
+			qputs 1381 A giant dragon; we can't really study
+			qputs 1382 the remains due to it falling into
+			qputs 1383 lava after its defeat. It is strange
+			qputs 1384 that it chose to fight the way it did
+			qputs 1385 rather than merely just incinerating
+			qputs 1386 James and Minerva.
+			set bst_item_sound VEG_ATCK
+			set bst_icon_id 107
+			break
+		case WOOFER
+			qputs 1380 Barghest
+			qputs 1381 A big, bad wolf. Thankfully it doesn't
+			qputs 1382 really have any traits beyond being
+			qputs 1383 a naughty boy who needs a time out.
+			set bst_item_sound WOLF_HOWL
+			set bst_icon_id 120
+			break
+	endswitch
+
+	state bst_check_hasdef
+ends
+
+defstate bst_beyond_defs
+	state bst_clear_defs
+
+	switch ui_query_id
+		case BEYONDER
+			ifl VOLUME 2
+				{
+				qputs 1380 Unknown Entity
+				ifand BEAT_EPISODES[7] 1 // Beaten Zeta base
+					{
+					qputs 1381 This creature seen in Zeta base matches
+					qputs 1382 what James saw in his dream; an extremely
+					qputs 1383 concerning scenario. Based on the mad
+					qputs 1384 ramblings of the scientist's diary, these
+					qputs 1385 things allegedly come from 'Beyond'
+					set bst_item_sound BEYOND_SPA
+					}
+				else
+					{
+					qputs 1381 A monstrous creature; James insisted that
+					qputs 1382 this thing was not just a creation of
+					qputs 1383 his tired mind, but a projection of some
+					qputs 1384 kind. This is a loose sketch of what he
+					qputs 1385 described to us.
+					}
+				}
+			else
+				{
+				qputs 1380 Beyonder
+				qputs 1381 What we've now dubbed a Beyonder; we still
+				qputs 1382 know almost nothing about these creatures
+				qputs 1383 apart from the fact they are unfathomably
+				qputs 1384 powerful, and incredibly hostile.
+				set bst_item_sound BEYOND_SPA
+				}
+			set bst_icon_id 154
+			break
+	endswitch
+
+	state bst_check_hasdef
+ends
+
+defstate bst_get_def
+	switch ui_tab_query
+		case BST_TAB_CYCLOID
+			state bst_cycloid_defs
+			break
+		case BST_TAB_ZOMB
+			state bst_zombie_defs
+			break
+		case BST_TAB_DEMON
+			state bst_demon_defs
+			break
+		case BST_TAB_MERC
+			state bst_merc_defs
+			break
+		case BST_TAB_CULT
+			state bst_cult_defs
+			break
+		case BST_TAB_MISC
+			state bst_misc_defs
+			break
+		case BST_TAB_SHADOW
+			state bst_shadowrealm_defs
+			break
+		case BST_TAB_PARADIGM
+			state bst_paradigm_defs
+			break
+		case BST_TAB_MJ12
+			state bst_mj12_defs
+			break
+		case BST_TAB_EGYPT
+			state bst_egypt_defs
+			break
+		case BST_TAB_NECRO
+			state bst_necro_defs
+			break
+		case BST_TAB_BEYOND
+			state bst_beyond_defs
+			break
+		default
+			break
+	endswitch
+
+	// Some error in the defs, it happens, catching it here makes it a bit easier to set up the defs
+	ifn bst_item_armorflags ARMOR_FLAG_NONE
+	  ifand bst_item_armorflags ARMOR_FLAG_NONE
+		xor bst_item_armorflags ARMOR_FLAG_NONE
+
+ends
+
+defstate bst_get_def_anytab
+	state bst_cycloid_defs
+
+	ife bst_hasdef 0
+		state bst_zombie_defs
+
+	ife bst_hasdef 0
+		state bst_demon_defs
+
+	ife bst_hasdef 0
+		state bst_merc_defs
+
+	ife bst_hasdef 0
+		state bst_misc_defs
+
+	ife bst_hasdef 0
+		state bst_shadowrealm_defs
+
+	ife bst_hasdef 0
+		state bst_paradigm_defs
+
+	ife bst_hasdef 0
+		state bst_mj12_defs
+
+	ife bst_hasdef 0
+		state bst_egypt_defs
+
+	ife bst_hasdef 0
+		state bst_necro_defs
+
+	ife bst_hasdef 0
+		state bst_beyond_defs
+
+	// Some error in the defs, it happens, catching it here makes it a bit easier to set up the defs
+	ife bst_hasdef 1
+	{
+		ifn bst_item_armorflags ARMOR_FLAG_NONE
+		  ifand bst_item_armorflags ARMOR_FLAG_NONE
+			xor bst_item_armorflags ARMOR_FLAG_NONE
+	}
+ends
+
+// This will check if there are enemies for a given tab, without putting them in the list
+defstate bst_query_list
+	set temp 0
+	whilel temp MAX_BESTIARY_COUNT
+	{
+		// Value is 0 => stop looking
+		ife ENEMIES_BESTIARY[temp] 0
+		{
+			set temp MAX_BESTIARY_COUNT
+			exit
+		}
+		else
+		{
+			set bst_hasdef 0
+			set ui_query_id ENEMIES_BESTIARY[temp]
+			state bst_get_def
+
+			ife bst_hasdef 1 // enemy defined in requested tab, stop looking
+			{
+				set temp MAX_BESTIARY_COUNT
+				exit
+			}
+		}
+
+		add temp 1
+	}
+ends
+
+// This will put the available enemies in the list for the UI
+defstate bst_init_list
+	state bst_clear_list
+
+	set temp2 0
+	for temp range MAX_BESTIARY_COUNT
+	{
+		ifg ENEMIES_BESTIARY[temp] 0 // found a defeated enemy
+		{
+			set ui_query_id ENEMIES_BESTIARY[temp]
+			state bst_get_def
+
+			ife bst_hasdef 1 // enemy defined in requested tab
+			{
+				setarray bst_currentlist[temp2] ui_query_id
+				add temp2 1
+			}
+		}
+	}
+ends

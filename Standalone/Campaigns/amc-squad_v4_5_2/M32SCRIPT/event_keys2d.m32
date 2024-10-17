@@ -1,0 +1,1150 @@
+// ================
+// The AMC Squad -- Custom Hotkeys for 2D mode
+// Originally created by Max "oasiz" Ylitalo. Many thanks!
+// ================
+
+define CONST_CANCEL -2147483648
+
+/*
+*-----------------------------------------------------------------
+* Additional 2D Mode Hotkeys + Description:
+* ----------------------------------------------------------------
+*  - [ALT + KP_PLUS]: Increment lotag of selected sprites by 1
+*  - [ALT + KP_MINUS]: Decrement lotag of selected sprites by 1
+*  - [SHIFT + KP_PLUS]: Increment extra of selected sprites by 1
+*  - [SHIFT + KP_MINUS]: Decrement extra of selected sprites by 1
+*  - [CTRL + KP_PLUS]: Increment hitag of selected sprites by 1
+*  - [CTRL + KP_MINUS]: Decrement hitag of selected sprites by 1
+*
+*  - [ALT + X]: Edit X velocity of highlighted sprite.
+*  - [ALT + Y]: Edit Y velocity of highlighted sprite.
+*  - [ALT + D]: Edit Z velocity of highlighted sprite.
+*  - [ALT + W]: Edit owner of highlighted sprite
+*
+* ----------------------------------------------------------------
+*/
+
+/* Triggered before the keypress is handled */
+onevent EVENT_PREKEYS2D
+
+    ife keystatus[KEY_TAB] 1
+    {
+        // Show remaining walls
+        redefinequote 420 Walls left: %ld
+        set temp3 numwalls
+        sub temp3 MAXWALLS
+        inv temp3
+        qsprintf 420 420 temp3
+        set temp xdim
+        div temp 2
+        qstrlen temp2 420
+        mul temp2 4
+        sub temp temp2
+        printext16 420 temp 18 0 -1 65536
+        sub temp 1
+        printext16 420 temp 17 14 -1 65536
+    }
+
+    ifeitheralt
+    {
+
+/* Delete selected sprites */
+        ifhitkey KEY_DELETE
+        {
+            for i selsprites deletesprite i
+            redefinequote hud_quote Selected sprites deleted!
+            quote hud_quote
+        }
+
+/* Increment lotag of selected sprite */
+        ifhitkey KEY_gPLUS
+        {
+            ife highlightcnt -1
+            {
+                ifge pointhighlight 16384
+                {
+                    set h pointhighlight
+                    sub h 16384
+                    set temp sprite[h].lotag
+                    add temp 1
+                    set sprite[h].lotag temp
+
+                    redefinequote hud_quote Lotag of sprite %d increased to %d
+                    qsprintf hud_quote hud_quote h temp
+                    quote hud_quote
+                }
+            }
+            else
+            {
+                for i selsprites add sprite[i].lotag 1
+                redefinequote hud_quote Incremented lotag for all selected sprites
+                quote hud_quote
+            }
+        }
+
+
+/* Decrement lotag of selected sprite */
+        ifhitkey KEY_gMINUS
+        {
+            ife highlightcnt -1
+            {
+                ifge pointhighlight 16384
+                {
+                    set h pointhighlight
+                    sub h 16384
+                    set temp sprite[h].lotag
+                    sub temp 1
+                    set sprite[h].lotag temp
+
+                    redefinequote hud_quote Lotag of sprite %d decreased to %d
+                    qsprintf hud_quote hud_quote h temp
+                    quote hud_quote
+                }
+            }
+            else
+            {
+                for i selsprites sub sprite[i].lotag 1
+                redefinequote hud_quote Decremented lotag for all selected sprites
+                quote hud_quote
+            }
+        }
+
+
+/* Change X velocity of highlighted sprite */
+        ifhitkey KEY_X
+       {
+            set temp highlightcnt
+            ifl temp 2
+            {
+                ifge pointhighlight 16384
+                {
+                    set h pointhighlight
+                    sub h 16384
+                    set temp2 sprite[h].xvel
+                    redefinequote hud_quote ^15Sprite (%ld) X-vel:^11
+                    qsprintf hud_quote hud_quote h
+                    getnumberfromuser temp2 hud_quote -32767 15
+                    ifn temp2 -2147483648 set sprite[h].xvel temp2
+                }
+            }
+            ifg temp 1
+            {
+                set temp2 ydim
+                sub temp2 40
+                ife temp 1 redefinequote hud_quote ^6WARNING! ^7Only one sprite found in selection!
+                ife temp 1 printext16 hud_quote 16 temp2 15 0 65536
+                set temp2 0
+                redefinequote hud_quote ^15Set %ld selected sprites X-vel:^11
+                qsprintf hud_quote hud_quote temp
+                getnumberfromuser temp2 hud_quote -32767 15
+                ifn temp2 -2147483648 for i selsprites set sprite[i].xvel temp2
+            }
+        }
+
+
+/* Change Y velocity of highlighted sprite */
+        ifhitkey KEY_Y
+        {
+            set temp highlightcnt
+            ifl temp 2
+            {
+                ifge pointhighlight 16384
+                {
+                    set h pointhighlight
+                    sub h 16384
+                    set temp2 sprite[h].yvel
+                    redefinequote hud_quote ^15Sprite (%ld) Y-vel:^11
+                    qsprintf hud_quote hud_quote h
+                    getnumberfromuser temp2 hud_quote -32767 15
+                    ifn temp2 -2147483648 set sprite[h].yvel temp2
+                }
+            }
+            ifg temp 1
+            {
+                set temp2 ydim
+                sub temp2 40
+                ife temp 1 redefinequote hud_quote ^6WARNING! ^7Only one sprite found in selection!
+                ife temp 1 printext16 hud_quote 16 temp2 15 0 65536
+                set temp2 0
+                redefinequote hud_quote ^15Set %ld selected sprites Y-vel:^11
+                qsprintf hud_quote hud_quote temp
+                getnumberfromuser temp2 hud_quote -32767 15
+                ifn temp2 -2147483648 for i selsprites set sprite[i].yvel temp2
+            }
+        }
+
+/* Change Z velocity of highlighted sprite */
+        ifhitkey KEY_D
+        {
+            set temp highlightcnt
+            ifl temp 2
+            {
+                ifge pointhighlight 16384
+                {
+                    set h pointhighlight
+                    sub h 16384
+                    set temp2 sprite[h].zvel
+                    redefinequote hud_quote ^15Sprite (%ld) Z-vel:^11
+                    qsprintf hud_quote hud_quote h
+                    getnumberfromuser temp2 hud_quote -32767 15
+                    ifn temp2 -2147483648 set sprite[h].zvel temp2
+                }
+            }
+            ifg temp 1
+            {
+                set temp2 ydim
+                sub temp2 40
+                ife temp 1 redefinequote hud_quote ^6WARNING! ^7Only one sprite found in selection!
+                ife temp 1 printext16 hud_quote 16 temp2 15 0 65536
+                set temp2 0
+                redefinequote hud_quote ^15Set %ld selected sprites Z-vel:^11
+                qsprintf hud_quote hud_quote temp
+                getnumberfromuser temp2 hud_quote -32767 15
+                ifn temp2 -2147483648 for i selsprites set sprite[i].zvel temp2
+            }
+        }
+
+/* Change owner of highlighted sprite */
+        ifhitkey KEY_W
+        {
+            set temp highlightcnt
+            ifl temp 2
+            {
+                ifge pointhighlight 16384
+                {
+                    set h pointhighlight
+                    sub h 16384
+                    set temp2 sprite[h].owner
+                    redefinequote hud_quote ^15Sprite (%ld) Owner:^11
+                    qsprintf hud_quote hud_quote h
+                    getnumberfromuser temp2 hud_quote -32767 15
+                    ifn temp2 -2147483648 set sprite[h].owner temp2
+                }
+            }
+            ifg temp 1
+            {
+                set temp2 ydim
+                sub temp2 40
+                ife temp 1 redefinequote hud_quote ^6WARNING! ^7Only one sprite found in selection!
+                ife temp 1 printext16 hud_quote 16 temp2 15 0 65536
+                redefinequote hud_quote ^15Set %ld selected sprites Owner:^11
+                qsprintf hud_quote hud_quote temp
+                set temp2 0
+                getnumberfromuser temp2 hud_quote -32767 15
+                ifn temp2 -2147483648 for i selsprites set sprite[i].owner temp2
+            }
+        }
+
+/* Set .blend of highlighted sprites */
+        ifhitkey KEY_Q
+        {
+            set temp highlightcnt
+            ifl temp 2
+            {
+                ifge pointhighlight 16384
+                {
+                    set h pointhighlight
+                    sub h 16384
+                    set temp ydim
+                    sub temp 128
+                    setvar temp7 8
+                    whilen temp7 320
+                    {
+
+                        drawline16 temp7 temp temp7 ydim 0
+                        add temp7 1
+                    }
+                    drawline16 8 temp 320 temp 8
+                    drawline16 8 ydim 320 ydim 8
+                    drawline16 8 temp 8 ydim 8
+                    drawline16 320 temp 320 ydim 8
+                    redefinequote 401 Blend modes
+                    printext16 401 16 temp 15 0 65536
+                    add temp 32
+                    redefinequote hud_quote ^6[ 0 ]^7  ALPHA 33% (normal)  ^00
+                    printext16 hud_quote 16 temp 15 0 65536
+                    add temp 10
+                    redefinequote hud_quote Missing documentation for rest!^00
+                    printext16 hud_quote 16 temp 15 0 65536
+                    add temp 10
+                    set temp2 sprite[h].blend
+                    redefinequote hud_quote ^15Sprite (%ld) Blend:^11
+                    qsprintf hud_quote hud_quote h
+                    getnumberfromuser temp2 hud_quote 255 15
+                    ifn temp2 -2147483648 set sprite[h].blend temp2
+                }
+            } else
+            {
+                set temp2 ydim
+                sub temp2 40
+                ife temp 1 redefinequote hud_quote ^6WARNING! ^7Only one sprite found in selection!
+                ife temp 1 printext16 hud_quote 16 temp2 15 0 65536
+
+                set temp ydim
+                sub temp 128
+                setvar temp7 8
+                whilen temp7 320
+                {
+
+                    drawline16 temp7 temp temp7 ydim 0
+                    add temp7 1
+                }
+                drawline16 8 temp 320 temp 8
+                drawline16 8 ydim 320 ydim 8
+                drawline16 8 temp 8 ydim 8
+                drawline16 320 temp 320 ydim 8
+                redefinequote hud_quote Blend modes
+                printext16 hud_quote 16 temp 15 0 65536
+                add temp 32
+                redefinequote hud_quote ^6[ 0 ]^7  ALPHA 33% (normal)  ^00
+                printext16 hud_quote 16 temp 15 0 65536
+                add temp 10
+                redefinequote hud_quote Missing documentation for rest!^00
+                printext16 hud_quote 16 temp 15 0 65536
+                add temp 10
+                set temp2 0
+                set temp highlightcnt
+                redefinequote hud_quote ^15Set %ld selected sprites Blend:^11
+                qsprintf hud_quote hud_quote temp
+                getnumberfromuser temp2 hud_quote 255 15
+                ifn temp2 -2147483648 for i selsprites set sprite[i].blend temp2
+            }
+        }
+
+/* Set .cstat of highlighted sprites */
+        ifhitkey KEY_C
+        {
+            set temp highlightcnt
+            ifl temp 2
+            {
+                ifge pointhighlight 16384
+                {
+                    set h pointhighlight
+                    sub h 16384
+                    set temp ydim
+                    sub temp 256
+                    setvar temp7 8
+                    whilen temp7 480
+                    {
+
+                        drawline16 temp7 temp temp7 ydim 0
+                        add temp7 1
+                    }
+                    drawline16 8 temp 480 temp 8
+                    drawline16 8 ydim 480 ydim 8
+                    drawline16 8 temp 8 ydim 8
+                    drawline16 480 temp 480 ydim 8
+                    redefinequote 401 Sprite CSTAT
+                    printext16 401 16 temp 15 0 65536
+                    add temp 32
+                    redefinequote hud_quote ^15STATE  BIT     DESCRIPTION^00
+                    printext16 hud_quote 16 temp 15 0 65536
+                    add temp 10
+                    ifand temp2 1 {
+                        redefinequote hud_quote ^14ON    ^9 1       ^11Sprite is blocking    ^00
+                    } else {
+                        redefinequote hud_quote ^6OFF   ^9 1       ^7Sprite is blocking    ^00
+                    } printext16 hud_quote 16 temp 15 0 65536 : add temp 10
+                    ifand temp2 2 {
+                        redefinequote hud_quote ^14ON    ^9 2       ^11Sprite is transparent  ^00
+                    } else {
+                        redefinequote hud_quote ^6OFF   ^9 2       ^7Sprite is transparent  ^00
+                    } printext16 hud_quote 16 temp 15 0 65536 : add temp 10
+                    ifand temp2 4 {
+                        redefinequote hud_quote ^14ON    ^9 4       ^11Mirror flip X         ^00
+                    } else {
+                        redefinequote hud_quote ^6OFF   ^9 4       ^7Mirror flip X         ^00
+                    } printext16 hud_quote 16 temp 15 0 65536 : add temp 10
+                    ifand temp2 8 {
+                        redefinequote hud_quote ^14ON    ^9 8       ^11Mirror flip Y         ^00
+                    } else {
+                        redefinequote hud_quote ^6OFF   ^9 8       ^7Mirror flip Y         ^00
+                    } printext16 hud_quote 16 temp 15 0 65536 : add temp 10
+                    ifand temp2 16 {
+                        redefinequote hud_quote ^14ON    ^9 16      ^11Sprite is wall aligned^00
+                    } else {
+                        redefinequote hud_quote ^6OFF   ^9 16      ^7Sprite is wall aligned^00
+                    } printext16 hud_quote 16 temp 15 0 65536 : add temp 10
+                    ifand temp2 132 {
+                        redefinequote hud_quote ^14ON    ^9 32      ^11Sprite is floor aligned^00
+                    } else {
+                        redefinequote hud_quote ^6OFF   ^9 32      ^7Sprite is floor aligned^00
+                    } printext16 hud_quote 16 temp 15 0 65536 : add temp 10
+                    ifand temp2 64 {
+                        redefinequote hud_quote ^14ON    ^9 64      ^11Sprite is one sided   ^00
+                    } else {
+                        redefinequote hud_quote ^6OFF   ^9 64      ^7Sprite is one sided   ^00
+                    } printext16 hud_quote 16 temp 15 0 65536 : add temp 10
+                    ifand temp2 128 {
+                        redefinequote hud_quote ^14ON    ^9 128     ^11Sink / Center Y       ^00
+                    } else {
+                        redefinequote hud_quote ^6OFF   ^9 128     ^7Sink / Center Y       ^00
+                    } printext16 hud_quote 16 temp 15 0 65536 : add temp 10
+                    ifand temp2 256 {
+                        redefinequote hud_quote ^14ON    ^9 256     ^11Sprite is hitscan     ^00
+                    } else {
+                        redefinequote hud_quote ^6OFF   ^9 256     ^7Sprite is hitscan     ^00
+                    } printext16 hud_quote 16 temp 15 0 65536 : add temp 10
+                    ifand temp2 512 {
+                        redefinequote hud_quote ^14ON    ^9 512     ^11More transparent, Use 2+512!^00
+                    } else {
+                        redefinequote hud_quote ^6OFF   ^9 512     ^7More transparent, Use 2+512!^00
+                    } printext16 hud_quote 16 temp 15 0 65536 : add temp 10
+                    ifand temp2 1024 {
+                        redefinequote hud_quote ^14ON    ^9 1024    ^11Higher draw priority  ^00
+                    } else {
+                        redefinequote hud_quote ^6OFF   ^9 1024    ^7Higher draw priority  ^00
+                    } printext16 hud_quote 16 temp 15 0 65536 : add temp 10
+                    ifand temp2 2048 {
+                        redefinequote hud_quote ^14ON    ^9 2048    ^11Ignore sector shade (noshade)^00
+                    } else {
+                        redefinequote hud_quote ^6OFF   ^9 2048    ^7Ignore sector shade (noshade)^00
+                    } printext16 hud_quote 16 temp 15 0 65536 : add temp 10
+                    ifand temp2 4096 {
+                        redefinequote hud_quote ^14ON    ^9 4096    ^2RESERVED  ^00
+                    } else {
+                        redefinequote hud_quote ^6OFF   ^9 4096    ^1RESERVED  ^00
+                    } printext16 hud_quote 16 temp 15 0 65536 : add temp 10
+                    ifand temp2 8192 {
+                        redefinequote hud_quote ^14ON    ^9 8192    ^11Do not cast polymar shadow^00
+                    } else {
+                        redefinequote hud_quote ^6OFF   ^9 8192    ^7Do not cast polymar shadow^00
+                    } printext16 hud_quote 16 temp 15 0 65536 : add temp 10
+                    ifand temp2 16384 {
+                        redefinequote hud_quote ^14ON    ^9 16384   ^11Invisible, cast polymer shadow^00
+                    } else {
+                        redefinequote hud_quote ^6OFF   ^9 16384   ^7Invisible, cast polymer shadow^00
+                    } printext16 hud_quote 16 temp 15 0 65536 : add temp 10
+                    ifand temp2 32768 {
+                        redefinequote hud_quote ^14ON    ^9 32768   ^11Fully invisible, skipped rendering^00
+                    } else {
+                        redefinequote hud_quote ^6OFF   ^9 32768   ^7Fully invisible, skipped rendering^00
+                    } printext16 hud_quote 16 temp 15 0 65536 : add temp 10
+                    redefinequote hud_quote ^15Sprite (%ld) CStat:^11
+                    set temp2 sprite[h].cstat
+                    qsprintf hud_quote hud_quote h
+                    getnumberfromuser temp2 hud_quote -32767 15
+                    ifn temp2 -2147483648 set sprite[h].cstat temp2
+                }
+            } else
+            {
+                set temp2 ydim
+                sub temp2 40
+                ife temp 1 redefinequote hud_quote ^6WARNING! ^7Only one sprite found in selection!
+                ife temp 1 printext16 hud_quote 16 temp2 15 0 65536
+                redefinequote hud_quote ^15Set %ld selected sprites CStat:^11
+                qsprintf hud_quote hud_quote temp
+                set temp2 0
+                getnumberfromuser temp2 hud_quote -32767 15
+                ifn temp2 -2147483648 for i selsprites set sprite[i].cstat temp2
+            }
+        }
+
+/* Set selected lotag, duplicate re-implements wall (as this overrides normal function) */
+        ifhitkey KEY_T
+        {
+            set temp6 0
+            set temp5 0
+            for i selsprites
+            {
+                add temp6 1
+                ifn sprite[i].picnum 1 add temp5 1
+            }
+            ifl temp6 2
+            {
+                ifge pointhighlight 16384
+                {
+                    set h pointhighlight
+                    sub h 16384
+                    ife sprite[h].picnum 1
+                    {
+                        set temp ydim
+                        sub temp 450
+
+                        setvar temp7 8
+                        whilen temp7 520
+                        {
+
+                            drawline16 temp7 temp temp7 ydim 0
+                            add temp7 1
+                        }
+                        drawline16 8 temp 520 temp 8
+                        drawline16 8 ydim 520 ydim 8
+                        drawline16 8 temp 8 ydim 8
+                        drawline16 520 temp 520 ydim 8
+                        redefinequote hud_quote Sector effectors
+                        printext16 hud_quote 16 temp 15 0 65536
+                        add temp 32
+                        redefinequote hud_quote ^6[0]^7  ROTATE SECTOR            ^00
+                        printext16 hud_quote 16 temp 15 0 65536
+                        add temp 10
+                        redefinequote hud_quote ^6[1]^7  PIVOT FOR SE1            ^00
+                        printext16 hud_quote 16 temp 15 0 65536
+                        add temp 10
+                        redefinequote hud_quote ^6[2]^7  EARTHQUAKE               ^00
+                        printext16 hud_quote 16 temp 15 0 65536
+                        add temp 10
+                        redefinequote hud_quote ^6[3]^7  RANDOM LIGHTS AFTER SHOT ^00
+                        printext16 hud_quote 16 temp 15 0 65536
+                        add temp 10
+                        redefinequote hud_quote ^6[4]^7  RANDOM LIGTS             ^00
+                        printext16 hud_quote 16 temp 15 0 65536
+                        add temp 10
+                        redefinequote hud_quote ^6[5]^7  ! HELICOPTER             ^00
+                        printext16 hud_quote 16 temp 15 0 65536
+                        add temp 10
+                        redefinequote hud_quote ^6[6]^7  SUBWAY ENGINE            ^00
+                        printext16 hud_quote 16 temp 15 0 65536
+                        add temp 10
+                        redefinequote hud_quote ^6[7]^7  TELEPORTER               ^00
+                        printext16 hud_quote 16 temp 15 0 65536
+                        add temp 10
+                        redefinequote hud_quote ^6[8]^7  OPEN DOOR LIGHTS         ^00
+                        printext16 hud_quote 16 temp 15 0 65536
+                        add temp 10
+                        redefinequote hud_quote ^6[9]^7  CLOSE DOOR LIGHTS        ^00
+                        printext16 hud_quote 16 temp 15 0 65536
+                        add temp 10
+                        redefinequote hud_quote ^6[10]^7 DOOR AUTO CLOSE          ^00
+                        printext16 hud_quote 16 temp 15 0 65536
+                        add temp 10
+                        redefinequote hud_quote ^6[11]^7 SWINGING DOOR PIVOT      ^00
+                        printext16 hud_quote 16 temp 15 0 65536
+                        add temp 10
+                        redefinequote hud_quote ^6[12]^7 LIGHT SWITCH             ^00
+                        printext16 hud_quote 16 temp 15 0 65536
+                        add temp 10
+                        redefinequote hud_quote ^6[13]^7 EXPLOSIVE                ^00
+                        printext16 hud_quote 16 temp 15 0 65536
+                        add temp 10
+                        redefinequote hud_quote ^6[14]^7 SUBWAY CAR               ^00
+                        printext16 hud_quote 16 temp 15 0 65536
+                        add temp 10
+                        redefinequote hud_quote ^6[15]^7 SLIDING DOOR             ^00
+                        printext16 hud_quote 16 temp 15 0 65536
+                        add temp 10
+                        redefinequote hud_quote ^6[16]^7 ! ROTATE REACTOR SECTOR  ^00
+                        printext16 hud_quote 16 temp 15 0 65536
+                        add temp 10
+                        redefinequote hud_quote ^6[17]^7 TRANSPORT ELEVATOR       ^00
+                        printext16 hud_quote 16 temp 15 0 65536
+                        add temp 10
+                        redefinequote hud_quote ^6[18]^7 INCREMENTAL RISE/FALL    ^00
+                        printext16 hud_quote 16 temp 15 0 65536
+                        add temp 10
+                        redefinequote hud_quote ^6[19]^7 CEILING FALL / AIRLOCK   ^00
+                        printext16 hud_quote 16 temp 15 0 65536
+                        add temp 10
+                        redefinequote hud_quote ^6[20]^7 SHRINK SECTOR / BRIDGE   ^00
+                        printext16 hud_quote 16 temp 15 0 65536
+                        add temp 10
+                        redefinequote hud_quote ^6[21]^7 FLOOR RISE/CEILING DROP  ^00
+                        printext16 hud_quote 16 temp 15 0 65536
+                        add temp 10
+                        redefinequote hud_quote ^6[22]^7 ! TEETH DOOR             ^00
+                        printext16 hud_quote 16 temp 15 0 65536
+                        add temp 10
+                        redefinequote hud_quote ^6[23]^7 ONE-WAY TELEPORTER EXIT  ^00
+                        printext16 hud_quote 16 temp 15 0 65536
+                        add temp 10
+                        redefinequote hud_quote ^6[24]^7 CONVEYOR BELT            ^00
+                        printext16 hud_quote 16 temp 15 0 65536
+                        add temp 10
+                        redefinequote hud_quote ^6[25]^7 PISTON                   ^00
+                        printext16 hud_quote 16 temp 15 0 65536
+                        add temp 10
+                        redefinequote hud_quote ^6[26]^7 ! ESCALATOR              ^00
+                        printext16 hud_quote 16 temp 15 0 65536
+                        add temp 10
+                        redefinequote hud_quote ^6[27]^7 DEMO CAMERA              ^00
+                        printext16 hud_quote 16 temp 15 0 65536
+                        add temp 10
+                        redefinequote hud_quote ^6[28]^7 LIGHTNING BOLT           ^00
+                        printext16 hud_quote 16 temp 15 0 65536
+                        add temp 10
+                        redefinequote hud_quote ^6[29]^7 FLOATING SECTOR          ^00
+                        printext16 hud_quote 16 temp 15 0 65536
+                        add temp 10
+                        redefinequote hud_quote ^6[30]^7 TWO WAY TRAIN            ^00
+                        printext16 hud_quote 16 temp 15 0 65536
+                        add temp 10
+                        redefinequote hud_quote ^6[31]^7 RAISE/LOWER FLOOR        ^00
+                        printext16 hud_quote 16 temp 15 0 65536
+                        add temp 10
+                        redefinequote hud_quote ^6[32]^7 RAISE/LOWER CEILING      ^00
+                        printext16 hud_quote 16 temp 15 0 65536
+                        add temp 10
+                        redefinequote hud_quote ^6[33]^7 EARTHQUAKE DEBRIS        ^00
+                        printext16 hud_quote 16 temp 15 0 65536
+                        add temp 10
+                        redefinequote hud_quote ^6[34]^7 CONVEYOR BELT 50% SPEED  ^00
+                        printext16 hud_quote 16 temp 15 0 65536
+                        add temp 10
+                        redefinequote hud_quote ^6[35]^7 ! DRILL                  ^00
+                        printext16 hud_quote 16 temp 15 0 65536
+                        add temp 10
+                        redefinequote hud_quote ^6[36]^7 SHOOTER                  ^00
+                        printext16 hud_quote 16 temp 15 0 65536
+                        set temp 28
+
+                        set temp ydim
+                        sub temp 450
+                        add temp 32
+                        redefinequote hud_quote ^6[43]^7 WALL PIVOT           ^00
+                        printext16 hud_quote 264 temp 15 0 65536
+                        add temp 10
+                        redefinequote hud_quote ^6[51]^7 FLOOR TEXTURE            ^00
+                        printext16 hud_quote 264 temp 15 0 65536
+                        add temp 10
+                        redefinequote hud_quote ^6[52]^7 FLOOR TEXTURE, WHEN LEVEL^00
+                        printext16 hud_quote 264 temp 15 0 65536
+                        add temp 10
+                        redefinequote hud_quote ^6[53]^7 TURN WATER TO NORMAL     ^00
+                        printext16 hud_quote 264 temp 15 0 65536
+                        add temp 10
+                        redefinequote hud_quote ^6[54]^7 CHANGE WALL TEXTURE      ^00
+                        printext16 hud_quote 264 temp 15 0 65536
+                        add temp 10
+                        redefinequote hud_quote ^6[55]^7 CHANGE CEILING TEXTURE   ^00
+                        printext16 hud_quote 264 temp 15 0 65536
+                        add temp 10
+                        redefinequote hud_quote ^6[56]^7 CHANGE SECTOR LOTAG      ^00
+                        printext16 hud_quote 264 temp 15 0 65536
+                        add temp 10
+                        redefinequote hud_quote ^6[57]^7 FLOOR TEXTURE, WHEN LOWER^00
+                        printext16 hud_quote 264 temp 15 0 65536
+                        add temp 10
+                        redefinequote hud_quote ^6[58]^7 CEILING TEXTURE, ON HITAG^00
+                        printext16 hud_quote 264 temp 15 0 65536
+                        add temp 10
+                        redefinequote hud_quote ^6[60]^7 SECTOR COPY: DESTINATION ^00
+                        printext16 hud_quote 264 temp 15 0 65536
+                        add temp 10
+                        redefinequote hud_quote ^6[61]^7 SECTOR COPY: SOURCE      ^00
+                        printext16 hud_quote 264 temp 15 0 65536
+                        add temp 10
+                        redefinequote hud_quote ^6[69]^7 HUB MAP DESTINATION      ^00
+                        printext16 hud_quote 264 temp 15 0 65536
+                        add temp 10
+                        redefinequote hud_quote ^6[71]^7 LOWER FLOOR, PLAYER STAND^00
+                        printext16 hud_quote 264 temp 15 0 65536
+                        add temp 10
+                        redefinequote hud_quote ^6[79]^7 SKYBOX, DEACTIVATED^00
+                        printext16 hud_quote 264 temp 15 0 65536
+                        add temp 10
+                        redefinequote hud_quote ^6[80]^7 SKYBOX^00
+                        printext16 hud_quote 264 temp 15 0 65536
+                        add temp 10
+                        redefinequote hud_quote ^6[81]^7 SKYBOX SHADE^00
+                        printext16 hud_quote 264 temp 15 0 65536
+                        add temp 10
+                        redefinequote hud_quote ^6[82]^7 SKYBOX ANCHOR^00
+                        printext16 hud_quote 264 temp 15 0 65536
+                        add temp 10
+                        redefinequote hud_quote ^6[91]^7 NO FALL DAMAGE IN SECTOR^00
+                        printext16 hud_quote 264 temp 15 0 65536
+                        add temp 20
+                        redefinequote hud_quote ^3! marked are unfinished/buggy^00
+                        printext16 hud_quote 264 temp 15 0 65536
+                    }
+                    set temp2 sprite[h].lotag
+                    redefinequote hud_quote ^15Sprite (%ld) Lo-tag:^11
+                    qsprintf hud_quote hud_quote h
+                    getnumberfromuser temp2 hud_quote -32767 15
+                    ifn temp2 -2147483648 set sprite[h].lotag temp2
+                }
+                ifge linehighlight 0
+                {
+                    set h linehighlight
+                    set temp2 wall[h].lotag
+                    redefinequote hud_quote ^15Wall %ld Lo-tag:^11
+                    qsprintf hud_quote hud_quote h
+                    getnumberfromuser temp2 hud_quote -32767 15
+                    ifn temp2 -2147483648 set wall[h].lotag temp2
+                }
+            }
+            ifg temp6 1
+            {
+                redefinequote hud_quote ^15Set %ld selected sprites Lo-tag:^11
+                set temp ydim
+                sub temp 40
+                ife temp6 1 redefinequote hud_quote ^6WARNING! ^7Only one sprite found in selection!
+                ife temp6 1 printext16 hud_quote 16 temp 15 0 65536
+                redefinequote hud_quote ^15Set %ld selected sprites Lo-tag:^11
+                qsprintf hud_quote hud_quote temp6
+                set temp2 0
+                getnumberfromuser temp2 hud_quote -32767 15
+                ifn temp2 -2147483648 for i selsprites set sprite[i].lotag temp2
+            }
+        }
+
+
+/* Set selected Hitag, duplicate re-implements wall (as this overrides normal function) */
+        ifhitkey KEY_H
+        {
+            set temp4 highlightcnt
+            ifl temp4 2
+            {
+                ifge pointhighlight 16384
+                {
+                    set h pointhighlight
+                    sub h 16384
+                    set temp2 sprite[h].hitag
+                    redefinequote hud_quote ^15Sprite (%ld) Hi-tag:^11
+                    qsprintf hud_quote hud_quote h
+                    getnumberfromuser temp2 hud_quote -32767 15
+                    ifn temp2 -2147483648 set sprite[h].hitag temp2
+                }
+                ifge linehighlight 0
+                {
+                    set h linehighlight
+                    set temp2 wall[h].hitag
+                    redefinequote hud_quote ^15Wall %ld Hi-tag:^11
+                    qsprintf hud_quote hud_quote h
+                    getnumberfromuser temp2 hud_quote -32767 15
+                    ifn temp2 -2147483648 set wall[h].hitag temp2
+                }
+            }
+            ifg temp4 1
+            {
+                set temp2 ydim
+                sub temp2 40
+                ife temp 1 redefinequote hud_quote ^6WARNING! ^7Only one sprite found in selection!
+                ife temp 1 printext16 hud_quote 16 temp2 15 0 65536
+                redefinequote hud_quote ^15Set %ld selected sprites Hi-tag:^11
+                qsprintf hud_quote hud_quote temp4
+                set temp2 0
+                getnumberfromuser temp2 hud_quote -32767 15
+                ifn temp2 -2147483648 for i selsprites set sprite[i].hitag temp2
+            }
+        }
+
+
+/* Set selected extra, duplicate re-implements wall (as this overrides normal function) */
+        ifhitkey KEY_M
+        {
+            set temp highlightcnt
+            ifl temp 2
+            {
+                ifge pointhighlight 16384
+                {
+                    set h pointhighlight
+                    sub h 16384
+                    set temp2 sprite[h].extra
+                    redefinequote hud_quote ^15Sprite (%ld) Extra:^11
+                    qsprintf hud_quote hud_quote h
+                    getnumberfromuser temp2 hud_quote -32767 15
+                    ifn temp2 -2147483648 set sprite[h].extra temp2
+                }
+                ifge linehighlight 0
+                {
+                    set h linehighlight
+                    set temp2 wall[h].extra
+                    redefinequote hud_quote ^15Wall %ld Extra:^11
+                    qsprintf hud_quote hud_quote h
+                    getnumberfromuser temp2 hud_quote -32767 15
+                    ifn temp2 -2147483648 set wall[h].extra temp2
+                }
+            }
+            ifg temp 1
+            {
+                set temp2 ydim
+                sub temp2 40
+                ife temp 1 redefinequote hud_quote ^6WARNING! ^7Only one sprite found in selection!
+                ife temp 1 printext16 hud_quote 16 temp2 15 0 65536
+                redefinequote hud_quote ^15Set %ld selected sprites Extra:^11
+                qsprintf hud_quote hud_quote temp
+                set temp2 0
+                getnumberfromuser temp2 hud_quote -32767 15
+                ifn temp2 -2147483648 for i selsprites set sprite[i].extra temp2
+            }
+        }
+    }
+
+    ifeithershift
+    {
+
+/* Increment extra of selected sprites */
+        ifhitkey KEY_gPLUS
+        {
+            ife highlightcnt -1
+                {
+                ifge pointhighlight 16384
+                {
+                    set h pointhighlight
+                    sub h 16384
+                    set temp sprite[h].extra
+                    add temp 1
+                    set sprite[h].extra temp
+
+                    redefinequote hud_quote Extra of sprite %d increased to %d
+                    qsprintf hud_quote hud_quote h temp
+                    quote hud_quote
+                }
+            }
+            else
+            {
+                for i selsprites add sprite[i].extra 1
+                redefinequote hud_quote Incremented extra for all selected sprites
+                quote hud_quote
+            }
+        }
+
+
+/* Decrement extra of selected sprites */
+        ifhitkey KEY_gMINUS
+        {
+            ife highlightcnt -1
+            {
+                ifge pointhighlight 16384
+                {
+                    set h pointhighlight
+                    sub h 16384
+                    set temp sprite[h].extra
+                    sub temp 1
+                    set sprite[h].extra temp
+
+                    redefinequote hud_quote Extra of sprite %d decreased to %d
+                    qsprintf hud_quote hud_quote h temp
+                    quote hud_quote
+                }
+            }
+            else
+            {
+                for i selsprites sub sprite[i].extra 1
+                redefinequote hud_quote Decremented extra for all selected sprites
+                quote hud_quote
+            }
+        }
+
+/* Display wall angle/turn and other sprite info along with lines to walls when SHIFT is held */
+        ife keystatus[KEY_LSHIFT] 1
+        {
+            ifge linehighlight 0
+            {
+                set h linehighlight
+                set temp searchx
+                set temp2 searchy
+                add temp2 8
+                add temp 16
+                set temp5 temp
+                set temp6 temp2
+                add temp5 48
+                add temp6 32
+                set temp7 temp
+                add temp 3
+
+                redefinequote hud_quote WALL %ld
+                qsprintf hud_quote hud_quote h
+                qstrlen temp3 hud_quote
+                div temp3 2
+                add temp3 temp
+                printext16 hud_quote temp3 temp2 0 -1 1
+                sub temp3 1
+                sub temp2 1
+                printext16 hud_quote temp3 temp2 15 -1 1
+                add temp3 1
+                add temp2 1
+
+                add temp2 8
+                redefinequote hud_quote HI: %ld
+                qsprintf hud_quote hud_quote wall[h].hitag
+                printext16 hud_quote temp3 temp2 0 -1 1
+                sub temp3 1
+                sub temp2 1
+                printext16 hud_quote temp3 temp2 15 -1 1
+                add temp3 1
+                add temp2 1
+
+                add temp2 8
+                redefinequote hud_quote LO: %ld
+                qsprintf hud_quote hud_quote wall[h].lotag
+                printext16 hud_quote temp3 temp2 0 -1 1
+                sub temp3 1
+                sub temp2 1
+                printext16 hud_quote temp3 temp2 15 -1 1
+                add temp3 1
+                add temp2 1
+
+                add temp2 8
+                redefinequote hud_quote EX: %ld
+                qsprintf hud_quote hud_quote wall[h].extra
+                printext16 hud_quote temp3 temp2 0 -1 1
+                sub temp3 1
+                sub temp2 1
+                printext16 hud_quote temp3 temp2 15 -1 1
+                add temp3 1
+                add temp2 1
+                set temp temp3
+                add temp2 8
+
+
+                lastwall h temp7
+                set temp3 wall[temp7].x
+                set temp4 wall[temp7].y
+                set temp7 wall[temp7].point2
+                set temp5 wall[temp7].x
+                set temp6 wall[temp7].y
+                sub temp3 temp5
+                sub temp4 temp6
+                getangle temp8 temp3 temp4
+
+
+
+                set temp3 wall[temp7].x
+                set temp4 wall[temp7].y
+                set temp7 wall[temp7].point2
+                set temp5 wall[temp7].x
+                set temp6 wall[temp7].y
+                sub temp3 temp5
+                sub temp4 temp6
+                getangle temp7 temp3 temp4
+                getincangle temp3 temp8 temp7
+                set temp9 temp3
+
+                mul temp3 100
+                div temp3 568
+                ifl temp3 0
+                {
+                inv temp3
+                add temp3 180
+                }
+
+                redefinequote hud_quote TURN: %ld    (%ld')
+                qsprintf hud_quote hud_quote temp9 temp3
+                printext16 hud_quote temp temp2 0 -1 1
+                sub temp 1
+                sub temp2 1
+                printext16 hud_quote temp temp2 15 -1 1
+                add temp 1
+                add temp2 1
+
+
+                add temp7 1024
+                mod temp7 2048
+
+
+                add temp2 8
+                redefinequote hud_quote ANGLE: %ld
+                qsprintf hud_quote hud_quote temp7
+                printext16 hud_quote temp temp2 0 -1 1
+                sub temp 1
+                sub temp2 1
+                printext16 hud_quote temp temp2 15 -1 1
+                add temp 1
+                add temp2 1
+
+                updatecursectnum
+                sectorofwall temp h
+                ife cursectnum temp
+                    {
+                        set drawlinepat -1
+                        drawline16b mousxplc mousyplc wall[h].x wall[h].y 3
+                        set drawlinepat 0x0f0f0f0f
+                        div drawlinepat 2
+                        set temp wall[h].point2
+                        drawline16b mousxplc mousyplc wall[temp].x wall[temp].y 3
+                    } else
+                    {
+                        set drawlinepat -1
+                        set temp wall[h].point2
+                        drawline16b mousxplc mousyplc wall[temp].x wall[temp].y -14
+                        set drawlinepat 0x0f0f0f0f
+                        div drawlinepat 2
+                        drawline16b mousxplc mousyplc wall[h].x wall[h].y -14
+                    }
+
+            }
+            set drawlinepat -1
+            ifge pointhighlight 16384
+            {
+                set h pointhighlight
+                sub h 16384
+                set temp searchx
+                set temp2 searchy
+                add temp2 8
+                add temp 16
+
+                set temp5 temp
+                set temp6 temp2
+                add temp5 48
+                add temp6 40
+                set temp7 temp
+                add temp 3
+
+                redefinequote hud_quote SPRITE %ld
+                qsprintf hud_quote hud_quote h
+                qstrlen temp3 hud_quote
+                div temp3 2
+                add temp3 temp
+                printext16 hud_quote temp temp2 0 -1 1
+                sub temp3 1
+                sub temp2 1
+                printext16 hud_quote temp temp2 15 -1 1
+                add temp3 1
+                add temp2 1
+
+                add temp2 8
+                redefinequote hud_quote XVEL: %ld
+                qsprintf hud_quote hud_quote sprite[h].xvel
+                printext16 hud_quote temp temp2 0 -1 1
+                sub temp3 1
+                sub temp2 1
+                printext16 hud_quote temp temp2 15 -1 1
+                add temp3 1
+                add temp2 1
+
+                add temp2 8
+                redefinequote hud_quote YVEL: %ld
+                qsprintf hud_quote hud_quote sprite[h].yvel
+                printext16 hud_quote temp temp2 0 -1 1
+                sub temp3 1
+                sub temp2 1
+                printext16 hud_quote temp temp2 15 -1 1
+                add temp3 1
+                add temp2 1
+
+                add temp2 8
+                redefinequote hud_quote ZVEL: %ld
+                qsprintf hud_quote hud_quote sprite[h].zvel
+                printext16 hud_quote temp temp2 0 -1 1
+                sub temp3 1
+                sub temp2 1
+                printext16 hud_quote temp temp2 15 -1 1
+                add temp3 1
+                add temp2 1
+
+                add temp2 8
+                redefinequote hud_quote OWNER: %ld
+                qsprintf hud_quote hud_quote sprite[h].owner
+                printext16 hud_quote temp temp2 0 -1 1
+                sub temp3 1
+                sub temp2 1
+                printext16 hud_quote temp temp2 15 -1 1
+                add temp3 1
+                add temp2 1
+            }
+        }
+
+
+    }
+
+    ifeitherctrl
+    {
+
+/* Increment hitag of selected sprites */
+        ifhitkey KEY_gPLUS
+        {
+            ife highlightcnt -1
+            {
+                ifge pointhighlight 16384
+                {
+                    set h pointhighlight
+                    sub h 16384
+                    set temp sprite[h].hitag
+                    add temp 1
+                    set sprite[h].hitag temp
+
+                    redefinequote hud_quote Hitag of sprite %d increased to %d
+                    qsprintf hud_quote hud_quote h temp
+                    quote hud_quote
+                }
+            }
+            else
+            {
+                for i selsprites add sprite[i].hitag 1
+                redefinequote hud_quote Incremented hitag for all selected sprites
+                quote hud_quote
+            }
+        }
+
+
+/* Decrement hitag of selected sprites */
+        ifhitkey KEY_gMINUS
+        {
+            ife highlightcnt -1
+            {
+                ifge pointhighlight 16384
+                {
+                    set h pointhighlight
+                    sub h 16384
+                    set temp sprite[h].hitag
+                    sub temp 1
+                    set sprite[h].hitag temp
+
+                    redefinequote hud_quote Hitag of sprite %d decreased to %d
+                    qsprintf hud_quote hud_quote h temp
+                    quote hud_quote
+                }
+            }
+            else
+            {
+                for i selsprites sub sprite[i].hitag 1
+                redefinequote hud_quote Decremented hitag for all selected sprites
+                quote hud_quote
+            }
+        }
+    }
+
+endevent
+
+
+/* Triggered after the keypress is handled */
+onevent EVENT_KEYS2D
+
+/* Rotate selected sprites counter-clockwise */
+    ifhitkey KEY_PERIOD
+    {
+        set temp 0
+        for i selsprites add temp 1
+        ifg temp 0
+        {
+            ifeithershift
+            {
+                for i selsprites add sprite[i].ang 1
+            } else {
+                for i selsprites add sprite[i].ang 128
+            }
+        } else {
+            ifge pointhighlight 16384
+            {
+                set h pointhighlight
+                sub h 16384
+                ifeithershift
+                {
+                    add sprite[h].ang 1
+                } else {
+                    add sprite[h].ang 128
+                }
+            }
+        }
+    }
+
+/* Rotate selected sprites clockwise */
+    ifhitkey KEY_COMMA
+    {
+        set temp 0
+        for i selsprites add temp 1
+        ifg temp 0
+        {
+            ifeithershift
+            {
+                for i selsprites sub sprite[i].ang 1
+            } else {
+                for i selsprites sub sprite[i].ang 128
+            }
+        } else {
+            ifge pointhighlight 16384
+            {
+                set h pointhighlight
+                sub h 16384
+                ifeithershift
+                {
+                    sub sprite[h].ang 1
+                } else {
+                    sub sprite[h].ang 128
+                }
+            }
+        }
+    }
+endevent

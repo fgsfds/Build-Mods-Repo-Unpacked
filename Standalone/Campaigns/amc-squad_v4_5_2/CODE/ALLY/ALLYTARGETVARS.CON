@@ -1,0 +1,174 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+
+--------------------------------------------------------------------------------
+*/
+
+defstate applyAllyTargetVars
+	switch sprite[].picnum
+		case TOWN_GUARD
+			ifspritepal 42 nullop // spritepal 42 handled in enemytargetvars
+			else ifspritepal 63 nullop // spritepal 42 handled in enemytargetvars
+			else
+			{
+				set angle_variance 400
+				set weight_increase 1
+				set max_weight 1
+				set faction_flag ALLIED_FACTION_FLAG
+			}
+			break
+		case DARK_ELF
+		case MINERVA
+			set angle_variance 400
+			set weight_increase 1
+			set max_weight 1
+			set faction_flag ALLIED_FACTION_FLAG
+			break
+		case ZAX_HOLOGRAM
+			set weight_increase 8
+			set max_weight 10
+			set faction_flag ALLIED_FACTION_FLAG
+			break
+		case AMC_ASOLDIER_ACTIVE
+		case AMCSOLDIER_ACTIVE
+		case EAFSOLDIER_ACTIVE
+			set weight_increase 1
+			set max_weight 3
+			set faction_flag ALLIED_FACTION_FLAG
+			break
+		case EDFSOLDIER_ACTIVE
+		case EDF_SUPERSOLDIER
+			ifspritepal 13 nullop // spritepal 13 handled in enemytargetvars
+			else
+				{
+				set weight_increase 1
+				set max_weight 3
+				set faction_flag ALLIED_FACTION_FLAG
+				}
+			break
+		case MSSOLDIER_ACTIVE
+		case SECURITY_GUARD
+			set weight_increase 1
+			set max_weight 3
+			set faction_flag ALLIED_FACTION_FLAG
+			break
+		case RUSSIAN
+			set weight_increase 1
+			set max_weight 3
+			set faction_flag ALLIED_FACTION_FLAG
+			break
+		case 15360 // civs, set so that paradigm shoots them on mars
+			set weight_increase 0
+			set max_weight 99
+			set faction_flag ALLIED_FACTION_FLAG
+			add faction_flag 512 // make sure skytown enemy guards don't attack the civs
+			break
+		case ENEMY_TARGET
+			set weight_increase 0
+			set max_weight 99
+			set faction_flag ALLIED_FACTION_FLAG
+			break
+		case FR_SORCERER // friendly sorcerer
+			set weight_increase 0
+			set max_weight 3
+			set faction_flag ALLIED_FACTION_FLAG
+			break
+		case SHELLY
+		case JANE
+			set weight_increase 2
+			set max_weight 8
+			set faction_flag ALLIED_FACTION_FLAG
+			break
+		case RIPPER_HEART_SHADOW // ripper heart ally
+		case 29298 // page tornado
+		case 29814 // floating sword
+			set weight_increase 2
+			set max_weight 4
+			set faction_flag ALLIED_FACTION_FLAG
+
+			ifspawnedby MAARTEN // the "maarten" actor is the boss, not a friend
+				set faction_flag 1
+			break
+		case AMC_209_ACTIVE
+		case AUTO_TURRET
+		case MICKY_TURRET // micky turret
+		case SNOWFALL_TURRET // snowfall turret
+		case HIGHWIRE_TURRET // Highwire turret
+		case FIDO
+		case OBLIVION_STAFF_SENTRY
+			set weight_increase 3
+			set max_weight 6
+			set faction_flag ALLIED_FACTION_FLAG
+			break
+		case VLADMIR
+			set weight_increase 2
+			set max_weight 4
+			set faction_flag ALLIED_FACTION_FLAG
+			break
+		case HOVERTANK
+			set weight_increase 5
+			set max_weight 15
+			set faction_flag ALLIED_FACTION_FLAG
+			break
+		case MS_CORP_MECH
+			set weight_increase 5
+			set max_weight 15
+			set faction_flag ALLIED_FACTION_FLAG
+			break
+	endswitch
+
+	// Temporary compatibility with SHOOTME. This way actors that have migrated to new behaviour will still target those that haven't
+	// Weight values are pretty much random. Adjust if needed.
+	// NOTE if the owner of the shootme already has a faction, inherit it. Weird shit happens otherwise, such as bruiser patty cake bug.
+	ifactor SHOOTME ifspritepal 0 // enemies
+	{
+		set weight_increase 1
+		set max_weight 5
+
+		ifn myowner -1
+		{
+			getav[myowner].faction_flag faction_flag
+
+			// myowner does not have a faction flag => probably means an enemy that's not migrated to new code
+			// set faction flag to 1
+			ife faction_flag 0
+			{
+				set faction_flag 1
+				setav[myowner].faction_flag 1
+				state addmyownertotargetarray
+			}
+		}
+
+		ife faction_flag 0
+			set faction_flag 1
+	}
+	else ifactor SHOOTME2 // allies
+	{
+		set weight_increase 1
+		set max_weight 5
+		set faction_flag ALLIED_FACTION_FLAG
+	}
+ends

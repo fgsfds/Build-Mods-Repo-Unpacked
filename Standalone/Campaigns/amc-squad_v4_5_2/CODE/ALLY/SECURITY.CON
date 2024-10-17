@@ -1,0 +1,240 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+
+--------------------------------------------------------------------------------
+*/
+
+spriteshadow SECURITY_GUARD
+
+damageeventtile SECURITY_GUARD
+
+action SECURITY_IDLE 0 1 5 1 1
+action SECURITY_PATROL 0 4 5 1 16
+action SECURITY_WALK 0 4 5 1 16
+action SECURITY_PANIC 20 4 5 1 12
+
+action SECURITY_SMOKE 40 2 5 1 32
+action SECURITY_SIT 50 1 5 1 12
+
+action SECURITY_DUCK 55 1 5
+
+action SECURITY_READY 60 1 5
+action SECURITY_FIRE 60 2 5 1 24
+
+action SECURITY_DIE 70 3 1 1 16
+action SECURITY_DEAD 72
+
+move GUARD_PANIC 120
+
+useractor notenemy SECURITY_GUARD
+fall
+ifaction 0
+	{
+	cstat 257
+	strength 100
+	sizeat 23 23
+	set smartpoint_track_sub ZVELSAVED
+	action SECURITY_IDLE
+	}
+
+state spawn_cold_breathe
+
+state ENEMYKNOCKBACKS
+state enemyfloordamage
+
+state enemy_fire_damage
+state enemy_ice_damage
+state enemy_spirit_damage
+
+ifaction SECURITY_DEAD
+	{
+	cstat 0
+	move STOP
+	}
+else
+ifaction SECURITY_DIE
+	{
+	move STOP
+	ifactioncount 3 { action SECURITY_DEAD spawn BLOODPOOL }
+	}
+else
+ifaction SECURITY_DUCK
+	{
+	addstrength 1
+	ifstrength 99 nullop else action SECURITY_READY
+	}
+ifaction SECURITY_SMOKE
+	{
+	move STOP
+	ifactioncount 104 { set poi 0 action SECURITY_IDLE }
+	}
+else
+ifaction SECURITY_SIT
+	{
+	move STOP
+	ifactioncount 150 { set poi 0 action SECURITY_IDLE }
+	}
+else ifaction SECURITY_FIRE
+{
+	move STOP
+	state new_validatetarget
+
+	ife my_target -1
+		action SECURITY_WALK
+
+	state fronttowardstarget
+
+	ifactioncount 2
+	{
+			// IF HITSCANNER
+			set HITSCAN_TO_SHOOT CHAINGUN
+			set HITSCAN_FIRING_SOUND UP_GLOCKFIRE
+			state sang_enemyShootHitscan
+				ife PERFMODE 1
+				 ifcansee
+					{
+					set gunsmoke_z 7644
+					set gunsmoke_angle 256
+					state spawn_gunsmoke_z
+					set gunsmoke_z 6300
+					espawn 16115
+					state spawn_muzzleflash
+					state npc_pistolshell
+					}
+		action SECURITY_FIRE
+	}
+}
+else
+ifaction SECURITY_PANIC
+	{
+	ifmove GUARD_PANIC nullop
+	else move GUARD_PANIC geth
+
+	ifrnd 2 move GUARD_PANIC geth randomangle
+	ifnotmoving move GUARD_PANIC geth randomangle
+
+	}
+else
+ifaction SECURITY_WALK
+	{
+	ifmove ENG_WALK nullop
+	else move ENG_WALK geth
+
+	state checkfortarget
+
+	ifn my_target -1
+	{
+		ifrnd 64
+		{
+			ldist temp THISACTOR my_target
+			ifl temp 16384 action SECURITY_FIRE
+		}
+	}
+	else ife my_target -1 action SECURITY_READY
+	}
+else
+ifaction SECURITY_PATROL
+	{
+
+	ifactioncount 3
+		{
+		state checkfortarget
+		state npc_footsteps
+		resetactioncount
+		ifn my_target -1 action SECURITY_WALK
+		}
+
+	move ENG_WALK geth
+
+		state anglePathToNextLotag_accurate
+		ife poi 1 { add ally_mag 1 ifge ally_mag 3 { action SECURITY_SMOKE resetactioncount } set poi 0 }
+		ife poi 2 { action SECURITY_SIT resetactioncount }
+		set temp3 0
+
+		ifn next_point -1
+		{
+			ldist xydist next_point THISACTOR
+
+			ifg xydist 128
+				seta[].ang angvar
+			else
+				set temp3 1
+		}
+	}
+else
+ifaction SECURITY_READY
+	{
+	move STOP
+	state checkfortarget
+	ifn my_target -1 action SECURITY_WALK else
+		{
+		ifactioncount 150
+			{
+			action SECURITY_IDLE
+			resetactioncount
+			}
+		}
+	}
+else
+ifaction SECURITY_IDLE
+	{
+	move STOP
+	state checkfortarget
+	ifn my_target -1 action SECURITY_WALK else
+	 ifn smartpoint_track_sub 0
+		{
+		state anglePathToNextLotag_accurate
+		set temp3 0
+		ifn next_point -1
+			{
+				ldist xydist next_point THISACTOR
+
+				ifg xydist 128
+					seta[].ang angvar
+				else
+					set temp3 1
+				action SECURITY_PATROL
+			}
+		}
+	}
+
+ifhitweapon
+ {
+ guts JIBS6 1
+	state random_wall_jibs
+	ifdead
+	{
+	ifl temp 10 sound EDFSOLD_DIE1 else
+	ifl temp 20 sound EDFSOLD_DIE2 else
+	sound EDFSOLD_DIE3
+	action SECURITY_DIE
+	}
+	else
+	ifstrength 30
+	action SECURITY_PANIC
+ }
+
+enda

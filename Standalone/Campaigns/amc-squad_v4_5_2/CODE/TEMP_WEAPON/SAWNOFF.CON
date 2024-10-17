@@ -1,0 +1,230 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+This file contains code for the Sawn-Off Shotgun temp weapon.
+--------------------------------------------------------------------------------
+*/
+
+defstate tw_sawnoff_gunammotypes
+	setarray GUN_AMMO_TYPES_ARR[0] 1
+ends								 
+defstate tw_sawnoff_code
+    setarray WEAPON_TILE[0] SAWNOFFSPRITE
+    setarray weap_special[0] 16384
+
+    set gun_mag temp_wep_mag
+    set GUN_AMMO_TYPES 1
+    set GUN_SIZE 1
+    set GUN_HANDS 1
+
+    set WEAPON0_WORKSLIKE 0
+    set WEAPON0_RELOAD 26
+    set WEAPON0_TOTALTIME 7
+    set WEAPON0_HOLDDELAY 0
+    set WEAPON0_FIREDELAY 2
+    set WEAPON0_INITIALSOUND 4
+    set WEAPON0_FIRESOUND 4
+    set WEAPON0_FLAGS 1088
+    set WEAPON0_SELECTSOUND SELECT_SHOTGUN
+
+    // clamp magazine size
+	clamp temp_wep_mag 0 2
+    set max_temp_wep_mag 2
+
+    ife temp_wep_mag 0
+      ife kickbackpic 0
+    {
+        setp[].reloading 1
+        setp[].kickback_pic 6
+    }
+
+    // set ammo type -- explosive
+    ifand AMMO_TYPES[cur_weap] 1
+    {
+        set weapon_type 8
+        set WEAPON0_SHOOTS 9361
+        ife kickbackpic 14
+          ife explosive_shells 0
+        {
+            xorvar AMMO_TYPE 1
+            setarray AMMO_TYPES[cur_weap] AMMO_TYPE
+        }
+    } // flechette
+    else ifand AMMO_TYPES[cur_weap] 4
+    {
+        set weapon_type 9
+        ife ARTIFACTS_LOADOUT[CHAR] 7 set WEAPON0_SHOOTS 6816
+        else set WEAPON0_SHOOTS 6826
+        ife kickbackpic 14
+            ife flechete_shells 0
+        {
+            xorvar AMMO_TYPE 4
+            setarray AMMO_TYPES[cur_weap] AMMO_TYPE
+        }
+    } // buckshot
+    else
+    {
+        set weapon_type 2
+        set WEAPON0_SHOOTS SHOTGUN
+    }
+
+    // modifier that differ with single and double barrel shot
+    ifand gun_firemode 256
+    {
+        set GUN_ACCURACY 48
+        add GUN_MAX_SPREAD 48
+        set WEAPON0_SHOTSPERBURST 2
+
+        // pushback
+        ife kickbackpic 3
+        {
+            add gun_spread 48
+
+            ifand AMMO_TYPES[cur_weap] 1
+                set gun_pushback_power -256
+            else
+                set gun_pushback_power -96
+            state gun_pushback
+        }
+        // smoke
+        else ife kickbackpic 4
+        {
+            set gunsmoke_angle 64
+            state spawn_gunsmoke
+        }
+    }
+    else
+    {
+        set GUN_ACCURACY 24
+        add GUN_MAX_SPREAD 24
+        set WEAPON0_SHOTSPERBURST 1
+
+        // pushback
+        ife kickbackpic 3
+        {
+            add gun_spread 24
+            ifand AMMO_TYPES[cur_weap] 1 set gun_pushback_power -128
+            else set gun_pushback_power -48
+            state gun_pushback
+        }
+        // smoke
+        else ife kickbackpic 4
+        {
+            set gunsmoke_angle 64
+            state spawn_gunsmoke
+        }
+    }
+	
+	ife kickbackpic 7 sound SAWNOFF_COCK
+
+    // fire projectiles and flame
+    ife kickbackpic 2
+    {
+        // temp8 -- fire type
+        // temp9 -- projectile type
+        ifand AMMO_TYPES[cur_weap] 1
+        {
+            set temp8 EXPL_SHELL_FIRE
+            set temp9 9361
+        }
+        else ifand AMMO_TYPES[cur_weap] 4
+        {
+            set temp8 FLECH_SHELL_FIRE
+            ife ARTIFACTS_LOADOUT[CHAR] 7
+                set temp9 6816
+            else
+                set temp9 6826
+        }
+        else
+        {
+            set temp8 SAWNOFF_FIRE
+            set temp9 SHOTGUN
+        }
+
+        ifand gun_firemode 256
+        {
+			set gun_recoil 12
+            set GUN_VOLUME 140
+            for i range 13 shootvar temp9 // 13 + hardcoded shot
+        }
+        else
+        {
+			set gun_recoil 6
+            set GUN_VOLUME 70
+            for i range 6 shootvar temp9 // 6 + hardcoded shot
+        }
+        espawn SOUND_SPRITE
+        state SPAWN_IN_PLAYER_FRONT
+        setactorvar[RETURN].temp temp8
+    }
+    // spawn casing
+    else ife kickbackpic 12
+    {
+        ifand AMMO_TYPES[cur_weap] 1
+        {
+            shoot EXSHELL
+            ife temp_wep_mag 0
+                eshoot EXSHELL
+        }
+        else ifand AMMO_TYPES[cur_weap] 4
+        {
+            shoot FL_SHELL
+            ife temp_wep_mag 0
+                eshoot FL_SHELL
+        }
+        else
+        {
+            shoot 3761
+            ife temp_wep_mag 0
+                eshoot 3761
+        }
+        ifand gun_firemode 256 xorvar gun_firemode 256 // If they fired a double shot reset to normal mode
+        geta[RETURN].ang temp
+        sub temp 1024
+        seta[RETURN].ang temp
+    }
+    // load barrels
+    else ife kickbackpic 16
+    {
+        ifand AMMO_TYPES[cur_weap] 1
+        {
+            ifg explosive_shells 1 set temp_wep_mag 2
+            else set temp_wep_mag 1
+        }
+        else ifand AMMO_TYPES[cur_weap] 4
+        {
+            ifg flechete_shells 1 set temp_wep_mag 2
+            else set temp_wep_mag 1
+        }
+        else
+        {
+            getp[].ammo_amount 0 temp
+            ifg temp 1 set temp_wep_mag 2
+            else set temp_wep_mag 1
+        }
+        sound SAWNOFF_LOAD
+    }
+
+ends

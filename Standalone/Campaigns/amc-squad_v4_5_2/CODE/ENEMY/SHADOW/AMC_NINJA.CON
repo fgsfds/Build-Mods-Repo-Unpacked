@@ -1,0 +1,594 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+
+--------------------------------------------------------------------------------
+*/
+
+
+damageeventtile NINJA
+
+defstate ninja_flyback
+	setprojectile[NINJA_CORPSE_FLY].pal sprite[].pal
+	eshoot NINJA_CORPSE_FLY
+	setprojectile[NINJA_CORPSE_FLY].pal 0
+	geta[].htang temp4
+	seta[RETURN].ang temp4
+	killit
+ends
+
+action ANINJAIDLE 0  1 5 1 10
+action ANINJAFROZEN 0 1 5 1 10
+action ANINJAWALK     0  4 5 1 20
+action ANINJARUN      0  4 5 1 11
+
+action ANINJASHOOT 20 2 5 1 11
+
+action ANINJAFLINCH 128 1 1 1 20
+
+action ANINJADYING 95 7 1 1 15
+action ANINJADEAD 101 1 1 1 1
+
+action ANINJAHDYING 102 7 1 1 15
+action ANINJAHDEAD 108 1 1 1 15
+
+action ANINJACHOPDY 109 10 1 1 12
+action ANINJACHOPD 118 1 1 1 1
+
+action ANINJATHROW 30 3 5 1 20
+
+action ANINJAJUMP 45 3 5 1 20
+action ANINJAFALL 50 1 5 1 1
+
+action ANINJACHOKE 119 3 1 1 18
+
+action ANINJA_KICK 60 3 5 1 20
+
+action ANINJA_STRUGGLE 60
+
+action ANINJA_CRAWL 80 3 5 1 20
+
+move NINJAWALKVELS 142
+move NINJARUNVELS 188
+move NINJAJUMPVELS 198
+
+ai AININJAIDLE ANINJAIDLE STOP
+ai AININJASEEKENEMY ANINJAWALK NINJAWALKVELS geth
+ai AININJARUSHENEMY ANINJARUN NINJARUNVELS geth
+ai AININJASHOOT ANINJASHOOT STOP 
+
+ai AININJADEAD ANINJADEAD STOP faceplayer
+ai AININJA_HEAD_DEAD ANINJAHDEAD STOP faceplayer
+ai AININJACHOPD ANINJACHOPD STOP faceplayer
+ai AININJATHROW ANINJATHROW STOP faceplayer
+
+ai AININJAJUMP ANINJAJUMP NINJAJUMPVELS jumptoplayer
+ai AININJASHRUNK ANINJARUN NINJARUNVELS furthestdir
+ai AININJA_KICK ANINJA_KICK STOP faceplayer
+ai AININJA_STRUGGLE ANINJA_STRUGGLE STOP
+
+ai AININJA_CRAWL ANINJA_CRAWL NINJAWALKVELS dodgebullet seekplayer
+ai AININJAGROW ANINJAIDLE STOP
+
+useractor enemystayput NINJASTAYPUT
+state monst_glow
+sizeat 26 26
+cactor NINJA
+enda
+
+useractor enemy NINJAJUMP 150 ANINJAJUMP
+ifai 0
+	{
+	set MONSTER_FLAGS 2
+	state monst_glow
+	strength 150
+	sizeat 26 26
+	set actor_pal 0
+	ifspritepal 0 spritepal 21
+	sound NINJA_JUMP
+	ai AININJAJUMP
+	cstator 257
+	cactor NINJA
+	}
+enda
+
+useractor enemy NINJA 150 ANINJAIDLE
+fall
+
+ifai 0
+	{
+	set MONSTER_FLAGS 2
+	state monst_glow
+	spawn SHOOTME
+	spriteflags NORMAL_ENEMY
+	ifspritepal 0 spritepal 21
+	strength 100
+	sizeat 26 26
+	ai AININJAIDLE
+	cstator 257
+	}
+
+state spawn_cold_breathe
+
+state ENEMYKNOCKBACKS
+state enemyfloordamage
+state enemy_fire_damage
+state enemy_ice_damage
+state enemy_spirit_damage
+
+ifai AININJADEAD
+{
+strength 0
+move 0
+    ifhitweapon
+    {
+      ifwasweapon RADIUSEXPLOSION
+      {
+        state squish_sounds
+        state standard_jibs
+		state human_jibs
+        killit
+      }
+      break
+    }
+
+}
+else
+ifai AININJA_HEAD_DEAD
+{
+strength 0
+move 0
+    ifhitweapon
+    {
+      ifwasweapon RADIUSEXPLOSION
+      {
+        state squish_sounds
+        state standard_jibs
+		state human_jibs
+        killit
+      }
+      break
+    }
+
+}
+else
+ifai AININJACHOPD
+{
+strength 0
+    ifhitweapon
+    {
+      ifwasweapon RADIUSEXPLOSION
+      {
+        state squish_sounds
+        state standard_jibs
+		state human_jibs
+        killit
+      }
+      break
+    }
+
+}
+else
+ifaction ANINJAFROZEN
+{
+move 0
+state frozen_code
+}
+else
+ifaction ANINJAFALL
+{
+move NINJARUNVELS 0
+iffloordistl 16 { soundonce LAND_NORM ai AININJASEEKENEMY }
+}
+else
+ifaction ANINJAFLINCH
+{
+move 0
+sub PAIN_AMOUNT 1
+ife PAIN_AMOUNT 0 ai AININJASEEKENEMY
+}
+else
+ifaction ANINJACHOKE
+{
+move 0
+soundonce CHOKING
+ifhitweapon { state rf set INTERNALCOUNT 0 action ANINJADYING }
+ifactioncount 6 { guts JIBS6 3 state rf spawn 16368 set INTERNALCOUNT 0 action ANINJADYING }
+}
+else
+ifaction ANINJAHDYING
+{
+strength 0
+ife INTERNALCOUNT 12 state BODY_FALL_NOISES_SOUNDONCE
+ifactioncount 6 { cstat 0 state rf spawn 16368 ai AININJA_HEAD_DEAD }
+add INTERNALCOUNT 1
+}
+else
+ifaction ANINJADYING
+{
+strength 0
+ife INTERNALCOUNT 12 state BODY_FALL_NOISES_SOUNDONCE
+ifactioncount 7 { spawn 16368 ai AININJADEAD }
+add INTERNALCOUNT 1
+}
+else
+ifaction ANINJACHOPDY
+{
+ifg SLO_MO_SHOWOFF 0 action ANINJACHOPDY
+strength 0
+seta[].xvel -2
+ifactioncount 10 { state SQUISH_FALL_NOISES spawn BLOODPOOL ai AININJACHOPD }
+}
+else
+ifai AININJAGROW
+state genericgrowcode
+else
+ifai AININJASHRUNK
+{
+    ifcount SHRUNKDONECOUNT
+      ai AININJASEEKENEMY
+    else ifcount SHRUNKCOUNT
+	  {
+	  sound ACTOR_UNSHRINK
+      sizeto 26 26
+	  }
+    else
+      state genericshrunkcode
+    break
+}
+else
+ifai AININJAJUMP
+{
+ifactioncount 4 action ANINJAFALL
+}
+else
+ifai AININJAIDLE
+	{
+	state checkfortarget
+	ifn my_target -1 ai AININJASEEKENEMY
+	}
+else
+ifai AININJA_CRAWL
+	{
+	ifrnd 16 { sizeat 26 26 ai AININJASEEKENEMY resetactioncount }
+	}
+else
+ifai AININJASEEKENEMY
+{
+state checkfortarget
+geta[].htmovflag move_flag
+ifn move_flag 0 // this is the same as ifnotmoving, but now we have info about what is hit in the temp var
+{
+         andvar move_flag 49152
+         ife move_flag 32768 // the actor is pushing on a wall
+         {
+           geta[].htmovflag move_flag2 // need to get the info again
+           andvar move_flag2 16383 // temp now stores the wall number
+                   getwall[move_flag2].nextsector sect
+                   ifn sect -1
+				   {
+				   ifand wall[move_flag2].cstat 1 break
+				   ife sector[sect].lotag 20 operate
+				   ife sector[sect].lotag 21 operate
+				   ife sector[sect].lotag 22 operate
+				   ife sector[sect].lotag 23 operate
+                      ifl sector[sect].floorz sector[].floorz // assumes floors are not sloped!
+						{
+                        sound NINJA_JUMP
+						ai AININJAJUMP
+                        }
+					}
+          }
+}
+ifn my_target -1
+	{
+	ldist temp THISACTOR my_target
+	ifle temp 1536
+		{
+		sound KICK_SWING
+		ai AININJA_KICK
+		}
+	  else
+	ifle temp 5120
+	 ifrnd 32
+	   ai AININJARUSHENEMY
+	 else
+	   ifcanshoottarget
+	   {
+	   ifrnd 8 ai AININJATHROW else
+	  ifrnd 16 ai AININJASHOOT
+		}
+	}
+else ife my_target -1 ifp pdead ai AININJAIDLE
+state SKILL_SHOOT_LEVELADJUST
+ifbulletnear ifl RANDOM_CHANCE SKILLCHANCE { sizeat 26 16 ai AININJA_CRAWL resetactioncount }
+}
+else
+ifai AININJARUSHENEMY
+{
+state checkfortarget
+geta[].htmovflag temp
+ifn temp 0 // this is the same as ifnotmoving, but now we have info about what is hit in the temp var
+{
+         andvar temp 49152
+         ife temp 32768 // the actor is pushing on a wall
+         {
+           geta[].htmovflag temp2 // need to get the info again
+           andvar temp2 16383 // temp now stores the wall number
+                   getwall[temp2].nextsector sect
+                   ifn sect -1
+				   {
+				   ifand wall[temp2].cstat 1 break
+				   ife sector[sect].lotag 20 operate
+				   ife sector[sect].lotag 21 operate
+				   ife sector[sect].lotag 22 operate
+				   ife sector[sect].lotag 23 operate
+                      ifl sector[sect].floorz sector[].floorz // assumes floors are not sloped!
+						{
+                        sound NINJA_JUMP
+						ai AININJAJUMP
+                        }
+					}
+          }
+}
+
+
+ifn my_target -1
+	{
+   ifrnd 8 ai AININJATHROW
+	else
+	ifrnd 32
+		ai AININJASHOOT
+	}
+	else ai AININJASEEKENEMY
+
+state SKILL_SHOOT_LEVELADJUST
+ifbulletnear ifl RANDOM_CHANCE SKILLCHANCE { sizeat 26 16 ai AININJA_CRAWL resetactioncount }
+
+}
+else
+ifai AININJATHROW
+{
+	state new_validatetarget
+	ife my_target -1
+		ai AININJASEEKENEMY
+	state fronttowardstarget
+	ifactioncount 2
+		{
+		 ifrnd 32
+			{
+			geta[].htlastvx mx
+			geta[].htlastvy my
+			geta[].x x
+			geta[].y y
+			sub mx x
+			sub my y
+			getangle angvar mx my
+			seta[].ang angvar
+			sound THROWSOMET
+			shoot FL_GRENADE
+			}
+		else
+			{
+			sound THROWSOMET
+			shoot 14970
+			eshoot 14970
+			geta[RETURN].ang temp add temp 32 seta[RETURN].ang temp
+			eshoot 14970
+			geta[RETURN].ang temp sub temp 32 seta[RETURN].ang temp
+			}
+		ai AININJASEEKENEMY
+		}
+}
+else
+ifai AININJASHOOT
+{
+	state new_validatetarget
+	ife my_target -1
+		ai AININJASEEKENEMY
+	state fronttowardstarget
+	ifactioncount 1
+	{
+		geta[].z temp3 sub temp3 1024 seta[].z temp3 // change this actor's height so the projectile comes from the right place
+		set PROJECTILE_PAL 27
+		set PROJECTILE_OFFSET -204
+		set PROJECTILE_FIRING_SOUND SUP_TMP
+		set PROJECTILE_TO_SHOOT ENEMY_BULLET
+		state sang_enemyShootProjectile
+		ife PERFMODE 1
+		 ifcansee
+			{
+			set gunsmoke_z 9944
+			set gunsmoke_angle 160
+			state spawn_gunsmoke_z
+			state npc_pistolshell
+			}
+		geta[].z temp3 add temp3 1024 seta[].z temp3
+		ifrnd 16 ai AININJASEEKENEMY
+		resetactioncount
+	}
+
+state SKILL_SHOOT_LEVELADJUST
+ifbulletnear ifl RANDOM_CHANCE SKILLCHANCE { sizeat 26 16 ai AININJA_CRAWL resetactioncount }
+
+}
+else
+ifai AININJA_KICK
+{
+state fronttowardstarget
+ldist temp THISACTOR my_target
+add INTERNALCOUNT 1
+ifge temp 1524 ai AININJASEEKENEMY
+ifg INTERNALCOUNT 14
+	{
+	ifle temp 1524 
+		{ 
+		seta[my_target].htextra 25
+		seta[my_target].htpicnum 17663
+		soundonce PUNCHHIT 
+		ifpdistl 1524
+			{
+			palfrom 10 10 0 0 
+			wackplayer 
+			state setknockback 
+			}
+		}
+	resetactioncount
+	set INTERNALCOUNT 0
+	}
+ifg INTERNALCOUNT 20 ai AININJASEEKENEMY
+}
+
+ifhitweapon
+{
+state NEWGUNEFFECTS
+ifaction ANINJADYING break
+ifaction ANINJADEAD break
+ifaction ANINJAHDEAD break
+ifai AININJA_CRAWL sizeat 26 26
+ifaction ANINJAHDYING break
+//spawn BLOOD
+//guts JIBS6 1
+state random_wall_jibs
+
+
+ifdead
+	{
+	ifaction ANINJAHDYING break
+	ifaction ANINJADYING break
+	addkills 1
+     ifstrength -175
+      {
+        state squish_sounds
+        state standard_jibs
+		state human_jibs
+        killit
+      }
+
+	geta[].htpicnum PROJ_HIT_TYPE
+	ifand tiledata[PROJ_HIT_TYPE].gameflags 8 getprojectile[PROJ_HIT_TYPE].userdata temp4 else set temp4 0
+
+ ifwasweapon RADIUSEXPLOSION
+		{
+		geta[].extra temp
+		ifg temp -50 state ninja_flyback
+		state human_jibs
+		state squish_sounds
+		state standard_jibs
+		killit
+		}
+ ifwasweapon RPG
+		{
+		geta[].extra temp
+		ifg temp -50 state ninja_flyback
+		state human_jibs
+		state squish_sounds
+		state standard_jibs
+		killit
+	    }
+ ifand PROJ_UDATA PROJ_GIB
+		{
+		geta[].extra temp
+		ifg temp -50 state ninja_flyback
+		state human_jibs
+		state squish_sounds
+		state standard_jibs
+		killit
+		}
+	ifand PROJ_UDATA 8192
+		 {
+		 ifrnd 8 { spawn ELECTROCUTE_MARV soundonce MALE_ELECT1 } else spawn ELECTROCUTE_GUY
+		 shoot SPARK2 shoot SPARK2 shoot SPARK2
+		 killit
+		 }
+
+	ifwasweapon GROWSPARK { cstat 0 sound ACTOR_GROWING ai AININJAGROW break }
+	else ifg ice_damage 0 { spritepal 1 strength 1 sound SOMETHINGFROZE action ANINJAFROZEN }
+	else ifwasweapon 7163
+	{
+		ifrnd 64 sound MALE_ONFIRE1
+		else ifrnd 64 sound MALE_ONFIRE2
+		else ifrnd 64 sound MALE_ONFIRE3
+		else sound MALE_ONFIRE4
+		spawn ONFIREGUY
+		killit
+	}
+	else
+	ifg fire_damage 0
+	{
+		ifrnd 64 sound MALE_ONFIRE1
+		else ifrnd 64 sound MALE_ONFIRE2
+		else ifrnd 64 sound MALE_ONFIRE3
+		else sound MALE_ONFIRE4
+		set PLAYER_VOICEOVER 21
+		spawn ONFIREGUY
+		killit
+	}
+	else
+	ifg energy_damage 0
+		{
+		shoot SPARK2 shoot SPARK2 shoot SPARK2
+		spritepal 4
+		guts JIBS3 6
+		spawn DISINTIGRATE_GUY
+		killit
+		}
+	else
+	ifg spirit_damage 0
+		{
+		shoot SPARK2 shoot SPARK2 shoot SPARK2
+		spritepal 1
+		guts JIBS3 6
+		spawn SPIRIT_DEATH_GUY
+		killit
+		}
+	else ifand temp4 8 // slicing anim
+	{ state sword_kill_sounds state random_trigger_showoff cstat 4 state slashed_sounds action ANINJACHOPDY }
+	else ife HEADSHOT 2
+		{
+		state random_trigger_showoff
+		state decap_sounds
+		state jib_sounds
+		set INTERNALCOUNT 0
+		action ANINJAHDYING shoot NJIB shoot NJIB guts JIBS6 3 guts JIBS2 2
+		}
+	else
+		{
+		ifrnd 128 sound NINJA_DIE1
+		else sound NINJA_DIE2
+		state rf set INTERNALCOUNT 0
+		ifstrength -50 ifpdistl 4096 state ninja_flyback
+		else ifwasweapon KNEE state ninja_flyback
+		else ifwasweapon SHOTGUN ifpdistl 1536 state ninja_flyback
+		else action ANINJADYING
+		}
+	}
+else
+ifg PAIN_AMOUNT 0 action ANINJAFLINCH else
+ifrnd 32 { sound NINJA_PAIN state PAIN_SKILL_LEVELADJUST action ANINJAFLINCH }
+ifwasweapon SHRINKSPARK { sound ACTOR_SHRINKING ai AININJASHRUNK }
+}
+state checksquished
+enda

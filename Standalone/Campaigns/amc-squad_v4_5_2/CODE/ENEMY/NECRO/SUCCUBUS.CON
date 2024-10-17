@@ -1,0 +1,898 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+
+--------------------------------------------------------------------------------
+*/
+
+damageeventtile SUCCUBUS
+damageeventtile SUCC_FLOWER_TURRET
+
+action A_SUCCUBUS_IDLE 0 1 5 1 12
+action A_SUCCUBUS_FLOAT 0 3 5 1 32
+action A_SUCCUBUS_FLOAT_REVERSE 10 3 5 -1 32
+action A_SUCCUBUS_ATTACK_SIGIL 34 1 5 1 12
+action A_SUCCUBUS_ATTACK_CHARGE 0 1 5 1 32 // TODO would like some kind of dashing frames for this.
+action A_SUCCUBUS_DRAIN_START 54
+action A_SUCCUBUS_DRAIN 54
+action A_SUCCUBUS_ATTACK_FLOWERS 24 5 5 1 12
+action A_SUCCUBUS_ATTACK_TURRET_PREP 34 1 5 1 12
+action A_SUCCUBUS_ATTACK_TURRET 34 1 5 1 12
+action A_SUCCUBUS_PAIN 50 1 1 1 12
+action A_SUCCUBUS_DYING 49 5 1 1 12
+action A_SUCCUBUS_DEAD 53 1 1 1 12
+
+var succ_charge_commit 0 2
+var succ_active_turrets 0 2
+
+move M_SUCC_FLYUP 100 -64
+move M_SUCC_FLYDOWN 100 12
+move M_SUCC_FLYDOWNSLOW 0 4
+move M_SUCC_CHARGE 400 0
+
+defstate succubus_killAllMinions
+	for temp sprofstat 1
+	{
+		geta[temp].picnum temp2
+
+		set temp3 0
+
+		ife temp2 ZOMBIE
+			set temp3 1
+		else ife temp2 BEHOLDER
+			set temp3 1
+		else ife temp2 SUCC_FLOWER_TURRET
+			set temp3 1
+
+		ife temp3 1
+		{
+			seta[temp].htextra 5000
+			seta[temp].htpicnum RADIUSEXPLOSION
+		}
+	}
+ends
+
+defstate succubus_selectattack
+	ifn my_target -1
+	{
+		// run attack selection
+		set temp 0
+
+		// Stage 0, attack with flowers
+		ife boss_stage 0
+		{
+			ife enemy_cooldown2 0
+			ifrnd 64
+				set temp 2
+		}
+		// Stage 1, put down max 3 flower turrets or attack with flowers
+		else ife boss_stage 1
+		{
+			// cooldown 1 = teleport cooldown. If 0 put flower turret
+			ife enemy_cooldown1 0
+			{
+				ifl succ_active_turrets 4
+					set temp 3
+			}
+
+			ife temp 0
+			  ife enemy_cooldown2 0
+				ifrnd 64
+			{
+				set temp 2
+			}
+		}
+		// Stage 2, sigil/charge attack, put down max 5 flower turrets, or attack with flowers
+		else ife boss_stage 2
+		{
+			// cooldown 1 = teleport cooldown. If 0 either sigil or put flower turret
+			ife enemy_cooldown1 0
+			{
+				ifrnd 128
+					set temp 1
+				else ifl succ_active_turrets 5
+					set temp 3
+			}
+
+			ife temp 0
+			  ife enemy_cooldown2 0
+				ifrnd 64
+			{
+				set temp 2
+			}
+		}
+
+		ife temp 1
+		{
+			set INTERNALCOUNT 0
+			ife silence_damage 0 // can only do her big attack if not silenced
+			action A_SUCCUBUS_ATTACK_SIGIL
+			else
+			action A_SUCCUBUS_ATTACK_FLOWERS
+		}
+		else ife temp 2
+		{
+			set INTERNALCOUNT 0
+			action A_SUCCUBUS_ATTACK_FLOWERS
+		}
+		else ife temp 3
+		{
+			set INTERNALCOUNT 0
+			action A_SUCCUBUS_ATTACK_TURRET_PREP
+		}
+	}
+ends
+
+defstate succubus_movement
+	add INTERNALCOUNT 1
+
+	ifg INTERNALCOUNT 3
+	{
+		spawn 18867
+		set INTERNALCOUNT 0
+	}
+
+	state float_check
+	set FLOATING_CUR RETURN
+
+	ife RETURN 0
+		set FLOATING_CUR 1
+
+	ifrnd 4 sound BEH_AMB
+
+	ife FLOATING_CUR -1
+	{
+		ifmove M_SUCC_FLYDOWN nullop
+		else move M_SUCC_FLYDOWN geth getv
+	}
+	else ife FLOATING_CUR 1
+	{
+		ifmove M_SUCC_FLYUP nullop
+		else move M_SUCC_FLYUP geth getv
+	}
+
+	state checkfortarget
+
+	state succubus_selectattack
+ends
+
+defstate succubus_disappear
+	move STOP
+
+	globalsound HADES_ALERT
+	cstat 32768
+	// TODO replace this with better particles, maybe the flower stuff.
+	shoot SPARK shoot SPARK shoot SPARK shoot SPARK shoot SPARK
+	shoot SPARK shoot SPARK shoot SPARK shoot SPARK shoot SPARK
+	shoot SPARK shoot SPARK shoot SPARK shoot SPARK shoot SPARK
+ends
+
+defstate succubus_appear
+	// TODO better particles
+	shoot SPARK shoot SPARK shoot SPARK shoot SPARK shoot SPARK
+	shoot SPARK shoot SPARK shoot SPARK shoot SPARK shoot SPARK
+	shoot SPARK shoot SPARK shoot SPARK shoot SPARK shoot SPARK
+
+	globalsound DEMON_TELEPORT
+	sound BOS4_ROAM // temp sound
+	cstat 257
+ends
+
+defstate succubus_sigilattack
+	// Sigil attack works like this:
+	// 1) Succubus laughs and becomes invisible, with some particle effects
+	// 2) She disappears for a short while
+	// 3) A sigil appears in front of the player and the succubus emerges, then quickly charges at the player. The player must dodge to avoid. (edit: or hit her with a void attack)
+	// 4a) If the player dodges, resume normal behaviour.
+	// 4b) If the player gets hit, switch to close up of Succubus who will drain life while the player has to mash E. If QT events are disabled, just take some health?
+	// TODO the minions should not be attacking the player while the succubus is doing this?
+
+	// stop & disappear
+	ife INTERNALCOUNT 0
+		state succubus_disappear
+
+	// spawn the sigil in front of the player
+	else ife INTERNALCOUNT 50
+	{
+		state getxycoords_infront_player
+
+		ife RETURN 0
+		{
+			set temp 1
+			espawn SUCCUBUS_SIGIL
+
+			seta[RETURN].x FRONT_PLAYER_X
+			seta[RETURN].y FRONT_PLAYER_Y
+
+			// bind to floor Z
+			set FLOORZ_ACTOR RETURN
+			state setfloorzforactor
+
+			// move succubus in position while still invisible
+			seta[].x FRONT_PLAYER_X
+			seta[].y FRONT_PLAYER_Y
+			seta[].z mz // return value from floorzforactor state
+		}
+	}
+
+	// make succubus visible
+	else ife INTERNALCOUNT 60
+		state succubus_appear
+
+	// always make sure the succubus is facing the player after having teleported to the sigil
+	ifge INTERNALCOUNT 60
+	{
+		set my_target PLAYER_IDENTITY
+		state fronttowardstarget
+	}
+
+	add INTERNALCOUNT 1
+
+	ife INTERNALCOUNT 100
+	{
+		set INTERNALCOUNT 0
+		set succ_charge_commit 0
+		action A_SUCCUBUS_ATTACK_CHARGE
+	}
+ends
+
+defstate succubus_flowersattack
+	set enemy_cooldown2 90
+
+	ifmove M_SUCC_FLYDOWNSLOW nullop
+	else move M_SUCC_FLYDOWNSLOW geth getv
+
+	set FLOATING_CUR -1
+
+	set my_target PLAYER_IDENTITY
+	state fronttowardstarget
+
+	set PROJECTILE_TO_SHOOT PETAL_PROJ
+	set PROJECTILE_FIRING_SOUND BL_SPELL1 // temp sound
+
+	ife INTERNALCOUNT 5
+		state sang_enemyShootProjectile
+	else ife INTERNALCOUNT 15
+		state sang_enemyShootProjectile
+	else ife INTERNALCOUNT 30
+		state sang_enemyShootProjectile
+	else ife INTERNALCOUNT 45
+		state sang_enemyShootProjectile
+	else ife INTERNALCOUNT 60
+		state sang_enemyShootProjectile
+	else ife INTERNALCOUNT 75
+		state sang_enemyShootProjectile
+
+	add INTERNALCOUNT 1
+
+	ifge INTERNALCOUNT 75
+		ifactioncount 5
+			action A_SUCCUBUS_FLOAT
+
+
+ends
+
+defstate succubus_chargeattack
+	// TODO do something to prevent the player from just being able to jump on top of her to dodge this...
+	set enemy_cooldown1 150
+
+	ifg silence_damage 0 // hit by void, cancel
+		action A_SUCCUBUS_FLOAT
+	else
+	{
+		// spawn mirage
+		ifactioncount 1
+		{
+			spawn 18867
+			resetactioncount
+		}
+
+		ifle INTERNALCOUNT 60
+		{
+			// charge directly at the player until they roll, but the roll only counts if the succubs was close enough
+			set temp 1
+
+			dist temp2 THISACTOR my_target
+
+			// dodge sound cue
+			ifle temp2 1768
+			{
+				ifsound BOS4_LAY nullop else sound BOS4_LAY
+			}
+
+			ifle temp2 1536
+			{
+				ifl ROLL_LEFT 13
+					set temp 0
+				else ifl ROLL_RIGHT 13
+					set temp 0
+			}
+
+			ife temp 1
+			{
+				ife succ_charge_commit 0
+				{
+					state fronttowardstarget
+					geta[].ang movesprite_angvar
+				}
+			}
+			else
+			{
+				set succ_charge_commit 1
+			}
+
+			set movesprite_shift 5
+			set movesprite_clipmask CLIPMASK0 // TODO bumping into minions will ruin the attack, fix that.
+			state movesprite_state
+
+			ifge RETURN 49152
+			{
+				set temp RETURN
+				sub temp 49152
+
+				sound BOSS_WHACK
+
+				// switch to drain
+				ife temp PLAYER_IDENTITY
+				{
+					ife opt_qte_disable NO
+						action A_SUCCUBUS_DRAIN_START
+					else
+					{
+						// take away health, push player back and go back to float
+						state setknockback
+						set knockback 12
+
+						wackplayer
+						sound BOSS_WHACK
+						palfrom 20 30 0 0
+						addphealth -20
+
+						geta[].extra temp
+						add temp 10
+						seta[].extra temp
+
+						action A_SUCCUBUS_FLOAT
+					}
+				}
+				else
+				{
+					// everything that gets inbetween just gets wrecked, but doesn't cancel the charge attack.
+					seta[temp].htextra 5000
+					seta[temp].htpicnum RADIUSEXPLOSION
+				}
+			}
+
+			add INTERNALCOUNT 1
+		}
+		else // you've dodged for long enough, cancel attack
+			action A_SUCCUBUS_FLOAT
+	}
+ends
+
+defstate succubus_drain_start
+	// drain QTE thing
+	ifdead nullop
+	else ifp palive
+	 ifcansee
+	  ife succubus_struggle -1
+	{
+		sound GRABTHROAT
+		geta[].pal cultist_pal
+		ife SKILL_LEVEL 1 set succubus_struggle 26
+		else ife SKILL_LEVEL 2 set succubus_struggle 52
+		else ife SKILL_LEVEL 3 set succubus_struggle 76
+		else set succubus_struggle 104
+
+		action A_SUCCUBUS_DRAIN
+	}
+ends
+
+defstate succubus_drain
+	cstat 32768
+	move STOP
+	set my_target PLAYER_IDENTITY
+	state fronttowardstarget
+
+	// lock player in place
+	geta[].x temp
+	geta[].y temp2
+	set temp3 temp
+	add temp3 512 // distance
+	ifrnd 64
+	{
+		addphealth -2
+
+		// balancing: getting drained should not be a (near) instant death, but should heal the succubus by a fair amount
+		// to make it more important to successfully dodge the attack
+		geta[].extra temp4
+		ife SKILL_LEVEL 1 add temp4 5
+		else ife SKILL_LEVEL 2 add temp4 10
+		else ife SKILL_LEVEL 3 add temp4 15
+		else ife SKILL_LEVEL 4 add temp4 20
+		else ife SKILL_LEVEL 5 add temp4 25
+		clamp temp4 0 3000
+		seta[].extra temp4
+	}
+	geta[].ang temp4
+	rotatepoint temp temp2 temp3 temp2 temp4 temp5 temp6
+	setp[].posx temp5
+	setp[].posy temp6
+	state lower_weapon
+
+	geta[].x mx
+	geta[].y my
+	getp[].posx x
+	getp[].posy y
+	sub mx x
+	sub my y
+	getangle temp8 mx my
+	setp[].ang temp8
+
+	ifl succubus_struggle 1 { cstat 257 action A_SUCCUBUS_FLOAT break }
+
+	ifp pdead { cstat 257 action A_SUCCUBUS_IDLE set succubus_struggle -1 }
+ends
+
+appendevent EVENT_SPAWN
+	ifactor SUCC_FLOWER_POINT
+	{
+		state enemyPointsAdd
+	}
+endevent
+
+defstate succFlowerHandlePoint
+	ife enemypoint_handled 0
+	{
+		state enemyInvalidateCurrentPoint
+		state enemyFindPoint
+		state enemySetPoint
+		add succ_active_turrets 1
+	}
+ends
+
+defstate succubus_prepturretatk
+	ife INTERNALCOUNT 0
+	{
+		set enemypoint_handled 0 // mark point needs to be updated
+		state succubus_disappear
+	}
+
+	add INTERNALCOUNT 1
+
+	ifge INTERNALCOUNT 40
+	{
+		set INTERNALCOUNT 0
+		action A_SUCCUBUS_ATTACK_TURRET
+	}
+ends
+
+defstate succubus_turretatk
+	set enemy_cooldown1 120
+
+	// increase chance of doing the attack quickly if not many turrets spawned
+	ifl succ_active_turrets 4
+		ifrnd 128
+			set enemy_cooldown1 60
+
+	ifge INTERNALCOUNT 10
+	{
+		ifmove M_SUCC_FLYDOWNSLOW nullop
+		else move M_SUCC_FLYDOWNSLOW geth getv
+	}
+
+	ife INTERNALCOUNT 0
+		state succFlowerHandlePoint
+	else ife INTERNALCOUNT 10
+		state succubus_appear
+	else ife INTERNALCOUNT 20
+	{
+		espawn SUCC_FLOWER_TURRET
+		setav[RETURN].my_target PLAYER_IDENTITY
+		setav[RETURN].OWNERSAVED THISACTOR
+	}
+	else ife INTERNALCOUNT 30
+		action A_SUCCUBUS_FLOAT
+
+	add INTERNALCOUNT 1
+ends
+
+action SUC_STAND -1 1 5 1 12
+
+useractor notenemy 18863 4000 SUC_STAND
+ifaction SUC_STAND
+	{
+	checkactivatormotion 4209
+	ife RETURN 1
+		{
+		action 0
+		set XVELSAVED 5015
+		cactor SUCCUBUS
+		}
+	}
+enda
+
+// XVEL = base activator stage 1
+// Stage 2 activates XVEL + 1
+// Stage 3 activates XVEL + 2
+useractor enemy SUCCUBUS
+	fall
+
+	// teleport cooldown
+	ifg enemy_cooldown1 0
+		sub enemy_cooldown1 1
+
+	// petal projectile cooldown
+	ifg enemy_cooldown2 0
+		sub enemy_cooldown2 1
+
+	ifaction 0
+	{
+		set boss_stage 0
+
+		cstat 257
+		set INVASION 1 // we're gonna spawn a bunch of minions, so limit the amount of blood spatters. Don't forget to reactivate on death of the succy though
+		state monst_glow
+		set CURBOSS THISACTOR
+		strength 3000
+		set enemy_cooldown2 90 // don't spam petals instantly
+
+		action A_SUCCUBUS_IDLE
+	}
+	else ifaction A_SUCCUBUS_IDLE
+	{
+		move STOP
+
+		state checkfortarget
+
+		ifn my_target -1
+		{
+			sound ORC_SIGHT1
+			action A_SUCCUBUS_FLOAT
+		}
+	}
+	else ifaction A_SUCCUBUS_FLOAT
+	{
+		state succubus_movement
+
+		// oscillate
+		ifactioncount 3
+			action A_SUCCUBUS_FLOAT_REVERSE
+	}
+	else ifaction A_SUCCUBUS_FLOAT_REVERSE
+	{
+		state succubus_movement
+
+		// oscillate
+		ifactioncount 3
+			action A_SUCCUBUS_FLOAT
+	}
+	else ifaction A_SUCCUBUS_ATTACK_SIGIL
+		state succubus_sigilattack
+	else ifaction A_SUCCUBUS_ATTACK_CHARGE
+		state succubus_chargeattack
+	else ifaction A_SUCCUBUS_DRAIN_START
+		state succubus_drain_start
+	else ifaction A_SUCCUBUS_DRAIN
+		state succubus_drain
+	else ifaction A_SUCCUBUS_ATTACK_FLOWERS
+		state succubus_flowersattack
+	else ifaction A_SUCCUBUS_ATTACK_TURRET_PREP
+		state succubus_prepturretatk
+	else ifaction A_SUCCUBUS_ATTACK_TURRET
+		state succubus_turretatk
+	else ifaction A_SUCCUBUS_PAIN
+	{
+		ifmove M_SUCC_FLYDOWNSLOW nullop
+		else move M_SUCC_FLYDOWNSLOW geth getv
+
+		ifactioncount 2
+			action A_SUCCUBUS_FLOAT
+	}
+	else ifaction A_SUCCUBUS_DYING
+	{
+		ifmove M_SUCC_FLYDOWNSLOW nullop
+		else move M_SUCC_FLYDOWNSLOW geth getv
+
+		// kill all active minions
+		set INVASION 0
+		state succubus_killAllMinions
+
+		// stop spawning new ones
+		set boss_stage 3
+
+		ifactioncount 5
+			action A_SUCCUBUS_DEAD
+	}
+	else ifaction A_SUCCUBUS_DEAD
+	{
+		ifand ELYSION_QUEST 512 nullop else { xor ELYSION_QUEST 512 savegamevar ELYSION_QUEST }
+		move STOP
+		strength 0
+		sound BLOOD_EXPLOSION
+		quake 26
+		spawn BIG_BLOOD_EXE
+		operateactivators 500 THISACTOR
+		// dunno, explode or some shit?
+		killit
+	}
+
+	ifg silence_damage 0
+	{
+		sub silence_damage 1
+		state spawn_curse_particles
+	}
+
+	ifhitweapon
+	{
+		sound ARCH_PAIN
+
+		ifwasweapon VOID_PLAYER_BOLT { sound EN_CURSE set silence_damage 150 }
+		ifwasweapon VOID_BOLT { sound EN_CURSE set silence_damage 300 }
+		ifwasweapon VOID_BLAST { sound EN_CURSE set silence_damage 450 }
+
+		// succy does get blood spats
+		set INVASION 0
+		espawn BLOOD
+		seta[RETURN].pal 24
+		seta[].pal 24
+		guts JIBS6 1
+		state random_wall_jibs
+		getlastpal
+		set INVASION 1
+
+		ifdead
+		{
+			add TREASURE_FOUND 3
+			addkills 1
+			state rf
+			globalsound SVD_PAIN
+			cstat 0
+			state clearAllEnemyPoints
+			action A_SUCCUBUS_DYING
+		}
+		else ifrnd 32
+		{
+			sound SVD_PAIN
+
+			// can't cancel attacks
+			ifaction A_SUCCUBUS_ATTACK_SIGIL nullop
+			else ifaction A_SUCCUBUS_ATTACK_CHARGE nullop
+			else ifaction A_SUCCUBUS_ATTACK_FLOWERS nullop
+			else action A_SUCCUBUS_PAIN
+		}
+
+		geta[].extra temp
+		ifl temp 1800
+			ife boss_stage 1
+		{
+			set boss_stage 2
+			set temp2 XVELSAVED
+			add temp2 1
+			operateactivators temp2 THISACTOR
+		}
+		else ifl temp 2500
+			ife boss_stage 0
+		{
+			set boss_stage 1
+			operateactivators XVELSAVED THISACTOR
+		}
+	}
+enda
+
+defstate findActiveMinions
+	// loop targets array, find amount of live targets with owner set to THISACTOR
+	// result = temp4
+	set temp4 0
+
+	set targets_iterator 0
+
+	whilel targets_iterator targets_range
+	{
+		set my_target targets[targets_iterator]
+
+		ife my_target -2 // stop processing
+		{
+			set targets_iterator targets_range
+			exit
+		}
+
+		ifg my_target 0
+			ife sprite[my_target].picnum LOTAGSAVED
+			ifg sprite[my_target].extra 0
+			ife sprite[my_target].owner THISACTOR
+		{
+			add temp4 1
+		}
+
+		add targets_iterator 1
+	}
+ends
+
+defstate findSuccubus
+	set TARGET_SEARCH_PARAM 18863
+	state findfirstactorbypicnum
+ends
+
+// succubus minion spawner
+// hitag = activation to wait for before doing anything
+// lotag = picnum to spawn
+// extrasaved = max live monsters allowed at a time
+// xvelsaved = time between each spawn
+useractor notenemy SUCCUBUS_SPAWNER
+cstat 32768 // invisible
+
+ife OWNERSAVED 0
+{
+	state findSuccubus
+
+	ifn RETURN -1
+		set OWNERSAVED RETURN
+}
+
+getav[OWNERSAVED].boss_stage temp
+ife temp 3 // she's dead, jim
+	killit
+
+ifaction 0
+{
+	ifn HITAGSAVED 0
+	{
+		checkactivatormotion HITAGSAVED
+		ife RETURN 1 action ZERO
+	}
+	else
+		action ZERO
+}
+else ifaction ZERO
+{
+	add INTERNALCOUNT 1
+	ifg INTERNALCOUNT XVELSAVED
+	{
+		state findActiveMinions
+
+		ifl temp4 EXTRASAVED
+		{
+			// spawn a thing and direct it towards the player immediately
+			espawn LOTAGSAVED
+			setav[RETURN].my_target PLAYER_IDENTITY
+
+			// let's do something funky and just mess with the faction AI of whatever is spawned...
+			// this makes it so the succubus can spawn in *anything* and it won't infight
+			// in theory it could even spawn 'friendly' npcs to attack the player
+			setav[RETURN].angle_variance 0
+			setav[RETURN].weight_increase 1
+			setav[RETURN].max_weight 3
+			setav[RETURN].faction_flag 1
+		}
+
+		set INTERNALCOUNT 0
+	}
+}
+enda
+
+useractor notenemy SUCCUBUS_SIGIL
+	ifaction 0
+	{
+		cstat 34
+		sizeat 1 1
+		seta[].blend 255
+		set INTERNALCOUNT 0
+		action ZERO
+	}
+
+	ifaction ZERO
+	{
+		add INTERNALCOUNT 1
+
+		ifge INTERNALCOUNT 120
+		{
+			sizeto 0 0
+		}
+		else
+		{
+			sizeto 32 32
+
+			ifge INTERNALCOUNT 90
+			{
+				cstat 546 // add extra transparency
+			}
+			else ifge INTERNALCOUNT 60
+				cstat 34
+		}
+	}
+enda
+
+useractor notenemy 18867 // succ mirage
+	sizeat 30 30
+	spritepal 87
+
+	add INTERNALCOUNT 1
+	seta[].blend 255
+
+	ifl INTERNALCOUNT 20
+		cstat 2050
+	else
+		cstat 2562
+
+	ifg INTERNALCOUNT 30
+		killit
+enda
+
+action FLOWER_ROTATE 5
+
+spritenoshade SUCC_FLOWER_TURRET
+spritenopal SUCC_FLOWER_TURRET
+useractor enemy SUCC_FLOWER_TURRET 100
+	ifaction 0
+	{
+		sizeat 50 50
+		seta[].blend 255
+		set PROJECTILE_TO_SHOOT PETAL_PROJ
+		set PROJECTILE_FIRING_SOUND BL_SPELL1 // temp sound
+		strength 100
+
+		cstat 257
+		action FLOWER_ROTATE
+	}
+
+	else ifaction FLOWER_ROTATE
+	{
+		add INTERNALCOUNT 1
+
+		ifg INTERNALCOUNT 30
+		 ife succubus_struggle -1
+		{
+			state sang_enemyShootProjectile
+			set INTERNALCOUNT 10
+		}
+	}
+
+	ifhitweapon
+	{
+		ifdead
+		{
+			addkills 1
+			strength 0
+			espawn DUSTSMOKE
+			seta[RETURN].pal 54
+			seta[RETURN].xrepeat 255
+			seta[RETURN].yrepeat 255
+
+			ifn OWNERSAVED 0
+			{
+				geta[OWNERSAVED].picnum temp
+
+				getav[OWNERSAVED].succ_active_turrets temp
+				sub temp 1
+				setav[OWNERSAVED].succ_active_turrets temp
+			}
+
+			sound DECAPITATE
+			ifphealthl 75 ifrnd 96 spawn BRIMSTONE
+			killit
+		}
+	}
+enda

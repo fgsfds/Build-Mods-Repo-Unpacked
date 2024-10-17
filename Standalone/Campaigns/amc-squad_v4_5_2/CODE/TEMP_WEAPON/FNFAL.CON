@@ -1,0 +1,69 @@
+
+
+defstate tw_fnfal_code
+    setarray WEAPON_TILE[0] FNFALSPRITE
+    set GUN_VOLUME 15
+    set GUN_ACCURACY 8
+    set GUN_MAX_SPREAD 48
+    set GUN_SIZE 2
+    set GUN_HANDS 2
+    set GUN_AMMO_TYPES 0
+    set WEAPON0_FIREDELAY 2
+    set WEAPON0_TOTALTIME 4
+    set WEAPON0_HOLDDELAY 1
+    set WEAPON0_FIRESOUND 4
+    set WEAPON0_FLAGS 8276
+    set WEAPON0_SPAWN 0
+    set WEAPON0_SHOOTS RMAXREVOLVERSHOT
+    set WEAPON0_INITIALSOUND 4
+    set WEAPON0_SHOTSPERBURST 1
+    set WEAPON0_CLIP 0
+    set WEAPON0_RELOADSOUND1 4
+    set WEAPON0_RELOADSOUND2 4
+    set WEAPON0_SELECTSOUND SELECT_AK
+    setarray weap_special[0] 16384
+
+    ife cur_weap 0
+        {
+        set weapon_type 0
+        set gun_mag temp_wep_mag
+        // set max_temp_wep_mag 20
+
+        ife kickbackpic 2 
+		{ 
+			espawn SOUND_SPRITE state SPAWN_IN_PLAYER_FRONT setactorvar[RETURN].temp FNFAL_FIRE 
+			randvar temp2 1024 zshoot temp2 RIFLESHELL
+		}
+
+        ife kickbackpic 3 { add gun_spread 16 set gun_recoil 6 set gunsmoke_angle 32 state spawn_gunsmoke }
+
+        ife kickbackpic 26
+            {
+            ifl temp_wep_mag 1 set max_temp_wep_mag 20
+            else set max_temp_wep_mag 21
+            }
+
+        ifand gun_firemode 16384 ifg kickbackpic 6 { set hide_xhair 0 xorvar gun_firemode 16384 }
+
+        ife kickbackpic 10 { state bgar_mag_out_sounds ife temp_wep_mag 0 shoot RIFLEMAGAZINE }
+
+        ife kickbackpic 27
+        { state bgar_mag_in_sounds ifvarvarl cur_ammo max_temp_wep_mag set temp_wep_mag cur_ammo else set temp_wep_mag max_temp_wep_mag }
+        ife kickbackpic 35 sound AUG_MOVEMENT
+        ife kickbackpic 46 sound BOLT_CATCH
+        ife kickbackpic 55 sound AUG_MOVEMENT
+
+      ifl temp_wep_mag 1
+       ife player[].weapon_pos 0
+        ife kickbackpic 0
+            {
+            ifn cur_ammo 0
+                {
+                set WEAPON0_RELOAD 56
+                setp[].reloading 1
+                setp[].kickback_pic 6
+                }
+            }
+        }
+
+ends

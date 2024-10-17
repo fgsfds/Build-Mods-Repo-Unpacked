@@ -1,0 +1,247 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+
+--------------------------------------------------------------------------------
+*/
+
+defstate highwire_hud
+
+	rotatesprite 34 184 HALFSIZE 0 16448 0 0 257 0 0 xdim ydim // HUD
+	rotatesprite 288 184 HALFSIZE 1024 16448 0 0 517 0 0 xdim ydim // HUD PART 2
+
+	rotatesprite 10 172 HALFSIZE 0 16460 0 0 256 0 0 xdim ydim // Health icon
+	rotatesprite 15 190 HALFSIZE 0 16463 0 0 256 0 0 xdim ydim // Armour icon
+
+	ifg P_ENERGYSHIELD 0 rotatesprite 15 190 HALFSIZE 0 16463 0 32 256 0 0 xdim ydim
+
+	ifg PHEALTH pmax_health ife hud_disp_temp4 0 set hud_disp_temp4 10
+	ifg hud_disp_temp4 0 sub hud_disp_temp4 1
+    ifg hud_disp_temp4 10 set hud_disp_temp4 10
+
+	digitalnumberz 16450 40 172 PHEALTH hud_disp_temp4 2 256 0 0 xdim ydim HALFSIZE
+	ifg P_ENERGYSHIELD 0 digitalnumberz 16450 45 190 PARMOUR 10 27 257 0 0 xdim ydim HALFSIZE
+	else digitalnumberz 16450 45 190 PARMOUR 0 8 256 0 0 xdim ydim HALFSIZE
+
+    ifg P_ENERGYSHIELD 0 digitalnumberz 16450 45 190 P_ENERGYSHIELD 0 32 256 0 0 xdim ydim HALFSIZE
+
+	ifn CURSED 0
+		{
+		add hud_disp_temp5 1
+		ifg hud_disp_temp5 2048 set hud_disp_temp5 0
+		ifl CURSED 0 set hud_disp_temp6 128
+		else ifg CURSED 128 set hud_disp_temp6 128
+        else set hud_disp_temp6 CURSED
+		mulvar hud_disp_temp6 -1
+		add hud_disp_temp6 30
+		rotatespritea 40 172 8192 hud_disp_temp5 22772 hud_disp_temp6 18 256 -255 0 0 xdim ydim
+		}
+
+	ife currentweapon 10 getp[].ammo_amount 5 hud_disp_pammo
+	else {
+		set hud_disp_pammo gun_ammopools[cur_weap]
+
+		ife hud_disp_pammo -1 // means not yet migrated to use pools, stick to old logic
+		{
+			ife cur_weap 0
+			{
+				set ammo_forweaponidx 0
+				state ammo_getdefs
+				set hud_disp_pammo ammo_normalammoremaining
+			}
+			else
+				getp[].ammo_amount cur_weap hud_disp_pammo
+		}
+	}
+
+	ifand GUN_AMMO_TYPES 1 ifand AMMO_TYPES[cur_weap] 1 digitalnumberz 16450 305 172 explosive_shells 0 2 512 0 0 xdim ydim HALFSIZE
+	else ifand GUN_AMMO_TYPES 2  ifand AMMO_TYPES[cur_weap] 2 digitalnumberz 16450 305 172 silver_ammo 10 26 512 0 0 xdim ydim HALFSIZE
+	else ifand GUN_AMMO_TYPES 2  ifand AMMO_TYPES[cur_weap] 32768 digitalnumberz 16450 305 172 incend_ammo 10 2 512 0 0 xdim ydim HALFSIZE
+	else ifand GUN_AMMO_TYPES 1 ifand AMMO_TYPES[cur_weap] 4 digitalnumberz 16450 305 172 flechete_shells 0 8 512 0 0 xdim ydim HALFSIZE
+	else ifand GUN_AMMO_TYPES 8 ifand AMMO_TYPES[cur_weap] 8 digitalnumberz 16450 305 172 tesla_ammo 0 1 512 0 0 xdim ydim HALFSIZE
+	else ifand GUN_AMMO_TYPES 16 ifand AMMO_TYPES[cur_weap] 16 digitalnumberz 16450 305 172 silver_bolts 10 26 512 0 0 xdim ydim HALFSIZE
+	else ifand GUN_AMMO_TYPES 16 ifand AMMO_TYPES[cur_weap] 16384 digitalnumberz 16450 305 172 void_bolts 10 49 512 0 0 xdim ydim HALFSIZE
+	else ifand GUN_AMMO_TYPES 4 ifand AMMO_TYPES[cur_weap] 64 digitalnumberz 16450 305 172 magnum_shells 0 7 512 0 0 xdim ydim HALFSIZE
+	else ifand GUN_AMMO_TYPES 4 ifand AMMO_TYPES[cur_weap] 1024 digitalnumberz 16450 305 172 dragon_shells 0 28 512 0 0 xdim ydim HALFSIZE
+	else ife cur_weap 0 ife temp_weap 32 ifand gun_firemode_two 4 digitalnumberz 16450 305 172 DUP_missile_ammo 0 8 512 0 0 xdim ydim HALFSIZE
+	else ifand GUN_AMMO_TYPES 2048
+        {
+        ifand AMMO_TYPES[cur_weap] 32 digitalnumberz 16450 305 172 fortymm_shells 0 2 512 0 0 xdim ydim HALFSIZE
+        else ifand AMMO_TYPES[cur_weap] 128 digitalnumberz 16450 305 172 fortymm_MIA_shells 0 7 512 0 0 xdim ydim HALFSIZE
+        else ifand AMMO_TYPES[cur_weap] 256 digitalnumberz 16450 305 172 fortymm_plasma 0 11 512 0 0 xdim ydim HALFSIZE
+        else digitalnumberz 16450 305 172 fortymm_grenades 0 0 512 0 0 xdim ydim HALFSIZE
+        }
+	else ifand GUN_AMMO_TYPES 4096
+        {
+        ifand AMMO_TYPES[cur_weap] 512 digitalnumberz 16450 305 172 fortymm_slug 0 7 512 0 0 xdim ydim HALFSIZE
+        else ifand AMMO_TYPES[cur_weap] 2048 digitalnumberz 16450 305 172 fortymm_electro 0 1 512 0 0 xdim ydim HALFSIZE
+        else ifand AMMO_TYPES[cur_weap] 4096 digitalnumberz 16450 305 172 fortymm_cryo 10 1 512 0 0 xdim ydim HALFSIZE
+        else digitalnumberz 16450 305 172 fortymm_caseless 0 0 512 0 0 xdim ydim HALFSIZE
+        }
+	else digitalnumberz 16450 305 172 hud_disp_pammo 0 0 512 0 0 xdim ydim HALFSIZE
+
+    rotatesprite 275 172 HALFSIZE 0 16462 0 0 512 0 0 xdim ydim // Ammo icon
+
+	ifn gun_mags[cur_weap] -1
+	{
+		digitalnumberz 16450 300 190 gun_mags[cur_weap] 0 0 512 0 0 xdim ydim HALFSIZE
+		rotatesprite 270 190 HALFSIZE 0 16461 0 0 512 0 0 xdim ydim // Ammo icon
+	}
+	// Deprecated
+	else ifn gun_mag -1
+	{
+		digitalnumberz 16450 300 190 gun_mag 0 0 512 0 0 xdim ydim HALFSIZE
+		rotatesprite 270 190 HALFSIZE 0 16461 0 0 512 0 0 xdim ydim // Ammo icon
+	}
+
+	ifand GUN_AMMO_TYPES 8192
+		{
+		digitalnumberz 16450 300 190 p_blue_mana 0 1 512 0 0 xdim ydim HALFSIZE
+		rotatesprite 270 190 20000 0 BLUE_MANA_PICKUP 0 0 512 0 0 xdim ydim // Ammo icon
+		}
+
+	ifand GUN_AMMO_TYPES 16384
+		{
+		digitalnumberz 16450 300 190 p_green_mana 0 8 512 0 0 xdim ydim HALFSIZE
+		rotatesprite 270 190 20000 0 GREEN_MANA_PICKUP 0 0 512 0 0 xdim ydim // Ammo icon
+		}
+
+	ifand GUN_AMMO_TYPES 32768
+		{
+		digitalnumberz 16450 300 190 p_orange_mana 0 29 512 0 0 xdim ydim HALFSIZE
+		rotatesprite 270 190 20000 0 ORANGE_MANA_PICKUP 0 0 512 0 0 xdim ydim // Ammo icon
+		}
+
+	ifand GUN_AMMO_TYPES 65536
+		{
+		digitalnumberz 16450 300 190 p_purple_mana 0 30 512 0 0 xdim ydim HALFSIZE
+		rotatesprite 270 190 20000 0 PURPLE_MANA_PICKUP 0 0 512 0 0 xdim ydim // Ammo icon
+		}
+
+	ifg P_SPIRIT_ARMOUR 0 rotatesprite 17 148 QUARTERSIZE 0 16448 0 0 257 0 0 xdim ydim // HUD PART 3
+	else ifg P_FIRE_ARMOUR 0 rotatesprite 17 148 QUARTERSIZE 0 16448 0 0 257 0 0 xdim ydim // HUD PART 3
+
+	ifg P_SPIRIT_ARMOUR 0
+		{
+		rotatesprite 5 142 HALFSIZE 0 16465 0 8 256 0 0 xdim ydim
+		digitalnumberz 16450 20 142 P_SPIRIT_ARMOUR 0 8 256 0 0 xdim ydim QUARTERSIZE
+		}
+	ifg P_FIRE_ARMOUR 0
+		{
+		rotatesprite 7 154 HALFSIZE 0 16466 0 0 256 0 0 xdim ydim
+		digitalnumberz 16450 22 154 P_FIRE_ARMOUR 10 2 256 0 0 xdim ydim QUARTERSIZE
+		}
+
+	ifand player[].got_access 1 rotatespritea 65 190 HALFSIZE 0 16464 0 0 0 -255 0 0 xdim ydim
+	ifand player[].got_access 2 rotatespritea 85 190 HALFSIZE 0 16464 0 21 0 -255 0 0 xdim ydim
+	ifand player[].got_access 4 rotatespritea 105 190 HALFSIZE 0 16464 0 23 0 -255 0 0 xdim ydim
+	ifand ACCESSKEY2 1 rotatespritea 125 190 HALFSIZE 0 16464 0 12 0 -255 0 0 xdim ydim
+	ifand ACCESSKEY2 2 rotatespritea 145 190 HALFSIZE 0 16464 0 14 0 -255 0 0 xdim ydim
+	ifand ACCESSKEY2 4 rotatespritea 165 190 HALFSIZE 0 16464 0 15 0 -255 0 0 xdim ydim
+	ifand ACCESSKEY2 8 rotatespritea 185 190 HALFSIZE 0 16464 0 49 0 -255 0 0 xdim ydim
+	ifand ACCESSKEY2 16 rotatespritea 205 190 HALFSIZE 0 16464 0 10 0 -255 0 0 xdim ydim
+	ifand ACCESSKEY2 32 rotatespritea 225 190 HALFSIZE 0 16464 0 36 0 -255 0 0 xdim ydim
+	ifand ACCESSKEY2 64 rotatespritea 245 190 HALFSIZE 0 16464 0 16 0 -255 0 0 xdim ydim
+
+
+    getp[].inven_icon hud_disp_temp
+	ifn hud_disp_temp 0
+        {
+        rotatesprite 305 148 QUARTERSIZE 1024 16448 0 0 517 0 0 xdim ydim // HUD PART 4
+        ife hud_disp_temp 1 // MEDKIT
+            {
+            rotatesprite 305 147 INVENSIZE 0 c_medikit 0 0 513 0 0 xdim ydim
+            getp[].firstaid_amount hud_disp_temp2
+            digitalnumberz 16450 305 148 hud_disp_temp2 0 0 512 0 0 xdim ydim QUARTERSIZE
+            }
+        ife hud_disp_temp 2 // STEROIDS
+            {
+            rotatesprite 305 147 INVENSIZE 0 c_steroids 0 0 513 0 0 xdim ydim
+            getp[].steroids_amount hud_disp_temp2
+            divvar hud_disp_temp2 4
+            digitalnumberz 16450 305 148 hud_disp_temp2 0 0 512 0 0 xdim ydim QUARTERSIZE
+            }
+        ife hud_disp_temp 3 // HOLODUKE
+            {
+            rotatesprite 305 147 INVENSIZE 0 c_holoduke 0 0 513 0 0 xdim ydim
+            getp[].holoduke_amount hud_disp_temp2
+            divvar hud_disp_temp2 24
+            digitalnumberz 16450 305 148 hud_disp_temp2 0 0 512 0 0 xdim ydim QUARTERSIZE
+            getp[].holoduke_on hud_disp_temp2
+            ifn hud_disp_temp2 -1 minitext 317 152 500 0 10 else minitext 317 152 501 0 21
+            }
+        ife hud_disp_temp 4 // JETPACK
+            {
+            rotatesprite 305 147 INVENSIZE 0 c_jetpack 0 0 513 0 0 xdim ydim
+            getp[].jetpack_amount hud_disp_temp2
+            divvar hud_disp_temp2 16
+            digitalnumberz 16450 305 148 hud_disp_temp2 0 0 512 0 0 xdim ydim QUARTERSIZE
+            getp[].jetpack_on hud_disp_temp2
+            ifn hud_disp_temp2 0 minitext 317 152 500 0 10 else minitext 317 152 501 0 21
+            }
+        ife hud_disp_temp 5 // NIGHT VISION GOGGLES
+            {
+            rotatesprite 305 147 INVENSIZE 0 disp_nvg 0 0 513 0 0 xdim ydim
+            getp[].heat_amount hud_disp_temp2
+            divvar hud_disp_temp2 48
+            digitalnumberz 16450 305 148 hud_disp_temp2 0 0 512 0 0 xdim ydim QUARTERSIZE
+            getp[].heat_on hud_disp_temp2
+            ifn hud_disp_temp2 0 minitext 317 152 500 0 10 else minitext 317 152 501 0 21
+            }
+        ife hud_disp_temp 6 // SCUBA GEAR
+            {
+            rotatesprite 305 147 INVENSIZE 0 c_scuba 0 0 513 0 0 xdim ydim
+            ife AIR_FILTER 1
+                {
+                rotatesprite 288 186 12384 0 REBREATHER 0 0 512 0 0 xdim ydim
+                myospal 305 148 3812 20 0 2
+                }
+            else
+                {
+                getp[].scuba_amount hud_disp_temp2
+                divvar hud_disp_temp2 64
+                digitalnumberz 16450 305 148 hud_disp_temp2 0 0 512 0 0 xdim ydim QUARTERSIZE
+                }
+            minitext 317 152 502 0 21
+            }
+        ife hud_disp_temp 7 // BOOTS
+            {
+            rotatesprite 305 147 INVENSIZE 0 c_boots 0 0 513 0 0 xdim ydim
+            getp[].boot_amount hud_disp_temp2
+            divvar hud_disp_temp2 2
+            digitalnumberz 16450 305 148 hud_disp_temp2 0 0 512 0 0 xdim ydim QUARTERSIZE
+            minitext 317 152 502 0 21
+            }
+
+        ife hud_disp_temp 10 // TOOLBOX
+            {
+            rotatesprite 305 147 INVENSIZE 0 TOOLBOX_PICKUP 0 0 513 0 0 xdim ydim
+            }
+        ife hud_disp_temp 11 // ROPE
+            {
+            rotatesprite 305 147 20000 0 ROPE_PICKUP 0 0 513 0 0 xdim ydim
+            }
+        }
+ends

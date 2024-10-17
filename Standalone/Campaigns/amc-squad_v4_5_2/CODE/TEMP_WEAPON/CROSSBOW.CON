@@ -1,0 +1,152 @@
+defstate tw_normal_crossbow_gunammotypes
+	setarray GUN_AMMO_TYPES_ARR[0] 16
+ends								  
+
+defstate tw_normal_crossbow_code
+    setarray WEAPON_TILE[0] CROSSBOWSPRITE
+    set WEAPON0_WORKSLIKE 0
+    set WEAPON0_TOTALTIME 24
+    set WEAPON0_HOLDDELAY 3
+    set WEAPON0_FIREDELAY 2
+    set WEAPON0_INITIALSOUND 4
+    set WEAPON0_SHOTSPERBURST 1
+    set WEAPON0_FLAGS 1280
+    set WEAPON0_SELECTSOUND SELECT_MYSTIC
+    setarray weap_special[0] 16448
+
+    ife cur_weap 0
+    {
+    set gun_mag -1
+    set GUN_VOLUME 0
+    set GUN_SIZE 1
+    set GUN_HANDS 1
+    set weapon_type 5
+    set GUN_ACCURACY 8
+    set GUN_MAX_SPREAD 0
+    set GUN_AMMO_TYPES 16
+
+    ifand AMMO_TYPES[cur_weap] 16 // silver bolts
+    {
+        set WEAPON0_SHOOTS 12232
+        set WEAPON0_FIRESOUND CROSSBOW
+    }
+    else ifand AMMO_TYPES[cur_weap] 16384 // void bolts
+    {
+        set WEAPON0_SHOOTS VOID_BOLT
+        set WEAPON0_FIRESOUND VOID_FIRE
+    }
+    else
+    {
+        set WEAPON0_SHOOTS XBOW_BOLT
+        set WEAPON0_FIRESOUND CROSSBOW
+    }
+
+    ife kickbackpic 2 set gun_recoil 8
+
+    ife kickbackpic 4 sound CROSSBOW_DRAWBACK
+
+    ifand BITS_PRESS 64
+     ifcount 13
+        {
+        sound SCOPE_ZOOM
+        xorvar gun_firemode 16384
+        resetcount
+        }
+    }
+ends
+
+
+defstate tw_rwcrossbow_gunammotypes
+    setarray GUN_AMMO_TYPES_ARR[0] 16
+ends									 
+
+defstate tw_rwcrossbow_code
+	setarray WEAPON_TILE[0] RW_CROSSBOW_SPRITE
+    set WEAPON0_WORKSLIKE 0
+    set WEAPON0_TOTALTIME 24
+    set WEAPON0_HOLDDELAY 3
+    set WEAPON0_FIREDELAY 2
+    set WEAPON0_INITIALSOUND 4
+    set WEAPON0_SHOTSPERBURST 1
+    set WEAPON0_FLAGS 1280
+    set WEAPON0_SELECTSOUND SELECT_MYSTIC
+    setarray weap_special[0] 16448
+
+    set gun_mag -1
+    set GUN_VOLUME 0
+    set GUN_SIZE 1
+    set GUN_HANDS 1
+    set weapon_type 5
+    set GUN_ACCURACY 8
+    set GUN_MAX_SPREAD 0
+    set GUN_AMMO_TYPES 16
+
+	// set gun ammo types for mana
+    ifand AMMO_TYPES[cur_weap] 16 // silver bolts
+    {
+		or GUN_AMMO_TYPES 8192
+		set WEAPON0_SHOOTS 12232
+		set WEAPON0_FIRESOUND CROSSBOW
+    }
+    else ifand AMMO_TYPES[cur_weap] 16384 // void bolts
+    {
+		or GUN_AMMO_TYPES 65536
+		set WEAPON0_SHOOTS VOID_BOLT
+		set WEAPON0_FIRESOUND VOID_FIRE
+    }
+    else // normal bolts
+    {
+		or GUN_AMMO_TYPES 16384
+		set WEAPON0_SHOOTS XBOW_BOLT
+		set WEAPON0_FIRESOUND CROSSBOW
+    }
+
+    ifg kickbackpic_2 0 // mana mode
+	{
+        add kickbackpic_2 1
+        ife kickbackpic_2 2
+		{
+            set gun_pushb_disp 10
+            espawn SOUND_SPRITE
+            state SPAWN_IN_PLAYER_FRONT
+            ifand AMMO_TYPES[cur_weap] 16 // silver bolt
+			{
+                sub p_blue_mana 2
+                set gun_recoil 8
+                setactorvar[RETURN].temp RIOTGUN_TESLAF
+                shoot TESLA_BOLT
+                ifg kickbackpic_2 9 set kickbackpic_2 0
+			}
+            else ifand AMMO_TYPES[cur_weap] 8192 // tek bolt
+			{
+                sub p_orange_mana 1
+                set gun_recoil 10
+                setactorvar[RETURN].temp STYGIAN_FIRE
+                shoot FSTYGIAN_ROCK
+			}
+            else ifand AMMO_TYPES[cur_weap] 16384 // void bolt
+			{
+                sub p_purple_mana 1
+                set gun_recoil 15
+                setactorvar[RETURN].temp VOID_MEGA
+                shoot VOID_BLAST
+			}
+            else
+			{
+                sub p_green_mana 1
+                set gun_recoil 4
+                setactorvar[RETURN].temp XBOW_GRNF
+                shoot GREEN_ARCH_BOLT
+                shoot GREEN_ARCH_BOLT
+			}
+		}
+		
+        ifand AMMO_TYPES[cur_weap] 16 { ifg kickbackpic_2 14 set kickbackpic_2 0 }
+        else ifand AMMO_TYPES[cur_weap] 8192 { ifg kickbackpic_2 20 set kickbackpic_2 0 }
+        else ifand AMMO_TYPES[cur_weap] 16384 { ifg kickbackpic_2 24 set kickbackpic_2 0 }
+        else ifg kickbackpic_2 9 set kickbackpic_2 0
+	}
+
+    ife kickbackpic 2 set gun_recoil 8
+    ife kickbackpic 4 sound CROSSBOW_DRAWBACK
+ends

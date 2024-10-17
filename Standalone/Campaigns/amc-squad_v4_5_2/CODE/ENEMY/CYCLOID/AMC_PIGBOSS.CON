@@ -1,0 +1,624 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+
+--------------------------------------------------------------------------------
+*/
+
+spriteflags PIGBOSS 5251072
+
+damageeventtile PIGBOSS
+
+spriteshadow PIGBOSSGUN
+
+define PIGBMELEEDAMAGE 80
+define PALPIGBMELEEDAMAGE 40
+
+// HURTSPAWNBLOOD + NODAMAGEPUSH + SMOOTHMOVE
+
+action APIGBOSSSTAND	0  1 5 1 10
+action APIGBOSSWALK     0  4 5 1 20
+action APIGBOSSRUN      0  4 5 1 11
+
+action APIGBOSSSHOOT1    20 1 5 1 17
+action APIGBOSSSHOOT2    25 1 5 1 17
+action APIGBOSSSHOOT3    30 1 5 1 17
+action APIGBOSSSHOOT4    35 1 5 1 17
+
+action APIGBOSSMELEE	40 3 1 1 15
+action APIGBOSSTAUNTFORW    43 3 1 1 6
+action APIGBOSSTAUNTBACK    45 3 1 -1 12
+
+action APIGBOSSROAR		46 3 1 1 30
+action APIGBOSSSTOMP1	50 1 1 1 30
+action APIGBOSSSTOMP2   49 1 1 1 30
+action APIGBOSSDYING    51 6 1 1 18
+
+action APIGBOSSHIT      51 1 1 1 12
+action APIGBOSSDEAD     56 1 1 1 1
+action APIGBOSSFROZEN    51 1 1
+action APIGBOSSGROW      51 1 5 1 10
+
+move PIGBOSSWALKVELS 112
+move PIGBOSSRUNVELS 212
+move PIGBOSSRUNFACEVELS 288
+move PIGBOSSSTOPPED
+move PIGBOSSSRUNKVELS 32
+
+ai AIPIGBOSSWAIT APIGBOSSSTAND PIGBOSSSTOPPED geth
+ai AIPIGBOSSROAR APIGBOSSROAR PIGBOSSSTOPPED faceplayer
+ai AIPIGBOSSSEEK APIGBOSSWALK PIGBOSSWALKVELS seekplayer
+ai AIPIGBOSSSHOOT APIGBOSSSHOOT1 PIGBOSSSTOPPED faceplayer
+ai AIPIGBOSSCHARGE APIGBOSSRUN PIGBOSSRUNVELS seekplayer
+ai AIPIGBOSSMELEE APIGBOSSMELEE PIGBOSSWALKVELS faceplayer
+ai AIPIGBOSSTAUNT APIGBOSSTAUNTFORW PIGBOSSSTOPPED faceplayer
+
+ai AIPIGBOSSDYING APIGBOSSDYING PIGBOSSSTOPPED geth
+ai AIPIGBOSSFROZEN APIGBOSSFROZEN PIGBOSSSTOPPED geth
+ai AIPIGBOSSSHRUNK APIGBOSSWALK PIGBOSSSRUNKVELS fleeenemy
+ai AIPIGBOSSGROW APIGBOSSGROW PIGBOSSSTOPPED geth
+ai AIPIGBOSSHIT APIGBOSSHIT PIGBOSSSTOPPED faceplayer
+
+defstate spawngunstate
+	espawn PIGBOSSGUN
+	setactor[RETURN].xrepeat sprite[THISACTOR].xrepeat
+	setactor[RETURN].yrepeat sprite[THISACTOR].yrepeat
+	setactor[RETURN].pal sprite[THISACTOR].pal
+	getactor[RETURN].z PIGBVAR
+	subvar PIGBVAR 6144
+	setactor[RETURN].z PIGBVAR
+ends
+
+defstate pigbosshitstate
+
+	ifactioncount 2
+	{
+		ifrnd 32
+		{
+			ai AIPIGBOSSROAR
+			ifrnd 128 globalsound PIGBROAR else globalsound PIGBROAR2
+		}
+		else
+		ai AIPIGBOSSCHARGE
+	}
+
+ends
+
+defstate pigbossroarstate
+
+	// damage resistance during roar to prevent cheap kills
+	ifvarg sprite[THISACTOR].htextra 0
+	{
+		getactor[THISACTOR].htextra PIGBVAR
+		divvar PIGBVAR 2
+		setactor[THISACTOR].htextra PIGBVAR
+	}
+	ifactioncount 6 ai AIPIGBOSSCHARGE
+
+ends
+
+defstate pigbosstauntstate
+
+	ifvarg sprite[THISACTOR].htextra 0
+	{
+		getactor[THISACTOR].htextra PIGBVAR
+		divvar PIGBVAR 2
+		setactor[THISACTOR].htextra PIGBVAR
+	}
+
+	ifaction APIGBOSSSTOMP1
+	{
+		ifactioncount 1
+		{
+			sound PGBSTOMP
+			action APIGBOSSSTOMP2
+			add PIGBRESET 1
+			set PIGBVAR NO
+			ifspritepal 0 ifpdistl 8192 set PIGBVAR YES
+			else ifpdistl 6144 set PIGBVAR YES
+			ife PIGBVAR YES
+			{
+				wackplayer
+				setp[].poszv -2048
+				getp[].posz PIGBVAR
+				sub PIGBVAR 1024
+				setp[].posz PIGBVAR
+			}
+			ifpdistl 10240 quake 15
+
+		}
+		break
+	}
+	ifaction APIGBOSSSTOMP2
+	{
+		ifactioncount 1
+		{
+			ifvarg PIGBRESET 1
+			{
+				setvar PIGBRESET 0
+				ai AIPIGBOSSCHARGE
+				break
+			}
+			else action APIGBOSSSTOMP1
+		}
+	}
+
+	ifaction APIGBOSSTAUNTFORW ifactioncount 3
+	{
+		action APIGBOSSTAUNTBACK
+		ifspritepal 0 { quake 30 sound BIGDOORSLAM3 } else sound INTRO4_5
+		addvar PIGBRESET 1
+	}
+	ifaction APIGBOSSTAUNTBACK ifactioncount 3
+	{
+		ifvarg PIGBRESET 1
+		{
+			setvar PIGBRESET 0
+			ai AIPIGBOSSCHARGE
+			break
+		}
+		action APIGBOSSTAUNTFORW
+	}
+ends
+
+defstate pigbossgrowstate
+
+	state genericgrowcode
+	sizeto 255 192
+
+ends
+
+defstate pigbossshrunkstate
+
+  ifcount SHRUNKDONECOUNT
+    ai AIPIGBOSSSEEK
+  else
+    ifcount SHRUNKCOUNT
+	{
+	  ifspritepal 0 { sizeto 45 45 sizeto 45 45 }
+	  else
+      sizeto 32 32
+	}
+  else
+    state genericshrunkcode
+
+ends
+
+defstate pigbossseekstate
+
+	ifrnd 1 sound PIGBROAM1
+	else
+	ifrnd 1
+	{
+		ai AIPIGBOSSROAR
+		ifrnd 128 globalsound PIGBROAR else globalsound PIGBROAR2
+		break
+	}
+
+	ifcount 20
+		ifcansee
+	{
+		ifrnd 32
+			ifpdistl 8192
+				ai AIPIGBOSSCHARGE
+
+		ifrnd 3
+		{
+			ifrnd 128
+			ai AIPIGBOSSSHOOT
+			else
+			ai AIPIGBOSSCHARGE
+		}
+	}
+ends
+
+defstate pigbossfire
+	state fronttowardstarget
+	ifrnd 128 sound M4A1_FIRE
+	else
+	sound PIG_FIRE
+	shoot 3761
+	state SKILL_ENEMY_ACCURACY 
+	set PROJECTILE_TO_SHOOT ENEMY_SHOTGUN
+	set PROJECTILE_FIRING_SOUND 4
+	state sang_enemyShootProjectile
+	shoot FAKE_BULLET
+	state sang_enemyShootProjectile
+	shoot FAKE_BULLET
+	state sang_enemyShootProjectile
+	ifspritepal 0
+	{
+	shoot FAKE_BULLET
+	state sang_enemyShootProjectile
+	shoot FAKE_BULLET
+	state sang_enemyShootProjectile
+	}
+ends
+
+defstate pigbossshootstate
+
+	ifaction APIGBOSSSHOOT1
+	{
+		ifactioncount 1
+		{
+			action APIGBOSSSHOOT2
+			state pigbossfire
+			move PIGBOSSSTOPPED faceplayerslow
+		}
+	}
+
+	ifaction APIGBOSSSHOOT2
+	{
+		ifactioncount 1
+		{
+			action APIGBOSSSHOOT3
+			state pigbossfire
+		}
+	}
+
+	ifaction APIGBOSSSHOOT3
+	{
+		ifactioncount 1
+		{
+			action APIGBOSSSHOOT4
+			ifrnd 128
+				state pigbossfire
+			else
+			{
+				geta[].x bossx
+				geta[].y bossy
+				geta[].ang bossang
+				sub bossang 512
+				set PIGBVAR bossx
+				add PIGBVAR 384
+				rotatepoint sprite[].x sprite[].y PIGBVAR sprite[].y bossang newx newy
+				seta[].x newx
+				seta[].y newy
+
+				sound RPG_SHOOT
+				eshoot MORTER2
+				getactor[RETURN].zvel PIGBVAR
+				subvar PIGBVAR 1280
+				setactor[RETURN].zvel PIGBVAR
+
+				seta[].x bossx
+				seta[].y bossy
+			}
+
+
+		}
+	}
+
+	ifaction APIGBOSSSHOOT4
+	{
+		ifactioncount 1
+		{
+			addvar PIGBRESET 1
+			ifvarg PIGBRESET 1
+			ifrnd 192
+			{
+				setvar PIGBRESET 0
+				ai AIPIGBOSSWAIT
+			}
+			else
+			{
+				action APIGBOSSSHOOT2
+				state pigbossfire
+			}
+		}
+	}
+
+ends
+
+defstate pigbosswaitstate
+
+	ifactioncount 2 ai AIPIGBOSSSEEK
+
+ends
+
+defstate pigbossmeleestate
+
+	ifactioncount 1
+	{
+		ifpdistl 1816
+		ifcansee ifcanshoottarget
+		ife PIGBRESET NO
+		{
+			set PIGBRESET YES
+			ifactorsound THISACTOR PIGBSMACK nullop else
+			sound PIGBSMACK
+			palfrom 48 63
+			wackplayer
+			setplayer[THISACTOR].weapon_pos -9
+			setplayer[THISACTOR].kickback_pic 0
+			getplayer[THISACTOR].i PIGBVAR
+			ifspritepal 0
+			setactor[PIGBVAR].htextra PIGBMELEEDAMAGE
+			else setactor[PIGBVAR].htextra PALPIGBMELEEDAMAGE
+			setactor[PIGBVAR].htpicnum KNEE
+			setactor[PIGBVAR].htowner THISACTOR
+			setactor[PIGBVAR].htang sprite[THISACTOR].ang
+
+			getp[].ang PIGBVAR
+			add PIGBVAR 1024
+			cos PIGBVAR2 PIGBVAR
+			sin PIGBVAR3 PIGBVAR
+			shiftvarl PIGBVAR2 9
+			shiftvarl PIGBVAR3 9
+			ifspritepal 0 { shiftvarl PIGBVAR2 1 shiftvarl PIGBVAR3 1 }
+			setplayer[THISACTOR].posxv PIGBVAR2
+			setplayer[THISACTOR].posyv PIGBVAR3
+			// push player backwards
+		}
+
+	}
+	ifactioncount 3 { ai AIPIGBOSSWAIT set PIGBRESET NO }
+
+ends
+
+defstate pigbosschargestate
+
+	ifrnd 1 sound PIGBROAM2
+
+	ifcansee
+		ifcanshoottarget
+	{
+		ifmove PIGBOSSRUNVELS move PIGBOSSRUNFACEVELS faceplayersmart
+		ifmove PIGBOSSRUNFACEVELS ifpdistl 1560 ifcansee
+		{
+			ai AIPIGBOSSMELEE
+			sound PIGBMELEE
+			sound PIGBSWING
+			break
+		}
+
+		ifcount 40 ifrnd 12 ai AIPIGBOSSSHOOT
+	}
+
+	ifcount 30 ifrnd 6
+	{
+		ai AIPIGBOSSTAUNT
+		ifrnd 96 action APIGBOSSSTOMP1
+	}
+	else
+	ifcount 90 ifrnd 6 ai AIPIGBOSSSEEK
+
+ends
+
+useractor enemystayput PIGBOSSSTAYPUT 4500 APIGBOSSSTAND cactor PIGBOSS enda
+
+useractor enemy PIGBOSS 4500 APIGBOSSSTAND
+
+fall
+ifai 0
+{
+	spawn SHOOTME
+	ai AIPIGBOSSROAR
+	quake 26
+	ifrnd 128 globalsound PIGBROAR
+	else globalsound PIGBROAR2
+	ifspritepal 0
+		{
+		set CURBOSS THISACTOR
+		set BOSS_TYPE 1
+		sizeat 45 45
+		}
+	else
+	{
+		sizeat 32 32
+		strength 1000
+	}
+	cstat 257
+}
+
+ifai AIPIGBOSSDYING
+{
+	strength 0
+
+	ifaction APIGBOSSDYING
+	{
+		ifactioncount 5
+		{
+			globalsound BOSSFALL
+			quake 90
+			cstat 0
+			action APIGBOSSDEAD
+			state spawngunstate
+			ifrnd 128 setactor[RETURN].cstat 4
+			ifhitweapon { }
+			break
+		}
+	}
+	ifaction APIGBOSSDEAD
+	{
+		ifn HITAGSAVED 0
+			{
+			operateactivators HITAGSAVED THISACTOR
+			set HITAGSAVED 0
+			}
+		ifhitweapon
+		{
+			ifwasweapon RPG
+			{
+				sound SQUISHED
+				spawn BLOODPOOL
+				state standard_jibs
+				state standard_jibs
+				killit
+			}
+			ifwasweapon RADIUSEXPLOSION
+			{
+				sound SQUISHED
+				spawn BLOODPOOL
+				state standard_jibs
+				state standard_jibs
+				killit
+			}
+		}
+	}
+
+	break
+}
+
+ifai AIPIGBOSSFROZEN { state frozen_code break }
+ifai AIPIGBOSSGROW { state pigbossgrowstate break }
+
+ifai AIPIGBOSSHIT state pigbosshitstate else
+ifai AIPIGBOSSSHRUNK state pigbossshrunkstate else
+ifai AIPIGBOSSROAR state pigbossroarstate else
+ifai AIPIGBOSSTAUNT state pigbosstauntstate else
+ifai AIPIGBOSSSEEK state pigbossseekstate else
+ifai AIPIGBOSSCHARGE state pigbosschargestate else
+ifai AIPIGBOSSMELEE state pigbossmeleestate else
+ifai AIPIGBOSSSHOOT state pigbossshootstate else
+ifai AIPIGBOSSWAIT state pigbosswaitstate
+
+
+ifhitweapon
+{
+ifspritepal 0 set CURBOSS THISACTOR
+state NEWGUNEFFECTS
+    ifwasweapon SHRINKSPARK
+	{
+		ifstrength 600
+		{
+		  sound ACTOR_SHRINKING
+		  ai AIPIGBOSSSHRUNK
+		  // set shrunken 1
+		  break
+		}
+		else addstrength -60
+	}
+	else
+        ifwasweapon GROWSPARK
+          sound EXPANDERHIT
+	ifdead
+	{
+		ifwasweapon FREEZEBLAST
+		{
+		  sound SOMETHINGFROZE
+		  spritepal 1
+		  ai AIPIGBOSSFROZEN
+		  strength 0
+		  // state freezeme
+		  break
+		}
+		ifwasweapon GROWSPARK
+		{
+		  cstat 0
+		  sound ACTOR_GROWING
+		  ai AIPIGBOSSGROW
+		  break
+		}
+		add TREASURE_FOUND 5
+		addkills 1
+		ai AIPIGBOSSDYING
+		guts JIBS6 8
+		ifspritepal 0 { globalsound PIGBDIE break }
+		ifwasweapon RPG
+		{
+			state spawngunstate
+			sound SQUISHED
+			spawn BLOODPOOL
+			state standard_jibs
+			state standard_jibs
+			killit
+        }
+		ifwasweapon RADIUSEXPLOSION
+		{
+			state spawngunstate
+			sound SQUISHED
+			spawn BLOODPOOL
+			state standard_jibs
+			state standard_jibs
+			killit
+        }
+		sound PIGBDIE
+		break
+	}
+	ifrnd 2
+		spawn BLOODPOOL
+	ifai AIPIGBOSSHIT nullop else
+	ifai AIPIGBOSSMELEE nullop else
+	ifai AIPIGBOSSSHRUNK nullop else
+	{
+		ifrnd 16 { sound PIGBPAIN ai AIPIGBOSSHIT setvar PIGBRESET 0 break }
+		ifrnd 64
+		{
+			sound PIGBPAIN
+			ifai AIPIGBOSSSHOOT nullop else ai AIPIGBOSSSHOOT
+		}
+	}
+}
+
+// animation test code
+// ifaction APIGBOSSTAUNTFORW ifactioncount 3 action APIGBOSSTAUNTBACK
+// ifaction APIGBOSSTAUNTBACK ifactioncount 3 action APIGBOSSTAUNTFORW
+
+// ifhitspace ifcount 10
+// {
+	// resetcount
+	// ifaction APIGBOSSSTAND action APIGBOSSWALK else
+	// ifaction APIGBOSSWALK action APIGBOSSRUN else
+	// ifaction APIGBOSSRUN action APIGBOSSSHOOT else
+	// ifaction APIGBOSSSHOOT action APIGBOSSMELEE else
+	// ifaction APIGBOSSMELEE action APIGBOSSROAR else
+	// ifaction APIGBOSSROAR action APIGBOSSHIT else
+	// ifaction APIGBOSSHIT action APIGBOSSDYING else
+	// ifaction APIGBOSSDYING action APIGBOSSDEAD else
+	// ifaction APIGBOSSDEAD action APIGBOSSSTAND
+// }
+
+enda
+
+move PIGBOSSGUNSLIDE 192
+move PIGBOSSGUNSTOP
+
+useractor notenemy PIGBOSSGUN 0
+
+fall
+ifmove 0 move PIGBOSSGUNSLIDE randomangle
+ifcount 10 ifmove PIGBOSSGUNSLIDE move PIGBOSSGUNSTOP
+
+ifmove PIGBOSSGUNSTOP
+ifp palive
+    ifpdistl RETRIEVEDISTANCE
+        ifcanseetarget
+{
+	state randgetweapsnds
+    palfrom 24 0 32
+	spawn FIRSTGUNSPRITE
+	spawn SHOTGUNSPRITE
+	spawn CHAINGUNSPRITE
+	killit
+}
+
+enda
+
+appendevent EVENT_KILLIT
+
+ifactor MORTER2 { debris SCRAP1 3 debris SCRAP2 3 }
+
+endevent

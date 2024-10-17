@@ -1,0 +1,468 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+
+--------------------------------------------------------------------------------
+*/
+
+damageeventtile KA_50_BLACK_SHARK
+damageeventtile MI_24_HIND
+damageeventtile BLACK_HAWK
+
+action ACOPTER 0 1 7 1 10
+action ACOPTER_DIE 0 1 7 1 10
+
+
+define COPTER_ROTOR 13241
+define COPTER_ROTOR2 13242
+
+useractor notenemy COPTER_ROTOR
+
+ifaction 0
+{
+cstat 34
+sizeat 50 50
+
+ifpdistl 1024 addphealth -1000
+
+geta[myowner].extra temp6
+ifl temp6 1 killit
+
+geta[myowner].x temp
+geta[myowner].y temp2
+geta[myowner].z temp3
+ifspawnedby KA_50_BLACK_SHARK sub temp3 18000
+else ifspawnedby BLACK_HAWK sub temp3 16000
+else sub temp3 22000
+setsprite THISACTOR temp temp2 temp3
+
+geta[].ang temp4
+add temp4 256
+seta[].ang temp4
+}
+
+enda
+
+useractor notenemy COPTER_ROTOR2
+
+ifspritepal 3 break
+
+ifaction 0
+{
+cstat 34
+sizeat 50 50
+
+ifpdistl 1024 addphealth -1000
+
+geta[myowner].extra temp6
+ifl temp6 1 killit
+
+geta[myowner].x temp
+geta[myowner].y temp2
+geta[myowner].z temp3
+sub temp3 14000
+setsprite THISACTOR temp temp2 temp3
+
+geta[].ang temp4
+sub temp4 256
+seta[].ang temp4
+}
+
+enda
+
+move CHOPPER_SLOW 120 0
+move CHOPPER_STOP 0
+move CHOPPER_FALL 200 125
+
+// HITAG = Upper movement
+// LOTAG = Lower Movement
+// XVEL = Stopping period
+// YVEL = Speed
+// ZVEL = Troops
+// EXTRA = Missiles
+// OWNER = Num of Troops
+
+defstate CHOPPER_BOOM
+		spawn EXPLOSION2
+		ifpdistl 16000 wackplayer
+		ifcansee palfrom 60 60 60 60
+		flash
+		hitradius 6096 100 20 400 500
+		globalsound CHOPPER_EXPLODE
+		quake 76
+		shoot SPARK shoot SPARK shoot SPARK shoot SPARK
+		debris SCRAP1 40
+		debris SCRAP2 32
+		debris SCRAP3 32
+		debris SCRAP4 32
+		debris SCRAP5 32
+		strength 0
+		killit
+ends
+
+defstate CHOPPER_MOVEMENT
+		ifspritepal 5 nullop else
+		ifspritepal 3 nullop else
+		ifspritepal 12 nullop else
+			{
+			ife YVELSAVED 0 move CHOPPER_FLYBY geth getv
+			else ife YVELSAVED 1 move CHOPPER_SLOW geth getv
+			else ife YVELSAVED 2
+				{
+				sub XVELSAVED 1 // Take away from the Stopping period
+				move CHOPPER_STOP geth getv
+				ifg OWNERSAVED 0
+				{
+				ife XVELSAVED 260 { espawnvar ZVELSAVED sub OWNERSAVED 1 }
+				ife XVELSAVED 234 { espawnvar ZVELSAVED sub OWNERSAVED 1 }
+				ife XVELSAVED 208 { espawnvar ZVELSAVED sub OWNERSAVED 1 }
+				ife XVELSAVED 182 { espawnvar ZVELSAVED sub OWNERSAVED 1 }
+				ife XVELSAVED 156 { espawnvar ZVELSAVED sub OWNERSAVED 1 }
+				ife XVELSAVED 130 { espawnvar ZVELSAVED sub OWNERSAVED 1 }
+				ife XVELSAVED 104 { espawnvar ZVELSAVED sub OWNERSAVED 1 }
+				ife XVELSAVED 78 { espawnvar ZVELSAVED sub OWNERSAVED 1 }
+				ife XVELSAVED 52 { espawnvar ZVELSAVED sub OWNERSAVED 1 }
+				ife XVELSAVED 26 { espawnvar ZVELSAVED sub OWNERSAVED 1 }
+				}
+				ife XVELSAVED 0 set YVELSAVED 1 // Once stopping period is over, take off again!
+				}
+			ifspritepal 9
+			ifrnd 64 { espawn BIG_SMOKE2 geta[RETURN].z temp8 sub temp8 12000 seta[RETURN].z temp8 shoot SPARK }
+			ifnotmoving
+				{
+				ifspritepal 9
+					{
+					state CHOPPER_BOOM
+					}
+				else
+				ifspawnedby RESPAWN
+					{
+					stopsound HELI_DIST
+					strength 0
+					killit
+					}
+				}
+			ifg HITAGSAVED 0 // If the climb rate is higher than 0
+			ifn YVELSAVED 2 // If the chopper isn't stopped...
+				{
+				geta[].z temp5
+				sub temp5 512
+				seta[].z temp5
+				sub HITAGSAVED 1
+				}
+			ifg LOTAGSAVED 0 // If the descend rate is higher than 0
+			ifn YVELSAVED 2 // If the chopper isn't stopped...
+				{
+				geta[].z temp5
+				add temp5 512
+				seta[].z temp5
+				sub LOTAGSAVED 1
+
+				state getfloordist
+				ifl z 16
+					{
+					set LOTAGSAVED 0
+					}
+
+				}
+			}
+ends
+
+spriteshadow MI_24_HIND
+
+// Spritepals
+// 4 = Only take if it has troops left!
+
+spritenopal CHOPPER_WAYPOINT
+
+useractor notenemy CHOPPER_WAYPOINT // Waypoint
+ife HIDE_SPRITES 1 cstat 32768 else cstat 0
+ife OWNERSAVED -1 set OWNERSAVED 0
+enda
+
+useractor notenemy MI_24_HIND
+ifaction 0
+	{
+	ife ZVELSAVED 0 set ZVELSAVED FASCIST
+	set actor_type TYPE_VEHICLE
+	strength 8000
+	sizeat 35 35
+	cstat 257
+	espawn COPTER_ROTOR
+	setactorvar[RETURN].myowner THISACTOR
+	action ACOPTER
+	resetcount
+	}
+
+ifhitweapon
+ifdead
+	{
+	strength 1
+	action ACOPTER_DIE
+	}
+
+ifaction ACOPTER_DIE
+	{
+	ifrnd 64 { espawn BIG_SMOKE2 geta[RETURN].z temp8 sub temp8 12000 seta[RETURN].z temp8 shoot SPARK }
+	move CHOPPER_FALL geth getv spin randomangle
+	fall
+	ifnotmoving
+		{
+		state CHOPPER_BOOM
+		}
+	iffloordistl 16
+		{
+		state CHOPPER_BOOM
+		}
+	}
+
+ifaction ACOPTER
+	{
+	state CHOPPER_MOVEMENT
+	ifstrength 1000 ifrnd 32 { espawn BIG_SMOKE2 geta[RETURN].z temp8 sub temp8 12000 seta[RETURN].z temp8 shoot SPARK }
+	ifspritepal 3 nullop else
+	ifspritepal 5 nullop else
+		{
+		ifactorsound THISACTOR M_CHOPPER nullop else sound M_CHOPPER
+		ifactorsound THISACTOR HELI_DIST nullop else sound HELI_DIST
+		}
+	ifg OWNERSAVED 6 set OWNERSAVED 6
+
+	findnearactorz CHOPPER_WAYPOINT 1024 16000 WAYPOINT
+		ifn WAYPOINT -1
+		{
+			geta[WAYPOINT].pal temp4
+			ife temp4 8 killit
+			ife temp4 4 ife OWNERSAVED 0 break // If it has no troops, don't take this path
+			ife temp4 3 { geta[WAYPOINT].z temp7 seta[].z temp7 }
+				ife temp9 0
+					{
+					geta[WAYPOINT].ang temp6
+					seta[].ang temp6
+					getav[WAYPOINT].ZVELSAVED temp2 ifn temp2 0 set ZVELSAVED temp2 // Set it's troop type
+					getav[WAYPOINT].HITAGSAVED HITAGSAVED // Set it's ascend rate
+					getav[WAYPOINT].LOTAGSAVED LOTAGSAVED // Set it's descend rate
+					getav[WAYPOINT].XVELSAVED XVELSAVED // Set it's stopping time
+					getav[WAYPOINT].YVELSAVED YVELSAVED // Set it's movement rate
+					ifl OWNERSAVED 1 getav[WAYPOINT].OWNERSAVED OWNERSAVED // Set the number of troops!
+					set temp9 1
+					}
+		}
+		else ife WAYPOINT -1 set temp9 0
+
+		state getfloordist
+		ifl z 32
+		{
+		ife temp7 0 { set temp7 1 break }
+		else set temp7 0
+
+		geta[].x mx
+		set temp5 mx
+		geta[].y temp6
+		add mx 512
+		randvar temp 127
+		set temp2 0
+
+		whilevarn temp2 1
+			{
+				rotatepoint temp5 temp6 mx temp6 temp temp3 temp4
+				add temp 128
+				ifg temp 2047 set temp2 1
+				ifrnd 128
+				{
+					espawn BIG_SMOKE
+					seta[RETURN].pal 27
+					seta[RETURN].x temp3
+					seta[RETURN].y temp4
+					seta[RETURN].ang temp
+					seta[RETURN].cstat 32768
+				}
+			}
+		}
+	}
+
+enda
+
+spriteshadow KA_50_BLACK_SHARK
+
+useractor notenemy KA_50_BLACK_SHARK
+ifaction 0
+	{
+	strength 2000
+	sizeat 35 35
+	cstat 257
+	set actor_type TYPE_VEHICLE
+	ifspritepal 3 nullop else
+		{
+		espawn COPTER_ROTOR
+		setactorvar[RETURN].myowner THISACTOR
+		espawn COPTER_ROTOR2
+		setactorvar[RETURN].myowner THISACTOR
+		}
+	action ACOPTER
+	}
+
+ifaction ACOPTER
+	{
+	state CHOPPER_MOVEMENT
+	ifspritepal 3 nullop else
+		{
+		ifactorsound THISACTOR M_CHOPPER nullop else sound M_CHOPPER
+		}
+	ifactorsound THISACTOR HELI_DIST nullop else globalsound HELI_DIST
+	set OWNERSAVED 0
+
+
+	findnearactorz CHOPPER_WAYPOINT 1024 16096 temp
+		ifn temp -1
+		{
+			geta[temp].pal temp4
+			ife temp4 4 ifl OWNERSAVED 1 break // If it has no troops, don't take this path
+			else
+				{
+				getav[temp].INTERNALCOUNT INTERNALCOUNT
+					ife INTERNALCOUNT 0
+					{
+					geta[temp].ang temp6
+					seta[].ang temp6
+					getav[temp].HITAGSAVED HITAGSAVED // Set it's ascend rate
+					getav[temp].LOTAGSAVED LOTAGSAVED // Set it's descend rate
+					getav[temp].XVELSAVED XVELSAVED // Set it's stopping time
+					getav[temp].YVELSAVED YVELSAVED // Set it's movement rate
+					setactorvar[temp].INTERNALCOUNT 260
+					}
+				}
+		}
+	}
+
+enda
+
+
+spriteshadow BLACK_HAWK
+
+useractor notenemy BLACK_HAWK
+ifaction 0
+	{
+	ife ZVELSAVED 0 set ZVELSAVED MERC
+	set actor_type TYPE_VEHICLE
+	strength 6000
+	sizeat 45 45
+	cstat 257
+	ifspritepal 3 nullop else
+		{
+		espawn COPTER_ROTOR
+		setactorvar[RETURN].myowner THISACTOR
+		}
+	action ACOPTER
+	resetcount
+	}
+
+ifhitweapon
+ifdead
+	{
+	strength 1
+	action ACOPTER_DIE
+	}
+
+ifaction ACOPTER_DIE
+	{
+	ifrnd 64 { espawn BIG_SMOKE2 geta[RETURN].z temp8 sub temp8 12000 seta[RETURN].z temp8 shoot SPARK }
+	move CHOPPER_FALL geth getv spin randomangle
+	fall
+	ifnotmoving
+		{
+		state CHOPPER_BOOM
+		}
+	iffloordistl 16
+		{
+		state CHOPPER_BOOM
+		}
+	}
+
+ifaction ACOPTER
+	{
+	state CHOPPER_MOVEMENT
+	ifstrength 1000 ifrnd 32 { espawn BIG_SMOKE2 geta[RETURN].z temp8 sub temp8 12000 seta[RETURN].z temp8 shoot SPARK }
+	ifspritepal 3 nullop else
+	ifspritepal 5 nullop else
+		{
+		ifactorsound THISACTOR M_CHOPPER nullop else sound M_CHOPPER
+		ifactorsound THISACTOR HELI_DIST nullop else sound HELI_DIST
+		}
+	ifg OWNERSAVED 10 set OWNERSAVED 10
+
+	findnearactorz CHOPPER_WAYPOINT 1024 16000 WAYPOINT
+		ifn WAYPOINT -1
+		{
+			geta[WAYPOINT].pal temp4
+			ife temp4 4 ife OWNERSAVED 0 break // If it has no troops, don't take this path
+			ife temp4 3 { geta[WAYPOINT].z temp7 seta[].z temp7 }
+				ife temp9 0
+					{
+					geta[WAYPOINT].ang temp6
+					seta[].ang temp6
+					getav[WAYPOINT].ZVELSAVED temp2 ifn temp2 0 set ZVELSAVED temp2 // Set it's troop type
+					getav[WAYPOINT].HITAGSAVED HITAGSAVED // Set it's ascend rate
+					getav[WAYPOINT].LOTAGSAVED LOTAGSAVED // Set it's descend rate
+					getav[WAYPOINT].XVELSAVED XVELSAVED // Set it's stopping time
+					getav[WAYPOINT].YVELSAVED YVELSAVED // Set it's movement rate
+					ifl OWNERSAVED 1 getav[WAYPOINT].OWNERSAVED OWNERSAVED // Set the number of troops!
+					set temp9 1
+					}
+		}
+		else ife WAYPOINT -1 set temp9 0
+
+		state getfloordist
+		ifl z 32
+		{
+		ife temp7 0 { set temp7 1 break }
+		else set temp7 0
+
+		geta[].x mx
+		set temp5 mx
+		geta[].y temp6
+		add mx 512
+		randvar temp 127
+		set temp2 0
+
+		whilevarn temp2 1
+			{
+				rotatepoint temp5 temp6 mx temp6 temp temp3 temp4
+				add temp 128
+				ifg temp 2047 set temp2 1
+				ifrnd 128
+				{
+					espawn BIG_SMOKE
+					seta[RETURN].pal 17
+					seta[RETURN].x temp3
+					seta[RETURN].y temp4
+					seta[RETURN].ang temp
+					seta[RETURN].cstat 32768
+				}
+			}
+		}
+	}
+
+enda

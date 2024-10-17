@@ -1,0 +1,540 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Based on the Duke3D CON files by 3DRealms, released under the GPL2 at:
+https://github.com/videogamepreservation/dukenukem3d/blob/ef609159bd352985a0c63734a11241d86c873fe5/testdata/GAME.CON
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+
+--------------------------------------------------------------------------------
+*/
+
+damageeventtile ROTATEGUN
+
+action ASATNSPIN     0 5 1 1 4
+action ASATSHOOTING   -10 3 5 1 40
+action ASATWAIT      0 1 5 1 1
+move TURRVEL
+
+eventloadactor ROTATEGUN geta[].extra EXTRASAVED seta[].extra 0 enda
+
+actor ROTATEGUN
+// ASATSHOOTING TURRVEL faceplayer
+
+  ifaction 0
+  {
+  sizeat 26 26
+  set actor_type TYPE_CASE_SPECIFIC
+  ifspritepal 0 spritepal 11
+  ife EXTRASAVED 1 strength 150
+  else strength ROTTURRETSTRENGTH
+  spawn SHOOTME
+    action ASATSHOOTING
+    move TURRVEL faceplayer
+  }
+  else
+    ifaction ASATNSPIN
+  {
+    ifactioncount 16
+    {
+      action ASATWAIT
+      move TURRVEL faceplayer
+    }
+  }
+  else
+    ifaction ASATSHOOTING
+  {
+    ifactioncount 12
+      ifrnd 8
+    {
+      action ASATWAIT
+      move 0
+    }
+    ifcount 32
+      resetcount
+    else
+      ifcount 16
+    {
+      ifcount 17 nullop
+      else
+      {
+	  ife EXTRASAVED 1
+		{
+        sound ERPG_SHOOT
+        shoot RPG
+		}
+		else
+		{
+        sound PRED_ATTACK
+        shoot FIRELASER
+		}
+      }
+    }
+    else
+      ifcount 4
+    {
+      ifcount 5 nullop
+      else
+      {
+        ifcansee
+          ifcanshoottarget
+        {
+		  ife EXTRASAVED 1
+			{
+	        sound ERPG_SHOOT
+	        shoot RPG
+			}
+			else
+			{
+	        sound PRED_ATTACK
+	        shoot FIRELASER
+			}
+        }
+      }
+    }
+  }
+  else
+    ifaction ASATWAIT
+  {
+    ifactioncount 32
+      ifrnd 32
+        ifp palive
+          ifcansee
+    {
+      action ASATSHOOTING
+      move TURRVEL faceplayer
+    }
+  }
+  ifhitweapon
+  {
+    ifdead
+    {
+      addkills 1
+
+      sound LASERTRIP_EXPLODE
+      debris SCRAP1 15
+      spawn EXPLOSION2
+      killit
+    }
+    else
+    {
+      action ASATNSPIN
+      debris SCRAP1 4
+    }
+    move 0
+  }
+enda
+
+// ************************************************************************************************************************************************************************************************************************************************************
+// ROTATE GUN 2
+// ************************************************************************************************************************************************************************************************************************************************************
+
+action ASAT2SHOOTING   0 2 5 1 40
+
+damageeventtile 22877
+
+useractor enemy 22877
+
+  ifaction 0
+  {
+  set actor_type TYPE_CASE_SPECIFIC
+  cstator 256
+  sizeat 26 26
+  strength ROTTURRETSTRENGTH
+  spawn SHOOTME
+    action ASAT2SHOOTING
+	move STOP faceplayer
+  }
+  else
+    ifaction ASATNSPIN
+  {
+    ifactioncount 32
+    {
+      action ASATWAIT
+      move STOP faceplayer
+    }
+  }
+  else
+    ifaction ASAT2SHOOTING
+  {
+    ifactioncount 12
+      ifrnd 32
+    {
+      action ASATWAIT
+      move 0
+    }
+    ifcount 32
+      resetcount
+    else
+      ifcount 16
+    {
+      ifcount 17 nullop
+      else
+      {
+        sound TURR_ATTACK
+		shoot 5394
+      }
+    }
+    else
+      ifcount 4
+    {
+      ifcount 5 nullop
+      else
+      {
+        ifcansee
+          ifcanshoottarget
+        {
+        sound TURR_ATTACK
+		shoot 5394
+        }
+      }
+    }
+  }
+  else
+    ifaction ASATWAIT
+  {
+    ifactioncount 64
+      ifrnd 32
+        ifp palive
+          ifcansee
+    {
+      action ASAT2SHOOTING
+      move STOP faceplayer
+    }
+  }
+  ifhitweapon
+  {
+    ifdead
+    {
+      addkills 1
+
+      sound LASERTRIP_EXPLODE
+      debris SCRAP1 15
+      spawn EXPLOSION2
+	  shoot SPARK shoot SPARK shoot SPARK shoot SPARK
+      killit
+    }
+    else
+    {
+      action ASATNSPIN
+      debris SCRAP1 4
+    }
+    move 0
+  }
+enda
+
+
+// ************************************************************************************************************************************************************************************************************************************************************
+// Big turret
+// ************************************************************************************************************************************************************************************************************************************************************
+
+damageeventtile 21602 // BIG TURRET
+
+useractor notenemy 21602
+sleeptime 0
+
+ifaction 0
+	{
+	set actor_type TYPE_ROBOTIC
+	cstator 257
+	strength 1000
+	set temp6 0
+	ifn HITAGSAVED 0
+		{
+		checkactivatormotion HITAGSAVED
+		ife RETURN 1 set HITAGSAVED 0
+		}
+	else
+	action ZERO
+	}
+
+ife camerasprite -1
+ifpdistg 65536 seta[].mdflags 1 else seta[].mdflags 0
+
+ifaction BREAK
+{
+move STOP
+    add INTERNALCOUNT 1
+	ifg INTERNALCOUNT 0
+		{
+		espawn EXPLOSION2
+		sound RPG_EXPLODE
+		geta[].x temp
+		geta[].y temp2
+		set temp3 temp
+		add temp3 512
+		randvar temp4 2048
+		rotatepoint temp temp2 temp3 temp2 temp4 temp5 temp6
+		seta[RETURN].x temp5
+		seta[RETURN].y temp6
+		}
+	ifg INTERNALCOUNT 30
+		{
+		 debris SCRAP1 18
+		  debris SCRAP2 14
+		  debris SCRAP3 17
+		  shoot SPARK
+		  shoot SPARK
+		  shoot SPARK
+		  shoot SPARK
+		  shoot SPARK
+		  shoot SPARK
+		  shoot SPARK
+		  shoot SPARK
+		  shoot SPARK
+		  quake 26 spawn BIG_EXPLOSION sound BLOWUP
+		killit
+		}
+}
+else
+ifaction ZERO
+{
+ifpdistl 65386
+	{
+	move STOP faceplayerslow
+	}
+ifg INTERNALCOUNT 0 sub INTERNALCOUNT 1
+ifcansee
+ ifcanseetarget
+  ife INTERNALCOUNT 0
+	{
+	sound TANK_FIRE
+
+			set gunsmoke_z 14488
+			set gunsmoke_angle 96
+			state spawn_gunsmoke_z
+			set temp3 sprite[].x
+			add temp3 2048
+			geta[].ang temp4
+			add temp4 gunsmoke_angle
+			randvar temp5 16
+			ifrnd 128 add temp4 temp5 else sub temp4 temp5
+			rotatepoint sprite[].x sprite[].y temp3 sprite[].y temp4 temp5 temp6
+			espawn 16115
+			seta[RETURN].x temp5 seta[RETURN].y temp6
+			geta[].z temp sub temp 14488 seta[RETURN].z temp
+			eshoot MISSILE
+			seta[RETURN].x temp5 seta[RETURN].y temp6 seta[RETURN].z temp
+
+			set gunsmoke_z 14488
+			set gunsmoke_angle -96
+			state spawn_gunsmoke_z
+			set temp3 sprite[].x
+			add temp3 2048
+			geta[].ang temp4
+			add temp4 gunsmoke_angle
+			randvar temp5 16
+			ifrnd 128 add temp4 temp5 else sub temp4 temp5
+			rotatepoint sprite[].x sprite[].y temp3 sprite[].y temp4 temp5 temp6
+			espawn 16115
+			seta[RETURN].x temp5 seta[RETURN].y temp6
+			geta[].z temp sub temp 14488 seta[RETURN].z temp
+			eshoot MISSILE
+			seta[RETURN].x temp5 seta[RETURN].y temp6 seta[RETURN].z temp
+
+		set INTERNALCOUNT 120
+	}
+}
+
+
+  ifstrength 200
+	{
+	ifrnd 16 { sound SHORT_CIRCUIT shoot SPARK shoot SPARK }
+	geta[].x temp
+	geta[].y temp2
+
+	set temp3 temp
+	randvarvar temp4 512
+	add temp3 temp4
+	randvar temp4 2048
+
+	rotatepoint temp temp2 temp3 temp2 temp4 temp5 temp6
+
+	espawn GUNSMOKE
+
+	seta[RETURN].x temp5
+	seta[RETURN].y temp6
+
+	geta[].z temp7
+	sub temp7 6144
+	randvar temp8 2048
+	ifrnd 128 mulvar temp8 -1
+	add temp7 temp8
+	seta[RETURN].z temp7
+	}
+
+ifmove STOP soundonce TANK_ROTATE
+
+ifhitweapon
+{
+seta[].xvel 0
+ifdead { set INTERNALCOUNT 0 resetcount action BREAK }
+}
+
+enda
+
+// ************************************************************************************************************************************************************************************************************************************************************
+// 50. cal turret
+// ************************************************************************************************************************************************************************************************************************************************************
+
+useractor notenemy 17637
+
+ifaction 0
+{
+strength 20
+action ZERO
+}
+
+ifaction ZERO
+{
+	ifhitweapon
+		{
+		debris SCRAP1 3
+		debris SCRAP2 3
+		sound VENT_BUST
+		sound SHORT_CIRCUIT
+		shoot SPARK shoot SPARK shoot SPARK shoot SPARK
+		spawn 8433
+		ifn HITAGSAVED 0
+			{
+			operateactivators HITAGSAVED THISACTOR
+			operatemasterswitches HITAGSAVED
+			operaterespawns HITAGSAVED
+			}
+		killit
+		}
+}
+
+enda
+
+damageeventtile FIFTY_CAL_TURRET // 50 cal turret
+
+action ATURRET_IDLE 0 1 5 1 10
+action ATURRET_EMPTY 584 1 5 1 10
+action ATURRET_FIRE 0 2 5 1 2
+
+useractor notenemy FIFTY_CAL_TURRET
+
+ifaction 0
+	{
+	set actor_type TYPE_CASE_SPECIFIC
+	state monst_glow
+	sleeptime 0
+	cstator 257
+	strength 250
+	set ally_mag 500
+	sizeat 45 45
+	ifn LOTAGSAVED 0 action FIVE_ANG else
+	action ATURRET_IDLE
+	}
+
+ifg targetlock 0 sub targetlock 1
+
+ifaction FIVE_ANG
+{
+sleeptime 0
+checkactivatormotion LOTAGSAVED
+ife RETURN 1
+	{
+	action ATURRET_IDLE
+	}
+}
+
+
+ifaction ATURRET_IDLE
+{
+ifn my_target -1 state fronttowardstarget
+ife ally_mag 0 action ATURRET_EMPTY
+ifspritepal 0 { ifactorsound THISACTOR AUTOTURRET_SCAN nullop else sound AUTOTURRET_SCAN }
+}
+
+ifaction ATURRET_FIRE
+	{
+	state new_validatetarget
+	ife my_target -1 action ATURRET_IDLE
+	state fronttowardstarget
+		ifactioncount 3
+				{
+				set PROJECTILE_STRENGTH 30
+				set PROJECTILE_PAL 2
+				set PROJECTILE_TO_SHOOT ENEMY_BULLET
+				set PROJECTILE_FIRING_SOUND FIFTY_T_FIRE
+				state sang_enemyShootProjectile
+				ife PERFMODE 1
+				 ifcansee
+					{
+					set gunsmoke_z 256
+					set gunsmoke_angle 0
+					state spawn_gunsmoke_z
+					set gunsmoke_z 128
+					espawn 16115
+					state spawn_muzzleflash
+					state npc_rifleshell
+					}
+				add INTERNALCOUNT 1
+				sub ally_mag 1
+				resetactioncount
+				}
+		
+
+		ifg INTERNALCOUNT 25
+			{
+			action ATURRET_IDLE
+			}
+	}
+
+ifg SEEK_ENEMY_COUNT 0 sub SEEK_ENEMY_COUNT 1
+
+	ife SEEK_ENEMY_COUNT 0
+	{
+	ifaction FIVE_ANG break
+	ifaction ATURRET_EMPTY break
+	state checkfortarget
+	ifn my_target -1 ifg ally_mag 0 { sound FIFTY_T_BEEP set INTERNALCOUNT 0 action ATURRET_FIRE }
+	set SEEK_ENEMY_COUNT 13
+	}
+
+
+ifhitweapon
+{
+debris SCRAP1 2
+	ifdead
+	{
+	spawn EXPLOSION2
+	sound PIPEBOMB_EXPLODE
+	debris SCRAP1 4
+	debris SCRAP2 5
+	debris SCRAP3 6
+	ifn HITAGSAVED 0
+		{
+	operateactivators HITAGSAVED THISACTOR
+	operatemasterswitches HITAGSAVED
+	operaterespawns HITAGSAVED
+		}
+	killit
+	}
+}
+
+
+enda

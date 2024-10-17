@@ -1,0 +1,503 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Based on the Duke3D CON files by 3DRealms, released under the GPL2 at:
+https://github.com/videogamepreservation/dukenukem3d/blob/ef609159bd352985a0c63734a11241d86c873fe5/testdata/GAME.CON
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+
+--------------------------------------------------------------------------------
+*/
+
+damageeventtile BOSS3
+
+action ABOSS3WALK        0  4  5  1  30
+action ABOSS3FROZEN        40  1  1
+action ABOSS3RUN         0  4  5  1  15
+
+action ABOSS3LOB        20 4  5  1  50
+action ABOSS3LOBBING      30 2  5  1  15
+
+action ABOSS3_RAIN     440 1 5 1 12
+action ABOSS3_RAINING  445 2 5 1 12
+
+
+action ABOSS3DYING        40 9  1  1  20
+action BOSS3FLINTCH       40 1  1  1  1
+action ABOSS3DEAD         49
+
+move PALBOSS3SHRUNKRUNVELS 32
+move PALBOSS3RUNVELS 84
+move BOSS3WALKVELS 208
+move BOSS3RUNVELS 270
+move BOSS3STOPPED
+
+ai AIBOSS3SEEKENEMY ABOSS3WALK BOSS3WALKVELS seekplayer
+ai AIBOSS3RUNENEMY ABOSS3RUN BOSS3RUNVELS faceplayerslow
+ai AIBOSS3_PREP_RAIN ABOSS3_RAIN STOP
+ai AIBOSS3_RAINING ABOSS3_RAINING STOP
+ai AIBOSS3LOBENEMY ABOSS3LOB BOSS3STOPPED faceplayer
+ai AIBOSS3DYING ABOSS3DYING BOSS3STOPPED faceplayer
+ai AIBOSS3PALSHRINK ABOSS3WALK PALBOSS3SHRUNKRUNVELS fleeenemy
+
+
+useractor notenemy BOSS2_RAIN_XHAIR
+ifaction 0
+	{
+	sizeat 32 32
+	cstat 34
+	seta[].blend 255
+	action ZERO
+	}
+ifaction ZERO
+	{
+	sizeto 1 1
+	geta[].ang temp
+	add temp 16
+	seta[].ang temp
+	ifl sprite[].xrepeat 2
+		{
+		espawn BOSS2_RAIN_ROCKET
+		ifspawnedby 3709 ife BASE_RESEARCH[RS_B_NEWTRANSPORT] 2 seta[RETURN].pal 8
+		getsector[].ceilingz temp
+		add temp 2048
+		seta[RETURN].z temp
+		killit
+		}
+	}
+enda
+
+action ROCKET_UP 0
+
+move ROCK_RAIN_UP 0 -140
+
+useractor notenemy BOSS2_RAIN_ROCKET
+fall
+ifaction 0
+	{
+	sizeat 20 20
+	ifspawnedby BOSS3 action ROCKET_UP else
+	action ZERO
+	resetcount
+	}
+ifaction ZERO
+	{
+	spawn SMALLSMOKE
+		iffloordistl 16
+			{
+			ifpdistl 8192 quake 13
+			debris SCRAP3 2
+			debris SCRAP4 2
+			flash
+			ifspritepal 8
+				{
+				espawn EXPLOSION2
+				seta[RETURN].pal 8
+				shoot SPARK shoot SPARK shoot SPARK
+				sound PLASMA_EXP
+				hitradius 2560 24 48 72 96
+				}
+			else
+				{
+				spawn EXPLOSION2
+				shoot SPARK shoot SPARK shoot SPARK
+				sound RPG_EXPLODE
+				hitradius 2048 16 32 48 64
+				}
+			killit
+			}
+	}
+ifaction ROCKET_UP
+	{
+	cstat 8
+	move ROCK_RAIN_UP getv
+	spawn SMALLSMOKE
+	ifceilingdistl 16 killit
+	ifcount 150 killit // failsafe
+	}
+
+enda
+
+defstate overlord_shoot_check
+  ifcansee
+    ifcount 32
+      ifrnd 104
+        ifcanshoottarget
+		  {
+			ifpdistg 16384
+			 ifoutside
+			   {
+			   globalsound BOS3_RECOG
+			   quake 26
+			   ai AIBOSS3_PREP_RAIN
+			   }
+			   else
+			ifrnd 64
+			  ifpdistg 4096
+			  {
+				ai AIBOSS3RUNENEMY
+				ifspritepal 0
+				  break
+				move PALBOSS3RUNVELS seekplayer
+				break
+			  }
+			else
+			ifp palive
+			 ifrnd 96
+			  ai AIBOSS3LOBENEMY
+		  }
+ends
+
+defstate boss3palshrunkstate
+  ifcount SHRUNKDONECOUNT
+    ai AIBOSS3SEEKENEMY
+  else
+    ifcount SHRUNKCOUNT
+	  {
+	  sound ACTOR_UNSHRINK
+      sizeto 40 40
+	  }
+  else
+    state genericshrunkcode
+ends
+
+defstate checkboss3seekstate
+  ai AIBOSS3SEEKENEMY
+  ifspritepal 0 nullop
+  else   // a fake way of doing a ifspritepal NOT.
+    move PALBOSS3RUNVELS seekplayer
+ends
+
+defstate boss3runenemystate
+  ifcansee
+  {
+    ifactioncount 3
+    {
+      ifcanshoottarget
+      {
+        ifpdistl 8192 { quake 6 }
+        resetactioncount
+        sound BOS1_WALK
+      }
+      else
+        state overlord_shoot_check
+    }
+  }
+  else
+    ai AIBOSS3SEEKENEMY
+ends
+
+defstate boss3_prep_state
+set INTERNALCOUNT 0
+ifactioncount 10 ai AIBOSS3_RAINING
+ends
+
+defstate boss3_raining_state
+geta[].htextra temp
+ifg temp -1 { div temp 2 seta[].htextra temp }
+ifactioncount 1
+	{
+	add INTERNALCOUNT 1
+	espawn BOSS2_RAIN_ROCKET
+	geta[].x temp
+	geta[].y temp2
+	set temp3 temp
+	add temp3 512
+	ifand INTERNALCOUNT 1 set temp4 -256 else set temp4 256
+	rotatepoint temp temp2 temp3 temp2 temp4 temp5 temp6
+	seta[RETURN].x temp5
+	seta[RETURN].y temp6
+	geta[].z temp7
+	sub temp7 8092
+	seta[RETURN].z temp7
+
+	set xydist player[].posx
+	ifstrength 2500 randvar temp 4096 else
+	randvarvar temp 8192 // the random component of the distance from player
+	add temp 512
+	add xydist temp
+	randvar angvar 2047
+
+	rotatepoint player[].posx player[].posy xydist player[].posy angvar temp2 y
+	// temp2 and y are the new x and y coords
+	updatesector temp2 y mysector
+	ifn mysector -1
+		{
+			ifand sector[mysector].ceilingstat 1
+			{
+				getceilzofslope mysector temp2 y z // z is the return var
+				updatesectorz temp2 y z mysector
+				ifn mysector -1
+				{
+						globalsound ERPG_SHOOT
+						espawn BOSS2_RAIN_XHAIR
+						seta[RETURN].x temp2
+						seta[RETURN].y y
+						seta[RETURN].z sector[mysector].floorz
+						seta[RETURN].sectnum mysector
+				}
+			}
+		}
+	ife SKILL_LEVEL 1 ife INTERNALCOUNT 20 ai AIBOSS3RUNENEMY else
+	ife SKILL_LEVEL 2 ife INTERNALCOUNT 40 ai AIBOSS3RUNENEMY else
+	ife SKILL_LEVEL 3 ife INTERNALCOUNT 60 ai AIBOSS3RUNENEMY else
+	ife SKILL_LEVEL 4 ife INTERNALCOUNT 80 ai AIBOSS3RUNENEMY else
+	ife SKILL_LEVEL 5 ife INTERNALCOUNT 100 ai AIBOSS3RUNENEMY
+	resetactioncount
+	}
+ifpdistl 8192 ai AIBOSS3RUNENEMY
+ends
+
+defstate boss3seekenemystate
+  ifrnd 2
+    soundonce BOS3_ROAM
+  else
+    ifactioncount 3
+    {
+        ifpdistl 8192 { quake 6 }
+      resetactioncount
+      sound BOS1_WALK
+    }
+
+	state overlord_shoot_check
+ends
+
+defstate boss3dyingstate
+  ifaction ABOSS3DEAD
+  {
+    ifspritepal 0
+      break
+
+    {
+      strength 0
+      ifhitweapon
+        ifwasweapon RADIUSEXPLOSION
+      {
+        state squish_sounds
+        guts JIBS2 5              // Instead of the normal "standard_jibs"
+        guts JIBS3 5              // amount, I found that ,because these
+        guts JIBS4 5              // bodies are so huge, they should spawn
+        guts JIBS5 15             // a more realistic amount of gutter!
+        guts JIBS6 15
+        debris SCRAP1 5           // There are also spawned some metal
+        debris SCRAP2 5           // scraps, since this boss has a lot
+        debris SCRAP5 5           // of metalware with him.
+        ifrnd 6
+          {
+            guts JIBS1 3
+            spawn BLOODPOOL
+          }                       // a badly drawn spine
+        state jib_sounds
+        killit
+      }
+      break
+    }
+  }
+  ifactioncount 9
+  {
+    iffloordistl 8
+      sound BOSSFALL
+      ifspritepal 0 quake 26
+    action ABOSS3DEAD
+    cstat 0
+    ifspritepal 0
+      {
+		ife VOLUME 6 
+			{
+			readarrayfromfile BEAT_EPISODES 4053
+			ife LEVEL 26 // Daikarain
+				{ 
+					ifand BEAT_EPISODES[6] 32768 nullop else 
+						{ 
+						set temp BEAT_EPISODES[6]
+						xorvar temp 32768
+						setarray BEAT_EPISODES[6] temp
+						writearraytofile BEAT_EPISODES 4053
+						}
+				
+				ifn cheated 1
+					{
+					readarrayfromfile SKILL_MEDALS 4030
+					ifl SKILL_MEDALS[216] SKILL_LEVEL setarray SKILL_MEDALS[216] SKILL_LEVEL
+					writearraytofile SKILL_MEDALS 4030		
+					}
+				} 
+			state save_arrays
+			state fatigue_system
+			state budget_system
+			ifn amcbase_level 0 ifn amcbase_volume -1 startlevel amcbase_volume amcbase_level else
+			startlevel 6 0
+			}
+		else
+		ife VOLUME 0 ife LEVEL 7 { state save_arrays state fatigue_system state budget_system endofgame 52 }
+	 }
+  }
+ends
+
+defstate boss3lobbedstate
+  ifcansee
+  {
+    ifaction ABOSS3LOBBING
+      ifactioncount 2
+    {
+	sound ERPG_SHOOT
+      shoot RPG
+      resetactioncount
+      ifrnd 8
+        ai AIBOSS3SEEKENEMY
+    }
+
+    ifactioncount 3
+    {
+      action ABOSS3LOBBING
+      resetcount
+    }
+  }
+  else
+    state checkboss3seekstate
+ends
+
+defstate checkboss3hitstate
+ifspritepal 0 set CURBOSS THISACTOR
+  ifrnd 2
+    spawn BLOODPOOL
+  ifdead
+  {
+    ifspritepal 0 nullop
+    else
+    {
+      ifg ice_damage 0
+      {
+        sound SOMETHINGFROZE
+        spritepal 1
+        move 0
+        action ABOSS3FROZEN
+        strength 0
+        break
+      }
+    }
+	add TREASURE_FOUND 5
+    addkills 1
+
+    ai AIBOSS3DYING
+
+    sound BOS3_DYING
+
+  }
+  else
+  {
+    ifrnd 32
+    {
+      action BOSS3FLINTCH
+      move 0
+    }
+
+    ifspritepal 0 nullop
+    else
+      ifwasweapon SHRINKSPARK
+    {
+      sound ACTOR_SHRINKING
+      ai AIBOSS3PALSHRINK
+      break
+    }
+
+    soundonce BOS3_PAIN
+    debris SCRAP1 1
+    guts JIBS6 1
+  }
+ends
+
+defstate boss3code
+
+  ifaction ABOSS3FROZEN
+  {
+   state frozen_code
+    break
+  }
+  ifai 0
+  {
+ 	state monst_glow
+  globalsound BOS3_RECOG
+  spawn SHOOTME
+    ifspritepal 0
+	  {
+	  sizeat 45 45
+	  set CURBOSS THISACTOR
+	  set BOSS_TYPE 1
+	  ifoutside ai AIBOSS3_PREP_RAIN else
+      ai AIBOSS3RUNENEMY
+	  }
+    else
+    {
+	sizeat 30 30
+      strength BOSS3PALSTRENGTH
+      ai AIBOSS3LOBENEMY
+    }
+  }
+  else
+    ifaction BOSS3FLINTCH
+    {
+      ifactioncount 3
+      ai AIBOSS3SEEKENEMY
+    }
+  else
+    ifai AIBOSS3SEEKENEMY
+      state boss3seekenemystate
+  else
+    ifai AIBOSS3RUNENEMY
+      state boss3runenemystate
+  else
+    ifai AIBOSS3_RAINING
+      state boss3_raining_state
+  else
+    ifai AIBOSS3_PREP_RAIN
+      state boss3_prep_state
+  else
+    ifai AIBOSS3LOBENEMY
+      state boss3lobbedstate
+  else
+    ifai AIBOSS3PALSHRINK
+      state boss3palshrunkstate
+
+  ifai AIBOSS3DYING
+    state boss3dyingstate
+  else
+  {
+	geta[].htextra temp6
+	ifhitweapon
+		state checkboss3hitstate
+    else
+      ifp palive
+        ifspritepal 0
+          ifpdistl 1280
+		   ifcansee
+      {
+        addphealth -1000
+        palfrom 63 63
+      }
+  }
+ends
+
+actor BOSS3 BOSS3STRENGTH fall state boss3code state monst_glow enda
+useractor enemystayput BOSS3STAYPUT BOSS3STRENGTH fall cactor BOSS3 state monst_glow enda

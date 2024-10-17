@@ -1,0 +1,95 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+This file contains code for the Tommygun temp weapon.
+--------------------------------------------------------------------------------
+*/
+
+defstate tw_tommygun_gunammotypes
+	setarray GUN_AMMO_TYPES_ARR[0] 2
+ends								 
+defstate tw_tommygun_code
+    setarray WEAPON_TILE[0] TOMMYGUNSPRITE
+    setarray weap_special[0] 0
+
+    set gun_mag -1
+    set GUN_VOLUME 24
+    set GUN_ACCURACY 16
+    set GUN_MAX_SPREAD 64
+    set GUN_SIZE 2
+    set GUN_HANDS 2
+    set GUN_AMMO_TYPES 2
+
+    set WEAPON0_SELECTSOUND SELECT_WEAPON
+    set WEAPON0_INITIALSOUND 4
+    set WEAPON0_SHOTSPERBURST 1
+    set WEAPON0_WORKSLIKE 0
+    set WEAPON0_TOTALTIME 3
+    set WEAPON0_HOLDDELAY 3
+    set WEAPON0_FIREDELAY 2
+    set WEAPON0_FIRESOUND 4
+    set WEAPON0_FLAGS 4
+
+    ifand AMMO_TYPES[cur_weap] 2
+    {
+        set weapon_type 7
+        set WEAPON0_SHOOTS SILVERAMMOSHOT
+    }
+    else ifand AMMO_TYPES[cur_weap] 32768
+    {
+        set weapon_type 0
+        set WEAPON0_SHOOTS FIRE_BULLET
+    }
+    else
+    {
+        set weapon_type 2
+        set WEAPON0_SHOOTS F45_CALIBRE
+    }
+
+    ife kickbackpic 2
+    {
+        set gun_recoil 9
+        add gun_spread 8
+        espawn SOUND_SPRITE
+        state SPAWN_IN_PLAYER_FRONT
+        ifand AMMO_TYPES[cur_weap] 2
+        {
+            setactorvar[RETURN].temp TOMMYG_SFIRE
+            shoot SRIFLESHELL
+        }
+        else ifand AMMO_TYPES[cur_weap] 32768
+        {
+            setactorvar[RETURN].temp INCEND_FIRE
+            shoot SRIFLESHELL // TODO: spawn appropriate shell
+        }
+        else
+        {
+            setactorvar[RETURN].temp TOMMYG_FIRE
+            shoot NINEMM_SHELL
+        }
+        set gunsmoke_angle 64
+        state spawn_gunsmoke
+    }
+ends

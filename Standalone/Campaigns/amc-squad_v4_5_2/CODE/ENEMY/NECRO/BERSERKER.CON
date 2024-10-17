@@ -1,0 +1,532 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+
+--------------------------------------------------------------------------------
+*/
+
+damageeventtile BERSERKER
+
+action A_BERSERKER_START 0 1 5 1 12
+action A_BERSERKER_IDLE 0 1 5 1 10
+action A_BERSERKER_DYING 40 8 1 1 10
+action A_BERSERKER_FREEZE 35 1 1 1 10
+action A_BERSERKER_GROW 40 1 1 1 10
+action A_BERSERKER_SHRUNK 0 4 5 1 15
+action A_BERSERKER_PAIN 40 1 1 1 10
+action A_BERSERKER_SEEK 0 4 5 1 15
+action A_BERSERKER_ATTACK 20 3 5 1 15
+action A_BERSERKER_GOAPE 35 1 5 1 10
+action A_BERSERKER_APESEEK 0 4 5 1 15
+action A_BERSERKER_APECHARGEPREP 35 1 5 1 10
+action A_BERSERKER_APECHARGE 0 4 5 1 15
+action A_BERSERKER_APEATTACK 20 3 5 1 15
+
+move M_BERSERKER_RUN 108
+move M_BERSERKER_APERUN 300
+move M_BERSERKER_APECHARGE 450
+
+defstate berserker_gocalm
+	sound STEAM_HISSING
+	seta[].pal PALSAVED
+	ife actor_pal 3 
+		{
+		sizeto 34 34
+		sizeto 34 34
+		sizeto 34 34
+		sizeto 34 34
+		}
+	else
+		{
+		sizeto 28 28
+		sizeto 28 28
+		sizeto 28 28
+		sizeto 28 28
+		}
+
+	// sub the health buff
+	geta[].extra temp
+	sub temp 400
+	ifle temp 0
+		set temp 1
+	seta[].extra temp
+
+	action A_BERSERKER_IDLE
+ends
+
+useractor enemystayput BERSERKER_STAYPUT 275 A_BERSERKER_START cactor BERSERKER enda
+
+useractor enemy BERSERKER 275 A_BERSERKER_START
+	fall
+
+	ifaction A_BERSERKER_START
+	{
+		state monst_glow
+		spawn SHOOTME
+		geta[].pal PALSAVED
+		ife actor_pal 0 geta[].pal actor_pal
+		spriteflags NORMAL_ENEMY
+		seta[].mdflags 16
+		ife actor_pal 3
+			{
+			spritepal 0
+			strength 450
+			sizeat 34 34
+			}
+		else
+			{
+			strength 275
+			sizeat 28 28
+			}
+		cstat 257
+		action A_BERSERKER_IDLE
+	}
+
+	ifg silence_damage 0
+		{
+		sub silence_damage 1
+		state spawn_curse_particles
+		}
+
+	state ENEMYKNOCKBACKS
+	state enemyfloordamage
+	state enemy_fire_damage
+	state enemy_ice_damage
+	state enemy_spirit_damage
+
+	ifaction A_BERSERKER_IDLE
+	{
+		move STOP
+		state checkfortarget
+		ifn my_target -1
+		{
+			sound BERSERK_SIGHT
+			action A_BERSERKER_SEEK
+		}
+	}
+	else ifaction A_BERSERKER_DYING
+	{
+		move STOP
+		strength 0
+		ifactioncount 5
+		{
+			sound HUGE_GIB
+			spawn BIG_BLOOD_EXE
+			geta[].htowner temp
+			geta[temp].picnum temp2
+			ife temp2 1405 // only do big death if killed by player
+			{
+				state standard_jibs
+				state monst_body_jibs
+			}
+			killit
+		}
+	}
+	else ifaction A_BERSERKER_FREEZE
+		state frozen_code
+	else ifaction A_BERSERKER_GROW
+	{
+		move STOP
+		state genericgrowcode
+	}
+	else ifaction A_BERSERKER_SHRUNK
+	{
+		ifmove M_BERSERKER_RUN nullop
+		else move M_BERSERKER_RUN geth fleeenemy
+
+		ifl SHRUNK_TIME SHRUNKCOUNT // keep shrunk
+			state new_shrunkcode
+		else ifl SHRUNK_TIME SHRUNKDONECOUNT // regrow
+		{
+			state unshrink
+			ife actor_pal 3 sizeto 34 34 else
+			sizeto 28 28
+		}
+		else // after regrow, switch back to regular action
+		{
+			state endshrunkenstate
+			action A_BERSERKER_SEEK
+		}
+	}
+	else ifaction A_BERSERKER_PAIN
+	{
+		sub PAIN_AMOUNT 1
+		move STOP
+		ife PAIN_AMOUNT 0
+		{
+			ifdead break
+			ife INTERNALCOUNT 0 // if we haven't been an ape before... don't do it multiple times on same bad guy, it's annoying
+			ife silence_damage 0
+				ifrnd 48
+				{
+					quake 13
+					globalsound BERSERK_APE
+					action A_BERSERKER_GOAPE
+				}
+			else
+				action A_BERSERKER_SEEK
+		}
+	}
+	else ifaction A_BERSERKER_SEEK
+	{
+		ifmove M_BERSERKER_RUN nullop
+		else move M_BERSERKER_RUN geth
+
+		ife actor_pal 3 { ifg sprite[].yrepeat 34 sizeto 34 34 }
+		else ifg sprite[].yrepeat 28 sizeto 28 28
+
+		state checkfortarget
+
+		ifn my_target -1
+		{
+			ldist temp THISACTOR my_target
+
+			ifl temp 1024
+			{
+				soundonce BERSERK_SWING
+				action A_BERSERKER_ATTACK
+			}
+		}
+	}
+	else ifaction A_BERSERKER_ATTACK
+	{
+		move STOP
+
+		state checkfortarget
+
+		ife my_target -1
+			action A_BERSERKER_SEEK
+		else
+		{
+			ldist temp THISACTOR my_target
+			ifg temp 1536
+				action A_BERSERKER_SEEK
+			else
+			{
+				state fronttowardstarget
+
+				ifactioncount 3
+				{
+					set PROJECTILE_TO_SHOOT 11741
+					set PROJECTILE_FIRING_SOUND -1
+					state sang_enemyShootProjectile
+					shoot 11741
+					action A_BERSERKER_SEEK
+				}
+			}
+		}
+	}
+	else ifaction A_BERSERKER_GOAPE
+	{
+		ife actor_pal 3 sizeto 40 40 else
+		sizeto 36 36
+		spritepal 50
+		move STOP
+
+		ifactioncount 6
+		{
+			// boost health
+			geta[].extra temp
+			add temp 300
+			seta[].extra temp
+
+			set INTERNALCOUNT 0
+			guts JIBS6 8
+			action A_BERSERKER_APESEEK
+		}
+
+		ifactioncount 1
+			sound STEAM_HISSING
+	}
+	else ifaction A_BERSERKER_APESEEK
+	{
+		ifge INTERNALCOUNT_3 3 // charged 3 times, de-ape
+			state berserker_gocalm
+		else ifge INTERNALCOUNT 190
+			state berserker_gocalm
+		else
+		{
+			ifmove M_BERSERKER_APERUN nullop
+			else move M_BERSERKER_APERUN geth
+
+			state checkfortarget
+
+			ifge INTERNALCOUNT_2 0
+			{
+				sub INTERNALCOUNT_2 1
+			}
+
+			ifn my_target -1
+			{
+				ldist temp THISACTOR my_target
+
+				ifl temp 1024
+				{
+					soundonce BERSERK_SWING
+					action A_BERSERKER_APEATTACK
+				}
+				else ifle INTERNALCOUNT_2 0
+					ifrnd 16
+					ifl temp 4096
+				{
+					globalsound BERSERK_APE
+					action A_BERSERKER_APECHARGEPREP
+				}
+			}
+
+			add INTERNALCOUNT 1
+		}
+	}
+	else ifaction A_BERSERKER_APECHARGEPREP
+	{
+		move STOP
+
+		state fronttowardstarget
+		geta[].ang movesprite_angvar
+
+		ifactioncount 6
+		{
+			set INTERNALCOUNT_2 0
+			add INTERNALCOUNT_3 1 // keep amount of times charged
+			action A_BERSERKER_APECHARGE
+		}
+	}
+	else ifaction A_BERSERKER_APECHARGE
+	{
+		set movesprite_shift 5
+		set movesprite_clipmask CLIPMASK0
+		state movesprite_state
+
+		// if bumped into something, end charge
+		ifge RETURN 49152
+		{
+			quake 26
+
+			set temp RETURN
+			sub temp 49152
+
+			set temp2 50
+			rand temp3 25
+			add temp2 temp3
+			seta[temp].htextra temp2
+
+			sound BOSS_WHACK
+
+			// knockback
+			ife temp PLAYER_IDENTITY
+			{
+				state setknockback
+				set knockback 12
+
+				wackplayer
+				palfrom 20 30 0 0
+			}
+
+			set INTERNALCOUNT_2 90
+		}
+		else ifge RETURN 32768
+		{
+			quake 26
+			set INTERNALCOUNT_2 90
+		}
+
+		add INTERNALCOUNT_2 1
+		add INTERNALCOUNT 1
+
+		ifge INTERNALCOUNT_2 90
+		{
+			set INTERNALCOUNT_2 40 // cooldown
+			action A_BERSERKER_APESEEK
+		}
+	}
+	else ifaction A_BERSERKER_APEATTACK
+	{
+		move STOP
+
+		state checkfortarget
+
+		add INTERNALCOUNT 2
+
+		ife my_target -1
+			action A_BERSERKER_APESEEK
+		else
+		{
+			ldist temp THISACTOR my_target
+			ifg temp 1536
+				action A_BERSERKER_APESEEK
+			else
+			{
+				state fronttowardstarget
+
+				ifactioncount 3
+				{
+					set PROJECTILE_TO_SHOOT 11742
+					set PROJECTILE_FIRING_SOUND -1
+					state sang_enemyShootProjectile
+					shoot 11741
+					action A_BERSERKER_APESEEK
+				}
+			}
+		}
+	}
+
+ifhitweapon
+{
+	geta[].htpicnum PROJ_HIT_TYPE
+	ifand tiledata[PROJ_HIT_TYPE].gameflags 8 getprojectile[PROJ_HIT_TYPE].userdata PROJ_UDATA
+	else set PROJ_UDATA 0
+
+	ifwasweapon VOID_PLAYER_BOLT
+		{
+		sound EN_CURSE
+		set silence_damage 150
+		ifdead nullop else
+			{
+			ifaction A_BERSERKER_GOAPE state berserker_gocalm
+			ifaction A_BERSERKER_APECHARGE state berserker_gocalm
+			ifaction A_BERSERKER_APESEEK state berserker_gocalm
+			ifaction A_BERSERKER_APECHARGEPREP state berserker_gocalm
+			}
+		}
+
+	ifwasweapon VOID_BOLT
+		{
+		sound EN_CURSE
+		set silence_damage 300
+		ifdead nullop else
+			{
+			ifaction A_BERSERKER_GOAPE state berserker_gocalm
+			ifaction A_BERSERKER_APECHARGE state berserker_gocalm
+			ifaction A_BERSERKER_APESEEK state berserker_gocalm
+			ifaction A_BERSERKER_APECHARGEPREP state berserker_gocalm
+			}
+		}
+
+	ifwasweapon VOID_BLAST
+		{
+		sound EN_CURSE
+		set silence_damage 900
+		ifdead nullop else
+			{
+			ifaction A_BERSERKER_GOAPE state berserker_gocalm
+			ifaction A_BERSERKER_APECHARGE state berserker_gocalm
+			ifaction A_BERSERKER_APESEEK state berserker_gocalm
+			ifaction A_BERSERKER_APECHARGEPREP state berserker_gocalm
+			}
+		}
+
+	ifand PROJ_UDATA 4
+		{
+		ifdead nullop else
+			{
+			ifaction A_BERSERKER_GOAPE state berserker_gocalm
+			ifaction A_BERSERKER_APECHARGE state berserker_gocalm
+			ifaction A_BERSERKER_APESEEK state berserker_gocalm
+			ifaction A_BERSERKER_APECHARGEPREP state berserker_gocalm
+			}
+		}
+
+	// Invulnerable while going ape, charging or attacking. If ape seeking they CAN be killed but just takes a large amount of ammo to do so.
+	// So the player gets to decide whether to spend the ammo or wait out the ape mode.
+	// Ice attacks will still hurt him
+	ifand PROJ_UDATA 4 nullop else
+	{
+		ifaction A_BERSERKER_GOAPE { seta[].htextra -1 break }
+	}
+
+	state NEWGUNEFFECTS
+	sound BERSERK_PAIN
+	spawn BLOOD
+	guts JIBS6 1
+	state random_wall_jibs
+	ifdead
+	{
+		state rf
+
+		ifaction A_BERSERKER_APESEEK
+		{
+			sound BERSERK_DIE
+			addkills 1
+			action A_BERSERKER_DYING
+			spawn BLOODPOOL
+		}
+		else
+		{
+		ifand PROJ_UDATA 8192
+			 {
+			 ifrnd 4 soundonce MALE_ELECT1
+			 spawn ELECTROCUTE_BIGGUY
+			 shoot SPARK2 shoot SPARK2 shoot SPARK2
+			 killit
+			 }
+			ifwasweapon GROWSPARK { cstat 0 sound ACTOR_GROWING action A_BERSERKER_GROW break }
+			else ifg ice_damage 0 { spritepal 1 strength 0 sound SOMETHINGFROZE action A_BERSERKER_FREEZE }
+			else
+			ifg energy_damage 0
+				{
+				shoot SPARK2 shoot SPARK2 shoot SPARK2
+				spritepal 4
+				guts JIBS3 6
+				spawn DISINTIGRATE_BIG_GUY
+				killit
+				}
+			else
+			{
+				sound BERSERK_DIE
+				addkills 1
+				action A_BERSERKER_DYING
+				spawn BLOODPOOL
+			}
+		}
+	}
+	else // not dead
+	{
+		ifaction A_BERSERKER_APESEEK nullop // apes don't pain
+		else ifaction A_BERSERKER_APECHARGE nullop // apes don't pain
+		else ifaction A_BERSERKER_APEATTACK nullop // apes don't pain
+		else ifaction A_BERSERKER_APECHARGEPREP nullop // apes don't pain
+		else
+		{
+			ifwasweapon SHRINKSPARK { sound ACTOR_SHRINKING action A_BERSERKER_SHRUNK }
+
+			ifg PAIN_AMOUNT 0 action A_BERSERKER_PAIN
+			else ifrnd 128
+			{
+				ifaction A_BERSERKER_ATTACK nullop
+				else
+				{
+					state PAIN_SKILL_LEVELADJUST
+					action A_BERSERKER_PAIN
+				}
+			}
+			// if they were idle, getting hit ALWAYS wakes them up
+			else ifaction A_BERSERKER_IDLE { state PAIN_SKILL_LEVELADJUST action A_BERSERKER_PAIN }
+		}
+	}
+}
+
+state checksquished
+
+enda

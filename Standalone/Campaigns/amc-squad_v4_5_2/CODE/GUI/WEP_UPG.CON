@@ -1,0 +1,4102 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+
+--------------------------------------------------------------------------------
+*/
+
+// =====================================================================================================================================================
+// WEAPON UPGRADES COMPUTER
+// =====================================================================================================================================================
+
+
+defstate FORGE_BUY
+ifn TIMEZONE 5
+	{
+	ife POLYMERS 0 sound FG_ZERO
+	else ifrnd 32 sound FG_BUY1
+	else ifrnd 32 sound FG_BUY2
+	else ifrnd 32 sound FG_BUY3
+	else ifrnd 32 sound FG_BUY4
+	else ifrnd 32 sound FG_BUY5
+	else ifrnd 32 sound FG_BUY6
+	else ifrnd 32 sound FG_BUY7
+	}
+ends
+
+defstate FORGE_CANT
+soundonce COMP_INVALID
+ifn TIMEZONE 5
+	{
+	ifrnd 48 sound FG_NCASH1
+	else sound FG_NCASH2
+	}
+ends
+
+defstate UPGRADES_INTERFACE
+rotatesprite 160 100 NNORMALSIZE 0 3584 30 4 0 0 0 xdim ydim
+		ifg INFO_SEL_2 0
+			{
+			qputs 409 SUPPLIES: %ld
+			qsprintf 409 409 SUPPLY_LEVEL
+			}
+		else
+			{
+			qputs 409 POLYMERS: %ld
+			qsprintf 409 409 POLYMERS
+			}
+ 		screentext 2822 238 17 28672 0 0 409 0 1 16 0 5 8 1 1 0 0 0 xdim ydim
+
+ife INFO_SEL_2 0
+{
+set gui_pos_x 35
+set gui_pos_y 47
+ife INFO_SEL 0 // James?
+	{
+ 	screentext 2822 59 26 28672 0 0 1003 10 2 16 0 5 8 1 1 0 0 0 xdim ydim
+	state CURSOR_OVER_ITEM
+	qputs 409 Bowie Knife
+	ifand JAMES_UPGRADE 32768 set disp_temp2 125 else set disp_temp2 60
+ 	screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 0 disp_temp2 16 0 5 8 1 1 0 0 0 xdim ydim
+
+	ifl gui_pos_x_temp 40
+	 ifg gui_pos_x_temp -40
+	  ifl gui_pos_y_temp 4
+	   ifg gui_pos_y_temp -4
+		{
+ 		screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 disp_pulse 2 16 0 5 8 1 1 0 0 0 xdim ydim
+		ifand JAMES_UPGRADE 32768 { qstrcpy 409 3080 set disp_temp6 77 }
+		else
+			{
+			ifl POLYMERS 500 set disp_temp6 124 else set disp_temp6 125
+			ifand BITS_PRESS 4
+					{
+					ifl POLYMERS 500 state FORGE_CANT
+					else
+						{
+						sub POLYMERS 500
+						xorvar JAMES_UPGRADE 32768
+						state FORGE_BUY
+						sound CASHREG
+						}
+					}
+			}
+ 		screentext 2822 163 95 28672 0 0 COST_500 0 disp_temp6 16 0 5 8 1 1 0 0 0 xdim ydim
+		rotatesprite 210 83 25000 -64 29792 0 0 8 0 0 xdim ydim
+		}
+	add gui_pos_y 10
+
+	state CURSOR_OVER_ITEM
+	qputs 409 Glock Extended Magazine
+	ifand JAMES_UPGRADE 1 set disp_temp2 125 else set disp_temp2 60
+ 	screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 0 disp_temp2 16 0 5 8 1 1 0 0 0 xdim ydim
+
+	ifl gui_pos_x_temp 40
+	 ifg gui_pos_x_temp -40
+	  ifl gui_pos_y_temp 4
+	   ifg gui_pos_y_temp -4
+		{
+ 		screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 disp_pulse 2 16 0 5 8 1 1 0 0 0 xdim ydim
+		ifand JAMES_UPGRADE 1 { qstrcpy 409 3080 set disp_temp6 77 }
+		else
+			{
+			ifl POLYMERS 100 set disp_temp6 124 else set disp_temp6 125
+			ifand BITS_PRESS 4
+					{
+					ifl POLYMERS 100 state FORGE_CANT
+					else
+						{
+						sub POLYMERS 100
+						xorvar JAMES_UPGRADE 1
+						state FORGE_BUY
+						getp[].ammo_amount 1 temp
+						add temp 60 ifg temp 200 set temp 200
+						setp[].ammo_amount 1 temp
+						sound CASHREG
+						}
+					}
+			}
+ 		screentext 2822 163 95 28672 0 0 COST_100 0 disp_temp6 16 0 5 8 1 1 0 0 0 xdim ydim
+		rotatesprite 210 65 20000 0 5120 0 0 8 0 0 xdim ydim
+		}
+
+	add gui_pos_y 10
+	state CURSOR_OVER_ITEM
+	qputs 409 Glock Rate of Fire mod
+	ifand JAMES_UPGRADE 2 set disp_temp2 125 else set disp_temp2 60
+ 	screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 0 disp_temp2 16 0 5 8 1 1 0 0 0 xdim ydim
+
+	ifl gui_pos_x_temp 40
+	 ifg gui_pos_x_temp -40
+	  ifl gui_pos_y_temp 4
+	   ifg gui_pos_y_temp -4
+		{
+ 		screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 disp_pulse 2 16 0 5 8 1 1 0 0 0 xdim ydim
+		ifand JAMES_UPGRADE 2 { qstrcpy 409 3080 set disp_temp6 77 }
+		else
+			{
+			ifl POLYMERS 200 set disp_temp6 124 else set disp_temp6 125
+			ifand BITS_PRESS 4
+				{
+				ifl POLYMERS 200 state FORGE_CANT
+				else
+					{
+					sub POLYMERS 200
+					xorvar JAMES_UPGRADE 2
+					state FORGE_BUY
+					getp[].ammo_amount 1 temp
+					add temp 60 ifg temp 200 set temp 200
+					setp[].ammo_amount 1 temp
+					sound CASHREG
+					}
+				}
+			}
+ 		screentext 2822 163 95 28672 0 0 COST_200 0 disp_temp6 16 0 5 8 1 1 0 0 0 xdim ydim
+		rotatesprite 210 65 20000 0 5120 0 0 8 0 0 xdim ydim
+		}
+	add gui_pos_y 10
+	state CURSOR_OVER_ITEM
+	qputs 409 Glock Power Mod
+	ifand JAMES_UPGRADE 8 set disp_temp2 125 else set disp_temp2 60
+ 	screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 0 disp_temp2 16 0 5 8 1 1 0 0 0 xdim ydim
+
+	ifl gui_pos_x_temp 40
+	 ifg gui_pos_x_temp -40
+	  ifl gui_pos_y_temp 4
+	   ifg gui_pos_y_temp -4
+		{
+ 		screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 disp_pulse 2 16 0 5 8 1 1 0 0 0 xdim ydim
+		ifand JAMES_UPGRADE 8 { qstrcpy 409 3080 set disp_temp6 77 }
+		else
+			{
+			ifl POLYMERS 150 set disp_temp6 124 else set disp_temp6 125
+			ifand BITS_PRESS 4
+				{
+				ifl POLYMERS 150 state FORGE_CANT
+				else
+					{
+					sub POLYMERS 150
+					state FORGE_BUY
+					xorvar JAMES_UPGRADE 8
+					sound CASHREG
+					}
+				}
+			}
+ 		screentext 2822 163 95 28672 0 0 COST_150 0 disp_temp6 16 0 5 8 1 1 0 0 0 xdim ydim
+		rotatesprite 210 65 20000 0 5183 0 0 8 0 0 xdim ydim
+		}
+	add gui_pos_y 10
+	state CURSOR_OVER_ITEM
+	qputs 409 AUG Extended Magazine
+	ifand JAMES_UPGRADE 4 set disp_temp2 125 else set disp_temp2 60
+ 	screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 0 disp_temp2 16 0 5 8 1 1 0 0 0 xdim ydim
+
+	ifl gui_pos_x_temp 40
+	 ifg gui_pos_x_temp -40
+	  ifl gui_pos_y_temp 4
+	   ifg gui_pos_y_temp -4
+		{
+ 		screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 disp_pulse 2 16 0 5 8 1 1 0 0 0 xdim ydim
+		ifand JAMES_UPGRADE 4 { qstrcpy 409 3080 set disp_temp6 77 }
+		else
+			{
+			ifl POLYMERS 250 set disp_temp6 124 else set disp_temp6 125
+				ifand BITS_PRESS 4
+					{
+					ifl POLYMERS 250 state FORGE_CANT
+					else
+						{
+						sub POLYMERS 250
+						xorvar JAMES_UPGRADE 4
+						sound CASHREG
+						state FORGE_BUY
+						getp[].ammo_amount 7 temp
+						add temp 100 ifg temp 300 set temp 300
+						setp[].ammo_amount 7 temp
+						}
+					}
+			}
+ 		screentext 2822 163 95 28672 0 0 COST_250 0 disp_temp6 16 0 5 8 1 1 0 0 0 xdim ydim
+		rotatesprite 210 60 21000 0 12146 0 0 8 0 0 xdim ydim
+		}
+	add gui_pos_y 10
+	state CURSOR_OVER_ITEM
+	qputs 409 MP7 Extended Magazine
+	ifand JAMES_UPGRADE 16 set disp_temp2 125 else set disp_temp2 60
+ 	screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 0 disp_temp2 16 0 5 8 1 1 0 0 0 xdim ydim
+
+	ifl gui_pos_x_temp 40
+	 ifg gui_pos_x_temp -40
+	  ifl gui_pos_y_temp 4
+	   ifg gui_pos_y_temp -4
+		{
+ 		screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 disp_pulse 2 16 0 5 8 1 1 0 0 0 xdim ydim
+		ifand JAMES_UPGRADE 16 { qstrcpy 409 3080 set disp_temp6 77 }
+		else
+			{
+			ifl POLYMERS 200 set disp_temp6 124 else set disp_temp6 125
+				ifand BITS_PRESS 4
+					{
+					ifl POLYMERS 200 state FORGE_CANT
+					else
+						{
+						sub POLYMERS 200
+						xorvar JAMES_UPGRADE 16
+						state FORGE_BUY
+						getp[].ammo_amount 3 temp
+						add temp 80 ifg temp 300 set temp 300
+						setp[].ammo_amount 3 temp
+						sound CASHREG
+						}
+					}
+			}
+ 		screentext 2822 163 95 28672 0 0 COST_200 0 disp_temp6 16 0 5 8 1 1 0 0 0 xdim ydim
+		rotatesprite 215 62 21000 0 5155 0 0 8 0 0 xdim ydim
+		}
+	add gui_pos_y 10
+	state CURSOR_OVER_ITEM
+	qputs 409 MP7 Suppressor
+	ifand JAMES_UPGRADE 128 set disp_temp2 125 else set disp_temp2 60
+ 	screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 0 disp_temp2 16 0 5 8 1 1 0 0 0 xdim ydim
+
+
+	ifl gui_pos_x_temp 40
+	 ifg gui_pos_x_temp -40
+	  ifl gui_pos_y_temp 4
+	   ifg gui_pos_y_temp -4
+		{
+ 		screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 disp_pulse 2 16 0 5 8 1 1 0 0 0 xdim ydim
+		ifand JAMES_UPGRADE 128 { qstrcpy 409 3080 set disp_temp6 77 }
+		else
+			{
+			ifl POLYMERS 100 set disp_temp6 124 else set disp_temp6 125
+				ifand BITS_PRESS 4
+					{
+					ifl POLYMERS 100 state FORGE_CANT
+					else
+						{
+						sub POLYMERS 100
+						xorvar JAMES_UPGRADE 128
+						state FORGE_BUY
+						getp[].ammo_amount 9 temp
+						add temp 50 ifg temp 300 set temp 300
+						setp[].ammo_amount 9 temp
+						sound CASHREG
+						}
+					}
+			}
+ 		screentext 2822 163 95 28672 0 0 COST_100 0 disp_temp6 16 0 5 8 1 1 0 0 0 xdim ydim
+		rotatesprite 210 62 21000 0 5159 0 0 8 0 0 xdim ydim
+		}
+	add gui_pos_y 10
+	state CURSOR_OVER_ITEM
+	qputs 409 M4 Drum Magazine
+	ifand JAMES_UPGRADE 32 set disp_temp2 125 else set disp_temp2 60
+ 	screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 0 disp_temp2 16 0 5 8 1 1 0 0 0 xdim ydim
+
+	ifl gui_pos_x_temp 40
+	 ifg gui_pos_x_temp -40
+	  ifl gui_pos_y_temp 4
+	   ifg gui_pos_y_temp -4
+		{
+ 		screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 disp_pulse 2 16 0 5 8 1 1 0 0 0 xdim ydim
+		ifand JAMES_UPGRADE 32 { qstrcpy 409 3080 set disp_temp6 77 }
+		else
+			{
+			ifl POLYMERS 250 set disp_temp6 124 else set disp_temp6 125
+				ifand BITS_PRESS 4
+					{
+					ifl POLYMERS 250 state FORGE_CANT
+					else
+						{
+						sub POLYMERS 250
+						xorvar JAMES_UPGRADE 32
+						state FORGE_BUY
+						getp[].ammo_amount 9 temp
+						add temp 100 ifg temp 300 set temp 300
+						setp[].ammo_amount 9 temp
+						sound CASHREG
+						}
+					}
+			}
+ 		screentext 2822 163 95 28672 0 0 COST_250 0 disp_temp6 16 0 5 8 1 1 0 0 0 xdim ydim
+		rotatesprite 210 68 18000 0 5167 0 0 8 0 0 xdim ydim
+		rotatesprite 210 68 18000 0 5174 0 0 8 0 0 xdim ydim
+		}
+
+ife SAVED_LIZ 1
+	{
+	add gui_pos_y 10
+	state CURSOR_OVER_ITEM
+	qputs 409 AUG Improved Grip
+	ifand JAMES_UPGRADE 256 set disp_temp2 125 else set disp_temp2 60
+ 	screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 0 disp_temp2 16 0 5 8 1 1 0 0 0 xdim ydim
+
+	ifl gui_pos_x_temp 40
+	 ifg gui_pos_x_temp -40
+	  ifl gui_pos_y_temp 4
+	   ifg gui_pos_y_temp -4
+		{
+ 		screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 disp_pulse 2 16 0 5 8 1 1 0 0 0 xdim ydim
+		ifand JAMES_UPGRADE 256 { qstrcpy 409 3080 set disp_temp6 77 }
+		else
+			{
+			ifl POLYMERS 50 set disp_temp6 124 else set disp_temp6 125
+				ifand BITS_PRESS 4
+					{
+					ifl POLYMERS 50 state FORGE_CANT
+					else
+						{
+						sub POLYMERS 50
+						xorvar JAMES_UPGRADE 256
+						state FORGE_BUY
+						getp[].ammo_amount 7 temp
+						add temp 30 ifg temp 300 set temp 300
+						setp[].ammo_amount 7 temp
+						sound CASHREG
+						}
+					}
+			}
+ 		screentext 2822 163 95 28672 0 0 COST_50 0 disp_temp6 16 0 5 8 1 1 0 0 0 xdim ydim
+		rotatesprite 210 60 21000 0 12146 0 0 8 0 0 xdim ydim
+		}
+	add gui_pos_y 10
+	state CURSOR_OVER_ITEM
+	qputs 409 M4 Shotgun ROF Mod
+	ifand JAMES_UPGRADE 512 set disp_temp2 125 else set disp_temp2 60
+ 	screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 0 disp_temp2 16 0 5 8 1 1 0 0 0 xdim ydim
+
+	ifl gui_pos_x_temp 40
+	 ifg gui_pos_x_temp -40
+	  ifl gui_pos_y_temp 4
+	   ifg gui_pos_y_temp -4
+		{
+ 		screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 disp_pulse 2 16 0 5 8 1 1 0 0 0 xdim ydim
+		ifand JAMES_UPGRADE 512 { qstrcpy 409 3080 set disp_temp6 77 }
+		else
+			{
+			ifl POLYMERS 200 set disp_temp6 124 else set disp_temp6 125
+				ifand BITS_PRESS 4
+					{
+					ifl POLYMERS 200 state FORGE_CANT
+					else
+						{
+						sub POLYMERS 200
+						xorvar JAMES_UPGRADE 512
+						state FORGE_BUY
+						getp[].ammo_amount 2 temp
+						add temp 6 ifg temp 70 set temp 70
+						setp[].ammo_amount 2 temp
+						sound CASHREG
+						}
+					}
+			}
+ 		screentext 2822 163 95 28672 0 0 COST_200 0 disp_temp6 16 0 5 8 1 1 0 0 0 xdim ydim
+		rotatesprite 210 68 18000 0 5167 0 0 8 0 0 xdim ydim
+		}
+	add gui_pos_y 10
+	state CURSOR_OVER_ITEM
+	qputs 409 Protecta Magazine
+	ifand JAMES_UPGRADE 1024 set disp_temp2 125 else set disp_temp2 60
+ 	screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 0 disp_temp2 16 0 5 8 1 1 0 0 0 xdim ydim
+
+	ifl gui_pos_x_temp 40
+	 ifg gui_pos_x_temp -40
+	  ifl gui_pos_y_temp 4
+	   ifg gui_pos_y_temp -4
+		{
+ 		screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 disp_pulse 2 16 0 5 8 1 1 0 0 0 xdim ydim
+		ifand JAMES_UPGRADE 1024 { qstrcpy 409 3080 set disp_temp6 77 }
+		else
+			{
+			ifl POLYMERS 200 set disp_temp6 124 else set disp_temp6 125
+					ifand BITS_PRESS 4
+					{
+					ifl POLYMERS 200 state FORGE_CANT
+					else
+						{
+						sub POLYMERS 200
+						xorvar JAMES_UPGRADE 1024
+						state FORGE_BUY
+						getp[].ammo_amount 2 temp
+						add temp 6 ifg temp 70 set temp 70
+						setp[].ammo_amount 2 temp
+						sound CASHREG
+						}
+					}
+			}
+ 		screentext 2822 163 95 28672 0 0 COST_200 0 disp_temp6 16 0 5 8 1 1 0 0 0 xdim ydim
+		rotatesprite 210 70 18000 0 5360 0 0 8 0 0 xdim ydim
+		}
+	}
+	}
+else
+ife INFO_SEL 1 // Zaxtor ===========================================================
+	{
+ 	screentext 2822 59 26 28672 0 0 1004 10 2 16 0 5 8 1 1 0 0 0 xdim ydim
+	state CURSOR_OVER_ITEM
+	qputs 409 Topaz Knife
+	ifand ZAXTOR_UPGRADE 32768 set disp_temp2 125 else set disp_temp2 60
+ 	screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 0 disp_temp2 16 0 5 8 1 1 0 0 0 xdim ydim
+
+	ifl gui_pos_x_temp 40
+	 ifg gui_pos_x_temp -40
+	  ifl gui_pos_y_temp 4
+	   ifg gui_pos_y_temp -4
+		{
+ 		screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 disp_pulse 2 16 0 5 8 1 1 0 0 0 xdim ydim
+		ifand ZAXTOR_UPGRADE 32768 { qstrcpy 409 3080 set disp_temp6 77 }
+		else
+			{
+			ifl POLYMERS 500 set disp_temp6 124 else set disp_temp6 125
+			ifand BITS_PRESS 4
+					{
+					ifl POLYMERS 500 state FORGE_CANT
+					else
+						{
+						sub POLYMERS 500
+						xorvar ZAXTOR_UPGRADE 32768
+						state FORGE_BUY
+						sound CASHREG
+						}
+					}
+			}
+ 		screentext 2822 163 95 28672 0 0 COST_500 0 disp_temp6 16 0 5 8 1 1 0 0 0 xdim ydim
+		rotatesprite 210 83 25000 -64 29794 0 0 8 0 0 xdim ydim
+		}
+
+	add gui_pos_y 10
+
+	state CURSOR_OVER_ITEM
+	qputs 409 Rifle Grenade Launcher
+	ifand ZAXTOR_UPGRADE 1 set disp_temp2 125 else set disp_temp2 60
+ 	screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 0 disp_temp2 16 0 5 8 1 1 0 0 0 xdim ydim
+
+	ifl gui_pos_x_temp 40
+	 ifg gui_pos_x_temp -40
+	  ifl gui_pos_y_temp 4
+	   ifg gui_pos_y_temp -4
+		{
+ 		screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 disp_pulse 2 16 0 5 8 1 1 0 0 0 xdim ydim
+		ifand ZAXTOR_UPGRADE 1 { qstrcpy 409 3080 set disp_temp6 77 }
+		else
+			{
+			ifl POLYMERS 300 set disp_temp6 124 else set disp_temp6 125
+				ifand BITS_PRESS 4
+					{
+					ifl POLYMERS 300 state FORGE_CANT
+					else
+						{
+						sub POLYMERS 300
+						state FORGE_BUY
+						xorvar ZAXTOR_UPGRADE 1
+						getp[].ammo_amount HANDBOMB_WEAPON temp
+						add temp 5 ifg temp 50 set temp 50
+						setp[].gotweapon HANDBOMB_WEAPON 1
+						setp[].ammo_amount HANDBOMB_WEAPON temp
+						sound CASHREG
+						}
+					}
+			}
+ 		screentext 2822 163 95 28672 0 0 COST_300 0 disp_temp6 16 0 5 8 1 1 0 0 0 xdim ydim
+		rotatesprite 215 68 18000 0 2524 0 0 8 0 0 xdim ydim
+		rotatesprite 215 68 18000 0 5431 0 0 8 0 0 xdim ydim
+		}
+	add gui_pos_y 10
+	state CURSOR_OVER_ITEM
+	qputs 409 Rifle Power Mod
+	ifand ZAXTOR_UPGRADE 2 set disp_temp2 125 else set disp_temp2 60
+ 	screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 0 disp_temp2 16 0 5 8 1 1 0 0 0 xdim ydim
+
+	ifl gui_pos_x_temp 40
+	 ifg gui_pos_x_temp -40
+	  ifl gui_pos_y_temp 4
+	   ifg gui_pos_y_temp -4
+		{
+ 		screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 disp_pulse 2 16 0 5 8 1 1 0 0 0 xdim ydim
+		ifand ZAXTOR_UPGRADE 2 { qstrcpy 409 3080 set disp_temp6 77 }
+		else
+			{
+			ifl POLYMERS 200 set disp_temp6 124 else set disp_temp6 125
+				ifand BITS_PRESS 4
+					{
+					ifl POLYMERS 200 state FORGE_CANT
+					else
+						{
+						sub POLYMERS 200
+						state FORGE_BUY
+						xorvar ZAXTOR_UPGRADE 2
+						sound CASHREG
+						}
+					}
+			}
+ 		screentext 2822 163 95 28672 0 0 COST_200 0 disp_temp6 16 0 5 8 1 1 0 0 0 xdim ydim
+		rotatesprite 215 68 18000 0 2524 0 0 8 0 0 xdim ydim
+		rotatesprite 215 68 18000 0 5434 disp_pulse 21 8 0 0 xdim ydim
+		}
+	add gui_pos_y 10
+	state CURSOR_OVER_ITEM
+	qputs 409 Rifle Accuracy mod
+	ifand ZAXTOR_UPGRADE 4 set disp_temp2 125 else set disp_temp2 60
+ 	screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 0 disp_temp2 16 0 5 8 1 1 0 0 0 xdim ydim
+
+	ifl gui_pos_x_temp 40
+	 ifg gui_pos_x_temp -40
+	  ifl gui_pos_y_temp 4
+	   ifg gui_pos_y_temp -4
+		{
+ 		screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 disp_pulse 2 16 0 5 8 1 1 0 0 0 xdim ydim
+		ifand ZAXTOR_UPGRADE 4 { qstrcpy 409 3080 set disp_temp6 77 }
+		else
+			{
+			ifl POLYMERS 150 set disp_temp6 124 else set disp_temp6 125
+				ifand BITS_PRESS 4
+					{
+					ifl POLYMERS 150 state FORGE_CANT
+					else
+						{
+						sub POLYMERS 150
+						state FORGE_BUY
+						xorvar ZAXTOR_UPGRADE 4
+						sound CASHREG
+						}
+					}
+			}
+ 		screentext 2822 163 95 28672 0 0 COST_150 0 disp_temp6 16 0 5 8 1 1 0 0 0 xdim ydim
+		rotatesprite 215 68 18000 0 2524 0 0 8 0 0 xdim ydim
+		}
+	}
+else
+ife INFO_SEL 2
+	{
+ 	screentext 2822 59 26 28672 0 0 1005 10 2 16 0 5 8 1 1 0 0 0 xdim ydim
+	state CURSOR_OVER_ITEM
+	qputs 409 Knight's Knife
+	ifand MERLIJN_UPGRADE 32768 set disp_temp2 125 else set disp_temp2 60
+ 	screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 0 disp_temp2 16 0 5 8 1 1 0 0 0 xdim ydim
+
+	ifl gui_pos_x_temp 40
+	 ifg gui_pos_x_temp -40
+	  ifl gui_pos_y_temp 4
+	   ifg gui_pos_y_temp -4
+		{
+ 		screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 disp_pulse 2 16 0 5 8 1 1 0 0 0 xdim ydim
+		ifand MERLIJN_UPGRADE 32768 { qstrcpy 409 3080 set disp_temp6 77 }
+		else
+			{
+			ifl POLYMERS 500 set disp_temp6 124 else set disp_temp6 125
+			ifand BITS_PRESS 4
+					{
+					ifl POLYMERS 500 state FORGE_CANT
+					else
+						{
+						sub POLYMERS 500
+						xorvar MERLIJN_UPGRADE 32768
+						state FORGE_BUY
+						sound CASHREG
+						}
+					}
+			}
+ 		screentext 2822 163 95 28672 0 0 COST_500 0 disp_temp6 16 0 5 8 1 1 0 0 0 xdim ydim
+		rotatesprite 210 83 25000 -64 29796 0 0 8 0 0 xdim ydim
+		}
+	add gui_pos_y 10
+	state CURSOR_OVER_ITEM
+	qputs 409 Blunderbuss Speed Mod
+	ifand MERLIJN_UPGRADE 1 set disp_temp2 125 else set disp_temp2 60
+ 	screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 0 disp_temp2 16 0 5 8 1 1 0 0 0 xdim ydim
+
+	ifl gui_pos_x_temp 40
+	 ifg gui_pos_x_temp -40
+	  ifl gui_pos_y_temp 4
+	   ifg gui_pos_y_temp -4
+		{
+ 		screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 disp_pulse 2 16 0 5 8 1 1 0 0 0 xdim ydim
+		ifand MERLIJN_UPGRADE 1 { qstrcpy 409 3080 set disp_temp6 77 }
+		else
+			{
+			ifl POLYMERS 300 set disp_temp6 124 else set disp_temp6 125
+				ifand BITS_PRESS 4
+					{
+					ifl POLYMERS 300 state FORGE_CANT
+					else
+						{
+						sub POLYMERS 300
+						state FORGE_BUY
+						xorvar MERLIJN_UPGRADE 1
+						sound CASHREG
+						}
+					}
+			}
+ 		screentext 2822 163 95 28672 0 0 COST_300 0 disp_temp6 16 0 5 8 1 1 0 0 0 xdim ydim
+		rotatesprite 210 65 20000 0 5052 0 0 0 0 0 xdim ydim
+		rotatesprite 210 65 20000 0 4908 0 0 0 0 0 xdim ydim
+		}
+	add gui_pos_y 10
+	state CURSOR_OVER_ITEM
+	qputs 409 Blunderbuss Power Mod
+	ifand MERLIJN_UPGRADE 2 set disp_temp2 125 else set disp_temp2 60
+ 	screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 0 disp_temp2 16 0 5 8 1 1 0 0 0 xdim ydim
+
+ifl gui_pos_x_temp 40
+	 ifg gui_pos_x_temp -40
+	  ifl gui_pos_y_temp 4
+	   ifg gui_pos_y_temp -4
+		{
+ 		screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 disp_pulse 2 16 0 5 8 1 1 0 0 0 xdim ydim
+		ifand MERLIJN_UPGRADE 2 { qstrcpy 409 3080 set disp_temp6 77 }
+		else
+			{
+			ifl POLYMERS 300 set disp_temp6 124 else set disp_temp6 125
+				ifand BITS_PRESS 4
+					{
+					ifl POLYMERS 300 state FORGE_CANT
+					else
+						{
+						sub POLYMERS 300
+						state FORGE_BUY
+						xorvar MERLIJN_UPGRADE 2
+						sound CASHREG
+						}
+					}
+			}
+ 		screentext 2822 163 95 28672 0 0 COST_300 0 disp_temp6 16 0 5 8 1 1 0 0 0 xdim ydim
+		rotatesprite 210 65 20000 0 4912 0 0 0 0 0 xdim ydim
+		rotatesprite 210 65 20000 0 5052 0 0 0 0 0 xdim ydim
+		}
+
+ife SAVED_LIZ 1
+		{
+		add gui_pos_y 10
+		state CURSOR_OVER_ITEM
+		qputs 409 Blunderbuss Accuracy Mod
+		ifand MERLIJN_UPGRADE 4 set disp_temp2 125 else set disp_temp2 60
+ 		screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 0 disp_temp2 16 0 5 8 1 1 0 0 0 xdim ydim
+
+		ifl gui_pos_x_temp 40
+		 ifg gui_pos_x_temp -40
+		  ifl gui_pos_y_temp 4
+		   ifg gui_pos_y_temp -4
+			{
+ 				screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 disp_pulse 2 16 0 5 8 1 1 0 0 0 xdim ydim
+				ifand MERLIJN_UPGRADE 4 { qstrcpy 409 3080 set disp_temp6 77 }
+				else
+				{
+					ifl POLYMERS 300 set disp_temp6 124 else set disp_temp6 125
+					ifand BITS_PRESS 4
+					{
+					ifl POLYMERS 300 state FORGE_CANT
+					else
+						{
+						sub POLYMERS 300
+						state FORGE_BUY
+						xorvar MERLIJN_UPGRADE 4
+						sound CASHREG
+						}
+					}
+				}
+ 				screentext 2822 163 95 28672 0 0 COST_300 0 disp_temp6 16 0 5 8 1 1 0 0 0 xdim ydim
+				rotatesprite 210 65 20000 0 5057 0 0 0 0 0 xdim ydim
+			}
+		}
+
+	}
+else
+ife INFO_SEL 3
+	{
+ 	screentext 2822 59 26 28672 0 0 1006 10 2 16 0 5 8 1 1 0 0 0 xdim ydim
+	state CURSOR_OVER_ITEM
+	qputs 409 Survival Knife
+	ifand HIGHWIRE_UPGRADE 32768 set disp_temp2 125 else set disp_temp2 60
+ 	screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 0 disp_temp2 16 0 5 8 1 1 0 0 0 xdim ydim
+
+	ifl gui_pos_x_temp 40
+	 ifg gui_pos_x_temp -40
+	  ifl gui_pos_y_temp 4
+	   ifg gui_pos_y_temp -4
+		{
+ 		screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 disp_pulse 2 16 0 5 8 1 1 0 0 0 xdim ydim
+		ifand HIGHWIRE_UPGRADE 32768 { qstrcpy 409 3080 set disp_temp6 77 }
+		else
+			{
+			ifl POLYMERS 500 set disp_temp6 124 else set disp_temp6 125
+			ifand BITS_PRESS 4
+					{
+					ifl POLYMERS 500 state FORGE_CANT
+					else
+						{
+						sub POLYMERS 500
+						xorvar HIGHWIRE_UPGRADE 32768
+						state FORGE_BUY
+						sound CASHREG
+						}
+					}
+			}
+ 		screentext 2822 163 95 28672 0 0 COST_500 0 disp_temp6 16 0 5 8 1 1 0 0 0 xdim ydim
+		rotatesprite 210 83 25000 -64 29798 0 0 8 0 0 xdim ydim
+		}
+	add gui_pos_y 10
+
+	state CURSOR_OVER_ITEM
+	qputs 409 Tokarov Extended Magazine
+	ifand HIGHWIRE_UPGRADE 2 set disp_temp2 125 else set disp_temp2 60
+ 	screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 0 disp_temp2 16 0 5 8 1 1 0 0 0 xdim ydim
+
+	ifl gui_pos_x_temp 40
+	 ifg gui_pos_x_temp -40
+	  ifl gui_pos_y_temp 4
+	   ifg gui_pos_y_temp -4
+		{
+ 		screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 disp_pulse 2 16 0 5 8 1 1 0 0 0 xdim ydim
+		ifand HIGHWIRE_UPGRADE 2 { qstrcpy 409 3080 set disp_temp6 77 }
+		else
+			{
+			ifl POLYMERS 100 set disp_temp6 124 else set disp_temp6 125
+			ifand BITS_PRESS 4
+				{
+				ifl POLYMERS 100 state FORGE_CANT
+				else
+					{
+					sub POLYMERS 100
+					xorvar HIGHWIRE_UPGRADE 2
+					state FORGE_BUY
+					getp[].ammo_amount 1 temp
+					add temp 60 ifg temp 200 set temp 200
+					setp[].ammo_amount 1 temp
+					sound CASHREG
+					}
+				}
+			}
+ 		screentext 2822 163 95 28672 0 0 COST_100 0 disp_temp6 16 0 5 8 1 1 0 0 0 xdim ydim
+		rotatesprite 210 65 20000 0 5917 0 0 8 0 0 xdim ydim
+		}
+	add gui_pos_y 10
+	state CURSOR_OVER_ITEM
+	qputs 409 Tokarov Rate of Fire Mod
+	ifand HIGHWIRE_UPGRADE 4 set disp_temp2 125 else set disp_temp2 60
+ 	screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 0 disp_temp2 16 0 5 8 1 1 0 0 0 xdim ydim
+
+	ifl gui_pos_x_temp 40
+	 ifg gui_pos_x_temp -40
+	  ifl gui_pos_y_temp 4
+	   ifg gui_pos_y_temp -4
+		{
+ 		screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 disp_pulse 2 16 0 5 8 1 1 0 0 0 xdim ydim
+		ifand HIGHWIRE_UPGRADE 4 { qstrcpy 409 3080 set disp_temp6 77 }
+		else
+			{
+			ifl POLYMERS 200 set disp_temp6 124 else set disp_temp6 125
+			ifand BITS_PRESS 4
+				{
+				ifl POLYMERS 200 state FORGE_CANT
+				else
+					{
+					sub POLYMERS 200
+					state FORGE_BUY
+					xorvar HIGHWIRE_UPGRADE 4
+					sound CASHREG
+					}
+				}
+			}
+ 		screentext 2822 163 95 28672 0 0 COST_200 0 disp_temp6 16 0 5 8 1 1 0 0 0 xdim ydim
+		rotatesprite 210 65 20000 0 5917 0 0 8 0 0 xdim ydim
+		}
+	add gui_pos_y 10
+	state CURSOR_OVER_ITEM
+	qputs 409 Tokarov Accuracy Mod
+	ifand HIGHWIRE_UPGRADE 8 set disp_temp2 125 else set disp_temp2 60
+ 	screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 0 disp_temp2 16 0 5 8 1 1 0 0 0 xdim ydim
+
+	ifl gui_pos_x_temp 40
+	 ifg gui_pos_x_temp -40
+	  ifl gui_pos_y_temp 4
+	   ifg gui_pos_y_temp -4
+		{
+ 		screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 disp_pulse 2 16 0 5 8 1 1 0 0 0 xdim ydim
+		ifand HIGHWIRE_UPGRADE 8 { qstrcpy 409 3080 set disp_temp6 77 }
+		else
+			{
+			ifl POLYMERS 150 set disp_temp6 124 else set disp_temp6 125
+				ifand BITS_PRESS 4
+					{
+					ifl POLYMERS 150 state FORGE_CANT
+					else
+						{
+						sub POLYMERS 150
+						state FORGE_BUY
+						xorvar HIGHWIRE_UPGRADE 8
+						sound CASHREG
+						}
+					}
+			}
+ 		screentext 2822 163 95 28672 0 0 COST_150 0 disp_temp6 16 0 5 8 1 1 0 0 0 xdim ydim
+		rotatesprite 210 65 20000 0 5917 0 0 8 0 0 xdim ydim
+		}
+	add gui_pos_y 10
+	state CURSOR_OVER_ITEM
+	qputs 409 AKM Drum Magazine
+	ifand HIGHWIRE_UPGRADE 1 set disp_temp2 125 else set disp_temp2 60
+ 	screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 0 disp_temp2 16 0 5 8 1 1 0 0 0 xdim ydim
+
+	ifl gui_pos_x_temp 40
+	 ifg gui_pos_x_temp -40
+	  ifl gui_pos_y_temp 4
+	   ifg gui_pos_y_temp -4
+		{
+ 		screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 disp_pulse 2 16 0 5 8 1 1 0 0 0 xdim ydim
+		ifand HIGHWIRE_UPGRADE 1 { qstrcpy 409 3080 set disp_temp6 77 }
+		else
+			{
+			ifl POLYMERS 250 set disp_temp6 124 else set disp_temp6 125
+				ifand BITS_PRESS 4
+					{
+					ifl POLYMERS 250 state FORGE_CANT
+					else
+						{
+						sub POLYMERS 250
+						state FORGE_BUY
+						xorvar HIGHWIRE_UPGRADE 1
+						getp[].ammo_amount 3 temp
+						add temp 100 ifg temp 300 set temp 300
+						setp[].ammo_amount 3 temp
+						sound CASHREG
+						}
+					}
+			}
+ 		screentext 2822 163 95 28672 0 0 COST_250 0 disp_temp6 16 0 5 8 1 1 0 0 0 xdim ydim
+		rotatesprite 210 62 17500 0 5899 0 0 8 0 0 xdim ydim
+		rotatesprite 210 62 17500 0 5911 0 0 8 0 0 xdim ydim
+		}
+	add gui_pos_y 10
+	state CURSOR_OVER_ITEM
+	qputs 409 AKM Accuracy
+	ifand HIGHWIRE_UPGRADE 16 set disp_temp2 125 else set disp_temp2 60
+ 	screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 0 disp_temp2 16 0 5 8 1 1 0 0 0 xdim ydim
+
+	ifl gui_pos_x_temp 40
+	 ifg gui_pos_x_temp -40
+	  ifl gui_pos_y_temp 4
+	   ifg gui_pos_y_temp -4
+		{
+ 		screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 disp_pulse 2 16 0 5 8 1 1 0 0 0 xdim ydim
+		ifand HIGHWIRE_UPGRADE 16 { qstrcpy 409 3080 set disp_temp6 77 }
+		else
+			{
+			ifl POLYMERS 100 set disp_temp6 124 else set disp_temp6 125
+				ifand BITS_PRESS 4
+					{
+					ifl POLYMERS 100 state FORGE_CANT
+					else
+						{
+						sub POLYMERS 100
+						xorvar HIGHWIRE_UPGRADE 16
+						state FORGE_BUY
+						getp[].ammo_amount 3 temp
+						add temp 30 ifg temp 300 set temp 300
+						setp[].ammo_amount 3 temp
+						sound CASHREG
+						}
+					}
+			}
+ 		screentext 2822 163 95 28672 0 0 COST_100 0 disp_temp6 16 0 5 8 1 1 0 0 0 xdim ydim
+		rotatesprite 210 62 17500 0 5899 0 0 8 0 0 xdim ydim
+		}
+	add gui_pos_y 10
+	state CURSOR_OVER_ITEM
+	qputs 409 AKM Red Dot Sight
+	ifand HIGHWIRE_UPGRADE 64 set disp_temp2 125 else set disp_temp2 60
+ 	screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 0 disp_temp2 16 0 5 8 1 1 0 0 0 xdim ydim
+
+	ifl gui_pos_x_temp 40
+	 ifg gui_pos_x_temp -40
+	  ifl gui_pos_y_temp 4
+	   ifg gui_pos_y_temp -4
+		{
+ 		screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 disp_pulse 2 16 0 5 8 1 1 0 0 0 xdim ydim
+		ifand HIGHWIRE_UPGRADE 64 { qstrcpy 409 3080 set disp_temp6 77 }
+		else
+			{
+			ifl POLYMERS 200 set disp_temp6 124 else set disp_temp6 125
+				ifand BITS_PRESS 4
+					{
+					ifl POLYMERS 200 state FORGE_CANT
+					else
+						{
+						sub POLYMERS 200
+						xorvar HIGHWIRE_UPGRADE 64
+						state FORGE_BUY
+						getp[].ammo_amount 3 temp
+						add temp 30 ifg temp 300 set temp 300
+						setp[].ammo_amount 3 temp
+						sound CASHREG
+						}
+					}
+			}
+ 		screentext 2822 163 95 28672 0 0 COST_200 0 disp_temp6 16 0 5 8 1 1 0 0 0 xdim ydim
+		rotatesprite 210 62 17500 0 5899 0 0 8 0 0 xdim ydim
+		rotatesprite 210 62 17500 0 5907 0 0 8 0 0 xdim ydim
+		}
+	add gui_pos_y 10
+	state CURSOR_OVER_ITEM
+	qputs 409 R870 Extended Tube
+	ifand HIGHWIRE_UPGRADE 32 set disp_temp2 125 else set disp_temp2 60
+ 	screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 0 disp_temp2 16 0 5 8 1 1 0 0 0 xdim ydim
+
+	ifl gui_pos_x_temp 40
+	 ifg gui_pos_x_temp -40
+	  ifl gui_pos_y_temp 4
+	   ifg gui_pos_y_temp -4
+		{
+ 		screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 disp_pulse 2 16 0 5 8 1 1 0 0 0 xdim ydim
+		ifand HIGHWIRE_UPGRADE 32 { qstrcpy 409 3080 set disp_temp6 77 }
+		else
+			{
+			ifl POLYMERS 250 set disp_temp6 124 else set disp_temp6 125
+				ifand BITS_PRESS 4
+					{
+					ifl POLYMERS 250 state FORGE_CANT
+					else
+						{
+						sub POLYMERS 250
+						xorvar HIGHWIRE_UPGRADE 32
+						state FORGE_BUY
+						getp[].ammo_amount 2 temp
+						add temp 12 ifg temp 50 set temp 50
+						setp[].ammo_amount 2 temp
+						sound CASHREG
+						break
+						}
+					}
+			}
+ 		screentext 2822 163 95 28672 0 0 COST_250 0 disp_temp6 16 0 5 8 1 1 0 0 0 xdim ydim
+		rotatesprite 210 61 18000 0 6010 0 0 8 0 0 xdim ydim
+		}
+
+	}
+else
+ife INFO_SEL 4
+	{
+ 	screentext 2822 59 26 28672 0 0 1007 10 2 16 0 5 8 1 1 0 0 0 xdim ydim
+
+	state CURSOR_OVER_ITEM
+	qputs 409 Wicked Knife
+	ifand SANG_UPGRADE 32768 set disp_temp2 125 else set disp_temp2 60
+ 	screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 0 disp_temp2 16 0 5 8 1 1 0 0 0 xdim ydim
+
+	ifl gui_pos_x_temp 40
+	 ifg gui_pos_x_temp -40
+	  ifl gui_pos_y_temp 4
+	   ifg gui_pos_y_temp -4
+		{
+ 		screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 disp_pulse 2 16 0 5 8 1 1 0 0 0 xdim ydim
+		ifand SANG_UPGRADE 32768 { qstrcpy 409 3080 set disp_temp6 77 }
+		else
+			{
+			ifl POLYMERS 500 set disp_temp6 124 else set disp_temp6 125
+			ifand BITS_PRESS 4
+					{
+					ifl POLYMERS 500 state FORGE_CANT
+					else
+						{
+						sub POLYMERS 500
+						xorvar SANG_UPGRADE 32768
+						state FORGE_BUY
+						sound CASHREG
+						}
+					}
+			}
+ 		screentext 2822 163 95 28672 0 0 COST_500 0 disp_temp6 16 0 5 8 1 1 0 0 0 xdim ydim
+		rotatesprite 210 83 25000 -64 29800 0 0 8 0 0 xdim ydim
+		}
+	add gui_pos_y 10
+
+	state CURSOR_OVER_ITEM
+	qputs 409 Uzi Accuracy Mod
+	ifand SANG_UPGRADE 1 set disp_temp2 125 else set disp_temp2 60
+ 	screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 0 disp_temp2 16 0 5 8 1 1 0 0 0 xdim ydim
+
+ifl gui_pos_x_temp 40
+	 ifg gui_pos_x_temp -40
+	  ifl gui_pos_y_temp 4
+	   ifg gui_pos_y_temp -4
+		{
+ 		screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 disp_pulse 2 16 0 5 8 1 1 0 0 0 xdim ydim
+		ifand SANG_UPGRADE 1 { qstrcpy 409 3080 set disp_temp6 77 }
+		else
+			{
+			ifl POLYMERS 200 set disp_temp6 124 else set disp_temp6 125
+				ifand BITS_PRESS 4
+					{
+					ifl POLYMERS 200 state FORGE_CANT
+					else
+						{
+						sub POLYMERS 200
+						state FORGE_BUY
+						xorvar SANG_UPGRADE 1
+						sound CASHREG
+						}
+					}
+			}
+ 		screentext 2822 163 95 28672 0 0 COST_200 0 disp_temp6 16 0 5 8 1 1 0 0 0 xdim ydim
+		rotatesprite 210 62 17500 0 6224 0 0 8 0 0 xdim ydim
+		}
+	add gui_pos_y 10
+	state CURSOR_OVER_ITEM
+	qputs 409 Uzi Extended Magazine
+	ifand SANG_UPGRADE 2 set disp_temp2 125 else set disp_temp2 60
+ 	screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 0 disp_temp2 16 0 5 8 1 1 0 0 0 xdim ydim
+
+	ifl gui_pos_x_temp 40
+	 ifg gui_pos_x_temp -40
+	  ifl gui_pos_y_temp 4
+	   ifg gui_pos_y_temp -4
+		{
+ 		screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 disp_pulse 2 16 0 5 8 1 1 0 0 0 xdim ydim
+		ifand SANG_UPGRADE 2 { qstrcpy 409 3080 set disp_temp6 77 }
+		else
+			{
+			ifl POLYMERS 200 set disp_temp6 124 else set disp_temp6 125
+				ifand BITS_PRESS 4
+					{
+					ifl POLYMERS 200 state FORGE_CANT
+					else
+						{
+						sub POLYMERS 200
+						xorvar SANG_UPGRADE 2
+						state FORGE_BUY
+						getp[].ammo_amount 3 temp
+						add temp 120 ifg temp 400 set temp 400
+						setp[].ammo_amount 3 temp
+						sound CASHREG
+						}
+					}
+			}
+ 		screentext 2822 163 95 28672 0 0 COST_200 0 disp_temp6 16 0 5 8 1 1 0 0 0 xdim ydim
+		rotatesprite 210 62 17500 0 6224 0 0 8 0 0 xdim ydim
+		rotatesprite 210 62 17500 0 12120 0 0 8 0 0 xdim ydim
+		}
+	add gui_pos_y 10
+	state CURSOR_OVER_ITEM
+	qputs 409 Uzi Suppressor
+	ifand SANG_UPGRADE 4 set disp_temp2 125 else set disp_temp2 60
+ 	screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 0 disp_temp2 16 0 5 8 1 1 0 0 0 xdim ydim
+
+	ifl gui_pos_x_temp 40
+	 ifg gui_pos_x_temp -40
+	  ifl gui_pos_y_temp 4
+	   ifg gui_pos_y_temp -4
+		{
+ 		screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 disp_pulse 2 16 0 5 8 1 1 0 0 0 xdim ydim
+		ifand SANG_UPGRADE 4 { qstrcpy 409 3080 set disp_temp6 77 }
+		else
+			{
+			ifl POLYMERS 100 set disp_temp6 124 else set disp_temp6 125
+				ifand BITS_PRESS 4
+					{
+					ifl POLYMERS 100 state FORGE_CANT
+					else
+						{
+						sub POLYMERS 100
+						state FORGE_BUY
+						xorvar SANG_UPGRADE 4
+						sound CASHREG
+						}
+					}
+			}
+ 		screentext 2822 163 95 28672 0 0 COST_100 0 disp_temp6 16 0 5 8 1 1 0 0 0 xdim ydim
+		rotatesprite 210 62 17500 0 6224 0 0 8 0 0 xdim ydim
+		rotatesprite 210 62 17500 0 12168 0 0 8 0 0 xdim ydim
+		}
+
+	}
+else
+ife INFO_SEL 5
+	{
+ 	screentext 2822 59 26 28672 0 0 1008 10 2 16 0 5 8 1 1 0 0 0 xdim ydim
+
+	state CURSOR_OVER_ITEM
+	qputs 409 Barber Razor
+	ifand RUSTY_UPGRADE 32768 set disp_temp2 125 else set disp_temp2 60
+ 	screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 0 disp_temp2 16 0 5 8 1 1 0 0 0 xdim ydim
+
+	ifl gui_pos_x_temp 40
+	 ifg gui_pos_x_temp -40
+	  ifl gui_pos_y_temp 4
+	   ifg gui_pos_y_temp -4
+		{
+ 		screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 disp_pulse 2 16 0 5 8 1 1 0 0 0 xdim ydim
+		ifand RUSTY_UPGRADE 32768 { qstrcpy 409 3080 set disp_temp6 77 }
+		else
+			{
+			ifl POLYMERS 500 set disp_temp6 124 else set disp_temp6 125
+			ifand BITS_PRESS 4
+					{
+					ifl POLYMERS 500 state FORGE_CANT
+					else
+						{
+						sub POLYMERS 500
+						xorvar RUSTY_UPGRADE 32768
+						state FORGE_BUY
+						sound CASHREG
+						}
+					}
+			}
+ 		screentext 2822 163 95 28672 0 0 COST_500 0 disp_temp6 16 0 5 8 1 1 0 0 0 xdim ydim
+		rotatesprite 210 83 23000 -64 29802 0 0 8 0 0 xdim ydim
+		}
+
+	add gui_pos_y 10
+
+	state CURSOR_OVER_ITEM
+	qputs 409 FG42 Accuracy Mod
+	ifand RUSTY_UPGRADE 1 set disp_temp2 125 else set disp_temp2 60
+
+ 	screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 0 disp_temp2 16 0 5 8 1 1 0 0 0 xdim ydim
+
+ifl gui_pos_x_temp 40
+	 ifg gui_pos_x_temp -40
+	  ifl gui_pos_y_temp 4
+	   ifg gui_pos_y_temp -4
+		{
+ 		screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 disp_pulse 2 16 0 5 8 1 1 0 0 0 xdim ydim
+		ifand RUSTY_UPGRADE 1 { qstrcpy 409 3080 set disp_temp6 77 }
+		else
+			{
+			ifl POLYMERS 100 set disp_temp6 124 else set disp_temp6 125
+				ifand BITS_PRESS 4
+					{
+					ifl POLYMERS 100 state FORGE_CANT
+					else
+						{
+						sub POLYMERS 100
+						state FORGE_BUY
+						xorvar RUSTY_UPGRADE 1
+						sound CASHREG
+						}
+					}
+			}
+		rotatesprite 210 62 18000 0 6790 0 0 8 0 0 xdim ydim
+ 		screentext 2822 163 95 28672 0 0 COST_100 0 disp_temp6 16 0 5 8 1 1 0 0 0 xdim ydim
+
+		}
+	add gui_pos_y 10
+	state CURSOR_OVER_ITEM
+	qputs 409 FG42 Belt-Feed Conversion
+	ifand RUSTY_UPGRADE 2 set disp_temp2 125 else set disp_temp2 60
+ 	screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 0 disp_temp2 16 0 5 8 1 1 0 0 0 xdim ydim
+
+	ifl gui_pos_x_temp 40
+	 ifg gui_pos_x_temp -40
+	  ifl gui_pos_y_temp 4
+	   ifg gui_pos_y_temp -4
+		{
+ 		screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 disp_pulse 2 16 0 5 8 1 1 0 0 0 xdim ydim
+		ifand RUSTY_UPGRADE 2 { qstrcpy 409 3080 set disp_temp6 77 }
+		else
+			{
+			ifl POLYMERS 200 set disp_temp6 124 else set disp_temp6 125
+				ifand BITS_PRESS 4
+					{
+					ifl POLYMERS 200 state FORGE_CANT
+					else
+						{
+						sub POLYMERS 200
+						xorvar RUSTY_UPGRADE 2
+						state FORGE_BUY
+						getp[].ammo_amount 3 temp
+						add temp 50 ifg temp 200 set temp 200
+						setp[].ammo_amount 3 temp
+						sound CASHREG
+						}
+					}
+			}
+
+		rotatesprite 210 62 18000 0 6797 0 0 8 0 0 xdim ydim
+ 		screentext 2822 163 95 28672 0 0 COST_200 0 disp_temp6 16 0 5 8 1 1 0 0 0 xdim ydim
+		}
+	add gui_pos_y 10
+	state CURSOR_OVER_ITEM
+	qputs 409 FG42 ROF Mod
+	ifand RUSTY_UPGRADE 8 set disp_temp2 125 else set disp_temp2 60
+ 	screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 0 disp_temp2 16 0 5 8 1 1 0 0 0 xdim ydim
+
+	ifl gui_pos_x_temp 40
+	 ifg gui_pos_x_temp -40
+	  ifl gui_pos_y_temp 4
+	   ifg gui_pos_y_temp -4
+		{
+ 		screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 disp_pulse 2 16 0 5 8 1 1 0 0 0 xdim ydim
+		ifand RUSTY_UPGRADE 8 { qstrcpy 409 3080 set disp_temp6 77 }
+		else
+			{
+			ifl POLYMERS 200 set disp_temp6 124 else set disp_temp6 125
+				ifand BITS_PRESS 4
+				{
+					ifl POLYMERS 200 state FORGE_CANT
+					else
+						{
+						sub POLYMERS 200
+						state FORGE_BUY
+						xorvar RUSTY_UPGRADE 8
+						sound CASHREG
+						}
+					}
+			}
+
+		rotatesprite 210 62 18000 0 6790 0 0 8 0 0 xdim ydim
+ 		screentext 2822 163 95 28672 0 0 COST_200 0 disp_temp6 16 0 5 8 1 1 0 0 0 xdim ydim
+		}
+	add gui_pos_y 10
+	state CURSOR_OVER_ITEM
+	qputs 409 Revolver Accuracy Mod
+	ifand RUSTY_UPGRADE 4 set disp_temp2 125 else set disp_temp2 60
+ 	screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 0 disp_temp2 16 0 5 8 1 1 0 0 0 xdim ydim
+
+	ifl gui_pos_x_temp 40
+	 ifg gui_pos_x_temp -40
+	  ifl gui_pos_y_temp 4
+	   ifg gui_pos_y_temp -4
+		{
+ 		screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 disp_pulse 2 16 0 5 8 1 1 0 0 0 xdim ydim
+		ifand RUSTY_UPGRADE 4 { qstrcpy 409 3080 set disp_temp6 77 }
+		else
+			{
+			ifl POLYMERS 100 set disp_temp6 124 else set disp_temp6 125
+				ifand BITS_PRESS 4
+					{
+					ifl POLYMERS 100 state FORGE_CANT
+					else
+						{
+						sub POLYMERS 100
+						state FORGE_BUY
+						xorvar RUSTY_UPGRADE 4
+						sound CASHREG
+						}
+					}
+			}
+ 		screentext 2822 163 95 28672 0 0 COST_100 0 disp_temp6 16 0 5 8 1 1 0 0 0 xdim ydim
+		rotatesprite 205 67 18000 0 6771 0 0 8 0 0 xdim ydim
+		}
+	add gui_pos_y 10
+	state CURSOR_OVER_ITEM
+	qputs 409 Nail-Rifle Box Magazine
+	ifand RUSTY_UPGRADE 32 set disp_temp2 125 else set disp_temp2 60
+ 	screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 0 disp_temp2 16 0 5 8 1 1 0 0 0 xdim ydim
+
+	ifl gui_pos_x_temp 40
+	 ifg gui_pos_x_temp -40
+	  ifl gui_pos_y_temp 4
+	   ifg gui_pos_y_temp -4
+		{
+ 		screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 disp_pulse 2 16 0 5 8 1 1 0 0 0 xdim ydim
+		ifand RUSTY_UPGRADE 32 { qstrcpy 409 3080 set disp_temp6 77 }
+		else
+			{
+			ifl POLYMERS 200 set disp_temp6 124 else set disp_temp6 125
+				ifand BITS_PRESS 4
+					{
+					ifl POLYMERS 200 state FORGE_CANT
+					else
+						{
+						sub POLYMERS 200
+						xorvar RUSTY_UPGRADE 32
+						state FORGE_BUY
+						getp[].ammo_amount 9 temp
+						add temp 100 ifg temp 300 set temp 300
+						setp[].ammo_amount 9 temp
+						sound CASHREG
+						}
+					}
+			}
+ 		screentext 2822 163 95 28672 0 0 COST_200 0 disp_temp6 16 0 5 8 1 1 0 0 0 xdim ydim
+		rotatesprite 210 55 20500 0 12268 0 0 8 0 0 xdim ydim
+		}
+	add gui_pos_y 10
+	state CURSOR_OVER_ITEM
+	qputs 409 Shotgun Drum Magazine
+	ifand RUSTY_UPGRADE 64 set disp_temp2 125 else set disp_temp2 60
+ 	screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 0 disp_temp2 16 0 5 8 1 1 0 0 0 xdim ydim
+
+	ifl gui_pos_x_temp 40
+	 ifg gui_pos_x_temp -40
+	  ifl gui_pos_y_temp 4
+	   ifg gui_pos_y_temp -4
+		{
+ 		screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 disp_pulse 2 16 0 5 8 1 1 0 0 0 xdim ydim
+		ifand RUSTY_UPGRADE 64 { qstrcpy 409 3080 set disp_temp6 77 }
+		else
+			{
+			ifl POLYMERS 300 set disp_temp6 124 else set disp_temp6 125
+					ifand BITS_PRESS 4
+					{
+					ifl POLYMERS 300 state FORGE_CANT
+					else
+						{
+						sub POLYMERS 300
+						xorvar RUSTY_UPGRADE 64
+						state FORGE_BUY
+						getp[].ammo_amount 2 temp
+						add temp 12
+						setp[].ammo_amount 2 temp
+						sound CASHREG
+						}
+					}
+			}
+ 		screentext 2822 163 95 28672 0 0 COST_300 0 disp_temp6 16 0 5 8 1 1 0 0 0 xdim ydim
+		rotatesprite 210 61 18500 0 6764 0 0 8 0 0 xdim ydim
+		rotatesprite 210 61 18500 0 6800 0 0 8 0 0 xdim ydim
+		}
+ife SAVED_LIZ 1
+	{
+	add gui_pos_y 10
+	state CURSOR_OVER_ITEM
+	qputs 409 PulseRifle Accuracy
+	ifand RUSTY_UPGRADE 128 set disp_temp2 125 else set disp_temp2 60
+ 	screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 0 disp_temp2 16 0 5 8 1 1 0 0 0 xdim ydim
+
+	ifl gui_pos_x_temp 40
+	 ifg gui_pos_x_temp -40
+	  ifl gui_pos_y_temp 4
+	   ifg gui_pos_y_temp -4
+		{
+ 		screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 disp_pulse 2 16 0 5 8 1 1 0 0 0 xdim ydim
+		ifand RUSTY_UPGRADE 128 { qstrcpy 409 3080 set disp_temp6 77 }
+		else
+			{
+			ifl POLYMERS 300 set disp_temp6 124 else set disp_temp6 125
+					ifand BITS_PRESS 4
+					{
+					ifl POLYMERS 300 state FORGE_CANT
+					else
+						{
+						sub POLYMERS 300
+						xorvar RUSTY_UPGRADE 128
+						state FORGE_BUY
+						getp[].ammo_amount 2 temp
+						add temp 12
+						setp[].ammo_amount 2 temp
+						sound CASHREG
+						}
+					}
+			}
+ 		screentext 2822 163 95 28672 0 0 COST_300 0 disp_temp6 16 0 5 8 1 1 0 0 0 xdim ydim
+		rotatesprite 210 62 19500 0 6818 0 0 8 0 0 xdim ydim
+		rotatesprite 210 62 19500 0 6824 0 0 8 0 0 xdim ydim
+		}
+	}
+
+	}
+else
+ife INFO_SEL 6
+	{
+ 	screentext 2822 59 26 28672 0 0 1009 10 2 16 0 5 8 1 1 0 0 0 xdim ydim
+
+	state CURSOR_OVER_ITEM
+	qputs 409 Switchblade
+	ifand GEOFFREY_UPGRADE 32768 set disp_temp2 125 else set disp_temp2 60
+ 	screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 0 disp_temp2 16 0 5 8 1 1 0 0 0 xdim ydim
+
+	ifl gui_pos_x_temp 40
+	 ifg gui_pos_x_temp -40
+	  ifl gui_pos_y_temp 4
+	   ifg gui_pos_y_temp -4
+		{
+ 		screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 disp_pulse 2 16 0 5 8 1 1 0 0 0 xdim ydim
+		ifand GEOFFREY_UPGRADE 32768 { qstrcpy 409 3080 set disp_temp6 77 }
+		else
+			{
+			ifl POLYMERS 500 set disp_temp6 124 else set disp_temp6 125
+			ifand BITS_PRESS 4
+					{
+					ifl POLYMERS 500 state FORGE_CANT
+					else
+						{
+						sub POLYMERS 500
+						xorvar GEOFFREY_UPGRADE 32768
+						state FORGE_BUY
+						sound CASHREG
+						}
+					}
+			}
+ 		screentext 2822 163 95 28672 0 0 COST_500 0 disp_temp6 16 0 5 8 1 1 0 0 0 xdim ydim
+		rotatesprite 210 83 23000 -64 29804 0 0 8 0 0 xdim ydim
+		}
+
+	add gui_pos_y 10
+
+	state CURSOR_OVER_ITEM
+	qputs 409 Pistol Laser Mod
+	ifand GEOFFREY_UPGRADE 1 set disp_temp2 125 else set disp_temp2 60
+ 	screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 0 disp_temp2 16 0 5 8 1 1 0 0 0 xdim ydim
+
+	ifl gui_pos_x_temp 40
+	 ifg gui_pos_x_temp -40
+	  ifl gui_pos_y_temp 4
+	   ifg gui_pos_y_temp -4
+		{
+ 		screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 disp_pulse 2 16 0 5 8 1 1 0 0 0 xdim ydim
+		ifand GEOFFREY_UPGRADE 1 { qstrcpy 409 3080 set disp_temp6 77 }
+		else
+			{
+			ifl POLYMERS 150 set disp_temp6 124 else set disp_temp6 125
+				ifand BITS_PRESS 4
+					{
+					ifl POLYMERS 150 state FORGE_CANT
+					else
+						{
+						sub POLYMERS 150
+						state FORGE_BUY
+						xorvar GEOFFREY_UPGRADE 1
+						sound CASHREG
+						}
+					}
+			}
+ 		screentext 2822 163 95 28672 0 0 COST_150 0 disp_temp6 16 0 5 8 1 1 0 0 0 xdim ydim
+		rotatesprite 210 61 18500 0 6510 0 0 8 0 0 xdim ydim
+		}
+	add gui_pos_y 10
+	state CURSOR_OVER_ITEM
+	qputs 409 Pistol Burst ROF Mod
+	ifand GEOFFREY_UPGRADE 2 set disp_temp2 125 else set disp_temp2 60
+ 	screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 0 disp_temp2 16 0 5 8 1 1 0 0 0 xdim ydim
+
+	ifl gui_pos_x_temp 40
+	 ifg gui_pos_x_temp -40
+	  ifl gui_pos_y_temp 4
+	   ifg gui_pos_y_temp -4
+		{
+ 		screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 disp_pulse 2 16 0 5 8 1 1 0 0 0 xdim ydim
+		ifand GEOFFREY_UPGRADE 2 { qstrcpy 409 3080 set disp_temp6 77 }
+		else
+			{
+			ifl POLYMERS 200 set disp_temp6 124 else set disp_temp6 125
+				ifand BITS_PRESS 4
+					{
+					ifl POLYMERS 200 state FORGE_CANT
+					else
+						{
+						sub POLYMERS 200
+						state FORGE_BUY
+						xorvar GEOFFREY_UPGRADE 2
+						sound CASHREG
+						}
+					}
+			}
+ 		screentext 2822 163 95 28672 0 0 COST_200 0 disp_temp6 16 0 5 8 1 1 0 0 0 xdim ydim
+		rotatesprite 210 61 18500 0 6462 0 0 8 0 0 xdim ydim
+		}
+	add gui_pos_y 10
+	state CURSOR_OVER_ITEM
+	qputs 409 GL ROF Mod
+	ifand GEOFFREY_UPGRADE 4 set disp_temp2 125 else set disp_temp2 60
+ 	screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 0 disp_temp2 16 0 5 8 1 1 0 0 0 xdim ydim
+
+	ifl gui_pos_x_temp 40
+	 ifg gui_pos_x_temp -40
+	  ifl gui_pos_y_temp 4
+	   ifg gui_pos_y_temp -4
+		{
+ 		screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 disp_pulse 2 16 0 5 8 1 1 0 0 0 xdim ydim
+		ifand GEOFFREY_UPGRADE 4 { qstrcpy 409 3080 set disp_temp6 77 }
+		else
+			{
+			ifl POLYMERS 150 set disp_temp6 124 else set disp_temp6 125
+				ifand BITS_PRESS 4
+					{
+					ifl POLYMERS 150 state FORGE_CANT
+					else
+						{
+						sub POLYMERS 150
+						state FORGE_BUY
+						xorvar GEOFFREY_UPGRADE 4
+						sound CASHREG
+						}
+					}
+			}
+		rotatesprite 212 62 23000 0 6474 0 21 8 0 0 xdim ydim
+		rotatesprite 210 99 64000 0 3806 30 4 0 0 0 xdim ydim // blocks pic from overlapping text
+ 		screentext 2822 163 95 28672 0 0 COST_150 0 disp_temp6 16 0 5 8 1 1 0 0 0 xdim ydim
+		}
+	add gui_pos_y 10
+	state CURSOR_OVER_ITEM
+	qputs 409 SMG Extended Magazine
+	ifand GEOFFREY_UPGRADE 8 set disp_temp2 125 else set disp_temp2 60
+ 	screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 0 disp_temp2 16 0 5 8 1 1 0 0 0 xdim ydim
+
+	ifl gui_pos_x_temp 40
+	 ifg gui_pos_x_temp -40
+	  ifl gui_pos_y_temp 4
+	   ifg gui_pos_y_temp -4
+		{
+ 		screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 disp_pulse 2 16 0 5 8 1 1 0 0 0 xdim ydim
+		ifand GEOFFREY_UPGRADE 8 { qstrcpy 409 3080 set disp_temp6 77 }
+		else
+			{
+			ifl POLYMERS 150 set disp_temp6 124 else set disp_temp6 125
+				ifand BITS_PRESS 4
+					{
+					ifl POLYMERS 150 state FORGE_CANT
+					else
+						{
+						sub POLYMERS 150
+						state FORGE_BUY
+						xorvar GEOFFREY_UPGRADE 8
+						getp[].ammo_amount 3 temp
+						add temp 80 ifg temp 300 set temp 300
+						setp[].ammo_amount 3 temp
+						sound CASHREG
+						}
+					}
+			}
+
+		rotatesprite 210 63 18000 0 6502 0 0 8 0 0 xdim ydim
+
+		rotatesprite 200 99 64000 0 3806 30 4 0 0 0 xdim ydim // blocks pic from overlapping text
+ 		screentext 2822 163 95 28672 0 0 COST_150 0 disp_temp6 16 0 5 8 1 1 0 0 0 xdim ydim
+		}
+
+ife SAVED_LIZ 1
+	{
+	add gui_pos_y 10
+	state CURSOR_OVER_ITEM
+	qputs 409 SG Tesla Burst Mod
+	ifand GEOFFREY_UPGRADE 16 set disp_temp2 125 else set disp_temp2 60
+ 	screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 0 disp_temp2 16 0 5 8 1 1 0 0 0 xdim ydim
+
+	ifl gui_pos_x_temp 40
+	 ifg gui_pos_x_temp -40
+	  ifl gui_pos_y_temp 4
+	   ifg gui_pos_y_temp -4
+		{
+ 		screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 disp_pulse 2 16 0 5 8 1 1 0 0 0 xdim ydim
+		ifand GEOFFREY_UPGRADE 16 { qstrcpy 409 3080 set disp_temp6 77 }
+		else
+			{
+			ifl POLYMERS 200 set disp_temp6 124 else set disp_temp6 125
+				ifand BITS_PRESS 4
+					{
+					ifl POLYMERS 200 state FORGE_CANT
+					else
+						{
+						sub POLYMERS 200
+						xorvar GEOFFREY_UPGRADE 16
+						state FORGE_BUY
+						getp[].ammo_amount 2 temp
+						add temp 8 ifg temp 100 set temp 100
+						setp[].ammo_amount 2 temp
+						sound CASHREG
+						}
+					}
+			}
+ 		screentext 2822 163 95 28672 0 0 COST_200 0 disp_temp6 16 0 5 8 1 1 0 0 0 xdim ydim
+		rotatesprite 210 61 19000 0 6537 0 0 8 0 0 xdim ydim
+		}
+	}
+
+	}
+else
+ife INFO_SEL 7
+	{
+ 	screentext 2822 59 26 28672 0 0 1010 10 2 16 0 5 8 1 1 0 0 0 xdim ydim
+
+	state CURSOR_OVER_ITEM
+	qputs 409 Edgemaster
+	ifand MIKKO_UPGRADE 32768 set disp_temp2 125 else set disp_temp2 60
+ 	screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 0 disp_temp2 16 0 5 8 1 1 0 0 0 xdim ydim
+
+	ifl gui_pos_x_temp 40
+	 ifg gui_pos_x_temp -40
+	  ifl gui_pos_y_temp 4
+	   ifg gui_pos_y_temp -4
+		{
+ 		screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 disp_pulse 2 16 0 5 8 1 1 0 0 0 xdim ydim
+		ifand MIKKO_UPGRADE 32768 { qstrcpy 409 3080 set disp_temp6 77 }
+		else
+			{
+			ifl POLYMERS 500 set disp_temp6 124 else set disp_temp6 125
+			ifand BITS_PRESS 4
+					{
+					ifl POLYMERS 500 state FORGE_CANT
+					else
+						{
+						sub POLYMERS 500
+						xorvar MIKKO_UPGRADE 32768
+						state FORGE_BUY
+						sound CASHREG
+						}
+					}
+			}
+ 		screentext 2822 163 95 28672 0 0 COST_500 0 disp_temp6 16 0 5 8 1 1 0 0 0 xdim ydim
+		rotatesprite 210 83 24000 -64 29806 0 0 8 0 0 xdim ydim
+		}
+
+	add gui_pos_y 10
+
+	state CURSOR_OVER_ITEM
+	qputs 409 Pistol Extended Magazine
+	ifand MIKKO_UPGRADE 1 set disp_temp2 125 else set disp_temp2 60
+ 	screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 0 disp_temp2 16 0 5 8 1 1 0 0 0 xdim ydim
+
+	ifl gui_pos_x_temp 40
+	 ifg gui_pos_x_temp -40
+	  ifl gui_pos_y_temp 4
+	   ifg gui_pos_y_temp -4
+		{
+ 		screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 disp_pulse 2 16 0 5 8 1 1 0 0 0 xdim ydim
+		ifand MIKKO_UPGRADE 1 { qstrcpy 409 3080 set disp_temp6 77 }
+		else
+			{
+			ifl POLYMERS 100 set disp_temp6 124 else set disp_temp6 125
+				ifand BITS_PRESS 4
+					{
+					ifl POLYMERS 100 state FORGE_CANT
+					else
+						{
+						sub POLYMERS 100
+						xorvar MIKKO_UPGRADE 1
+						state FORGE_BUY
+						getp[].ammo_amount 1 temp
+						add temp 60 ifg temp 200 set temp 200
+						setp[].ammo_amount 1 temp
+						sound CASHREG
+						}
+					}
+			}
+		rotatesprite 208 60 20000 0 7123 0 0 8 0 0 xdim ydim
+ 		screentext 2822 163 95 28672 0 0 COST_100 0 disp_temp6 16 0 5 8 1 1 0 0 0 xdim ydim
+		}
+	add gui_pos_y 10
+	state CURSOR_OVER_ITEM
+	qputs 409 Pistol Accuracy Mod
+	ifand MIKKO_UPGRADE 2 set disp_temp2 125 else set disp_temp2 60
+ 	screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 0 disp_temp2 16 0 5 8 1 1 0 0 0 xdim ydim
+
+	ifl gui_pos_x_temp 40
+	 ifg gui_pos_x_temp -40
+	  ifl gui_pos_y_temp 4
+	   ifg gui_pos_y_temp -4
+		{
+ 		screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 disp_pulse 2 16 0 5 8 1 1 0 0 0 xdim ydim
+		ifand MIKKO_UPGRADE 2 { qstrcpy 409 3080 set disp_temp6 77 }
+		else
+			{
+			ifl POLYMERS 100 set disp_temp6 124 else set disp_temp6 125
+				ifand BITS_PRESS 4
+					{
+					ifl POLYMERS 100 state FORGE_CANT
+					else
+						{
+						sub POLYMERS 100
+						state FORGE_BUY
+						xorvar MIKKO_UPGRADE 2
+						sound CASHREG
+						}
+					}
+			}
+ 		screentext 2822 163 95 28672 0 0 COST_100 0 disp_temp6 16 0 5 8 1 1 0 0 0 xdim ydim
+		rotatesprite 208 60 20000 0 7123 0 0 8 0 0 xdim ydim
+		}
+	add gui_pos_y 10
+	state CURSOR_OVER_ITEM
+	qputs 409 Pistol ROF Mod
+	ifand MIKKO_UPGRADE 4 set disp_temp2 125 else set disp_temp2 60
+ 	screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 0 disp_temp2 16 0 5 8 1 1 0 0 0 xdim ydim
+
+	ifl gui_pos_x_temp 40
+	 ifg gui_pos_x_temp -40
+	  ifl gui_pos_y_temp 4
+	   ifg gui_pos_y_temp -4
+		{
+ 		screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 disp_pulse 2 16 0 5 8 1 1 0 0 0 xdim ydim
+		ifand MIKKO_UPGRADE 4 { qstrcpy 409 3080 set disp_temp6 77 }
+		else
+			{
+			ifl POLYMERS 100 set disp_temp6 124 else set disp_temp6 125
+				ifand BITS_PRESS 4
+					{
+					ifl POLYMERS 100 state FORGE_CANT
+					else
+						{
+						sub POLYMERS 100
+						state FORGE_BUY
+						xorvar MIKKO_UPGRADE 4
+						sound CASHREG
+						}
+					}
+			}
+ 		screentext 2822 163 95 28672 0 0 COST_100 0 disp_temp6 16 0 5 8 1 1 0 0 0 xdim ydim
+		rotatesprite 208 60 20000 0 7128 0 0 8 0 0 xdim ydim
+		}
+	add gui_pos_y 10
+	state CURSOR_OVER_ITEM
+	qputs 409 AR Drum Magazine
+	ifand MIKKO_UPGRADE 8 set disp_temp2 125 else set disp_temp2 60
+ 	screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 0 disp_temp2 16 0 5 8 1 1 0 0 0 xdim ydim
+
+	ifl gui_pos_x_temp 40
+	 ifg gui_pos_x_temp -40
+	  ifl gui_pos_y_temp 4
+	   ifg gui_pos_y_temp -4
+		{
+ 		screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 disp_pulse 2 16 0 5 8 1 1 0 0 0 xdim ydim
+		ifand MIKKO_UPGRADE 8 { qstrcpy 409 3080 set disp_temp6 77 }
+		else
+			{
+			ifl POLYMERS 200 set disp_temp6 124 else set disp_temp6 125
+				ifand BITS_PRESS 4
+					{
+					ifl POLYMERS 200 state FORGE_CANT
+					else
+						{
+						sub POLYMERS 200
+						state FORGE_BUY
+						xorvar MIKKO_UPGRADE 8
+						getp[].ammo_amount 3 temp
+						add temp 100 ifg temp 300 set temp 300
+						setp[].ammo_amount 3 temp
+						sound CASHREG
+						}
+					}
+			}
+ 		screentext 2822 163 95 28672 0 0 COST_200 0 disp_temp6 16 0 5 8 1 1 0 0 0 xdim ydim
+		rotatesprite 208 60 18000 0 7039 0 0 8 0 0 xdim ydim
+		}
+	add gui_pos_y 10
+	state CURSOR_OVER_ITEM
+	qputs 409 AR Hollow-point Firemode
+	ifand MIKKO_UPGRADE 16 set disp_temp2 125 else set disp_temp2 60
+ 	screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 0 disp_temp2 16 0 5 8 1 1 0 0 0 xdim ydim
+
+	ifl gui_pos_x_temp 40
+	 ifg gui_pos_x_temp -40
+	  ifl gui_pos_y_temp 4
+	   ifg gui_pos_y_temp -4
+		{
+ 		screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 disp_pulse 2 16 0 5 8 1 1 0 0 0 xdim ydim
+		ifand MIKKO_UPGRADE 16 { qstrcpy 409 3080 set disp_temp6 77 }
+		else
+			{
+			ifl POLYMERS 200 set disp_temp6 124 else set disp_temp6 125
+				ifand BITS_PRESS 4
+					{
+					ifl POLYMERS 200 state FORGE_CANT
+					else
+						{
+						sub POLYMERS 200
+						xorvar MIKKO_UPGRADE 16
+						state FORGE_BUY
+						getp[].ammo_amount 3 temp
+						add temp 100 ifg temp 300 set temp 300
+						setp[].ammo_amount 3 temp
+						sound CASHREG
+						}
+					}
+			}
+ 		screentext 2822 163 95 28672 0 0 COST_200 0 disp_temp6 16 0 5 8 1 1 0 0 0 xdim ydim
+		rotatesprite 208 60 18000 0 7039 0 0 8 0 0 xdim ydim
+		rotatespritea 205 60 8192 0 6956 0 32 8 -255 windowx1 windowy1 windowx2 windowy2
+		}
+
+	ife SAVED_LIZ 1
+		{
+		add gui_pos_y 10
+		state CURSOR_OVER_ITEM
+		qputs 409 Shotgun DS Accuracy Mod
+		ifand MIKKO_UPGRADE 32 set disp_temp2 125 else set disp_temp2 60
+ 		screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 0 disp_temp2 16 0 5 8 1 1 0 0 0 xdim ydim
+
+		ifl gui_pos_x_temp 40
+		 ifg gui_pos_x_temp -40
+		  ifl gui_pos_y_temp 4
+		   ifg gui_pos_y_temp -4
+			{
+ 			screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 disp_pulse 2 16 0 5 8 1 1 0 0 0 xdim ydim
+			ifand MIKKO_UPGRADE 32 { qstrcpy 409 3080 set disp_temp6 77 }
+			else
+				{
+				ifl POLYMERS 250 set disp_temp6 124 else set disp_temp6 125
+				ifand BITS_PRESS 4
+					{
+					ifl POLYMERS 250 state FORGE_CANT
+					else
+						{
+						sub POLYMERS 250
+						xorvar MIKKO_UPGRADE 32
+						state FORGE_BUY
+						getp[].ammo_amount 2 temp
+						add temp 10
+						setp[].ammo_amount 2 temp
+						sound CASHREG
+						}
+					}
+				}
+ 			screentext 2822 163 95 28672 0 0 COST_250 0 disp_temp6 16 0 5 8 1 1 0 0 0 xdim ydim
+			rotatesprite 208 60 19000 0 6972 0 0 8 0 0 xdim ydim
+			}
+		add gui_pos_y 10
+		state CURSOR_OVER_ITEM
+		qputs 409 Red-M Gun Reactor
+		ifand MIKKO_UPGRADE 64 set disp_temp2 125 else set disp_temp2 60
+ 		screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 0 disp_temp2 16 0 5 8 1 1 0 0 0 xdim ydim
+
+		ifl gui_pos_x_temp 40
+		 ifg gui_pos_x_temp -40
+		  ifl gui_pos_y_temp 4
+		   ifg gui_pos_y_temp -4
+			{
+ 			screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 disp_pulse 2 16 0 5 8 1 1 0 0 0 xdim ydim
+			ifand MIKKO_UPGRADE 64 { qstrcpy 409 3080 set disp_temp6 77 }
+			else
+				{
+				ifl POLYMERS 150 set disp_temp6 124 else set disp_temp6 125
+				ifand BITS_PRESS 4
+					{
+					ifl POLYMERS 150 state FORGE_CANT
+					else
+						{
+						sub POLYMERS 150
+						xorvar MIKKO_UPGRADE 64
+						state FORGE_BUY
+						getp[].ammo_amount 7 temp
+						add temp 1
+						setp[].ammo_amount 7 temp
+						sound CASHREG
+						}
+					}
+				}
+ 			screentext 2822 163 95 28672 0 0 COST_150 0 disp_temp6 16 0 5 8 1 1 0 0 0 xdim ydim
+			rotatesprite 210 60 19000 0 7011 0 0 8 0 0 xdim ydim
+			}
+		}
+	}
+else
+ife INFO_SEL 13 // Micky's upgrades
+	{
+ 	screentext 2822 59 26 28672 0 0 1216 10 2 16 0 5 8 1 1 0 0 0 xdim ydim
+
+	state CURSOR_OVER_ITEM
+	qputs 409 Utility Blade
+	ifand MICKY_UPGRADE 32768 set disp_temp2 125 else set disp_temp2 60
+ 	screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 0 disp_temp2 16 0 5 8 1 1 0 0 0 xdim ydim
+
+	ifl gui_pos_x_temp 40
+	 ifg gui_pos_x_temp -40
+	  ifl gui_pos_y_temp 4
+	   ifg gui_pos_y_temp -4
+		{
+ 		screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 disp_pulse 2 16 0 5 8 1 1 0 0 0 xdim ydim
+		ifand MICKY_UPGRADE 32768 { qstrcpy 409 3080 set disp_temp6 77 }
+		else
+			{
+			ifl POLYMERS 500 set disp_temp6 124 else set disp_temp6 125
+			ifand BITS_PRESS 4
+					{
+					ifl POLYMERS 500 state FORGE_CANT
+					else
+						{
+						sub POLYMERS 500
+						xorvar MICKY_UPGRADE 32768
+						state FORGE_BUY
+						sound CASHREG
+						}
+					}
+			}
+ 		screentext 2822 163 95 28672 0 0 COST_500 0 disp_temp6 16 0 5 8 1 1 0 0 0 xdim ydim
+		rotatesprite 210 83 24000 -64 29808 0 0 8 0 0 xdim ydim
+		}
+	add gui_pos_y 10
+
+	state CURSOR_OVER_ITEM
+	qputs 409 Pistol AP Mod
+	ifand MICKY_UPGRADE 1 set disp_temp2 125 else set disp_temp2 60
+ 	screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 0 disp_temp2 16 0 5 8 1 1 0 0 0 xdim ydim
+
+	ifl gui_pos_x_temp 40
+	 ifg gui_pos_x_temp -40
+	  ifl gui_pos_y_temp 4
+	   ifg gui_pos_y_temp -4
+		{
+ 		screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 disp_pulse 2 16 0 5 8 1 1 0 0 0 xdim ydim
+		ifand MICKY_UPGRADE 1 { qstrcpy 409 3080 set disp_temp6 77 }
+		else
+			{
+			ifl POLYMERS 150 set disp_temp6 124 else set disp_temp6 125
+					ifand BITS_PRESS 4
+					{
+					ifl POLYMERS 150 state FORGE_CANT
+					else
+						{
+						sub POLYMERS 150
+						xorvar MICKY_UPGRADE 1
+						state FORGE_BUY
+						getp[].ammo_amount 1 temp
+						add temp 24 ifg temp 200 set temp 200
+						setp[].ammo_amount 1 temp
+						sound CASHREG
+						}
+					} // End of Micky slot 1 bracket
+			}
+ 		screentext 2822 163 95 28672 0 0 COST_150 0 disp_temp6 16 0 5 8 1 1 0 0 0 xdim ydim
+		rotatesprite 208 62 20000 0 16478 0 0 8 0 0 xdim ydim
+		}
+	add gui_pos_y 10
+	state CURSOR_OVER_ITEM
+	qputs 409 Pistol Accuracy Mod
+	ifand MICKY_UPGRADE 16 set disp_temp2 125 else set disp_temp2 60
+ 	screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 0 disp_temp2 16 0 5 8 1 1 0 0 0 xdim ydim
+	ifl gui_pos_x_temp 40
+	 ifg gui_pos_x_temp -40
+	  ifl gui_pos_y_temp 4
+	   ifg gui_pos_y_temp -4
+		{
+ 		screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 disp_pulse 2 16 0 5 8 1 1 0 0 0 xdim ydim
+		ifand MICKY_UPGRADE 16 { qstrcpy 409 3080 set disp_temp6 77 }
+		else
+			{
+			ifl POLYMERS 200 set disp_temp6 124 else set disp_temp6 125
+				ifand BITS_PRESS 4
+					{
+					ifl POLYMERS 200 state FORGE_CANT
+					else
+						{
+						sub POLYMERS 200
+						xorvar MICKY_UPGRADE 16
+						state FORGE_BUY
+						getp[].ammo_amount 1 temp
+						add temp 48 ifg temp 200 set temp 200
+						setp[].ammo_amount 1 temp
+						sound CASHREG
+						}
+					}
+			}
+ 		screentext 2822 163 95 28672 0 0 COST_200 0 disp_temp6 16 0 5 8 1 1 0 0 0 xdim ydim
+		rotatesprite 208 62 20000 0 16478 0 0 8 0 0 xdim ydim
+		}
+	add gui_pos_y 10
+	state CURSOR_OVER_ITEM
+	qputs 409 Pulse Rifle scope
+	ifand MICKY_UPGRADE 2 set disp_temp2 125 else set disp_temp2 60
+ 	screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 0 disp_temp2 16 0 5 8 1 1 0 0 0 xdim ydim
+	ifl gui_pos_x_temp 40
+	 ifg gui_pos_x_temp -40
+	  ifl gui_pos_y_temp 4
+	   ifg gui_pos_y_temp -4
+		{
+ 		screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 disp_pulse 2 16 0 5 8 1 1 0 0 0 xdim ydim
+		ifand MICKY_UPGRADE 2 { qstrcpy 409 3080 set disp_temp6 77 }
+		else
+			{
+			ifl POLYMERS 100 set disp_temp6 124 else set disp_temp6 125
+				ifand BITS_PRESS 4
+					{
+					ifl POLYMERS 100 state FORGE_CANT
+					else
+						{
+						sub POLYMERS 100
+						xorvar MICKY_UPGRADE 2
+						state FORGE_BUY
+						getp[].ammo_amount 2 temp
+						add temp 10 ifg temp 50 set temp 50
+						setp[].ammo_amount 2 temp
+						sound CASHREG
+						}
+					}
+			}
+ 		screentext 2822 163 95 28672 0 0 COST_100 0 disp_temp6 16 0 5 8 1 1 0 0 0 xdim ydim
+		rotatesprite 208 62 20000 0 16468 0 0 8 0 0 xdim ydim
+		rotatesprite 208 62 20000 0 16473 0 0 8 0 0 xdim ydim
+		}
+
+	add gui_pos_y 10
+	state CURSOR_OVER_ITEM
+	qputs 409 AR Extended Magazine
+	ifand MICKY_UPGRADE 4 set disp_temp2 125 else set disp_temp2 60
+ 	screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 0 disp_temp2 16 0 5 8 1 1 0 0 0 xdim ydim
+
+	ifl gui_pos_x_temp 40
+	 ifg gui_pos_x_temp -40
+	  ifl gui_pos_y_temp 4
+	   ifg gui_pos_y_temp -4
+		{
+ 		screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 disp_pulse 2 16 0 5 8 1 1 0 0 0 xdim ydim
+		ifand MICKY_UPGRADE 4 { qstrcpy 409 3080 set disp_temp6 77 }
+		else
+			{
+			ifl POLYMERS 150 set disp_temp6 124 else set disp_temp6 125
+				ifand BITS_PRESS 4
+					{
+					ifl POLYMERS 150 state FORGE_CANT
+					else
+						{
+						sub POLYMERS 150
+						xorvar MICKY_UPGRADE 4
+						state FORGE_BUY
+						getp[].ammo_amount 3 temp
+						add temp 50 ifg temp 300 set temp 300
+						setp[].ammo_amount 3 temp
+						sound CASHREG
+						}
+					}
+			}
+		rotatesprite 210 68 20000 0 17990 0 0 8 0 0 xdim ydim
+ 		screentext 2822 163 95 28672 0 0 COST_150 0 disp_temp6 16 0 5 8 1 1 0 0 0 xdim ydim
+		}
+	add gui_pos_y 10
+	state CURSOR_OVER_ITEM
+	qputs 409 AR Accuracy Mod
+	ifand MICKY_UPGRADE 8 set disp_temp2 125 else set disp_temp2 60
+ 	screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 0 disp_temp2 16 0 5 8 1 1 0 0 0 xdim ydim
+
+	ifl gui_pos_x_temp 40
+	 ifg gui_pos_x_temp -40
+	  ifl gui_pos_y_temp 4
+	   ifg gui_pos_y_temp -4
+		{
+ 		screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 disp_pulse 2 16 0 5 8 1 1 0 0 0 xdim ydim
+		ifand MICKY_UPGRADE 8 { qstrcpy 409 3080 set disp_temp6 77 }
+		else
+			{
+			ifl POLYMERS 100 set disp_temp6 124 else set disp_temp6 125
+				ifand BITS_PRESS 4
+					{
+					ifl POLYMERS 100 state FORGE_CANT
+					else
+						{
+						sub POLYMERS 100
+						xorvar MICKY_UPGRADE 8
+						state FORGE_BUY
+						getp[].ammo_amount 3 temp
+						add temp 30 ifg temp 300 set temp 300
+						setp[].ammo_amount 3 temp
+						sound CASHREG
+						}
+					}
+			}
+		rotatesprite 210 68 20000 0 16489 0 0 8 0 0 xdim ydim
+ 		screentext 2822 163 95 28672 0 0 COST_100 0 disp_temp6 16 0 5 8 1 1 0 0 0 xdim ydim
+		}
+
+	}
+else
+ife INFO_SEL 14 // Snowfall's upgrades
+	{
+ 	screentext 2822 59 26 28672 0 0 1217 10 2 16 0 5 8 1 1 0 0 0 xdim ydim
+
+	state CURSOR_OVER_ITEM
+	qputs 409 Spacer's Knife
+	ifand SNOWFALL_UPGRADE 32768 set disp_temp2 125 else set disp_temp2 60
+ 	screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 0 disp_temp2 16 0 5 8 1 1 0 0 0 xdim ydim
+
+	ifl gui_pos_x_temp 40
+	 ifg gui_pos_x_temp -40
+	  ifl gui_pos_y_temp 4
+	   ifg gui_pos_y_temp -4
+		{
+ 		screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 disp_pulse 2 16 0 5 8 1 1 0 0 0 xdim ydim
+		ifand SNOWFALL_UPGRADE 32768 { qstrcpy 409 3080 set disp_temp6 77 }
+		else
+			{
+			ifl POLYMERS 500 set disp_temp6 124 else set disp_temp6 125
+			ifand BITS_PRESS 4
+					{
+					ifl POLYMERS 500 state FORGE_CANT
+					else
+						{
+						sub POLYMERS 500
+						xorvar SNOWFALL_UPGRADE 32768
+						state FORGE_BUY
+						sound CASHREG
+						}
+					}
+			}
+ 		screentext 2822 163 95 28672 0 0 COST_500 0 disp_temp6 16 0 5 8 1 1 0 0 0 xdim ydim
+		rotatesprite 210 83 24000 -64 29810 0 0 8 0 0 xdim ydim
+		}
+	add gui_pos_y 10
+
+	state CURSOR_OVER_ITEM
+	qputs 409 AR Extended Magazine
+	ifand SNOWFALL_UPGRADE 1 set disp_temp2 125 else set disp_temp2 60
+ 	screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 0 disp_temp2 16 0 5 8 1 1 0 0 0 xdim ydim
+
+ifl gui_pos_x_temp 40
+	 ifg gui_pos_x_temp -40
+	  ifl gui_pos_y_temp 4
+	   ifg gui_pos_y_temp -4
+		{
+ 		screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 disp_pulse 2 16 0 5 8 1 1 0 0 0 xdim ydim
+		ifand SNOWFALL_UPGRADE 1 { qstrcpy 409 3080 set disp_temp6 77 }
+		else
+			{
+			ifl POLYMERS 100 set disp_temp6 124 else set disp_temp6 125
+				ifand BITS_PRESS 4
+					{
+					ifl POLYMERS 100 state FORGE_CANT
+					else
+						{
+						sub POLYMERS 100
+						xorvar SNOWFALL_UPGRADE 1
+						state FORGE_BUY
+						getp[].ammo_amount 3 temp
+						add temp 60 ifg temp 200 set temp 200
+						setp[].ammo_amount 3 temp
+						sound CASHREG
+						}
+					}
+			}
+ 		screentext 2822 163 95 28672 0 0 COST_100 0 disp_temp6 16 0 5 8 1 1 0 0 0 xdim ydim
+		rotatesprite 212 61 19000 0 20823 0 0 8 0 0 xdim ydim
+		}
+	add gui_pos_y 10
+	state CURSOR_OVER_ITEM
+	qputs 409 AR Spread Reduction Mod
+	ifand SNOWFALL_UPGRADE 2 set disp_temp2 125 else set disp_temp2 60
+ 	screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 0 disp_temp2 16 0 5 8 1 1 0 0 0 xdim ydim
+
+ifl gui_pos_x_temp 40
+	 ifg gui_pos_x_temp -40
+	  ifl gui_pos_y_temp 4
+	   ifg gui_pos_y_temp -4
+		{
+ 		screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 disp_pulse 2 16 0 5 8 1 1 0 0 0 xdim ydim
+		ifand SNOWFALL_UPGRADE 2 { qstrcpy 409 3080 set disp_temp6 77 }
+		else
+			{
+			ifl POLYMERS 150 set disp_temp6 124 else set disp_temp6 125
+				ifand BITS_PRESS 4
+					{
+					ifl POLYMERS 150 state FORGE_CANT
+					else
+						{
+						sub POLYMERS 150
+						xorvar SNOWFALL_UPGRADE 2
+						state FORGE_BUY
+						getp[].ammo_amount 3 temp
+						add temp 40 ifg temp 200 set temp 200
+						setp[].ammo_amount 3 temp
+						sound CASHREG
+						}
+					}
+			}
+ 		screentext 2822 163 95 28672 0 0 COST_150 0 disp_temp6 16 0 5 8 1 1 0 0 0 xdim ydim
+		rotatesprite 212 61 19000 0 20823 0 0 8 0 0 xdim ydim
+		}
+	add gui_pos_y 10
+	state CURSOR_OVER_ITEM
+	qputs 409 AR Accuracy mod
+	ifand SNOWFALL_UPGRADE 4 set disp_temp2 125 else set disp_temp2 60
+ 	screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 0 disp_temp2 16 0 5 8 1 1 0 0 0 xdim ydim
+
+	ifl gui_pos_x_temp 40
+	 ifg gui_pos_x_temp -40
+	  ifl gui_pos_y_temp 4
+	   ifg gui_pos_y_temp -4
+		{
+ 		screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 disp_pulse 2 16 0 5 8 1 1 0 0 0 xdim ydim
+		ifand SNOWFALL_UPGRADE 4 { qstrcpy 409 3080 set disp_temp6 77 }
+		else
+			{
+			ifl POLYMERS 150 set disp_temp6 124 else set disp_temp6 125
+				ifand BITS_PRESS 4
+					{
+					ifl POLYMERS 150 state FORGE_CANT
+					else
+						{
+						sub POLYMERS 150
+						xorvar SNOWFALL_UPGRADE 4
+						state FORGE_BUY
+						getp[].ammo_amount 3 temp
+						add temp 40 ifg temp 200 set temp 200
+						setp[].ammo_amount 3 temp
+						sound CASHREG
+						}
+					}
+			}
+ 		screentext 2822 163 95 28672 0 0 COST_150 0 disp_temp6 16 0 5 8 1 1 0 0 0 xdim ydim
+		rotatesprite 212 61 19000 0 20823 0 0 8 0 0 xdim ydim
+		}
+	add gui_pos_y 10
+	state CURSOR_OVER_ITEM
+	qputs 409 AS Accuracy Mod
+	ifand SNOWFALL_UPGRADE 8 set disp_temp2 125 else set disp_temp2 60
+ 	screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 0 disp_temp2 16 0 5 8 1 1 0 0 0 xdim ydim
+
+	ifl gui_pos_x_temp 40
+	 ifg gui_pos_x_temp -40
+	  ifl gui_pos_y_temp 4
+	   ifg gui_pos_y_temp -4
+		{
+ 		screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 disp_pulse 2 16 0 5 8 1 1 0 0 0 xdim ydim
+		ifand SNOWFALL_UPGRADE 8 { qstrcpy 409 3080 set disp_temp6 77 }
+		else
+			{
+			ifl POLYMERS 150 set disp_temp6 124 else set disp_temp6 125
+				ifand BITS_PRESS 4
+					{
+					ifl POLYMERS 150 state FORGE_CANT
+					else
+						{
+						sub POLYMERS 150
+						xorvar SNOWFALL_UPGRADE 8
+						state FORGE_BUY
+						getp[].ammo_amount 2 temp
+						add temp 10 ifg temp 100 set temp 100
+						setp[].ammo_amount 2 temp
+						sound CASHREG
+						}
+					}
+			}
+ 		screentext 2822 163 95 28672 0 0 COST_150 0 disp_temp6 16 0 5 8 1 1 0 0 0 xdim ydim
+		rotatesprite 210 62 20000 0 20817 0 0 8 0 0 xdim ydim
+		}
+	add gui_pos_y 10
+	state CURSOR_OVER_ITEM
+	qputs 409 AS Extended Magazine
+	ifand SNOWFALL_UPGRADE 16 set disp_temp2 125 else set disp_temp2 60
+ 	screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 0 disp_temp2 16 0 5 8 1 1 0 0 0 xdim ydim
+
+	ifl gui_pos_x_temp 40
+	 ifg gui_pos_x_temp -40
+	  ifl gui_pos_y_temp 4
+	   ifg gui_pos_y_temp -4
+		{
+ 		screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 disp_pulse 2 16 0 5 8 1 1 0 0 0 xdim ydim
+		ifand SNOWFALL_UPGRADE 16 { qstrcpy 409 3080 set disp_temp6 77 }
+		else
+			{
+			ifl POLYMERS 100 set disp_temp6 124 else set disp_temp6 125
+				ifand BITS_PRESS 4
+					{
+					ifl POLYMERS 100 state FORGE_CANT
+					else
+						{
+						sub POLYMERS 100
+						xorvar SNOWFALL_UPGRADE 16
+						state FORGE_BUY
+						getp[].ammo_amount 2 temp
+						add temp 10 ifg temp 100 set temp 100
+						setp[].ammo_amount 2 temp
+						sound CASHREG
+						}
+					}
+			}
+ 		screentext 2822 163 95 28672 0 0 COST_100 0 disp_temp6 16 0 5 8 1 1 0 0 0 xdim ydim
+		rotatesprite 210 62 20000 0 20819 0 0 8 0 0 xdim ydim
+		}
+
+	}
+else
+ife INFO_SEL 17 // Kagura's upgrades
+	{
+ 	screentext 2822 59 26 28672 0 0 1222 10 2 16 0 5 8 1 1 0 0 0 xdim ydim
+
+	state CURSOR_OVER_ITEM
+	qputs 409 Kunai
+	ifand KAGURA_UPGRADE 32768 set disp_temp2 125 else set disp_temp2 60
+ 	screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 0 disp_temp2 16 0 5 8 1 1 0 0 0 xdim ydim
+
+	ifl gui_pos_x_temp 40
+	 ifg gui_pos_x_temp -40
+	  ifl gui_pos_y_temp 4
+	   ifg gui_pos_y_temp -4
+		{
+ 		screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 disp_pulse 2 16 0 5 8 1 1 0 0 0 xdim ydim
+		ifand KAGURA_UPGRADE 32768 { qstrcpy 409 3080 set disp_temp6 77 }
+		else
+			{
+			ifl POLYMERS 500 set disp_temp6 124 else set disp_temp6 125
+			ifand BITS_PRESS 4
+					{
+					ifl POLYMERS 500 state FORGE_CANT
+					else
+						{
+						sub POLYMERS 500
+						xorvar KAGURA_UPGRADE 32768
+						state FORGE_BUY
+						sound CASHREG
+						}
+					}
+			}
+ 		screentext 2822 163 95 28672 0 0 COST_500 0 disp_temp6 16 0 5 8 1 1 0 0 0 xdim ydim
+		rotatesprite 210 83 24000 -64 29812 0 0 8 0 0 xdim ydim
+		}
+	add gui_pos_y 10
+
+	state CURSOR_OVER_ITEM
+	qputs 409 Crossbow Ext Mag
+	ifand KAGURA_UPGRADE 1 set disp_temp2 125 else set disp_temp2 60
+ 	screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 0 disp_temp2 16 0 5 8 1 1 0 0 0 xdim ydim
+
+	ifl gui_pos_x_temp 40
+	 ifg gui_pos_x_temp -40
+	  ifl gui_pos_y_temp 4
+	   ifg gui_pos_y_temp -4
+		{
+ 		screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 disp_pulse 2 16 0 5 8 1 1 0 0 0 xdim ydim
+		ifand KAGURA_UPGRADE 1 { qstrcpy 409 3080 set disp_temp6 77 }
+		else
+			{
+			ifl POLYMERS 200 set disp_temp6 124 else set disp_temp6 125
+				ifand BITS_PRESS 4
+					{
+					ifl POLYMERS 200 state FORGE_CANT
+					else
+						{
+						sub POLYMERS 200
+						xorvar KAGURA_UPGRADE 1
+						state FORGE_BUY
+						getp[].ammo_amount 3 temp
+						add temp 60 ifg temp 200 set temp 200
+						setp[].ammo_amount 3 temp
+						sound CASHREG
+						}
+					}
+			}
+ 		screentext 2822 163 95 28672 0 0 COST_200 0 disp_temp6 16 0 5 8 1 1 0 0 0 xdim ydim
+		rotatesprite 212 61 19000 0 27279 0 0 8 0 0 xdim ydim
+		}
+
+	add gui_pos_y 10
+	state CURSOR_OVER_ITEM
+	qputs 409 Crossbow Tesla
+	ifand KAGURA_UPGRADE 2 set disp_temp2 125 else set disp_temp2 60
+ 	screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 0 disp_temp2 16 0 5 8 1 1 0 0 0 xdim ydim
+
+	ifl gui_pos_x_temp 40
+	 ifg gui_pos_x_temp -40
+	  ifl gui_pos_y_temp 4
+	   ifg gui_pos_y_temp -4
+		{
+ 		screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 disp_pulse 2 16 0 5 8 1 1 0 0 0 xdim ydim
+		ifand KAGURA_UPGRADE 2 { qstrcpy 409 3080 set disp_temp6 77 }
+		else
+			{
+			ifl POLYMERS 200 set disp_temp6 124 else set disp_temp6 125
+				ifand BITS_PRESS 4
+					{
+					ifl POLYMERS 200 state FORGE_CANT
+					else
+						{
+						sub POLYMERS 200
+						xorvar KAGURA_UPGRADE 2
+						state FORGE_BUY
+						getp[].ammo_amount 3 temp
+						add temp 60 ifg temp 200 set temp 200
+						setp[].ammo_amount 3 temp
+						sound CASHREG
+						}
+					}
+			}
+ 		screentext 2822 163 95 28672 0 0 COST_200 0 disp_temp6 16 0 5 8 1 1 0 0 0 xdim ydim
+		rotatesprite 212 61 19000 0 27279 0 0 8 0 0 xdim ydim
+		rotatesprite 212 61 19000 0 27119 0 0 8 0 0 xdim ydim
+		}
+
+	add gui_pos_y 10
+	state CURSOR_OVER_ITEM
+	qputs 409 CZN-M22 Mag Upg
+	ifand KAGURA_UPGRADE 4 set disp_temp2 125 else set disp_temp2 60
+ 	screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 0 disp_temp2 16 0 5 8 1 1 0 0 0 xdim ydim
+
+	ifl gui_pos_x_temp 40
+	 ifg gui_pos_x_temp -40
+	  ifl gui_pos_y_temp 4
+	   ifg gui_pos_y_temp -4
+		{
+ 		screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 disp_pulse 2 16 0 5 8 1 1 0 0 0 xdim ydim
+		ifand KAGURA_UPGRADE 4 { qstrcpy 409 3080 set disp_temp6 77 }
+		else
+			{
+			ifl POLYMERS 200 set disp_temp6 124 else set disp_temp6 125
+				ifand BITS_PRESS 4
+					{
+					ifl POLYMERS 200 state FORGE_CANT
+					else
+						{
+						sub POLYMERS 200
+						xorvar KAGURA_UPGRADE 4
+						state FORGE_BUY
+						getp[].ammo_amount 6 temp
+						add temp 60 ifg temp 600 set temp 600
+						setp[].ammo_amount 6 temp
+						sound CASHREG
+						}
+					}
+			}
+ 		screentext 2822 163 95 28672 0 0 COST_200 0 disp_temp6 16 0 5 8 1 1 0 0 0 xdim ydim
+		rotatesprite 212 61 19000 0 27336 0 0 8 0 0 xdim ydim
+		}
+
+	add gui_pos_y 10
+	state CURSOR_OVER_ITEM
+	qputs 409 CZN-M22 Accuracy
+	ifand KAGURA_UPGRADE 8 set disp_temp2 125 else set disp_temp2 60
+ 	screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 0 disp_temp2 16 0 5 8 1 1 0 0 0 xdim ydim
+
+	ifl gui_pos_x_temp 40
+	 ifg gui_pos_x_temp -40
+	  ifl gui_pos_y_temp 4
+	   ifg gui_pos_y_temp -4
+		{
+ 		screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 disp_pulse 2 16 0 5 8 1 1 0 0 0 xdim ydim
+		ifand KAGURA_UPGRADE 8 { qstrcpy 409 3080 set disp_temp6 77 }
+		else
+			{
+			ifl POLYMERS 150 set disp_temp6 124 else set disp_temp6 125
+				ifand BITS_PRESS 4
+					{
+					ifl POLYMERS 150 state FORGE_CANT
+					else
+						{
+						sub POLYMERS 150
+						xorvar KAGURA_UPGRADE 8
+						state FORGE_BUY
+						getp[].ammo_amount 6 temp
+						add temp 60 ifg temp 600 set temp 600
+						setp[].ammo_amount 6 temp
+						sound CASHREG
+						}
+					}
+			}
+ 		screentext 2822 163 95 28672 0 0 COST_150 0 disp_temp6 16 0 5 8 1 1 0 0 0 xdim ydim
+		rotatesprite 212 61 19000 0 27336 0 0 8 0 0 xdim ydim
+		}
+
+	add gui_pos_y 10
+	state CURSOR_OVER_ITEM
+	qputs 409 PSG Magazine
+	ifand KAGURA_UPGRADE 16 set disp_temp2 125 else set disp_temp2 60
+ 	screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 0 disp_temp2 16 0 5 8 1 1 0 0 0 xdim ydim
+
+	ifl gui_pos_x_temp 40
+	 ifg gui_pos_x_temp -40
+	  ifl gui_pos_y_temp 4
+	   ifg gui_pos_y_temp -4
+		{
+ 		screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 disp_pulse 2 16 0 5 8 1 1 0 0 0 xdim ydim
+		ifand KAGURA_UPGRADE 16 { qstrcpy 409 3080 set disp_temp6 77 }
+		else
+			{
+			ifl POLYMERS 150 set disp_temp6 124 else set disp_temp6 125
+				ifand BITS_PRESS 4
+					{
+					ifl POLYMERS 150 state FORGE_CANT
+					else
+						{
+						sub POLYMERS 150
+						xorvar KAGURA_UPGRADE 16
+						state FORGE_BUY
+						getp[].ammo_amount 6 temp
+						add temp 60 ifg temp 600 set temp 600
+						setp[].ammo_amount 6 temp
+						sound CASHREG
+						}
+					}
+			}
+ 		screentext 2822 163 95 28672 0 0 COST_150 0 disp_temp6 16 0 5 8 1 1 0 0 0 xdim ydim
+		rotatesprite 212 61 19000 0 27273 0 0 8 0 0 xdim ydim
+		}
+	}
+else
+ife INFO_SEL 9 // Cultist's upgrades
+	{
+ 	screentext 2822 59 26 28672 0 0 1212 10 2 16 0 5 8 1 1 0 0 0 xdim ydim
+	set gui_pos_x 35
+	set gui_pos_y 47
+	}
+else
+ife INFO_SEL 10 // Bombshell's upgrades
+	{
+ 	screentext 2822 59 26 28672 0 0 1213 10 2 16 0 5 8 1 1 0 0 0 xdim ydim
+	set gui_pos_x 35
+	set gui_pos_y 47
+
+	state CURSOR_OVER_ITEM
+	qputs 409 M4 Drum Magazine
+	ifand AGENT_UPGRADE 1 set disp_temp2 125 else set disp_temp2 60
+ 	screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 0 disp_temp2 16 0 5 8 1 1 0 0 0 xdim ydim
+
+	ifl gui_pos_x_temp 40
+	 ifg gui_pos_x_temp -40
+	  ifl gui_pos_y_temp 4
+	   ifg gui_pos_y_temp -4
+		{
+ 		screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 disp_pulse 2 16 0 5 8 1 1 0 0 0 xdim ydim
+		ifand AGENT_UPGRADE 1 { qstrcpy 409 3080 set disp_temp6 77 }
+		else
+			{
+			ifl POLYMERS 250 set disp_temp6 124 else set disp_temp6 125
+				ifand BITS_PRESS 4
+					{
+					ifl POLYMERS 250 state FORGE_CANT
+					else
+						{
+						sub POLYMERS 250
+						xorvar AGENT_UPGRADE 1
+						state FORGE_BUY
+						getp[].ammo_amount 3 temp
+						add temp 100 ifg temp 400 set temp 400
+						setp[].ammo_amount 3 temp
+						sound CASHREG
+						}
+					}
+			}
+ 		screentext 2822 163 95 28672 0 0 COST_250 0 disp_temp6 16 0 5 8 1 1 0 0 0 xdim ydim
+		rotatesprite 210 68 18000 0 10441 0 0 8 0 0 xdim ydim
+		rotatesprite 210 68 18000 0 5174 0 0 8 0 0 xdim ydim
+		}
+
+	}
+else
+ife INFO_SEL 11 // Maarten's upgrades
+	{
+ 	screentext 2822 59 26 28672 0 0 1214 10 2 16 0 5 8 1 1 0 0 0 xdim ydim
+	set gui_pos_x 35
+	set gui_pos_y 47
+	}
+else
+ife INFO_SEL 12 // Jane's upgrades
+	{
+ 	screentext 2822 59 26 28672 0 0 1215 10 2 16 0 5 8 1 1 0 0 0 xdim ydim
+	set gui_pos_x 35
+	set gui_pos_y 47
+	}
+}
+else
+ife INFO_SEL_2 1 // Purchase equipment?
+	{
+ 	screentext 2822 59 26 28672 0 0 1225 10 2 16 0 5 8 1 1 0 0 0 xdim ydim
+
+	set SCROLL_POS_MAX 40
+	state SCROLL_WHEEL
+
+	set gui_pos_x 35
+	set gui_pos_y 47
+	state SCROLL_POS
+
+	ife EQUIPMENT_RESEARCH[1] 2
+		{
+		state CURSOR_OVER_ITEM
+		ifg gui_pos_y 39 ifl gui_pos_y 187
+			{
+			qputs 409 Explosive Shells
+ 			screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 0 1 16 0 5 8 1 1 0 0 0 xdim ydim
+			ifl SUPPLY_LEVEL 5 set disp_temp6 124 else set disp_temp6 125
+
+			ifl gui_pos_x_temp 40
+			 ifg gui_pos_x_temp -40
+			  ifl gui_pos_y_temp 4
+			   ifg gui_pos_y_temp -4
+				{
+ 				screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 disp_pulse 2 16 0 5 8 1 1 0 0 0 xdim ydim
+					state handle_click
+					ife clicked 1
+						{
+						ifl SUPPLY_LEVEL 5 state FORGE_CANT
+						else
+							{
+							state FORGE_BUY
+							spawn EXPL_SHELLS
+							sound CASHREG
+							}
+						}
+ 				screentext 2822 163 95 28672 0 0 COST_5 0 disp_temp6 16 0 5 8 1 1 0 0 0 xdim ydim
+				rotatesprite 205 63 40960 0 EXPL_SHELLS 0 0 0 0 0 xdim ydim
+				}
+			}
+		}
+
+	ife EQUIPMENT_RESEARCH[2] 2
+		{
+		add gui_pos_y 10
+		state CURSOR_OVER_ITEM
+		ifg gui_pos_y 39 ifl gui_pos_y 187
+			{
+			qputs 409 Flechette Shells
+ 			screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 0 1 16 0 5 8 1 1 0 0 0 xdim ydim
+			ifl SUPPLY_LEVEL 5 set disp_temp6 124 else set disp_temp6 125
+
+			ifl gui_pos_x_temp 40
+			 ifg gui_pos_x_temp -40
+			  ifl gui_pos_y_temp 4
+			   ifg gui_pos_y_temp -4
+				{
+ 				screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 disp_pulse 2 16 0 5 8 1 1 0 0 0 xdim ydim
+					state handle_click
+					ife clicked 1
+						{
+						ifl SUPPLY_LEVEL 5 state FORGE_CANT
+						else
+							{
+							sub SUPPLY_LEVEL 5
+							state FORGE_BUY
+							spawn FLECHETE_SHELLS
+							sound CASHREG
+							}
+						}
+ 				screentext 2822 163 95 28672 0 0 COST_5 0 disp_temp6 16 0 5 8 1 1 0 0 0 xdim ydim
+				rotatesprite 205 63 40960 0 FLECHETE_SHELLS 0 0 0 0 0 xdim ydim
+				}
+			}
+		}
+
+	ife EQUIPMENT_RESEARCH[3] 2
+		{
+		add gui_pos_y 10
+		state CURSOR_OVER_ITEM
+		ifg gui_pos_y 39 ifl gui_pos_y 187
+			{
+			qputs 409 .45 Silver Ammo
+ 			screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 0 1 16 0 5 8 1 1 0 0 0 xdim ydim
+			ifl SUPPLY_LEVEL 5 set disp_temp6 124 else set disp_temp6 125
+
+			ifl gui_pos_x_temp 40
+			 ifg gui_pos_x_temp -40
+			  ifl gui_pos_y_temp 4
+			   ifg gui_pos_y_temp -4
+				{
+ 				screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 disp_pulse 2 16 0 5 8 1 1 0 0 0 xdim ydim
+					state handle_click
+					ife clicked 1
+						{
+						ifl SUPPLY_LEVEL 5 state FORGE_CANT
+						else
+							{
+							sub SUPPLY_LEVEL 5
+							state FORGE_BUY
+							spawn SILVERAMMO_DRUM
+							sound CASHREG
+							}
+						}
+ 				screentext 2822 163 95 28672 0 0 COST_5 0 disp_temp6 16 0 5 8 1 1 0 0 0 xdim ydim
+				rotatesprite 205 63 40960 0 SILVERAMMO_DRUM 0 0 0 0 0 xdim ydim
+				}
+			}
+		}
+
+	ife EQUIPMENT_RESEARCH[23] 2
+		{
+		add gui_pos_y 10
+		state CURSOR_OVER_ITEM
+		ifg gui_pos_y 39 ifl gui_pos_y 187
+			{
+			qputs 409 .45 Incend Ammo
+ 			screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 0 1 16 0 5 8 1 1 0 0 0 xdim ydim
+			ifl SUPPLY_LEVEL 5 set disp_temp6 124 else set disp_temp6 125
+
+			ifl gui_pos_x_temp 40
+			 ifg gui_pos_x_temp -40
+			  ifl gui_pos_y_temp 4
+			   ifg gui_pos_y_temp -4
+				{
+ 				screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 disp_pulse 2 16 0 5 8 1 1 0 0 0 xdim ydim
+					state handle_click
+					ife clicked 1
+						{
+						ifl SUPPLY_LEVEL 5 state FORGE_CANT
+						else
+							{
+							sub SUPPLY_LEVEL 5
+							state FORGE_BUY
+							spawn INCEND_AMMO_DRUM
+							sound CASHREG
+							}
+						}
+ 				screentext 2822 163 95 28672 0 0 COST_5 0 disp_temp6 16 0 5 8 1 1 0 0 0 xdim ydim
+				rotatesprite 205 63 40960 0 INCEND_AMMO_DRUM 0 0 0 0 0 xdim ydim
+				}
+			}
+		}
+
+	ife EQUIPMENT_RESEARCH[4] 2
+		{
+		add gui_pos_y 10
+		state CURSOR_OVER_ITEM
+		ifg gui_pos_y 39 ifl gui_pos_y 187
+			{
+			qputs 409 Tesla Ammo
+ 			screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 0 1 16 0 5 8 1 1 0 0 0 xdim ydim
+			ifl SUPPLY_LEVEL 5 set disp_temp6 124 else set disp_temp6 125
+
+			ifl gui_pos_x_temp 40
+			 ifg gui_pos_x_temp -40
+			  ifl gui_pos_y_temp 4
+			   ifg gui_pos_y_temp -4
+				{
+ 				screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 disp_pulse 2 16 0 5 8 1 1 0 0 0 xdim ydim
+					state handle_click
+					ife clicked 1
+						{
+						ifl SUPPLY_LEVEL 5 state FORGE_CANT
+						else
+							{
+							sub SUPPLY_LEVEL 5
+							state FORGE_BUY
+							spawn TESLA_AMMO_SPRITE
+							sound CASHREG
+							}
+						}
+ 				screentext 2822 163 95 28672 0 0 COST_5 0 disp_temp6 16 0 5 8 1 1 0 0 0 xdim ydim
+				rotatesprite 205 63 40960 0 TESLA_AMMO_SPRITE 0 0 0 0 0 xdim ydim
+				}
+			}
+		}
+
+	ife EQUIPMENT_RESEARCH[6] 2
+		{
+		add gui_pos_y 10
+		state CURSOR_OVER_ITEM
+		ifg gui_pos_y 39 ifl gui_pos_y 187
+			{
+			qputs 409 Silver Bolts
+ 			screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 0 1 16 0 5 8 1 1 0 0 0 xdim ydim
+			ifl SUPPLY_LEVEL 3 set disp_temp6 124 else set disp_temp6 125
+
+			ifl gui_pos_x_temp 40
+			 ifg gui_pos_x_temp -40
+			  ifl gui_pos_y_temp 4
+			   ifg gui_pos_y_temp -4
+				{
+ 				screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 disp_pulse 2 16 0 5 8 1 1 0 0 0 xdim ydim
+					state handle_click
+					ife clicked 1
+						{
+						ifl SUPPLY_LEVEL 3 state FORGE_CANT
+						else
+							{
+							sub SUPPLY_LEVEL 3
+							state FORGE_BUY
+							spawn SILVER_CROSSBOW_BOLTS
+							sound CASHREG
+							}
+						}
+ 				screentext 2822 163 95 28672 0 0 COST_3 0 disp_temp6 16 0 5 8 1 1 0 0 0 xdim ydim
+				rotatesprite 205 63 40960 0 SILVER_CROSSBOW_BOLTS 0 0 0 0 0 xdim ydim
+				}
+			}
+		}
+
+	ife EQUIPMENT_RESEARCH[8] 2
+		{
+		add gui_pos_y 10
+		state CURSOR_OVER_ITEM
+		ifg gui_pos_y 39 ifl gui_pos_y 187
+			{
+			qputs 409 Micro Torpedoes
+ 			screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 0 1 16 0 5 8 1 1 0 0 0 xdim ydim
+			ifl SUPPLY_LEVEL 3 set disp_temp6 124 else set disp_temp6 125
+
+			ifl gui_pos_x_temp 40
+			 ifg gui_pos_x_temp -40
+			  ifl gui_pos_y_temp 4
+			   ifg gui_pos_y_temp -4
+				{
+ 				screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 disp_pulse 2 16 0 5 8 1 1 0 0 0 xdim ydim
+					state handle_click
+					ife clicked 1
+						{
+						ifl SUPPLY_LEVEL 3 state FORGE_CANT
+						else
+							{
+							sub SUPPLY_LEVEL 3
+							state FORGE_BUY
+							spawn MICRO_TORPEDO_PACK
+							sound CASHREG
+							}
+						}
+ 				screentext 2822 163 95 28672 0 0 COST_3 0 disp_temp6 16 0 5 8 1 1 0 0 0 xdim ydim
+				rotatesprite 205 63 40960 0 MICRO_TORPEDO_PACK 0 0 0 0 0 xdim ydim
+				}
+			}
+		}
+
+	ife EQUIPMENT_RESEARCH[9] 2
+		{
+		add gui_pos_y 10
+		state CURSOR_OVER_ITEM
+		ifg gui_pos_y 39 ifl gui_pos_y 187
+			{
+			qputs 409 Magnum Shells
+ 			screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 0 1 16 0 5 8 1 1 0 0 0 xdim ydim
+			ifl SUPPLY_LEVEL 5 set disp_temp6 124 else set disp_temp6 125
+
+			ifl gui_pos_x_temp 40
+			 ifg gui_pos_x_temp -40
+			  ifl gui_pos_y_temp 4
+			   ifg gui_pos_y_temp -4
+				{
+ 				screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 disp_pulse 2 16 0 5 8 1 1 0 0 0 xdim ydim
+					state handle_click
+					ife clicked 1
+						{
+						ifl SUPPLY_LEVEL 5 state FORGE_CANT
+						else
+							{
+							sub SUPPLY_LEVEL 5
+							state FORGE_BUY
+							spawn MAGNUM_SHELLS
+							sound CASHREG
+							}
+						}
+ 				screentext 2822 163 95 28672 0 0 COST_5 0 disp_temp6 16 0 5 8 1 1 0 0 0 xdim ydim
+				rotatesprite 205 63 40960 0 MAGNUM_SHELLS 0 0 0 0 0 xdim ydim
+				}
+			}
+		}
+
+	ife EQUIPMENT_RESEARCH[20] 2
+	 ifg gui_pos_y 39 ifl gui_pos_y 187
+		{
+		add gui_pos_y 10
+		state CURSOR_OVER_ITEM
+		ifg gui_pos_y 39 ifl gui_pos_y 187
+			{
+			qputs 409 Dragon Shells
+ 			screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 0 1 16 0 5 8 1 1 0 0 0 xdim ydim
+			ifl SUPPLY_LEVEL 5 set disp_temp6 124 else set disp_temp6 125
+
+			ifl gui_pos_x_temp 40
+			 ifg gui_pos_x_temp -40
+			  ifl gui_pos_y_temp 4
+			   ifg gui_pos_y_temp -4
+				{
+ 				screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 disp_pulse 2 16 0 5 8 1 1 0 0 0 xdim ydim
+					state handle_click
+					ife clicked 1
+						{
+						ifl SUPPLY_LEVEL 5 state FORGE_CANT
+						else
+							{
+							sub SUPPLY_LEVEL 5
+							state FORGE_BUY
+							spawn DRAGONS_SHELLS
+							sound CASHREG
+							}
+						}
+ 				screentext 2822 163 95 28672 0 0 COST_5 0 disp_temp6 16 0 5 8 1 1 0 0 0 xdim ydim
+				rotatesprite 205 63 40960 0 DRAGONS_SHELLS 0 0 0 0 0 xdim ydim
+				}
+			}
+		}
+
+	ife EQUIPMENT_RESEARCH[10] 2
+		{
+		add gui_pos_y 10
+		state CURSOR_OVER_ITEM
+		ifg gui_pos_y 39 ifl gui_pos_y 187
+			{
+			qputs 409 Heat-Seeker card
+ 			screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 0 1 16 0 5 8 1 1 0 0 0 xdim ydim
+			ifl SUPPLY_LEVEL 1 set disp_temp6 124 else set disp_temp6 125
+
+			ifl gui_pos_x_temp 40
+			 ifg gui_pos_x_temp -40
+			  ifl gui_pos_y_temp 4
+			   ifg gui_pos_y_temp -4
+				{
+ 				screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 disp_pulse 2 16 0 5 8 1 1 0 0 0 xdim ydim
+					state handle_click
+					ife clicked 1
+						{
+						ifl SUPPLY_LEVEL 1 state FORGE_CANT
+						else
+							{
+							sub SUPPLY_LEVEL 1
+							state FORGE_BUY
+							spawn HEAT_SEEK_CARD_PICKUP
+							sound CASHREG
+							}
+						}
+ 				screentext 2822 163 95 28672 0 0 COST_2 0 disp_temp6 16 0 5 8 1 1 0 0 0 xdim ydim
+				rotatesprite 205 63 40960 0 HEAT_SEEK_CARD_PICKUP 0 0 0 0 0 xdim ydim
+				}
+			}
+		}
+
+	ife EQUIPMENT_RESEARCH[11] 2
+		{
+		add gui_pos_y 10
+		state CURSOR_OVER_ITEM
+		ifg gui_pos_y 39 ifl gui_pos_y 187
+			{
+			qputs 409 Atomic Bomb
+ 			screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 0 1 16 0 5 8 1 1 0 0 0 xdim ydim
+			ifl SUPPLY_LEVEL 10 set disp_temp6 124 else set disp_temp6 125
+
+			ifl gui_pos_x_temp 40
+			 ifg gui_pos_x_temp -40
+			  ifl gui_pos_y_temp 4
+			   ifg gui_pos_y_temp -4
+				{
+ 				screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 disp_pulse 2 16 0 5 8 1 1 0 0 0 xdim ydim
+					state handle_click
+					ife clicked 1
+						{
+						ifl SUPPLY_LEVEL 10 state FORGE_CANT
+						else
+							{
+							sub SUPPLY_LEVEL 10
+							state FORGE_BUY
+							spawn ATOMIC_BOMB_PICKUP
+							sound CASHREG
+							}
+						}
+ 				screentext 2822 163 95 28672 0 0 COST_10 0 disp_temp6 16 0 5 8 1 1 0 0 0 xdim ydim
+				rotatesprite 205 63 40960 0 ATOMIC_BOMB_PICKUP 0 0 0 0 0 xdim ydim
+				}
+			}
+		}
+
+	ife EQUIPMENT_RESEARCH[12] 2
+		{
+		add gui_pos_y 10
+		state CURSOR_OVER_ITEM
+		ifg gui_pos_y 39 ifl gui_pos_y 187
+			{
+			qputs 409 DUP missiles
+ 			screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 0 1 16 0 5 8 1 1 0 0 0 xdim ydim
+			ifl SUPPLY_LEVEL 8 set disp_temp6 124 else set disp_temp6 125
+
+			ifl gui_pos_x_temp 40
+			 ifg gui_pos_x_temp -40
+			  ifl gui_pos_y_temp 4
+			   ifg gui_pos_y_temp -4
+				{
+ 				screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 disp_pulse 2 16 0 5 8 1 1 0 0 0 xdim ydim
+					state handle_click
+					ife clicked 1
+						{
+						ifl SUPPLY_LEVEL 8 state FORGE_CANT
+						else
+							{
+							sub SUPPLY_LEVEL 8
+							state FORGE_BUY
+							spawn DUP_MISSILES_PICKUP
+							sound CASHREG
+							}
+						}
+ 				screentext 2822 163 95 28672 0 0 COST_8 0 disp_temp6 16 0 5 8 1 1 0 0 0 xdim ydim
+				rotatesprite 205 63 40960 0 DUP_MISSILES_PICKUP 0 0 0 0 0 xdim ydim
+				}
+			}
+		}
+
+	ife EQUIPMENT_RESEARCH[13] 2
+		{
+		add gui_pos_y 10
+		state CURSOR_OVER_ITEM
+		ifg gui_pos_y 39 ifl gui_pos_y 187
+			{
+			qputs 409 40MM Grenades
+ 			screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 0 1 16 0 5 8 1 1 0 0 0 xdim ydim
+			ifl SUPPLY_LEVEL 3 set disp_temp6 124 else set disp_temp6 125
+
+			ifl gui_pos_x_temp 40
+			 ifg gui_pos_x_temp -40
+			  ifl gui_pos_y_temp 4
+			   ifg gui_pos_y_temp -4
+				{
+ 				screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 disp_pulse 2 16 0 5 8 1 1 0 0 0 xdim ydim
+					state handle_click
+					ife clicked 1
+						{
+						ifl SUPPLY_LEVEL 3 state FORGE_CANT
+						else
+							{
+							sub SUPPLY_LEVEL 3
+							state FORGE_BUY
+							spawn FORTYMM_NADES
+							spawn FORTYMM_NADES
+							sound CASHREG
+							}
+						}
+ 				screentext 2822 163 95 28672 0 0 COST_3 0 disp_temp6 16 0 5 8 1 1 0 0 0 xdim ydim
+				rotatesprite 205 63 40960 0 FORTYMM_NADES 0 0 0 0 0 xdim ydim
+				}
+			}
+		}
+
+	ife EQUIPMENT_RESEARCH[15] 2
+		{
+		add gui_pos_y 10
+		state CURSOR_OVER_ITEM
+		ifg gui_pos_y 39 ifl gui_pos_y 187
+			{
+			qputs 409 40MM HE Grenades
+ 			screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 0 1 16 0 5 8 1 1 0 0 0 xdim ydim
+			ifl SUPPLY_LEVEL 6 set disp_temp6 124 else set disp_temp6 125
+
+			ifl gui_pos_x_temp 40
+			 ifg gui_pos_x_temp -40
+			  ifl gui_pos_y_temp 4
+			   ifg gui_pos_y_temp -4
+				{
+ 				screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 disp_pulse 2 16 0 5 8 1 1 0 0 0 xdim ydim
+					state handle_click
+					ife clicked 1
+						{
+						ifl SUPPLY_LEVEL 6 state FORGE_CANT
+						else
+							{
+							sub SUPPLY_LEVEL 6
+							state FORGE_BUY
+							spawn FORTYMM_SHELLS
+							sound CASHREG
+							}
+						}
+ 				screentext 2822 163 95 28672 0 0 COST_6 0 disp_temp6 16 0 5 8 1 1 0 0 0 xdim ydim
+				rotatesprite 205 63 40960 0 FORTYMM_SHELLS 0 0 0 0 0 xdim ydim
+				}
+			}
+		}
+
+	ife EQUIPMENT_RESEARCH[16] 2
+		{
+		add gui_pos_y 10
+		state CURSOR_OVER_ITEM
+		ifg gui_pos_y 39 ifl gui_pos_y 187
+			{
+			qputs 409 40mm MIA Shells
+ 			screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 0 1 16 0 5 8 1 1 0 0 0 xdim ydim
+			ifl SUPPLY_LEVEL 2 set disp_temp6 124 else set disp_temp6 125
+
+			ifl gui_pos_x_temp 40
+			 ifg gui_pos_x_temp -40
+			  ifl gui_pos_y_temp 4
+			   ifg gui_pos_y_temp -4
+				{
+ 				screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 disp_pulse 2 16 0 5 8 1 1 0 0 0 xdim ydim
+					state handle_click
+					ife clicked 1
+						{
+						ifl SUPPLY_LEVEL 2 { set disp_temp6 124 state FORGE_CANT }
+						else
+							{
+							set disp_temp6 125
+							sub SUPPLY_LEVEL 2
+							state FORGE_BUY
+							sub SUPPLY_LEVEL 6
+							state FORGE_BUY
+							globalsound SPECIAL_AMMO
+							add fortymm_MIA_shells 5
+							clamp fortymm_MIA_shells 0 40
+							state PICKUP_DISPLAY
+							set picked_up_tile 5463
+							set item_amount 5
+							sound CASHREG
+							}
+						}
+ 				screentext 2822 163 95 28672 0 0 COST_2 0 disp_temp6 16 0 5 8 1 1 0 0 0 xdim ydim
+				rotatesprite 205 63 40960 0 5463 0 0 0 0 0 xdim ydim
+				}
+			}
+		}
+
+	ife EQUIPMENT_RESEARCH[18] 2
+		{
+		add gui_pos_y 10
+		state CURSOR_OVER_ITEM
+		ifg gui_pos_y 39 ifl gui_pos_y 187
+			 {
+			qputs 409 40mm Plasma Shells
+ 			screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 0 1 16 0 5 8 1 1 0 0 0 xdim ydim
+			ifl SUPPLY_LEVEL 6 set disp_temp6 124 else set disp_temp6 125
+
+			ifl gui_pos_x_temp 40
+			 ifg gui_pos_x_temp -40
+			  ifl gui_pos_y_temp 4
+			   ifg gui_pos_y_temp -4
+				{
+ 				screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 disp_pulse 2 16 0 5 8 1 1 0 0 0 xdim ydim
+					state handle_click
+					ife clicked 1
+						{
+						ifl SUPPLY_LEVEL 6 state FORGE_CANT
+						else
+							{
+							sub SUPPLY_LEVEL 6
+							state FORGE_BUY
+							globalsound SPECIAL_AMMO
+							add fortymm_plasma 8
+							clamp fortymm_plasma 0 40
+							state PICKUP_DISPLAY
+							set picked_up_tile 5476
+							set item_amount 8
+							sound CASHREG
+							}
+						}
+ 				screentext 2822 163 95 28672 0 0 COST_6 0 disp_temp6 16 0 5 8 1 1 0 0 0 xdim ydim
+				rotatesprite 205 63 40960 0 5476 0 0 0 0 0 xdim ydim
+				}
+			}
+		}
+
+	ife EQUIPMENT_RESEARCH[14] 2
+		{
+		add gui_pos_y 10
+		state CURSOR_OVER_ITEM
+		ifg gui_pos_y 39 ifl gui_pos_y 187
+			{
+			qputs 409 VOG-25 Grenades
+ 			screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 0 1 16 0 5 8 1 1 0 0 0 xdim ydim
+			ifl SUPPLY_LEVEL 3 set disp_temp6 124 else set disp_temp6 125
+
+			ifl gui_pos_x_temp 40
+			 ifg gui_pos_x_temp -40
+			  ifl gui_pos_y_temp 4
+			   ifg gui_pos_y_temp -4
+				{
+ 				screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 disp_pulse 2 16 0 5 8 1 1 0 0 0 xdim ydim
+					state handle_click
+					ife clicked 1
+						{
+						ifl SUPPLY_LEVEL 3 state FORGE_CANT
+						else
+							{
+							sub SUPPLY_LEVEL 3
+							state FORGE_BUY
+							spawn FORTYMM_CASELESS
+							spawn FORTYMM_CASELESS
+							sound CASHREG
+							}
+						}
+ 				screentext 2822 163 95 28672 0 0 COST_3 0 disp_temp6 16 0 5 8 1 1 0 0 0 xdim ydim
+				rotatesprite 205 63 40960 0 FORTYMM_CASELESS 0 0 0 0 0 xdim ydim
+				}
+			}
+		}
+
+	ife EQUIPMENT_RESEARCH[17] 2
+		{
+		add gui_pos_y 10
+		state CURSOR_OVER_ITEM
+		ifg gui_pos_y 39 ifl gui_pos_y 187
+			{
+			qputs 409 GP-30 Slugs
+ 			screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 0 1 16 0 5 8 1 1 0 0 0 xdim ydim
+			ifl SUPPLY_LEVEL 4 set disp_temp6 124 else set disp_temp6 125
+
+			ifl gui_pos_x_temp 40
+			 ifg gui_pos_x_temp -40
+			  ifl gui_pos_y_temp 4
+			   ifg gui_pos_y_temp -4
+				{
+ 				screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 disp_pulse 2 16 0 5 8 1 1 0 0 0 xdim ydim
+					state handle_click
+					ife clicked 1
+						{
+						ifl SUPPLY_LEVEL 4 state FORGE_CANT
+						else
+							{
+							sub SUPPLY_LEVEL 4
+							state FORGE_BUY
+							spawn FORTYMM_SLUGS
+							spawn FORTYMM_SLUGS
+							sound CASHREG
+							}
+						}
+ 				screentext 2822 163 95 28672 0 0 COST_4 0 disp_temp6 16 0 5 8 1 1 0 0 0 xdim ydim
+				rotatesprite 205 63 40960 0 FORTYMM_SLUGS 0 0 0 0 0 xdim ydim
+				}
+			}
+		}
+
+	ife EQUIPMENT_RESEARCH[21] 2
+		{
+		add gui_pos_y 10
+		state CURSOR_OVER_ITEM
+		ifg gui_pos_y 39 ifl gui_pos_y 187
+			{
+			qputs 409 GP-30 Tesla rounds
+ 			screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 0 1 16 0 5 8 1 1 0 0 0 xdim ydim
+			ifl SUPPLY_LEVEL 4 set disp_temp6 124 else set disp_temp6 125
+
+			ifl gui_pos_x_temp 40
+			 ifg gui_pos_x_temp -40
+			  ifl gui_pos_y_temp 4
+			   ifg gui_pos_y_temp -4
+				{
+ 				screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 disp_pulse 2 16 0 5 8 1 1 0 0 0 xdim ydim
+					state handle_click
+					ife clicked 1
+						{
+						ifl SUPPLY_LEVEL 4 state FORGE_CANT
+						else
+							{
+							sub SUPPLY_LEVEL 4
+							state FORGE_BUY
+							spawn FORTYMM_ELECTRO
+							spawn FORTYMM_ELECTRO
+							sound CASHREG
+							}
+						}
+ 				screentext 2822 163 95 28672 0 0 COST_4 0 disp_temp6 16 0 5 8 1 1 0 0 0 xdim ydim
+				rotatesprite 205 63 40960 0 FORTYMM_ELECTRO 0 0 0 0 0 xdim ydim
+				}
+			}
+		}
+
+	ife EQUIPMENT_RESEARCH[22] 2
+		{
+		add gui_pos_y 10
+		state CURSOR_OVER_ITEM
+		ifg gui_pos_y 39 ifl gui_pos_y 187
+			{
+			qputs 409 GP-30 Cryo rounds
+ 			screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 0 1 16 0 5 8 1 1 0 0 0 xdim ydim
+			ifl SUPPLY_LEVEL 4 set disp_temp6 124 else set disp_temp6 125
+
+			ifl gui_pos_x_temp 40
+			 ifg gui_pos_x_temp -40
+			  ifl gui_pos_y_temp 4
+			   ifg gui_pos_y_temp -4
+				{
+ 				screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 disp_pulse 2 16 0 5 8 1 1 0 0 0 xdim ydim
+					state handle_click
+					ife clicked 1
+						{
+						ifl SUPPLY_LEVEL 4 state FORGE_CANT
+						else
+							{
+							sub SUPPLY_LEVEL 4
+							state FORGE_BUY
+							spawn FORTYMM_CRYO
+							spawn FORTYMM_CRYO
+							sound CASHREG
+							}
+						}
+ 				screentext 2822 163 95 28672 0 0 COST_4 0 disp_temp6 16 0 5 8 1 1 0 0 0 xdim ydim
+				rotatesprite 205 63 40960 0 FORTYMM_CRYO 0 0 0 0 0 xdim ydim
+				}
+			}
+		}
+
+	ife EQUIPMENT_RESEARCH[19] 2
+		{
+		add gui_pos_y 10
+		state CURSOR_OVER_ITEM
+		ifg gui_pos_y 39 ifl gui_pos_y 187
+			{
+			qputs 409 Heat Sinks
+ 			screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 0 1 16 0 5 8 1 1 0 0 0 xdim ydim
+			ifl SUPPLY_LEVEL 1 set disp_temp6 124 else set disp_temp6 125
+
+			ifl gui_pos_x_temp 40
+			 ifg gui_pos_x_temp -40
+			  ifl gui_pos_y_temp 4
+			   ifg gui_pos_y_temp -4
+				{
+ 				screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 disp_pulse 2 16 0 5 8 1 1 0 0 0 xdim ydim
+					state handle_click
+					ife clicked 1
+						{
+						ifl SUPPLY_LEVEL 1 state FORGE_CANT
+						else
+							{
+							sub SUPPLY_LEVEL 1
+							state FORGE_BUY
+							spawn HEAT_SINK_PACK
+							sound CASHREG
+							}
+						}
+ 				screentext 2822 163 95 28672 0 0 COST_1 0 disp_temp6 16 0 5 8 1 1 0 0 0 xdim ydim
+				rotatesprite 205 63 40960 0 HEAT_SINK_PACK 0 0 0 0 0 xdim ydim
+				}
+			}
+		}
+
+		ife MYSTICAL_RESEARCH[6] 2 // Eva lockwood?
+		ife WEAPONS_FOUND[50] 1 // magic crossbow
+		{
+		add gui_pos_y 10
+		state CURSOR_OVER_ITEM
+		ifg gui_pos_y 39 ifl gui_pos_y 187
+			{
+			qputs 409 Blue Mana
+ 			screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 0 1 16 0 5 8 1 1 0 0 0 xdim ydim
+			ifl SUPPLY_LEVEL 3 set disp_temp6 124 else set disp_temp6 125
+
+			ifl gui_pos_x_temp 40
+			 ifg gui_pos_x_temp -40
+			  ifl gui_pos_y_temp 4
+			   ifg gui_pos_y_temp -4
+				{
+ 				screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 disp_pulse 2 16 0 5 8 1 1 0 0 0 xdim ydim
+					state handle_click
+					ife clicked 1
+						{
+						ifl SUPPLY_LEVEL 3 state FORGE_CANT
+						else
+							{
+							sub SUPPLY_LEVEL 3
+							state FORGE_BUY
+							spawn BLUE_MANA_PICKUP
+							sound CASHREG
+							}
+						}
+ 				screentext 2822 163 95 28672 0 0 COST_3 0 disp_temp6 16 0 5 8 1 1 0 0 0 xdim ydim
+				rotatesprite 205 63 40960 0 BLUE_MANA_PICKUP 0 0 0 0 0 xdim ydim
+				}
+			}
+		add gui_pos_y 10
+		state CURSOR_OVER_ITEM
+		ifg gui_pos_y 39 ifl gui_pos_y 187
+			{
+			qputs 409 Green Mana
+ 			screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 0 1 16 0 5 8 1 1 0 0 0 xdim ydim
+			ifl SUPPLY_LEVEL 3 set disp_temp6 124 else set disp_temp6 125
+
+			ifl gui_pos_x_temp 40
+			 ifg gui_pos_x_temp -40
+			  ifl gui_pos_y_temp 4
+			   ifg gui_pos_y_temp -4
+				{
+ 				screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 disp_pulse 2 16 0 5 8 1 1 0 0 0 xdim ydim
+					state handle_click
+					ife clicked 1
+						{
+						ifl SUPPLY_LEVEL 3 state FORGE_CANT
+						else
+							{
+							sub SUPPLY_LEVEL 3
+							state FORGE_BUY
+							spawn GREEN_MANA_PICKUP
+							sound CASHREG
+							}
+						}
+ 				screentext 2822 163 95 28672 0 0 COST_3 0 disp_temp6 16 0 5 8 1 1 0 0 0 xdim ydim
+				rotatesprite 205 63 40960 0 GREEN_MANA_PICKUP 0 0 0 0 0 xdim ydim
+				}
+			}
+		add gui_pos_y 10
+		state CURSOR_OVER_ITEM
+		ifg gui_pos_y 39 ifl gui_pos_y 187
+			{
+			qputs 409 Orange Mana
+ 			screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 0 1 16 0 5 8 1 1 0 0 0 xdim ydim
+			ifl SUPPLY_LEVEL 5 set disp_temp6 124 else set disp_temp6 125
+
+			ifl gui_pos_x_temp 40
+			 ifg gui_pos_x_temp -40
+			  ifl gui_pos_y_temp 4
+			   ifg gui_pos_y_temp -4
+				{
+ 				screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 disp_pulse 2 16 0 5 8 1 1 0 0 0 xdim ydim
+					state handle_click
+					ife clicked 1
+						{
+						ifl SUPPLY_LEVEL 5 state FORGE_CANT
+						else
+							{
+							sub SUPPLY_LEVEL 5
+							state FORGE_BUY
+							spawn ORANGE_MANA_PICKUP
+							sound CASHREG
+							}
+						}
+ 				screentext 2822 163 95 28672 0 0 COST_3 0 disp_temp6 16 0 5 8 1 1 0 0 0 xdim ydim
+				rotatesprite 205 63 40960 0 ORANGE_MANA_PICKUP 0 0 0 0 0 xdim ydim
+				}
+			}
+
+		add gui_pos_y 10
+		state CURSOR_OVER_ITEM
+		ifg gui_pos_y 39 ifl gui_pos_y 187
+			{
+			qputs 409 Purple Mana
+ 			screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 0 1 16 0 5 8 1 1 0 0 0 xdim ydim
+			ifl SUPPLY_LEVEL 6 set disp_temp6 124 else set disp_temp6 125
+
+			ifl gui_pos_x_temp 40
+			 ifg gui_pos_x_temp -40
+			  ifl gui_pos_y_temp 4
+			   ifg gui_pos_y_temp -4
+				{
+ 				screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 disp_pulse 2 16 0 5 8 1 1 0 0 0 xdim ydim
+					state handle_click
+					ife clicked 1
+						{
+						ifl SUPPLY_LEVEL 6 state FORGE_CANT
+						else
+							{
+							sub SUPPLY_LEVEL 6
+							state FORGE_BUY
+							spawn PURPLE_MANA_PICKUP
+							sound CASHREG
+							}
+						}
+ 				screentext 2822 163 95 28672 0 0 COST_3 0 disp_temp6 16 0 5 8 1 1 0 0 0 xdim ydim
+				rotatesprite 205 63 40960 0 PURPLE_MANA_PICKUP 0 0 0 0 0 xdim ydim
+				}
+			}
+
+		}
+
+	}
+else
+ife INFO_SEL_2 2 // Purchase supplies?
+	{
+ 	screentext 2822 59 26 28672 0 0 1226 10 2 16 0 5 8 1 1 0 0 0 xdim ydim
+
+	set SCROLL_POS_MAX 40
+	state SCROLL_WHEEL
+
+	set gui_pos_x 35
+	set gui_pos_y 47
+	state SCROLL_POS
+	ife player[].gotweapon 1 1
+	 ifg gui_pos_y 39 ifl gui_pos_y 187
+		{
+		state CURSOR_OVER_ITEM
+			qputs 409 Wep Slot 2 Ammo
+ 			screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 0 1 16 0 5 8 1 1 0 0 0 xdim ydim
+			ifl SUPPLY_LEVEL 2 set disp_temp6 124 else set disp_temp6 125
+			ifl gui_pos_x_temp 40
+			 ifg gui_pos_x_temp -40
+			  ifl gui_pos_y_temp 4
+			   ifg gui_pos_y_temp -4
+				{
+ 				screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 disp_pulse 2 16 0 5 8 1 1 0 0 0 xdim ydim
+					state handle_click
+					ife clicked 1
+						{
+						ifl SUPPLY_LEVEL 2 state FORGE_CANT
+						else
+							{
+							sub SUPPLY_LEVEL 2
+							state FORGE_BUY
+							spawn AMMO
+							sound CASHREG
+							}
+						}
+ 				screentext 2822 163 95 28672 0 0 COST_2 0 disp_temp6 16 0 5 8 1 1 0 0 0 xdim ydim
+				rotatesprite 205 63 40960 0 W_AMMO_TILE[1] 0 0 0 0 0 xdim ydim
+				}
+		}
+	ife player[].gotweapon 2 1
+	 ifg gui_pos_y 39 ifl gui_pos_y 187
+		{
+		add gui_pos_y 10
+		state CURSOR_OVER_ITEM
+			qputs 409 Wep Slot 3 Ammo
+ 			screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 0 1 16 0 5 8 1 1 0 0 0 xdim ydim
+			ifl SUPPLY_LEVEL 3 set disp_temp6 124 else set disp_temp6 125
+			ifl gui_pos_x_temp 40
+			 ifg gui_pos_x_temp -40
+			  ifl gui_pos_y_temp 4
+			   ifg gui_pos_y_temp -4
+				{
+ 				screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 disp_pulse 2 16 0 5 8 1 1 0 0 0 xdim ydim
+					state handle_click
+					ife clicked 1
+						{
+						ifl SUPPLY_LEVEL 3 state FORGE_CANT
+						else
+							{
+							sub SUPPLY_LEVEL 3
+							state FORGE_BUY
+							spawn SHOTGUNAMMO
+							sound CASHREG
+							}
+						}
+ 				screentext 2822 163 95 28672 0 0 COST_3 0 disp_temp6 16 0 5 8 1 1 0 0 0 xdim ydim
+				rotatesprite 205 63 40960 0 W_AMMO_TILE[2] 0 0 0 0 0 xdim ydim
+				}
+		}
+	ife player[].gotweapon 3 1
+	 ifg gui_pos_y 39 ifl gui_pos_y 187
+		{
+		add gui_pos_y 10
+		state CURSOR_OVER_ITEM
+			qputs 409 Wep Slot 4 Ammo
+ 			screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 0 1 16 0 5 8 1 1 0 0 0 xdim ydim
+			ifl SUPPLY_LEVEL 3 set disp_temp6 124 else set disp_temp6 125
+			ifl gui_pos_x_temp 40
+			 ifg gui_pos_x_temp -40
+			  ifl gui_pos_y_temp 4
+			   ifg gui_pos_y_temp -4
+				{
+ 				screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 disp_pulse 2 16 0 5 8 1 1 0 0 0 xdim ydim
+					state handle_click
+					ife clicked 1
+						{
+						ifl SUPPLY_LEVEL 3 state FORGE_CANT
+						else
+							{
+							sub SUPPLY_LEVEL 3
+							state FORGE_BUY
+							spawn BATTERYAMMO
+							sound CASHREG
+							}
+						}
+ 				screentext 2822 163 95 28672 0 0 COST_3 0 disp_temp6 16 0 5 8 1 1 0 0 0 xdim ydim
+				rotatesprite 205 63 40960 0 W_AMMO_TILE[3] 0 0 0 0 0 xdim ydim
+				}
+		}
+	ife player[].gotweapon 4 1
+	 ifg gui_pos_y 39 ifl gui_pos_y 187
+		{
+		add gui_pos_y 10
+		state CURSOR_OVER_ITEM
+			qputs 409 Wep Slot 5 Ammo
+ 			screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 0 1 16 0 5 8 1 1 0 0 0 xdim ydim
+			ifl SUPPLY_LEVEL 5 set disp_temp6 124 else set disp_temp6 125
+			ifl gui_pos_x_temp 40
+			 ifg gui_pos_x_temp -40
+			  ifl gui_pos_y_temp 4
+			   ifg gui_pos_y_temp -4
+				{
+ 				screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 disp_pulse 2 16 0 5 8 1 1 0 0 0 xdim ydim
+					state handle_click
+					ife clicked 1
+						{
+						ifl SUPPLY_LEVEL 5 state FORGE_CANT
+						else
+							{
+							sub SUPPLY_LEVEL 5
+							state FORGE_BUY
+							spawn RPGAMMO
+							sound CASHREG
+							}
+						}
+ 				screentext 2822 163 95 28672 0 0 COST_5 0 disp_temp6 16 0 5 8 1 1 0 0 0 xdim ydim
+				rotatesprite 205 63 40960 0 W_AMMO_TILE[4] 0 0 0 0 0 xdim ydim
+				}
+		}
+	ife player[].gotweapon 5 1
+	 ifg gui_pos_y 39 ifl gui_pos_y 187
+		{
+		add gui_pos_y 10
+		state CURSOR_OVER_ITEM
+			qputs 409 Wep Slot 6 Ammo
+ 			screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 0 1 16 0 5 8 1 1 0 0 0 xdim ydim
+			ifl SUPPLY_LEVEL 5 set disp_temp6 124 else set disp_temp6 125
+			ifl gui_pos_x_temp 40
+			 ifg gui_pos_x_temp -40
+			  ifl gui_pos_y_temp 4
+			   ifg gui_pos_y_temp -4
+				{
+ 				screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 disp_pulse 2 16 0 5 8 1 1 0 0 0 xdim ydim
+					state handle_click
+					ife clicked 1
+						{
+						ifl SUPPLY_LEVEL 5 state FORGE_CANT
+						else
+							{
+							sub SUPPLY_LEVEL 5
+							state FORGE_BUY
+							spawn HBOMBAMMO
+							sound CASHREG
+							}
+						}
+ 				screentext 2822 163 95 28672 0 0 COST_5 0 disp_temp6 16 0 5 8 1 1 0 0 0 xdim ydim
+				rotatesprite 205 63 40960 0 W_AMMO_TILE[5] 0 0 0 0 0 xdim ydim
+				}
+		}
+	ife player[].gotweapon 6 1
+	 ifg gui_pos_y 39 ifl gui_pos_y 187
+		{
+		add gui_pos_y 10
+		state CURSOR_OVER_ITEM
+			qputs 409 Wep Slot 7 Ammo
+ 			screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 0 1 16 0 5 8 1 1 0 0 0 xdim ydim
+			ifl SUPPLY_LEVEL 5 set disp_temp6 124 else set disp_temp6 125
+			ifl gui_pos_x_temp 40
+			 ifg gui_pos_x_temp -40
+			  ifl gui_pos_y_temp 4
+			   ifg gui_pos_y_temp -4
+				{
+ 				screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 disp_pulse 2 16 0 5 8 1 1 0 0 0 xdim ydim
+					state handle_click
+					ife clicked 1
+						{
+						ifl SUPPLY_LEVEL 5 state FORGE_CANT
+						else
+							{
+							sub SUPPLY_LEVEL 5
+							state FORGE_BUY
+							spawn CRYSTALAMMO
+							sound CASHREG
+							}
+						}
+ 				screentext 2822 163 95 28672 0 0 COST_5 0 disp_temp6 16 0 5 8 1 1 0 0 0 xdim ydim
+				rotatesprite 205 63 40960 0 W_AMMO_TILE[6] 0 0 0 0 0 xdim ydim
+				}
+		}
+	ife player[].gotweapon 11 1
+	 ifg gui_pos_y 39 ifl gui_pos_y 187
+		{
+		add gui_pos_y 10
+		state CURSOR_OVER_ITEM
+			qputs 409 Wep Slot 7B Ammo
+ 			screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 0 1 16 0 5 8 1 1 0 0 0 xdim ydim
+			ifl SUPPLY_LEVEL 5 set disp_temp6 124 else set disp_temp6 125
+			ifl gui_pos_x_temp 40
+			 ifg gui_pos_x_temp -40
+			  ifl gui_pos_y_temp 4
+			   ifg gui_pos_y_temp -4
+				{
+ 				screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 disp_pulse 2 16 0 5 8 1 1 0 0 0 xdim ydim
+					state handle_click
+					ife clicked 1
+						{
+						ifl SUPPLY_LEVEL 5 state FORGE_CANT
+						else
+							{
+							sub SUPPLY_LEVEL 5
+							state FORGE_BUY
+							spawn GROWAMMO
+							sound CASHREG
+							}
+						}
+ 				screentext 2822 163 95 28672 0 0 COST_5 0 disp_temp6 16 0 5 8 1 1 0 0 0 xdim ydim
+				rotatesprite 205 63 40960 0 W_AMMO_TILE[11] 0 0 0 0 0 xdim ydim
+				}
+		}
+	ife player[].gotweapon 7 1
+	 ifg gui_pos_y 39 ifl gui_pos_y 187
+		{
+		add gui_pos_y 10
+		state CURSOR_OVER_ITEM
+			qputs 409 Wep Slot 8 Ammo
+ 			screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 0 1 16 0 5 8 1 1 0 0 0 xdim ydim
+			ifl SUPPLY_LEVEL 5 set disp_temp6 124 else set disp_temp6 125
+			ifl gui_pos_x_temp 40
+			 ifg gui_pos_x_temp -40
+			  ifl gui_pos_y_temp 4
+			   ifg gui_pos_y_temp -4
+				{
+ 				screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 disp_pulse 2 16 0 5 8 1 1 0 0 0 xdim ydim
+					state handle_click
+					ife clicked 1
+						{
+						ifl SUPPLY_LEVEL 5 state FORGE_CANT
+						else
+							{
+							sub SUPPLY_LEVEL 5
+							state FORGE_BUY
+							spawn DEVISTATORAMMO
+							sound CASHREG
+							}
+						}
+ 				screentext 2822 163 95 28672 0 0 COST_5 0 disp_temp6 16 0 5 8 1 1 0 0 0 xdim ydim
+				rotatesprite 205 63 40960 0 W_AMMO_TILE[7] 0 0 0 0 0 xdim ydim
+				}
+		}
+	ife player[].gotweapon 8 1
+	 ifg gui_pos_y 39 ifl gui_pos_y 187
+		{
+		add gui_pos_y 10
+		state CURSOR_OVER_ITEM
+			qputs 409 Wep Slot 9 Ammo
+ 			screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 0 1 16 0 5 8 1 1 0 0 0 xdim ydim
+			ifl SUPPLY_LEVEL 1 set disp_temp6 124 else set disp_temp6 125
+			ifl gui_pos_x_temp 40
+			 ifg gui_pos_x_temp -40
+			  ifl gui_pos_y_temp 4
+			   ifg gui_pos_y_temp -4
+				{
+ 				screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 disp_pulse 2 16 0 5 8 1 1 0 0 0 xdim ydim
+					state handle_click
+					ife clicked 1
+						{
+						ifl SUPPLY_LEVEL 1 state FORGE_CANT
+						else
+							{
+							sub SUPPLY_LEVEL 1
+							state FORGE_BUY
+							spawn TRIPBOMBSPRITE
+							sound CASHREG
+							}
+						}
+ 				screentext 2822 163 95 28672 0 0 COST_1 0 disp_temp6 16 0 5 8 1 1 0 0 0 xdim ydim
+				rotatesprite 205 63 40960 0 WEAPON_TILE[8] 0 0 0 0 0 xdim ydim
+				}
+		}
+	ife player[].gotweapon 9 1
+	 ifg gui_pos_y 39 ifl gui_pos_y 187
+		{
+		add gui_pos_y 10
+		state CURSOR_OVER_ITEM
+			qputs 409 Wep Slot 0 Ammo
+ 			screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 0 1 16 0 5 8 1 1 0 0 0 xdim ydim
+			ifl SUPPLY_LEVEL 5 set disp_temp6 124 else set disp_temp6 125
+			ifl gui_pos_x_temp 40
+			 ifg gui_pos_x_temp -40
+			  ifl gui_pos_y_temp 4
+			   ifg gui_pos_y_temp -4
+				{
+ 				screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 disp_pulse 2 16 0 5 8 1 1 0 0 0 xdim ydim
+					state handle_click
+					ife clicked 1
+						{
+						ifl SUPPLY_LEVEL 5 state FORGE_CANT
+						else
+							{
+							sub SUPPLY_LEVEL 5
+							state FORGE_BUY
+							spawn FREEZEAMMO
+							sound CASHREG
+							}
+						}
+ 				screentext 2822 163 95 28672 0 0 COST_5 0 disp_temp6 16 0 5 8 1 1 0 0 0 xdim ydim
+				rotatesprite 205 63 40960 0 W_AMMO_TILE[9] 0 0 0 0 0 xdim ydim
+				}
+		}
+
+		ife MYSTICAL_RESEARCH[6] 2 // Eva lockwood?
+		ife WEAPONS_FOUND[50] 1 // magic crossbow
+		{
+		add gui_pos_y 10
+		state CURSOR_OVER_ITEM
+		ifg gui_pos_y 39 ifl gui_pos_y 187
+			{
+			qputs 409 Magic Orb Mana top up
+ 			screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 0 1 16 0 5 8 1 1 0 0 0 xdim ydim
+			ifl ORBS_FOUND 1 set disp_temp6 124 else set disp_temp6 125
+
+			ifl gui_pos_x_temp 40
+			 ifg gui_pos_x_temp -40
+			  ifl gui_pos_y_temp 4
+			   ifg gui_pos_y_temp -4
+				{
+ 				screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 disp_pulse 2 16 0 5 8 1 1 0 0 0 xdim ydim
+					state handle_click
+					ife clicked 1
+						{
+						ifl ORBS_FOUND 1 state FORGE_CANT
+						else
+							{
+							sub ORBS_FOUND 1
+							savegamevar ORBS_FOUND
+							state FORGE_BUY
+							spawn BLUE_MANA_PICKUP
+							spawn BLUE_MANA_PICKUP
+							spawn GREEN_MANA_PICKUP
+							spawn GREEN_MANA_PICKUP
+							spawn ORANGE_MANA_PICKUP
+							spawn PURPLE_MANA_PICKUP
+							sound CASHREG
+							}
+						}
+ 				screentext 2822 163 101 28672 0 0 14004 0 disp_temp6 16 0 5 8 1 1 0 0 0 xdim ydim
+
+				rotatesprite 205 63 20480 0 MAGIC_ORB 0 0 0 0 0 xdim ydim
+				digitalnumberz 2472 190 75 ORBS_FOUND 0 125 0 0 0 xdim ydim 45536
+				}
+			}
+		}
+
+		add gui_pos_y 10
+		state CURSOR_OVER_ITEM
+		ifg gui_pos_y 39 ifl gui_pos_y 187
+			{
+				qputs 409 First Aid Kit
+ 				screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 0 1 16 0 5 8 1 1 0 0 0 xdim ydim
+				ifl SUPPLY_LEVEL 15 set disp_temp6 124 else set disp_temp6 125
+				ifl gui_pos_x_temp 40
+				 ifg gui_pos_x_temp -40
+				  ifl gui_pos_y_temp 4
+				   ifg gui_pos_y_temp -4
+					{
+ 					screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 disp_pulse 2 16 0 5 8 1 1 0 0 0 xdim ydim
+						state handle_click
+						ife clicked 1
+							{
+							ifl SUPPLY_LEVEL 15 state FORGE_CANT
+							else
+								{
+								sub SUPPLY_LEVEL 15
+								state FORGE_BUY
+								spawn FIRSTAID
+								sound CASHREG
+								}
+							}
+ 					screentext 2822 163 95 28672 0 0 COST_15 0 disp_temp6 16 0 5 8 1 1 0 0 0 xdim ydim
+					rotatesprite 205 63 40960 0 c_medikit 0 0 0 0 0 xdim ydim
+					}
+				}
+		add gui_pos_y 10
+		state CURSOR_OVER_ITEM
+			ifg gui_pos_y 39 ifl gui_pos_y 187
+				{
+				qputs 409 Armour
+ 				screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 0 1 16 0 5 8 1 1 0 0 0 xdim ydim
+				ifl SUPPLY_LEVEL 15 set disp_temp6 124 else set disp_temp6 125
+				ifl gui_pos_x_temp 40
+				 ifg gui_pos_x_temp -40
+				  ifl gui_pos_y_temp 4
+				   ifg gui_pos_y_temp -4
+					{
+ 					screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 disp_pulse 2 16 0 5 8 1 1 0 0 0 xdim ydim
+						state handle_click
+						ife clicked 1
+							{
+							ifl SUPPLY_LEVEL 15 state FORGE_CANT
+							else
+								{
+								sub SUPPLY_LEVEL 15
+								state FORGE_BUY
+								spawn SHIELD
+								sound CASHREG
+								}
+							}
+ 					screentext 2822 163 95 28672 0 0 COST_15 0 disp_temp6 16 0 5 8 1 1 0 0 0 xdim ydim
+					rotatesprite 205 63 40960 0 c_armour 0 0 0 0 0 xdim ydim
+					}
+				}
+ife EQUIPMENT_FOUND[4] 1
+	{
+		add gui_pos_y 10
+		state CURSOR_OVER_ITEM
+			ifg gui_pos_y 39 ifl gui_pos_y 187
+				{
+				qputs 409 AMC Riot Shield
+ 				screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 0 1 16 0 5 8 1 1 0 0 0 xdim ydim
+				ifl SUPPLY_LEVEL 15 set disp_temp6 124 else set disp_temp6 125
+				ifl gui_pos_x_temp 40
+				 ifg gui_pos_x_temp -40
+				  ifl gui_pos_y_temp 4
+				   ifg gui_pos_y_temp -4
+					{
+ 					screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 disp_pulse 2 16 0 5 8 1 1 0 0 0 xdim ydim
+						state handle_click
+						ife clicked 1
+							{
+							ifl SUPPLY_LEVEL 10 state FORGE_CANT
+							else
+								{
+								sub SUPPLY_LEVEL 10
+								state FORGE_BUY
+								spawn AMC_RIOT_SHIELD
+								sound CASHREG
+								}
+							}
+ 					screentext 2822 163 95 28672 0 0 COST_10 0 disp_temp6 16 0 5 8 1 1 0 0 0 xdim ydim
+					rotatesprite 205 63 20480 0 AMC_RIOT_SHIELD 0 0 0 0 0 xdim ydim
+					}
+				}
+	}
+	ifg player[].scuba_amount 0
+	 ifg gui_pos_y 39 ifl gui_pos_y 187
+		{
+		add gui_pos_y 10
+		state CURSOR_OVER_ITEM
+			qputs 409 O2 Canister
+ 			screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 0 1 16 0 5 8 1 1 0 0 0 xdim ydim
+			ifl SUPPLY_LEVEL 2 set disp_temp6 124 else set disp_temp6 125
+			ifl gui_pos_x_temp 40
+			 ifg gui_pos_x_temp -40
+			  ifl gui_pos_y_temp 4
+			   ifg gui_pos_y_temp -4
+				{
+ 				screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 disp_pulse 2 16 0 5 8 1 1 0 0 0 xdim ydim
+					state handle_click
+					ife clicked 1
+						{
+						ifl SUPPLY_LEVEL 2 state FORGE_CANT
+						else
+							{
+							sub SUPPLY_LEVEL 2
+							state FORGE_BUY
+							spawn O2CANISTER
+							sound CASHREG
+							}
+						}
+ 				screentext 2822 163 95 28672 0 0 COST_2 0 disp_temp6 16 0 5 8 1 1 0 0 0 xdim ydim
+				rotatesprite 205 63 40960 0 O2CANISTER 0 0 0 0 0 xdim ydim
+				}
+		}
+	ifg player[].heat_amount 0
+	 ifg gui_pos_y 39 ifl gui_pos_y 187
+		{
+		add gui_pos_y 10
+		state CURSOR_OVER_ITEM
+			qputs 409 Optics Battery
+ 			screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 0 1 16 0 5 8 1 1 0 0 0 xdim ydim
+			ifl SUPPLY_LEVEL 3 set disp_temp6 124 else set disp_temp6 125
+
+			ifl gui_pos_x_temp 40
+			 ifg gui_pos_x_temp -40
+			  ifl gui_pos_y_temp 4
+			   ifg gui_pos_y_temp -4
+				{
+ 				screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 disp_pulse 2 16 0 5 8 1 1 0 0 0 xdim ydim
+					state handle_click
+					ife clicked 1
+						{
+						ifl SUPPLY_LEVEL 3 state FORGE_CANT
+						else
+							{
+							sub SUPPLY_LEVEL 3
+							state FORGE_BUY
+							spawn HEATSENSOR
+							sound CASHREG
+							}
+						}
+ 				screentext 2822 163 95 28672 0 0 COST_3 0 disp_temp6 16 0 5 8 1 1 0 0 0 xdim ydim
+				rotatesprite 205 63 40960 0 HEATSENSOR 0 0 0 0 0 xdim ydim
+				}
+		}
+	ifg player[].jetpack_amount 0
+	 ifg gui_pos_y 39 ifl gui_pos_y 187
+		{
+		add gui_pos_y 10
+		state CURSOR_OVER_ITEM
+			qputs 409 Jetpack fuel
+ 			screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 0 1 16 0 5 8 1 1 0 0 0 xdim ydim
+			ifl SUPPLY_LEVEL 10 set disp_temp6 124 else set disp_temp6 125
+
+			ifl gui_pos_x_temp 40
+			 ifg gui_pos_x_temp -40
+			  ifl gui_pos_y_temp 4
+			   ifg gui_pos_y_temp -4
+				{
+ 				screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 disp_pulse 2 16 0 5 8 1 1 0 0 0 xdim ydim
+					state handle_click
+					ife clicked 1
+						{
+						ifl SUPPLY_LEVEL 10 state FORGE_CANT
+						else
+							{
+							sub SUPPLY_LEVEL 10
+							state FORGE_BUY
+							spawn JETPACK
+							sound CASHREG
+							}
+						}
+ 				screentext 2822 163 95 28672 0 0 COST_10 0 disp_temp6 16 0 5 8 1 1 0 0 0 xdim ydim
+				rotatesprite 205 63 40960 0 c_jetpack 0 0 0 0 0 xdim ydim
+				}
+		}
+	ife inspace 1
+	 ifg gui_pos_y 39 ifl gui_pos_y 187
+		{
+		add gui_pos_y 10
+		state CURSOR_OVER_ITEM
+			qputs 409 Life Support
+ 			screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 0 1 16 0 5 8 1 1 0 0 0 xdim ydim
+			ifl SUPPLY_LEVEL 10 set disp_temp6 124 else set disp_temp6 125
+
+			ifl gui_pos_x_temp 40
+			 ifg gui_pos_x_temp -40
+			  ifl gui_pos_y_temp 4
+			   ifg gui_pos_y_temp -4
+				{
+ 				screentext 2822 gui_pos_x gui_pos_y 28672 0 0 409 disp_pulse 2 16 0 5 8 1 1 0 0 0 xdim ydim
+					state handle_click
+					ife clicked 1
+						{
+						ifl SUPPLY_LEVEL 10 state FORGE_CANT
+						else
+							{
+							sub SUPPLY_LEVEL 10
+							state FORGE_BUY
+							spawn SPACESUIT_REFILL
+							sound CASHREG
+							}
+						}
+ 				screentext 2822 163 95 28672 0 0 COST_10 0 disp_temp6 16 0 5 8 1 1 0 0 0 xdim ydim
+				rotatesprite 205 63 40960 0 SPACESUIT_REFILL 0 0 0 0 0 xdim ydim
+				}
+		}
+	}
+
+rotatesprite 162 103 43690 0 11227 0 0 8 0 0 xdim ydim
+
+// Screen selection buttons =========================================================================================================================
+
+ifg amc_base 0 set INFO_SEL_2 0
+
+ife INFO_SEL_2 0 screentext 2822 165 120 28672 0 0 1227 0 32 16 0 5 8 1 1 0 0 0 xdim ydim
+else screentext 2822 165 120 28672 0 0 1227 0 1 16 0 5 8 1 1 0 0 0 xdim ydim
+
+ifg amc_base 0 screentext 2822 165 149 28672 0 0 1228 0 2 16 0 5 8 1 1 0 0 0 xdim ydim
+else ife INFO_SEL_2 1 screentext 2822 165 149 28672 0 0 1225 0 32 16 0 5 8 1 1 0 0 0 xdim ydim
+else screentext 2822 165 149 28672 0 0 1225 0 1 16 0 5 8 1 1 0 0 0 xdim ydim
+
+ifg amc_base 0 screentext 2822 165 168 28672 0 0 1228 0 2 16 0 5 8 1 1 0 0 0 xdim ydim
+else ife INFO_SEL_2 2 screentext 2822 165 168 28672 0 0 1226 0 32 16 0 5 8 1 1 0 0 0 xdim ydim
+else screentext 2822 165 168 28672 0 0 1226 0 1 16 0 5 8 1 1 0 0 0 xdim ydim
+
+set gui_pos_x 112
+set gui_pos_y 119
+
+	state CURSOR_OVER_ITEM
+	ifl gui_pos_x_temp 80
+	 ifg gui_pos_x_temp -80
+	  ifl gui_pos_y_temp 10
+	   ifg gui_pos_y_temp -10
+		{
+		ife INFO_SEL_2 0 screentext 2822 165 120 28672 0 0 1227 disp_pulse 32 16 0 5 8 1 1 0 0 0 xdim ydim
+		else screentext 2822 165 120 28672 0 0 1227 disp_pulse 2 16 0 5 8 1 1 0 0 0 xdim ydim
+			ifand BITS_PRESS 4
+					{
+					set INFO_SEL_2 0
+					soundonce COMP_SELECT
+					}
+		}
+
+set gui_pos_x 112
+set gui_pos_y 148
+
+	state CURSOR_OVER_ITEM
+	ifl gui_pos_x_temp 80
+	 ifg gui_pos_x_temp -80
+	  ifl gui_pos_y_temp 10
+	   ifg gui_pos_y_temp -10
+	    ife amc_base 0
+		{
+		ife INFO_SEL_2 1 screentext 2822 165 149 28672 0 0 1225 disp_pulse 32 16 0 5 8 1 1 0 0 0 xdim ydim
+		else screentext 2822 165 149 28672 0 0 1225 disp_pulse 2 16 0 5 8 1 1 0 0 0 xdim ydim
+			ifand BITS_PRESS 4
+					{
+					set INFO_SEL_2 1
+					soundonce COMP_SELECT
+					}
+		}
+
+set gui_pos_x 112
+set gui_pos_y 167
+
+	state CURSOR_OVER_ITEM
+	ifl gui_pos_x_temp 80
+	 ifg gui_pos_x_temp -80
+	  ifl gui_pos_y_temp 10
+	   ifg gui_pos_y_temp -10
+		ife amc_base 0
+		{
+		ife INFO_SEL_2 2 screentext 2822 165 168 28672 0 0 1226 disp_pulse 32 16 0 5 8 1 1 0 0 0 xdim ydim
+		else screentext 2822 165 168 28672 0 0 1226 disp_pulse 2 16 0 5 8 1 1 0 0 0 xdim ydim
+			ifand BITS_PRESS 4
+					{
+					set INFO_SEL_2 2
+					soundonce COMP_SELECT
+					}
+		}
+
+rotatespritea 276 52 NNORMALSIZE 0 11231 disp_pulse 0 0 -255 0 0 xdim ydim
+rotatespritea 208 60 NNORMALSIZE 0 11232 0 0 0 -255 0 0 xdim ydim
+ends

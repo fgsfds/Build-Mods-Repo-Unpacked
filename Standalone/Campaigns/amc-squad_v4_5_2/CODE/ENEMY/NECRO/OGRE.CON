@@ -1,0 +1,355 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+
+--------------------------------------------------------------------------------
+*/
+
+damageeventtile OGRE
+
+action A_OGRE_FROZEN 35 1 5 1 10
+action A_OGRE_IDLE 0 1 5 1 10
+action A_OGRE_RUN 0  4 5 1 15
+action A_OGRE_SLASH 20 3 5 1 15
+
+action A_OGRE_PREP 40 1 5 1 15
+action A_OGRE_CAST 45 1 5 1 15
+
+action A_OGRE_FLINCH 35 1 1 1 10
+action A_OGRE_DYING 35 5 1 1 12
+action A_OGRE_DEAD 39 1 1 1 10
+
+move OGRE_RUNVELS 148
+
+ai AI_OGRE_IDLE A_OGRE_IDLE STOP
+ai AI_OGRE_SEEKENEMY A_OGRE_RUN OGRE_RUNVELS
+ai AI_OGRE_SLASHENEMY A_OGRE_SLASH STOP
+
+ai AI_OGRE_PREPARE A_OGRE_PREP STOP
+ai AI_OGRE_CAST A_OGRE_CAST STOP
+
+ai AI_OGRE_DEAD A_OGRE_DEAD STOP
+ai AI_OGRE_SHRUNK A_OGRE_RUN OGRE_RUNVELS furthestdir
+ai AI_OGRE_GROW A_OGRE_FLINCH STOP
+
+useractor enemystayput OGRE_STAYPUT 225 A_OGRE_IDLE
+cactor OGRE
+enda
+
+useractor enemy OGRE 225 A_OGRE_IDLE
+fall
+
+ifai 0
+{
+	set actor_type TYPE_ARMOURED
+	state monst_glow
+	// TODO remove shootme refs
+	geta[].pal PALSAVED
+	espawn SHOOTME
+	seta[RETURN].pal 1
+
+	spriteflags NORMAL_ENEMY
+	ifspritepal 24
+		{
+		strength 400
+		sizeat 32 32
+		}
+	else
+		{
+		spritepal 0
+		strength 225
+		sizeat 26 26
+		}
+
+	ai AI_OGRE_IDLE
+	cstator 257
+}
+
+	ifg silence_damage 0
+		{
+		sub silence_damage 1
+		state spawn_curse_particles
+		}
+
+state enemyfloordamage
+state enemy_fire_damage
+state enemy_ice_damage
+state enemy_spirit_damage
+
+geta[].htextra HIT_DAMAGE
+
+ifaction A_OGRE_FROZEN
+{
+state frozen_code
+}
+else
+ifai AI_OGRE_GROW state genericgrowcode
+else
+ifai AI_OGRE_DEAD
+{
+strength 0
+move STOP
+    ifhitweapon
+    {
+      ifwasweapon RADIUSEXPLOSION
+      {
+        state squish_sounds
+	  state standard_jibs
+        killit
+      }
+      break
+    }
+}
+else
+ifaction A_OGRE_DYING
+{
+	move STOP
+	strength 0
+	ifactioncount 5 { state BODY_FALL_NOISES state rf ai AI_OGRE_DEAD }
+}
+else
+ifaction A_OGRE_FLINCH
+{
+move STOP faceplayer
+ifg PAIN_AMOUNT 0 sub PAIN_AMOUNT 1
+	seta[].xvel 0
+	ife PAIN_AMOUNT 0
+		ai AI_OGRE_SEEKENEMY
+}
+else
+ifai AI_OGRE_SHRUNK
+{
+    ifcount SHRUNKDONECOUNT
+      ai AI_OGRE_SEEKENEMY
+    else ifcount SHRUNKCOUNT
+      {
+	sound ACTOR_UNSHRINK
+	sizeto 26 26
+	}
+    else
+      state genericshrunkcode
+    break
+}
+else
+	ifai AI_OGRE_IDLE
+	{
+	state checkfortarget
+	ifn my_target -1
+		{
+		sound OGRE_RCG
+		ai AI_OGRE_SEEKENEMY
+		}
+	}
+else
+ifai AI_OGRE_SEEKENEMY
+{
+move OGRE_RUNVELS geth
+state checkfortarget
+	ifn my_target -1
+	{
+	dist temp THISACTOR my_target // if found, get distance
+	ifl temp 1024 { soundonce BERSERK_SWING ai AI_OGRE_SLASHENEMY }
+	else
+	ifl temp 16384
+	 ife silence_damage 0
+		{
+		state SKILL_SHOOT_LEVELADJUST // run difficulty level check
+		ifl RANDOM_CHANCE SKILLCHANCE // if succesful
+			{
+			ai AI_OGRE_PREPARE
+			}
+		}
+	}
+	ifactioncount 8
+		{
+		ifrnd 128 soundonce OGR_WALK1
+		else soundonce OGR_WALK2
+		}
+
+}
+else
+ifai AI_OGRE_SLASHENEMY
+{
+	move STOP
+	ife my_target -1 ai AI_OGRE_SEEKENEMY
+	else
+	{
+	ldist temp THISACTOR my_target
+	ifg temp 1536 ai AI_OGRE_SEEKENEMY
+	else state fronttowardstarget
+
+	ifactioncount 3
+		{
+			// if not aiming at player, manipulate noaim
+			ifn my_target PLAYER_IDENTITY
+				setprojectile[11741].WORKSLIKE 2134082
+			else
+				setprojectile[11741].WORKSLIKE 2129986
+
+			setprojectile[11741].RANGE 4
+			ife my_target PLAYER_IDENTITY
+				shoot 11741
+			else
+			{
+				set PROJECTILE_FIRING_SOUND -1
+				set PROJECTILE_TO_SHOOT 11741
+				state sang_enemyShootProjectile
+			}
+			setprojectile[11741].WORKSLIKE 2134082
+
+			ai AI_OGRE_SEEKENEMY
+		}
+	}
+}
+else
+ifai AI_OGRE_PREPARE
+	{
+		ife my_target PLAYER_IDENTITY
+		{
+			ifrnd 200
+				move STOP faceplayersmart
+			else
+			{
+				move STOP
+				state fronttowardstarget
+			}
+		}
+		else
+		{
+			move STOP
+			state fronttowardstarget
+		}
+
+		geta[].htg_t 2 temp
+		ifactioncount 4
+			{
+			ife my_target -1 ai AI_OGRE_SEEKENEMY else ai AI_OGRE_CAST
+			}
+		ifg temp 4 ai AI_OGRE_SEEKENEMY
+	}
+else
+ifai AI_OGRE_CAST
+	{
+
+	ife my_target PLAYER_IDENTITY
+	{
+		ifrnd 200
+			move STOP faceplayersmart
+		else
+		{
+			move STOP
+			state fronttowardstarget
+		}
+	}
+	else
+	{
+		move STOP
+		state fronttowardstarget
+	}
+
+	ife friendlyfire 0
+		ifn wallinbetween 1
+	{
+		ifactioncount 2
+			{
+			set PROJECTILE_TO_SHOOT 12712
+			set PROJECTILE_FIRING_SOUND OGR_STAFF
+			state sang_enemyShootProjectile
+			ai AI_OGRE_SEEKENEMY
+			eshoot 12712
+			geta[].ang temp4
+			sub temp4 128
+			seta[RETURN].ang temp4
+			eshoot 12712
+			geta[].ang temp4
+			add temp4 128
+			seta[RETURN].ang temp4
+			}
+		}
+	}
+
+ifhitweapon
+{
+	ifaction A_OGRE_DYING nullop
+	else
+	{
+		ifwasweapon VOID_PLAYER_BOLT { sound EN_CURSE set silence_damage 150 }
+		ifwasweapon VOID_BOLT { sound EN_CURSE set silence_damage 300 }
+		ifwasweapon VOID_BLAST { sound EN_CURSE set silence_damage 900 }
+		ifwasweapon RADIUSEXPLOSION seta[].xvel 0
+		ifg HIT_DAMAGE -1
+		{
+			guts JIBS6 1
+			soundonce BERSERK_PAIN
+			//spawn BLOOD
+			state random_wall_jibs
+		}
+		state NEWGUNEFFECTS
+		ifdead
+		{
+			state rf
+
+			ifwasweapon GROWSPARK { cstat 0 sound ACTOR_GROWING ai AI_OGRE_GROW break }
+			else ifg ice_damage 0 { spritepal 1 strength 0 sound SOMETHINGFROZE action A_OGRE_FROZEN }
+			else
+			ifand PROJ_UDATA 8
+			{
+				guts JIBS6 6
+				sound HUGE_GIB
+				spawn BIG_BLOOD_EXE
+				geta[].htpicnum temp
+				ife temp 1405 // only do big death if killed by player
+				{
+					state standard_jibs
+					state monst_body_jibs
+				}
+				shoot OGRE_MACE_DROP
+				ifrnd 24 spawn OGRE_STAFF_SPRITE
+				else shoot OGRE_STAFF_DROP
+				killit
+			}
+			else
+			{
+				sound OGR_DIE
+				addkills 1
+				action A_OGRE_DYING
+				shoot OGRE_MACE_DROP
+				ifrnd 24 spawn OGRE_STAFF_SPRITE
+				else shoot OGRE_STAFF_DROP
+
+				spawn BLOODPOOL
+			}
+		}
+		else ifg PAIN_AMOUNT 0 action A_OGRE_FLINCH
+		else ifpdistl 1524 { set PAIN_AMOUNT 26 action A_OGRE_FLINCH }
+		else ifrnd 32 ife fire_damage 0 { ifaction A_OGRE_SLASH nullop else { state PAIN_SKILL_LEVELADJUST action A_OGRE_FLINCH sound OGRE_PAIN } }
+		else ifai AI_OGRE_IDLE { state PAIN_SKILL_LEVELADJUST action A_OGRE_FLINCH }
+		ifwasweapon SHRINKSPARK { sound ACTOR_SHRINKING ai AI_OGRE_SHRUNK }
+	}
+}
+
+state checksquished
+
+enda

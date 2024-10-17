@@ -1,0 +1,212 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+
+--------------------------------------------------------------------------------
+*/
+
+appendevent EVENT_LOADACTOR
+	ifactor VRDUDE
+	{
+		geta[].xvel XVELSAVED
+		geta[].extra EXTRASAVED
+	}
+endevent
+
+useractor notenemy 22282 // vr dude mirage
+	sizeat 34 33
+	spritepal 87
+
+	add INTERNALCOUNT 1
+	seta[].blend 255
+
+	ifl INTERNALCOUNT 20
+		cstat 2050
+	else
+		cstat 2562
+
+	ifg INTERNALCOUNT 30
+		killit
+enda
+
+action A_VRDUDE 0 3 1 1 5
+action A_VRDUDE_DEAD 0
+move M_VRDUDE 250
+move M_VRDUDE_UP 250 -96
+move M_VRDUDE_DOWN 250 96
+
+// Xvel activates it
+// Extra kills it
+useractor notenemy VRDUDE
+
+	// VRdude gets crushed
+	ifaction A_VRDUDE_DEAD nullop
+	else ife sector[].floorz sector[].ceilingz
+	{
+		sound VR_DIE
+		set vr_glitched 98
+		set INTERNALCOUNT 0
+		cstat 32768
+		action A_VRDUDE_DEAD
+	}
+
+	ifaction 0
+	{
+		cstat 2048
+
+		checkactivatormotion XVELSAVED
+
+		ife RETURN 1
+		{
+			set my_target PLAYER_IDENTITY
+			action A_VRDUDE
+		}
+	}
+
+	else ifaction A_VRDUDE
+	{
+		ifactorsound THISACTOR DRON_JETSND nullop
+		else sound DRON_JETSND
+
+		checkactivatormotion EXTRASAVED
+
+		ife RETURN 1
+			killit
+
+		add INTERNALCOUNT 1
+
+		ifg INTERNALCOUNT 3
+		{
+			spawn 22282
+			set INTERNALCOUNT 0
+		}
+
+		// proximity to player causes some fun stuff until they die
+		ldist xydist THISACTOR PLAYER_IDENTITY
+
+		ifl xydist 2048
+		{
+			ifactorsound THISACTOR VR_GLITCH nullop
+			else sound VR_GLITCH
+
+			add INTERNALCOUNT_2 1
+			ifg INTERNALCOUNT_2 150
+			{
+				// kill player
+				addphealth -300
+			}
+			else ifg INTERNALCOUNT_2 120
+				palfrom 150 0 0 64
+			else ifg INTERNALCOUNT_2 96
+				palfrom 63 0 0 64
+			else ifg INTERNALCOUNT_2 64
+				palfrom 58 0 0 64
+			else ifg INTERNALCOUNT_2 32
+				palfrom 45 0 0 64
+			else ifg INTERNALCOUNT_2 16
+				palfrom 32 0 0 64
+			else
+				palfrom 25 0 0 64
+		}
+		else
+		{
+			ifg INTERNALCOUNT_2 0
+				sub INTERNALCOUNT_2 2
+		}
+
+		ifrnd 64
+		{
+			set HITSCAN_TO_ACTOR PLAYER_IDENTITY
+			state hitscanTo
+
+			ife hitsprite PLAYER_IDENTITY
+			{
+				set my_target PLAYER_IDENTITY
+				set cur_point PLAYER_IDENTITY
+				set smartpoint_lotag_handled 0
+				set next_point 0
+			}
+			else
+			{
+				state anglePathToPlayer
+				set my_target next_point
+			}
+		}
+		ifn next_point -1
+		{
+			state float_check
+			set FLOATING_CUR RETURN
+
+			ife RETURN -1
+			{
+				ifmove M_VRDUDE_DOWN nullop
+				else move M_VRDUDE_DOWN geth getv
+			}
+			else ife RETURN 0
+			{
+				ifmove M_VRDUDE nullop
+				else move M_VRDUDE geth getv
+			}
+			else ife RETURN 1
+			{
+				ifmove M_VRDUDE_UP nullop
+				else move M_VRDUDE_UP geth getv
+			}
+
+			// REDUCED speed in first VR section
+			ifspritepal 3
+			{
+				geta[].xvel temp
+				div temp 10
+				seta[].xvel temp
+			}
+
+			seta[].ang angvar
+		}
+	}
+	else ifaction A_VRDUDE_DEAD
+	{
+		move STOP
+		cstat 32768
+		add INTERNALCOUNT 1
+
+		ife INTERNALCOUNT 60
+		{
+			// exit VR
+			set screen_pal 0
+			setgamepalette 0
+			set VR_ACTION_POINTS 0
+			globalsound EXIT_VR
+			set CONTROL_VR -1
+			ifn EXTRASAVED -1
+			{
+				operateactivators EXTRASAVED THISACTOR
+				operaterespawns EXTRASAVED
+				operatemasterswitches EXTRASAVED
+			}
+		}
+	}
+
+enda

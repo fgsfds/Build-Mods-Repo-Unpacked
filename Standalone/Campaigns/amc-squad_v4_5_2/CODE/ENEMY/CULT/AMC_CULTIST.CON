@@ -1,0 +1,665 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+
+--------------------------------------------------------------------------------
+*/
+
+// ******************************************************************************
+// CULTIST
+// ******************************************************************************
+
+damageeventtile CULTIST
+
+action A_CULTIST_INIT    0 1 5 1 0
+action A_CULTIST_IDLE    0 1 5 1 0
+action A_CULTIST_DEAD 95 1 1 1 1
+action A_CULTIST_DEAD2 108 1 1 1 1
+action A_CULTIST_HEADSHOT 97 6 1 1 15
+action A_CULTIST_HEADDEAD 102 1 1 1 1
+
+action A_CULTIST_BIDIE 22740 2 1 1 16
+action A_CULTIST_BIDEAD 22741
+
+action A_CULTIST_BLAST 195 1
+action A_CULTIST_BLAST2 195 1 // no need to use a var to store which death triggered the anim
+action A_CULTIST_SLICED 7575 5 1 1 20
+action A_CULTIST_SLICE_DEAD 7580 1 1 1 10
+action A_CULTIST_DYING 89 8 1 1 15
+action A_CULTIST_DYING2 103 7 1 1 8
+action A_CULTIST_FREEZE   5 1 5 1 0
+action A_CULTIST_GROW   5 1 5 1 0
+action A_CULTIST_SHRUNK 5 4 5 1 20
+action A_CULTIST_PAIN 89 1 1 1 20
+
+action A_CULTIST_TWITCH 96 1 1 1 10
+action A_CULTIST_SEEK     5 4 5 1 20
+action A_CULTIST_RUN      5 4 5 1 12
+action A_CULTIST_SHOOT 48 2 5 1 11
+action A_CULTIST_SHOOT2 48 2 5 1 10
+action A_CULTIST_PUMP 48 1 5 1 20
+action A_CULTIST_THROW 58 2 5 1 20
+action A_CULTIST_THROWNET 58 2 5 1 20
+
+action A_CULTIST_JUMP 26 2 5 1 20
+action A_CULTIST_FALL 31 1 5 1 1
+action A_CULTIST_CHOKE 25 1 1 1 10
+action A_CULTIST_SHOTGUNSTRUGGLE 46 1 1 1 10
+action A_CULTIST_FCHOKE 83 1 5 1 10
+action A_CULTIST_CRAWL 7560 3 5 1 20
+
+move M_CULTIST_WALK 72
+move M_CULTIST_RUN 108
+move M_CULTIST_JUMP 158
+
+// Cultists can do many things, states kept in separate file for readability of general structure
+include CODE/ENEMY/CULT/CULTIST_STATES.CON
+
+useractor enemystayput CULTISTSTAYPUT 75 A_CULTIST_INIT
+	cactor CULTIST
+enda
+
+useractor enemy CULTISTSHOTGUNSTRUGGLE 125 0
+	ifaction 0
+	{
+		set MONSTER_FLAGS 2
+		set actor_pal 10
+		state monst_glow
+		strength 125
+		sizeat 24 24
+		cstator 257
+
+		ifcansee
+		 ifcanseetarget
+		  ifpdistl 2048
+		   ife opt_qte_disable NO
+			{
+			sound PIGBUTT
+			wackplayer
+			action A_CULTIST_SHOTGUNSTRUGGLE
+			getactor[].pal cultist_pal
+			set PLAYER_VOICEOVER 53
+			set shotgun_struggle_num 0
+			set shotgun_struggle THISACTOR
+			}
+		else action A_CULTIST_SEEK
+
+		cactor CULTIST
+	}
+enda
+
+useractor enemy CULTISTJUMP 75 0
+	ifaction 0
+	{
+		set MONSTER_FLAGS 2
+		ife actor_pal 0 geta[].pal actor_pal
+		state monst_glow
+		spawn SHOOTME
+		spriteflags NORMAL_ENEMY
+		ife actor_pal 20 { ife EXTRASAVED -1 set EXTRASAVED 5 strength 250 } else
+		ife actor_pal 49 { ife EXTRASAVED -1 set EXTRASAVED 5 strength 200 } else
+		ife actor_pal 36 { ife EXTRASAVED -1 set EXTRASAVED 2 strength 150 } else
+		ife actor_pal 21 { ife EXTRASAVED -1 set EXTRASAVED 20 strength 100 } else
+		ife actor_pal 10 strength 125 else
+		strength 75
+		sizeat 24 24
+		action A_CULTIST_JUMP
+		cstator 257
+		cactor CULTIST
+	}
+enda
+
+useractor enemy CULTIST 75 A_CULTIST_INIT
+	fall
+
+	ifaction A_CULTIST_INIT
+	{
+		cstator 257
+		ife actor_pal 0 geta[].pal actor_pal
+		set MONSTER_FLAGS 2
+		state monst_glow
+		spawn SHOOTME
+		spriteflags NORMAL_ENEMY
+
+		ife actor_pal 20 { ife EXTRASAVED -1 set EXTRASAVED 5 strength 250 }
+		else ife actor_pal 49 { ife EXTRASAVED -1 set EXTRASAVED 5 strength 200 set actor_type TYPE_BODY_ARMOUR }
+		else ife actor_pal 3 { ife EXTRASAVED -1 set EXTRASAVED 2 strength 150 }
+		else ife actor_pal 36 { ife EXTRASAVED -1 set EXTRASAVED 2 ifg SKILL_LEVEL 2 set ZVELSAVED 1 strength 150 }
+		else ife actor_pal 21 { set EXTRASAVED 20 strength 100 }
+		else ife actor_pal 10 strength 125
+		else strength 75
+
+		sizeat 24 24
+		ifaction A_CULTIST_SHOTGUNSTRUGGLE nullop
+		else action A_CULTIST_IDLE
+	}
+
+	state spawn_cold_breathe
+
+	state ENEMYKNOCKBACKS
+	state enemyfloordamage
+	state enemy_fire_damage
+	state enemy_ice_damage
+	state enemy_spirit_damage
+
+	ifaction A_CULTIST_IDLE
+	{
+		move STOP
+
+		ife actor_pal 20
+			ife NUMBER_OF_SOULS -1
+				seta[].htextra -1
+
+		state checkfortarget
+
+		ifn my_target -1
+		{
+			ifrnd 128 sound CULT_RCG1 else sound CULT_RCG2
+			action A_CULTIST_SEEK
+		}
+	}
+	else ifaction A_CULTIST_DEAD
+	{
+		ifrnd 4 ifl INTERNALCOUNT 5 action A_CULTIST_TWITCH
+		state cultist_dead_state
+	}
+	else ifaction A_CULTIST_BIDEAD
+		state cultist_dead_state
+	else ifaction A_CULTIST_DEAD2
+		state cultist_dead_state
+	else ifaction A_CULTIST_HEADDEAD
+		state cultist_dead_state
+	else ifaction A_CULTIST_HEADSHOT
+	{
+		strength 0
+		ifactioncount 6 { state BODY_FALL_NOISES spawn 7991 action A_CULTIST_HEADDEAD }
+	}
+	else ifaction A_CULTIST_BLAST
+	{
+		cstator 256
+		strength 0
+		ifhitweapon { spawn BLOOD guts JIBS6 1 resetactioncount }
+		else ifactioncount 6 action A_CULTIST_DYING
+	}
+	else ifaction A_CULTIST_BLAST2
+	{
+		cstator 256
+		strength 0
+		ifhitweapon { spawn BLOOD guts JIBS6 1 resetactioncount }
+		else ifactioncount 6 action A_CULTIST_DYING2
+	}
+	else ifaction A_CULTIST_BIDIE
+	{
+		ifactioncount 2 { state BODY_FALL_NOISES spawn BLOODPOOL action A_CULTIST_BIDEAD }
+	}
+	else ifaction A_CULTIST_SLICED
+	{
+		ifg SLO_MO_SHOWOFF 0 action A_CULTIST_SLICED
+		strength 0
+		ifactioncount 5 { state SQUISH_FALL_NOISES spawn 7991 state rf action A_CULTIST_SLICE_DEAD }
+	}
+	else ifaction A_CULTIST_SLICE_DEAD
+		state cultist_dead_state
+	else ifaction A_CULTIST_DYING
+	{
+		strength 0
+
+		// get riddled with bullets
+		ifhitweapon ifwasweapon SHOTSPARK1 { spawn BLOOD guts JIBS6 1 action A_CULTIST_BLAST resetactioncount }
+
+		ifactioncount 7 { state BODY_FALL_NOISES spawn 7991 state rf action A_CULTIST_DEAD }
+	}
+	else ifaction A_CULTIST_DYING2 // almost identical to DYING state, just calls different actions
+	{
+		strength 0
+
+		// get riddled with bullets
+		ifhitweapon ifwasweapon SHOTSPARK1 { spawn BLOOD guts JIBS6 1 action A_CULTIST_BLAST2 resetactioncount }
+
+		ifactioncount 6 { state BODY_FALL_NOISES spawn 7991 state rf action A_CULTIST_DEAD2 }
+	}
+	else ifaction A_CULTIST_FREEZE
+		state frozen_code
+	else ifaction A_CULTIST_GROW
+	{
+		move STOP
+		state genericgrowcode
+	}
+	else ifaction A_CULTIST_SHRUNK
+	{
+		ifrnd 4
+		{
+			soundonce CULTIST_DIE3
+			setactorsoundpitch THISACTOR CULTIST_DIE3 512
+		}
+
+		ifmove M_CULTIST_WALK nullop
+		else move M_CULTIST_WALK geth fleeenemy
+
+		ifl SHRUNK_TIME SHRUNKCOUNT // keep shrunk
+			state new_shrunkcode
+		else ifl SHRUNK_TIME SHRUNKDONECOUNT // regrow
+		{
+			state unshrink
+			sizeto 24 24
+		}
+		else // after regrow, switch back to regular action
+		{
+			state endshrunkenstate
+			action A_CULTIST_SEEK
+		}
+	}
+	else ifaction A_CULTIST_PAIN
+	{
+		move STOP
+		sizeat 24 24
+		sub PAIN_AMOUNT 1
+		ifdead action A_CULTIST_DYING
+		ife PAIN_AMOUNT 0 action A_CULTIST_SEEK
+	}
+	else ifaction A_CULTIST_TWITCH
+	{
+		move STOP
+		add INTERNALCOUNT 1
+		ifactioncount 1 action A_CULTIST_DEAD
+	}
+	else ifaction A_CULTIST_SEEK
+	{
+		ifmove M_CULTIST_WALK nullop
+		else move M_CULTIST_WALK geth
+
+		state cultist_check_notmoving
+
+		ifg shoot_countdown 0 sub shoot_countdown 1
+		set ally_mag 0
+		state checkfortarget
+		ifn my_target -1
+		{
+			dist temp THISACTOR my_target
+			ifl temp 5120
+			 ifrnd 64
+			  {
+				action A_CULTIST_RUN
+			  }
+			else ife actor_pal 10 ife sightvar YES ifpdistl 1596 ifrnd 64 ife opt_qte_disable NO ife shotgun_struggle -1 ife sprite[].sectnum player[].cursectnum
+			{
+				state cultist_start_shotgunstruggle
+			}
+			else ifpdistl 1024 ifrnd 16 ifcansee ife sprite[].sectnum player[].cursectnum
+			{
+				state cultist_start_choke
+			}
+			else ife actor_pal 49 ifn OWNERSAVED 1
+			{
+				ifmultiplayer nullop
+				else ifpdistl 8192 ifrnd 32 ifcansee ifcanseetarget ife FCHOKESTOP 0 ife silence_damage 0
+				{
+					state cultist_start_forcechoke
+				}
+			}
+			else ifl shoot_countdown 1
+			{
+				state SKILL_SHOOT_LEVELADJUST
+				ifl RANDOM_CHANCE SKILLCHANCE
+				{
+					ife actor_pal 10 action A_CULTIST_SHOOT2
+					else action A_CULTIST_SHOOT
+				}
+			}
+		}
+
+		state SKILL_SHOOT_LEVELADJUST
+		ifbulletnear
+		 ifl RANDOM_CHANCE SKILLCHANCE
+		{
+			sizeat 24 24
+			move STOP
+			action A_CULTIST_CRAWL
+		}
+	}
+	else ifaction A_CULTIST_RUN
+	{
+		ifmove M_CULTIST_RUN nullop
+		else move M_CULTIST_RUN geth
+
+		state cultist_check_notmoving
+
+		set ally_mag 0
+
+		ife actor_pal 10 ifcansee ifpdistl 1596 ifrnd 64 ife shotgun_struggle -1 ife opt_qte_disable NO ife sprite[].sectnum player[].cursectnum
+			state cultist_start_shotgunstruggle
+
+		state checkfortarget
+
+		ifn my_target -1
+		{
+			dist temp THISACTOR my_target
+			ife actor_pal 21
+			{
+				ifrnd 32
+				 ifg EXTRASAVED 0
+				 ifg temp 2048
+					{
+					ifrnd 96 sound CULT_ATCK1
+					else ifrnd 96 sound CULT_ATCK2
+					else sound CULT_ATCK3
+					action A_CULTIST_THROW
+					}
+			}
+			else ifrnd 8
+			 ifg EXTRASAVED 0
+			 ifg temp 2048
+					{
+					ifrnd 96 sound CULT_ATCK1
+					else ifrnd 96 sound CULT_ATCK2
+					else sound CULT_ATCK3
+					action A_CULTIST_THROW
+					}
+			else ifrnd 8
+			 ife my_target PLAYER_IDENTITY
+			 ife opt_qte_disable NO
+			 ifg ZVELSAVED 0
+			 ifpdistl 6098
+					{
+					ifrnd 96 sound CULT_ATCK1
+					else ifrnd 96 sound CULT_ATCK2
+					else sound CULT_ATCK3
+					action A_CULTIST_THROWNET
+					}
+			else ifrnd 32
+			{
+				ife actor_pal 10 action A_CULTIST_SHOOT2
+				else action A_CULTIST_SHOOT
+			}
+		}
+		else action A_CULTIST_SEEK
+	}
+	else ifaction A_CULTIST_SHOOT
+	{
+		move STOP
+
+		state fronttowardstarget
+		ifn my_target -1
+		{
+			ifactioncount 1
+			{
+				// TODO: update this
+				state DARKNESS_ENEMY_ACCURACY
+				set PROJECTILE_TO_SHOOT ENEMY_BULLET
+				ife actor_pal 36 { state SKILL_ENEMY_ACCURACY set PROJECTILE_FIRING_SOUND TOMMYG_FIRE ife PERFMODE 1 ifcansee state npc_rifleshell }
+				else ife actor_pal 16 { state SKILL_ENEMY_ACCURACY set PROJECTILE_FIRING_SOUND AK104FIRE ife PERFMODE 1 ifcansee state npc_rifleshell }
+				else ife actor_pal 49 { set PROJECTILE_FIRING_SOUND FNFAL_FIRE ife PERFMODE 1 state npc_rifleshell }
+				else ife actor_pal 20 { set PROJECTILE_FIRING_SOUND FG42_FIRE ife PERFMODE 1 state npc_rifleshell }
+				else
+				{ state SKILL_ENEMY_ACCURACY set PROJECTILE_FIRING_SOUND CULTIST_RIFLE ife PERFMODE 1 ifcansee state npc_rifleshell }
+				globalsound DISTANT_RIFLE
+				
+				state sang_enemyShootProjectile
+
+				ife PERFMODE 1
+				 ifcansee
+				{
+					set gunsmoke_z 7644
+					set gunsmoke_angle -76
+					state spawn_gunsmoke_z
+					set gunsmoke_z 6044
+					ife actor_pal 49 state spawn_enemy_ARFLASH
+					else ife actor_pal 20 state spawn_enemy_ARFLASH
+					else ife actor_pal 3 { set gunsmoke_z 3200 espawn 16113 }
+					else espawn 16115
+					state spawn_muzzleflash
+				}
+				add ally_mag 1
+				ifg ally_mag 9 action A_CULTIST_SEEK
+				else ifrnd 32 action A_CULTIST_SEEK
+
+				resetactioncount
+			}
+		}
+		else action A_CULTIST_SEEK
+	}
+	else ifaction A_CULTIST_SHOOT2
+	{
+		move STOP
+
+		state fronttowardstarget
+		ifn my_target -1
+		{
+			ifactioncount 2 { set INTERNALCOUNT_2 0 action A_CULTIST_PUMP }
+			else ifactioncount 1
+			{
+				soundonce SAWNOFF_FIRE
+				set PROJECTILE_TO_SHOOT ENEMY_SHOTGUN
+				set PROJECTILE_FIRING_SOUND 4
+				state sang_enemyShootProjectile
+				state sang_enemyShootProjectile
+
+				set gunsmoke_z 6644
+				set gunsmoke_angle -76
+				state spawn_gunsmoke_z
+				set gunsmoke_z 6044
+				espawn 16114
+				state spawn_muzzleflash
+			}
+		}
+		else action A_CULTIST_SEEK
+	}
+	else ifaction A_CULTIST_PUMP
+	{
+		move STOP
+
+		ifn my_target -1
+			state fronttowardstarget
+
+		add INTERNALCOUNT_2 1
+		ife INTERNALCOUNT_2 6 { sound SAWNOFF_COCK shoot 3761 shoot 3761 }
+		ifg INTERNALCOUNT_2 25 { action A_CULTIST_SEEK resetcount stopactorsound THISACTOR SAWNOFF_FIRE set INTERNALCOUNT_2 0 }
+	}
+	else ifaction A_CULTIST_THROW
+	{
+		move STOP
+
+		ifn my_target -1
+			state fronttowardstarget
+
+		ifactioncount 2
+		{
+			sub EXTRASAVED 1
+			sound TNT_THROW
+			ife actor_pal 49 eshoot GRENADE else
+			ife actor_pal 16 eshoot FL_GRENADE else
+			eshoot DYNAMITESTICK
+			setthisprojectile[RETURN].extra 50
+			action A_CULTIST_SEEK
+		}
+	}
+	else ifaction A_CULTIST_THROWNET
+	{
+		move STOP
+
+		ifn my_target -1
+			state fronttowardstarget
+
+		ifactioncount 5
+		{
+			sub ZVELSAVED 1
+			sound TNT_THROW
+			spawn 10298
+			action A_CULTIST_SEEK
+		}
+	}
+	else ifaction A_CULTIST_JUMP
+	{
+		ifmove M_CULTIST_JUMP nullop
+		else move M_CULTIST_JUMP geth jumptoplayer // TODO jumptoplayer won't work correctly if target is not the player, probably. But maybe this comes up so little that it doesn't matter.
+
+		ifactioncount 4
+			action A_CULTIST_FALL
+	}
+	else ifaction A_CULTIST_FALL
+	{
+		ifmove M_CULTIST_RUN nullop
+		else move M_CULTIST_RUN geth
+
+		state checkfortarget // set angle
+
+		geta[].zvel temp7
+		iffloordistl 4 nullop
+        else ifg temp7 3500 add FALL_COUNTER 5
+        else set FALL_COUNTER 0
+
+		 ifg FALL_COUNTER 70 ifl FALL_COUNTER 80 globalsound CULTIST_FALL
+		 iffloordistl 16
+		{
+			ifonwater sound LAND_WATER
+			else sound LAND_NORM
+
+			action A_CULTIST_SEEK
+
+			ifg FALL_COUNTER 30
+			{
+				seta[].htextra FALL_COUNTER
+				set FALL_COUNTER 0
+			}
+		}
+	}
+	else ifaction A_CULTIST_CHOKE
+		state cultist_choke
+	else ifaction A_CULTIST_SHOTGUNSTRUGGLE
+		state cultist_shotgunstruggle
+	else ifaction A_CULTIST_FCHOKE
+		state cultist_forcechoke
+	else ifaction A_CULTIST_CRAWL
+	{
+		ifmove M_CULTIST_WALK nullop
+		else move M_CULTIST_WALK geth dodgebullet
+
+		ifrnd 16 { sizeat 24 24 action A_CULTIST_SEEK resetactioncount }
+	}
+
+geta[].zvel temp8
+ifg temp8 3000
+{
+	ifstrength 0 nullop
+	else action A_CULTIST_FALL
+}
+
+	ifg silence_damage 0
+		{
+		sub silence_damage 1
+		state spawn_curse_particles
+		}
+
+ifhitweapon
+{
+	ife actor_pal 20 nullop else ife actor_pal 16 nullop else state NEWGUNEFFECTS
+	ifaction A_CULTIST_CRAWL sizeat 24 24
+	ifaction A_CULTIST_SLICED break
+	ifaction A_CULTIST_DYING break
+	ifaction A_CULTIST_DEAD break
+	ifaction A_CULTIST_DYING2 break
+	ifaction A_CULTIST_BLAST break
+	ifaction A_CULTIST_BLAST2 break
+
+	ifwasweapon VOID_PLAYER_BOLT { sound EN_CURSE set silence_damage 150 }
+	ifwasweapon VOID_BOLT { sound EN_CURSE set silence_damage 300 }
+	ifwasweapon VOID_BLAST { sound EN_CURSE set silence_damage 900 }
+
+	state random_wall_jibs
+
+	ifdead
+	{
+		state cultist_dead_stuff
+		ife actor_pal 20 ifn OWNERSAVED -1 { operateactivators OWNERSAVED THISACTOR }
+
+		geta[].htpicnum PROJ_HIT_TYPE
+		ifand tiledata[PROJ_HIT_TYPE].gameflags 8 getprojectile[PROJ_HIT_TYPE].userdata PROJ_UDATA
+		else set PROJ_UDATA 0
+
+		ifwasweapon RADIUSEXPLOSION
+			state cultist_skullexplosion
+		else ifwasweapon RPG
+			state cultist_skullexplosion
+		else ifand PROJ_UDATA PROJ_GIB
+			state cultist_skullexplosion
+		else
+		ifand PROJ_UDATA 8192
+			 {
+			 ifrnd 8 { spawn ELECTROCUTE_MARV soundonce MALE_ELECT1 } else spawn ELECTROCUTE_GUY
+			 shoot SPARK2 shoot SPARK2 shoot SPARK2
+			 killit
+			 }
+		else ifwasweapon SNOWFALL_DISC state cultist_torsofly
+		else ifwasweapon SAWBLADE state cultist_torsofly
+		else ifwasweapon SAWBLADE_BOUNCE state cultist_torsofly
+		else ifwasweapon 6875 ife CHAR 2 state cultist_torsofly
+		else ifg energy_damage 0
+			state cultist_disintegrate
+		else ifg spirit_damage 0
+			state cultist_spirit_death
+		else ifg fire_damage 0
+			state cultist_fire_death
+		else ifg ice_damage 0 { spritepal 1 strength 1 sound SOMETHINGFROZE action A_CULTIST_FREEZE }
+		else ifwasweapon GROWSPARK { cstat 0 sound ACTOR_GROWING action A_CULTIST_GROW break }
+		else ifand PROJ_UDATA 8 // slicing death
+			{
+			ifwasweapon CHAINSAW_PROJ
+				{
+				set npc_chainsaw_struggle 54
+				set npc_chainsaw_id 2
+				set cultist_pal sprite[].pal
+				}
+			else
+			state random_trigger_showoff
+			cstat 4 state slashed_sounds action A_CULTIST_SLICED
+			}
+		else
+		{
+			ife actor_pal 20 { palfrom 40 40 0 40 spawn SKULLEXPLOSION globalsound CULTIST_HAUNT }
+
+			ifl sprite[].extra -100 state cultist_torsofly
+			else
+			ife HEADSHOT 2
+				state cultist_headshot_death
+			else ifstrength -35 ifpdistl 4096 state cultist_flyback
+			else ifwasweapon KNEE state cultist_flyback
+			else ifwasweapon SHOTGUN ifpdistl 1536 state cultist_flyback
+			else
+				state cultist_normal_death
+		}
+	}
+	else // not dead
+	{
+		ifwasweapon SHRINKSPARK { ife actor_pal 49 nullop else ife actor_pal 20 nullop else { sound ACTOR_SHRINKING action A_CULTIST_SHRUNK } }
+
+		ifg PAIN_AMOUNT 0 { state cult_pain_sound action A_CULTIST_PAIN }
+		else ifrnd 32 { state cult_pain_sound state PAIN_SKILL_LEVELADJUST action A_CULTIST_PAIN }
+		else ifaction A_CULTIST_IDLE { state PAIN_SKILL_LEVELADJUST action A_CULTIST_PAIN }
+	}
+}
+
+state checksquished
+
+enda

@@ -1,0 +1,591 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+
+--------------------------------------------------------------------------------
+*/
+
+damageeventtile GOBLINBROS
+damageeventtile GOBLIN
+
+action A_GOBLINBROS_START 0 1 5 1 12
+action A_GOBLINBROS_IDLE 0 1 5 1 12
+action A_GOBLINBROS_DEAD 38
+action A_GOBLINBROS_DYING 33 6 1 1 16
+action A_GOBLINBROS_FREEZE 0 1 1 1 8
+action A_GOBLINBROS_GROW 0 1 1 1 8
+action A_GOBLINBROS_SHRUNK 0 4 5 1 12
+action A_GOBLINBROS_PAIN 33 1 1 1 8
+action A_GOBLINBROS_SEEK 0 4 5 1 12
+action A_GOBLINBROS_PREP 20 1 5 1 12
+action A_GOBLINBROS_ATTACK 25 1 5 1 12
+action A_GOBLINBROS_POSTATTACK 30 3 1 1 32
+
+move M_GOBLINBROS_WALK 126
+
+defstate goblinbros_spawn_cauldron
+	geta[].z temp
+	sub temp 2048
+	espawn GOBLIN_CAULDRON
+	seta[RETURN].z temp
+ends
+
+useractor enemystayput GOBLINBROS_STAYPUT 100 A_GOBLINBROS_START cactor GOBLINBROS enda
+
+useractor enemy GOBLINBROS 100 A_GOBLINBROS_START // both guys
+	fall
+
+	ifaction A_GOBLINBROS_START
+	{
+		cstat 257
+		strength 100
+		set blood_type 8
+		sizeat 32 32
+		state monst_glow
+		spawn SHOOTME
+		action A_GOBLINBROS_IDLE
+	}
+
+	state ENEMYKNOCKBACKS
+	state enemyfloordamage
+	state enemy_fire_damage
+	state enemy_ice_damage
+	state enemy_spirit_damage
+
+	ifaction A_GOBLINBROS_IDLE
+	{
+		move STOP
+		state checkfortarget
+		ifn my_target -1
+		{
+			sound GOB_RCG
+			action A_GOBLINBROS_SEEK
+		}
+	}
+	else ifaction A_GOBLINBROS_DEAD
+	{
+		move STOP
+		ifhitweapon
+		{
+			ifwasweapon RADIUSEXPLOSION
+			{
+				state squish_sounds
+				state standard_jibs
+				killit
+			}
+		}
+	}
+	else ifaction A_GOBLINBROS_DYING
+	{
+		move STOP
+		strength 0
+		ifactioncount 5
+		{
+			state rf
+			state BODY_FALL_NOISES
+
+			state goblinbros_spawn_cauldron
+
+			espawn GOBLIN
+			geta[].pal temp
+			seta[RETURN].pal temp
+
+			action A_GOBLINBROS_DEAD
+		}
+	}
+	else ifaction A_GOBLINBROS_FREEZE state frozen_code
+	else ifaction A_GOBLINBROS_GROW
+	{
+		move STOP
+		state genericgrowcode
+	}
+	else ifaction A_GOBLINBROS_SHRUNK
+	{
+		ifmove M_GOBLINBROS_WALK nullop
+		else move M_GOBLINBROS_WALK geth fleeenemy
+
+		ifl SHRUNK_TIME SHRUNKCOUNT // keep shrunk
+			state new_shrunkcode
+		else ifl SHRUNK_TIME SHRUNKDONECOUNT // regrow
+		{
+			state unshrink
+			sizeto 32 32
+		}
+		else // after regrow, switch back to regular action
+		{
+			state endshrunkenstate
+			action A_GOBLINBROS_SEEK
+		}
+	}
+	else ifaction A_GOBLINBROS_PAIN
+	{
+	ifactioncount 0
+		{
+		ifrnd 128 sound GOB_PAIN1 else sound GOB_PAIN2
+		}
+		else { }
+
+		sub PAIN_AMOUNT 1
+		move STOP
+		ife PAIN_AMOUNT 0
+		{
+			ifdead action A_GOBLINBROS_DYING
+			else action A_GOBLINBROS_SEEK
+		}
+	}
+	else ifaction A_GOBLINBROS_SEEK
+	{
+		ifmove M_GOBLINBROS_WALK nullop
+		else move M_GOBLINBROS_WALK geth
+
+		ifcount 15
+			{
+			ifrnd 96 sound GOB_MOV1
+			else ifrnd 96 sound GOB_MOV2
+			else sound GOB_MOV3
+			resetcount
+			}
+
+		state checkfortarget
+
+		ifn my_target -1
+		{
+			ifrnd 64
+			{
+				// Target acquired, skill setting can still affect decision to shoot.
+				state SKILL_SHOOT_LEVELADJUST
+
+				ifl RANDOM_CHANCE SKILLCHANCE
+					{
+					ifrnd 128 sound GOB_ROAM1 else sound GOB_ROAM2
+					action A_GOBLINBROS_PREP
+					}
+			}
+		}
+	}
+	else ifaction A_GOBLINBROS_PREP
+	{
+		move STOP
+		state new_validatetarget
+
+		ifn my_target -1
+			state fronttowardstarget
+
+		ifactioncount 8
+			action A_GOBLINBROS_ATTACK
+	}
+	else ifaction A_GOBLINBROS_ATTACK
+	{
+		move STOP
+		state new_validatetarget
+
+		ife my_target -1
+			action A_GOBLINBROS_SEEK
+
+		state fronttowardstarget
+
+		sound BLUNDERBUSS
+		
+		set PROJECTILE_TO_SHOOT ENEMY_SHOTGUN
+		set PROJECTILE_FIRING_SOUND 4
+		state sang_enemyShootProjectile
+		state sang_enemyShootProjectile
+		state sang_enemyShootProjectile
+		state sang_enemyShootProjectile
+		state sang_enemyShootProjectile
+		
+		ife PERFMODE 1
+			ifcansee
+			{
+			set gunsmoke_z 8844
+			set gunsmoke_angle 64
+			state spawn_gunsmoke_z
+			set gunsmoke_z 8000
+			espawn 16115
+			state spawn_muzzleflash
+			shoot 3761
+			}
+
+		resetactioncount
+		action A_GOBLINBROS_POSTATTACK
+	}
+	else ifaction A_GOBLINBROS_POSTATTACK
+	{
+		move STOP
+
+		ifactioncount 3
+			action A_GOBLINBROS_SEEK
+		else ifactioncount 2 sound GL_INSERT2
+		else ifactioncount 1 sound JMOVE1
+	}
+
+	ifhitweapon
+	{
+		state NEWGUNEFFECTS
+		ifrnd 96
+		//spawn BLOOD
+		guts JIBS6 1
+		state random_wall_jibs
+		ifdead
+		{
+			addkills 1
+			state rf
+
+			ifwasweapon GROWSPARK { cstat 0 sound ACTOR_GROWING action A_GOBLINBROS_GROW break }
+			else ifg ice_damage 0 { spritepal 1 strength 0 sound SOMETHINGFROZE action A_GOBLINBROS_FREEZE }
+			else ifg fire_damage 0
+			{
+				shoot SPARK2 shoot SPARK2 shoot SPARK2
+				ifrnd 128 sound ZSOLD_DIE1
+				else sound ZSOLD_DIE2
+				espawn ONFIREGUY
+				geta[RETURN].ang temp
+				add temp 512
+				espawn ONFIREGUY
+				seta[RETURN].ang temp
+				state goblinbros_spawn_cauldron
+				killit
+			}
+			else ife HEADSHOT 2
+			{
+				ifg fire_damage 0 set fire_damage 0
+				ifrnd 32 state trigger_showoff
+				state jib_sounds
+				sound DECAPITATE
+				shoot NJIB
+				shoot NJIB
+				guts JIBS6 3
+				guts JIBS2 2
+				action A_GOBLINBROS_DYING
+			}
+			else ifg spirit_damage 0
+			{
+				shoot SPARK2 shoot SPARK2 shoot SPARK2
+				spritepal 1
+				guts JIBS3 6
+				spawn SPIRIT_DEATH_GUY
+				spawn SPIRIT_DEATH_GUY
+				state goblinbros_spawn_cauldron
+				killit
+			}
+			else ifg energy_damage 0
+			{
+				shoot SPARK2 shoot SPARK2 shoot SPARK2
+				spritepal 4
+				guts JIBS3 6
+				spawn DISINTIGRATE_GUY
+				spawn DISINTIGRATE_GUY
+				state goblinbros_spawn_cauldron
+				killit
+			}
+			else
+			{
+				ifrnd 128 sound GOB_DIE1 else sound GOB_DIE2
+				action A_GOBLINBROS_DYING
+				spawn BLOODPOOL
+			}
+			ife CHAR 2
+				{
+				ifspritepal 3 spawn DEVISTATORSPRITE
+				else ifrnd 4 spawn DEVISTATORSPRITE
+				}
+		}
+
+		else // not dead
+		{
+			ifwasweapon SHRINKSPARK { sound ACTOR_SHRINKING action A_GOBLINBROS_SHRUNK }
+
+			ifg PAIN_AMOUNT 0 action A_GOBLINBROS_PAIN
+			else ifrnd 32 { state PAIN_SKILL_LEVELADJUST action A_GOBLINBROS_PAIN }
+			// if they were idle, getting hit ALWAYS wakes them up
+			else ifaction A_GOBLINBROS_START { state PAIN_SKILL_LEVELADJUST action A_GOBLINBROS_PAIN }
+			else ifaction A_GOBLINBROS_IDLE { state PAIN_SKILL_LEVELADJUST action A_GOBLINBROS_PAIN }
+		}
+	}
+
+	state checksquished
+enda
+
+action A_GOBLIN_RUN 0 4 5 1 12
+action A_GOBLIN_DEAD 24
+action A_GOBLIN_DYING 20 5 1 1 16
+action A_GOBLIN_FREEZE 0 1 1 1 8
+action A_GOBLIN_GROW 0 1 1 1 8
+action A_GOBLIN_SHRUNK 0 4 5 1 12
+action A_GOBLIN_PAIN 20 1 1 1 8
+
+useractor enemy GOBLIN // one guy
+	fall
+
+	ifaction 0
+	{
+		cstat 257
+		sizeat 32 32
+		set blood_type 8
+		strength 50
+		state monst_glow
+		sound GOB_PANIC1
+		spawn SHOOTME
+		action A_GOBLIN_RUN
+	}
+
+	state ENEMYKNOCKBACKS
+	state enemyfloordamage
+	state enemy_fire_damage
+	state enemy_ice_damage
+	state enemy_spirit_damage
+
+	ifaction A_GOBLIN_RUN
+	{
+		ifmove M_GOBLINBROS_WALK nullop
+		else move M_GOBLINBROS_WALK geth fleeenemy
+
+		ifcansee
+			ifrnd 4
+				soundonce GOB_PANIC1
+	}
+	else ifaction A_GOBLIN_DEAD
+	{
+		move STOP
+		ifhitweapon
+		{
+			ifwasweapon RADIUSEXPLOSION
+			{
+				state squish_sounds
+				state standard_jibs
+				killit
+			}
+		}
+	}
+	else ifaction A_GOBLIN_DYING
+	{
+		strength 0
+		ifactioncount 5
+		{
+			state rf
+			state BODY_FALL_NOISES
+
+			action A_GOBLIN_DEAD
+		}
+	}
+	else ifaction A_GOBLIN_FREEZE state frozen_code
+	else ifaction A_GOBLIN_GROW
+	{
+		move STOP
+		state genericgrowcode
+	}
+	else ifaction A_GOBLIN_SHRUNK
+	{
+		ifmove M_GOBLINBROS_WALK nullop
+		else move M_GOBLINBROS_WALK geth fleeenemy
+
+		ifl SHRUNK_TIME SHRUNKCOUNT // keep shrunk
+			state new_shrunkcode
+		else ifl SHRUNK_TIME SHRUNKDONECOUNT // regrow
+		{
+			state unshrink
+			sizeto 32 32
+		}
+		else // after regrow, switch back to regular action
+		{
+			state endshrunkenstate
+			action A_GOBLIN_RUN
+		}
+	}
+	else ifaction A_GOBLIN_PAIN
+	{
+		ifactioncount 0
+		{
+			ifrnd 128 sound GOB_PAIN1
+			else sound GOB_PAIN2
+		}
+
+		sub PAIN_AMOUNT 1
+		move STOP
+		ife PAIN_AMOUNT 0
+		{
+			ifdead action A_GOBLIN_DYING
+			else action A_GOBLIN_RUN
+		}
+	}
+
+	ifhitweapon
+	{
+		state NEWGUNEFFECTS
+		//spawn BLOOD
+		guts JIBS6 1
+		state random_wall_jibs
+		ifdead
+		{
+			addkills 1
+			state rf
+			
+			ife ally_mag 0
+				{
+				// got luck amulets?
+				ife ARTIFACTS_LOADOUT[6] 1 ifrnd 4 spawn MAGIC_ORB
+				else ife ARTIFACTS_LOADOUT[6] 2 ifrnd 4 spawn MAGIC_ORB
+				else ife ARTIFACTS_LOADOUT[6] 5 ifrnd 4 spawn MAGIC_ORB
+				else ifrnd 1 spawn MAGIC_ORB
+				spawn 7858
+				set ally_mag 1
+				}
+
+			ifwasweapon GROWSPARK { cstat 0 sound ACTOR_GROWING action A_GOBLIN_GROW break }
+			else ifg ice_damage 0 { spritepal 1 strength 0 sound SOMETHINGFROZE action A_GOBLIN_FREEZE }
+			else ifg fire_damage 0
+			{
+				shoot SPARK2 shoot SPARK2 shoot SPARK2
+				ifrnd 128 sound ZSOLD_DIE1
+				else sound ZSOLD_DIE2
+				spawn ONFIREGUY
+				killit
+			}
+			else ife HEADSHOT 2
+			{
+				ifg fire_damage 0 set fire_damage 0
+				ifrnd 32 state trigger_showoff
+				state jib_sounds
+				sound DECAPITATE
+				shoot NJIB
+				shoot NJIB
+				guts JIBS6 3
+				guts JIBS2 2
+				action A_GOBLIN_DYING
+			}
+			else ifg spirit_damage 0
+			{
+				shoot SPARK2 shoot SPARK2 shoot SPARK2
+				spritepal 1
+				guts JIBS3 6
+				spawn SPIRIT_DEATH_GUY
+				killit
+			}
+			else ifg energy_damage 0
+			{
+				shoot SPARK2 shoot SPARK2 shoot SPARK2
+				spritepal 4
+				guts JIBS3 6
+				spawn DISINTIGRATE_GUY
+				killit
+			}
+			else
+			{
+				ifrnd 128 sound GOB_DIE1 else sound GOB_DIE2
+				action A_GOBLIN_DYING
+				spawn BLOODPOOL
+			}
+		}
+
+		else // not dead
+		{
+			ifwasweapon SHRINKSPARK { sound ACTOR_SHRINKING action A_GOBLIN_SHRUNK }
+
+			ifg PAIN_AMOUNT 0 action A_GOBLIN_PAIN
+			else ifrnd 32 { state PAIN_SKILL_LEVELADJUST action A_GOBLIN_PAIN }
+			// if they were idle, getting hit ALWAYS wakes them up
+			else ifaction 0 { state PAIN_SKILL_LEVELADJUST action A_GOBLIN_PAIN }
+		}
+	}
+
+	state checksquished
+enda
+
+
+useractor notenemy GOBLIN_CAULDRON
+	fall
+
+	ifaction 0
+	{
+		sizeat 36 36
+		geta[].z my_z
+		geta[].sectnum temp
+		gets[temp].floorz mz
+		sub mz 1024
+
+		ifge my_z mz
+		{
+			sound METAL_F3
+			action ZERO
+		}
+	}
+
+	ifp pshrunk nullop
+    else
+      ifp palive
+        ifpdistl RETRIEVEDISTANCE // quote check ok
+          ifcount 6
+            ifcanseetarget
+	{
+	ife CHAR 2 // merlijn shoul
+		{
+		getp[].ammo_amount 7 temp
+		getp[].max_ammo_amount 7 temp2
+		rand temp3 5
+		add temp3 5
+		add temp temp3
+		clamp temp 0 temp2
+		setp[].ammo_amount 7 temp
+		}
+	else
+		{
+		// give some random ammo for slots 2-4
+		// slot 2
+		getp[].ammo_amount 1 temp
+		getp[].max_ammo_amount 1 temp2
+		rand temp3 20
+		add temp3 20
+		add temp temp3
+		clamp temp 0 temp2
+		setp[].ammo_amount 1 temp
+
+		// slot 3
+		getp[].ammo_amount 2 temp
+		getp[].max_ammo_amount 2 temp2
+		rand temp3 10
+		add temp3 10
+		add temp temp3
+		clamp temp 0 temp2
+		setp[].ammo_amount 2 temp
+
+		// slot 4
+		getp[].ammo_amount 3 temp
+		getp[].max_ammo_amount 3 temp2
+		rand temp3 50
+		add temp3 50
+		add temp temp3
+		clamp temp 0 temp2
+		setp[].ammo_amount 3 temp
+		}
+		userquote 8601
+
+		ifspawnedby GOBLIN_CAULDRON
+          state getcode
+        else
+          state quikget
+
+		killit
+	}
+enda

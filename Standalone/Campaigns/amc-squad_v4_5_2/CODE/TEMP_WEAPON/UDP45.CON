@@ -1,0 +1,202 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+This file contains code for the UDP45 temp weapon.
+--------------------------------------------------------------------------------
+*/
+
+
+appendevent EVENT_LOOKLEFT // Alt Fire
+    ife cur_weap 0
+      ife allow_fire YES
+        ife temp_weap 52 // UDP45 gunsight?
+    {
+        ifcount 13 // does this even work in events? -bdino
+        {
+            sound AUG_MOVEMENT
+            ifand gun_firemode 16384
+                set hide_xhair 0
+            else
+                set hide_xhair 1
+            xorvar gun_firemode 16384
+            resetcount
+        }
+    }
+endevent
+
+defstate tw_udp45_gunammotypes
+    setarray GUN_AMMO_TYPES_ARR[0] 2
+ends	
+defstate tw_udp45_code
+    setarray WEAPON_TILE[0] UDP45_SPRITE
+	setarray weap_special[0] 16384
+    set WEAPON0_INITIALSOUND 4
+    set WEAPON0_RELOADSOUND1 4
+    set WEAPON0_RELOADSOUND2 5
+    set WEAPON0_RELOAD 44
+    set WEAPON0_CLIP 0
+    set WEAPON0_TOTALTIME 3
+    set WEAPON0_FIREDELAY 2
+    set WEAPON0_FIRESOUND 4
+    set WEAPON0_SHOTSPERBURST 1
+    set WEAPON0_FLAGS 4
+    set WEAPON0_SELECTSOUND SELECT_SMG
+
+    set GUN_AMMO_TYPES 2
+    set GUN_SIZE 1
+    set GUN_VOLUME 6
+    set GUN_HANDS 2
+
+    set gun_mag temp_wep_mag
+
+    ifand gun_firemode 1024
+        xorvar gun_firemode 1024
+
+    ife kickbackpic 0
+      ifl temp_wep_mag 1
+        ife player[].weapon_pos 0
+    {
+        ifn cur_ammo 0
+        {
+            setp[].reloading 1
+            setp[].kickback_pic 6
+            set WEAPON0_RELOAD 62
+        }
+    }
+
+    ife kickbackpic 2
+    {
+        sub temp_wep_mag 1
+        randvar temp2 1024
+        zshoot temp2 NINEMM_SHELL
+        espawn SOUND_SPRITE
+        state SPAWN_IN_PLAYER_FRONT
+
+        ifand AMMO_TYPES[cur_weap] 2
+            setactorvar[RETURN].temp SILVERAMMOSHOT
+        else ifand AMMO_TYPES[cur_weap] 32768
+            setactorvar[RETURN].temp INCEND_FIRE
+        else
+            setactorvar[RETURN].temp UDP45_FIRE
+    }
+
+    ifand AMMO_TYPES[cur_weap] 2
+      ifg silver_ammo 0
+    {
+        set weapon_type 7
+        set WEAPON0_SHOOTS SILVERAMMOSHOT
+        ife kickbackpic 2 sound TOMMYG_SFIRE
+        ife silver_ammo 0 ife temp_wep_mag 0 xorvar AMMO_TYPE 2
+    }
+    else ifand AMMO_TYPES[cur_weap] 32768
+      ifg incend_ammo 0
+    {
+        set weapon_type 0
+        set WEAPON0_SHOOTS FIRE_BULLET
+        ife kickbackpic 2 sound INCEND_FIRE
+        ife incend_ammo 0 ife temp_wep_mag 0 xorvar AMMO_TYPE 2
+    }
+    else
+    {
+        set weapon_type 2
+        set WEAPON0_SHOOTS F45_CALIBRE
+    }
+
+    ifand gun_firemode 16384
+    {
+        set GUN_MAX_SPREAD 16
+        set GUN_ACCURACY 8
+        ife kickbackpic 2
+        {
+            add gun_spread 6
+            set gun_recoil 2
+            set gunsmoke_angle 0
+            state spawn_gunsmoke
+        }
+
+        ifg kickbackpic 6
+        {
+            set hide_xhair 0
+            xorvar gun_firemode 16384
+        }
+    }
+    else
+    {
+        set GUN_MAX_SPREAD 32
+        set GUN_ACCURACY 12
+        ife kickbackpic 2
+        {
+            add gun_spread 8
+            set gun_recoil 2
+            set gunsmoke_angle 72
+            state spawn_gunsmoke
+        }
+    }
+
+    ife kickbackpic 10
+    {
+        ifand AMMO_TYPES[cur_weap] 2
+          ife silver_ammo 0
+        {
+            xorvar AMMO_TYPE 2
+            setarray AMMO_TYPES[cur_weap] 0
+        }
+        ifand AMMO_TYPES[cur_weap] 32768
+          ife incend_ammo 0
+        {
+            xorvar AMMO_TYPE 32768
+            setarray AMMO_TYPES[cur_weap] 0
+        }
+        state JMOVESOUND2
+    }
+    else ife kickbackpic 17
+        state smg_mag_out_sounds
+    else ife kickbackpic 30
+    {
+        state smg_mag_in_sounds
+        set max_temp_wep_mag 26
+        ifand AMMO_TYPES[cur_weap] 2 // using silver ammo?
+        {
+            ifl silver_ammo max_temp_wep_mag
+                set temp_wep_mag silver_ammo
+            else
+                set temp_wep_mag max_temp_wep_mag
+        }
+        else ifand AMMO_TYPES[cur_weap] 32768 // using incendiary ammo?
+        {
+            ifl incend_ammo max_temp_wep_mag
+                set temp_wep_mag incend_ammo
+            else
+                set temp_wep_mag max_temp_wep_mag
+        }
+        else // regular ammo
+        {
+            ifl cur_ammo max_temp_wep_mag
+                set temp_wep_mag cur_ammo
+            else
+                set temp_wep_mag max_temp_wep_mag
+        }
+    }
+ends

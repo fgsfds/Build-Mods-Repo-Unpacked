@@ -1,0 +1,686 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+
+--------------------------------------------------------------------------------
+*/
+
+damageeventtile SVEDR
+
+// svedr_boss_stage 1 = ice, 2 = lava
+
+var svedr_boss_stage 1 0
+
+action A_SVEDR_IDLE 0 1 5 1 12
+action A_SVEDR_WALK 5 4 5 1 12
+action A_SVEDR_SWING 25 5 5 1 12
+action A_SVEDR_CHARGE 50 1 5 1 12
+action A_SVEDR_POINT 55 1 5 1 12 // pointing is rude. But.. charge then point? Dunno
+action A_SVEDR_DUCK 60 3 5 1 24 // duck then ducked for a while
+action A_SVEDR_DUCKED 70 1 5 1 12
+action A_SVEDR_UP 75 1 5 1 12 // going up
+action A_SVEDR_DASH 80 1 5 1 12
+action A_SVEDR_PAIN 85 1 1 1 12
+action A_SVEDR_DYING 85 6 1 1 12
+action A_SVEDR_DEAD 90 1 1 1 12 // this should go away, I guess SVEDR explodes into particles but is useful now for testing purposes
+
+move M_SVEDR_WALK 250
+move M_SVEDR_UP 0 -75
+
+defstate ready_svedr
+	cstat 257
+	set INTERNALCOUNT_2 0
+	ifspritepal 36
+		{
+		set svedr_boss_stage 2
+		strength 1500
+		}
+	else
+	ife svedr_boss_stage 2
+		{
+		starttrackslot 0 53
+		strength 6000
+		set CURBOSS THISACTOR
+		}
+	else
+		{
+		starttrack 21
+		strength 3000
+		set CURBOSS THISACTOR
+		}
+	sizeat 30 30
+	state monst_glow
+	espawn SHOOTME
+	action A_SVEDR_IDLE
+ends
+
+defstate svedr_killminions
+	set targets_iterator 0
+
+	whilel targets_iterator targets_range
+	{
+		set temp targets[targets_iterator]
+
+		ife temp -2
+		{
+			set targets_iterator targets_range
+			exit
+		}
+
+		ifg temp -1
+		{
+			getav[temp].faction_flag temp2
+
+			ifand temp2 ALLIED_FACTION_FLAG
+				nullop
+			else
+			{
+				geta[temp].picnum temp2
+
+				ifn temp2 SVEDR
+				{
+					seta[temp].htextra 5000
+					seta[temp].htpicnum SHOTSPARK1
+				}
+			}
+		}
+
+		add targets_iterator 1
+	}
+
+ends
+
+useractor enemy SVEDR
+	fall
+
+	ifaction 0
+	{
+	set actor_type TYPE_CASE_SPECIFIC
+	set blood_type 27
+		ifspritepal 36
+			state ready_svedr
+		else
+		ife svedr_boss_stage 1
+		 ifpdistl 4096
+			state ready_svedr
+		else
+		ife svedr_boss_stage 2
+			state ready_svedr
+	}
+	else ifaction A_SVEDR_IDLE
+	{
+		move STOP
+		state checkfortarget
+
+		ifn my_target -1
+		{
+			action A_SVEDR_WALK
+		}
+	}
+	else ifaction A_SVEDR_WALK
+	{
+		ifg enemy_cooldown1 0
+			sub enemy_cooldown1 1
+
+		ifg enemy_cooldown2 0
+			sub enemy_cooldown2 1
+
+		ifg enemy_cooldown3 0
+			sub enemy_cooldown3 1
+
+		ifmove M_SVEDR_WALK nullop
+		else move M_SVEDR_WALK geth
+
+		state checkfortarget
+
+		ifn my_target -1
+		{
+			ldist temp THISACTOR my_target
+
+			ifl temp 1024
+			{
+				set INTERNALCOUNT 0
+				sound SVD_ATCK1
+				action A_SVEDR_SWING
+			}
+			// SVEDR stage 1 has a few less attacks and is less agressive
+			else ife svedr_boss_stage 1
+			{
+				ife enemy_cooldown2 0 ifrnd 8
+					action A_SVEDR_CHARGE
+				else ife enemy_cooldown1 0 ifrnd 8
+				{
+					state fronttowardstarget
+					sound SVD_ICE2
+					action A_SVEDR_DUCK
+				}
+			}
+			else ife svedr_boss_stage 2
+			{
+				ife enemy_cooldown2 0 ifrnd 32
+					action A_SVEDR_CHARGE
+				else ife enemy_cooldown1 0 ifrnd 32
+				{
+					state fronttowardstarget
+					sound SVD_FIRE
+					action A_SVEDR_DUCK
+				}
+				else ife enemy_cooldown3 0 ifrnd 32
+					{
+					sound SVD_DASH
+					action A_SVEDR_UP
+					}
+			}
+		}
+	}
+	else ifaction A_SVEDR_SWING
+	{
+		move STOP
+		state fronttowardstarget
+
+		// As far as I know this is a melee attack
+		// The range on it is extended a bit to punish the player for trying to "melee range lock" the boss
+		ifactioncount 3 ife INTERNALCOUNT 0
+		{
+			eshoot 4963
+			setthisprojectile[RETURN].range 12
+			add INTERNALCOUNT 1
+		}
+
+		ifactioncount 5
+			action A_SVEDR_WALK
+	}
+	else ifaction A_SVEDR_CHARGE
+	{
+		set INTERNALCOUNT 0
+
+		ife svedr_boss_stage 1
+			set enemy_cooldown2 40
+		else ife svedr_boss_stage 2
+			set enemy_cooldown2 25
+
+		move STOP
+		state fronttowardstarget
+
+		ifactioncount 6
+			{
+			ife svedr_boss_stage 1 sound SVD_ICE
+			else sound SVD_FIRE2
+			action A_SVEDR_POINT
+			}
+	}
+	else ifaction A_SVEDR_POINT
+	{
+		// stage 1 = shoot a row of freezeblast projectiles for a while
+		ife svedr_boss_stage 1
+		{
+			state fronttowardstarget
+			shoot FREEZEBLAST
+		}
+		// stage 2 = firewall like the goro head thing
+		else ife svedr_boss_stage 2
+		{
+			ife INTERNALCOUNT 0
+			{
+				eshoot GORO_EXPLODING_FLAME
+				setav[RETURN].OWNERSAVED THISACTOR
+				add INTERNALCOUNT 1
+			}
+		}
+
+		ifactioncount 10
+			action A_SVEDR_WALK
+	}
+	else ifaction A_SVEDR_DUCK
+	{
+		set INTERNALCOUNT 0
+
+		ife svedr_boss_stage 1
+			set enemy_cooldown1 40
+		else ife svedr_boss_stage 2
+			set enemy_cooldown1 25
+
+		move STOP
+
+		ifactioncount 2
+		{
+			quake 78
+
+			// stage 2 = goro ring of fire. Get the player coordinates here so they still have a bit of time to roll out of the way
+			// failing that they will have to jump over the ring
+			ife svedr_boss_stage 2
+			{
+				geta[my_target].x mx
+				geta[my_target].y my
+
+				// player coordinates are unreliable it seems
+				ife my_target PLAYER_IDENTITY
+				{
+					getp[].posx mx
+					getp[].posy my
+					getp[].cursectnum temp
+					gets[temp].floorz mz
+					sub mz 8192
+				}
+			}
+		}
+
+
+		ifactioncount 3
+			action A_SVEDR_DUCKED
+	}
+	else ifaction A_SVEDR_DUCKED
+	{
+		// stage 1 = shoot a bunch of ice projectiles in a circle
+		// stage 2 = ring of fire closing around the player
+		ifactioncount 1
+		{
+			ife INTERNALCOUNT 0
+			{
+				ife svedr_boss_stage 1
+				{
+					geta[].ang temp // working var
+					geta[].ang temp2 // orig
+
+					// set noaim flag
+					setprojectile[7160].WORKSLIKE 102402
+					setprojectile[7160].extra 50
+					// This looks like a lot, but basically it sends a ring of ice projectiles all around her and the player HAS to jump over it
+					// The attack is telegraphed well enough
+					shoot 7160
+					add temp 64 seta[].ang temp shoot 7160
+					add temp 64 seta[].ang temp shoot 7160
+					add temp 64 seta[].ang temp shoot 7160
+					add temp 64 seta[].ang temp shoot 7160
+					add temp 64 seta[].ang temp shoot 7160
+					add temp 64 seta[].ang temp shoot 7160
+					add temp 64 seta[].ang temp shoot 7160
+					add temp 64 seta[].ang temp shoot 7160
+					add temp 64 seta[].ang temp shoot 7160
+					add temp 64 seta[].ang temp shoot 7160
+					add temp 64 seta[].ang temp shoot 7160
+					add temp 64 seta[].ang temp shoot 7160
+					add temp 64 seta[].ang temp shoot 7160
+					add temp 64 seta[].ang temp shoot 7160
+					add temp 64 seta[].ang temp shoot 7160
+					add temp 64 seta[].ang temp shoot 7160
+					add temp 64 seta[].ang temp shoot 7160
+					add temp 64 seta[].ang temp shoot 7160
+					add temp 64 seta[].ang temp shoot 7160
+					add temp 64 seta[].ang temp shoot 7160
+					add temp 64 seta[].ang temp shoot 7160
+					add temp 64 seta[].ang temp shoot 7160
+					add temp 64 seta[].ang temp shoot 7160
+					add temp 64 seta[].ang temp shoot 7160
+					add temp 64 seta[].ang temp shoot 7160
+					add temp 64 seta[].ang temp shoot 7160
+					add temp 64 seta[].ang temp shoot 7160
+					add temp 64 seta[].ang temp shoot 7160
+					add temp 64 seta[].ang temp shoot 7160
+					add temp 64 seta[].ang temp shoot 7160
+					add temp 64 seta[].ang temp shoot 7160
+					add temp 64 seta[].ang temp shoot 7160
+
+					// remove noaim flag
+					setprojectile[7160].WORKSLIKE 98306
+					setprojectile[7160].extra 250
+
+					// restore ang
+					seta[].ang temp2
+
+					add INTERNALCOUNT 1
+				}
+				else ife svedr_boss_stage 2
+				{
+					// GORO ring of fire, coordinates fetched in previous action
+					espawn 17361 setav[RETURN].my_target my_target setav[RETURN].my_x mx setav[RETURN].my_y my setav[RETURN].my_z mz
+					espawn 17361 setav[RETURN].my_target my_target setav[RETURN].my_x mx setav[RETURN].my_y my setav[RETURN].my_z mz setav[RETURN].temp4 135
+					espawn 17361 setav[RETURN].my_target my_target setav[RETURN].my_x mx setav[RETURN].my_y my setav[RETURN].my_z mz setav[RETURN].temp4 270
+					espawn 17361 setav[RETURN].my_target my_target setav[RETURN].my_x mx setav[RETURN].my_y my setav[RETURN].my_z mz setav[RETURN].temp4 405
+					espawn 17361 setav[RETURN].my_target my_target setav[RETURN].my_x mx setav[RETURN].my_y my setav[RETURN].my_z mz setav[RETURN].temp4 540
+					espawn 17361 setav[RETURN].my_target my_target setav[RETURN].my_x mx setav[RETURN].my_y my setav[RETURN].my_z mz setav[RETURN].temp4 675
+					espawn 17361 setav[RETURN].my_target my_target setav[RETURN].my_x mx setav[RETURN].my_y my setav[RETURN].my_z mz setav[RETURN].temp4 810
+					espawn 17361 setav[RETURN].my_target my_target setav[RETURN].my_x mx setav[RETURN].my_y my setav[RETURN].my_z mz setav[RETURN].temp4 945
+					espawn 17361 setav[RETURN].my_target my_target setav[RETURN].my_x mx setav[RETURN].my_y my setav[RETURN].my_z mz setav[RETURN].temp4 1080
+					espawn 17361 setav[RETURN].my_target my_target setav[RETURN].my_x mx setav[RETURN].my_y my setav[RETURN].my_z mz setav[RETURN].temp4 1215
+					espawn 17361 setav[RETURN].my_target my_target setav[RETURN].my_x mx setav[RETURN].my_y my setav[RETURN].my_z mz setav[RETURN].temp4 1350
+					espawn 17361 setav[RETURN].my_target my_target setav[RETURN].my_x mx setav[RETURN].my_y my setav[RETURN].my_z mz setav[RETURN].temp4 1485
+					espawn 17361 setav[RETURN].my_target my_target setav[RETURN].my_x mx setav[RETURN].my_y my setav[RETURN].my_z mz setav[RETURN].temp4 1620
+					espawn 17361 setav[RETURN].my_target my_target setav[RETURN].my_x mx setav[RETURN].my_y my setav[RETURN].my_z mz setav[RETURN].temp4 1755
+					espawn 17361 setav[RETURN].my_target my_target setav[RETURN].my_x mx setav[RETURN].my_y my setav[RETURN].my_z mz setav[RETURN].temp4 1890
+					espawn 17361 setav[RETURN].my_target my_target setav[RETURN].my_x mx setav[RETURN].my_y my setav[RETURN].my_z mz setav[RETURN].temp4 2025
+
+					add INTERNALCOUNT 1
+				}
+			}
+		}
+
+		ifactioncount 15
+			action A_SVEDR_WALK
+	}
+	else ifaction A_SVEDR_UP
+	{
+		set enemy_cooldown3 40
+
+		ifn my_target -1
+			state fronttowardstarget
+
+		ifmove M_SVEDR_UP nullop
+		else move M_SVEDR_UP getv
+
+		ifactioncount 13
+		{
+			sound SVD_ATCK2
+			state angvartotarget
+			set movesprite_zvel temp3
+
+			move STOP
+			set INTERNALCOUNT 0
+			action A_SVEDR_DASH
+		}
+	}
+	else ifaction A_SVEDR_DASH
+	{
+		// treat self as projectile
+		ifl INTERNALCOUNT 8
+		{
+			set PROJECTILE_VEL 840
+			state calczvel // calc target last known location instead of my_target? but maybe it's fine like this. To test.
+
+			set movesprite_zvel temp3
+			set movesprite_angvar angvar
+			set movesprite_shift 4
+			set movesprite_clipmask CLIPMASK1
+			state movesprite_state
+
+			ifge RETURN 49152
+			{
+				set temp RETURN
+				sub temp 49152
+				seta[temp].htextra 25
+
+				ife temp PLAYER_IDENTITY
+				{
+					// knock back player
+					state setknockback
+					set knockback 12
+					wackplayer
+				}
+			}
+
+			ifn RETURN 0
+				action A_SVEDR_WALK
+			else
+			{
+				// if on the floor for x tics, switch to walk
+				geta[].z my_z
+				geta[].sectnum temp
+				gets[temp].floorz temp2
+
+				sub temp2 my_z
+
+				ifle temp2 8192
+					add INTERNALCOUNT 1
+
+				spawn 28035 // spawn svedr mirage
+			}
+		}
+		else
+			action A_SVEDR_WALK
+
+		ifnotmoving
+			action A_SVEDR_WALK
+	}
+	else ifaction A_SVEDR_PAIN
+	{
+		move STOP
+		ifactioncount 2
+			action A_SVEDR_WALK
+	}
+	else ifaction A_SVEDR_DYING
+	{
+		move STOP
+
+		ifactioncount 6
+			action A_SVEDR_DEAD
+	}
+	else ifaction A_SVEDR_DEAD
+	{
+		move STOP
+		strength 0
+
+		// TODO could maybe add more light effects or something, we'll see
+		ifspritepal 36
+		{
+			lotsofglass 20
+			shoot ICE_DEBRIS shoot ICE_DEBRIS shoot ICE_DEBRIS shoot ICE_DEBRIS shoot ICE_DEBRIS
+			shoot ICE_DEBRIS shoot ICE_DEBRIS shoot ICE_DEBRIS shoot ICE_DEBRIS shoot ICE_DEBRIS
+			shoot ICE_DEBRIS shoot ICE_DEBRIS shoot ICE_DEBRIS shoot ICE_DEBRIS shoot ICE_DEBRIS
+			shoot ICE_DEBRIS shoot ICE_DEBRIS shoot ICE_DEBRIS shoot ICE_DEBRIS shoot ICE_DEBRIS
+			sound ICE_SMASH
+			ifg EXTRASAVED 0
+				{
+				operateactivators EXTRASAVED THISACTOR
+				operaterespawns EXTRASAVED
+				operatemasterswitches EXTRASAVED
+				}
+			ifrnd 32 spawn PLATINUM_AMULET else spawn SILVER_AMULET
+			killit
+		}
+		ife svedr_boss_stage 1
+		{
+			add INTERNALCOUNT_2 1
+			ife INTERNALCOUNT_2 5
+				{
+				set music_vol 100
+				set music_fade 1
+				screensound SVD1_END
+				}
+			ife INTERNALCOUNT_2 10 quake 100
+			ife INTERNALCOUNT_2 129
+				{
+				spawn NUCLEAR_EXPLOSION
+				globalsound NUKE_EXPLODE
+				}
+			ifg INTERNALCOUNT_2 148
+				{
+				palfrom 63 63 63 63
+				set svedr_boss_stage 2
+				killit
+				}
+			ifg EXTRASAVED 0
+				{
+				operateactivators EXTRASAVED THISACTOR
+				operaterespawns EXTRASAVED
+				operatemasterswitches EXTRASAVED
+				}
+		}
+		ife svedr_boss_stage 2
+		{
+			add INTERNALCOUNT_2 1
+			ife INTERNALCOUNT_2 15
+				{
+				set music_vol 100
+				set music_fade 1
+				screensound SVD2_END
+				}
+			ife INTERNALCOUNT_2 30
+				{
+				lotsofglass 40
+				shoot ICE_DEBRIS shoot ICE_DEBRIS shoot ICE_DEBRIS shoot ICE_DEBRIS shoot ICE_DEBRIS
+				shoot ICE_DEBRIS shoot ICE_DEBRIS shoot ICE_DEBRIS shoot ICE_DEBRIS shoot ICE_DEBRIS
+				shoot ICE_DEBRIS shoot ICE_DEBRIS shoot ICE_DEBRIS shoot ICE_DEBRIS shoot ICE_DEBRIS
+				shoot ICE_DEBRIS shoot ICE_DEBRIS shoot ICE_DEBRIS shoot ICE_DEBRIS shoot ICE_DEBRIS
+				shoot ICE_DEBRIS shoot ICE_DEBRIS shoot ICE_DEBRIS shoot ICE_DEBRIS shoot ICE_DEBRIS
+				shoot ICE_DEBRIS shoot ICE_DEBRIS shoot ICE_DEBRIS shoot ICE_DEBRIS shoot ICE_DEBRIS
+				sound ICE_SMASH
+				state svedr_killminions
+
+				ifg EXTRASAVED 0
+					{
+					operateactivators EXTRASAVED THISACTOR
+					operaterespawns EXTRASAVED
+					operatemasterswitches EXTRASAVED
+					}
+				spawn 28046
+				killit
+				}
+		}
+	}
+
+	// Make SVEDR immune to her own attacks and elemental projectiles depending on stage
+	ife svedr_boss_stage 1
+		ifg sprite[].htextra 0
+	{
+		ife sprite[].htpicnum FREEZEBLAST
+			seta[].htextra -1
+		else ife sprite[].htpicnum 7160
+			seta[].htextra -1
+
+		else ife sprite[].htowner THISACTOR
+			seta[].htextra -1
+	}
+	else ife svedr_boss_stage 2
+		ifg sprite[].htextra 0
+	{
+		ife sprite[].htpicnum GORO_EXPLODING_FLAME
+			seta[].htextra -1
+		else ife sprite[].htowner THISACTOR
+			seta[].htextra -1
+		else
+		{
+			// goro firewall blast owner stuff is nested
+			geta[].htowner temp
+			geta[temp].owner temp2
+
+			ife temp2 THISACTOR
+				seta[].htextra -1
+		}
+
+	}
+
+	ifg sprite[].htextra 0
+	{
+	  ife sprite[].htowner THISACTOR
+		seta[].htextra -1
+	}
+
+	ifhitweapon
+	{
+		ifdead
+		{
+			add TREASURE_FOUND 5
+			addkills 1
+			state rf
+			globalsound SVD_PAIN
+			cstat 0
+			action A_SVEDR_DYING
+		}
+		else ifrnd 32
+		{
+			sound SVD_PAIN
+			action A_SVEDR_PAIN
+		}
+	}
+enda
+
+useractor notenemy 28035 // svedr mirage
+	ifaction 0
+	{
+		sizeat 26 26
+		spritepal 87
+
+		// give it frames from all angles
+		action A_SVEDR_IDLE
+	}
+	else ifaction A_SVEDR_IDLE
+	{
+		add INTERNALCOUNT 1
+		seta[].blend 255
+
+		ifl INTERNALCOUNT 20
+			cstat 2050
+		else
+			cstat 2562
+
+		ifg INTERNALCOUNT 30
+			killit
+	}
+enda
+
+useractor notenemy 28046 // Sword/key
+sizeat 26 26
+ifspritepal 3
+	{
+	ifaction 0
+		{
+		cstat 32768
+		action ZERO
+		}
+	ifaction ZERO
+		{
+		ifpdistl 1536
+		 ifp pfacing
+		  {
+		  set player_use 0
+		   ifhitspace
+			{
+			cstat 0
+			sound OLDKEY_UNLOCK
+			set voice_cooldown 0
+			set PLAYER_VOICEOVER 50
+			operateactivators 9621 THISACTOR
+			operaterespawns 9621
+			operatemasterswitches 9621
+			action FORM
+			}
+		  }
+		}
+	}
+else
+	{
+	ifrnd 8 spawn GLINT
+	ifpdistl 2048
+	 ifg enemies_cleared 149 // all enemies down?
+		{
+			ife gp_subt 0
+				{
+				screensound SANG_KEY
+				set subt_id 13016
+				set gp_subt 104
+				}
+			ifand ELYSION_QUEST 256 nullop else { xor ELYSION_QUEST 256 savegamevar ELYSION_QUEST }
+			set DISP_KEY -150
+			set DISP_KEY_PAL 12
+			set DISP_KEY_PIC sprite[].picnum
+			globalsound QUEST_ITEM
+			palfrom 30 63 63 63
+			operateactivators 49 THISACTOR
+			operaterespawns 49
+			operatemasterswitches 49
+			killit
+		}
+	}
+enda

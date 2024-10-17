@@ -1,0 +1,1875 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+
+--------------------------------------------------------------------------------
+*/
+
+// Geoffrey
+
+action GSTAND 5276 1 5 1 1
+action GSTAND_IDLE 5051 1 5 1 1
+action GGROWING 5180 1 5 1 1
+action GWALK 5025 4 5 1 16
+action GRUN 5025 4 5 1 10
+action GJPHOUVER  5025   1   5   1
+action GJUMPING 5180 2 5 1 30
+action GFALLING   5185   1   5
+action GDUCKING   5190   1   5
+action GCRAWLING  5195   2   5   1   20
+action GAKICKING  5025   2   5   1   25
+action GFLINTCHING  5045  1   1   1   10
+action GTHROWNBACK  5045  5   1   1   18
+action GFROZEN     5025  1   5
+action GLYINGDEAD   5050  1   1
+action GSWIMMINGGO   9727   1   5   1   10
+action GSWIMMING   9727   2   5   1   13
+action GSWIMMINGWAIT 9727   1   5   1   13
+action GTREDWATER  9727   2   5   1   17
+
+action G_ONBIKE 16075 1 5 1 0
+
+// ************************************** GEOFFREY ANIMS******************************************************
+
+defstate check_gstandard
+ifaction GSTAND ifn amc_base 0 action GSTAND_IDLE
+ifaction GSTAND ife player[].holster_weapon 1 action GSTAND_IDLE
+ifaction GSTAND_IDLE ife player[].holster_weapon 0 action GSTAND
+  ifp pwalking
+    action GWALK
+  else
+    ifl QUICKK 13
+	 ife camerasprite -1
+      action GAKICKING
+  else
+    ifp prunning
+      action GRUN
+  else
+    ifp pjumping
+      action GJUMPING
+  else
+    ifp pducking
+	 ife camerasprite -1
+      action GDUCKING
+ends
+
+defstate GEOFFREY_ANIMS
+ifaction 0 ife CHARSELECT 0 { action GSTAND }
+ifg player_bike 0 action G_ONBIKE
+	ifaction G_ONBIKE
+	ife player_bike 0 action GSTAND
+
+  ifaction GFLINTCHING
+  {
+    ifactioncount 2
+      action GSTAND
+    break
+  }
+
+  ifinwater
+  {
+    ifaction GTREDWATER
+    {
+      ifp pwalking prunning
+        action GSWIMMINGGO
+    }
+    else
+      ifp pstanding pwalkingback prunningback
+        action GTREDWATER
+    else
+    {
+      ifaction GSWIMMING
+      {
+        ifrnd 4
+          spawn WATERBUBBLE
+        ifactioncount 4
+          action GSWIMMINGWAIT
+      }
+      else
+        ifaction GSWIMMINGWAIT
+      {
+        ifactioncount 2
+          action GSWIMMINGGO
+      }
+      else
+        ifaction GSWIMMINGGO
+      {
+        ifactioncount 2
+          action GSWIMMING
+      }
+      else
+        action GTREDWATER
+    }
+
+    ifrnd 4
+      spawn WATERBUBBLE // For effect
+
+    break
+  }
+  else ifp pjetpack
+  {
+    ifaction GJPHOUVER
+    {
+      ifactioncount 4
+        resetactioncount
+    }
+    else
+      action GJPHOUVER
+    break
+  }
+  else
+  {
+    ifaction GTREDWATER
+      action GSTAND
+    ifaction GSWIMMING
+      action GSTAND
+    ifaction GSWIMMINGWAIT
+      action GSTAND
+    ifaction GSWIMMINGGO
+      action GSTAND
+    ifaction GJPHOUVER
+      action GFALLING
+  }
+
+  ifaction GFALLING
+  {
+    ifp ponground
+      { action GSTAND state landsounds }
+    else
+    {
+      ifp pfalling
+        break
+      else
+        state check_gstandard
+    }
+  }
+
+  ifaction GDUCKING
+  {
+    ifgapzl 48
+    {
+      ifp pwalking pwalkingback prunning prunningback
+        action GCRAWLING
+    }
+    else ifp pducking
+    {
+      ifp pwalking pwalkingback prunning prunningback
+        action GCRAWLING
+    }
+    else
+    {
+      ifp pstanding
+         action GSTAND
+      else
+        state check_gstandard
+    }
+  }
+
+  else ifaction GCRAWLING
+  {
+    ifgapzl 48
+    {
+      ifp pstanding
+        action GCRAWLING
+    }
+    else
+      ifp pducking
+    {
+      ifp pstanding
+        action GDUCKING
+    }
+    else
+    {
+      ifp pstanding
+       action GSTAND
+      else
+        state check_gstandard
+    }
+  }
+  else
+    ifgapzl 48
+      action GDUCKING
+
+  else
+    ifaction GJUMPING
+  {
+    ifp ponground
+       action GSTAND
+    else
+      ifactioncount 4
+        ifp pfalling
+          action GFALLING
+  }
+
+  ifp pfalling
+    action GFALLING
+  else
+    ifaction GSTAND
+      state check_gstandard
+  else
+    ifaction GSTAND_IDLE
+      state check_gstandard
+  else
+    ifaction GAKICKING
+  {
+    ifactioncount 2
+      action GSTAND
+    break
+  }
+  else
+    ifaction GWALK
+  {
+    ifp pfalling
+      action GFALLING
+    else
+      ifp pstanding
+        action GSTAND
+    else
+      ifp prunning
+        action GRUN
+    else
+      ifp pjumping
+        action GJUMPING
+    else
+      ifp pducking
+        action GDUCKING
+  }
+
+  else
+    ifaction GRUN
+  {
+    ifp pstanding
+       action GSTAND
+    else
+      ifp pwalking
+        action GWALK
+    else
+      ifp pjumping
+        action GJUMPING
+    else
+      ifp pducking
+        action GDUCKING
+  }
+  ends
+
+  // Geoffrey's alt fire
+
+defstate geoff_alt_fire
+ife CHAR 6
+{
+
+ife cur_weap 1
+{
+ ife SPECIALIST_EQUIPMENT[42] 2 // player using Gold pistol?
+    {
+    ife kickbackpic 0
+      ife GEO_MEGA_SHOT[0] 0
+        {
+        set GUN_VOLUME 70
+        getp[].ammo_amount 1 alt_temp2
+        ifg alt_temp2 2
+		 ifg PISTOLMAG 2
+            {
+            setarray GEO_MEGA_SHOT[0] 32
+            setp[].kickback_pic 1
+
+            shoot GOLDEN_SHOT_HIGH
+            shoot GOLDEN_SHOT_HIGH
+            sound GEF_GR_FIRE
+            sound GEF_GR_FIRE
+
+            shoot NINEMM_SHELL
+            shoot NINEMM_SHELL
+            shoot NINEMM_SHELL
+            shoot NINEMM_SHELL
+			sub PISTOLMAG 2
+            ifn PS_ITEM 2
+                {
+                sub alt_temp2 2
+                setp[].ammo_amount 1 alt_temp2
+                }
+            }
+        else soundonce DRY_FIRE
+        }
+    }
+    else
+ ife SPECIALIST_EQUIPMENT[97] 2 // player using eviscerator?
+    {
+	  ife kickbackpic_2 0
+	   ife weaponcount 0
+	    ifge p_stamina 15
+			{
+			sub p_stamina 15
+			set kickbackpic_2 1
+			}
+    }
+    else
+ ifn SPECIALIST_EQUIPMENT[42] 2 // player NOT using Gold pistol?
+  ifn SPECIALIST_EQUIPMENT[97] 2 // player NOT using eviscerator?
+    {
+    ifand gun_firemode 64
+     ifg player[].ammo_amount 1 1
+        {
+        ife kickbackpic_2 0 set kickbackpic_2 1
+        ife kickbackpic_2 5 set kickbackpic_2 1
+        }
+    else
+        ife kickbackpic 0
+          ife GEO_MEGA_SHOT[0] 0
+            {
+            set GUN_VOLUME 70
+            getp[].ammo_amount 1 alt_temp2
+            ifg alt_temp2 4
+                {
+                ifand GEOFFREY_UPGRADE 2
+                    {
+                    setarray GEO_MEGA_SHOT[0] 8
+                    sound MAGSHOT_CHARGE
+                    setactorsoundpitch THISACTOR MAGSHOT_CHARGE 128
+                    }
+                    else
+                    {
+                    setarray GEO_MEGA_SHOT[0] 16
+                    sound MAGSHOT_CHARGE
+                    }
+                setp[].kickback_pic 1
+                ifand GEOFFREY_UPGRADE 1
+                    {
+                    shoot REDLASERSHOT
+                    shoot REDLASERSHOT
+                    shoot REDLASERSHOT
+                    shoot REDLASERSHOT
+                    sound LASERGUN_FIRE3
+                    }
+                else
+                    {
+                    shoot NINEMM_CALIBRE
+                    shoot NINEMM_CALIBRE
+                    shoot NINEMM_CALIBRE
+                    shoot NINEMM_CALIBRE
+                    sound GEO_PISTOLMEGA
+                    }
+                shoot NINEMM_SHELL
+                shoot NINEMM_SHELL
+                shoot NINEMM_SHELL
+                shoot NINEMM_SHELL
+                ifn PS_ITEM 2
+                    {
+                    sub alt_temp2 4
+                    setp[].ammo_amount 1 alt_temp2
+                    }
+                }
+            else soundonce DRY_FIRE
+            }
+    }
+}
+
+ife cur_weap 3
+ ife SPECIALIST_EQUIPMENT[95] 2
+	{
+     ifcount 13
+        {
+        sound SCOPE_ZOOM xorvar gun_firemode 16384
+        resetcount
+        }
+	}
+
+ife cur_weap 4
+    {
+    ife GEO_CALCULATE_TRAJ 0
+     ife kickbackpic 0
+        {
+        quote 514
+        set GEO_CALCULATE_TRAJ 16
+        soundonce CALCULATE
+        shoot 6480
+        }
+    }
+
+ife cur_weap 6
+    {
+     ifcount 13
+        {
+        state TURNOFF_NVG
+        ife scope 0
+            {
+            set scope 2
+            set scope_pal 1
+            sound SCIFI_ZOOM_IN
+            }
+            else
+            {
+            set scope 0
+            sound SCIFI_ZOOM_OUT
+            }
+        resetcount
+        }
+    }
+
+	ife cur_weap 7
+	 ifn SPECIALIST_EQUIPMENT[79] 2 // not using flame shotgun
+	  ife kickbackpic_2 0
+	   ife weaponcount 0
+	    ifge p_blue_mana 1
+		 ifand MAGIC_UPGRADE[6] 2
+			{
+			set kickbackpic_2 1
+			}
+
+ife cur_weap 11
+    {
+     ifcount 13
+        {
+        state TURNOFF_NVG
+        ife scope 0
+            {
+            set scope 2
+            set scope_pal 1
+            sound SCIFI_ZOOM_IN
+            }
+            else
+            {
+            set scope 0
+            sound SCIFI_ZOOM_OUT
+            }
+        resetcount
+        }
+    }
+
+ife cur_weap 9
+    {
+     ifcount 13
+        {
+        sound SCOPE_ZOOM
+        ifand gun_firemode 16384
+            {
+
+            xorvar gun_firemode 16384
+            }
+            else
+            {
+
+            xorvar gun_firemode 16384
+            }
+        resetcount
+        }
+    }
+
+}
+
+ends
+
+// Geoffrey's tertiary fire =====================================
+
+appendevent EVENT_LOOKRIGHT
+ife CHAR 6
+	{
+	ife cur_weap 6
+  	 ifg p_purple_mana 0
+	  ife kickbackpic_2 0
+	   ifand MAGIC_UPGRADE[6] 1
+        {
+		set kickbackpic_2 1
+		sub p_purple_mana 1
+        }
+	}
+endevent
+
+defstate PS_GEOFFREY
+{
+set P_GENDER MALE
+ife on_tripwire 1 action GSTAND
+ifaction ZERO action GSTAND
+ife FIRE_SUIT 1 ifaction GSTAND action ES_STAND
+ife JUGGERN_SUIT 1 ifaction GSTAND action JG_STAND
+ife SPACE_SUIT 1 ifaction GSTAND action SS_STAND
+
+setuserdef[].userquote_xoffset 0
+setuserdef[].userquote_yoffset 120
+
+setp[].knuckle_incs 0
+
+qputs 3 Health Canister
+
+qputs 6 Boots
+qputs 75 Protective boots: %d %
+set temp player[].boot_amount
+ife PERSONNEL_RESEARCH[26] 2 div temp 3 else div temp 2
+qsprintf 75 75 temp
+
+qputs 90 Vitamin X!
+qputs 12 Used Vitamin X!
+
+ife HELMET_LOADOUT[CHAR] 4
+	{
+	qputs 101 Ghost vision goggles
+	qputs 106 Ghost vision on
+	qputs 107 Ghost vision off
+	}
+else
+ife HEAT_GOGGLES 1
+	{
+	qputs 101 Heat vision glasses
+	qputs 106 Heat vision on
+	qputs 107 Heat vision off
+	}
+else
+	{
+	qputs 101 Night vision glasses
+	qputs 106 Night vision on
+	qputs 107 Night vision off
+	}
+
+qputs 89 Diving gear
+
+qputs 47 Infinite ammo bandanna on
+qputs 48 Infinite ammo bandanna off
+qputs 49 Infinite ammo bandanna not found yet!
+qputs 51 Infinite ammo bandanna
+qputs 91 Infinite ammo bandanna
+
+qputs 88 Jetboots
+qputs 50 Jetboots not found yet!
+qputs 52 Jetboots on
+qputs 53 Jetboots off
+
+qputs 102 We're gonna fry your ass, Geoffrey!
+
+smaxammo 1 200
+ife BELT_LOADOUT[CHAR] 5 smaxammo 2 72 else
+smaxammo 2 60
+smaxammo 4 50
+smaxammo 6 40
+
+smaxammo 9 200
+smaxammo 11 10
+
+set CKEYCARDTILE 6570
+set CKEYCARDTILE2 6572
+set CKEYCARDTILE3 6573
+set CTRIPBOMB 6571
+set CPIPEBOMB 1490
+set CDETON 2570
+set CTIP 6625
+set CHOLDING_R 9435
+set CHOLDING_L 9435
+set CHOLDING_3 12113
+
+	set CKNEE 6508
+
+set c_medikit 6565
+set c_steroids 6567
+set c_holoduke 6562
+set c_jetpack 6564
+
+set c_nvg_heat 6631
+set c_nvg_normal 6563
+
+state DISP_nvg
+
+set c_scuba 6566
+set c_boots 6629
+set c_armour 6637
+set c_heavy_armour 6636
+
+set C_ARM_1 15971
+set C_ARM_2 6584
+
+set C_PISTOL_R 8997
+set C_PISTOL_L 8997
+
+set C_HAND_1 6579
+set C_HAND_2 6580
+
+ifg AGENT_FATIGUE[CHAR] 5000 ifg SKILL_LEVEL 2 set pmax_stamina 70 else
+set pmax_stamina 100
+
+ifn player[].holoduke_on -1
+{
+getplayer[].holoduke_on temp
+seta[temp].cstat 32768
+seta[temp].xrepeat 1
+seta[temp].yrepeat 1
+ifsound TELEPORTER { soundonce PUT_ON_EQUIP stopsound TELEPORTER }
+set PS_ITEM 2
+}
+else
+ife PS_ITEM 2 set PS_ITEM 0
+
+// weapon pickup sounds
+setarray wep_get_sound[1] PICK_PISTOL
+setarray wep_get_sound[2] PICK_SHOTG
+setarray wep_get_sound[3] PICK_SMG
+setarray wep_get_sound[4] PICK_BIGGUN
+
+setarray wep_get_sound[6] PICK_ENERG
+setarray wep_get_sound[7] PICK_BIGGUN
+setarray wep_get_sound[9] PICK_ENERG
+
+// select sounds
+set WEAPON1_SELECTSOUND SELECT_PISTOL
+set WEAPON2_SELECTSOUND SELECT_SHOTGUN
+set WEAPON3_SELECTSOUND SELECT_SMG
+set WEAPON4_SELECTSOUND SELECT_WEAPON
+set WEAPON6_SELECTSOUND SELECT_HT_BIGGUN
+set WEAPON7_SELECTSOUND SELECT_HT_BIGGUN
+set WEAPON9_SELECTSOUND SELECT_HT_ASSAULTR
+set WEAPON11_SELECTSOUND SELECT_HT_BIGGUN
+
+
+// MELEE
+ife temp_weap 0
+{
+	set WEAPON0_TOTALTIME 17
+	set WEAPON0_HOLDDELAY 17
+	set WEAPON0_FIREDELAY 7
+	set WEAPON0_FIRESOUND 532
+	set WEAPON0_SHOOTS KNEE
+
+ife cur_weap 0
+	{
+	set GUN_HANDS 1
+	set gun_mag -1
+	ife kickbackpic 15 { sound PUNCH shoot KNEE }
+	state UPPERCUT_STUFF
+	}
+}
+
+
+// PISTOL
+ife SPECIALIST_EQUIPMENT[42] 2 // Gold Pistol
+{
+setarray WEAPON_TILE[1] 14601
+setarray weap_special[1] 16384
+setarray W_AMMO_TILE[1] 6635
+setarray ammo_amount[1] 12
+
+set WEAPON1_CLIP 0
+set WEAPON1_RELOAD 40
+set WEAPON1_FIREDELAY 2
+set WEAPON1_TOTALTIME 7
+set WEAPON1_HOLDDELAY 0
+set WEAPON1_FLAGS 16448
+set WEAPON1_SPAWNTIME -1
+set WEAPON1_SPAWN 0
+set WEAPON1_SHOTSPERBURST 0
+set WEAPON1_INITIALSOUND 0
+set WEAPON1_SOUND2TIME 0
+set WEAPON1_SOUND2SOUND 0
+set WEAPON1_RELOADSOUND1 4
+set WEAPON1_RELOADSOUND2 4
+
+set WEAPON1_FIRESOUND 4
+set WEAPON1_SHOOTS GOLDEN_SHOT_HIGH
+
+ife cur_weap 1
+	{
+	set weapon_type 3
+	ifg GEO_MEGA_SHOT[0] 0
+		{
+		set temp GEO_MEGA_SHOT[0]
+		sub temp 1
+		setarray GEO_MEGA_SHOT[0] temp
+		}
+	set MAXPISTOLMAG 6
+	set gun_mag PISTOLMAG
+	set GUN_VOLUME 14
+	set GUN_ACCURACY 4
+	set GUN_MAX_SPREAD 64
+	set GUN_SIZE 0
+	set GUN_AMMO_TYPES 0
+	set GUN_HANDS 1
+
+	ife kickbackpic 1 { espawn SOUND_SPRITE state SPAWN_IN_PLAYER_FRONT setactorvar[RETURN].temp GEF_GR_FIRE }
+	ife kickbackpic 2 sub PISTOLMAG 1
+
+	ife kickbackpic 3
+		{
+		add gun_spread 20
+		shoot NINEMM_SHELL
+		ifn GEO_MEGA_SHOT[0] 0 set gun_recoil 9 else set gun_recoil 6
+		}
+
+	ife kickbackpic 4
+		{
+		set gunsmoke_angle 144 state spawn_gunsmoke
+		}
+	ife kickbackpic 15 sound GR_ROUT
+	ife kickbackpic 23
+		{
+		state revolver_eject
+		sub PISTOLMAG temp4
+		}
+	ife kickbackpic 27 sound GR_RIN
+	ife kickbackpic 28
+		{
+		ifl cur_ammo 6 set PISTOLMAG cur_ammo else set PISTOLMAG MAXPISTOLMAG
+		}
+		ife kickbackpic 32 sound GR_RHAM
+
+
+		  ifl PISTOLMAG 1
+		   ife player[].weapon_pos 0
+			ife kickbackpic 0
+		   {
+		   ifg cur_ammo 0
+			   {
+			   setp[].reloading 1
+			   setp[].kickback_pic 6
+			   }
+		   }
+
+	}
+}
+else
+ife SPECIALIST_EQUIPMENT[97] 2 // Eviscerator
+{
+setarray WEAPON_TILE[1] 29104
+setarray weap_special[1] 16384
+setarray W_AMMO_TILE[1] 29144
+setarray ammo_amount[1] 20
+
+
+set WEAPON1_CLIP 0
+set WEAPON1_RELOAD 0
+set WEAPON1_FIREDELAY 2
+set WEAPON1_TOTALTIME 5
+set WEAPON1_HOLDDELAY 0
+set WEAPON1_FLAGS 6
+set WEAPON1_SPAWNTIME -1
+set WEAPON1_SPAWN 0
+set WEAPON1_SHOTSPERBURST 0
+set WEAPON1_INITIALSOUND 0
+set WEAPON1_SOUND2TIME 0
+set WEAPON1_SOUND2SOUND 0
+set WEAPON1_RELOADSOUND1 4
+set WEAPON1_RELOADSOUND2 4
+
+ife cur_weap 1
+	{
+	set weapon_type 0
+	set WEAPON1_FIRESOUND 4
+	set WEAPON1_SHOOTS 22631
+	ife kickbackpic 1 { espawn SOUND_SPRITE state SPAWN_IN_PLAYER_FRONT setactorvar[RETURN].temp EVISC_FIRE }
+	ife kickbackpic 2 set gun_recoil 8
+	set gun_mag -1
+	set GUN_VOLUME 14
+	set GUN_ACCURACY 16
+	set GUN_MAX_SPREAD 32
+	set GUN_SIZE 0
+	set GUN_AMMO_TYPES 0
+	set GUN_HANDS 1
+
+	ife kickbackpic 3
+		{
+		shoot NINEMM_SHELL
+		add gun_spread 8
+		set gunsmoke_angle 144 state spawn_gunsmoke
+		}
+
+	ifg kickbackpic_2 0
+		{
+		add kickbackpic_2 1
+		ife kickbackpic_2 2 sound BAYONET
+		ife kickbackpic_2 7 shoot 4961
+		ifge kickbackpic_2 12 set kickbackpic_2 0
+		}
+
+	}
+}
+else
+{
+setarray WEAPON_TILE[1] 6648
+ifand guns_akimbo 4 setarray weap_special[1] 16385 else setarray weap_special[1] 16384
+setarray W_AMMO_TILE[1] 6640
+setarray ammo_amount[1] 25
+
+
+set WEAPON1_CLIP 0
+set WEAPON1_RELOAD 0
+set WEAPON1_FIREDELAY 2
+set WEAPON1_TOTALTIME 5
+set WEAPON1_HOLDDELAY 0
+set WEAPON1_FLAGS 6
+set WEAPON1_SPAWNTIME -1
+set WEAPON1_SPAWN 0
+set WEAPON1_SHOTSPERBURST 0
+set WEAPON1_INITIALSOUND 0
+set WEAPON1_SOUND2TIME 0
+set WEAPON1_SOUND2SOUND 0
+set WEAPON1_RELOADSOUND1 4
+set WEAPON1_RELOADSOUND2 4
+
+ife cur_weap 1
+	{
+	ifg GEO_MEGA_SHOT[0] 0
+		{
+		ife GEO_MEGA_SHOT[0] 30 sound MAGSHOT_CHARGE
+		set temp GEO_MEGA_SHOT[0]
+		sub temp 1
+		setarray GEO_MEGA_SHOT[0] temp
+		}
+	ifand GEOFFREY_UPGRADE 1
+		{
+		set weapon_type 1
+		set WEAPON1_FIRESOUND 4
+		set WEAPON1_SHOOTS REDLASERSHOT
+		ife kickbackpic 1 { espawn SOUND_SPRITE state SPAWN_IN_PLAYER_FRONT setactorvar[RETURN].temp LASERGUN_FIRE3 }
+		}
+	else
+		{
+		set weapon_type 0
+		set WEAPON1_FIRESOUND 4
+		set WEAPON1_SHOOTS NINEMM_CALIBRE
+		ife kickbackpic 1 { espawn SOUND_SPRITE state SPAWN_IN_PLAYER_FRONT setactorvar[RETURN].temp GEO_PISTOL }
+		}
+	set gun_mag -1
+	set GUN_VOLUME 14
+	set GUN_ACCURACY 16
+	set GUN_MAX_SPREAD 0
+	set GUN_SIZE 0
+	set GUN_AMMO_TYPES 0
+	ifand gun_firemode 64 set GUN_HANDS 2 else
+	set GUN_HANDS 1
+
+	ife kickbackpic 3
+		{
+		shoot NINEMM_SHELL
+		set gunsmoke_angle 144 state spawn_gunsmoke
+		ifn GEO_MEGA_SHOT[0] 0 set gun_recoil 6 else set gun_recoil 4
+		}
+
+	ifg kickbackpic_2 0
+		{
+		add kickbackpic_2 1
+		ifg kickbackpic_2 5 set kickbackpic_2 0
+		}
+
+	ife kickbackpic_2 2
+		{
+		ifand GEOFFREY_UPGRADE 1
+			{
+			setprojectile[REDLASERSHOT].OFFSET -224
+			shoot REDLASERSHOT
+			setprojectile[REDLASERSHOT].OFFSET 224
+			espawn SOUND_SPRITE
+			state SPAWN_IN_PLAYER_FRONT
+			setactorvar[RETURN].temp LASERGUN_FIRE3
+			}
+		else
+			{
+			shoot NINEMM_CALIBRE
+			espawn SOUND_SPRITE
+			state SPAWN_IN_PLAYER_FRONT
+			setactorvar[RETURN].temp GEO_PISTOL
+			}
+		set gun_recoil 4
+		set gunsmoke_angle -64
+		state spawn_gunsmoke
+		getp[].ammo_amount 1 temp
+		ifg temp 0 sub temp 1
+		setp[].ammo_amount 1 temp
+		}
+	ife kickbackpic_2 3 shoot 13780
+	}
+}
+
+// SHOTGUN
+ife SPECIALIST_EQUIPMENT[20] 2 // Plasma shotgun
+{
+	setarray WEAPON_TILE[2] 6518
+	setarray W_AMMO_TILE[2] 12909
+	setarray weap_special[2] 0
+	setarray ammo_amount[2] 8
+
+	set WEAPON2_CLIP 0
+	set WEAPON2_RELOAD 13
+	set WEAPON2_FIREDELAY 2
+	set WEAPON2_TOTALTIME 24
+	set WEAPON2_HOLDDELAY 0
+	set WEAPON2_FLAGS 1024
+	set WEAPON2_SHOOTS 5374
+	set WEAPON2_SPAWNTIME 24
+	set WEAPON2_SPAWN 0
+	set WEAPON2_SHOTSPERBURST 5
+	set WEAPON2_INITIALSOUND 0
+	set WEAPON2_FIRESOUND 4
+	set WEAPON2_SOUND2TIME -1
+	set WEAPON2_SOUND2SOUND 4
+	set WEAPON2_RELOADSOUND1 4
+	set WEAPON2_RELOADSOUND2 4
+
+	set WEAPON2_SELECTSOUND SELECT_HT_SHOTGUN
+
+	ife cur_weap 2
+	{
+	set weapon_type 8
+	set GUN_VOLUME 70
+	set GUN_ACCURACY 16
+	set GUN_MAX_SPREAD 0
+	set GUN_AMMO_TYPES 0
+	set GUN_SIZE 2
+	set GUN_HANDS 2
+
+	set gun_mag -1
+
+	ife kickbackpic 1 { espawn SOUND_SPRITE state SPAWN_IN_PLAYER_FRONT setactorvar[RETURN].temp PLAS_SHOTGUN }
+	ife kickbackpic 3 set gun_recoil 6
+	ife kickbackpic 4
+		{
+		set gunsmoke_angle 76 state spawn_gunsmoke
+		}
+	ife kickbackpic 9 sound PLAS_CHARGE
+	}
+}
+else
+ife SPECIALIST_EQUIPMENT[67] 2 // golden shotgun
+{
+	setarray WEAPON_TILE[2] 19808
+	setarray W_AMMO_TILE[2] 6639
+	setarray ammo_amount[2] 8
+	setarray weap_special[2] 0
+
+	set WEAPON2_CLIP 0
+	set WEAPON2_RELOAD 13
+	set WEAPON2_FIREDELAY 2
+	set WEAPON2_TOTALTIME 24
+	set WEAPON2_HOLDDELAY 0
+	set WEAPON2_FLAGS 1024
+	set WEAPON2_SHOOTS GOLDEN_SHOT_LOW
+	set WEAPON2_SPAWNTIME 24
+	set WEAPON2_SPAWN 0
+	set WEAPON2_SHOTSPERBURST 7
+	set WEAPON2_INITIALSOUND 0
+	set WEAPON2_FIRESOUND 4
+	set WEAPON2_SOUND2TIME -1
+	set WEAPON2_SOUND2SOUND 4
+	set WEAPON2_RELOADSOUND1 4
+	set WEAPON2_RELOADSOUND2 4
+
+	ife cur_weap 2
+	{
+	set weapon_type 3
+	set GUN_VOLUME 90
+	set GUN_ACCURACY 32
+	set GUN_MAX_SPREAD 0
+	set GUN_AMMO_TYPES 0
+	set GUN_SIZE 2
+	set GUN_HANDS 2
+
+	set gun_mag -1
+
+	ife kickbackpic 1 { espawn SOUND_SPRITE state SPAWN_IN_PLAYER_FRONT setactorvar[RETURN].temp GEO_GOLD_SHOTGUN }
+	ife kickbackpic 3 set gun_recoil 6
+	ife kickbackpic 4
+		{
+		set gunsmoke_angle 76 state spawn_gunsmoke
+		}
+	ife kickbackpic 9 sound ZAX_GOLDS_PUMP
+	ife kickbackpic 16 { setprojectile[3761].pal 40 eshoot 3761 setprojectile[3761].pal 0 }
+	}
+}
+else // default shotgun
+{
+	ifand GEOFFREY_UPGRADE 16 setarray WEAPON_TILE[2] 6624
+	else setarray WEAPON_TILE[2] 6649
+	setarray W_AMMO_TILE[2] 6641
+	setarray ammo_amount[2] 8
+	
+	ifand GEOFFREY_UPGRADE 16 setarray weap_special[2] 16384
+	else setarray weap_special[2] 0
+
+	set WEAPON2_CLIP 0
+	set WEAPON2_RELOAD 13
+	set WEAPON2_FIREDELAY 2
+	set WEAPON2_TOTALTIME 24
+	set WEAPON2_HOLDDELAY 0
+	set WEAPON2_FLAGS 1024
+	set WEAPON2_SPAWNTIME 24
+	set WEAPON2_SPAWN 0
+	set WEAPON2_SHOTSPERBURST 10
+	set WEAPON2_INITIALSOUND 0
+	set WEAPON2_SOUND2TIME -1
+	set WEAPON2_SOUND2SOUND 4
+	set WEAPON2_RELOADSOUND1 4
+	set WEAPON2_RELOADSOUND2 4
+
+	ife cur_weap 2
+	{
+	set GUN_VOLUME 90
+	ifand GEOFFREY_UPGRADE 16 set GUN_ACCURACY 16
+	else set GUN_ACCURACY 32
+	set GUN_MAX_SPREAD 48
+	set GUN_AMMO_TYPES 5
+	set GUN_SIZE 2
+	set GUN_HANDS 2
+	set gun_mag -1
+
+	ife kickbackpic 2 add gun_spread 32
+
+		ife kickbackpic 4
+		 ife need_to_fire 1
+			{
+			setp[].ammo_amount 2 0
+			set need_to_fire 0
+			}
+
+
+	ifand AMMO_TYPES[cur_weap] 1 // Explosive shells
+		{
+		set weapon_type 8
+		set WEAPON2_SHOOTS 9361
+		set WEAPON2_FIRESOUND EXPL_SHELL_FIRE
+		ife kickbackpic 0
+			{
+			ife explosive_shells 0 { xorvar AMMO_TYPE 1 setarray AMMO_TYPES[cur_weap] AMMO_TYPE }
+			 ifand BITS_PRESS 4
+				{
+				getp[].ammo_amount 2 hold_ammo_temp
+				ife hold_ammo_temp 0
+					{
+					setp[].ammo_amount 2 1
+					set need_to_fire 1
+					}
+				}
+
+			}
+		}
+	else
+	ifand AMMO_TYPES[cur_weap] 4 // flechette shells
+		{
+		set weapon_type 9
+		ife ARTIFACTS_LOADOUT[CHAR] 7 set WEAPON2_SHOOTS 6816 else
+		set WEAPON2_SHOOTS 6826
+		set WEAPON2_FIRESOUND FLECH_SHELL_FIRE
+		ife kickbackpic 0
+			{
+			ife flechete_shells 0 { xorvar AMMO_TYPE 4 setarray AMMO_TYPES[cur_weap] AMMO_TYPE }
+			 ifand BITS_PRESS 4
+				{
+				getp[].ammo_amount 2 hold_ammo_temp
+				ife hold_ammo_temp 0
+					{
+					setp[].ammo_amount 2 1
+					set need_to_fire 1
+					}
+				}
+
+			}
+		}
+	else
+	ifand AMMO_TYPES[cur_weap] 64 // magnum shells
+		{
+		set weapon_type 0
+		set WEAPON2_SHOOTS RMAXREVOLVERSHOT
+		set WEAPON2_FIRESOUND MAGNUM_SHOTGUN
+		ife kickbackpic 0
+			{
+			ife magnum_shells 0 { xorvar AMMO_TYPE 64 setarray AMMO_TYPES[cur_weap] AMMO_TYPE }
+			 ifand BITS_PRESS 4
+				{
+				getp[].ammo_amount 2 hold_ammo_temp
+				ife hold_ammo_temp 0
+					{
+					setp[].ammo_amount 2 1
+					set need_to_fire 1
+					}
+				}
+
+			}
+		}
+	else
+	ifand AMMO_TYPES[cur_weap] 1024 // flame shells
+		{
+		set weapon_type 8
+		set WEAPON2_SHOOTS 22536
+		set WEAPON2_FIRESOUND DRAGONS_BR_FIRE
+		ife kickbackpic 0
+			{
+			ife dragon_shells 0 { xorvar AMMO_TYPE 1024 setarray AMMO_TYPES[cur_weap] AMMO_TYPE }
+			 ifand BITS_PRESS 4
+				{
+				getp[].ammo_amount 2 hold_ammo_temp
+				ife hold_ammo_temp 0
+					{
+					setp[].ammo_amount 2 1
+					set need_to_fire 1
+					}
+				}
+			}
+
+		}
+	else // buckshot
+		{
+		set weapon_type 2
+		set WEAPON2_SHOOTS SHOTGUN
+		set WEAPON2_FIRESOUND 4
+		ife kickbackpic 1 { espawn SOUND_SPRITE state SPAWN_IN_PLAYER_FRONT setactorvar[RETURN].temp GEO_SHOTGUN }
+		}
+
+
+	ifand GEOFFREY_UPGRADE 16
+	 ifand BITS_PRESS 64
+	  ife kickbackpic 0
+	  ife kickbackpic_2 0
+	   ife player[].weapon_pos 0
+	   ifg tesla_ammo 4
+		{
+		set kickbackpic_2 1
+		}
+
+	ifg kickbackpic_2 0 // alternate fire mode used?
+		{
+		add kickbackpic_2 1
+
+		ife kickbackpic_2 2
+			{
+			   sound 482
+			   sound RIOTGUN_TESLAF
+			   eshoot 6198
+			   geta[RETURN].ang alt_temp2 sub alt_temp2 8 seta[RETURN].ang alt_temp2
+			   eshoot 6198
+			   geta[RETURN].ang alt_temp2 sub alt_temp2 16 seta[RETURN].ang alt_temp2
+			   eshoot 6198
+			   geta[RETURN].ang alt_temp2 sub alt_temp2 -8 seta[RETURN].ang alt_temp2
+			   eshoot 6198
+			   geta[RETURN].ang alt_temp2 sub alt_temp2 -16 seta[RETURN].ang alt_temp2
+			   shoot 6198
+			   sub tesla_ammo 5
+			}
+		ife kickbackpic_2 3 set gun_recoil 6
+		ife kickbackpic_2 4
+			{
+			set gunsmoke_angle 76 state spawn_gunsmoke
+			}
+		ifg kickbackpic_2 25 set kickbackpic_2 0
+		}
+
+		ife kickbackpic 2
+			{
+			ifand AMMO_TYPES[cur_weap] 1 { set LAST_SHELL_FIRED 1 sub explosive_shells 1 }
+			else ifand AMMO_TYPES[cur_weap] 4 { set LAST_SHELL_FIRED 4 sub flechete_shells 1 }
+			else ifand AMMO_TYPES[cur_weap] 64 { set LAST_SHELL_FIRED 64 sub magnum_shells 1 }
+			else ifand AMMO_TYPES[cur_weap] 1024 { set LAST_SHELL_FIRED 1024 sub dragon_shells 1 }
+			else set LAST_SHELL_FIRED 0
+			}
+
+		ife kickbackpic 3 set gun_recoil 6
+		ife kickbackpic 4 { set gunsmoke_angle 76 state spawn_gunsmoke }
+		ife kickbackpic 7 sound GEO_SHOTG_PUMP
+		ife kickbackpic 16 state SHOTGUN_SHELL
+	}
+}
+
+
+// MACHINEGUN
+ife SPECIALIST_EQUIPMENT[81] 2 // GP63 Assault Rifle
+{
+smaxammo 3 200
+setarray WEAPON_TILE[3] 22617
+setarray weap_special[3] 128
+setarray W_AMMO_TILE[3] 16563
+setarray ammo_amount[3] 25
+set WEAPON3_HOLDDELAY 1
+set WEAPON3_SPAWN 0
+set WEAPON3_INITIALSOUND 4
+set WEAPON3_FIREDELAY 2
+set WEAPON3_SHOTSPERBURST 1
+set WEAPON3_RELOAD 22
+set WEAPON3_CLIP 0
+set WEAPON3_RELOADSOUND1 4
+set WEAPON3_RELOADSOUND2 4
+set WEAPON3_FIRESOUND 4
+
+ife cur_weap 3
+{
+	set weapon_type 0
+	set gun_mag -1
+	set MGUNMAG player[].ammo_amount 3
+	set GUN_VOLUME 15
+	set GUN_SIZE 2
+	set GUN_HANDS 2
+	set GUN_AMMO_TYPES 1024
+	set WEAPON3_FLAGS 4
+
+	set WEAPON3_SELECTSOUND SELECT_HT_ASSAULTR
+
+
+	set GUN_ACCURACY 8
+
+		ifg GUN_HEAT[cur_weap] 150
+			{
+			setp[].reloading 1
+			soundonce AR73_OVERHEAT
+			setp[].kickback_pic 5
+			}
+		ifg GUN_HEAT[cur_weap] 50
+			{
+			ifg kickbackpic 10 { set gunsmoke_z 9444 set gunsmoke_angle 98 }
+			else { set gunsmoke_z 9144 set gunsmoke_angle 64 }
+			state spawn_gunsmoke_z
+			}
+
+		ifg GUN_HEAT[cur_weap] 75
+			{
+			soundonce AR73_BEEP
+			set WEAPON3_SHOOTS FIRE_BULLET
+			set WEAPON3_FIREDELAY 2
+			set WEAPON3_TOTALTIME 3
+			}
+			else
+		ifg GUN_HEAT[cur_weap] 25
+			{
+			set WEAPON3_SHOOTS MSCORP_SHOT
+			set WEAPON3_FIREDELAY 2
+			set WEAPON3_TOTALTIME 4
+			}
+			else
+			{
+			set WEAPON3_SHOOTS MSCORP_SHOT
+			set WEAPON3_FIREDELAY 2
+			set WEAPON3_TOTALTIME 5
+			}
+
+		ife kickbackpic 1 { espawn SOUND_SPRITE state SPAWN_IN_PLAYER_FRONT setactorvar[RETURN].temp GP-63_FIRE }
+		ife kickbackpic 2 { set gun_recoil 7 set gunsmoke_angle 64 state spawn_gunsmoke }
+		ife kickbackpic 14
+			{
+			set temp9 GUN_HEAT[cur_weap]
+			sub temp9 2
+			setarray GUN_HEAT[cur_weap] temp9
+			ifl GUN_HEAT[cur_weap] 20
+				{
+				stopsound STEAM_HISSING soundonce MDF_READY setarray GUN_HEAT[cur_weap] 0
+				}
+			}
+
+			ife kickbackpic 15
+				{
+				ifg GUN_HEAT[cur_weap] 20 setp[].kickback_pic 14
+				ifg HEAT_SINKS 0
+				 ifg GUN_HEAT[cur_weap] 100
+				 ifand BITS_PRESS 128 { soundonce HEAT_SINK_EJECT shoot HEAT_SINK sub HEAT_SINKS 1 setarray GUN_HEAT[cur_weap] 25 }
+				}
+		ife kickbackpic 17 soundonce MDF_READY
+	}
+}
+else
+ife SPECIALIST_EQUIPMENT[12] 2 // AP SMG?
+{
+smaxammo 3 400
+setarray WEAPON_TILE[3] 6547
+setarray weap_special[3] 0
+setarray W_AMMO_TILE[3] 6655
+setarray ammo_amount[3] 80
+
+set WEAPON3_FIREDELAY 2
+set WEAPON3_TOTALTIME 3
+set WEAPON3_HOLDDELAY 1
+set WEAPON3_FLAGS 68
+set WEAPON3_SPAWN 0
+set WEAPON3_INITIALSOUND 4
+set WEAPON3_SHOTSPERBURST 4
+set WEAPON3_RELOAD 40
+set WEAPON3_CLIP 0
+set WEAPON3_RELOADSOUND1 4
+set WEAPON3_RELOADSOUND2 4
+set WEAPON3_FIRESOUND 4
+set WEAPON3_SHOOTS ARMOUR_PIERCING_SHOT
+
+
+	ife cur_weap 3
+	{
+	set weapon_type 1
+	set GUN_VOLUME 60
+	set MAXMGUNMAG 80
+	set GUN_ACCURACY 16
+	set GUN_MAX_SPREAD 96
+	set GUN_SIZE 1
+	set GUN_HANDS 2
+	set GUN_AMMO_TYPES 0
+	set gun_mag MGUNMAG
+
+	ife kickbackpic 2
+			{
+			espawn SOUND_SPRITE state SPAWN_IN_PLAYER_FRONT setactorvar[RETURN].temp GEO_AP_FIRE
+			add gun_spread 12
+			set gun_recoil 4
+			set gunsmoke_angle 104 state spawn_gunsmoke
+			}
+	ife kickbackpic 13
+			{
+			ife MGUNMAG 0 shoot SCIFI_BIG_MAG
+			state bgar_mag_out_sounds
+			}
+	ife kickbackpic 32
+			{
+			state bgar_mag_in_sounds
+			ifl cur_ammo MAXMGUNMAG set MGUNMAG cur_ammo else set MGUNMAG MAXMGUNMAG
+			}
+
+	 ifl MGUNMAG 1
+	  ife kickbackpic 0
+		   ife player[].weapon_pos 0
+			{
+			ifn cur_ammo 0
+				{
+				ifl cur_ammo 0 setplayer[].ammo_amount 3 0
+				setp[].reloading 1
+				setp[].kickback_pic 6
+				}
+			}
+	}
+}
+else
+ife SPECIALIST_EQUIPMENT[95] 2 // Cutlass rifle
+{
+smaxammo 3 200
+setarray WEAPON_TILE[3] 29080
+setarray weap_special[3] 16384
+setarray W_AMMO_TILE[3] 6873
+setarray ammo_amount[3] 20
+
+set WEAPON3_SPAWN 0
+set WEAPON3_INITIALSOUND 4
+set WEAPON3_SHOTSPERBURST 1
+set WEAPON3_CLIP 0
+set WEAPON3_RELOADSOUND1 4
+set WEAPON3_RELOADSOUND2 4
+
+ife RUSTY_BAYONET 1
+	{
+	set WEAPON3_FIREDELAY 7
+	set WEAPON3_TOTALTIME 15
+	set WEAPON3_HOLDDELAY 0
+	set WEAPON3_FLAGS 256
+	set WEAPON3_FIRESOUND BAYONET
+	set WEAPON3_SHOOTS 0
+	}
+else
+	{
+	set WEAPON3_FIREDELAY 2
+	set WEAPON3_TOTALTIME 4
+	set WEAPON3_HOLDDELAY 1
+	set WEAPON3_FLAGS 64
+	set WEAPON3_FIRESOUND 4
+	set WEAPON3_SHOOTS HOLLOW_POINT_SHOT
+	}
+
+	ife cur_weap 3
+	{
+	set weapon_type 2
+	set GUN_AMMO_TYPES 0
+	set GUN_HANDS 2
+	ife kickbackpic 50 sound FG42_COCK
+
+	ife kickbackpic 2 { espawn SOUND_SPRITE state SPAWN_IN_PLAYER_FRONT setactorvar[RETURN].temp CUTL_FIRE }
+	set MAXMGUNMAG 25
+
+	ifge kickbackpic 6 ifand gun_firemode 16384 xorvar gun_firemode 16384
+
+		
+		ifand gun_firemode 16384 
+			{
+			set GUN_MAX_SPREAD 8
+			set GUN_ACCURACY 4
+			}
+		else
+			{
+			set GUN_MAX_SPREAD 24
+			set GUN_ACCURACY 16
+			}
+
+		set GUN_SIZE 2
+		set gun_mag MGUNMAG
+	ife RUSTY_BAYONET 0
+		{
+		set GUN_VOLUME 20
+		ife kickbackpic 2 set gun_recoil 8
+		ife kickbackpic 3 { add gun_spread 12 set gunsmoke_angle 32 state spawn_gunsmoke }
+
+		ife kickbackpic 14 state bgar_mag_out_sounds
+		ife kickbackpic 16 ife MGUNMAG 0 shoot RIFLEMAGAZINE // spawn magazine
+
+		ife kickbackpic 33
+			{
+			state bgar_mag_in_sounds
+			ifl cur_ammo MAXMGUNMAG set MGUNMAG cur_ammo else set MGUNMAG MAXMGUNMAG
+			}
+
+	  ifl MGUNMAG 1
+	   ife player[].weapon_pos 0
+	    ife kickbackpic 0
+		   {
+		   	ifn cur_ammo 0
+		   		{
+				set WEAPON3_RELOAD 61
+		   		setp[].reloading 1
+		   		setp[].kickback_pic 6
+				}
+			}
+		}
+	ife RUSTY_BAYONET 1
+		{
+		set GUN_VOLUME 0
+		ifg gun_pushb_disp 28 set gun_recoil 10
+		ife kickbackpic 0 set RUSTY_BAYONET 0
+		ife kickbackpic 4 set gun_recoil 8
+		ife kickbackpic 6 { set gun_pushback_power 16 state gun_pushback }
+		ife kickbackpic 7 shoot 6875
+		}
+					ifand BITS_PRESS 4194304
+					 ife kickbackpic 0
+					  ifge p_stamina 15
+					 	ifg SPIN_KICK 19
+						 ifg TWIRL_KICK 19
+						  ifg ROUNDHOUSE_KICK 26
+						   ifg SLIDE_KICK 26
+						    ifg FLYING_KICK 26
+								{
+								set RUSTY_BAYONET 1
+								setp[].kickback_pic 4
+								setp[].quick_kick 0
+								sub p_stamina 15
+								set KNIFE_ATTACK 26
+								set QUICKK 13
+								}
+
+	ife RUSTY_BAYONET 1
+	 ifand BITS_PRESS 4
+		set RUSTY_BAYONET 0
+
+	}
+}
+else // Geoffrey's normal SMG
+{
+smaxammo 3 500
+setarray WEAPON_TILE[3] 6650
+setarray weap_special[3] 0
+setarray W_AMMO_TILE[3] 6655
+setarray ammo_amount[3] 30
+
+set WEAPON3_FIREDELAY 2
+set WEAPON3_TOTALTIME 3
+set WEAPON3_HOLDDELAY 1
+set WEAPON3_FLAGS 4
+set WEAPON3_SPAWN 0
+set WEAPON3_INITIALSOUND 4
+set WEAPON3_SHOTSPERBURST 1
+set WEAPON3_RELOAD 51
+set WEAPON3_CLIP 0
+set WEAPON3_RELOADSOUND1 4
+set WEAPON3_RELOADSOUND2 4
+set WEAPON3_FIRESOUND 4
+set WEAPON3_SHOOTS ZRIFLESHOTU
+
+
+ife cur_weap 3
+{
+	set weapon_type 0
+	set GUN_VOLUME 9
+	set GUN_ACCURACY 6
+	set GUN_MAX_SPREAD 32
+	set GUN_SIZE 1
+	set GUN_HANDS 1
+	set GUN_AMMO_TYPES 0
+	ifand GEOFFREY_UPGRADE 8 set MAXMGUNMAG 60 else set MAXMGUNMAG 40
+	set gun_mag MGUNMAG
+
+	ife kickbackpic 1 { espawn SOUND_SPRITE state SPAWN_IN_PLAYER_FRONT setactorvar[RETURN].temp GEO_SMGFIRE }
+
+		ife kickbackpic 2
+			{
+			add gun_spread 7
+			set gun_recoil 3
+			set gunsmoke_angle 104 state spawn_gunsmoke
+			}
+
+		ife kickbackpic 13 state JMOVESOUND2
+
+		ife kickbackpic 23
+			{
+			ife MGUNMAG 0
+				{
+				ifand GEOFFREY_UPGRADE 8 shoot SCIFI_BIG_MAG else
+				shoot SCIFI_SMG_MAG
+				}
+			state smg_mag_out_sounds
+			}
+
+		ife kickbackpic 37
+			{
+			state smg_mag_in_sounds
+			ifl cur_ammo MAXMGUNMAG set MGUNMAG cur_ammo else set MGUNMAG MAXMGUNMAG
+			}
+
+
+	 ifl MGUNMAG 1
+	  ife kickbackpic 0
+		   ife player[].weapon_pos 0
+			{
+			ifn cur_ammo 0
+				{
+				setp[].reloading 1
+				setp[].kickback_pic 6
+				}
+			}
+
+	}
+}
+
+
+// RPG
+ifand GEOFFREY_UPGRADE 4 setarray WEAPON_TILE[4] 6477 else
+setarray WEAPON_TILE[4] 6651
+setarray W_AMMO_TILE[4] 6643
+setarray weap_special[4] 16384
+setarray ammo_amount[4] 6
+
+set WEAPON4_FIRESOUND GEO_GLAUNCHER
+set WEAPON4_SHOOTS GEO_NADE
+set WEAPON4_SHOTSPERBURST 1
+
+set WEAPON4_FIREDELAY 2
+
+set WEAPON4_HOLDDELAY 0
+set WEAPON4_FLAGS 0
+
+ife cur_weap 4
+	{
+	set weapon_type 4
+	ifg GEO_CALCULATE_TRAJ 0 sub GEO_CALCULATE_TRAJ 1
+	set GUN_VOLUME 40
+	set gun_mag -1
+	set GUN_HANDS 2
+	set GUN_ACCURACY 2
+	set GUN_MAX_SPREAD 0
+	set GUN_SIZE 2
+	set GUN_AMMO_TYPES 0
+
+	ifand GEOFFREY_UPGRADE 4
+		{
+		set WEAPON4_TOTALTIME 16
+		set WEAPON4_RELOAD 30
+		}
+	else
+		{
+		set WEAPON4_TOTALTIME 20
+		set WEAPON4_RELOAD 30
+		}
+	ife kickbackpic 3 set gun_recoil 6
+	ife kickbackpic 6 { set gunsmoke_angle 64 state spawn_gunsmoke }
+	ife kickbackpic 13 soundonce ROTATEBARREL
+	}
+
+// PIPEBOMB
+setarray WEAPON_TILE[5] 6645
+setarray W_AMMO_TILE[5] 6478
+setarray weap_special[5] 0
+setarray ammo_amount[5] 3
+
+set WEAPON5_FIREDELAY 18
+set WEAPON5_TOTALTIME 29
+set WEAPON5_HOLDDELAY 22
+set PIPEBOMB_CONTROL 2
+
+ife cur_weap 5
+	{
+	set weapon_type 6
+	set GUN_SIZE 0
+	set gun_mag -1
+	set GUN_HANDS 1
+	set GUN_VOLUME 0
+	set GUN_MAX_SPREAD 0
+	set GUN_ACCURACY 2
+	set GUN_AMMO_TYPES 0
+ife SHOOTDISCBOMB THISACTOR
+		{
+		set temp2 bomb_throw_power
+		divvar temp2 42
+		shoot DISCBOMB
+		ifg bomb_throw_power 96 soundonce R_EXERT
+		set SHOOTDISCBOMB -1
+		}
+	}
+
+// SHRINKER
+setarray WEAPON_TILE[6] 6652
+setarray W_AMMO_TILE[6] 6647
+setarray weap_special[6] 16896
+setarray ammo_amount[6] 4
+
+set WEAPON6_SHOOTS RAILGUN
+set WEAPON6_FIREDELAY 12
+set WEAPON6_TOTALTIME 16
+set WEAPON6_FIRESOUND RAILGUN_FIRE
+set WEAPON6_INITIALSOUND 4
+set WEAPON6_SHOTSPERBURST 0
+set WEAPON6_FLAGS 2
+set WEAPON6_SPAWNTIME -1
+set WEAPON6_SPAWN 0
+set WEAPON6_SOUND2TIME -1
+set WEAPON6_SOUND2SOUND 4
+set WEAPON6_RELOADSOUND1 4
+set WEAPON6_RELOADSOUND2 4
+
+ife cur_weap 6
+	{
+	setplayer[THISACTOR].gotweapon 11 0
+	set weapon_type 1
+	set gun_mag -1
+	set GUN_VOLUME 45
+	ifn scope 0 set GUN_ACCURACY 2 else
+	set GUN_ACCURACY 16
+	set GUN_MAX_SPREAD 32
+	set GUN_SIZE 2
+	set GUN_HANDS 2
+	ifand MAGIC_UPGRADE[6] 1 set GUN_AMMO_TYPES 65536
+	else set GUN_AMMO_TYPES 0
+	ife camerasprite -1 ife player[].weapon_pos 0 soundonce RAILGUN_AMB
+
+	ife kickbackpic 1 { sound RAILGUN_CHARGE getp[].horiz temp add temp 2 setp[].horiz temp }
+	ife kickbackpic 2 { getp[].horiz temp sub temp 2 setp[].horiz temp }
+	ife kickbackpic 3 { getp[].horiz temp add temp 4 setp[].horiz temp }
+	ife kickbackpic 4 { getp[].horiz temp sub temp 4 setp[].horiz temp }
+	ife kickbackpic 5 { getp[].horiz temp add temp 6 setp[].horiz temp }
+	ife kickbackpic 6 { getp[].horiz temp sub temp 6 setp[].horiz temp }
+	ife kickbackpic 7 { getp[].horiz temp add temp 8 setp[].horiz temp }
+	ife kickbackpic 8 { getp[].horiz temp sub temp 8 setp[].horiz temp }
+	ife kickbackpic 12 { set gun_recoil 10 add gun_spread 20 set gun_pushback_power -96 state gun_pushback }
+
+	ifg kickbackpic_2 0
+		{
+		add kickbackpic_2 1
+		ife kickbackpic_2 2 { sound RAILGUN_CHARGE getp[].horiz temp add temp 2 setp[].horiz temp }
+		ife kickbackpic_2 3 { getp[].horiz temp sub temp 2 setp[].horiz temp }
+		ife kickbackpic_2 4 { getp[].horiz temp add temp 4 setp[].horiz temp }
+		ife kickbackpic_2 5 { getp[].horiz temp sub temp 4 setp[].horiz temp }
+		ife kickbackpic_2 6 { getp[].horiz temp add temp 6 setp[].horiz temp }
+		ife kickbackpic_2 7 { getp[].horiz temp sub temp 6 setp[].horiz temp }
+		ife kickbackpic_2 8 { getp[].horiz temp add temp 8 setp[].horiz temp }
+		ife kickbackpic_2 9 { getp[].horiz temp sub temp 8 setp[].horiz temp }
+		ife kickbackpic_2 12 { shoot VOID_BLAST sound VOID_MEGA set gun_recoil 10 set gun_pushback_power -96 state gun_pushback }
+		ifge kickbackpic_2 14 set kickbackpic_2 0
+		}
+	}
+
+// DEVISTATOR
+ife SPECIALIST_EQUIPMENT[79] 2 // Auto-shotgun?
+{
+setarray WEAPON_TILE[7] 22595
+setarray W_AMMO_TILE[7] 22569
+smaxammo 7 40
+setarray ammo_amount[7] 4
+setarray weap_special[7] 0
+
+set WEAPON7_FIREDELAY 2
+set WEAPON7_TOTALTIME 8
+set WEAPON7_FLAGS 0
+set WEAPON7_SHOTSPERBURST 4
+set WEAPON7_SHOOTS 22536
+set WEAPON7_FIRESOUND 4
+set WEAPON7_INITIALSOUND 4
+
+set WEAPON7_SELECTSOUND SELECT_HT_SHOTGUN
+
+ife cur_weap 7
+	{
+	set weapon_type 2
+	set GUN_VOLUME 70
+	set gun_mag -1
+	set GUN_SIZE 2
+	set GUN_HANDS 1
+	set GUN_ACCURACY 16
+	set GUN_MAX_SPREAD 96
+	set GUN_AMMO_TYPES 0
+
+		ife kickbackpic 1 { espawn SOUND_SPRITE state SPAWN_IN_PLAYER_FRONT setactorvar[RETURN].temp GEO_AUTOS_FIRE }
+	    ife kickbackpic 3 { set gun_recoil 4 set gunsmoke_angle 64 add gun_spread 10 state spawn_gunsmoke setprojectile[3761].pal 5 shoot 3761 setprojectile[3761].pal 0 }
+	}
+}
+else
+{
+setarray WEAPON_TILE[7] 6653
+setarray W_AMMO_TILE[7] 6644
+smaxammo 7 200
+setarray ammo_amount[7] 50
+setarray weap_special[7] 0
+
+set WEAPON7_FIREDELAY 2
+set WEAPON7_TOTALTIME 3
+set WEAPON7_FLAGS 12
+set WEAPON7_SHOTSPERBURST 1
+set WEAPON7_SHOOTS MELTA_BEAM
+set WEAPON7_FIRESOUND -1
+set WEAPON7_INITIALSOUND MELTA_START
+
+ife cur_weap 7
+	{
+	set weapon_type 1
+	set GUN_VOLUME 5
+	set gun_mag -1
+	set GUN_SIZE 2
+	set GUN_HANDS 2
+	set GUN_ACCURACY 2
+	set GUN_MAX_SPREAD 0
+	ifand MAGIC_UPGRADE[6] 2 set GUN_AMMO_TYPES 8192 else
+	set GUN_AMMO_TYPES 0
+
+	ifg kickbackpic 0
+		{
+		 soundonce MELTA_FIRE
+		}
+		else
+		ife kickbackpic 0 ifsound MELTA_FIRE { stopsound MELTA_FIRE soundonce MELTA_STOP }
+	    ife kickbackpic 3 { set gun_recoil 3 set gunsmoke_angle 64 state spawn_gunsmoke }
+
+
+		ifg kickbackpic_2 0
+			{
+			add kickbackpic_2 1
+			 soundonce PBEAM_FIRE
+			ife kickbackpic_2 2 { sub p_blue_mana 1 shoot ICE_BEAM }
+			ifg kickbackpic_2 3
+				{
+				ifand BITS_PRESS 64 ifg p_blue_mana 0 set kickbackpic_2 1
+				else set kickbackpic_2 0
+				}
+			}
+			else
+			ife kickbackpic_2 0 ifsound PBEAM_FIRE { stopsound PBEAM_FIRE soundonce MELTA_STOP }
+	}
+}
+
+// TRIPBOMB
+setarray WEAPON_TILE[8] 6494
+setarray ammo_amount[8] 1
+setarray weap_special[8] 0
+
+set WEAPON8_SHOOTS 0
+set WEAPON8_FIREDELAY 2
+set WEAPON8_FLAGS 258
+
+ife cur_weap 8
+	{
+	set weapon_type 6
+	set gun_mag -1
+	set GUN_VOLUME 0
+	set GUN_HANDS 1
+	set GUN_ACCURACY 2
+	set GUN_MAX_SPREAD 0
+	set GUN_AMMO_TYPES 0
+	}
+
+// FREEZER
+setarray WEAPON_TILE[9] 6654
+setarray weap_special[9] 16384
+setarray W_AMMO_TILE[9] 6646
+setarray ammo_amount[9] 30
+
+set WEAPON9_HOLDDELAY 0
+set WEAPON9_INITIALSOUND 0
+set WEAPON9_FLAGS 80
+
+ife cur_weap 9
+{
+set gun_mag -1
+set GUN_ACCURACY 2
+set GUN_MAX_SPREAD 0
+set GUN_SIZE 2
+set GUN_HANDS 2
+set GUN_AMMO_TYPES 0
+getp[].ammo_amount 9 temp
+ifg temp 0 ife camerasprite -1 soundonce SHOCKGUN_IDLE
+ifl temp 3 ifand gun_firemode 16384 xorvar gun_firemode 16384
+
+		ifand gun_firemode 16384
+			{
+			set GUN_VOLUME 30
+			set weapon_type 7
+			set WEAPON9_FIRESOUND SHOCKGUN_SNIPE
+			set WEAPON9_FIREDELAY 2
+			set WEAPON9_TOTALTIME 20
+			set WEAPON9_SHOOTS 0
+			set WEAPON9_SHOTSPERBURST 3
+
+			ife kickbackpic 2 { shoot GREENLASERSHOT set gun_pushback_power -32 state gun_pushback }
+			ife kickbackpic 3 set gun_recoil 8
+			}
+		else
+			{
+			set GUN_VOLUME 12
+			set weapon_type 9
+			set WEAPON9_FIRESOUND 4
+			set WEAPON9_FIREDELAY 2
+			set WEAPON9_TOTALTIME 3
+			set WEAPON9_SHOOTS 6627
+			set WEAPON9_SHOTSPERBURST 1
+
+			ife kickbackpic 2 { set gun_recoil 3 espawn SOUND_SPRITE state SPAWN_IN_PLAYER_FRONT setactorvar[RETURN].temp SHOCKGUN_FIRE }
+			}
+
+
+}
+
+// EXPANDER
+setarray W_AMMO_TILE[11] 6647
+setarray ammo_amount[11] 2
+setarray weap_special[11] 0
+
+set WEAPON11_SHOOTS 4
+set WEAPON11_FIREDELAY 12
+set WEAPON11_TOTALTIME 16
+set WEAPON11_FIRESOUND 4
+set WEAPON11_INITIALSOUND 4
+set WEAPON11_SHOTSPERBURST 0
+set WEAPON11_FLAGS 2
+set WEAPON11_SPAWNTIME -1
+set WEAPON11_SPAWN 0
+set WEAPON11_SOUND2TIME -1
+set WEAPON11_SOUND2SOUND 4
+set WEAPON11_RELOADSOUND1 4
+set WEAPON11_RELOADSOUND2 4
+
+ife cur_weap 11
+	{
+	set weapon_type 1
+	set gun_mag -1
+	set GUN_SIZE 2
+	set GUN_HANDS 2
+	set GUN_VOLUME 80
+	set GUN_ACCURACY 2
+	set GUN_MAX_SPREAD 0
+	set GUN_AMMO_TYPES 0
+	}
+}
+
+ifp pboosted
+	{
+	set GUN_MAX_SPREAD 2
+	set GUN_ACCURACY 2
+	}
+
+ends

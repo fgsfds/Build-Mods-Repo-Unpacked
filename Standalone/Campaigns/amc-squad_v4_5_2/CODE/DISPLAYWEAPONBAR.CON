@@ -1,0 +1,867 @@
+// WEAPON SHOWING THING
+defstate picked_gun
+    ifg picked_up_gun[picked_id] 0
+        {
+        setarray BAR_SIZE[picked_id] QUARTERSIZE
+        ife picked_id 3 setarray BAR_SIZE[18] QUARTERSIZE
+        ife picked_id 7 setarray BAR_SIZE[17] QUARTERSIZE
+        ife picked_id 9 setarray BAR_SIZE[16] QUARTERSIZE
+        set disp_temp4 picked_up_gun[picked_id]
+        sub disp_temp4 1
+        setarray picked_up_gun[picked_id] disp_temp4
+        set disp_temp3 400
+        mulvarvar disp_temp3 picked_up_gun[picked_id]
+        rotatesprite pick_x 10 disp_temp3 0 3585 0 0 33 0 0 xdim ydim
+        }
+	
+	ife picked_id 0
+	{
+		set ammo_forweaponidx picked_id
+		state ammo_getdefs
+		ife ammo_remaining -1
+			getp[].ammo_amount picked_id disp_temp2
+		else
+			set disp_temp2 ammo_remaining
+	}
+	else
+		getp[].ammo_amount picked_id disp_temp2
+    
+    ifg picked_up_gun[picked_id] 0 set disp_temp4 32 else
+    ife disp_temp2 0 set disp_temp4 2 else
+	ife picked_id 5 set disp_temp4 11 else
+	ife picked_id 8 set disp_temp4 11 else
+	set disp_temp4 pal
+ends
+
+defstate display_weaponbar
+
+getpv[].fake_fta disp_temp5
+
+ifle disp_temp5 0
+{
+	ife player[].fta 0
+		set disp_temp5 1
+	else ife player[].ftq 80
+		set disp_temp5 1
+}
+else
+{
+	getpv[].fake_ftq disp_temp5
+	
+	ife disp_temp5 80
+		set disp_temp5 1
+	else
+		set disp_temp5 0
+}
+
+ifg weap_show 0
+ife MOUSEUP 0
+ife camerasprite -1
+ife cameraend 0
+ife disp_temp5 1
+{
+sub weap_show 1
+getp[].palookup pal
+
+ifn temp_weap 0
+    {
+    set pick_x 70
+    set picked_id 0
+    state picked_gun
+
+    ife cur_weap 0
+        {
+        set disp_temp5 BAR_SIZE[0]
+        ifl disp_temp5 HALFSIZE add disp_temp5 SELECT_SPEED
+        setarray BAR_SIZE[0] disp_temp5
+        rotatespritea 70 10 BAR_SIZE[0] 0 3607 0 disp_temp4 33 -255 0 0 xdim ydim
+        }
+    else
+        {
+        set disp_temp5 BAR_SIZE[0]
+        ifg disp_temp5 QUARTERSIZE sub disp_temp5 DESELECT_SPEED
+        setarray BAR_SIZE[0] disp_temp5
+        rotatespritea 70 10 BAR_SIZE[0] 0 3607 10 disp_temp4 33 -255 0 0 xdim ydim
+        }
+
+    rotatesprite 70 10 8192 0 WEAPON_TILE[0] 0 0 0 0 0 xdim ydim
+    digitalnumberz DIGITALNUM 70 15 disp_temp2 0 125 0 0 0 xdim ydim QUARTERSIZE
+    }
+
+// weapon bar
+
+	// SLOT 1
+	ife player[].gotweapon 1 1
+    {
+		set pick_x 90
+		set picked_id 1
+		state picked_gun
+
+        ifand weap_special[1] 1 // has 2?
+        {
+			ife cur_weap 1
+			{
+				ifand gun_firemode 64
+					{
+					set disp_temp5 BAR_SIZE[1]
+					ifg disp_temp5 QUARTERSIZE sub disp_temp5 DESELECT_SPEED
+					setarray BAR_SIZE[1] disp_temp5
+					rotatespritea 90 10 BAR_SIZE[1] 0 3607 10 disp_temp4 33 -255 0 0 xdim ydim
+
+					set disp_temp6 BAR_SIZE[19]
+					ifl disp_temp6 HALFSIZE add disp_temp6 SELECT_SPEED
+					setarray BAR_SIZE[19] disp_temp6
+					rotatespritea 90 25 BAR_SIZE[19] 0 3607 0 disp_temp4 33 -255 0 0 xdim ydim
+					}
+				else
+					{
+					set disp_temp5 BAR_SIZE[1]
+					ifl disp_temp5 HALFSIZE add disp_temp5 SELECT_SPEED
+					setarray BAR_SIZE[1] disp_temp5
+					rotatespritea 90 10 BAR_SIZE[1] 0 3607 0 disp_temp4 33 -255 0 0 xdim ydim
+					set disp_temp6 BAR_SIZE[19]
+					ifg disp_temp6 QUARTERSIZE sub disp_temp6 DESELECT_SPEED
+					setarray BAR_SIZE[19] disp_temp6
+					rotatespritea 90 25 BAR_SIZE[19] 0 3607 10 disp_temp4 33 -255 0 0 xdim ydim
+					}
+
+			}
+			else
+			{
+				set disp_temp5 BAR_SIZE[1]
+				ifg disp_temp5 QUARTERSIZE sub disp_temp5 DESELECT_SPEED
+				setarray BAR_SIZE[1] disp_temp5
+				set disp_temp6 BAR_SIZE[19]
+				ifg disp_temp6 QUARTERSIZE sub disp_temp6 DESELECT_SPEED
+				setarray BAR_SIZE[19] disp_temp6
+				rotatespritea 90 10 BAR_SIZE[1] 0 3607 10 disp_temp4 33 -255 0 0 xdim ydim
+				rotatespritea 90 25 BAR_SIZE[19] 0 3607 10 disp_temp4 33 -255 0 0 xdim ydim
+			}
+			rotatesprite 90 10 8192 0 WEAPON_TILE[1] 0 0 0 0 0 xdim ydim
+			rotatesprite 90 25 8192 0 WEAPON_TILE[1] 0 0 0 0 0 xdim ydim
+			rotatesprite 92 27 8192 0 WEAPON_TILE[1] 0 0 0 0 0 xdim ydim
+			digitalnumberz DIGITALNUM 90 15 disp_temp2 0 125 0 0 0 xdim ydim 24000
+			digitalnumberz DIGITALNUM 90 30 disp_temp2 0 125 0 0 0 xdim ydim 24000
+        }
+		else
+        {
+			ife cur_weap 1
+				{
+				set disp_temp5 BAR_SIZE[1]
+				ifl disp_temp5 HALFSIZE add disp_temp5 SELECT_SPEED
+				setarray BAR_SIZE[1] disp_temp5
+				rotatespritea 90 10 BAR_SIZE[1] 0 3607 0 disp_temp4 33 -255 0 0 xdim ydim
+				}
+			else
+				{
+				set disp_temp5 BAR_SIZE[1]
+				ifg disp_temp5 QUARTERSIZE sub disp_temp5 DESELECT_SPEED
+				setarray BAR_SIZE[1] disp_temp5
+				rotatespritea 90 10 BAR_SIZE[1] 0 3607 10 disp_temp4 33 -255 0 0 xdim ydim
+				}
+			rotatesprite 90 10 8192 0 WEAPON_TILE[1] 0 0 0 0 0 xdim ydim
+			digitalnumberz DIGITALNUM 90 15 disp_temp2 0 125 0 0 0 xdim ydim 24000
+        }
+    }
+
+	// SLOT 2 (shotguns)
+ife player[].gotweapon 2 1
+    {
+    set pick_x 110
+    set picked_id 2
+    state picked_gun
+	set ammo_forweaponidx 2
+	state ammo_getdefs
+	set disp_temp2 ammo_remaining
+        ife disp_temp2 0
+        {
+        ifand weap_special[2] 4 ifg SHOTGUNBOXMAG 0 set disp_temp4 pal
+        else ifg SHOTGUNMAG 0 set disp_temp4 pal
+        else set disp_temp4 2
+        }
+        else set disp_temp4 pal
+        ifand weap_special[2] 1 // has 2?
+        {
+        ife cur_weap 2
+            {
+            ifand gun_firemode_two 64
+                {
+                set disp_temp5 BAR_SIZE[2]
+                ifg disp_temp5 QUARTERSIZE sub disp_temp5 DESELECT_SPEED
+                setarray BAR_SIZE[2] disp_temp5
+                rotatespritea 110 10 BAR_SIZE[2] 0 3607 10 disp_temp4 33 -255 0 0 xdim ydim
+
+                set disp_temp6 BAR_SIZE[20]
+                ifl disp_temp6 HALFSIZE add disp_temp6 SELECT_SPEED
+                setarray BAR_SIZE[20] disp_temp6
+                rotatespritea 110 25 BAR_SIZE[20] 0 3607 0 disp_temp4 33 -255 0 0 xdim ydim
+                }
+            else
+                {
+                set disp_temp5 BAR_SIZE[2]
+                ifl disp_temp5 HALFSIZE add disp_temp5 SELECT_SPEED
+                setarray BAR_SIZE[2] disp_temp5
+                rotatespritea 110 10 BAR_SIZE[2] 0 3607 0 disp_temp4 33 -255 0 0 xdim ydim
+
+                set disp_temp6 BAR_SIZE[20]
+                ifg disp_temp6 QUARTERSIZE sub disp_temp6 DESELECT_SPEED
+                setarray BAR_SIZE[20] disp_temp6
+                rotatespritea 110 25 BAR_SIZE[20] 0 3607 10 disp_temp4 33 -255 0 0 xdim ydim
+                }
+
+            }
+        else
+            {
+            set disp_temp5 BAR_SIZE[2]
+            ifg disp_temp5 QUARTERSIZE sub disp_temp5 DESELECT_SPEED
+            setarray BAR_SIZE[2] disp_temp5
+            set disp_temp6 BAR_SIZE[20]
+            ifg disp_temp6 QUARTERSIZE sub disp_temp6 DESELECT_SPEED
+            setarray BAR_SIZE[20] disp_temp6
+            rotatespritea 110 10 BAR_SIZE[2] 0 3607 10 disp_temp4 33 -255 0 0 xdim ydim
+            rotatespritea 110 25 BAR_SIZE[20] 0 3607 10 disp_temp4 33 -255 0 0 xdim ydim
+            }
+        rotatesprite 110 10 8192 0 WEAPON_TILE[2] 0 0 0 0 0 xdim ydim
+        rotatesprite 110 25 8192 0 WEAPON_TILE[2] 0 0 0 0 0 xdim ydim
+        rotatesprite 112 27 8192 0 WEAPON_TILE[2] 0 0 0 0 0 xdim ydim
+        digitalnumberz DIGITALNUM 110 15 disp_temp2 0 125 0 0 0 xdim ydim 24000
+        digitalnumberz DIGITALNUM 110 30 disp_temp2 0 125 0 0 0 xdim ydim 24000
+        }
+    else // normal stuff
+        {
+        ife cur_weap 2
+            {
+            set disp_temp5 BAR_SIZE[2]
+            ifl disp_temp5 HALFSIZE add disp_temp5 SELECT_SPEED
+            setarray BAR_SIZE[2] disp_temp5
+            rotatespritea 110 10 BAR_SIZE[2] 0 3607 0 disp_temp4 33 -255 0 0 xdim ydim
+            }
+        else
+            {
+            set disp_temp5 BAR_SIZE[2]
+            ifg disp_temp5 QUARTERSIZE sub disp_temp5 DESELECT_SPEED
+            setarray BAR_SIZE[2] disp_temp5
+            rotatespritea 110 10 BAR_SIZE[2] 0 3607 10 disp_temp4 33 -255 0 0 xdim ydim
+            }
+        rotatesprite 110 10 8192 0 WEAPON_TILE[2] 0 0 0 0 0 xdim ydim
+        digitalnumberz DIGITALNUM 110 15 disp_temp2 0 125 0 0 0 xdim ydim 24000
+        }
+    }
+
+ife player[].gotweapon 3 1
+    {
+    set picked_id 3
+    set pick_x 130
+    state picked_gun
+
+        ifand weap_special[3] 1 // has 2?
+        {
+        ife cur_weap 3
+            {
+            ifand gun_firemode 1024
+                {
+                set disp_temp5 BAR_SIZE[3]
+                ifg disp_temp5 QUARTERSIZE sub disp_temp5 DESELECT_SPEED
+                setarray BAR_SIZE[3] disp_temp5
+                rotatespritea 130 10 BAR_SIZE[3] 0 3607 10 disp_temp4 33 -255 0 0 xdim ydim
+
+                set disp_temp6 BAR_SIZE[18]
+                ifl disp_temp6 HALFSIZE add disp_temp6 SELECT_SPEED
+                setarray BAR_SIZE[18] disp_temp6
+                rotatespritea 130 25 BAR_SIZE[18] 0 3607 0 disp_temp4 33 -255 0 0 xdim ydim
+                }
+            else
+                {
+                set disp_temp5 BAR_SIZE[3]
+                ifl disp_temp5 HALFSIZE add disp_temp5 SELECT_SPEED
+                setarray BAR_SIZE[3] disp_temp5
+                rotatespritea 130 10 BAR_SIZE[3] 0 3607 0 disp_temp4 33 -255 0 0 xdim ydim
+
+                set disp_temp6 BAR_SIZE[18]
+                ifg disp_temp6 QUARTERSIZE sub disp_temp6 DESELECT_SPEED
+                setarray BAR_SIZE[18] disp_temp6
+                rotatespritea 130 25 BAR_SIZE[18] 0 3607 10 disp_temp4 33 -255 0 0 xdim ydim
+                }
+
+            }
+        else
+            {
+            set disp_temp5 BAR_SIZE[3]
+            ifg disp_temp5 QUARTERSIZE sub disp_temp5 DESELECT_SPEED
+            setarray BAR_SIZE[3] disp_temp5
+            set disp_temp6 BAR_SIZE[18]
+            ifg disp_temp6 QUARTERSIZE sub disp_temp6 DESELECT_SPEED
+            setarray BAR_SIZE[18] disp_temp6
+            rotatespritea 130 10 BAR_SIZE[3] 0 3607 10 disp_temp4 33 -255 0 0 xdim ydim
+            rotatespritea 130 25 BAR_SIZE[18] 0 3607 10 disp_temp4 33 -255 0 0 xdim ydim
+            }
+        rotatesprite 130 10 8192 0 WEAPON_TILE[3] 0 0 0 0 0 xdim ydim
+        rotatesprite 130 25 8192 0 WEAPON_TILE[3] 0 0 0 0 0 xdim ydim
+        rotatesprite 132 27 8192 0 WEAPON_TILE[3] 0 0 0 0 0 xdim ydim
+        digitalnumberz DIGITALNUM 130 15 disp_temp2 0 125 0 0 0 xdim ydim 24000
+        digitalnumberz DIGITALNUM 130 30 disp_temp2 0 125 0 0 0 xdim ydim 24000
+        }
+    else ifand weap_special[3] 2 // cased Grenade launcher
+        {
+        ifand AMMO_TYPES[3] 32
+            {
+            set disp_temp7 fortymm_shells
+            set disp_temp8 FORTYMM_SHELLS
+            }
+        else ifand AMMO_TYPES[3] 128
+            {
+            set disp_temp7 fortymm_MIA_shells
+            set disp_temp8 5463
+            }
+        else ifand AMMO_TYPES[3] 256
+            {
+            set disp_temp7 fortymm_plasma
+            set disp_temp8 5476
+            }
+        else
+            {
+            set disp_temp7 fortymm_grenades
+            set disp_temp8 5411
+            }
+        ife disp_temp7 0 set disp_temp3 2 else set disp_temp3 pal
+        ife cur_weap 3
+            {
+            ifand gun_firemode 32768
+                {
+                set disp_temp5 BAR_SIZE[3]
+                ifg disp_temp5 QUARTERSIZE sub disp_temp5 DESELECT_SPEED
+                setarray BAR_SIZE[3] disp_temp5
+                rotatespritea 130 10 BAR_SIZE[3] 0 3607 10 disp_temp4 33 -255 0 0 xdim ydim
+
+                set disp_temp6 BAR_SIZE[18]
+                ifl disp_temp6 HALFSIZE add disp_temp6 SELECT_SPEED
+                setarray BAR_SIZE[18] disp_temp6
+                rotatespritea 130 25 BAR_SIZE[18] 0 3607 0 disp_temp3 33 -255 0 0 xdim ydim
+                }
+            else
+                {
+                set disp_temp5 BAR_SIZE[3]
+                ifl disp_temp5 HALFSIZE add disp_temp5 SELECT_SPEED
+                setarray BAR_SIZE[3] disp_temp5
+                rotatespritea 130 10 BAR_SIZE[3] 0 3607 0 disp_temp4 33 -255 0 0 xdim ydim
+
+                set disp_temp6 BAR_SIZE[18]
+                ifg disp_temp6 QUARTERSIZE sub disp_temp6 DESELECT_SPEED
+                setarray BAR_SIZE[18] disp_temp6
+                rotatespritea 130 25 BAR_SIZE[18] 0 3607 10 disp_temp3 33 -255 0 0 xdim ydim
+                }
+
+            }
+        else
+            {
+            set disp_temp5 BAR_SIZE[3]
+            ifg disp_temp5 QUARTERSIZE sub disp_temp5 DESELECT_SPEED
+            setarray BAR_SIZE[3] disp_temp5
+            set disp_temp6 BAR_SIZE[18]
+            ifg disp_temp6 QUARTERSIZE sub disp_temp6 DESELECT_SPEED
+            setarray BAR_SIZE[18] disp_temp6
+            rotatespritea 130 10 BAR_SIZE[3] 0 3607 10 disp_temp4 33 -255 0 0 xdim ydim
+            rotatespritea 130 25 BAR_SIZE[18] 0 3607 10 disp_temp3 33 -255 0 0 xdim ydim
+            }
+        rotatesprite 130 10 8192 0 WEAPON_TILE[3] 0 0 0 0 0 xdim ydim
+        rotatesprite 130 25 8192 0 WEAPON_TILE[3] 10 0 0 0 0 xdim ydim
+        rotatesprite 132 27 14192 0 disp_temp8 0 0 0 0 0 xdim ydim
+        digitalnumberz DIGITALNUM 130 15 disp_temp2 0 125 0 0 0 xdim ydim 24000
+        digitalnumberz DIGITALNUM 130 30 disp_temp7 0 124 0 0 0 xdim ydim 24000
+        }
+    else ifand weap_special[3] 8 // caseless Grenade launcher
+        {
+        ifand AMMO_TYPES[3] 512
+            {
+            set disp_temp7 fortymm_slug
+            set disp_temp8 FORTYMM_SLUGS
+            }
+        else ifand AMMO_TYPES[3] 2048
+            {
+            set disp_temp7 fortymm_electro
+            set disp_temp8 FORTYMM_ELECTRO
+            }
+        else ifand AMMO_TYPES[3] 4096
+            {
+            set disp_temp7 fortymm_cryo
+            set disp_temp8 FORTYMM_CRYO
+            }
+        else
+            {
+            set disp_temp7 fortymm_caseless
+            set disp_temp8 FORTYMM_CASELESS
+            }
+        ife disp_temp7 0 set disp_temp5 2 else set disp_temp5 pal
+        ife cur_weap 3
+            {
+            ifand gun_firemode 32768
+                {
+                set disp_temp5 BAR_SIZE[3]
+                ifg disp_temp5 QUARTERSIZE sub disp_temp5 DESELECT_SPEED
+                setarray BAR_SIZE[3] disp_temp5
+                rotatespritea 130 10 BAR_SIZE[3] 0 3607 10 disp_temp4 33 -255 0 0 xdim ydim
+
+                set disp_temp6 BAR_SIZE[18]
+                ifl disp_temp6 HALFSIZE add disp_temp6 SELECT_SPEED
+                setarray BAR_SIZE[18] disp_temp6
+                rotatespritea 130 25 BAR_SIZE[18] 0 3607 0 disp_temp4 33 -255 0 0 xdim ydim
+                }
+            else
+                {
+                set disp_temp5 BAR_SIZE[3]
+                ifl disp_temp5 HALFSIZE add disp_temp5 SELECT_SPEED
+                setarray BAR_SIZE[3] disp_temp5
+                rotatespritea 130 10 BAR_SIZE[3] 0 3607 0 disp_temp4 33 -255 0 0 xdim ydim
+
+                set disp_temp6 BAR_SIZE[18]
+                ifg disp_temp6 QUARTERSIZE sub disp_temp6 DESELECT_SPEED
+                setarray BAR_SIZE[18] disp_temp6
+                rotatespritea 130 25 BAR_SIZE[18] 0 3607 10 disp_temp4 33 -255 0 0 xdim ydim
+                }
+
+            }
+        else
+            {
+            set disp_temp5 BAR_SIZE[3]
+            ifg disp_temp5 QUARTERSIZE sub disp_temp5 DESELECT_SPEED
+            setarray BAR_SIZE[3] disp_temp5
+            set disp_temp6 BAR_SIZE[18]
+            ifg disp_temp6 QUARTERSIZE sub disp_temp6 DESELECT_SPEED
+            setarray BAR_SIZE[18] disp_temp6
+            rotatespritea 130 10 BAR_SIZE[3] 0 3607 10 disp_temp4 33 -255 0 0 xdim ydim
+            rotatespritea 130 25 BAR_SIZE[18] 0 3607 10 disp_temp4 33 -255 0 0 xdim ydim
+            }
+        rotatesprite 130 10 8192 0 WEAPON_TILE[3] 0 0 0 0 0 xdim ydim
+        rotatesprite 130 25 8192 0 WEAPON_TILE[3] 10 0 0 0 0 xdim ydim
+        rotatesprite 132 27 14192 0 disp_temp8 0 0 0 0 0 xdim ydim
+        digitalnumberz DIGITALNUM 130 15 disp_temp2 0 125 0 0 0 xdim ydim 24000
+        digitalnumberz DIGITALNUM 130 30 disp_temp7 0 124 0 0 0 xdim ydim 24000
+        }
+    else // normal stuff
+        {
+        ife cur_weap 3
+            {
+            set disp_temp5 BAR_SIZE[3]
+            ifl disp_temp5 HALFSIZE add disp_temp5 SELECT_SPEED
+            setarray BAR_SIZE[3] disp_temp5
+            rotatespritea 130 10 BAR_SIZE[3] 0 3607 0 disp_temp4 33 -255 0 0 xdim ydim
+            }
+        else
+            {
+            set disp_temp5 BAR_SIZE[3]
+            ifg disp_temp5 QUARTERSIZE sub disp_temp5 DESELECT_SPEED
+            setarray BAR_SIZE[3] disp_temp5
+            rotatespritea 130 10 BAR_SIZE[3] 0 3607 10 disp_temp4 33 -255 0 0 xdim ydim
+            }
+        rotatesprite 130 10 8192 0 WEAPON_TILE[3] 0 0 0 0 0 xdim ydim
+        digitalnumberz DIGITALNUM 130 15 disp_temp2 0 125 0 0 0 xdim ydim 24000
+        }
+    }
+
+ife player[].gotweapon 4 1
+    {
+    set picked_id 4
+    set pick_x 150
+    state picked_gun
+    ife cur_weap 4
+        {
+        set disp_temp5 BAR_SIZE[4]
+        ifl disp_temp5 HALFSIZE add disp_temp5 SELECT_SPEED
+        setarray BAR_SIZE[4] disp_temp5
+        rotatespritea 150 10 BAR_SIZE[4] 0 3607 0 disp_temp4 33 -255 0 0 xdim ydim
+        }
+    else
+        {
+        set disp_temp5 BAR_SIZE[4]
+        ifg disp_temp5 QUARTERSIZE sub disp_temp5 DESELECT_SPEED
+        setarray BAR_SIZE[4] disp_temp5
+        rotatespritea 150 10 BAR_SIZE[4] 0 3607 10 disp_temp4 33 -255 0 0 xdim ydim
+        }
+    rotatesprite 150 10 8192 0 WEAPON_TILE[4] 0 0 0 0 0 xdim ydim
+    digitalnumberz DIGITALNUM 150 15 disp_temp2 0 125 0 0 0 xdim ydim 24000
+    }
+
+ife player[].gotweapon 5 1
+    {
+    set picked_id 5
+    set pick_x 170
+    state picked_gun
+    ife cur_weap 5
+        {
+        set disp_temp5 BAR_SIZE[5]
+        ifl disp_temp5 HALFSIZE add disp_temp5 SELECT_SPEED
+        setarray BAR_SIZE[5] disp_temp5
+        rotatespritea 170 10 BAR_SIZE[5] 0 3607 0 11 33 -255 0 0 xdim ydim
+        }
+    else
+        {
+        set disp_temp5 BAR_SIZE[5]
+        ifg disp_temp5 QUARTERSIZE sub disp_temp5 DESELECT_SPEED
+        setarray BAR_SIZE[5] disp_temp5
+        rotatespritea 170 10 BAR_SIZE[5] 0 3607 10 11 33 -255 0 0 xdim ydim
+        }
+    rotatesprite 170 10 8192 0 WEAPON_TILE[5] 0 0 0 0 0 xdim ydim
+    digitalnumberz DIGITALNUM 170 15 disp_temp2 0 125 0 0 0 xdim ydim 24000
+    }
+
+ife player[].gotweapon 6 1
+    {
+    set picked_id 6
+    set pick_x 190
+    state picked_gun
+    ife cur_weap 11
+        {
+        set disp_temp5 BAR_SIZE[6]
+        ifl disp_temp5 HALFSIZE add disp_temp5 SELECT_SPEED
+        setarray BAR_SIZE[6] disp_temp5
+        rotatespritea 190 10 BAR_SIZE[6] 0 3607 0 disp_temp4 33 -255 0 0 xdim ydim
+        }
+    else ife cur_weap 6
+        {
+        set disp_temp5 BAR_SIZE[6]
+        ifl disp_temp5 HALFSIZE add disp_temp5 SELECT_SPEED
+        setarray BAR_SIZE[6] disp_temp5
+        rotatespritea 190 10 BAR_SIZE[6] 0 3607 0 disp_temp4 33 -255 0 0 xdim ydim
+        }
+    else
+        {
+        set disp_temp5 BAR_SIZE[6]
+        ifg disp_temp5 QUARTERSIZE sub disp_temp5 DESELECT_SPEED
+        setarray BAR_SIZE[6] disp_temp5
+        rotatespritea 190 10 BAR_SIZE[6] 0 3607 10 disp_temp4 33 -255 0 0 xdim ydim
+        }
+    rotatesprite 190 10 8192 0 WEAPON_TILE[6] 0 0 0 0 0 xdim ydim
+    digitalnumberz DIGITALNUM 190 15 disp_temp2 0 125 0 0 0 xdim ydim 24000
+    ifand weap_special[6] 512 nullop else
+        {
+        getp[].ammo_amount 11 disp_temp2
+        ifg disp_temp2 0 digitalnumberz DIGITALNUM 190 20 disp_temp2 0 32 0 0 0 xdim ydim 24000
+        }
+    }
+
+ife player[].gotweapon 7 1
+    {
+    set picked_id 7
+    set pick_x 210
+    state picked_gun
+
+    ifand weap_special[7] 2 // 40mm cased Grenade launcher
+        {
+        ifand AMMO_TYPES[7] 32
+            {
+            set disp_temp7 fortymm_shells
+            set disp_temp8 FORTYMM_SHELLS
+            }
+        else ifand AMMO_TYPES[7] 128
+            {
+            set disp_temp7 fortymm_MIA_shells
+            set disp_temp8 5463
+            }
+        else ifand AMMO_TYPES[7] 256
+            {
+            set disp_temp7 fortymm_plasma
+            set disp_temp8 5476
+            }
+        else
+            {
+            set disp_temp7 fortymm_grenades
+            set disp_temp8 5411
+            }
+        ife disp_temp6 0 set disp_temp5 2 else set disp_temp5 pal
+        ife cur_weap 7
+            {
+            ifand gun_firemode 32768
+                {
+                set disp_temp5 BAR_SIZE[7]
+                ifg disp_temp5 QUARTERSIZE sub disp_temp5 DESELECT_SPEED
+                setarray BAR_SIZE[7] disp_temp5
+                rotatespritea 210 10 BAR_SIZE[7] 0 3607 10 disp_temp4 33 -255 0 0 xdim ydim
+
+                set disp_temp6 BAR_SIZE[17]
+                ifl disp_temp6 HALFSIZE add disp_temp6 SELECT_SPEED
+                setarray BAR_SIZE[17] disp_temp6
+                rotatespritea 210 25 BAR_SIZE[17] 0 3607 0 disp_temp5 33 -255 0 0 xdim ydim
+                }
+            else
+                {
+                set disp_temp5 BAR_SIZE[7]
+                ifl disp_temp5 HALFSIZE add disp_temp5 SELECT_SPEED
+                setarray BAR_SIZE[7] disp_temp5
+                rotatespritea 210 10 BAR_SIZE[7] 0 3607 0 disp_temp4 33 -255 0 0 xdim ydim
+
+                set disp_temp6 BAR_SIZE[17]
+                ifg disp_temp6 QUARTERSIZE sub disp_temp6 DESELECT_SPEED
+                setarray BAR_SIZE[17] disp_temp6
+                rotatespritea 210 25 BAR_SIZE[17] 0 3607 10 disp_temp5 33 -255 0 0 xdim ydim
+                }
+
+            }
+        else
+            {
+            set disp_temp5 BAR_SIZE[7]
+            ifg disp_temp5 QUARTERSIZE sub disp_temp5 DESELECT_SPEED
+            setarray BAR_SIZE[7] disp_temp5
+            set disp_temp6 BAR_SIZE[17]
+            ifg disp_temp6 QUARTERSIZE sub disp_temp6 DESELECT_SPEED
+            setarray BAR_SIZE[17] disp_temp6
+            rotatespritea 210 10 BAR_SIZE[7] 0 3607 10 disp_temp4 33 -255 0 0 xdim ydim
+            rotatespritea 210 25 BAR_SIZE[17] 0 3607 10 disp_temp5 33 -255 0 0 xdim ydim
+            }
+        rotatesprite 210 10 8192 0 WEAPON_TILE[7] 0 0 0 0 0 xdim ydim
+        rotatesprite 210 25 8192 0 WEAPON_TILE[7] 10 0 0 0 0 xdim ydim
+        rotatesprite 212 27 14192 0 disp_temp8 0 0 0 0 0 xdim ydim
+        digitalnumberz DIGITALNUM 210 15 disp_temp2 0 125 0 0 0 xdim ydim 24000
+        digitalnumberz DIGITALNUM 210 30 disp_temp7 0 124 0 0 0 xdim ydim 24000
+        }
+        else // Standard weapon
+            {
+            ife cur_weap 7
+                {
+                set disp_temp5 BAR_SIZE[7]
+                ifl disp_temp5 HALFSIZE add disp_temp5 SELECT_SPEED
+                setarray BAR_SIZE[7] disp_temp5
+                rotatespritea 210 10 BAR_SIZE[7] 0 3607 0 disp_temp4 33 -255 0 0 xdim ydim
+                }
+            else
+                {
+                set disp_temp5 BAR_SIZE[7]
+                ifg disp_temp5 QUARTERSIZE sub disp_temp5 DESELECT_SPEED
+                setarray BAR_SIZE[7] disp_temp5
+                rotatespritea 210 10 BAR_SIZE[7] 0 3607 10 disp_temp4 33 -255 0 0 xdim ydim
+                }
+            rotatesprite 210 10 8192 0 WEAPON_TILE[7] 0 0 0 0 0 xdim ydim
+            digitalnumberz DIGITALNUM 210 15 disp_temp2 0 125 0 0 0 xdim ydim 24000
+            }
+    }
+
+ife player[].gotweapon 8 1
+    {
+    set picked_id 8
+    set pick_x 230
+    state picked_gun
+    ife cur_weap 8
+        {
+        set disp_temp5 BAR_SIZE[8]
+        ifl disp_temp5 HALFSIZE add disp_temp5 SELECT_SPEED
+        setarray BAR_SIZE[8] disp_temp5
+        rotatespritea 230 10 BAR_SIZE[8] 0 3607 0 disp_temp4 33 -255 0 0 xdim ydim
+        }
+    else
+        {
+        set disp_temp5 BAR_SIZE[8]
+        ifg disp_temp5 QUARTERSIZE sub disp_temp5 DESELECT_SPEED
+        setarray BAR_SIZE[8] disp_temp5
+        rotatespritea 230 10 BAR_SIZE[8] 0 3607 10 disp_temp4 33 -255 0 0 xdim ydim
+        }
+    rotatesprite 230 10 8192 0 WEAPON_TILE[8] 0 0 0 0 0 xdim ydim
+    digitalnumberz DIGITALNUM 230 15 disp_temp2 0 125 0 0 0 xdim ydim 24000
+    }
+
+ife player[].gotweapon 9 1
+    {
+    set picked_id 9
+    set pick_x 250
+    state picked_gun
+
+ifand weap_special[9] 2 // Grenade launcher
+        {
+        ifand AMMO_TYPES[9] 32
+            {
+            set disp_temp7 fortymm_shells
+            set disp_temp8 FORTYMM_SHELLS
+            }
+        else ifand AMMO_TYPES[9] 128
+            {
+            set disp_temp7 fortymm_MIA_shells
+            set disp_temp8 5463
+            }
+        else ifand AMMO_TYPES[9] 256
+            {
+            set disp_temp7 fortymm_plasma
+            set disp_temp8 5476
+            }
+        else
+            {
+            set disp_temp7 fortymm_grenades
+            set disp_temp8 5411
+            }
+        ife disp_temp6 0 set disp_temp5 2 else set disp_temp5 pal
+        ife cur_weap 9
+            {
+            ifand gun_firemode 32768
+                {
+                set disp_temp5 BAR_SIZE[9]
+                ifg disp_temp5 QUARTERSIZE sub disp_temp5 DESELECT_SPEED
+                setarray BAR_SIZE[9] disp_temp5
+                rotatespritea 250 10 BAR_SIZE[9] 0 3607 10 disp_temp4 33 -255 0 0 xdim ydim
+
+                set disp_temp6 BAR_SIZE[16]
+                ifl disp_temp6 HALFSIZE add disp_temp6 SELECT_SPEED
+                setarray BAR_SIZE[16] disp_temp6
+                rotatespritea 250 25 BAR_SIZE[16] 0 3607 0 disp_temp5 33 -255 0 0 xdim ydim
+                }
+            else
+                {
+                set disp_temp5 BAR_SIZE[9]
+                ifl disp_temp5 HALFSIZE add disp_temp5 SELECT_SPEED
+                setarray BAR_SIZE[9] disp_temp5
+                rotatespritea 250 10 BAR_SIZE[9] 0 3607 0 disp_temp4 33 -255 0 0 xdim ydim
+
+                set disp_temp6 BAR_SIZE[16]
+                ifg disp_temp6 QUARTERSIZE sub disp_temp6 DESELECT_SPEED
+                setarray BAR_SIZE[16] disp_temp6
+                rotatespritea 250 25 BAR_SIZE[16] 0 3607 10 disp_temp5 33 -255 0 0 xdim ydim
+                }
+
+            }
+        else
+            {
+            set disp_temp5 BAR_SIZE[9]
+            ifg disp_temp5 QUARTERSIZE sub disp_temp5 DESELECT_SPEED
+            setarray BAR_SIZE[9] disp_temp5
+            set disp_temp6 BAR_SIZE[16]
+            ifg disp_temp6 QUARTERSIZE sub disp_temp6 DESELECT_SPEED
+            setarray BAR_SIZE[16] disp_temp6
+            rotatespritea 250 10 BAR_SIZE[9] 0 3607 10 disp_temp4 33 -255 0 0 xdim ydim
+            rotatespritea 250 25 BAR_SIZE[16] 0 3607 10 disp_temp5 33 -255 0 0 xdim ydim
+            }
+        rotatesprite 250 10 8192 0 WEAPON_TILE[9] 0 0 0 0 0 xdim ydim
+        rotatesprite 250 25 8192 0 WEAPON_TILE[9] 10 0 0 0 0 xdim ydim
+        rotatesprite 252 27 14192 0 disp_temp8 0 0 0 0 0 xdim ydim
+        digitalnumberz DIGITALNUM 250 15 disp_temp2 0 125 0 0 0 xdim ydim 24000
+        digitalnumberz DIGITALNUM 250 30 disp_temp7 0 124 0 0 0 xdim ydim 24000
+        }
+    else
+ifand weap_special[9] 8 // caseless Grenade launcher
+        {
+        ifand AMMO_TYPES[9] 512
+            {
+            set disp_temp7 fortymm_slug
+            set disp_temp8 FORTYMM_SLUGS
+            }
+        else ifand AMMO_TYPES[9] 2048
+            {
+            set disp_temp7 fortymm_electro
+            set disp_temp8 FORTYMM_ELECTRO
+            }
+        else ifand AMMO_TYPES[9] 4096
+            {
+            set disp_temp7 fortymm_cryo
+            set disp_temp8 FORTYMM_CRYO
+            }
+        else
+            {
+            set disp_temp7 fortymm_caseless
+            set disp_temp8 FORTYMM_CASELESS
+            }
+        ife disp_temp7 0 set disp_temp5 2 else set disp_temp5 pal
+        ife cur_weap 9
+            {
+            ifand gun_firemode 32768
+                {
+                set disp_temp5 BAR_SIZE[9]
+                ifg disp_temp5 QUARTERSIZE sub disp_temp5 DESELECT_SPEED
+                setarray BAR_SIZE[9] disp_temp5
+                rotatespritea 250 10 BAR_SIZE[9] 0 3607 10 disp_temp4 33 -255 0 0 xdim ydim
+
+                set disp_temp6 BAR_SIZE[16]
+                ifl disp_temp6 HALFSIZE add disp_temp6 SELECT_SPEED
+                setarray BAR_SIZE[16] disp_temp6
+                rotatespritea 250 25 BAR_SIZE[16] 0 3607 0 disp_temp5 33 -255 0 0 xdim ydim
+                }
+            else
+                {
+                set disp_temp5 BAR_SIZE[9]
+                ifl disp_temp5 HALFSIZE add disp_temp5 SELECT_SPEED
+                setarray BAR_SIZE[9] disp_temp5
+                rotatespritea 250 10 BAR_SIZE[9] 0 3607 0 disp_temp4 33 -255 0 0 xdim ydim
+
+                set disp_temp6 BAR_SIZE[16]
+                ifg disp_temp6 QUARTERSIZE sub disp_temp6 DESELECT_SPEED
+                setarray BAR_SIZE[16] disp_temp6
+                rotatespritea 250 25 BAR_SIZE[16] 0 3607 10 disp_temp5 33 -255 0 0 xdim ydim
+                }
+
+            }
+        else
+            {
+            set disp_temp5 BAR_SIZE[9]
+            ifg disp_temp5 QUARTERSIZE sub disp_temp5 DESELECT_SPEED
+            setarray BAR_SIZE[9] disp_temp5
+            set disp_temp6 BAR_SIZE[16]
+            ifg disp_temp6 QUARTERSIZE sub disp_temp6 DESELECT_SPEED
+            setarray BAR_SIZE[16] disp_temp6
+            rotatespritea 250 10 BAR_SIZE[9] 0 3607 10 disp_temp4 33 -255 0 0 xdim ydim
+            rotatespritea 250 25 BAR_SIZE[16] 0 3607 10 disp_temp5 33 -255 0 0 xdim ydim
+            }
+        rotatesprite 250 10 8192 0 WEAPON_TILE[9] 0 0 0 0 0 xdim ydim
+        rotatesprite 250 25 8192 0 WEAPON_TILE[9] 10 0 0 0 0 xdim ydim
+        rotatesprite 252 27 14192 0 disp_temp8 0 0 0 0 0 xdim ydim
+        digitalnumberz DIGITALNUM 250 15 disp_temp2 0 125 0 0 0 xdim ydim 24000
+        digitalnumberz DIGITALNUM 250 30 disp_temp7 0 124 0 0 0 xdim ydim 24000
+        }
+    else
+        {
+        ife cur_weap 9
+            {
+            set disp_temp5 BAR_SIZE[9]
+            ifl disp_temp5 HALFSIZE add disp_temp5 SELECT_SPEED
+            setarray BAR_SIZE[9] disp_temp5
+            rotatespritea 250 10 BAR_SIZE[9] 0 3607 0 disp_temp4 33 -255 0 0 xdim ydim
+            }
+        else
+            {
+            set disp_temp5 BAR_SIZE[9]
+            ifg disp_temp5 QUARTERSIZE sub disp_temp5 DESELECT_SPEED
+            setarray BAR_SIZE[9] disp_temp5
+            rotatespritea 250 10 BAR_SIZE[9] 0 3607 10 disp_temp4 33 -255 0 0 xdim ydim
+            }
+        rotatesprite 250 10 8192 0 WEAPON_TILE[9] 0 0 0 0 0 xdim ydim
+        digitalnumberz DIGITALNUM 250 15 disp_temp2 0 125 0 0 0 xdim ydim 24000
+        }
+    }
+
+}
+
+
+ife camerasprite -1
+    {
+    ifg picked_up 0
+        {
+        sub picked_up 1
+        rotatespritea 300 20 HALFSIZE 0 3607 0 pal 545 -255 0 0 xdim ydim
+        rotatesprite 300 20 QUARTERSIZE 0 picked_up_tile 0 pu1_pal 512 0 0 xdim ydim
+        ifg item_amount -1 digitalnumberz DIGITALNUM 300 30 item_amount 0 8 512 0 0 xdim ydim NORMALSIZE
+        ife picked_up 1
+            {
+            set picked_up_two 125
+            set picked_up_tile_two picked_up_tile
+            set item_amount_two item_amount
+            set pu2_pal pu1_pal
+            }
+        }
+
+    ifg picked_up_two 0
+        {
+        sub picked_up_two 1
+        rotatespritea 280 20 HALFSIZE 0 3607 10 pal 545 -255 0 0 xdim ydim
+        rotatesprite 280 20 QUARTERSIZE 0 picked_up_tile_two 0 pu2_pal 512 0 0 xdim ydim
+        ifg item_amount_two -1 digitalnumberz DIGITALNUM 280 30 item_amount_two 0 8 512 0 0 xdim ydim HALFSIZE
+        ife picked_up_two 1
+            {
+            set picked_up_three 125
+            set picked_up_tile_three picked_up_tile_two
+            set item_amount_three item_amount_two
+            set pu3_pal pu2_pal
+            }
+        }
+
+    ifg picked_up_three 0
+        {
+        sub picked_up_three 1
+        rotatespritea 260 20 HALFSIZE 0 3607 20 pal 545 -255 0 0 xdim ydim
+        rotatesprite 260 20 QUARTERSIZE 0 picked_up_tile_three 0 pu3_pal 512 0 0 xdim ydim
+        ifg item_amount_three -1 digitalnumberz DIGITALNUM 260 30 item_amount_three 0 8 512 0 0 xdim ydim HALFSIZE
+        }
+    }
+ends

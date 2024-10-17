@@ -1,0 +1,321 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+
+--------------------------------------------------------------------------------
+*/
+
+damageeventtile ALUDRAN
+
+action A_ALUDRAN_IDLE 20 1 5 1 12
+action A_ALUDRAN_WALK 0 4 5 1 12
+action A_ALUDRAN_ATTACK 20 4 5 1 16
+action A_ALUDRAN_SWING 40 3 5 1 16
+action A_ALUDRAN_PAIN 55 1 1 1 8
+action A_ALUDRAN_DIE 55 5 1 1 16
+action A_ALUDRAN_FROZEN 55 1 1 1 8
+action A_ALUDRAN_DEAD 60
+
+move ALUDRAN_WALK 190
+
+ai AI_ALUDRAN_IDLE A_ALUDRAN_IDLE STOP seekplayer
+ai AI_ALUDRAN_WALK A_ALUDRAN_WALK ALUDRAN_WALK seekplayer
+ai AI_ALUDRAN_ATTACK A_ALUDRAN_ATTACK STOP seekplayer
+ai AI_ALUDRAN_SWING A_ALUDRAN_SWING STOP seekplayer
+ai AI_ALUDRAN_GROW A_ALUDRAN_PAIN STOP
+ai AI_ALUDRAN_SHRUNK A_ALUDRAN_WALK fleeenemy
+ai AI_ALUDRAN_DIE A_ALUDRAN_DIE STOP
+
+spritenopal ALUDRAN
+spritenopal ALUDRAN_STAYPUT
+
+useractor enemystayput ALUDRAN_STAYPUT 1000 A_ALUDRAN_IDLE
+fall
+ifai 0
+	{
+	cstat 257
+	set blood_type 30
+	ife actor_pal 0 geta[].pal actor_pal
+	ife actor_pal 10
+		{
+		strength 3000
+		set CURBOSS THISACTOR
+		set BOSS_TYPE 7
+		sizeat 120 120
+		}
+    else
+		{
+		strength 1000
+		sizeat 40 40
+		}
+	spriteflags NORMAL_ENEMY
+	state monst_glow
+	sound AL_SIG
+	spawn SHOOTME
+	ai AI_ALUDRAN_IDLE
+	cactor ALUDRAN
+	}
+enda
+
+useractor enemy ALUDRAN 1000 A_ALUDRAN_IDLE
+fall
+ifai 0
+	{
+	cstat 257
+	set blood_type 30
+	ife actor_pal 0 geta[].pal actor_pal
+	ife actor_pal 10
+		{
+		spritepal 0
+		strength 3000
+		set CURBOSS THISACTOR
+		set BOSS_TYPE 7
+		sizeat 120 120
+		}
+    else
+		{
+		strength 1000
+		sizeat 40 40
+		}
+	spriteflags NORMAL_ENEMY
+	state monst_glow
+	sound AL_SIG
+	spawn SHOOTME
+	ai AI_ALUDRAN_IDLE
+	}
+
+state ENEMYKNOCKBACKS
+state enemyfloordamage
+state enemy_fire_damage
+state enemy_ice_damage
+state enemy_spirit_damage
+
+ifaction A_ALUDRAN_FROZEN
+	{
+	state frozen_code
+	}
+else
+ifai AI_ALUDRAN_GROW state genericgrowcode
+else
+ifaction A_ALUDRAN_DEAD
+	{
+	move STOP
+    ifhitweapon
+		{
+		  ifwasweapon RADIUSEXPLOSION
+		  {
+		  spritepal 30
+			state squish_sounds
+			spawn 2284
+		  state standard_jibs
+			killit
+		  }
+		  break
+		}
+	}
+else
+ifai AI_ALUDRAN_DIE
+	{
+	strength 0
+	ifactioncount 5
+		{
+		state rf
+		ife actor_pal 10
+		{
+		espawn BIG_SMOKE2
+		espawn BIG_SMOKE2
+		espawn BIG_SMOKE2
+		quake 46
+		sound BOSSFALL
+		}
+		else
+		state BODY_FALL_NOISES
+		spawn 2284
+		action A_ALUDRAN_DEAD
+		}
+	}
+else
+ifaction A_ALUDRAN_PAIN
+	{
+	sub PAIN_AMOUNT 1
+	move STOP
+	ife PAIN_AMOUNT 0
+		{
+		ifdead break
+		ai AI_ALUDRAN_WALK
+		}
+	}
+else
+ifai AI_ALUDRAN_SHRUNK
+{
+    ifcount SHRUNKDONECOUNT
+      ai AI_ALUDRAN_WALK
+    else ifcount SHRUNKCOUNT
+      {
+	sound ACTOR_UNSHRINK
+	sizeto 46 46
+	}
+    else
+      state genericshrunkcode
+    break
+}
+else
+ifai AI_ALUDRAN_IDLE
+	{
+	ifcansee ai AI_ALUDRAN_WALK // if can see player
+	else ifn target -1 ai AI_ALUDRAN_WALK // or if it has a target
+	}
+else
+ifai AI_ALUDRAN_WALK
+	{
+	ifrnd 2 sound AL_IDLE
+	ife actor_pal 10 ifcount 10
+		{
+		ifrnd 128 sound BIG_BOSS_WALK2 else
+		sound BIG_BOSS_WALK1
+		ifpdistl 16384 quake 13
+		resetcount
+		}
+	ifrnd 16 state enemyfindtarget // run enemy targetting stuff occasionally to refresh target
+	state SKILL_SHOOT_LEVELADJUST // run difficulty level check
+	ifl RANDOM_CHANCE SKILLCHANCE // if succesful
+		{
+		state enemyfindtarget // find enemy target
+		ifn target -1 ldist temp THISACTOR target // if found, get distance
+		ifn target -1 ifl temp 4096 ai AI_ALUDRAN_ATTACK // if target is less than distance, attack
+		else ifcansee ifcanseetarget ai AI_ALUDRAN_ATTACK // otherwise if can see player, attack
+		}
+	else ifpdistl 1024 ai AI_ALUDRAN_SWING
+	else ifrnd 2 ai AI_ALUDRAN_WALK // reset AI routine every now and then
+	}
+else
+ifai AI_ALUDRAN_ATTACK
+	{
+	ifactioncount 4
+		{
+		  ifn target -1 getav[target].myowner temp4
+		ifn target -1 // if shooting at target
+		 ifn temp4 PLAYER_IDENTITY
+			{
+			sound AL_FIRE
+			ife actor_pal 10
+				{
+				geta[].z temp
+				set temp2 temp
+				sub temp 8924
+				seta[].z temp
+				ezshoot temp3 6221
+				seta[].z temp2
+				}
+			else
+			ezshoot temp3 6221
+			setav[RETURN].temp3 1
+			}
+		else // if shooting at player
+			{
+			sound AL_FIRE
+			ife actor_pal 10
+				{
+				geta[].z temp
+				set temp2 temp
+				sub temp 8924
+				seta[].z temp
+				eshoot 6221
+				seta[].z temp2
+				}
+			else
+			eshoot 6221
+			ifg silence_damage 0 setav[RETURN].temp3 1
+			}
+		ai AI_ALUDRAN_WALK // go back to seeking AI
+		}
+	}
+else
+ifai AI_ALUDRAN_SWING
+	{
+	ifactioncount 3
+		{
+		  ifn target -1 getav[target].myowner temp4
+		ifn target -1 // if shooting at target
+		 ifn temp4 PLAYER_IDENTITY
+			{
+			ezshoot temp3 15729
+			}
+		else // if shooting at player
+			{
+			shoot 15729
+			}
+		ai AI_ALUDRAN_WALK // go back to seeking AI
+		}
+	}
+
+ifg silence_damage 0
+	{
+	sub silence_damage 1
+	state spawn_curse_particles
+	}
+
+ifhitweapon
+{
+	ife actor_pal 10 set CURBOSS THISACTOR
+	ifwasweapon VOID_PLAYER_BOLT { sound EN_CURSE set silence_damage 150 }
+	ifwasweapon VOID_BOLT { sound EN_CURSE set silence_damage 300 }
+	ifwasweapon VOID_BLAST { sound EN_CURSE set silence_damage 900 }
+	seta[].xvel 0
+	state NEWGUNEFFECTS
+	spritepal 30
+	spawn BLOOD
+	guts JIBS6 1
+	getlastpal
+	state random_wall_jibs
+	ifdead
+		{
+		addkills 1
+		state rf
+
+		ifand PROJ_UDATA 8192
+			 {
+			 espawn ELECTROCUTE_ALUDRAN
+			 seta[RETURN].xrepeat sprite[].xrepeat
+			 seta[RETURN].yrepeat sprite[].yrepeat
+			 shoot SPARK2 shoot SPARK2 shoot SPARK2
+			 killit
+			 }
+		ifwasweapon GROWSPARK { cstat 0 sound ACTOR_GROWING ai AI_ALUDRAN_GROW break }
+		else ifg ice_damage 0 { spritepal 1 strength 0 sound SOMETHINGFROZE action A_ALUDRAN_FROZEN }
+		else
+			{
+			sound AL_DIE
+			ai AI_ALUDRAN_DIE
+			}
+		}
+	else ifg PAIN_AMOUNT 0 { sound AL_PAIN action A_ALUDRAN_PAIN }
+	else ifrnd 16 { sound AL_PAIN state PAIN_SKILL_LEVELADJUST action A_ALUDRAN_PAIN }
+	ifwasweapon SHRINKSPARK { ife actor_pal 10 break sound ACTOR_SHRINKING ai AI_ALUDRAN_SHRUNK }
+}
+
+state checksquished
+
+enda

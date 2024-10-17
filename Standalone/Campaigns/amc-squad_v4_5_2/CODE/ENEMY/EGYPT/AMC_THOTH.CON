@@ -1,0 +1,471 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+
+--------------------------------------------------------------------------------
+*/
+
+damageeventtile THOTH
+
+defstate thoth_flyback
+	setprojectile[THOTH_CORPSE_FLY].pal sprite[].pal
+	eshoot THOTH_CORPSE_FLY
+	setprojectile[THOTH_CORPSE_FLY].pal 0
+	geta[].htang temp4
+	seta[RETURN].ang temp4
+	killit
+ends
+
+
+
+action A_THOTH_FROZEN 45 1 5 1 10
+action A_THOTH_IDLE 0 1 5 1 8
+action A_THOTH_RUN  0 4 5 1 8
+action A_THOTH_CHARGE  0 4 5 1 4
+action A_THOTH_RUNBACK 15 4 5 -1 20
+action A_THOTH_ATTACK 20 3 5 1 16
+action A_THOTH_BLAST 35 2 5 1 12
+action A_THOTH_PAIN 45 1 1 1 10
+
+action A_THOTH_DIE 45 6 1 1 10
+action A_THOTH_DEAD 50
+action A_THOTH_HEADSHOT_DIE 51 6 1 1 12
+action A_THOTH_HEADSHOT_DEAD 56
+action A_THOTH_SLASH_DIE 111 5 1 1 12
+action A_THOTH_SLASH_DEAD 115
+action A_THOTH_BIDIE 18152 2 1 1 16
+action A_THOTH_BIDEAD 18153
+
+defstate thoth_torsofly
+	state random_trigger_showoff
+	sound TORS_BISEC
+	setprojectile[THOTH_TORSO_FLY].pal sprite[].pal
+	ezshoot -4096 THOTH_TORSO_FLY
+	setprojectile[THOTH_TORSO_FLY].pal 0
+	geta[].htang temp4
+	seta[RETURN].ang temp4
+	espawn BIG_BLOOD_EXE
+	action A_THOTH_BIDIE
+ends
+
+move ANUB_RUN 120
+move ANUB_CHARGE 180
+
+ai AI_THOTH_IDLE A_THOTH_IDLE STOP seekplayer
+ai AI_THOTH_SEEKENEMY A_THOTH_RUN ANUB_RUN seekplayer
+ai AI_THOTH_RUSHENEMY A_THOTH_CHARGE ANUB_CHARGE seekplayer
+ai AI_THOTH_DODGE A_THOTH_RUN ANUB_RUN dodgebullet
+ai AI_THOTH_WALKBACK A_THOTH_RUNBACK TROOPWALKVELSBACK faceplayer
+
+ai AI_THOTH_ATTACK A_THOTH_ATTACK STOP faceplayer
+ai AI_THOTH_BLAST A_THOTH_BLAST STOP faceplayer
+ai AI_THOTH_DYING A_THOTH_DIE STOP
+ai AI_THOTH_HEADSHOT_DYING A_THOTH_HEADSHOT_DIE STOP
+ai AI_THOTH_SLASH_DYING A_THOTH_SLASH_DIE STOP
+
+ai AI_THOTH_SHRINK A_THOTH_RUN ANUB_RUN fleeenemy
+ai AI_THOTH_GROW A_THOTH_PAIN STOP
+ai AI_THOTH_FROZEN A_THOTH_PAIN STOP
+
+useractor enemystayput THOTH_STAYPUT 100 A_THOTH_IDLE
+cactor THOTH
+enda
+
+useractor enemy THOTH 100 A_THOTH_IDLE
+fall
+
+ifai 0
+{
+	state monst_glow
+	spawn SHOOTME
+	spriteflags NORMAL_ENEMY
+	sound THOTH_SIGHT
+	ifspritepal 41
+		{
+		strength 200
+		sizeat 32 32
+		}
+	else
+		{
+		strength 100
+		sizeat 28 28
+		}
+
+	ai AI_THOTH_IDLE
+	cstator 257
+}
+
+ifai AI_THOTH_FROZEN
+{
+state frozen_code
+}
+else
+ifai AI_THOTH_GROW state genericgrowcode
+else
+ifai AI_THOTH_SHRINK
+{
+    ifcount SHRUNKDONECOUNT
+      ai AI_THOTH_SEEKENEMY
+    else ifcount SHRUNKCOUNT
+	  {
+	  sound ACTOR_UNSHRINK
+      sizeto 28 28
+	  }
+    else
+      state genericshrunkcode
+    break
+}
+else
+ifaction A_THOTH_DEAD
+{
+move STOP
+    ifhitweapon
+    {
+      ifwasweapon RADIUSEXPLOSION
+      {
+        state squish_sounds
+		state human_jibs
+	  state standard_jibs
+        killit
+      }
+      break
+    }
+}
+else
+ifaction A_THOTH_BIDEAD
+{
+move STOP
+    ifhitweapon
+    {
+      ifwasweapon RADIUSEXPLOSION
+      {
+        state squish_sounds
+		state human_jibs
+	  state standard_jibs
+        killit
+      }
+      break
+    }
+}
+else
+ifaction A_THOTH_SLASH_DEAD
+{
+move STOP
+    ifhitweapon
+    {
+      ifwasweapon RADIUSEXPLOSION
+      {
+        state squish_sounds
+		state human_jibs
+	  state standard_jibs
+        killit
+      }
+      break
+    }
+}
+else
+ifaction A_THOTH_HEADSHOT_DEAD
+{
+move STOP
+    ifhitweapon
+    {
+      ifwasweapon RADIUSEXPLOSION
+      {
+        state squish_sounds
+		state human_jibs
+	  state standard_jibs
+        killit
+      }
+      break
+    }
+}
+else ifaction A_THOTH_BIDIE
+	{
+	strength 0
+	ifactioncount 2 { state rf state BODY_FALL_NOISES action A_THOTH_BIDEAD espawn BLOODPOOL }
+	}
+else
+ifai AI_THOTH_DYING
+{
+move STOP
+	strength 0
+	ifactioncount 6 { state BODY_FALL_NOISES spawn BLOODPOOL state rf action A_THOTH_DEAD }
+}
+else
+ifai AI_THOTH_HEADSHOT_DYING
+{
+move STOP
+	strength 0
+	ifactioncount 6 { state BODY_FALL_NOISES spawn BLOODPOOL state rf action A_THOTH_HEADSHOT_DEAD }
+}
+else
+ifai AI_THOTH_SLASH_DYING
+{
+move STOP
+	strength 0
+	ifactioncount 5 { state SQUISH_FALL_NOISES spawn BLOODPOOL state rf action A_THOTH_SLASH_DEAD }
+}
+else
+ifaction A_THOTH_PAIN
+{
+sub PAIN_AMOUNT 1
+move 0
+ife PAIN_AMOUNT 0
+	{
+	ife allies_present 1 state enemyfindtarget
+	ai AI_THOTH_SEEKENEMY
+	}
+}
+else
+ifai AI_THOTH_IDLE
+{
+ state correctcansee
+   ife sightvar YES
+    ai AI_THOTH_SEEKENEMY
+}
+else
+ifai AI_THOTH_DODGE
+{
+ifactioncount 8 ai AI_THOTH_SEEKENEMY
+}
+else
+ifai AI_THOTH_RUSHENEMY
+{
+ifpdistl 1536 { ifrnd 128 ai AI_THOTH_WALKBACK else ai AI_THOTH_ATTACK }
+ifrnd 2 sound THOTH_ROAM
+
+ifbulletnear ifrnd 16 ai AI_THOTH_DODGE
+
+state SKILL_SHOOT_LEVELADJUST
+  ifl RANDOM_CHANCE SKILLCHANCE
+   ifcanshoottarget
+	{
+	set temp9 0
+	 state correctcansee
+		ife sightvar YES
+     ai AI_THOTH_ATTACK
+	}
+
+}
+else
+ifai AI_THOTH_SEEKENEMY
+{
+ifpdistl 1536 { ifrnd 128 ai AI_THOTH_WALKBACK else ai AI_THOTH_ATTACK }
+else ifpdistl 8192 ifrnd 16 { sound THOTH_SIGHT ai AI_THOTH_RUSHENEMY }
+ifrnd 2 sound THOTH_ROAM
+
+ifbulletnear ifrnd 96 ai AI_THOTH_DODGE
+
+state SKILL_SHOOT_LEVELADJUST
+  ifl RANDOM_CHANCE SKILLCHANCE
+   ifcanshoottarget
+	{
+	set temp9 0
+	 state correctcansee
+		ife sightvar YES
+     ai AI_THOTH_ATTACK
+	}
+
+}
+else
+ifai AI_THOTH_WALKBACK
+{
+ifcount 30 ai AI_THOTH_ATTACK
+}
+else
+ifai AI_THOTH_BLAST
+{
+	ifactioncount 3 { ifpdistl 1536 ai AI_THOTH_WALKBACK else ai AI_THOTH_SEEKENEMY set temp9 0 }
+	ifactioncount 2
+	{
+		ife temp9 0
+		{
+			ifpdistl 1536 ai AI_THOTH_ATTACK
+			else
+			{
+				set PROJECTILE_TO_SHOOT 12712
+				set PROJECTILE_FIRING_SOUND THOTH_FIRE
+				state sang_enemyShootProjectile
+
+				set temp9 1
+			}
+		}
+	}
+
+}
+else
+ifai AI_THOTH_ATTACK
+{
+ifactioncount 3 { ifpdistl 1536 ai AI_THOTH_WALKBACK else ai AI_THOTH_SEEKENEMY set temp9 0 }
+ifactioncount 2
+	{
+	ife temp9 0
+		{
+		ifpdistl 1536
+			{
+			ifn SWORD_BLOCK 0
+			 ifp pfacing
+				{
+				shoot SPARK shoot SPARK shoot SPARK shoot SPARK shoot SPARK
+				sub p_stamina 30
+				set CUS_WACK 1
+				sound SWORD_CLASH
+				}
+				else
+				{
+				sound RIPPER_SCRATCH
+				shoot 4609
+				ifspritepal 41 shoot 4609
+				}
+			set temp9 1
+			}
+		else ai AI_THOTH_BLAST
+		}
+	}
+
+}
+
+state enemyfloordamage
+state enemy_fire_damage
+state enemy_ice_damage
+state enemy_spirit_damage
+
+ifhitweapon
+{
+	state NEWGUNEFFECTS
+	soundonce THOTH_PAIN
+	//spawn BLOOD
+	guts JIBS6 1
+	state random_wall_jibs
+	ifdead
+		{
+		state rf
+
+		ifwasweapon RADIUSEXPLOSION
+		  {
+		  geta[].extra temp
+		  ifg temp -50 state thoth_flyback
+			state squish_sounds
+			state human_jibs
+		  state standard_jibs
+			killit
+		  }
+		ifwasweapon RPG
+		  {
+		  geta[].extra temp
+		  ifg temp -50 state thoth_flyback
+			state squish_sounds
+			state human_jibs
+		  state standard_jibs
+			killit
+		  }
+		ifand PROJ_UDATA PROJ_GIB
+		  {
+			state squish_sounds
+			state human_jibs
+		  state standard_jibs
+			killit
+		  }
+		ifand PROJ_UDATA 8192
+			 {
+			 ifrnd 4 soundonce MALE_ELECT1
+			 spawn ELECTROCUTE_THOTH
+			 shoot SPARK2 shoot SPARK2 shoot SPARK2
+			 killit
+			 }
+		else ifwasweapon SAWBLADE state thoth_torsofly
+		else ifwasweapon SAWBLADE_BOUNCE state thoth_torsofly
+		else ifwasweapon SNOWFALL_DISC state thoth_torsofly
+		else ifwasweapon 6875 ife CHAR 2 state thoth_torsofly
+		else ifwasweapon GROWSPARK { cstat 0 sound ACTOR_GROWING ai AI_THOTH_GROW break }
+		else ifg ice_damage 0 { spritepal 1 strength 0 sound SOMETHINGFROZE ai AI_THOTH_FROZEN }
+		else ifg spirit_damage 0
+			{
+			shoot SPARK2 shoot SPARK2 shoot SPARK2
+			spritepal 1
+			guts JIBS3 6
+			spawn SPIRIT_DEATH_GUY
+			killit
+			}
+		else ifg energy_damage 0
+			{
+			shoot SPARK2 shoot SPARK2 shoot SPARK2
+			spritepal 4
+			guts JIBS3 6
+			spawn DISINTIGRATE_GUY
+			killit
+			}
+		else ifg fire_damage 0
+			{
+			sound THOTH_DEATH
+			set PLAYER_VOICEOVER 21
+			espawn ONFIREGUY
+			ifspritepal 41 { seta[RETURN].xrepeat 40 seta[RETURN].yrepeat 40 }
+			killit
+			}
+		else
+		ifand PROJ_UDATA 8
+			{
+			sound THOTH_DEATH
+			ifwasweapon CHAINSAW_PROJ
+				{
+				set npc_chainsaw_struggle 54
+				set npc_chainsaw_id 3
+				set cultist_pal sprite[].pal
+				}
+			else
+				{
+				state sword_kill_sounds
+				state random_trigger_showoff
+				}
+			state rf
+			state slashed_sounds
+			ai AI_THOTH_SLASH_DYING
+			}
+		else
+			{
+			addkills 1
+			ife HEADSHOT 2
+				{
+				state random_trigger_showoff
+				state decap_sounds
+				ai AI_THOTH_HEADSHOT_DYING shoot NJIB shoot NJIB guts JIBS6 3 guts JIBS2 2
+				}
+			    else
+				{
+				sound THOTH_DEATH
+				ifstrength -35 ifpdistl 4096 state thoth_flyback
+				else ifwasweapon KNEE state thoth_flyback
+				else ifwasweapon SHOTGUN ifpdistl 1536 state thoth_flyback
+				else ai AI_THOTH_DYING
+				}
+			}
+		}
+	else ifg PAIN_AMOUNT 0 { soundonce THOTH_PAIN action A_THOTH_PAIN }
+	else ifrnd 32 { soundonce THOTH_PAIN state PAIN_SKILL_LEVELADJUST action A_THOTH_PAIN }
+	ifwasweapon SHRINKSPARK { sound ACTOR_SHRINKING ai AI_THOTH_SHRINK }
+}
+
+enda

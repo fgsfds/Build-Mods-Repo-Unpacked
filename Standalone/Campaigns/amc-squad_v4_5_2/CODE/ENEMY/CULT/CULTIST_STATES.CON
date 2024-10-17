@@ -1,0 +1,358 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+
+--------------------------------------------------------------------------------
+*/
+
+defstate cult_pain_sound
+ifrnd 96 sound CULT_PAIN1
+else ifrnd 96 sound CULT_PAIN2
+else sound CULT_PAIN3
+ends
+
+defstate cultist_choke
+	ifmultiplayer { set CHOKE 0 action A_CULTIST_SEEK break }
+	move STOP
+	geta[].x temp
+	geta[].y temp2
+
+	set temp3 temp
+	add temp3 512
+
+	ifrnd 196 addphealth -1
+
+	geta[].ang temp4
+	add temp4 256
+
+	rotatepoint temp temp2 temp3 temp2 temp4 temp5 temp6
+
+	setp[].posx temp5
+	setp[].posy temp6
+	geta[].z temp
+	add temp -16000
+	setp[].posz temp
+	state lower_weapon
+
+	geta[].x mx
+	geta[].y my
+	getp[].posx x
+	getp[].posy y
+	sub mx x
+	sub my y
+	getangle temp8 mx my
+	setp[].ang temp8
+
+	ifl CHOKE 1 { pkick action A_CULTIST_SEEK break }
+
+	ifp pdead { action A_CULTIST_IDLE set CHOKE 0 }
+ends
+
+defstate cultist_forcechoke
+	move STOP
+
+	ifrnd 196 { ifg P_SPIRIT_ARMOUR 0 { soundonce SPARM_PROTECT sub P_SPIRIT_ARMOUR 1 } else addphealth -1 }
+
+	state lower_weapon
+
+			geta[].x mx
+			geta[].y my
+			getp[].posx x
+			getp[].posy y
+			sub mx x
+			sub my y
+			getangle temp8 mx my
+			setp[].ang temp8
+
+	ifl FCHOKE 1 { set FCHOKESTOP 76 action A_CULTIST_SEEK break }
+
+	ifp pdead { set FCHOKESTOP 76 action A_CULTIST_IDLE set FCHOKE 0 }
+ends
+
+defstate cultist_torsofly
+	state random_trigger_showoff
+	sound TORS_BISEC
+	setprojectile[CULTIST_TORSO_FLY].pal sprite[].pal
+	ezshoot -4096 CULTIST_TORSO_FLY
+	setprojectile[CULTIST_TORSO_FLY].pal 0
+	setav[RETURN].actor_pal actor_pal
+	geta[].htang temp4
+	seta[RETURN].ang temp4
+	spawn BIG_BLOOD_EXE
+	action A_CULTIST_BIDIE
+ends
+
+defstate cultist_flyback
+	randvar temp 30
+	ifl temp 10 sound CULTIST_DIE1
+	else ifl temp 20 sound CULTIST_DIE2
+	else sound CULTIST_DIE3
+	setprojectile[CULTIST_CORPSE_FLY].pal sprite[].pal
+	eshoot CULTIST_CORPSE_FLY
+	setprojectile[CULTIST_CORPSE_FLY].pal 0
+	setav[RETURN].actor_pal actor_pal
+	geta[].htang temp
+	seta[RETURN].ang temp
+	killit
+ends
+
+defstate cultist_dead_stuff // TODO need better name
+	ifn YVELSAVED 0 { espawnvar YVELSAVED set YVELSAVED 0 }
+
+	state rf
+	addkills 1
+
+	ife actor_pal 21
+		{
+			ifrnd SPAWNAMMOODDS
+			{
+			switch CHAR
+			case 0
+			case 4
+			case 5
+			case 9
+			ifg EXTRASAVED 5 spawn HBOMBAMMO else
+			ifg EXTRASAVED 0 spawn 3689
+			break
+			endswitch
+			}
+		}
+	else
+	ifphealthl 50
+		{
+		state SKILL_LEVELADJUST
+		ifl RANDOM_CHANCE SKILLCHANCE spawn HPOWDER
+		}
+	else
+	ifrnd SPAWNAMMOODDS
+		{
+		ife actor_pal 10 ifn YVELSAVED SAWNOFFSPRITE spawn SAWNOFFSPRITE
+		ife actor_pal 16 ifn YVELSAVED AK114SPRITE spawn AK114SPRITE
+		ife actor_pal 49 ifn YVELSAVED FNFALSPRITE spawn FNFALSPRITE
+		ife actor_pal 36 ifn YVELSAVED TOMMYGUNSPRITE spawn TOMMYGUNSPRITE
+		}
+ends
+
+defstate cultist_dead_state
+	move STOP
+	strength 0
+
+	ifhitweapon
+	{
+		ifwasweapon RADIUSEXPLOSION
+		{
+			state squish_sounds
+			state monst_body_jibs
+
+			ife INVASION 1 nullop
+			else state standard_jibs
+
+			ifrnd 128 shoot NJIB4
+			ifrnd 128 shoot NJIB4
+			killit
+		}
+	}
+ends
+
+defstate cultist_check_notmoving
+	geta[].htmovflag move_flag
+	ifn move_flag 0 // this is the same as ifnotmoving, but now we have info about what is hit in the temp var
+	{
+		andvar move_flag 49152
+		ife move_flag 32768 // the actor is pushing on a wall
+		{
+			geta[].htmovflag move_flag // need to get the info again
+			andvar move_flag 16383 // temp now stores the wall number
+			getwall[move_flag].nextsector sect
+			ifn sect -1
+			{
+				ifand wall[move_flag].cstat 1 nullop
+				else ife sector[sect].lotag 20 operate
+				else ife sector[sect].lotag 21 operate
+				else ife sector[sect].lotag 22 operate
+				else ife sector[sect].lotag 23 operate
+				else ifl sector[sect].floorz sector[].floorz // assumes floors are not sloped!
+					action A_CULTIST_JUMP
+			}
+		}
+	}
+ends
+
+defstate cultist_start_shotgunstruggle
+	sound PIGBUTT
+	wackplayer
+	getactor[].pal cultist_pal
+	action A_CULTIST_SHOTGUNSTRUGGLE
+	set shotgun_struggle_num 0
+	set shotgun_struggle THISACTOR
+ends
+
+defstate cultist_start_choke
+	action A_CULTIST_CHOKE
+	set PLAYER_VOICEOVER 53
+	sound GRABTHROAT
+	getactor[].pal cultist_pal
+	ife SKILL_LEVEL 1 set CHOKE 13
+	else ife SKILL_LEVEL 2 set CHOKE 26
+	else ife SKILL_LEVEL 3 set CHOKE 52
+	else set CHOKE 52
+ends
+
+defstate cultist_start_forcechoke
+	action A_CULTIST_FCHOKE
+	sound GRABTHROAT
+	sound DEMON_TELEPORT
+	ife SKILL_LEVEL 1 set FCHOKE 26
+	else ife SKILL_LEVEL 2 set FCHOKE 38
+	else ife SKILL_LEVEL 3 set FCHOKE 52
+	else set FCHOKE 52
+ends
+
+defstate cultist_shotgunstruggle
+	lockplayer 26
+	cstat 32768
+	move STOP
+	geta[].x temp
+	geta[].y temp2
+
+	set temp3 temp
+	add temp3 256
+
+	geta[].ang temp4
+
+	rotatepoint temp temp2 temp3 temp2 temp4 temp5 temp6
+
+	setp[].posx temp5
+	setp[].posy temp6
+
+	geta[].x mx
+	geta[].y my
+	getp[].posx x
+	getp[].posy y
+	sub mx x
+	sub my y
+	getangle temp8 mx my
+	setp[].ang temp8
+
+	ifhitweapon
+	{
+		set shotgun_struggle -1
+		setp[].movement_lock 0
+		ifdead strength 1
+		cstat 257
+		action A_CULTIST_SEEK
+		break
+	}
+
+	ifp pdead { cstat 257 action A_CULTIST_IDLE }
+
+	ifrnd 16 { ifg shotgun_struggle_num 75 soundonce CULTIST_DIE3 else soundonce ZSCI_PAIN }
+	ife shotgun_struggle_num -100
+	{
+		cstat 257
+		state random_trigger_showoff
+		set HEADSHOT 2
+		state decap_sounds
+		shoot NJIB
+		shoot NJIB
+		state jib_sounds
+		stopsound CULTIST_DIE3
+		guts JIBS6 3
+		guts JIBS2 2
+		strength 0
+		state cultist_dead_stuff
+		cstat 0
+		set shotgun_struggle_num 0
+		set shotgun_struggle -1
+		setp[].movement_lock 0
+		action A_CULTIST_DEAD
+		break
+	}
+	else ifpdistg 1524 { setp[].movement_lock 0 set shotgun_struggle -1 cstat 257 action A_CULTIST_SEEK }
+	else setp[].movement_lock 15
+ends
+
+defstate cultist_skullexplosion
+	ifg fire_damage 0 set fire_damage 0
+	geta[].extra temp
+	ifg temp -50 state cultist_flyback
+	ife actor_pal 20 { palfrom 40 40 0 40 spawn SKULLEXPLOSION globalsound CULTIST_HAUNT }
+	state squish_sounds
+	state monst_body_jibs
+	state human_jibs
+	killit
+ends
+
+defstate cultist_disintegrate
+	shoot SPARK2 shoot SPARK2 shoot SPARK2
+	spritepal 4
+	guts JIBS3 6
+	spawn DISINTIGRATE_GUY
+	killit
+ends
+
+defstate cultist_spirit_death
+	shoot SPARK2 shoot SPARK2 shoot SPARK2
+	spritepal 1
+	guts JIBS3 6
+	spawn SPIRIT_DEATH_GUY
+	killit
+ends
+
+defstate cultist_fire_death
+	ifrnd 64 sound MALE_ONFIRE1
+	else ifrnd 64 sound MALE_ONFIRE2
+	else ifrnd 64 sound MALE_ONFIRE3
+	else sound MALE_ONFIRE4
+	spawn ONFIREGUY
+	set PLAYER_VOICEOVER 21
+	killit
+ends
+
+defstate cultist_headshot_death
+	ife actor_pal 49 state trigger_showoff
+    else state random_trigger_showoff
+	state jib_sounds
+	state decap_sounds
+	state rf
+	action A_CULTIST_HEADSHOT
+	shoot NJIB
+	shoot NJIB
+	guts JIBS6 3
+	guts JIBS2 2
+ends
+
+defstate cultist_normal_death
+	randvar temp 30
+
+	ifl temp 10 sound CULTIST_DIE1
+	else ifl temp 20 sound CULTIST_DIE2
+	else sound CULTIST_DIE3
+
+	state rf
+	ifwasweapon SHOTSPARK1 cstator 256 // bullet weapons should trigger animation if hit again
+	ifrnd 128 action A_CULTIST_DYING2 else
+	action A_CULTIST_DYING
+ends

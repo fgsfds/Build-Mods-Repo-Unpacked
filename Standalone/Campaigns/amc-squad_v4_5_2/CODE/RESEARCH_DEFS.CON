@@ -1,0 +1,2022 @@
+
+// This array will be filled up with the unlocked researches for the list we're currently browsing
+array rs_curlist 63
+defstate rs_clearlist
+	for temp range 63
+		setarray rs_curlist[temp] 0
+ends
+
+// Get the list of weapon research projects to show
+defstate rs_init_weapon_list
+	state rs_clearlist
+
+	set temp2 0
+	set temp3 RS_W_CURMAX
+	add temp3 1
+	for temp range temp3
+	{
+		ifg WEAPONS_RESEARCH[temp] 0 // project was at least found? add to array with index temp2
+			setarray rs_curlist[temp2] temp
+
+		add temp2 1
+	}
+ends
+
+// Get the list of equipment research projects to show
+defstate rs_init_equipment_list
+	state rs_clearlist
+
+	set temp2 0
+	set temp3 RS_E_CURMAX
+	add temp3 1
+	for temp range temp3
+	{
+		ifg EQUIPMENT_RESEARCH[temp] 0 // project was at least found? add to array with index temp2
+			setarray rs_curlist[temp2] temp
+
+		add temp2 1
+	}
+ends
+
+// Get the list of equipment research projects to show
+defstate rs_init_personnel_list
+	state rs_clearlist
+
+	set temp2 0
+	set temp3 RS_P_CURMAX
+	add temp3 1
+	for temp range temp3
+	{
+		ifg PERSONNEL_RESEARCH[temp] 0 // project was at least found? add to array with index temp2
+			setarray rs_curlist[temp2] temp
+
+		add temp2 1
+	}
+ends
+
+// Get the list of base research projects to show
+defstate rs_init_base_list
+	state rs_clearlist
+
+	set temp2 0
+	set temp3 RS_B_CURMAX
+	add temp3 1
+	for temp range temp3
+	{
+		// id 6 and 8 don't exist on base defs for some reason.
+		  ifn temp 8
+		  ifg BASE_RESEARCH[temp] 0 // project was at least found? add to array with index temp2
+			setarray rs_curlist[temp2] temp
+
+		add temp2 1
+	}
+ends
+
+// Mystic research projects to show
+defstate rs_init_mystical_list
+	state rs_clearlist
+
+	set temp2 0
+	set temp3 RS_M_CURMAX
+	add temp3 1
+	for temp range temp3
+	{
+		ifg MYSTICAL_RESEARCH[temp] 0 // project was at least found? add to array with index temp2
+			setarray rs_curlist[temp2] temp
+
+		add temp2 1
+	}
+ends
+
+// Dojo research projects to show
+defstate rs_init_dojo_list
+	state rs_clearlist
+
+	set temp2 0
+	set temp3 RS_D_CURMAX
+	add temp3 1
+	for temp range temp3
+	{
+		ifg MELEE_RESEARCH[temp] 0 // project was at least found? add to array with index temp2
+			setarray rs_curlist[temp2] temp
+
+		add temp2 1
+	}
+ends
+
+// Get the specific defs of the given research project
+
+// output:
+// Text header in qputs 1380
+// Text description in qputs 1381 thru 1389 -> NOTE budget and tech cost are no longer displayed here
+// Limit each line of the text description to 44 characters!
+// And then the rs_item prefixed vars found in RESEARCH_DEFVARS
+
+defstate rs_clear_defs
+	// clear strings
+	qputs 1380
+	qputs 1381
+	qputs 1382
+	qputs 1383
+	qputs 1384
+	qputs 1385
+	qputs 1386
+	qputs 1387
+	qputs 1388
+	qputs 1389
+
+	set rs_item_picnum 0
+	set rs_item_techcost -1000
+	set rs_item_budgetcost -1000
+	set rs_item_fmvid -1
+
+	set rs_item_dep1 0
+	set rs_item_dep1type 0
+	set rs_item_dep2 0
+	set rs_item_dep2type 0
+	set rs_item_dep3 0
+	set rs_item_dep3type 0
+	set rs_item_dep4 0
+	set rs_item_dep4type 0
+	set rs_item_miaenemy1 -1
+	set rs_item_miaenemy1_cat -1
+	set rs_item_miaenemy2 -1
+	set rs_item_miaenemy2_cat -1
+	set rs_item_miaenemy3 -1
+	set rs_item_miaenemy3_cat -1
+ends
+
+// TAKE CARE THAT THE DEFS DO NOT OVERWRITE ANY OF THE TEMP VARIABLES AS THIS WILL FUCK THINGS UP
+// If you need more variables just add more rs_ prefixed player vars. We can optimize later if that becomes a concern.
+
+defstate rs_weapon_defs
+	state rs_clear_defs
+
+	switch ui_query_id
+		case RS_W_GDFPLASMA
+			qputs 1380 GDF Plasma Gun
+			qputs 1381 A powerful Garmid Defence Force weapon.
+			qputs 1382 We can manufacture and use this weapon
+			qputs 1383 once researched.
+
+			set rs_item_picnum JPLASMASPRITE
+			set rs_item_techcost 1
+			set rs_item_budgetcost 2
+			break
+
+		case RS_W_LIZLCHAINGUN
+			qputs 1380 Enforcer Laser Chaingun
+			qputs 1381 A variation of the Cycloid Enforcer's
+			qputs 1382 chaingun; this version fires a stream
+			qputs 1383 of laser blasts.
+
+			set rs_item_picnum LIZMANFGUNSPRITE
+			set rs_item_techcost 1
+			set rs_item_budgetcost 2
+			break
+
+		case RS_W_MIAGUN
+			qputs 1380 'Missing in Action' Gun
+			qputs 1381 Temporarily displaces an enemy;
+			qputs 1382 this can be used to ^32gain research
+			qputs 1383 data on certain specimen.
+
+			set rs_item_picnum MIAGUNSPRITE
+			set rs_item_techcost 1
+			set rs_item_budgetcost 1
+			set rs_item_fmvid 1344
+			break
+
+		case RS_W_BATLCHAINGUN
+			qputs 1380 Battlelord Chaingun
+			qputs 1381 Although too large for human use, the
+			qputs 1382 technology used can help us in future
+			qputs 1383 research on true portable miniguns.
+
+			set rs_item_picnum 2687
+			set rs_item_techcost 1
+			set rs_item_budgetcost 4
+			break
+
+		case RS_W_FLAMETHROWER
+			qputs 1380 Flamethrower
+			qputs 1381 A powerful weapon useful against large
+			qputs 1382 crowds of weaker enemies.
+
+			set rs_item_picnum FLAMETHROWERSPRITE
+			set rs_item_techcost 1
+			set rs_item_budgetcost 3
+			break
+
+		case RS_W_RIOTGUNMINI
+			qputs 1380 Riotgun-Minigun modification
+			qputs 1381 Using what we learned from the Battlelord's
+			qputs 1382 portable chaingun, we've designed a portable
+			qputs 1383 minigun based on the riotgun's frame.
+
+			set rs_item_picnum RIOTGUN_MINIGUN_SPRITE
+			set rs_item_techcost 3
+			set rs_item_budgetcost 10
+
+			set rs_item_dep1 RS_W_BATLCHAINGUN
+			set rs_item_dep1type RS_TAB_WEAPONS
+
+			// riotgun in armory
+			set rs_item_dep2 12
+			set rs_item_dep2type 6 // Armory
+		break
+
+		case RS_W_DEVASFRAMEW
+			qputs 1380 Juggernaut's Weaponry
+			qputs 1381 By researching the Juggernaut's weapon,
+			qputs 1382 we can use it in our own minigun
+			qputs 1383 designs.
+
+			set rs_item_picnum 15912
+			set rs_item_techcost 10
+			set rs_item_budgetcost 20
+			set rs_item_miaenemy1 JUGGERNAUT
+			set rs_item_miaenemy1_cat BST_TAB_MERC								   							
+			break
+
+		case RS_W_RIOTGUNMINIMK2
+			qputs 1380 Riotgun-Minigun Mk2
+			qputs 1381 We can use the research gained from the
+			qputs 1382 Juggernaut's weaponry to revise the Minigun's
+			qputs 1383 chassis for improved performance all around.
+
+			set rs_item_picnum 16087
+			set rs_item_techcost 7
+			set rs_item_budgetcost 15
+
+			set rs_item_dep1 RS_W_DEVASFRAMEW
+			set rs_item_dep1type RS_TAB_WEAPONS
+			set rs_item_dep2 RS_W_RIOTGUNMINI
+			set rs_item_dep2type RS_TAB_WEAPONS
+			break
+
+		case RS_W_CYCLOIDPLASMA
+			qputs 1380 Cycloid Plasma Tech
+			qputs 1381 We were able to extract and preserve some
+			qputs 1382 components of the Cycloid's plasma arsenal.
+			qputs 1383 Research this and we can create our
+			qputs 1384 own variations of this powerful technology.
+
+			set rs_item_picnum 13547
+			set rs_item_techcost 8
+			set rs_item_budgetcost 10
+			set rs_item_miaenemy1 ADV_COMMANDER
+			set rs_item_miaenemy1_cat BST_TAB_CYCLOID											
+			break
+
+		case RS_W_BEAMSABRE
+			qputs 1380 Beam Sabre
+			qputs 1381 A potent Energy blade that can cut through
+			qputs 1382 even the strongest of enemies.
+			qputs 1383 Expensive, but a potent weapon.
+
+			set rs_item_picnum 20101
+			set rs_item_techcost 10
+			set rs_item_budgetcost 30
+		break
+
+		case RS_W_LIZRFMOD
+			qputs 1380 Rapid Fire Modification
+			qputs 1381 The Enforcer chaingun has an experimental
+			qputs 1382 rapid-fire mode; disabled by default as
+			qputs 1383 prolonged use would cause overheating
+			qputs 1384 and sear the enforcer's arm clean off.
+			qputs 1385 We can re-activate and improve it for our
+			qputs 1386 own purposes as an alternate firing mode.
+
+			set rs_item_picnum LIZMANGUNSPRITE
+			set rs_item_techcost 2
+			set rs_item_budgetcost 4
+			set rs_item_miaenemy1 LIZMAN
+			set rs_item_miaenemy1_cat BST_TAB_CYCLOID							   
+			break
+
+		case RS_W_ENGSMG
+			qputs 1380 Engineer SMG
+			qputs 1381 An extremely advanced piece of weapons
+			qputs 1382 technology; researching it will not only
+			qputs 1383 allow us to build and use them, but also
+			qputs 1384 learn more of the Engineer's advancements
+			qputs 1385 and use them for our own development in
+			qputs 1386 state-of-the-art firearms.
+
+			set rs_item_picnum ENG_SMG_SPRITE
+			set rs_item_techcost 30
+			set rs_item_budgetcost 40
+
+			set rs_item_dep1 RS_B_ENGITECH
+			set rs_item_dep1type RS_TAB_BASE
+
+			break
+
+		default
+			qputs 1380 oops! bugged
+			set rs_item_picnum 0
+			set rs_item_techcost 0
+			set rs_item_budgetcost 0
+			break
+	endswitch
+
+	set rs_item_researched WEAPONS_RESEARCH[ui_query_id] // 1 means found, 2 means researched, 3 means new project, 4 means MIA project
+ends
+
+defstate rs_equipment_defs
+	state rs_clear_defs
+
+	switch ui_query_id
+		case RS_E_EAFXPL_SH
+			qputs 1380 EAF Explosive shells
+			qputs 1381 By researching these shells, we can
+			qputs 1382 produce and make them available to
+			qputs 1383 AMC field agents.
+
+			set rs_item_picnum EXPL_SHELLS
+			set rs_item_techcost 1
+			set rs_item_budgetcost 3
+			break
+		case RS_E_EDFFLCH_SH
+			qputs 1380 EDF Flechette Shells
+			qputs 1381 By researching these shells, we can
+			qputs 1382 produce and make them available to
+			qputs 1383 AMC field agents.
+			qputs 1385 ^1+ Extra damage against bodyarmor and mechs.
+
+			set rs_item_picnum FLECHETE_SHELLS
+			set rs_item_techcost 1
+			set rs_item_budgetcost 3
+			break
+		case RS_E_SILV45AC
+			qputs 1380 Silver .45 Auto-Calibre Bullets
+			qputs 1381 By researching these bullets, we can
+			qputs 1382 produce and make them available to
+			qputs 1383 AMC field agents.
+			qputs 1385 ^1+ Extra damage against supernatural targets.
+
+			set rs_item_picnum SILVERAMMO_DRUM
+			set rs_item_techcost 1
+			set rs_item_budgetcost 3
+			break
+		case RS_E_TESLAAMMO
+			qputs 1380 Tesla Ammunition
+			qputs 1381 By researching this ammo type, we can
+			qputs 1382 produce and make it available to
+			qputs 1383 AMC field agents.
+			qputs 1385 ^1+ Bonus Electric Damage
+
+			set rs_item_picnum TESLA_AMMO_SPRITE
+			set rs_item_techcost 1
+			set rs_item_budgetcost 3
+			break
+		case RS_E_SPIRITVEST
+			qputs 1380 Spirit Vest
+			qputs 1381 Not as effective as a magically made
+			qputs 1382 Spirit Shield, but this device will still
+			qputs 1383 provide valuable protection.
+
+			set rs_item_picnum 117
+			set rs_item_techcost 2
+			set rs_item_budgetcost 5
+			break
+		case RS_E_SILVERBOLTS
+			qputs 1380 Silver bolts for Crossbow
+			qputs 1381 By researching this ammo type, we can
+			qputs 1382 produce and make it available to
+			qputs 1383 AMC field agents.
+			qputs 1385 ^1+ Extra damage against supernatural targets.
+
+			set rs_item_picnum SILVER_CROSSBOW_BOLTS
+			set rs_item_techcost 1
+			set rs_item_budgetcost 3
+			break
+		case RS_E_SILVERKNIFE
+			qputs 1380 Silver Knife
+			qputs 1381 Although weaker than the standard knife,
+			qputs 1382 silver is much stronger against
+			qputs 1383 supernatural targets.
+
+			set rs_item_picnum 13556
+			set rs_item_techcost 1
+			set rs_item_budgetcost 3
+			break
+		case RS_E_DARTMTORPEDOES
+			qputs 1380 Micro Torpedoes for Dart Gun
+			qputs 1381 By researching this ammo type, we can
+			qputs 1382 produce and make it available to
+			qputs 1383 AMC field agents.
+
+			set rs_item_picnum MICRO_TORPEDO_PACK
+			set rs_item_techcost 2
+			set rs_item_budgetcost 8
+			break
+		case RS_E_MAGNUM_SH
+			qputs 1380 Magnum Shells
+			qputs 1381 By researching this ammo type, we can
+			qputs 1382 produce and make it available to
+			qputs 1383 AMC field agents.
+			qputs 1385 ^1+ Greatly increased damage.
+
+			set rs_item_picnum MAGNUM_SHELLS
+			set rs_item_techcost 2
+			set rs_item_budgetcost 8
+			break
+		case RS_E_HEATSEEKERCARD
+			qputs 1380 Heat-Seeker Card
+			qputs 1381 By researching this ammo type, we can
+			qputs 1382 produce and make it available to
+			qputs 1383 AMC field agents.
+			qputs 1385 ^1Heat-seeking mode for Zilla Missiles.
+
+			set rs_item_picnum HEAT_SEEK_CARD_PICKUP
+			set rs_item_techcost 6
+			set rs_item_budgetcost 10
+			break
+		case RS_E_ATOMBOMB
+			qputs 1380 Atomic Bomb
+			qputs 1381 By researching this ammo type, we can
+			qputs 1382 produce and make it available to
+			qputs 1383 AMC field agents.
+			qputs 1384 ^1For use with the Zilla Missile Launcher.
+
+			set rs_item_picnum ATOMIC_BOMB_PICKUP
+			set rs_item_techcost 8
+			set rs_item_budgetcost 20
+			break
+		case RS_E_DUPMISSILES
+			qputs 1380 DUP Missiles
+			qputs 1381 Depleted Uranium Pellet missiles.
+			qputs 1382 By researching this ammo type, we can
+			qputs 1383 produce and make it available to
+			qputs 1384 AMC field agents.
+			qputs 1385 ^1+Armor piercing rockets.
+			qputs 1386 ^1For use with the Zilla Missile Launcher.
+
+			set rs_item_picnum DUP_MISSILES_PICKUP
+			set rs_item_techcost 10
+			set rs_item_budgetcost 15
+			break
+		case RS_E_40MMGRENADES
+			qputs 1380 40mm grenades
+			qputs 1381 By researching this ammo type, we can
+			qputs 1382 produce, make available, and pursue
+			qputs 1383 further ammo types.
+
+			set rs_item_picnum FORTYMM_NADES
+			set rs_item_techcost 4
+			set rs_item_budgetcost 10
+			break
+		case RS_E_CASELESS40MMGREN
+			qputs 1380 Caseless 40mm grenades
+			qputs 1381 By researching this ammo type, we can
+			qputs 1382 produce, make available, and pursue
+			qputs 1383 further ammo types.
+
+			set rs_item_picnum FORTYMM_CASELESS
+			set rs_item_techcost 4
+			set rs_item_budgetcost 10
+			break
+		case RS_E_HE40MMGREN
+			qputs 1380 40mm HE grenades
+			qputs 1381 By researching this ammo type, we can
+			qputs 1382 produce, make available, and pursue
+			qputs 1383 further ammo types.
+			qputs 1385 ^1High Explosive, increased damage.
+
+			set rs_item_picnum FORTYMM_SHELLS
+			set rs_item_techcost 5
+			set rs_item_budgetcost 20
+			break
+		case RS_E_MIA40MMGREN
+			qputs 1380 40mm MIA grenades
+			qputs 1381 This ammo fires the same kind of blast
+			qputs 1382 as the M.I.A. gun, for delaying enemies
+			qputs 1383 or saving civilians.
+
+			set rs_item_picnum 5463
+			set rs_item_techcost 4
+			set rs_item_budgetcost 4
+
+			set rs_item_dep1 RS_W_MIAGUN
+			set rs_item_dep1type RS_TAB_WEAPONS
+
+			set rs_item_dep2 RS_E_40MMGRENADES
+			set rs_item_dep2type RS_TAB_EQUIPMENT
+			break
+		case RS_E_CASELESS40MMSLUG
+			qputs 1380 Caseless 40mm slugs
+			qputs 1381 By researching this ammo type, we can
+			qputs 1382 produce, make available, and pursue
+			qputs 1383 further ammo types.
+			qputs 1385 ^1+ Armor piercing
+
+			set rs_item_picnum FORTYMM_SLUGS
+			set rs_item_techcost 4
+			set rs_item_budgetcost 5
+			break
+		case RS_E_40MMPLASMA_SH
+			qputs 1380 40mm Plasma Shells
+			qputs 1381 These fire powerful Cycloid Plasma;
+			qputs 1382 great at destroying armoured and
+			qputs 1383 supernatural enemies alike.
+
+			set rs_item_picnum 5476
+			set rs_item_techcost 10
+			set rs_item_budgetcost 20
+
+			set rs_item_dep1 RS_W_CYCLOIDPLASMA
+			set rs_item_dep1type RS_TAB_WEAPONS
+
+			set rs_item_dep2 RS_E_40MMGRENADES
+			set rs_item_dep2type RS_TAB_EQUIPMENT
+			break
+		case RS_E_HEATSINK
+			qputs 1380 Heat Sinks
+			qputs 1381 High-tech overheating weapons can use
+			qputs 1382 these; hit the gun's reload function
+			qputs 1383 to cool down instantly for use again.
+
+			set rs_item_picnum 6542
+			set rs_item_techcost 10
+			set rs_item_budgetcost 15
+			break
+		case RS_E_DRAGONBREATH_SH
+			qputs 1380 Dragon's Breath Shells
+			qputs 1381 By researching this ammo type, we can
+			qputs 1382 produce and make it available to
+			qputs 1383 AMC field agents.
+			qputs 1385 ^1+ Sets targets on fire
+
+			set rs_item_picnum DRAGONS_SHELLS
+			set rs_item_techcost 2
+			set rs_item_budgetcost 8
+			break
+		case RS_E_CASELESSELECTRO
+			qputs 1380 Caseless Electro rounds
+			qputs 1381 By researching this ammo type, we can
+			qputs 1382 produce and make it available to
+			qputs 1383 AMC field agents.
+			qputs 1385 ^1+ Electrocutes Targets
+
+			set rs_item_picnum FORTYMM_ELECTRO
+			set rs_item_techcost 4
+			set rs_item_budgetcost 12
+			break
+		case RS_E_CASELESSCRYO
+			qputs 1380 Caseless Cryo rounds
+			qputs 1381 By researching this ammo type, we can
+			qputs 1382 produce and make it available to
+			qputs 1383 AMC field agents.
+			qputs 1385 ^1+ Freezes Targets
+
+			set rs_item_picnum FORTYMM_CRYO
+			set rs_item_techcost 4
+			set rs_item_budgetcost 12
+			break
+		case RS_E_INCENDIARY45
+			qputs 1380 Incendiary .45 rounds
+			qputs 1381 By researching this ammo type, we can
+			qputs 1382 produce and make it available to
+			qputs 1383 AMC field agents.
+			qputs 1385 ^1+ Sets targets on fire
+
+			set rs_item_picnum INCEND_AMMO_DRUM
+			set rs_item_techcost 4
+			set rs_item_budgetcost 22
+			break
+		default
+			qputs 1380 oops! bugged
+			set rs_item_picnum 0
+			set rs_item_techcost 0
+			set rs_item_budgetcost 0
+			break
+	endswitch
+
+	set rs_item_researched EQUIPMENT_RESEARCH[ui_query_id] // 1 means found, 2 means researched, 3 means new project, 4 means MIA project
+ends
+
+defstate rs_personnel_defs
+	state rs_clear_defs
+
+	switch ui_query_id
+		case RS_P_AMCLASGUN
+			qputs 1380 AMC Troop Laser gun
+			qputs 1381 We can reverse-engineer technology
+			qputs 1382 from the Fascist's laser gun and make it
+			qputs 1383 available for all soldiers.
+
+			set rs_item_picnum 12971
+			set rs_item_techcost 1
+			set rs_item_budgetcost 4
+
+			set rs_item_miaenemy1 FASCIST
+			set rs_item_miaenemy1_cat BST_TAB_MERC
+			break
+		case RS_P_AMCCARAPACE
+			qputs 1380 AMC Troop carapace armour
+			qputs 1381 We can research the Merc's armour
+			qputs 1382 and produce a stronger form of protection
+			qputs 1383 for our own soldiers.
+
+			set rs_item_picnum 12942
+			set rs_item_techcost 1
+			set rs_item_budgetcost 3
+
+			set rs_item_miaenemy1 MERC
+			set rs_item_miaenemy1_cat BST_TAB_MERC
+			break
+		case RS_P_AMCXTMAG
+			qputs 1380 AMC Troop Extended Magazines
+			qputs 1381 We can produce larger and more efficient
+			qputs 1382 Magazines for AMC Troops' weapons, enabling them
+			qputs 1383 to sustain fire for longer periods of time.
+
+			set rs_item_picnum 13331
+			set rs_item_techcost 1
+			set rs_item_budgetcost 3
+
+			set rs_item_miaenemy1 ZSOLDIER
+			set rs_item_miaenemy1_cat BST_TAB_ZOMB
+			set rs_item_miaenemy2 ZSOLDIER2
+			set rs_item_miaenemy2_cat BST_TAB_ZOMB								  									 
+			break
+		case RS_P_ARMOURSTRENGTH
+			qputs 1380 Armour Strength
+			qputs 1381 We can increase the effectiveness of AMC
+			qputs 1382 soldier's armour against soft projectiles
+			qputs 1383 such as pistols and SMGs.
+			qputs 1390 TECH LVL NEEDED: THREE
+			qputs 1391 RESEARCH COST: 15k
+
+			set rs_item_picnum 22739
+			set rs_item_techcost 3
+			set rs_item_budgetcost 15
+
+			set rs_item_miaenemy1 PIGCOP
+			set rs_item_miaenemy1_cat BST_TAB_CYCLOID
+			set rs_item_miaenemy2 PIGCOP_RIOT
+			set rs_item_miaenemy2_cat BST_TAB_CYCLOID
+			set rs_item_miaenemy3 PIG_SF
+			set rs_item_miaenemy3_cat BST_TAB_CYCLOID
+			break
+		case RS_P_ANTITOXIN
+			qputs 1380 Anti-Toxin
+			qputs 1381 We can develop an anti-toxin upgrade
+			qputs 1382 for our agents medical kits that when
+			qputs 1383 used, will remove all poison from
+			qputs 1384 their bodies.
+
+			set rs_item_picnum 22498
+			set rs_item_techcost 2
+			set rs_item_budgetcost 8
+
+			set rs_item_miaenemy1 SPIDER2
+			set rs_item_miaenemy1_cat BST_TAB_MISC
+			break
+		case RS_P_CYBERTSHEATHING
+			qputs 1380 Cybertour Sheathing
+			qputs 1381 By lacing this rare material through
+			qputs 1382 A Cybernetic agent's ribcage, we can
+			qputs 1383 increase their health levels.
+			qputs 1384 Increases ALL Cybernetic agents'
+			qputs 1385 maximum health by 20.
+
+			set rs_item_picnum 13324
+			set rs_item_techcost 2
+			set rs_item_budgetcost 8
+
+			set rs_item_dep1 RS_B_UNIVERSALCONSTR
+			set rs_item_dep1type RS_TAB_BASE
+
+			set rs_item_miaenemy1 CYBERTOUR
+			set rs_item_miaenemy1_cat BST_TAB_DEMON
+			break
+		case RS_P_TELEPORTDEVICE
+			qputs 1380 Teleport Device
+			qputs 1381 We can recreate the Assault Major's
+			qputs 1382 personal phase-device for our AMC
+			qputs 1383 Agents. With this device, all AMC soldiers
+			qputs 1384 can teleport to the enemy or to you.
+
+			set rs_item_picnum 13339
+			set rs_item_techcost 4
+			set rs_item_budgetcost 20
+
+			set rs_item_dep1 RS_B_UNIVERSALCONSTR
+			set rs_item_dep1type RS_TAB_BASE
+
+			set rs_item_miaenemy1 LIZTROOP_BESTIARY_PAL10
+			set rs_item_miaenemy1_cat BST_TAB_CYCLOID
+			break
+		case RS_P_THERMALWEAVING
+			qputs 1380 Thermal-Weaving
+			qputs 1381 Using fibres derived from the Satyr
+			qputs 1382 creature's hair, we can create materials
+			qputs 1383 that are stronger against fire.
+			qputs 1385 ^1Fire damage taken reduced by 20%
+
+			set rs_item_picnum 13327
+			set rs_item_techcost 4
+			set rs_item_budgetcost 15
+
+			set rs_item_dep1 RS_B_UNIVERSALCONSTR
+			set rs_item_dep1type RS_TAB_BASE
+
+			set rs_item_miaenemy1 SATYR
+			set rs_item_miaenemy1_cat BST_TAB_DEMON
+			break
+		case RS_P_MSMULTIFCERAMICS
+			qputs 1380 MS-Corp Multi-function Ceramics
+			qputs 1381 A relatively new technology that MS-Corp
+			qputs 1382 was developing; by finishing this we can
+			qputs 1383 increase the strength of Mikko's body.
+			qputs 1385 ^1Increases Mikko's max health by 30.
+
+			set rs_item_picnum 13326
+			set rs_item_techcost 2
+			set rs_item_budgetcost 5
+			break
+		case RS_P_NUTRIENTSOLUTION
+			qputs 1380 Nutrient Solution
+			ife ep3_new_char 0
+			{
+				qputs 1381 Sang's body was weakened by his split from LeSang;
+				qputs 1382 utilising this solution we can bring his body
+				qputs 1383 back to its full pre-warlock endurance levels.
+				qputs 1385 ^1Increases Sang's max health by 25.
+			}
+			else
+			{
+				qputs 1381 With Sang having regained his previous strength,
+				qputs 1382 this solution can now instead benefit Snowfall,
+				qputs 1383 making him significantly more durable in battle.
+				qputs 1385 ^1Increases Snowfall's max health by 25.
+			}
+			set rs_item_picnum 13329
+			set rs_item_techcost 2
+			set rs_item_budgetcost 5
+
+			set rs_item_miaenemy1 FLESHWIZARD
+			set rs_item_miaenemy1_cat BST_TAB_DEMON
+			break
+		case RS_P_HNRECHARGINGBATTERY
+			qputs 1380 Heat/Night recharging battery
+			qputs 1381 When developed, this device will recharge an agent's
+			qputs 1382 heat- or night-vision equipment once its power has
+			qputs 1383 been depleted, up to about 1/5th of its full power.
+			qputs 1385 ^1NVG/Heat will recharge once empty.
+
+			set rs_item_picnum 13340
+			set rs_item_techcost 6
+			set rs_item_budgetcost 10
+			break
+		case RS_P_MEDICALCONVERTERKIT
+			qputs 1380 Medical Converter Kit
+			qputs 1381 When developed, this device can be used to convert
+			qputs 1382 any medical items discovered on the field into a form
+			qputs 1383 an agent can store in his personal first-aid kit. All
+			qputs 1384 unused health items are added to the first-aid kit.
+
+			set rs_item_picnum 13330
+			set rs_item_techcost 4
+			set rs_item_budgetcost 20
+			break
+		case RS_P_MEDICALEMERGENCYFOAM
+			qputs 1380 Medical Emergency Foam
+			qputs 1381 When developed, this device can be used to drain
+			qputs 1382 the charge from a wall-mounted medical charger
+			qputs 1383 into an agent's portable medical container.
+			qputs 1384 It also extinguishes an on-fire agent.
+
+			set rs_item_picnum 13548
+			set rs_item_techcost 6
+			set rs_item_budgetcost 30
+			break
+		case RS_P_BLASTPADDING
+			qputs 1380 Blast padding
+			qputs 1381 These changes to our agent's armour will
+			qputs 1382 reduce self-damage from their own attacks
+			qputs 1383 by half, meaning explosives can be used
+			qputs 1384 more liberally in emergencies.
+
+			set rs_item_picnum 13549
+			set rs_item_techcost 8
+			set rs_item_budgetcost 75
+
+			set rs_item_miaenemy1 Z_GRENADEL
+			set rs_item_miaenemy1_cat BST_TAB_ZOMB
+			break
+		case RS_P_ENHANCEDHEATSEEKERCARD
+			qputs 1380 Enhanced Heat-seeker card
+			qputs 1381 This project will enhance the heat-
+			qputs 1382 seeker card and double its usage,
+			qputs 1383 allowing the launcher to fire 10
+			qputs 1384 heat-seeking rockets.
+
+			set rs_item_picnum 13342
+			set rs_item_techcost 6
+			set rs_item_budgetcost 25
+
+			set rs_item_dep1 RS_E_HEATSEEKERCARD
+			set rs_item_dep1type RS_TAB_EQUIPMENT
+
+			set rs_item_miaenemy1 CYBERALIEN
+			set rs_item_miaenemy1_cat BST_TAB_CYCLOID
+			break
+		case RS_P_ABLATIVEARMOURPLATING
+			qputs 1380 Ablative Armour plating
+			qputs 1381 This project will allow us to
+			qputs 1382 upgrade AMC agents' armour so that
+			qputs 1383 any attack that destroys it will
+			qputs 1384 no longer bleed off into the agent's HP.
+
+			set rs_item_picnum 22501
+			set rs_item_techcost 6
+			set rs_item_budgetcost 15
+
+			set rs_item_miaenemy1 MERC2
+			set rs_item_miaenemy1_cat BST_TAB_MERC
+			break
+		case RS_P_SCUBADIVINGSKILLS
+			qputs 1380 Scuba Diving Skills
+			qputs 1381 Agents will be trained to breathe
+			qputs 1382 manually, and then use their scuba gear
+			qputs 1383 after they have run out of oxygen
+			qputs 1384 first, prolonging the Air tank.
+
+			set rs_item_picnum 22500
+			set rs_item_techcost 6
+			set rs_item_budgetcost 15
+			break
+		case RS_P_CYCLOIDJETPACKCONTR
+			qputs 1380 Cycloid Jetpack controls
+			qputs 1381 This device will allow agents
+			qputs 1382 to trigger their jetpacks by
+			qputs 1383 jumping in the air or whilst
+			qputs 1384 falling, allowing more fluid control.
+
+			set rs_item_picnum 22499
+			set rs_item_techcost 2
+			set rs_item_budgetcost 3
+
+			set rs_item_miaenemy1 LIZTROOP
+			set rs_item_miaenemy1_cat BST_TAB_CYCLOID
+			break
+		case RS_P_DETHAWINGKIT
+			qputs 1380 Dethawing Kit
+			qputs 1381 This upgrade for the first-aid kit
+			qputs 1382 will instantly warm an agent up
+			qputs 1383 after being hit by a freezing
+			qputs 1384 attack.
+
+			set rs_item_picnum 13341
+			set rs_item_techcost 4
+			set rs_item_budgetcost 15
+
+			set rs_item_miaenemy1 LIZTROOP_BESTIARY_PAL23
+			set rs_item_miaenemy1_cat BST_TAB_CYCLOID
+			break
+		case RS_P_DRONESECURITYCODES
+			qputs 1380 Drone Security Codes
+			qputs 1381 This will allow us to add basic IFF protocols
+			qputs 1382 to our PDUs; any kamikaze drones nearby will be
+			qputs 1383 briefly deterred, taking longer to self-detonate
+			qputs 1384 and harm the agent.
+
+			set rs_item_picnum 22738
+			set rs_item_techcost 4
+			set rs_item_budgetcost 20
+			set rs_item_miaenemy1 COMMANDER
+			set rs_item_miaenemy1_cat BST_TAB_CYCLOID
+			break
+		case RS_P_CULTROBETECH
+			qputs 1380 Cultist Robe Technology
+			qputs 1381 Despite appearances, the Cultist's robes are
+			qputs 1382 very well manufactured; we could use this tech
+			qputs 1383 to improve Merlijn's cape and Sang's robe so
+			qputs 1384 they are more flexible. This will in turn
+			qputs 1385 increase Merlijn and Sang's max stamina.
+
+			set rs_item_picnum 22736
+			set rs_item_techcost 1
+			set rs_item_budgetcost 4
+
+			set rs_item_miaenemy1 CULTIST
+			set rs_item_miaenemy1_cat BST_TAB_CULT
+			break
+		case RS_P_PES
+			qputs 1380 Personal Energy Shield
+			qputs 1381 The holy grail of personal protection; or at
+			qputs 1382 least the start of it. This topic will unlock
+			qputs 1383 and allow access to personal energy shields
+			qputs 1384 for our agents. The Tech will be extremely
+			qputs 1385 expensive to produce, but invaluable.
+
+			set rs_item_picnum 22734
+			set rs_item_techcost 20
+			set rs_item_budgetcost 150
+			set rs_item_fmvid 1342
+
+			set rs_item_dep1 RS_B_UNIVERSALCONSTR
+			set rs_item_dep1type RS_TAB_BASE
+
+			set rs_item_miaenemy1 ELITE_LIZMAN
+			set rs_item_miaenemy1_cat BST_TAB_CYCLOID
+			break
+		case RS_P_PESBATMK2
+			qputs 1380 Energy Shield Battery Mark 2
+			qputs 1381 This upgrade can increase the energy shield's
+			qputs 1382 capacitor to a maximum of 50. This only
+			qputs 1383 applies to the full vest variant; belt
+			qputs 1384 shields like Snowfall's won't be affected.
+
+			set rs_item_picnum 22733
+			set rs_item_techcost 22
+			set rs_item_budgetcost 75
+
+			set rs_item_dep1 RS_B_UNIVERSALCONSTR
+			set rs_item_dep1type RS_TAB_BASE
+
+			set rs_item_dep2 RS_P_PES
+			set rs_item_dep2type RS_TAB_PERSONNEL
+
+			// the mini-boss variant fought at the pyramid in rainforest
+			// TODO BST GORILLA MINIBOSS PAL (to check which)
+			set rs_item_miaenemy1 GORILLA_BESTIARY_PAL13
+			set rs_item_miaenemy1_cat BST_TAB_MISC
+			break
+		case RS_P_PESFRICTIONGEN
+			qputs 1380 PES Friction Generator
+			qputs 1381 Using recovered tech from the Charon facility,
+			qputs 1382 this tech will use motion produced by an agent
+			qputs 1383 to restore depleted shields. The faster
+			qputs 1384 you move, the quicker they'll kick back in
+			qputs 1385 and recharge.
+
+			set rs_item_picnum 22732
+			set rs_item_techcost 22
+			set rs_item_budgetcost 75
+
+			set rs_item_dep1 RS_B_UNIVERSALCONSTR
+			set rs_item_dep1type RS_TAB_BASE
+
+			set rs_item_dep2 RS_P_PES
+			set rs_item_dep2type RS_TAB_PERSONNEL
+			break
+		case RS_P_SNAKESKINBOOTS
+			qputs 1380 Snakeskin Boots
+			qputs 1381 These giant cobras have quite the luxurious
+			qputs 1382 skins; so luxurious in fact that we could make
+			qputs 1383 new shoes for Rusty that are much more
+			qputs 1384 flexible...and just as stylish (...I guess?)
+			qputs 1386 ^1Increases Rusty's max stamina
+
+			set rs_item_picnum 22731
+			set rs_item_techcost 2
+			set rs_item_budgetcost 5
+
+			set rs_item_miaenemy1 COBRA
+			set rs_item_miaenemy1_cat BST_TAB_EGYPT
+			break
+		case RS_P_ACIDPROTECTION
+			qputs 1380 Acid Protection
+			qputs 1381 The Protector Drone's acidic blood is quite
+			qputs 1382 dangerous, but with this research we can
+			qputs 1383 treat our agent's foot protection gear
+			qputs 1384 to be more durable and last longer.
+			qputs 1386 ^1Increases Protection Boot duration by 50%.
+
+			set rs_item_picnum 22737
+			set rs_item_techcost 2
+			set rs_item_budgetcost 5
+
+			set rs_item_miaenemy1 NEWBEAST
+			set rs_item_miaenemy1_cat BST_TAB_CYCLOID
+			break
+		case RS_P_IMPROXYGENCIRC
+			qputs 1380 Improved Oxygen Circulator
+			qputs 1381 Using Cycloid Tech, we can improve the oxygen
+			qputs 1382 capacity on our own space suits, enabling
+			qputs 1383 agents to store more and explore zero-g
+			qputs 1384 environments for longer.
+			qputs 1386 ^1Increases Space-suit 02 capacity
+
+			set rs_item_picnum 22726
+			set rs_item_techcost 12
+			set rs_item_budgetcost 15
+
+			set rs_item_miaenemy1 SPACE_LIZTROOP
+			set rs_item_miaenemy1_cat BST_TAB_CYCLOID
+			break
+		case RS_P_JETPACKEFFICMOD
+			qputs 1380 Jetpack Efficiency module
+			qputs 1381 The mecha-lizard's jetpack is rather
+			qputs 1382 ingenious, allowing such a huge creature
+			qputs 1383 to move around so quickly. We can use this
+			qputs 1384 tech to improve our jetpack's efficiency.
+			qputs 1386 ^1Doubles jetpack capacity.
+
+			set rs_item_picnum 22725
+			set rs_item_techcost 14
+			set rs_item_budgetcost 15
+
+			set rs_item_miaenemy1 LIZBOSS
+			set rs_item_miaenemy1_cat BST_TAB_CYCLOID
+			break
+		case RS_P_IMPRSHIELDMATERIAL
+			qputs 1380 Improved Shield materials
+			qputs 1381 Surprisingly enough, the Ogre's armour
+			qputs 1382 is extremely well constructed; we can
+			qputs 1383 reverse engineer the smithing techniques
+			qputs 1384 on the shield to improve Merlijn's.
+			qputs 1386 ^1Increases Shield Durability
+			qputs 1390 TECH LVL NEEDED: FOURTEEN
+			qputs 1391 RESEARCH COST: 25k
+
+			set rs_item_picnum 22724
+			set rs_item_techcost 14
+			set rs_item_budgetcost 25
+
+			set rs_item_miaenemy1 OGRE
+			set rs_item_miaenemy1_cat BST_TAB_NECRO
+			break
+		case RS_P_MUSCLESKIN
+			qputs 1380 Muscle Skin
+			qputs 1381 The MJ12 Assassin's suit is an incredibly
+			qputs 1382 complex woven mesh of carbon fibre and
+			qputs 1383 electrical circuits; we can drastically
+			qputs 1384 improve our agents mobility with this tech!
+			qputs 1386 ^1Adds side dodge and improves heavy weapon handling.
+
+			set rs_item_picnum 22718
+			set rs_item_techcost 22
+			set rs_item_budgetcost 75
+
+			set rs_item_miaenemy1 MJ12_ASSASSIN
+			set rs_item_miaenemy1_cat BST_TAB_MJ12
+			break
+		case RS_P_AMC209
+			qputs 1380 AMC-209
+			qputs 1381 Utilising Engineer's advanced tech,
+			qputs 1382 we can build our own custom sentry bots.
+			qputs 1383 Heavily armoured and utilising engineer weaponry,
+			qputs 1384 they will provide invaluable offensive support.
+
+			set rs_item_picnum 22690
+			set rs_item_techcost 30
+			set rs_item_budgetcost 75
+			set rs_item_fmvid 1345
+
+			set rs_item_dep1 RS_B_ENGITECH
+			set rs_item_dep1type RS_TAB_BASE
+
+			set rs_item_dep2 RS_W_ENGSMG
+			set rs_item_dep2type RS_TAB_WEAPONS
+
+			set rs_item_dep3 RS_B_NEWTRANSPORT
+			set rs_item_dep3type RS_TAB_BASE
+			break
+		case RS_P_ADVAMCSOLDIERS
+			qputs 1380 Advanced AMC Soldiers
+			qputs 1381 Combining all of our research and our
+			qputs 1382 knowledge of the Engineers, we can upgrade
+			qputs 1383 our AMC soldiers with bleeding edge tech,
+			qputs 1384 turning each one into a veritable elite
+			qputs 1385 super soldier.
+
+			set rs_item_picnum 22708
+			set rs_item_techcost 30
+			set rs_item_budgetcost 75
+			set rs_item_fmvid 1346
+
+			set rs_item_dep1 RS_B_ENGITECH
+			set rs_item_dep1type RS_TAB_BASE
+
+			set rs_item_dep2 RS_B_NEWTRANSPORT
+			set rs_item_dep2type RS_TAB_BASE
+			break
+		case RS_P_EMERGENCYSHIELDTECH
+			qputs 1380 Emergency Shield Tech
+			qputs 1381 This tech upgrades medikits to have
+			qputs 1382 an emergency shield generator, that will
+			qputs 1383 immediately restart shield generation when
+			qputs 1384 using a medikit.
+			qputs 1386 ^1Shield will recharge when medikit used.
+
+			set rs_item_picnum 29338
+			set rs_item_techcost 30
+			set rs_item_budgetcost 75
+			break
+		case RS_P_ORCBANDOLIER
+			qputs 1380 Explosive Bandolier
+			qputs 1381 The Orcs had a unique method for carrying
+			qputs 1382 their black powder bombs; we can emulate
+			qputs 1383 this and allow agents to carry more hand
+			qputs 1384 held explosives
+			qputs 1386 ^1Grenade capacity 50% increase
+
+			set rs_item_picnum 29368
+			set rs_item_techcost 5
+			set rs_item_budgetcost 15
+
+			set rs_item_miaenemy1 ORC
+			set rs_item_miaenemy1_cat BST_TAB_NECRO
+			break
+		case RS_P_ARCHERQUIVER
+			qputs 1380 Archer Quiver
+			qputs 1381 The Archers of Naaldir's forces have a
+			qputs 1382 very well made quiver; we can copy their
+			qputs 1383 techniques and improve our agent's arrow
+			qputs 1384 or bolt capacity
+			qputs 1386 ^1Arrow/Bolt capacity 50% increase
+
+			set rs_item_picnum 29369
+			set rs_item_techcost 5
+			set rs_item_budgetcost 15
+
+			set rs_item_miaenemy1 ARCHER
+			set rs_item_miaenemy1_cat BST_TAB_NECRO
+			break
+		case RS_P_VISIONMODE
+			qputs 1380 Heat/Night combi-goggles
+			qputs 1381 The Black Ops assassins have advanced
+			qputs 1382 goggles that can toggle between heat and
+			qputs 1383 night vision; we can replicate this in
+			qputs 1384 our own goggles now.
+			qputs 1386 ^1Hold use goggle/item key to toggle mode
+
+			set rs_item_picnum 26161
+			set rs_item_techcost 15
+			set rs_item_budgetcost 45
+
+			// set rs_item_miaenemy1 BLACK_OPS_ASS
+			// set rs_item_miaenemy1_cat BST_TAB_MERC
+			break
+		case RS_P_TRIAD_INTEL
+			qputs 1380 Triad Intel
+			qputs 1381 Detailed workings on numerous criminal
+			qputs 1382 networks; we can send this off to the
+			qputs 1383 relevant agencies and earn a one-time
+			qputs 1384 cash bounty.
+
+			set rs_item_picnum 13480
+			set rs_item_techcost 1
+			set rs_item_budgetcost -25
+
+			set rs_item_miaenemy1 TRIAD
+			set rs_item_miaenemy1_cat BST_TAB_SHADOW
+			break
+		case RS_P_MJ12_COMMS
+			qputs 1380 Upgraded Squad Command
+			qputs 1381 We can upgrade our squad command radios
+			qputs 1382 with MJ12 Tech; this will allow all
+			qputs 1383 agents to command one additional ally.
+
+			set rs_item_picnum 12986
+			set rs_item_techcost 15
+			set rs_item_budgetcost 50
+
+			set rs_item_miaenemy1 MJ12_TROOP
+			set rs_item_miaenemy1_cat BST_TAB_MJ12
+			break
+		case RS_P_PITFIEND_COMMS
+			qputs 1380 Advanced Squad Command
+			qputs 1381 We can upgrade our squad command radios
+			qputs 1382 with Pitfiend tech; this will allow all
+			qputs 1383 agents to command one additional ally.
+
+			set rs_item_picnum 13501
+			set rs_item_techcost 20
+			set rs_item_budgetcost 60
+
+			set rs_item_dep1 RS_P_MJ12_COMMS
+			set rs_item_dep1type RS_TAB_PERSONNEL
+
+			set rs_item_miaenemy1 PITFIEND
+			set rs_item_miaenemy1_cat BST_TAB_MISC
+			break
+		case RS_P_NAZI_INTEL
+			qputs 1380 Nazi Intel
+			qputs 1381 Detailed workings on numerous Nazi and
+			qputs 1382 white nationalist groups; we can pass
+			qputs 1383 this off to the relevant agencies and
+			qputs 1384 earn a one-time cash bounty...and shut
+			qputs 1385 down some more fascist scum too.
+
+			set rs_item_picnum 13480
+			set rs_item_techcost 1
+			set rs_item_budgetcost -50
+
+			set rs_item_miaenemy1 NAZI
+			set rs_item_miaenemy1_cat BST_TAB_MISC
+			break
+		case RS_P_MAEPH_CHARGE
+			qputs 1380 Maephisto Charging Device
+			qputs 1381 The Maephisto's beam actually charges
+			qputs 1382 very fast for the power it contains;
+			qputs 1383 we can use this tech to increase our
+			qputs 1384 own agent's weapon charging systems.
+
+			set rs_item_picnum 14495
+			set rs_item_techcost 20
+			set rs_item_budgetcost 40
+
+			set rs_item_miaenemy1 MAEPHISTO
+			set rs_item_miaenemy1_cat BST_TAB_DEMON
+			break
+		case RS_P_BLOOD_STORAGE
+			qputs 1380 Paradigm Blood Storage
+			qputs 1381 The Paradigm Vampires have advanced
+			qputs 1382 blood storage units; we can use this
+			qputs 1383 tech to increase the base max capacity
+			qputs 1384 of our agent's first aid kits by 50.
+
+			set rs_item_picnum 18743
+			set rs_item_techcost 15
+			set rs_item_budgetcost 30
+
+			set rs_item_miaenemy1 PE_ELDER
+			set rs_item_miaenemy1_cat BST_TAB_PARADIGM
+			break
+		case RS_P_PARAD_INTEL
+			qputs 1380 Paradigm Intel
+			qputs 1381 Information on various Paradigm cells;
+			qputs 1382 we can pass this information off to
+			qputs 1383 the relevant agencies and earn a one
+			qputs 1384 time cash bounty.
+
+			set rs_item_picnum 13480
+			set rs_item_techcost 1
+			set rs_item_budgetcost -30
+
+			set rs_item_miaenemy1 PE_TROOP
+			set rs_item_miaenemy1_cat BST_TAB_PARADIGM
+			break
+		case RS_P_ENHANCED_TARG
+			qputs 1380 Enhanced AI Targeting
+			qputs 1381 This project will double the
+			qputs 1382 ammo efficiency of our agent's
+			qputs 1383 mechanical-based turrets.
+
+			set rs_item_picnum 17627
+			set rs_item_techcost 8
+			set rs_item_budgetcost 30
+
+			set rs_item_miaenemy1 CYBERCULTIST
+			set rs_item_miaenemy1_cat BST_TAB_MISC
+			break
+	endswitch
+
+	set rs_item_researched PERSONNEL_RESEARCH[ui_query_id] // 1 means found, 2 means researched, 3 means new project, 4 means MIA project
+ends
+
+defstate rs_base_defs
+	state rs_clear_defs
+
+	switch ui_query_id
+		case RS_B_PARANORMAL
+			qputs 1380 Paranormal Research Room
+			qputs 1381 Using what we've learnt so far, we can
+			qputs 1382 build a library ideal for supernatural
+			qputs 1383 research and projects.
+
+			set rs_item_picnum 12130
+			set rs_item_techcost 1
+			set rs_item_budgetcost 10
+			break
+		case RS_B_RECREATIONAL
+			qputs 1380 AMC Base recreational area
+			qputs 1381 We can create a recreational and
+			qputs 1382 relaxation area utilising data
+			qputs 1383 that has been recovered.
+
+			set rs_item_picnum 12131
+			set rs_item_techcost 1
+			set rs_item_budgetcost 10
+			break
+		case RS_B_UNIVERSALCONSTR
+			qputs 1380 Universal Constructor
+			qputs 1381 With this controversial technology we can
+			qputs 1382 build Universal Constructors for the AMC base
+			qputs 1383 enabling us to produce rare materials for
+			qputs 1384 use in research.
+
+			set rs_item_picnum 12132
+			set rs_item_techcost 2
+			set rs_item_budgetcost 10
+			break
+		case RS_B_DOJO
+			qputs 1380 Dojo
+			qputs 1381 By building this small training room, we
+			qputs 1382 can work on and research new martial arts
+			qputs 1383 techniques for agents.
+
+			set rs_item_picnum 12199
+			set rs_item_techcost 1
+			set rs_item_budgetcost 10
+			break
+		case RS_B_PRECOG
+			qputs 1380 Precog Brain
+			qputs 1381 We can create our own small-scale
+			qputs 1382 precog brain; this will give us
+			qputs 1383 information about enemy composition,
+			qputs 1384 potential equipment, and other
+			qputs 1385 useful data about missions.
+
+			set rs_item_picnum 22496
+			set rs_item_techcost 3
+			set rs_item_budgetcost 10
+			set rs_item_fmvid 1343
+			break
+		case RS_B_SCANMODULE
+			qputs 1380 Improved Scanning module
+			qputs 1381 This upgrade will grant a percentage
+			qputs 1382 increase of our current tech level x2
+			qputs 1383 to Polymers gained from using the
+			qputs 1384 PDU scanning device.
+
+			set rs_item_picnum 10330
+			set rs_item_techcost 5
+			set rs_item_budgetcost 10
+
+			set rs_item_miaenemy1 ZSCIEN
+			set rs_item_miaenemy1_cat BST_TAB_ZOMB
+
+			break
+		case RS_B_NEWTRANSPORT
+			qputs 1380 New Transport Craft
+			qputs 1381 A new craft, with advanced AA defences
+			qputs 1382 and a larger carrying capacity for our
+			qputs 1383 AMC troops. Utilises many new technologies
+			qputs 1384 we've researched.
+
+			set rs_item_picnum 22497
+			set rs_item_techcost 10
+			set rs_item_budgetcost 30
+			set rs_item_fmvid 1340
+
+			set rs_item_dep1 RS_P_ENHANCEDHEATSEEKERCARD
+			set rs_item_dep1type RS_TAB_PERSONNEL
+
+			set rs_item_dep2 RS_W_CYCLOIDPLASMA
+			set rs_item_dep2type RS_TAB_WEAPONS
+			break
+		case RS_B_ENGITECH
+			qputs 1380 Engineer Systems
+			qputs 1381 We can recreate the Engineer's technology
+			qputs 1382 to a certain degree, and utilise it to
+			qputs 1383 upgrade our systems dramatically.
+			qputs 1384 Will grant +10 tech levels.
+
+			set rs_item_picnum 12128
+			set rs_item_techcost 20
+			set rs_item_budgetcost 50
+
+			set rs_item_dep1 RS_B_UNIVERSALCONSTR
+			set rs_item_dep1type RS_TAB_BASE
+			break
+	endswitch
+
+	set rs_item_researched BASE_RESEARCH[ui_query_id] // 1 means found, 2 means researched, 3 means new project, 4 means MIA project
+ends
+
+defstate rs_mystical_defs
+	state rs_clear_defs
+
+	switch ui_query_id
+		case RS_M_MINDSHIELD_LVL1
+			qputs 1380 Mind Shield LVL 1
+			qputs 1381 We can train agents with supernatural powers to
+			qputs 1382 focus mental energy and generate a weak spirit
+			qputs 1383 shield up to 10.
+
+			set rs_item_picnum 13328
+			set rs_item_techcost 1
+			set rs_item_budgetcost 5
+
+			set rs_item_miaenemy1 OCTABRAIN
+			set rs_item_miaenemy1_cat BST_TAB_CYCLOID
+			break
+		case RS_M_MINDSHIELD_LVL2
+			qputs 1380 Mind Shield LVL 2
+			qputs 1381 We can train agents with supernatural powers to
+			qputs 1382 focus mental energy and generate a weak spirit
+			qputs 1383 shield up to 15.
+
+			set rs_item_picnum 13334
+			set rs_item_techcost 4
+			set rs_item_budgetcost 10
+
+			set rs_item_dep1 RS_M_MINDSHIELD_LVL1
+			set rs_item_dep1type RS_TAB_MYSTIC
+
+			set rs_item_miaenemy1 SORCERER
+			set rs_item_miaenemy1_cat BST_TAB_NECRO
+			break
+		case RS_M_MINDSHIELD_LVL3
+			qputs 1380 Mind Shield LVL 3
+			qputs 1381 We can train agents with supernatural powers to
+			qputs 1382 focus mental energy and generate a weak spirit
+			qputs 1383 shield up to 20.
+
+			set rs_item_picnum 13335
+			set rs_item_techcost 6
+			set rs_item_budgetcost 15
+
+			set rs_item_dep1 RS_M_MINDSHIELD_LVL2
+			set rs_item_dep1type RS_TAB_MYSTIC
+
+			set rs_item_miaenemy1 LOST
+			set rs_item_miaenemy1_cat BST_TAB_CULT
+			set rs_item_miaenemy2 DARKAVATAR
+			set rs_item_miaenemy2_cat BST_TAB_NECRO
+			break
+		case RS_M_SIRENCURSEPROTECT
+			qputs 1380 Siren's Curse Protection
+			qputs 1381 Sang can create a simple enchantment for
+			qputs 1382 agents that will reduce the duration of a
+			qputs 1383 Siren's curse effect by about a third.
+
+			set rs_item_picnum 22735
+			set rs_item_techcost 8
+			set rs_item_budgetcost 25
+
+			set rs_item_miaenemy1 SIREN
+			set rs_item_miaenemy1_cat BST_TAB_EGYPT
+			break
+		case RS_M_IMPROVEDFIRSTAID
+			qputs 1380 Improved First-aid Speed
+			qputs 1381 The Anubis' delicate wrappings have unique
+			qputs 1382 enchantments that preserve the body; we can
+			qputs 1383 transfer this to our first-aid kits.
+			qputs 1385 ^1Doubles healing kit speed.
+
+			set rs_item_picnum 22717
+			set rs_item_techcost 8
+			set rs_item_budgetcost 10
+
+			set rs_item_miaenemy1 ANUBIS_MUMMY
+			set rs_item_miaenemy1_cat BST_TAB_EGYPT
+			break
+		case RS_M_EVALOCKWOOD
+			qputs 1380 Magic Weaponry
+			qputs 1381 With Eva's help, we can now
+			qputs 1382 use her skills to add magical
+			qputs 1383 weaponry to the loadout list.
+
+			set rs_item_picnum 17628
+			set rs_item_techcost 4
+			set rs_item_budgetcost 5
+			break
+		case RS_M_LILITH
+			ife SAVED_LILITH 1
+			{
+				qputs 1380 Lilith
+				qputs 1381 With Eva's help, we can convince
+				qputs 1382 the EDF to release Lilith into Eva's
+				qputs 1383 custody; her paranormal knowledge will
+				qputs 1384 allow us to use abyss weapons.
+
+				set rs_item_picnum 17629
+				set rs_item_techcost 6
+				set rs_item_budgetcost 10
+			}
+			else
+			{
+				qputs 1380 WARNING PARACAUSAL ANOMALY
+				qputs 1381 i thought we saved her???? help us
+				qputs 1382 theyre killing everyone and nothing
+				qputs 1383 we use against them is workin
+			}
+			break
+		case RS_M_BEHOLDER
+			qputs 1380 Beholder gaze
+			qputs 1381 We can enchant our agents with
+			qputs 1382 protections to break the Beholder's
+			qputs 1383 curse instantly if they get far
+			qputs 1384 away enough.
+
+			set rs_item_picnum 29336
+			set rs_item_techcost 15
+			set rs_item_budgetcost 25
+
+			set rs_item_miaenemy1 BEHOLDER
+			set rs_item_miaenemy1_cat BST_TAB_NECRO
+			break
+		case RS_M_TROLL
+			qputs 1380 Troll Ground Pound
+			qputs 1381 Merlijn will be able to unleash a
+			qputs 1382 huge blast of flame when falling
+			qputs 1383 and landing from height. Hit the
+			qputs 1384 melee key to trigger it.
+
+			set rs_item_picnum 29337
+			set rs_item_techcost 15
+			set rs_item_budgetcost 25
+
+			set rs_item_miaenemy1 TROLL
+			set rs_item_miaenemy1_cat BST_TAB_NECRO
+			break
+		case RS_M_SHADE
+			qputs 1380 Enemy tracking protection
+			qputs 1381 By thinking positive thoughts,
+			qputs 1382 we can teach Agents to make it
+			qputs 1383 harder for teleporting enemies
+			qputs 1384 to track them.
+
+			set rs_item_picnum 10385
+			set rs_item_techcost 10
+			set rs_item_budgetcost 25
+
+			set rs_item_miaenemy1 SHADE
+			set rs_item_miaenemy1_cat BST_TAB_DEMON
+			break
+		case RS_M_BRUISER
+			qputs 1380 Abyssal Fire
+			qputs 1381 Lilith can enchant our flame
+			qputs 1382 based weaponry to deal extra
+			qputs 1383 damage over time to enemies
+			qputs 1384 that are engulfed.
+
+			set rs_item_picnum 10302
+			set rs_item_techcost 15
+			set rs_item_budgetcost 30
+
+			set rs_item_dep1 RS_M_LILITH
+			set rs_item_dep1type RS_TAB_MYSTIC
+
+			set rs_item_miaenemy1 BRUISER
+			set rs_item_miaenemy1_cat BST_TAB_DEMON
+			break
+	endswitch
+
+	set rs_item_researched MYSTICAL_RESEARCH[ui_query_id] // 1 means found, 2 means researched, 3 means new project, 4 means MIA project
+ends
+
+defstate rs_dojo_defs
+	state rs_clear_defs
+
+	switch ui_query_id
+		case RS_D_KOSHIELDING
+			qputs 1380 Ki shielding
+			qputs 1381 Using the newly constructed AMC Dojo,
+			qputs 1382 AMC agents can be trained to focus
+			qputs 1383 mental energy and protect themselves
+			qputs 1384 whilst using special melee attacks,
+			qputs 1385 taking only 50% damage.
+
+			ifge VOLUME 3
+			{
+				qputs 1386 Kagura already knew these techniques,
+				qputs 1387 but now gains protection whilst using
+				qputs 1388 melee weapons as well.
+			}
+
+			set rs_item_picnum 13333
+			set rs_item_techcost 6
+			set rs_item_budgetcost 15
+			break
+		case RS_D_ADVSWORDTECHNIQUES
+			qputs 1380 Advanced Sword Techniques
+			qputs 1381 With intense training and concentration,
+			qputs 1382 an Agent can actually deflect bullets
+			qputs 1383 whilst wielding a Katana; as long as
+			qputs 1384 they're facing the attack.
+			qputs 1386 ^1Deflects low calibre bullets
+
+			set rs_item_picnum 13343
+			set rs_item_techcost 8
+			set rs_item_budgetcost 25
+			break
+		case RS_D_ACUPRESSURE
+			qputs 1380 Acupressure
+			qputs 1381 A simple class can teach our agents
+			qputs 1382 the basics of Acupressure, opening
+			qputs 1383 the way for more advanced techniques.
+
+			set rs_item_picnum 13344
+			set rs_item_techcost 1
+			set rs_item_budgetcost 4
+			break
+		case RS_D_RIPPERHEART
+			qputs 1380 Ripper Heart
+			qputs 1381 Utilising Acupressure with detailed
+			qputs 1382 knowledge of this organ, Agents can
+			qputs 1383 create a supernatural clone of them
+			qputs 1384 -selves for a limited time.
+			qputs 1386 ^1Allows use of Ripper heart
+
+			set rs_item_picnum 13346
+			set rs_item_techcost 10
+			set rs_item_budgetcost 15
+
+			set rs_item_dep1 RS_D_ACUPRESSURE
+			set rs_item_dep1type RS_TAB_DOJO
+
+			set rs_item_miaenemy1 RIPPER
+			set rs_item_miaenemy1_cat BST_TAB_SHADOW
+			break
+		case RS_D_MAMANOHEART // not implemented?
+			qputs 1380 Mamano Rampage
+			qputs 1381 Killing a Mamano with a Katana
+			qputs 1382 will trigger a burst of Sword
+			qputs 1383 Rampage.
+			qputs 1386 ^1Will last for 10 seconds.
+
+			set rs_item_picnum 13346
+			set rs_item_techcost 10
+			set rs_item_budgetcost 15
+
+			set rs_item_dep1type RS_TAB_DOJO
+
+			set rs_item_miaenemy1 MAMANO
+			set rs_item_miaenemy1_cat BST_TAB_SHADOW
+			break
+		case RS_D_GUARDIANHEAD
+			qputs 1380 Guardian Head
+			qputs 1381 Utilising Acupressure with detailed
+			qputs 1382 knowledge of the Guardian's anatomy,
+			qputs 1383 Agents can utilise two more deadly
+			qputs 1384 fire attacks.
+			qputs 1386 ^1Allows 2 more modes of fire
+
+			set rs_item_picnum 13345
+			set rs_item_techcost 10
+			set rs_item_budgetcost 15
+
+			set rs_item_dep1 RS_D_ACUPRESSURE
+			set rs_item_dep1type RS_TAB_DOJO
+
+			set rs_item_miaenemy1 GUARDIAN
+			set rs_item_miaenemy1_cat BST_TAB_SHADOW
+			break
+		case RS_D_NINJAROLL
+			qputs 1380 Ninja Roll
+			qputs 1381 By Crouching before impact, an Agent
+			qputs 1382 can soften the blow by performing
+			qputs 1383 an acrobatic roll. Don't do this near
+			qputs 1384 cliff edges though.
+			qputs 1386 ^1Allows falling Ninja Roll
+
+			set rs_item_picnum 17402
+			set rs_item_techcost 2
+			set rs_item_budgetcost 10
+			set rs_item_fmvid 1341
+
+			set rs_item_miaenemy1 NINJA
+			set rs_item_miaenemy1_cat BST_TAB_SHADOW
+			break
+		case RS_D_BESERKERATK
+			qputs 1380 Berserker Attack
+
+			ifand CHAR_APP 4
+			{
+				qputs 1381 This research will now reduce
+				qputs 1382 the cooldown for when Merlijn
+				qputs 1383 can go berserk again by 10
+				qputs 1384 seconds.
+			}
+			else
+			{
+				qputs 1381 This research will strengthen
+				qputs 1382 Merlijn when he's badly injured.
+				qputs 1383 ^1When Merlijn drops below 75HP
+				qputs 1384 ^1He will gain unlimited sprint
+				qputs 1386 ^1and 66% damage resistance
+				qputs 1387 ^1for 15 seconds; cooldown is
+				qputs 1388 ^130 more seconds after
+			}
+
+			set rs_item_picnum 11172
+			set rs_item_techcost 6
+			set rs_item_budgetcost 25
+
+			set rs_item_miaenemy1 BERSERKER
+			set rs_item_miaenemy1_cat BST_TAB_NECRO
+			break
+	endswitch
+
+	set rs_item_researched MELEE_RESEARCH[ui_query_id] // 1 means found, 2 means researched, 3 means new project, 4 means MIA project
+ends
+
+// Handle unlocks on research of the given item.
+// OUTPUT up to 4 unlocks
+// Specify the id and the type (weapon, equipment, personnel, etc)
+var rs_unlock1 0 0
+var rs_unlock2 0 0
+var rs_unlock3 0 0
+var rs_unlock4 0 0
+var rs_unlock1type -1 0
+var rs_unlock2type -1 0
+var rs_unlock3type -1 0
+var rs_unlock4type -1 0
+defstate rs_postresearch_unlock // This is called from the UI and will always pertain to the 2 fields above
+	set RETURN 0
+	set rs_unlock1 0
+	set rs_unlock2 0
+	set rs_unlock3 0
+	set rs_unlock4 0
+	set rs_unlock1type -1
+	set rs_unlock2type -1
+	set rs_unlock3type -1
+	set rs_unlock4type -1
+
+	/*
+	 * ======================================
+	 * WEAPONS RESEARCH UNLOCKS
+	 * ======================================
+	 */
+	ife ui_tab RS_TAB_WEAPONS
+	{
+		// Handle weapon unlocks
+		switch ui_item
+			case RS_W_MIAGUN
+				ife EQUIPMENT_RESEARCH[RS_E_MIA40MMGREN] 0 // MIA shells topic not unlocked?
+				{
+					ife EQUIPMENT_RESEARCH[RS_E_40MMGRENADES] 2 // if 40mm cased shells is researched
+					{
+						set rs_unlock1 RS_E_MIA40MMGREN
+						set rs_unlock1type RS_TAB_EQUIPMENT
+						setarray EQUIPMENT_RESEARCH[rs_unlock1] 3 // unlock the research
+						set RETURN 1
+					}
+				}
+				break
+			case RS_W_BATLCHAINGUN
+				ife WEAPONS_RESEARCH[RS_W_RIOTGUNMINI] 0 // Riotgun-minigun topic not unlocked?
+				{
+					ife WEAPONS_FOUND[12] 1 // if riotgun found
+					{
+						set rs_unlock1 RS_W_RIOTGUNMINI
+						set rs_unlock1type RS_TAB_WEAPONS
+						setarray WEAPONS_RESEARCH[rs_unlock1] 3 // unlock the research
+						set RETURN 1
+					}
+				}
+				break
+			case RS_W_DEVASFRAMEW
+				ife WEAPONS_RESEARCH[RS_W_RIOTGUNMINIMK2] 0 // Riotgun-minigun mk2 topic not unlocked?
+				{
+					ife WEAPONS_RESEARCH[RS_W_RIOTGUNMINI] 2 // if RG minigun is researched
+					{
+						set rs_unlock1 RS_W_RIOTGUNMINIMK2
+						set rs_unlock1type RS_TAB_WEAPONS
+						setarray WEAPONS_RESEARCH[rs_unlock1] 3 // unlock the research
+						set RETURN 1
+					}
+				}
+				break
+			case RS_W_RIOTGUNMINI
+				ife WEAPONS_RESEARCH[RS_W_RIOTGUNMINIMK2] 0 // Riotgun-minigun mk2 topic not unlocked?
+				{
+					ife WEAPONS_RESEARCH[RS_W_DEVASFRAMEW] 2 // if juggernaut weaponry is researched
+					{
+						set rs_unlock1 RS_W_RIOTGUNMINIMK2
+						set rs_unlock1type RS_TAB_WEAPONS
+						setarray WEAPONS_RESEARCH[rs_unlock1] 3 // unlock the research
+						set RETURN 1
+					}
+				}
+				break
+			case RS_E_40MMGRENADES
+				ife EQUIPMENT_RESEARCH[RS_E_40MMPLASMA_SH] 0 // Plasma shells topic not unlocked?
+				{
+					ife EQUIPMENT_RESEARCH[RS_W_CYCLOIDPLASMA] 2 // if 40mm cased shells is researched
+					{
+						set rs_unlock1 RS_E_40MMPLASMA_SH
+						set rs_unlock1type RS_TAB_EQUIPMENT
+						setarray EQUIPMENT_RESEARCH[rs_unlock1] 3 // unlock the research
+						set RETURN 1
+					}
+				}
+				break
+			case RS_W_CYCLOIDPLASMA
+				ife EQUIPMENT_RESEARCH[RS_E_40MMPLASMA_SH] 0 // Plasma shells topic not unlocked?
+				{
+					ife EQUIPMENT_RESEARCH[RS_E_40MMGRENADES] 2 // if 40mm cased shells is researched
+					{
+						set rs_unlock1 RS_E_40MMPLASMA_SH
+						set rs_unlock1type RS_TAB_EQUIPMENT
+						setarray EQUIPMENT_RESEARCH[rs_unlock1] 3 // unlock the research
+						set RETURN 1
+					}
+				}
+				break
+			default
+				break
+		endswitch
+	}
+	/*
+	 * ======================================
+	 * EQUIPMENT RESEARCH UNLOCKS
+	 * ======================================
+	 */
+	else ife ui_tab RS_TAB_EQUIPMENT
+	{
+		switch ui_item
+			case RS_E_SILV45AC
+			case RS_E_SILVERBOLTS
+				// Unlock Silver Knife once researched
+				ife EQUIPMENT_RESEARCH[RS_E_SILVERKNIFE] 0
+				{
+					set rs_unlock1 RS_E_SILVERKNIFE
+					set rs_unlock1type RS_TAB_EQUIPMENT
+					setarray EQUIPMENT_RESEARCH[rs_unlock1] 3
+					set RETURN 1
+				}
+				break
+			case RS_E_40MMGRENADES
+
+				ife EQUIPMENT_RESEARCH[RS_E_MIA40MMGREN] 0 // MIA shells topic not unlocked?
+				{
+					ife WEAPONS_RESEARCH[RS_W_MIAGUN] 2 // if MIA gun is researched
+					{
+						set rs_unlock1 RS_E_MIA40MMGREN
+						set rs_unlock1type RS_TAB_EQUIPMENT
+						setarray EQUIPMENT_RESEARCH[rs_unlock1] 3
+						set RETURN 1
+					}
+				}
+
+				ife EQUIPMENT_RESEARCH[RS_E_40MMPLASMA_SH] 0 // Plasma shells topic not unlocked?
+				{
+					ife WEAPONS_RESEARCH[RS_W_CYCLOIDPLASMA] 2 // if Cycloid Plasma Tech is researched
+					{
+						ife rs_unlock1 0
+						{
+							set rs_unlock1 RS_W_CYCLOIDPLASMA
+							set rs_unlock1type RS_TAB_WEAPONS
+						}
+						else
+						{
+							set rs_unlock2 RS_W_CYCLOIDPLASMA
+							set rs_unlock2type RS_TAB_WEAPONS
+						}
+						setarray EQUIPMENT_RESEARCH[RS_W_CYCLOIDPLASMA] 3
+						set RETURN 1
+					}
+				}
+
+				break
+			default
+				break
+		endswitch
+	}
+	/*
+	 * ======================================
+	 * EQUIPMENT RESEARCH UNLOCKS
+	 * ======================================
+	 */
+	else ife ui_tab RS_TAB_PERSONNEL
+	{
+		// no unlocks defined for personnel atm
+		set RETURN 0
+	}
+	/*
+	 * ======================================
+	 * BASE RESEARCH UNLOCKS
+	 * ======================================
+	 */
+	else ife ui_tab RS_TAB_BASE
+	{
+		switch ui_item
+			case RS_B_PARANORMAL
+				ife EQUIPMENT_RESEARCH[RS_E_SPIRITVEST] 0
+				{
+					set rs_unlock1 RS_E_SPIRITVEST
+					set rs_unlock1type RS_TAB_EQUIPMENT
+					setarray EQUIPMENT_RESEARCH[rs_unlock1] 3
+					set RETURN 1
+				}
+				break
+			case RS_B_DOJO
+				ife PERSONNEL_RESEARCH[RS_P_THERMALWEAVING] 0
+				{
+					set rs_unlock1 RS_P_THERMALWEAVING
+					set rs_unlock1type RS_TAB_PERSONNEL
+					setarray PERSONNEL_RESEARCH[rs_unlock1] 3
+					set RETURN 1
+				}
+				break
+			case RS_B_ENGITECH
+				// Personel energy shield tech
+				ife PERSONNEL_RESEARCH[RS_P_EMERGENCYSHIELDTECH] 0 // Emergncy shield topic not unlocked?
+				{
+					ife PERSONNEL_RESEARCH[RS_P_PES] 2 // if shield tech is researched?
+					{
+						set rs_unlock1 RS_P_EMERGENCYSHIELDTECH
+						set rs_unlock1type RS_TAB_PERSONNEL
+						setarray PERSONNEL_RESEARCH[rs_unlock1] 3 // unlock the research
+						set RETURN 1
+					}
+				}
+
+				// Advanced AMC soldier
+				ife PERSONNEL_RESEARCH[RS_P_ADVAMCSOLDIERS] 0 // Advanced AMC soldier topic not unlocked?
+				{
+					set rs_unlock2 RS_P_ADVAMCSOLDIERS
+					set rs_unlock2type RS_TAB_PERSONNEL
+					setarray PERSONNEL_RESEARCH[rs_unlock2] 3 // unlock the research
+					set RETURN 1
+				}
+
+				// AMC-209
+				ife PERSONNEL_RESEARCH[RS_P_AMC209] 0 // AMC-209 topic not unlocked?
+				{
+					set rs_unlock3 RS_P_AMC209
+					set rs_unlock3type RS_TAB_PERSONNEL
+					setarray PERSONNEL_RESEARCH[rs_unlock3] 3 // unlock the research
+					set RETURN 1
+				}
+				break
+			default
+				break
+		endswitch
+	}
+	/*
+	 * ======================================
+	 * MYSTIC RESEARCH UNLOCKS
+	 * ======================================
+	 */
+	else ife ui_tab RS_TAB_MYSTIC
+	{
+		switch ui_item
+			case RS_M_EVALOCKWOOD
+				ife SAVED_LILITH 1
+				{
+					ife MYSTICAL_RESEARCH[RS_M_LILITH] 0
+					{
+						set rs_unlock1 RS_M_LILITH
+						set rs_unlock1type RS_TAB_MYSTIC
+						setarray MYSTICAL_RESEARCH[rs_unlock1] 3
+						set RETURN 1
+					}
+				}
+				break
+			default
+				break
+		endswitch
+	}
+
+	// Mark new research on the tabs
+	ife RETURN 1
+	{
+		ife rs_unlock1type RS_TAB_WEAPONS
+			orvar new_research 1
+		else ife rs_unlock2type RS_TAB_WEAPONS
+			orvar new_research 1
+		else ife rs_unlock3type RS_TAB_WEAPONS
+			orvar new_research 1
+		else ife rs_unlock4type RS_TAB_WEAPONS
+			orvar new_research 1
+
+		ife rs_unlock1type RS_TAB_EQUIPMENT
+			orvar new_research 2
+		else ife rs_unlock2type RS_TAB_EQUIPMENT
+			orvar new_research 2
+		else ife rs_unlock3type RS_TAB_EQUIPMENT
+			orvar new_research 2
+		else ife rs_unlock4type RS_TAB_EQUIPMENT
+			orvar new_research 2
+
+		ife rs_unlock1type RS_TAB_PERSONNEL
+			orvar new_research 4
+		else ife rs_unlock2type RS_TAB_PERSONNEL
+			orvar new_research 4
+		else ife rs_unlock3type RS_TAB_PERSONNEL
+			orvar new_research 4
+		else ife rs_unlock4type RS_TAB_PERSONNEL
+			orvar new_research 4
+
+		ife rs_unlock1type RS_TAB_BASE
+			orvar new_research 8
+		else ife rs_unlock2type RS_TAB_BASE
+			orvar new_research 8
+		else ife rs_unlock3type RS_TAB_BASE
+			orvar new_research 8
+		else ife rs_unlock4type RS_TAB_BASE
+			orvar new_research 8
+
+		ife rs_unlock1type RS_TAB_MYSTIC
+			orvar new_research 16
+		else ife rs_unlock2type RS_TAB_MYSTIC
+			orvar new_research 16
+		else ife rs_unlock3type RS_TAB_MYSTIC
+			orvar new_research 16
+		else ife rs_unlock4type RS_TAB_MYSTIC
+			orvar new_research 16
+
+		ife rs_unlock1type RS_TAB_DOJO
+			orvar new_research 32
+		else ife rs_unlock2type RS_TAB_DOJO
+			orvar new_research 32
+		else ife rs_unlock3type RS_TAB_DOJO
+			orvar new_research 32
+		else ife rs_unlock4type RS_TAB_DOJO
+			orvar new_research 32
+	}
+
+ends

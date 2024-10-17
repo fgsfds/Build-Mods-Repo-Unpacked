@@ -1,0 +1,983 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+
+--------------------------------------------------------------------------------
+*/
+
+move SCI_WALK 64
+move SCI_RUN 128
+
+action SCIENTIST_IDLE -6347 1 5 1 1
+action SCIENTIST_WALK 0 4 5 1 16
+action SCIENTIST_PANIC 0 4 5 1 8
+action SCI_CHECK2 27 1 5 1 1
+action SCIENTIST_DIE 20 6 1 1 12
+action SCIENTIST_DEAD 25
+
+useractor notenemy AMCSCIENTIST_ACTIVE
+fall
+
+ifhitweapon
+ {
+  ifn amc_base 2
+	{
+	state fade_out_white
+	set SLO_MO_SHOWOFF 70
+	set FISSION_MAILED 1
+	}
+	else
+	{
+	ifl temp 10 sound EDFSOLD_DIE1 else
+	ifl temp 20 sound EDFSOLD_DIE2 else
+	sound EDFSOLD_DIE3
+	spawn BLOODPOOL
+	action SCIENTIST_DIE
+	}
+ }
+
+ifaction SCIENTIST_DEAD
+{
+cstat 0
+move STOP
+}
+else
+ifaction SCIENTIST_DIE
+{
+move STOP
+ifactioncount 6 action SCIENTIST_DEAD
+}
+
+ifaction SCIENTIST_PANIC
+{
+move SCI_RUN geth
+ifnotmoving move SCI_RUN geth randomangle
+}
+
+ifaction 0
+	{
+	clipdist 8
+	cstat 257
+	spawn SHOOTME2
+	sizeat 23 23
+	set smartpoint_track_sub ZVELSAVED
+	ife amc_base 2 action SCIENTIST_PANIC else
+	action SCIENTIST_IDLE
+	}
+
+ifaction SCI_CHECK2
+	{
+	move STOP
+	ifactioncount 32 { set poi 0 set ally_mag 0 action SCIENTIST_IDLE }
+	}
+else
+ifaction SCIENTIST_WALK
+	{
+
+	ifactioncount 3
+		{
+		state npc_footsteps
+		resetactioncount
+		}
+
+	move SCI_WALK geth
+
+		state anglePathToNextLotag_accurate
+		ife poi 1 { action SCI_CHECK2 resetactioncount }
+		set temp3 0
+
+		ifn next_point -1
+		{
+			ldist xydist next_point THISACTOR
+
+			ifg xydist 128
+				seta[].ang angvar
+			else
+				set temp3 1
+		}
+	}
+else
+ifaction SCIENTIST_IDLE
+	{
+	move STOP
+		state anglePathToNextLotag_accurate
+		set temp3 0
+		ifn next_point -1
+		{
+			ldist xydist next_point THISACTOR
+
+			ifg xydist 128
+				seta[].ang angvar
+			else
+				set temp3 1
+			action SCIENTIST_WALK
+		}
+	}
+
+enda
+
+action SCIENTIST2_IDLE 0 1 5 1 1
+action SCIENTIST2_WALK 20 4 5 1 16
+action SCI2_CHECK 5 2 5 1 64
+action SCI2_CHECK2 15 1 5 1 64
+action SCIENTIST2_DIE 40 6 1 1 12
+action SCIENTIST2_DEAD 45
+
+defstate fem_scientist_walk
+ifhitweapon
+ {
+  ifn amc_base 2
+	{
+	state fade_out_white
+	set SLO_MO_SHOWOFF 70
+	set FISSION_MAILED 1
+	}
+	else
+	{
+	spawn BLOODPOOL
+	action SCIENTIST_DIE
+	}
+ }
+
+ifaction SCIENTIST2_DEAD
+{
+cstat 0
+move STOP
+}
+else
+ifaction SCIENTIST2_DIE
+{
+move STOP
+ifactioncount 6 action SCIENTIST2_DEAD
+}
+
+ifaction 0
+	{
+	clipdist 8
+	cstat 257
+	spawn SHOOTME2
+	sizeat 23 23
+	set smartpoint_track_sub ZVELSAVED
+	action SCIENTIST2_IDLE
+	}
+
+ifaction SCI2_CHECK
+	{
+	move STOP
+	ifactioncount 8 { set poi 0 set ally_mag 0 action SCIENTIST2_IDLE }
+	}
+else
+ifaction SCI2_CHECK2
+	{
+	move STOP
+	ifactioncount 8 { set poi 0 set ally_mag 0 action SCIENTIST2_IDLE }
+	}
+else
+ifaction SCIENTIST2_WALK
+	{
+
+	ifactioncount 3
+		{
+		state npc_footsteps
+		resetactioncount
+		}
+
+	move SCI_WALK geth
+
+		state anglePathToNextLotag_accurate
+		ife poi 1 { action SCI2_CHECK resetactioncount }
+		ife poi 2 { action SCI2_CHECK2 resetactioncount }
+		set temp3 0
+
+		ifn next_point -1
+		{
+			ldist xydist next_point THISACTOR
+
+			ifg xydist 128
+				seta[].ang angvar
+			else
+				set temp3 1
+		}
+	}
+else
+ifaction SCIENTIST2_IDLE
+	{
+	move STOP
+		state anglePathToNextLotag_accurate
+		set temp3 0
+		ifn next_point -1
+		{
+			ldist xydist next_point THISACTOR
+
+			ifg xydist 128
+				seta[].ang angvar
+			else
+				set temp3 1
+			action SCIENTIST2_WALK
+		}
+	}
+
+ends
+
+spriteshadow AMCSCIENTIST_ACTIVE2
+spriteshadow AMCSCIENTIST_ACTIVE3
+spriteshadow GREYSCIENTIST_ACTIVE
+
+useractor notenemy AMCSCIENTIST_ACTIVE2 state fem_scientist_walk enda
+useractor notenemy AMCSCIENTIST_ACTIVE3 state fem_scientist_walk enda
+
+
+action GREY_IDLE 0 1 5 1 1
+action GREY_WALK 10 4 5 1 16
+action GREY_CHECK 5 1 5 1 8
+action GREY_DIE 30 6 1 1 12
+action GREY_DEAD 35
+
+useractor notenemy GREYSCIENTIST_ACTIVE
+ifhitweapon
+ {
+  ifn amc_base 2
+	{
+	state fade_out_white
+	set SLO_MO_SHOWOFF 70
+	set FISSION_MAILED 1
+	}
+	else
+	{
+	spawn BLOODPOOL
+	action SCIENTIST_DIE
+	}
+ }
+
+ifaction GREY_DEAD
+{
+cstat 0
+move STOP
+}
+else
+ifaction GREY_DIE
+{
+move STOP
+ifactioncount 6 action GREY_DEAD
+}
+
+ifaction 0
+	{
+	clipdist 8
+	cstat 257
+	spawn SHOOTME2
+	sizeat 23 23
+	readarrayfromfile TECH_LEVEL_A F_TECH_LEVEL_AMCTC
+	set smartpoint_track_sub ZVELSAVED
+	ifn TECH_LEVEL_A[30] 1 killit
+	action GREY_IDLE
+	}
+
+ifaction GREY_CHECK
+	{
+	move STOP
+	ifactioncount 8 { set poi 0 set ally_mag 0 action GREY_IDLE }
+	}
+else
+ifaction GREY_WALK
+	{
+
+	ifactioncount 3
+		{
+		state npc_footsteps
+		resetactioncount
+		}
+
+	move SCI_WALK geth
+
+		state anglePathToNextLotag_accurate
+		ife poi 1 { action GREY_CHECK resetactioncount }
+		set temp3 0
+
+		ifn next_point -1
+		{
+			ldist xydist next_point THISACTOR
+
+			ifg xydist 128
+				seta[].ang angvar
+			else
+				set temp3 1
+		}
+	}
+else
+ifaction GREY_IDLE
+	{
+	move STOP
+		state anglePathToNextLotag_accurate
+		set temp3 0
+		ifn next_point -1
+		{
+			ldist xydist next_point THISACTOR
+
+			ifg xydist 128
+				seta[].ang angvar
+			else
+				set temp3 1
+			action GREY_WALK
+		}
+	}
+enda
+
+useractor notenemy AMCSCIENTIST_WAYPOINT // deprecated Scientist waypoint
+cstat 32768
+killit
+enda
+
+defstate malescientist_talk
+    ifle r_spookcounter 0
+    {
+		ifmove 0
+		   {
+		   set hit_key 30
+		    ife CHAR 0 ifrnd 32 soundonce MSCI_JAMES
+			else ife CHAR 1 ifrnd 32 soundonce MSCI_ZAX
+			else ife CHAR 2 ifrnd 32 soundonce MSCI_MERLJ
+			else ife CHAR 3 ifrnd 32 soundonce MSCI_HIGHW
+			else ife CHAR 4
+				{
+				ifrnd 32 soundonce MSCI_SANG
+				else soundonce SCIENTIST_HELLO4
+				}
+			else ife CHAR 5 ifrnd 32 soundonce MSCI_RUSTY
+			else ife CHAR 6 ifrnd 32 soundonce MSCI_GEOF
+			else ife CHAR 7 ifrnd 32 soundonce MSCI_MIKKO
+			else ife CHAR 10 ifrnd 32 soundonce MSCI_BOMBS
+			else ife CHAR 12 ifrnd 32 soundonce MSCI_JANE
+			else ife CHAR 13
+				{
+				ifn new_research 0 soundonce MSCI_MICKY
+				else ifrnd 128 soundonce MSCI_MICKY2
+				else soundonce SCIENTIST_HELLO5
+				}
+			else ife CHAR 14 ifrnd 32 soundonce MSCI_SNOWF
+			else
+				{
+				ifrnd 85 soundonce SCIENTIST_HELLO1
+				else ifrnd 170 soundonce SCIENTIST_HELLO2
+				else soundonce SCIENTIST_HELLO3
+				}
+			move SAIDONCE
+			set INTERNALCOUNT_2 90
+		   }
+		else
+		ifmove SAIDONCE
+		  {
+		  set hit_key 30
+		  ifrnd 32 soundonce SCI_SPEC1
+		  else ifrnd 32 soundonce SCI_SPEC4
+		  else ifrnd 32 soundonce SCI_SPEC5
+		  else ifrnd 32 soundonce SCI_SPEC6
+		  else ife CHAR 4 ifrnd 32 soundonce SCI_SPEC7
+		  set INTERNALCOUNT_2 90
+		  }
+    }
+ends
+
+action SCI_CHECK 6374 1 5 1 1
+
+action SCI_DUCK 12961 1 5 1 1
+
+defstate AMCSCIENTIST_CODE
+fall
+clipdist 8
+sizeat 21 21
+
+ifg INTERNALCOUNT_2 0 sub INTERNALCOUNT_2 1
+
+ifcount 256
+ife EXTRASAVED -1
+ife camerasprite -1
+ife amc_base 1
+ifle r_spookcounter 0
+ ifpdistl 8192
+	{
+	ifrnd 1 { action SCI_CHECK soundonce SCIENTIST_RANDOM1 }
+	else
+	ifrnd 1 { action SCI_CHECK soundonce SCIENTIST_RANDOM2 }
+	else
+	ifrnd 1 { action SCI_CHECK soundonce SCIENTIST_RANDOM3 }
+	else
+	ifrnd 1 { action SCI_CHECK soundonce SCIENTIST_RANDOM4 }
+	else
+	ifrnd 1 { action SCI_CHECK soundonce SCIENTIST_RANDOM5 }
+	else
+	ifrnd 1 { action SCI_CHECK soundonce SCIENTIST_RANDOM6 }
+	else
+	ifrnd 1 ifrnd 1 ife WEAPONS_FOUND[1] 1 { action SCI_CHECK soundonce SCI_SPEC2 } // Found the mini shrinker?
+	else
+	ifrnd 1 ifrnd 1 ife WEAPONS_RESEARCH[3] 2 { action SCI_CHECK soundonce SCI_SPEC3 } // researched the MIA gun?
+	resetcount
+	}
+
+ifn XVELSAVED 0
+	{
+	readgamevar TECH_LEVEL
+	ifl TECH_LEVEL XVELSAVED killit
+	}
+
+ifaction 0
+{
+sizeat 23 23
+ife EXTRASAVED 10
+	{
+	readarrayfromfile TECH_LEVEL_A F_TECH_LEVEL_AMCTC
+	ife TECH_LEVEL_A[HITAGSAVED] 1 killit
+	}
+action AEDFSTAND
+}
+
+ifaction AEDFSTAND
+ifrnd 8 action SCI_CHECK
+
+ifaction SCI_CHECK
+	{
+	add INTERNALCOUNT 1
+
+	ifg INTERNALCOUNT 36 { action AEDFSTAND set INTERNALCOUNT 0 }
+	}
+	
+ifl enemies_cleared 150 action SCI_DUCK
+else ifaction SCI_DUCK ifge enemies_cleared 150 action AEDFSTAND
+
+ifpdistl 1024
+ifp pfacing
+{
+ife EXTRASAVED 10 set player_use 0
+ifhitspace
+	{
+	ife EXTRASAVED 10
+		{
+		set hit_key 30
+		readarrayfromfile TECH_LEVEL_A F_TECH_LEVEL_AMCTC
+		ife TECH_LEVEL_A[HITAGSAVED] 1 killit
+		ifrnd 32 soundonce SCIENTIST_RESCUE1
+		else ife CHAR 4 ifrnd 32 soundonce SCIRES_S
+		else ifrnd 32 soundonce SCIENTIST_RESCUE2
+		else ifrnd 32 soundonce SCIRES3
+		else ifrnd 32 soundonce SCIRES4
+		else ifrnd 32 soundonce SCIRES5
+		else ifrnd 32 soundonce SCIRES6
+		else ifrnd 16 soundonce SCIRES7
+		state civilian_rescued
+		setarray TECH_LEVEL_A[HITAGSAVED] 1
+		writearraytofile TECH_LEVEL_A F_TECH_LEVEL_AMCTC
+		killit
+		}
+	else
+	ifn EXTRASAVED 2
+	 ife INTERNALCOUNT_2 0
+	  ife amc_base 1
+		{
+		state malescientist_talk
+		}
+	}
+}
+
+ends
+
+defstate femscientist_talk
+    ifle r_spookcounter 0
+    {
+			ifmove 0
+				{
+				ife CHAR 4 soundonce FSCI_SANG
+				else ife CHAR 13 // Micky?
+					{
+					ifrnd 96 soundonce FSCI_MICKY
+					else ifrnd 96 soundonce FSCI_MICK2
+					else soundonce FSCI_MICK3
+					}
+				else
+					{
+					ifrnd 128
+						{
+						gettimedate temp temp temp2 temp temp temp temp temp
+						ifg temp2 18 soundonce FSCI_GEVE else // Night
+						ifl temp2 12 soundonce FSCI_GMORN else // Morning
+						soundonce FSCI_GAFT  // Daytime
+						}
+					else
+					ifrnd 128 soundonce FSCI_HELLO1
+					else  soundonce FSCI_HELLO2
+					}
+				move SAIDONCE
+				set hit_key 30
+				}
+			else
+			ifnosounds ife userdef.soundtoggle 1
+				{
+				ifrnd 6 ife PERSONNEL_RESEARCH[16] 2 soundonce FSCI_ABLARM
+				else ifrnd 7 ife PERSONNEL_RESEARCH[26] 2 soundonce FSCI_ACIDP
+				else ifrnd 7 ife PERSONNEL_RESEARCH[5] 2 soundonce FSCI_ANTOX
+				else ifrnd 7 ife WEAPONS_RESEARCH[4] 2 soundonce FSCI_BLORD
+				else ifrnd 7 ife WEAPONS_RESEARCH[10] 2 soundonce FSCI_BSABR
+				else ifrnd 8 ife PERSONNEL_RESEARCH[9] 2 soundonce FSCI_CERAM
+				else ifrnd 8 ife PERSONNEL_RESEARCH[21] 2 soundonce FSCI_CULROB
+				else ifrnd 8 ife PERSONNEL_RESEARCH[18] 2 soundonce FSCI_CYJET
+				else ifrnd 8 ife PERSONNEL_RESEARCH[19] 2 soundonce FSCI_DETHAW
+				else ifrnd 9 ife PERSONNEL_RESEARCH[15] 2 soundonce FSCI_ENHEAT
+				else ifrnd 10 ife WEAPONS_RESEARCH[5] 2 soundonce FSCI_FLAMET
+				else ifrnd 10 ife PERSONNEL_RESEARCH[24] 2 soundonce FSCI_FRICTION
+				else ifrnd 11 ife EQUIPMENT_RESEARCH[19] 2 soundonce FSCI_HEATS
+				else ifrnd 11 ife PERSONNEL_RESEARCH[28] 2 soundonce FSCI_JETEFF
+				else ifrnd 12 ife PERSONNEL_RESEARCH[12] 2 soundonce FSCI_MEDCONV
+				else ifrnd 12 ife PERSONNEL_RESEARCH[13] 2 soundonce FSCI_MEDFOAM
+				else ifrnd 13 ife PERSONNEL_RESEARCH[29] 2 soundonce FSCI_MERLSH
+				else ifrnd 14 ife WEAPONS_RESEARCH[3] 2 soundonce FSCI_MIAGUN
+				else ifrnd 15 ife PERSONNEL_RESEARCH[30] 2 soundonce FSCI_MUSCLESK
+				else ifrnd 16 ife BASE_RESEARCH[7] 2 soundonce FSCI_NEWSHIP
+				else ifrnd 17 ife PERSONNEL_RESEARCH[10] 2 soundonce FSCI_NUTRI
+				else ifrnd 19 ife PERSONNEL_RESEARCH[11] 2 soundonce FSCI_NVG
+				else ifrnd 20 ife PERSONNEL_RESEARCH[27] 2 soundonce FSCI_OXYG
+				else ifrnd 22 ife PERSONNEL_RESEARCH[7] 2 soundonce FSCI_PHASED
+				else ifrnd 25 ifn CHAR 0 ife WEAPONS_RESEARCH[1] 2 soundonce FSCI_PLASMAG
+				else ifrnd 27 ife BASE_RESEARCH[5] 2 soundonce FSCI_PRECOGB
+				else ifrnd 31 ife PERSONNEL_RESEARCH[17] 2 soundonce FSCI_SCUBA
+				else ifrnd 36 ife EQUIPMENT_RESEARCH[7] 2 soundonce FSCI_SILVERKN
+				else ifrnd 42 ife PERSONNEL_RESEARCH[25] 2 soundonce FSCI_SNAKESKIN
+				else ifrnd 50 ife PERSONNEL_RESEARCH[8] 2 soundonce FSCI_THERMALW
+				else ifrnd 63 ife BASE_RESEARCH[3] 2 soundonce FSCI_UC
+				else ifrnd 84 ife PERSONNEL_RESEARCH[23] 2 soundonce FSCI_UPGENSH
+				else ifrnd 127 ifg VOLUME 3 soundonce FSCI_MUSE1_EP5
+				else soundonce FSCI_HELLO1
+				set hit_key 30
+				resetcount
+				}
+    }
+ends
+
+defstate AMCSCIENTIST2_CODE
+fall
+clipdist 8
+
+ifn XVELSAVED 0
+{
+readgamevar TECH_LEVEL
+ifl TECH_LEVEL XVELSAVED killit
+}
+
+ifaction 0
+{
+sizeat 21 21
+ife EXTRASAVED 10
+	{
+	readarrayfromfile TECH_LEVEL_A F_TECH_LEVEL_AMCTC
+	ife TECH_LEVEL_A[HITAGSAVED] 1 killit
+	}
+action AEDFSTAND
+}
+
+ifpdistl 1024
+ifp pfacing
+{
+set player_use 0
+ifhitspace
+ ifcount 40
+	{
+	ife EXTRASAVED 10
+		{
+		readarrayfromfile TECH_LEVEL_A F_TECH_LEVEL_AMCTC
+		ife TECH_LEVEL_A[HITAGSAVED] 1 killit
+		state civilian_rescued
+		setarray TECH_LEVEL_A[HITAGSAVED] 1
+		writearraytofile TECH_LEVEL_A F_TECH_LEVEL_AMCTC
+		killit
+		}
+		else
+		ifn EXTRASAVED 2
+			{
+			state femscientist_talk
+			}
+	}
+}
+
+ends
+
+// male
+useractor notenemy AMCSCIENTIST state AMCSCIENTIST_CODE enda
+useractor notenemy AMCSCIENTIST_2 state AMCSCIENTIST_CODE enda
+
+// female
+useractor notenemy AMCSCIENTIST_3 state AMCSCIENTIST2_CODE enda
+useractor notenemy AMCSCIENTIST_4 state AMCSCIENTIST2_CODE enda
+useractor notenemy AMCSCIENTIST_5 state AMCSCIENTIST2_CODE enda
+
+// grey/sectoid
+
+action GREY_INLAB 10038 1 5 1 16
+
+useractor notenemy 22956
+fall
+clipdist 8
+
+	ifaction 0
+	{
+	sizeat 22 22
+	readarrayfromfile TECH_LEVEL_A F_TECH_LEVEL_AMCTC
+	set temp TECH_LEVEL_A[HITAGSAVED]
+	ife EXTRASAVED 10
+	    {
+		ife TECH_LEVEL_A[HITAGSAVED] 1 killit
+		action AEDFSTAND
+		}
+	else
+	    {
+		ifn TECH_LEVEL_A[HITAGSAVED] 1 killit
+		action GREY_INLAB
+		}
+	}
+
+ifg INTERNALCOUNT 0 sub INTERNALCOUNT 1
+
+ifaction GREY_INLAB
+	{
+	ife INTERNALCOUNT 0
+	ife camerasprite -1
+	ife amc_base 1
+	ifle r_spookcounter 0
+	 ifpdistl 8192
+		{
+		ifrnd 8 { action FIVE_ANG soundonce GREYT_04 }
+		else
+		ifrnd 8 { action FIVE_ANG soundonce GREYT_05 }
+		else
+		ifrnd 8 { action FIVE_ANG soundonce GREYT_06 }
+		else
+		ifrnd 8 { action FIVE_ANG soundonce GREYT_07 }
+		resetactioncount
+		set INTERNALCOUNT 300
+		}
+
+	ifpdistl 1024
+		ifp pfacing
+			ifmove 0
+				{
+				set player_use 0
+				ifhitspace
+					{
+					ifrnd 96 soundonce GREYT_08
+					else ifrnd 184 soundonce GREYT_09
+					else soundonce GREYT_10
+					move SAIDONCE
+					set hit_key 30
+					}
+				}
+
+	}
+
+ifaction FIVE_ANG
+	{
+	ifactioncount 8 action GREY_INLAB
+	}
+
+	ifaction AEDFSTAND
+	ifpdistl 1024
+	ifp pfacing
+	ifmove 0
+	{
+	ife EXTRASAVED 10 set player_use 0
+	ifhitspace
+		{
+		set hit_key 30
+		ife EXTRASAVED 10
+			{
+			readarrayfromfile TECH_LEVEL_A F_TECH_LEVEL_AMCTC
+			ife TECH_LEVEL_A[HITAGSAVED] 1 killit
+			state civilian_rescued
+			setarray TECH_LEVEL_A[HITAGSAVED] 1
+			writearraytofile TECH_LEVEL_A F_TECH_LEVEL_AMCTC
+			ifrnd 96 sound GREYT_01
+			else ifrnd 184 sound GREYT_02
+			else sound GREYT_03
+			killit
+			}
+		}
+	}
+enda
+
+// AMC personal sitting frames =======================================================================
+
+defstate amcguard_talk
+ifpdistl 1536
+ ifp pfacing
+  ifmove 0
+   {
+   ifhitspace
+		{
+				gettimedate temp temp temp2 temp temp temp temp temp
+				ife GENDER FEMALE
+				{
+				ifl temp2 18 // no evening voice file
+				 ifrnd 128
+					{
+					ifl temp2 12 soundonce AMCF_MORN else // Morning
+					soundonce AMCF_AFTN  // Daytime
+					}
+					else
+					{
+					ifrnd 85 sound AMCF_HI_01
+					else ifrnd 170 sound AMCF_HI_02
+					else sound AMCF_HI_03
+					}
+				}
+				else
+				ife GENDER MALE
+				{
+				ife CHAR 4 ifrnd 32 soundonce AMCS_M_SANG else
+				ifrnd 128
+					{
+					ifg temp2 18 soundonce AMCS_M_EVENIN else // Night
+					ifl temp2 12 soundonce AMCS_M_MORN else // Morning
+					soundonce AMCS_M_AFTERN  // Daytime
+					}
+				else
+					{
+					ife P_GENDER FEMALE soundonce AMCS_M_MAAM
+					else soundonce AMCS_M_SIR
+					}
+				}
+		move STOP
+		}
+	}
+ends
+
+
+useractor notenemy 30014 action FIVE_ANG
+ifpdistl 1024
+ifp pfacing
+{
+set player_use 0
+ifhitspace
+ ifcount 40
+  state malescientist_talk
+ }
+enda
+
+useractor notenemy 30019 action FIVE_ANG
+ifpdistl 1024
+ifp pfacing
+{
+set player_use 0
+ifhitspace
+ ifcount 40
+  state femscientist_talk
+ }
+enda
+
+useractor notenemy 30024 action FIVE_ANG
+ifpdistl 1024
+ifp pfacing
+{
+set player_use 0
+ifhitspace
+ ifcount 40
+  state femscientist_talk
+ }
+enda
+
+// eaf soldier
+useractor notenemy 36171 action FIVE_ANG enda
+useractor notenemy 36927 action FIVE_ANG enda
+
+// amc soldier
+useractor notenemy 30029 action FIVE_ANG
+ife ally_mag 0
+	{
+	ifrnd 128
+		{
+		set GENDER MALE
+		sizeat 25 25
+		}
+	else
+		{
+		set GENDER FEMALE
+		sizeat 23 24
+		}
+	set ally_mag 1
+	}
+ife PERSONNEL_RESEARCH[32] 2 cactor 29641
+state amcguard_talk
+enda
+
+// advanced amc soldier
+useractor notenemy 29641 action FIVE_ANG
+ife ally_mag 0
+	{
+	ifrnd 128
+		{
+		set GENDER MALE
+		sizeat 25 25
+		}
+	else
+		{
+		set GENDER FEMALE
+		sizeat 23 24
+		}
+	set ally_mag 1
+	}
+ifn PERSONNEL_RESEARCH[32] 2 cactor 30029
+state amcguard_talk
+enda
+
+useractor notenemy 30034 action FIVE_ANG
+ifpdistl 1024
+ifp pfacing
+{
+set player_use 0
+ifhitspace
+ ifcount 40
+  state malescientist_talk
+ }
+enda
+
+useractor notenemy 30039 action FIVE_ANG
+ifpdistl 1024
+ifp pfacing
+{
+set player_use 0
+ifhitspace
+ ifcount 40
+  state femscientist_talk
+ }
+enda
+
+// off-duty AMC soldier
+useractor notenemy 30044 action FIVE_ANG
+ife ally_mag 0 { ifrnd 128 { sizeat 22 23 set GENDER FEMALE } else { sizeat 24 24 set GENDER MALE } set ally_mag 1 }
+state amcguard_talk
+enda
+
+useractor notenemy 30049 action FIVE_ANG enda
+
+// AMC Engineer
+
+spriteshadow ENGINEER
+
+// 366
+
+action AMC_ENG_IDLE 366 1 5 1 1
+action AMC_ENG_WORK 391 1 5 1 8
+action AMC_ENG_CHECK 396 1 5 1 8
+action AMC_ENG_WORK_UP 401 2 5 1 16
+action AMC_ENG_KNEEL 416 2 5 1 16
+action AMC_ENG_COFFEE 431 2 5 1 64
+action AMC_ENG_WALK 366 4 5 1 16
+
+move ENG_WALK 55 0
+
+useractor notenemy ENGINEER
+fall
+ifaction 0
+	{
+	cstat 257
+	sizeat 23 23
+	set smartpoint_track_sub ZVELSAVED
+	action AMC_ENG_IDLE
+	}
+
+ifaction AMC_ENG_WORK
+	{
+	move STOP
+	ifactioncount 16 { set poi 0 action AMC_ENG_IDLE }
+	}
+else
+ifaction AMC_ENG_CHECK
+	{
+	move STOP
+	ifactioncount 16 { set poi 0 action AMC_ENG_IDLE }
+	}
+else
+ifaction AMC_ENG_WORK_UP
+	{
+	move STOP
+	ifactioncount 16 { set poi 0 action AMC_ENG_IDLE }
+	}
+else
+ifaction AMC_ENG_KNEEL
+	{
+	move STOP
+	ifactioncount 16 { set poi 0 action AMC_ENG_IDLE }
+	}
+else
+ifaction AMC_ENG_COFFEE
+	{
+	move STOP
+	ifactioncount 32 { set poi 0 set ally_mag 0 action AMC_ENG_IDLE }
+	}
+else
+ifaction AMC_ENG_WALK
+	{
+
+	ifactioncount 3
+		{
+		state npc_footsteps
+		resetactioncount
+		}
+
+	move ENG_WALK geth
+
+		state anglePathToNextLotag_accurate
+		ife poi 1 { action AMC_ENG_WORK resetactioncount }
+		ife poi 2 { action AMC_ENG_CHECK resetactioncount }
+		ife poi 3 { action AMC_ENG_WORK_UP sound ENGY_FIX resetactioncount }
+		ife poi 4 { action AMC_ENG_KNEEL sound ENGY_FIX resetactioncount }
+		ife poi 5 { add ally_mag 1 ifge ally_mag 3 { action AMC_ENG_COFFEE resetactioncount } set poi 0 }
+		set temp3 0
+
+		ifn next_point -1
+		{
+			ldist xydist next_point THISACTOR
+
+			ifg xydist 128
+				seta[].ang angvar
+			else
+				set temp3 1
+		}
+	}
+else
+ifaction AMC_ENG_IDLE
+	{
+	move STOP
+		state anglePathToNextLotag_accurate
+		set temp3 0
+		ifn next_point -1
+		{
+			ldist xydist next_point THISACTOR
+
+			ifg xydist 128
+				seta[].ang angvar
+			else
+				set temp3 1
+			action AMC_ENG_WALK
+		}
+
+	}
+
+enda

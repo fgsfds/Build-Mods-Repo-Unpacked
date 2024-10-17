@@ -1,0 +1,3984 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+
+--------------------------------------------------------------------------------
+*/
+
+
+//
+// ------------------------------------------------------------
+// RESEARCH TERMINAL
+// ------------------------------------------------------------
+//
+
+eventloadactor 12116 state GETHITAGLOTAG enda
+eventloadactor 12117 state GETHITAGLOTAG enda
+eventloadactor 17917 state GETHITAGLOTAG enda
+
+
+defstate RESEARCH_PICKUP
+	set DISP_RES -240
+	ifactor 12116 globalsound READ_DOCUMENT
+	else globalsound RESEARCH_DATA
+	ifrnd 96 set PLAYER_VOICEOVER 39
+	palfrom 20 63 63 63
+	quote 1025
+	killit
+ends
+
+defstate RESEARCH_MODULE
+
+ifaction 0
+ifn HITAGSAVED 0
+{
+	ife HITAGSAVED 1 // weapon data
+		{
+		readarrayfromfile WEAPONS_RESEARCH F_WEAPONS_AMCTC
+		ifg WEAPONS_RESEARCH[LOTAGSAVED] 0 killit
+		}
+		else
+		ife HITAGSAVED 2 // equipment data
+			{
+			readarrayfromfile EQUIPMENT_RESEARCH F_EQUIPMENT_AMCTC
+			ifg EQUIPMENT_RESEARCH[LOTAGSAVED] 0 killit
+			}
+		else
+		ife HITAGSAVED 3 // personel data
+			{
+			readarrayfromfile PERSONNEL_RESEARCH F_PERSONNEL_AMCTC
+			ifg PERSONNEL_RESEARCH[LOTAGSAVED] 0 killit
+			}
+		else
+		ife HITAGSAVED 4 // base data
+			{
+			readarrayfromfile BASE_RESEARCH F_BASE_AMCTC
+			ifg BASE_RESEARCH[LOTAGSAVED] 0 killit
+			}
+		else
+		ife HITAGSAVED 5 // mystical data
+			{
+			readarrayfromfile MYSTICAL_RESEARCH F_MYSTIC_AMCTC
+			ifg MYSTICAL_RESEARCH[LOTAGSAVED] 0 killit
+			}
+		else
+		ife HITAGSAVED 6 // melee data
+			{
+			readarrayfromfile MELEE_RESEARCH F_DOJO_AMCTC
+			ifg MELEE_RESEARCH[LOTAGSAVED] 0 killit
+			}
+action ZERO
+}
+
+ifn HITAGSAVED 0
+ifn LOTAGSAVED 0
+	{
+	ifpdistl 2048
+		ifrnd 8 spawn GLINT
+		else
+	ifrnd 4 spawn GLINT
+	}
+
+ifaction ZERO
+ ife player[].newowner -1 // prevent viewscreen bugs
+  ifp pfacing
+   ifpdistl 1024
+    ifp palive
+     ifcansee
+	 {
+	 set player_use 0
+	 ifhitspace
+	 ifcount 13
+		{
+		ife HITAGSAVED 1 // weapon data
+			{
+			set DISP_RES_PAL 2
+			readarrayfromfile WEAPONS_RESEARCH F_WEAPONS_AMCTC
+			ifg WEAPONS_RESEARCH[LOTAGSAVED] 0 { quote 1028 killit }
+				else
+					{
+					ife LOTAGSAVED 1 // GDF Plasma gun is a 'tutorial' project
+						{
+						set DISP_RES_PIC JPLASMASPRITE
+						readgamevar AMC_BUDGET
+						add AMC_BUDGET 2
+						savegamevar AMC_BUDGET
+						}
+
+					ife LOTAGSAVED 3  // MIA Gun is a 'tutorial' project
+						{
+						set DISP_RES_PIC MIAGUNSPRITE
+						readgamevar AMC_BUDGET
+						add AMC_BUDGET 2
+						savegamevar AMC_BUDGET
+						}
+					ifand new_research 1 nullop else xorvar new_research 1
+					ife LOTAGSAVED 5 set DISP_RES_PIC FLAMETHROWERSPRITE
+					ife LOTAGSAVED 6 set DISP_RES_PIC RIOTGUN_MINIGUN_SPRITE
+					ife LOTAGSAVED 7 set DISP_RES_PIC 15914
+					ife LOTAGSAVED 9 set DISP_RES_PIC 16087
+					ife LOTAGSAVED 12 set DISP_RES_PIC ENG_SMG_SPRITE
+					setarray WEAPONS_RESEARCH[LOTAGSAVED] 3
+					writearraytofile WEAPONS_RESEARCH F_WEAPONS_AMCTC
+					state RESEARCH_PICKUP
+					}
+			}
+		else
+		ife HITAGSAVED 2 // equipment data
+			{
+			set DISP_RES_PAL 8
+			readarrayfromfile EQUIPMENT_RESEARCH F_EQUIPMENT_AMCTC
+			ifg EQUIPMENT_RESEARCH[LOTAGSAVED] 0 { quote 1028 killit }
+				else
+					{
+					ifand new_research 2 nullop else xorvar new_research 2
+					ife LOTAGSAVED 5 set DISP_RES_PIC 117
+					ife LOTAGSAVED 7 set DISP_RES_PIC 13556
+					setarray EQUIPMENT_RESEARCH[LOTAGSAVED] 3
+					writearraytofile EQUIPMENT_RESEARCH F_EQUIPMENT_AMCTC
+					state RESEARCH_PICKUP
+					}
+			}
+		else
+		ife HITAGSAVED 3 // personel data
+			{
+			set DISP_RES_PAL 1
+			readarrayfromfile PERSONNEL_RESEARCH F_PERSONNEL_AMCTC
+			ifg PERSONNEL_RESEARCH[LOTAGSAVED] 0 { quote 1028 killit }
+				else
+					{
+					ifand new_research 4 nullop else xorvar new_research 4
+					ife LOTAGSAVED 9 set DISP_RES_PIC 13326
+					ife LOTAGSAVED 10 set DISP_RES_PIC 13329
+					ife LOTAGSAVED 11 set DISP_RES_PIC 13340
+					ife LOTAGSAVED 12 set DISP_RES_PIC 13330
+					ife LOTAGSAVED 13 set DISP_RES_PIC 13548
+					ife LOTAGSAVED 23 set DISP_RES_PIC 22733
+					ife LOTAGSAVED 24 set DISP_RES_PIC 22732
+					setarray PERSONNEL_RESEARCH[LOTAGSAVED] 3
+					writearraytofile PERSONNEL_RESEARCH F_PERSONNEL_AMCTC
+					state RESEARCH_PICKUP
+					}
+			}
+		else
+		ife HITAGSAVED 4 // base data
+			{
+			set DISP_RES_PAL 15
+			readarrayfromfile BASE_RESEARCH F_BASE_AMCTC
+			ifg BASE_RESEARCH[LOTAGSAVED] 0 { quote 1028 killit }
+				else
+					{
+					ifand new_research 8 nullop else xorvar new_research 8
+					ife LOTAGSAVED 1 set DISP_RES_PIC 12130
+					ife LOTAGSAVED 2 set DISP_RES_PIC 12131
+					ife LOTAGSAVED 3 set DISP_RES_PIC 12132
+					ife LOTAGSAVED 4 set DISP_RES_PIC 12199
+					ife LOTAGSAVED 5 set DISP_RES_PIC 22496
+					ife LOTAGSAVED 7 set DISP_RES_PIC 22497
+					ife LOTAGSAVED 9 set DISP_RES_PIC 12128
+					setarray BASE_RESEARCH[LOTAGSAVED] 3
+					writearraytofile BASE_RESEARCH F_BASE_AMCTC
+					state RESEARCH_PICKUP
+					}
+			}
+		else
+		ife HITAGSAVED 5 // mystical data
+			{
+			set DISP_RES_PAL 18
+			readarrayfromfile MYSTICAL_RESEARCH F_MYSTIC_AMCTC
+			ifg MYSTICAL_RESEARCH[LOTAGSAVED] 0 { quote 1028 killit }
+				else
+					{
+					ifand new_research 16 nullop else xorvar new_research 16
+					setarray MYSTICAL_RESEARCH[LOTAGSAVED] 3
+					writearraytofile MYSTICAL_RESEARCH F_MYSTIC_AMCTC
+					state RESEARCH_PICKUP
+					}
+			}
+		else
+		ife HITAGSAVED 6 // melee data
+			{
+			set DISP_RES_PAL 22
+			readarrayfromfile MELEE_RESEARCH F_DOJO_AMCTC
+			ifg MELEE_RESEARCH[LOTAGSAVED] 0 { quote 1028 killit }
+				else
+					{
+					ifand new_research 32 nullop else xorvar new_research 32
+					setarray MELEE_RESEARCH[LOTAGSAVED] 3
+					writearraytofile MELEE_RESEARCH F_DOJO_AMCTC
+					state RESEARCH_PICKUP
+					}
+			}
+		}
+	}
+ends
+
+defstate RES_NEXT_BUT
+			screensound INTERFACE_4
+			ife INFO_SEL 0
+				{
+                add INFO_SEL_2 1
+                mod INFO_SEL_2 4
+				}
+
+			ife INFO_SEL 1 // weapons
+				{
+				set disp_temp INFO_SEL_2
+                // ITERATE UNTIL disp_temp == (MAXINDEX - 1)
+                set disp_temp9 MAX_WEAPONS_RESEARCH
+                sub disp_temp9 1
+				whilen disp_temp disp_temp9
+					{
+					add disp_temp 1
+					ifg WEAPONS_RESEARCH[disp_temp] 0
+						{
+						ife WEAPONS_RESEARCH[disp_temp] 3 setarray WEAPONS_RESEARCH[disp_temp] 1
+						set INFO_SEL_2 disp_temp
+						set disp_temp disp_temp9
+						}
+					}
+				}
+
+			ife INFO_SEL 2 // equipment
+				{
+				set disp_temp INFO_SEL_2
+                // ITERATE UNTIL disp_temp == (MAXINDEX - 1)
+                set disp_temp9 MAX_EQUIPMENT_RESEARCH
+                sub disp_temp9 1
+				whilen disp_temp disp_temp9
+					{
+					add disp_temp 1
+					ifg EQUIPMENT_RESEARCH[disp_temp] 0
+						{
+						ife EQUIPMENT_RESEARCH[disp_temp] 3 setarray EQUIPMENT_RESEARCH[disp_temp] 1
+						set INFO_SEL_2 disp_temp
+						set disp_temp disp_temp9
+						}
+					}
+				}
+
+			ife INFO_SEL 3 // personel
+				{
+				set disp_temp INFO_SEL_2
+                // ITERATE UNTIL disp_temp == (MAXINDEX - 1)
+                set disp_temp9 MAX_PERSONNEL_RESEARCH
+                sub disp_temp9 1
+				whilen disp_temp disp_temp9
+					{
+					add disp_temp 1
+					ifg PERSONNEL_RESEARCH[disp_temp] 0
+						{
+						ife PERSONNEL_RESEARCH[disp_temp] 3 setarray PERSONNEL_RESEARCH[disp_temp] 1
+						set INFO_SEL_2 disp_temp
+						set disp_temp disp_temp9
+						}
+					}
+				}
+
+			ife INFO_SEL 4 // base
+				{
+				set disp_temp INFO_SEL_2
+                // ITERATE UNTIL disp_temp == (MAXINDEX - 1)
+                set disp_temp9 MAX_BASE_RESEARCH
+                sub disp_temp9 1
+				whilen disp_temp disp_temp9
+					{
+					add disp_temp 1
+					ifg BASE_RESEARCH[disp_temp] 0
+						{
+						ife BASE_RESEARCH[disp_temp] 3 setarray BASE_RESEARCH[disp_temp] 1
+						set INFO_SEL_2 disp_temp
+						set disp_temp disp_temp9
+						}
+					}
+				}
+
+			ife INFO_SEL 5 // mystical
+				{
+				set disp_temp INFO_SEL_2
+                // ITERATE UNTIL disp_temp == (MAXINDEX - 1)
+                set disp_temp9 MAX_MYSTICAL_RESEARCH
+                sub disp_temp9 1
+				whilen disp_temp disp_temp9
+					{
+					add disp_temp 1
+					ifg MYSTICAL_RESEARCH[disp_temp] 0
+						{
+						ife MYSTICAL_RESEARCH[disp_temp] 3 setarray MYSTICAL_RESEARCH[disp_temp] 1
+						set INFO_SEL_2 disp_temp
+						set disp_temp disp_temp9
+						}
+					}
+				}
+
+			ife INFO_SEL 6 // melee
+				{
+				set disp_temp INFO_SEL_2
+                // ITERATE UNTIL disp_temp == (MAXINDEX - 1)
+                set disp_temp9 MAX_MELEE_RESEARCH
+                sub disp_temp9 1
+				whilen disp_temp disp_temp9
+					{
+					add disp_temp 1
+					ifg MELEE_RESEARCH[disp_temp] 0
+						{
+						ife MELEE_RESEARCH[disp_temp] 3 setarray MELEE_RESEARCH[disp_temp] 1
+						set INFO_SEL_2 disp_temp
+						set disp_temp disp_temp9
+						}
+					}
+				}
+
+			resetcount
+ends
+
+defstate RES_PREV_BUT
+			screensound INTERFACE_4
+			ife INFO_SEL 0
+				{
+				ifg INFO_SEL_2 0 sub INFO_SEL_2 1 else set INFO_SEL_2 3
+				}
+
+			ife INFO_SEL 1 // weapons
+				{
+				set disp_temp INFO_SEL_2
+				whilevarn disp_temp 0
+					{
+					sub disp_temp 1
+					ifg WEAPONS_RESEARCH[disp_temp] 0
+						{
+						ife WEAPONS_RESEARCH[disp_temp] 3 setarray WEAPONS_RESEARCH[disp_temp] 1
+						set INFO_SEL_2 disp_temp
+						set disp_temp 0
+						}
+					}
+				}
+
+			ife INFO_SEL 2 // equipment
+				{
+				set disp_temp INFO_SEL_2
+				whilevarn disp_temp 0
+					{
+					sub disp_temp 1
+					ifg EQUIPMENT_RESEARCH[disp_temp] 0
+						{
+						ife EQUIPMENT_RESEARCH[disp_temp] 3 setarray EQUIPMENT_RESEARCH[disp_temp] 1
+						set INFO_SEL_2 disp_temp
+						set disp_temp 0
+						}
+					}
+				}
+
+			ife INFO_SEL 3 // personel
+				{
+				set disp_temp INFO_SEL_2
+				whilevarn disp_temp 0
+					{
+					sub disp_temp 1
+					ifg PERSONNEL_RESEARCH[disp_temp] 0
+						{
+						ife PERSONNEL_RESEARCH[disp_temp] 3 setarray PERSONNEL_RESEARCH[disp_temp] 1
+						set INFO_SEL_2 disp_temp
+						set disp_temp 0
+						}
+					}
+				}
+
+			ife INFO_SEL 4 // base
+				{
+				set disp_temp INFO_SEL_2
+				whilevarn disp_temp 0
+					{
+					sub disp_temp 1
+					ifg BASE_RESEARCH[disp_temp] 0
+						{
+						ife BASE_RESEARCH[disp_temp] 3 setarray BASE_RESEARCH[disp_temp] 1
+						set INFO_SEL_2 disp_temp
+						set disp_temp 0
+						}
+					}
+				}
+
+			ife INFO_SEL 5 // paranormal
+				{
+				set disp_temp INFO_SEL_2
+				whilevarn disp_temp 0
+					{
+					sub disp_temp 1
+					ifg MYSTICAL_RESEARCH[disp_temp] 0
+						{
+						ife MYSTICAL_RESEARCH[disp_temp] 3 setarray MYSTICAL_RESEARCH[disp_temp] 1
+						set INFO_SEL_2 disp_temp
+						set disp_temp 0
+						}
+					}
+				}
+
+			ife INFO_SEL 6 //melee
+				{
+				set disp_temp INFO_SEL_2
+				whilevarn disp_temp 0
+					{
+					sub disp_temp 1
+					ifg MELEE_RESEARCH[disp_temp] 0
+						{
+						ife MELEE_RESEARCH[disp_temp] 3 setarray MELEE_RESEARCH[disp_temp] 1
+						set INFO_SEL_2 disp_temp
+						set disp_temp 0
+						}
+					}
+				}
+
+			resetcount
+ends
+
+defstate setResearchPosition
+    ife INFO_SEL 0 set INFO_SEL_2 0
+    else {
+        // Set Array boundaries
+        switch INFO_SEL
+            case 1 case 2 case 3 set disp_temp4 62 break // Weapon, Equip, Personel
+            case 4 case 5 case 6 set disp_temp4 32 break // Base, Mystic, Dojo
+            default set disp_temp4 0 break
+        endswitch
+        set disp_temp2 0 // condition
+        set disp_temp3 0 // iterator
+
+        // loop until result found or boundary reached
+        whilevarn disp_temp2 1
+            {
+                switch INFO_SEL
+                    case 1 set disp_temp WEAPONS_RESEARCH[disp_temp3] break
+                    case 2 set disp_temp EQUIPMENT_RESEARCH[disp_temp3] break
+                    case 3 set disp_temp PERSONNEL_RESEARCH[disp_temp3] break
+                    case 4 set disp_temp BASE_RESEARCH[disp_temp3] break
+                    case 5 set disp_temp MYSTICAL_RESEARCH[disp_temp3] break
+                    case 6 set disp_temp MELEE_RESEARCH[disp_temp3] break
+                    default set disp_temp 1 break
+                endswitch
+
+                ifn disp_temp 0 set disp_temp2 1
+                else add disp_temp3 1
+
+                // end loop if boundary reached
+                ifg disp_temp3 disp_temp4 {
+                    set disp_temp2 1
+                    set disp_temp3 0
+                }
+            }
+        // Final selection
+        set INFO_SEL_2 disp_temp3
+    }
+ends
+
+
+
+useractor notenemy 12116 state RESEARCH_MODULE enda
+useractor notenemy 12117 state RESEARCH_MODULE enda
+useractor notenemy 17917 state RESEARCH_MODULE enda
+
+
+defstate rs_backup
+ifaction 0
+{
+ifspritepal 27
+	{
+	 ife player[].newowner -1 // prevent viewscreen bugs
+	  ifp pfacing
+	   ifpdistl 1024
+		ifp palive
+		 ifcansee
+		 {
+		 set player_use 0
+		 ifhitspace
+		 ifcount 13
+			{
+			quote 901
+			resetcount
+			}
+		}
+	ifand ELYSION_QUEST 2048
+		{
+		spritepal 1
+		seta[].shade -127
+		action ZERO
+		}
+	}
+else
+	{
+	ifspritepal 25 break
+	ifn VOLUME 0 operateactivators 9500 THISACTOR
+	else ife ep2_new_char 1 operateactivators 9500 THISACTOR
+	ifg VOLUME 3 operateactivators 9501 THISACTOR
+	else ife ep4_new_char 1 operateactivators 9501 THISACTOR
+	ife BASE_RESEARCH[1] 2 operateactivators 8501 THISACTOR // Paranormal research lab
+	ife BASE_RESEARCH[2] 2 operateactivators 8502 THISACTOR // bar and stuff
+	ife BASE_RESEARCH[3] 2 operateactivators 8503 THISACTOR // small Universal constructors
+	ife BASE_RESEARCH[4] 2 operateactivators 8504 THISACTOR // Dojo
+	ife BASE_RESEARCH[5] 2 operateactivators 8505 THISACTOR // Precog brain
+	ife BASE_RESEARCH[6] 2 operateactivators 8506 THISACTOR // workshop
+	ife BASE_RESEARCH[7] 2 operateactivators 8507 THISACTOR // AMC Ship 2
+	ife BASE_RESEARCH[9] 2 operateactivators 8509 THISACTOR // Engineer Tech
+	action ZERO
+	}
+}
+
+ifaction ZERO
+ ife player[].newowner -1 // prevent viewscreen bugs
+  ifp pfacing
+   ifpdistl 1024
+    ifp palive
+     ifcansee
+	 {
+	 set player_use 0
+	 ifhitspace
+	 ifcount 13
+		{
+			getp[].horiz PHORIZ
+			getp[].ang PANG
+			setp[].over_shoulder_on 1
+			sound INTERFACE_1
+            set INFO_SEL 0
+            set INFO_SEL_2 0
+			set r_spookcounter 0
+            ifn new_research 0
+				{
+				ifand new_research 6 ifrnd 16 screensound FSCI_NEWR
+				else screensound MSCI_NEWR
+				}
+				else
+				{
+				ifrnd 24 screensound MSCI_TERM1
+				else ifrnd 24 screensound FSCI_TERM1
+				else ifrnd 24 screensound MSCI_TERM2
+				else ifrnd 24 screensound MSCI_TERM3
+				}
+			set PCINTER 7
+			readarrayfromfile TECH_LEVEL_A F_TECH_LEVEL_AMCTC
+            set temp 0
+            set TECH_LEVEL 1
+			ife BASE_RESEARCH[9] 2 set TECH_LEVEL 11
+            whilevarn temp MAX_TECH_UPGRADES
+            {
+                ife TECH_LEVEL_A[temp] 1 add TECH_LEVEL 1
+                add temp 1
+            }
+			savegamevar TECH_LEVEL
+			state read_everything_arrays
+			readgamevar AMC_BUDGET
+			set MOUSEUP 1
+			action ONE
+			resetcount
+		}
+	 }
+
+ifaction ONE
+{
+	ife PCINTER 0 action ZERO
+
+	ifhitspace
+	 ife MOUSEUP 1
+	  ifcount 13
+       ifle r_spookcounter 0
+		{
+		sound INTERFACE_3
+		set PCINTER 0
+		setp[].over_shoulder_on 0
+		set MOUSEUP 0
+        set r_spookcounter 0
+        set mouse_hint -1
+		set mouse_hint_timer 32
+		state save_arrays
+		action ZERO
+		resetcount
+		}
+
+    ifle r_spookcounter 0
+	ifand EXTBITS_PRESS 1 // up
+	 ifcount 6
+	  {
+		sub INFO_SEL 1
+        ifl INFO_SEL 0 {
+            ifrnd 0 ifrnd 64 ife BASE_RESEARCH[5] 2 ife res_was_spooked 0
+                set INFO_SEL 7
+            else set INFO_SEL 6
+        }
+        ife INFO_SEL 6 ifn BASE_RESEARCH[4] 2 sub INFO_SEL 1 // If Dojo not researched, skip
+        ife INFO_SEL 5 ifn BASE_RESEARCH[1] 2 sub INFO_SEL 1 // If Mystic not researched, skip
+		state setResearchPosition
+		screensound INTERFACE_4
+		resetcount
+	  }
+
+    ifle r_spookcounter 0
+	ifand EXTBITS_PRESS 2 // down
+	 ifcount 6
+	  {
+		add INFO_SEL 1
+        ife INFO_SEL 5 ifn BASE_RESEARCH[1] 2 add INFO_SEL 1 // If Mystic not researched, skip
+        ife INFO_SEL 6 ifn BASE_RESEARCH[4] 2 add INFO_SEL 1 // If Dojo not researched, skip
+        ifg INFO_SEL 6 {
+            ifrnd 0 ifrnd 64 ife BASE_RESEARCH[5] 2 ife res_was_spooked 0
+                set INFO_SEL 7
+            else set INFO_SEL 0
+        }
+		state setResearchPosition
+		screensound INTERFACE_4
+		resetcount
+	  }
+
+
+	ifand EXTBITS_PRESS 4 // Left
+	 ifcount 6
+	  state RES_PREV_BUT
+
+	ifand EXTBITS_PRESS 8 // Right
+	 ifcount 6
+	  state RES_NEXT_BUT
+
+	ifg MOUSEX 170
+	 ifg MOUSEY 178
+	  ifl MOUSEX 202
+	   ifl MOUSEY 190 // Prev button
+		{
+		set mouse_hint 3000 // refers to quote in user.con
+		sub mouse_hint_timer 2
+
+		ifand BITS_PRESS 4
+		 ifcount 6
+		  state RES_PREV_BUT
+
+		}
+
+	ifg MOUSEX 202
+	 ifg MOUSEY 178
+	  ifl MOUSEX 238
+	   ifl MOUSEY 190 // Next button
+		{
+
+		set mouse_hint 3001 // refers to quite in user.con
+		sub mouse_hint_timer 2
+
+		ifand BITS_PRESS 4
+		 ifcount 6
+			state RES_NEXT_BUT
+		}
+
+    set disp_temp7 0
+    ifle r_spookcounter 0 set disp_temp7 1
+    ifge r_spookcounter 850 set disp_temp7 1
+
+    ife disp_temp7 1
+    {
+	ifg MOUSEX 6
+	 ifg MOUSEY 100
+	  ifl MOUSEX 76
+       ifl MOUSEY 110
+		{
+
+		set mouse_hint 3010 // refers to quote in user.con
+		sub mouse_hint_timer 2
+
+		ifand BITS_PRESS 4
+		ifn INFO_SEL 0 // Help
+			{
+			set INFO_SEL 0
+			set INFO_SEL_2 0
+			soundonce COMP_SELECT
+            ifg r_spookcounter 0
+                palfrom 56 64 64 64
+			}
+		}
+    }
+
+    // prevent clicking if spooked
+    ifle r_spookcounter 0
+    {
+	ifg MOUSEX 6
+	 ifg MOUSEY 110
+	  ifl MOUSEX 76
+       ifl MOUSEY 120
+		{
+
+		set mouse_hint 3002 // refers to quote in user.con
+		sub mouse_hint_timer 2
+
+		ifand BITS_PRESS 4
+		ifn INFO_SEL 1 // Weapons
+			{
+			set INFO_SEL 1
+			set INFO_SEL_2 0
+
+            // ITERATE UNTIL disp_temp == (MAXINDEX - 1)
+            set disp_temp8 MAX_WEAPONS_RESEARCH
+            sub disp_temp8 1
+
+            // Search only for new projects
+            ifand new_research 1
+            {
+                set disp_temp 0
+                whilen disp_temp disp_temp8
+                {
+                    add disp_temp 1
+                    ife WEAPONS_RESEARCH[disp_temp] 3
+                    {
+                        setarray WEAPONS_RESEARCH[disp_temp] 1
+                        set INFO_SEL_2 disp_temp
+                        set disp_temp disp_temp8
+                    }
+                }
+            }
+
+            // If either we didn't have new research, or the above loop failed, try again with all projects
+            // and disable the "NEW RESEARCH" flag for this category
+            ife INFO_SEL_2 0
+            {
+                and new_research -2 // (BITWISE NOT) of 1
+                set disp_temp 0
+                whilen disp_temp disp_temp8
+                {
+                    add disp_temp 1
+                    ifg WEAPONS_RESEARCH[disp_temp] 0
+                    {
+                        // safety reset:
+                        ife WEAPONS_RESEARCH[disp_temp] 3 { setarray WEAPONS_RESEARCH[disp_temp] 1 }
+                        set INFO_SEL_2 disp_temp
+                        set disp_temp disp_temp8
+                    }
+                }
+            }
+
+			soundonce COMP_SELECT
+			}
+		}
+
+	ifg MOUSEX 6
+	 ifg MOUSEY 120
+	  ifl MOUSEX 76
+       ifl MOUSEY 130
+		{
+
+		set mouse_hint 3003 // refers to quote in user.con
+		sub mouse_hint_timer 2
+
+		ifand BITS_PRESS 4
+		ifn INFO_SEL 2 // Equipment
+			{
+			set INFO_SEL 2
+			set INFO_SEL_2 0
+
+            // ITERATE UNTIL disp_temp == (MAXINDEX - 1)
+            set disp_temp8 MAX_EQUIPMENT_RESEARCH
+            sub disp_temp8 1
+
+            // Search only for new projects
+            ifand new_research 2
+            {
+                set disp_temp 0
+                whilen disp_temp disp_temp8
+                {
+                    add disp_temp 1
+                    ife EQUIPMENT_RESEARCH[disp_temp] 3
+                    {
+                        setarray EQUIPMENT_RESEARCH[disp_temp] 1
+                        set INFO_SEL_2 disp_temp
+                        set disp_temp disp_temp8
+                    }
+                }
+            }
+
+            // If either we didn't have new research, or the above loop failed, try again with all projects
+            // and disable the "NEW RESEARCH" flag for this category
+            ife INFO_SEL_2 0
+            {
+                and new_research -3 // (BITWISE NOT) of 2
+                set disp_temp 0
+                whilen disp_temp disp_temp8
+                {
+                    add disp_temp 1
+                    ifg EQUIPMENT_RESEARCH[disp_temp] 0
+                    {
+                        // safety reset:
+                        ife EQUIPMENT_RESEARCH[disp_temp] 3 { setarray EQUIPMENT_RESEARCH[disp_temp] 1 }
+                        set INFO_SEL_2 disp_temp
+                        set disp_temp disp_temp8
+                    }
+                }
+            }
+
+			soundonce COMP_SELECT
+			}
+		}
+
+	ifg MOUSEX 6
+	 ifg MOUSEY 130
+	  ifl MOUSEX 76
+       ifl MOUSEY 140
+		{
+
+		set mouse_hint 3004 // refers to quote in user.con
+		sub mouse_hint_timer 2
+
+		ifand BITS_PRESS 4
+		ifn INFO_SEL 3 // Personel
+			{
+			set INFO_SEL 3
+			set INFO_SEL_2 0
+
+            // ITERATE UNTIL disp_temp == (MAXINDEX - 1)
+            set disp_temp8 MAX_PERSONNEL_RESEARCH
+            sub disp_temp8 1
+
+            // Search only for new projects
+            ifand new_research 4
+            {
+                set disp_temp 0
+                whilen disp_temp disp_temp8
+                {
+                    add disp_temp 1
+                    ife PERSONNEL_RESEARCH[disp_temp] 3
+                    {
+                        setarray PERSONNEL_RESEARCH[disp_temp] 1
+                        set INFO_SEL_2 disp_temp
+                        set disp_temp disp_temp8
+                    }
+                }
+            }
+
+            // If either we didn't have new research, or the above loop failed, try again with all projects
+            // and disable the "NEW RESEARCH" flag for this category
+            ife INFO_SEL_2 0
+            {
+                and new_research -5 // (BITWISE NOT) of 4
+                set disp_temp 0
+                whilen disp_temp disp_temp8
+                {
+                    add disp_temp 1
+                    ifg PERSONNEL_RESEARCH[disp_temp] 0
+                    {
+                        // safety reset:
+                        ife PERSONNEL_RESEARCH[disp_temp] 3 { setarray PERSONNEL_RESEARCH[disp_temp] 1 }
+                        set INFO_SEL_2 disp_temp
+                        set disp_temp disp_temp8
+                    }
+                }
+            }
+
+			soundonce COMP_SELECT
+			}
+		}
+
+	ifg MOUSEX 6
+	 ifg MOUSEY 150
+	  ifl MOUSEX 76
+       ifl MOUSEY 160
+		{
+
+		set mouse_hint 3005 // refers to quote in user.con
+		sub mouse_hint_timer 2
+
+		ifand BITS_PRESS 4
+		ifn INFO_SEL 4 // Unlocks base research
+			{
+			set INFO_SEL 4
+			set INFO_SEL_2 0
+
+            // ITERATE UNTIL disp_temp == (MAXINDEX - 1)
+            set disp_temp8 MAX_BASE_RESEARCH
+            sub disp_temp8 1
+
+            // Search only for new projects
+            ifand new_research 8
+            {
+                set disp_temp 0
+                whilen disp_temp disp_temp8
+                {
+                    add disp_temp 1
+                    ife BASE_RESEARCH[disp_temp] 3
+                    {
+                        setarray BASE_RESEARCH[disp_temp] 1
+                        set INFO_SEL_2 disp_temp
+                        set disp_temp disp_temp8
+                    }
+                }
+            }
+
+            // If either we didn't have new research, or the above loop failed, try again with all projects
+            // and disable the "NEW RESEARCH" flag for this category
+            ife INFO_SEL_2 0
+            {
+                and new_research -9 // (BITWISE NOT) of 8
+                set disp_temp 0
+                whilen disp_temp disp_temp8
+                {
+                    add disp_temp 1
+                    ifg BASE_RESEARCH[disp_temp] 0
+                    {
+                        // safety reset:
+                        ife BASE_RESEARCH[disp_temp] 3 { setarray BASE_RESEARCH[disp_temp] 1 }
+                        set INFO_SEL_2 disp_temp
+                        set disp_temp disp_temp8
+                    }
+                }
+            }
+
+			soundonce COMP_SELECT
+			}
+		}
+
+	ifg MOUSEX 6
+	 ifg MOUSEY 160
+	  ifl MOUSEX 76
+       ifl MOUSEY 170
+	    ife BASE_RESEARCH[1] 2 // has the player got the Paranormal library?
+		{
+
+		set mouse_hint 3006 // refers to quote in user.con
+		sub mouse_hint_timer 2
+
+		ifand BITS_PRESS 4
+		ifn INFO_SEL 5
+			{
+			set INFO_SEL 5
+			set INFO_SEL_2 0
+
+            // ITERATE UNTIL disp_temp == (MAXINDEX - 1)
+            set disp_temp8 MAX_MYSTICAL_RESEARCH
+            sub disp_temp8 1
+
+            // Search only for new projects
+            ifand new_research 16
+            {
+                set disp_temp 0
+                whilen disp_temp disp_temp8
+                {
+                    add disp_temp 1
+                    ife MYSTICAL_RESEARCH[disp_temp] 3
+                    {
+                        setarray MYSTICAL_RESEARCH[disp_temp] 1
+                        set INFO_SEL_2 disp_temp
+                        set disp_temp disp_temp8
+                    }
+                }
+            }
+
+            // If either we didn't have new research, or the above loop failed, try again with all projects
+            // and disable the "NEW RESEARCH" flag for this category
+            ife INFO_SEL_2 0
+            {
+                and new_research -17 // (BITWISE NOT) of 16
+                set disp_temp 0
+                whilen disp_temp disp_temp8
+                {
+                    add disp_temp 1
+                    ifg MYSTICAL_RESEARCH[disp_temp] 0
+                    {
+                        // safety reset:
+                        ife MYSTICAL_RESEARCH[disp_temp] 3 { setarray MYSTICAL_RESEARCH[disp_temp] 1 }
+                        set INFO_SEL_2 disp_temp
+                        set disp_temp disp_temp8
+                    }
+                }
+            }
+
+			soundonce COMP_SELECT
+			}
+		}
+
+	ifg MOUSEX 6
+	 ifg MOUSEY 170
+	  ifl MOUSEX 76
+       ifl MOUSEY 180
+	    ife BASE_RESEARCH[4] 2 // has the player got the dojo?
+		{
+
+		set mouse_hint 3007 // refers to quote in user.con
+		sub mouse_hint_timer 2
+
+		ifand BITS_PRESS 4
+		ifn INFO_SEL 6
+			{
+			set INFO_SEL 6
+			set INFO_SEL_2 0
+
+            // ITERATE UNTIL disp_temp == (MAXINDEX - 1)
+            set disp_temp8 MAX_MELEE_RESEARCH
+            sub disp_temp8 1
+
+            // Search only for new projects
+            ifand new_research 32
+            {
+                set disp_temp 0
+                whilen disp_temp disp_temp8
+                {
+                    add disp_temp 1
+                    ife MELEE_RESEARCH[disp_temp] 3
+                    {
+                        setarray MELEE_RESEARCH[disp_temp] 1
+                        set INFO_SEL_2 disp_temp
+                        set disp_temp disp_temp8
+                    }
+                }
+            }
+
+            // If either we didn't have new research, or the above loop failed, try again with all projects
+            // and disable the "NEW RESEARCH" flag for this category
+            ife INFO_SEL_2 0
+            {
+                and new_research -33 // (BITWISE NOT) of 32
+                set disp_temp 0
+                whilen disp_temp disp_temp8
+                {
+                    add disp_temp 1
+                    ifg MELEE_RESEARCH[disp_temp] 0
+                    {
+                        // safety reset:
+                        ife MELEE_RESEARCH[disp_temp] 3 { setarray MELEE_RESEARCH[disp_temp] 1 }
+                        set INFO_SEL_2 disp_temp
+                        set disp_temp disp_temp8
+                    }
+                }
+            }
+
+			soundonce COMP_SELECT
+			}
+		}
+    }
+
+
+}
+ends
+
+
+defstate researchSpook
+    rotatesprite 156 100 65600 0 12144 0 0 0 0 0 xdim ydim
+    rotatespritea 205 90 66000 0 11013 20 0 8 140 0 0 xdim ydim
+
+    set mouse_hint_timer 32
+
+    switch r_spookcounter
+        case 0
+            stopallmusic
+            stopallsounds
+            palfrom 56 0 0 0
+            screensound I_SEE_YOU
+			set res_was_spooked 1
+            add r_spookcounter 1
+            break
+        case 225
+            palfrom 8 0 0 0
+            screensound BEYOND_A2
+            add r_spookcounter 1
+            break
+        case 450
+            palfrom 8 0 0 0
+            screensound BEYOND_A3
+            add r_spookcounter 1
+            break
+        case 650
+            palfrom 8 0 0 0
+            screensound BEYOND_AMB
+            add r_spookcounter 1
+            break
+        case 850
+            palfrom 16 1 0 0
+            screensound BEYOND_HITENEMY
+            screensound SPOOKY2
+            add r_spookcounter 1
+            break
+        case 975
+            palfrom 24 2 0 0
+            screensound BEYOND_HITENEMY
+            add r_spookcounter 1
+            break
+        case 1100
+            palfrom 32 4 0 0
+            screensound BEYOND_HITENEMY
+            screensound SPOOKY2
+            add r_spookcounter 1
+            break
+        case 1225
+            palfrom 40 8 0 0
+            screensound BEYOND_HITENEMY
+            break
+        case 1350
+            palfrom 128 64 0 0
+            screensound BEYOND_HIT
+            break
+        case 1360
+            add r_spookcounter 1
+            set rs_prev_totalclock 0
+            startlevel 7 63
+            break
+    endswitch
+
+    // this gives an upper bound on how fast this sequence may progress
+    set disp_temp totalclock
+    sub disp_temp rs_prev_totalclock
+    ifge disp_temp 4
+    {
+        add r_spookcounter 1
+        ifl r_spookcounter 1360 set rs_prev_totalclock totalclock
+    }
+
+    // if menu was opened, this may diverge. reset it to the proper value
+    ifl totalclock rs_prev_totalclock
+        set rs_prev_totalclock totalclock
+
+    set r_spookcycler r_spookcounter
+    mod r_spookcycler 6
+    ife r_spookcycler 0
+    {
+        qputs 1380 > EMBRACE THE FUTURE I CAN GIVE YOU
+        qputs 1381 >                 :^:.
+        qputs 1382 >             ..  ^^:
+        qputs 1383 >          .^!~~!^^~^~^..
+        qputs 1384 >        :^~!!~~~~^^~!J5Y7^.
+        qputs 1385 >      ..:^^^!~!~7!~7??7!^^^
+        qputs 1386 >    :!~~:::::~!~^~~^^:..:...
+        qputs 1387 >   ~!~~~^. .:^^~~~:......:::
+        qputs 1388 >  7J77!~.   .~~~^...... ..~^.
+        qputs 1389 >  ~J557.    ^~^^!^^:::.  .^^.
+        qputs 1390 >.~YPPY~.   .!!~^~^^^^^:.  :^.
+        qputs 1391 >~::Y7^:    ^!^:.. :::::.  :~.
+        qputs 1392 > ..^ ::   .^^::.. :::::. .:~~:
+        qputs 1393 >          ...::.  .::::.   ..
+    }
+    else ife r_spookcycler 1
+    {
+        qputs 1380 > THE SHADOW OF OBLIVION
+        qputs 1381 >         ^7^   .  .~!:
+        qputs 1382 >        ~777^~7?!^~777^
+        qputs 1383 >       ^!7!!~~7J7~~!7!~:
+        qputs 1384 >       ^!!7!~:~7~:~!!!~:
+        qputs 1385 >       ^!!^:::::::::~!!:
+        qputs 1386 >      .^^..:^:...:^:.:^:
+        qputs 1387 >    .:^^:. ......... .:^^.
+        qputs 1388 >   ^!!~:   .:::::::.  .~!!~.
+        qputs 1389 > .~7!~:   :^^^^^^^^^.  :~!7~.
+        qputs 1390 >~?7:    :~!~~. :~!!~:   .!?~
+        qputs 1391 > :?~:~.  .~!7!:   ^!7!^. .^:~?:
+        qputs 1392 >~!:      ^!~:     :!7^     :7~
+        qputs 1393 > :~^      :^::     :^^.     ^~.
+    }
+    else ife r_spookcycler 2
+    {
+        qputs 1380 > HAIL TO THE KING
+        qputs 1381 >                 .::.:!.
+        qputs 1382 >                  .~?!.
+        qputs 1383 >                  ^^~^~.
+        qputs 1384 >                  :. .^.
+        qputs 1385 >   ::             .^7!.    ^J?J~   :. .
+        qputs 1386 >::^7!:.           ^YY~.    ^77?~ .^??~^:
+        qputs 1387 > .~7~:^       .::..?57..:^:::^:: ^:~7~
+        qputs 1388 >  .:....     ^!7!^^~!7~~?5J::::...:::.
+        qputs 1389 >     ...:...:^^^:^~^^!!!^!!^..^:...
+        qputs 1390 >       :^!!^..  :~~!?J?~. :. .^:^.
+        qputs 1391 >      .:^~^:.    7!?PY?^    .^^:.
+        qputs 1392 >      :.  ..::..:7J?5YJ!. .::.:
+        qputs 1393 >        .:^^777:~55YBY5Y!~?7!:^^.
+    }
+    else ife r_spookcycler 3
+    {
+        qputs 1380 > SISTERS OF DESPAIR
+        qputs 1381 >             ::.
+        qputs 1382 >            :!!~^:
+        qputs 1383 >           :~??!^^:
+        qputs 1384 >           :7??7^~^.
+        qputs 1385 >           :!777^^^:
+        qputs 1386 >        ...^~^^~~~^^
+        qputs 1387 >      .^~~^^~~^~^^~~~.
+        qputs 1388 >      .:::!7!~~!7!::::.
+        qputs 1389 >      ::.~77!!!!77!....
+        qputs 1390 >     .::.::^:^^::::.....
+        qputs 1391 >    .....^:::^^::.^....^:
+        qputs 1392 >    77^. .^:^~~^:^: ..?P^
+        qputs 1393 >   ^5?^ .^~~~!!~~~~: ^G?.
+    }
+    else ife r_spookcycler 4
+    {
+        qputs 1380 > HORRORS BEYOND YOUR WILDEST DREAMS
+        qputs 1381 >                 :~?JJYYY5YYJ!:
+        qputs 1382 >              .!?Y5PPPPGBGBGGP5J!.
+        qputs 1383 >             .7555PP5PB&Y#G55PP55!
+        qputs 1384 >            .?Y55J!^^^YG557:^~?YYY~
+        qputs 1385 >   .^^:     !JY5J^...:7Y5J7^..:!JY?!.
+        qputs 1386 >   :~~:.   .7JYYJ7!7?J5Y5YYYJJ??JJJ7:
+        qputs 1387 >   .^: .. :777??JYY55YJ????JYYYJ???7!~
+        qputs 1388 >   :~:..:.~!~~!777?7~^~::^~:~77!~!!~~~
+        qputs 1389 >   .^^.::^^~^:^!7~....    .....:^~::^:  .
+        qputs 1390 >    :^:::~:...:~~^....    . ...:^^:... .~
+        qputs 1391 >    .^:.:::. .:^:....:...::....:^:.    ^^
+        qputs 1392 >     :. :^^^. .^^^:::^^^^^^^::^^^:    ^^:
+        qputs 1393 >     :. .::^.  :~????7~~!!!JJ?!^^.   :~^:
+
+    }
+    else ife r_spookcycler 5
+    {
+        qputs 1380 > I AM ETERNAL
+        qputs 1381 >                  7#B!
+        qputs 1382 >                 :JGP?:
+        qputs 1383 >           .:^7!^^~!!^^^7!^:.
+        qputs 1384 >          .^~75J~^:^^:^~YY!~:
+        qputs 1385 >          :^^^~77!!!!~!7!~^^^.
+        qputs 1386 >          .^:..^^~~~~~^^:..:^.
+        qputs 1387 >        ..::..~::::^:::::^..::..
+        qputs 1388 >      ...:^:.75^.::^^.:.!5~.^^:..
+        qputs 1389 >     ....^!^:77^:!!::!!:~7!^!~:...
+        qputs 1390 >      :..^!::^::^~7!!!~^::^^!~....
+        qputs 1391 >     .::^!P5:.:~?7^!!^~!~:~!~:.....
+        qputs 1392 >    ....::7BPJ?7JJ~:.:!7^:^!:.....:.
+        qputs 1393 >   .:....^5GBGBGG5?~.^~!~::.......::
+    }
+
+ends
+
+defstate clearResearchText
+    // Clear Header
+    qputs 1380
+
+    // Clear description
+    qputs 1381
+    qputs 1382
+    qputs 1383
+    qputs 1384
+    qputs 1385
+    qputs 1386
+	qputs 1387
+	qputs 1388
+	qputs 1389
+
+    // Clear requirements (tech level, budget cost etc.)
+    qputs 1390
+    qputs 1391
+    qputs 1392
+    qputs 1393
+	qputs 1394
+ends
+
+var fmv_counter 0 0
+var fmv_id 0 0
+
+// ASSUMPTIONS: ONLY CALLED INSIDE RESEARCH SCREEN CODE
+// temp_resinput_cond and temp_resinput_cost is set
+// INFO_SEL and INFO_SEL_2 values are correct
+defstate onclick_research
+    // Check if requirements fulfilled (given by input)
+    ife temp_resinput_cond 1
+        {
+        // "Click to research!"
+        gametextz 2822 480 170 1075 disp_pulse 1 0 0 0 xdim ydim HALFSIZE
+
+        ifg MOUSEX 249
+          ifg MOUSEY 132
+            ifl MOUSEX 288
+              ifl MOUSEY 168
+                {
+                rotatespritea 270 145 32768 0 12169 disp_pulse 1 0 -255 0 0 xdim ydim
+                ifand BITS_PRESS 4
+                    {
+                    switch INFO_SEL
+                    case 1 setarray WEAPONS_RESEARCH[INFO_SEL_2] 2 break
+                    case 2 setarray EQUIPMENT_RESEARCH[INFO_SEL_2] 2 break
+                    case 3 setarray PERSONNEL_RESEARCH[INFO_SEL_2] 2 break
+                    case 4 setarray BASE_RESEARCH[INFO_SEL_2] 2 break
+                    case 5 setarray MYSTICAL_RESEARCH[INFO_SEL_2] 2 break
+                    case 6 setarray MELEE_RESEARCH[INFO_SEL_2] 2 break
+                    endswitch
+                    set array_save 1
+                    sub AMC_BUDGET temp_resinput_cost
+                    savegamevar AMC_BUDGET
+                    screensound RESEARCHED
+					ifn rendmode 0 // research FMVs
+					 ife fmv_counter 0
+						{
+						ife INFO_SEL 4 ife INFO_SEL_2 7 startcutscene 1340 // new flier
+						ife INFO_SEL 6 ife INFO_SEL_2 7 startcutscene 1341 // ninja roll
+						ife INFO_SEL 3 ife INFO_SEL_2 22 startcutscene 1342 // personal shield
+						ife INFO_SEL 4 ife INFO_SEL_2 5 startcutscene 1343 // precog brain
+						ife INFO_SEL 1 ife INFO_SEL_2 3 startcutscene 1344 // MIA gun
+						ife INFO_SEL 3 ife INFO_SEL_2 31 startcutscene 1345 // AMC-209
+						ife INFO_SEL 3 ife INFO_SEL_2 32 startcutscene 1346 // Advanced AMC soldier
+						set fmv_counter 30
+						}
+					 palfrom 20 63 63 63
+                    }
+                }
+        // in CON, this else applies to ALL ife statements
+        else rotatespritea 270 145 32768 0 3759 0 1 0 -255 0 0 xdim ydim
+        }
+ends
+
+defstate replay_fmv
+	ifn rendmode 0
+	{
+        gametextz 2822 480 170 1076 disp_pulse 1 0 0 0 xdim ydim HALFSIZE
+
+        ifg MOUSEX 249
+          ifg MOUSEY 132
+            ifl MOUSEX 288
+              ifl MOUSEY 168
+                {
+                rotatespritea 270 145 32768 0 3332 disp_pulse 1 0 -255 0 0 xdim ydim
+                ifand BITS_PRESS 4
+				 ife fmv_counter 0
+                    {
+					startcutscene fmv_id
+                    set fmv_counter 30
+                    }
+                }
+        else rotatespritea 270 145 32768 0 3332 0 1 0 -255 0 0 xdim ydim
+	}
+ends
+
+defstate RESEARCH_INTERFACE
+ife SCIENTIST_CAM -1 rotatesprite 204 100 30460 0 10829 0 0 8 0 0 xdim ydim // background
+rotatesprite 160 100 29960 0 12119 0 0 0 0 0 xdim ydim // background
+
+rotatesprite 187 184 QUARTERSIZE 0 12198 10 0 0 0 0 xdim ydim // Prev button
+rotatesprite 220 184 QUARTERSIZE 1024 12198 10 0 4 0 0 xdim ydim // Next button
+
+rotatesprite 143 101 NNORMALSIZE 0 12144 0 0 0 0 0 xdim ydim
+
+set disp_temp7 0
+ifle r_spookcounter 0 set disp_temp7 1
+else ifge r_spookcounter 850 set disp_temp7 2
+
+ife disp_temp7 1
+    minitext 9 103 1029 0 12
+else ife disp_temp7 2
+    minitext 9 103 1029 20 12
+
+ifle r_spookcounter 0
+{
+    ifand new_research 1 rotatespritea 22 117 49152 0 14606 0 0 8 -255 0 0 xdim ydim
+    minitext 9 114 1030 0 2
+
+    ifand new_research 2 rotatespritea 22 128 49152 0 14606 0 0 8 -255 0 0 xdim ydim
+    minitext 9 125 1031 0 8
+
+    ifand new_research 4 rotatespritea 22 139 49152 0 14606 0 0 8 -255 0 0 xdim ydim
+    minitext 9 136 1032 0 1
+
+    ifand new_research 8 rotatespritea 22 157 49152 0 14606 0 0 8 -255 0 0 xdim ydim
+    minitext 9 155 1033 0 15
+
+    ife BASE_RESEARCH[1] 2
+        {
+        ifand new_research 16 rotatespritea 22 168 49152 0 14606 0 0 8 -255 0 0 xdim ydim
+        minitext 9 166 1034 0 49
+        }
+    ife BASE_RESEARCH[4] 2
+        {
+        ifand new_research 32 rotatespritea 22 179 49152 0 14606 0 0 8 -255 0 0 xdim ydim
+        minitext 9 176 900 0 22
+        }
+
+    set temp_rescolour 0 // color bitmap for requirements
+    set temp_resinput_cond 0 // input condition for research button
+    state clearResearchText
+
+    readgamevar TECH_LEVEL
+    qsprintf 1036 1037 TECH_LEVEL
+    gametextz 2822 18 69 1036 0 1 0 0 0 xdim ydim HALFSIZE
+
+    readgamevar AMC_BUDGET
+    qsprintf 1041 1042 AMC_BUDGET
+    gametextz 2822 18 89 1041 0 1 0 0 0 xdim ydim HALFSIZE
+
+}
+
+ifg MOUSEX 202
+ ifg MOUSEY 178
+  ifl MOUSEX 238
+   ifl MOUSEY 190 // Next button
+    {
+    rotatesprite 220 184 QUARTERSIZE 1024 12198 0 67 4 0 0 xdim ydim // Next button
+    ifand BITS_PRESS 4
+        {
+        rotatesprite 220 184 QUARTERSIZE 1024 12198 0 13 4 0 0 xdim ydim
+        }
+    }
+
+ifg MOUSEX 170
+ ifg MOUSEY 178
+  ifl MOUSEX 202
+   ifl MOUSEY 190 // Prev button
+    {
+    rotatesprite 187 184 QUARTERSIZE 0 12198 0 67 0 0 0 xdim ydim // Prev button
+    ifand BITS_PRESS 4
+        {
+        rotatesprite 187 184 QUARTERSIZE 0 12198 0 13 0 0 0 xdim ydim
+        }
+    }
+
+// Screen Contents
+
+ife INFO_SEL 0 // Help
+{
+    minitext 9 103 1029 disp_pulse 12
+    switch INFO_SEL_2
+    case 0
+        qputs 1011 Overview
+        gametextz 2822 260 55 1011 0 125 0 0 0 xdim ydim HALFSIZE
+        qputs 1011 The research terminal is used to research
+        gametextz 2822 260 60 1011 0 0 0 0 0 xdim ydim HALFSIZE
+        qputs 1011 new weapons, artifacts, equipment, and
+        gametextz 2822 260 65 1011 0 0 0 0 0 xdim ydim HALFSIZE
+        qputs 1011 things useful to the AMC Squad. As you
+        gametextz 2822 260 70 1011 0 0 0 0 0 xdim ydim HALFSIZE
+        qputs 1011 progress in the game the AMC Squad will
+        gametextz 2822 260 75 1011 0 0 0 0 0 xdim ydim HALFSIZE
+        qputs 1011 acquire more scientists and better
+        gametextz 2822 260 80 1011 0 0 0 0 0 xdim ydim HALFSIZE
+        qputs 1011 laboratory equipment, allowing you to
+        gametextz 2822 260 85 1011 0 0 0 0 0 xdim ydim HALFSIZE
+        qputs 1011 research better and more powerful things.
+        gametextz 2822 260 90 1011 0 0 0 0 0 xdim ydim HALFSIZE
+
+        myospalx 180 105 12116 0 0 0
+        myospalx 220 105 12117 0 0 0
+
+        qputs 1011 These are research modules. They contain
+        gametextz 2822 260 125 1011 0 0 0 0 0 xdim ydim HALFSIZE
+        qputs 1011 projects for you to research; you can
+        gametextz 2822 260 130 1011 0 0 0 0 0 xdim ydim HALFSIZE
+        qputs 1011 also find projects via enemies and
+        gametextz 2822 260 135 1011 0 0 0 0 0 xdim ydim HALFSIZE
+        qputs 1011 documents on the field of battle.
+        gametextz 2822 260 140 1011 0 0 0 0 0 xdim ydim HALFSIZE
+        qputs 1011 Click on the arrows below to see more.
+        gametextz 2822 260 145 1011 0 0 0 0 0 xdim ydim HALFSIZE
+        break
+    case 1
+        qputs 1011 Tech level
+        gametextz 2822 260 80 1011 0 125 0 0 0 xdim ydim HALFSIZE
+        qputs 1011 Your tech level determines what you
+        gametextz 2822 260 85 1011 0 0 0 0 0 xdim ydim HALFSIZE
+        qputs 1011 can research. This level increases as
+        gametextz 2822 260 90 1011 0 0 0 0 0 xdim ydim HALFSIZE
+        qputs 1011 you progress in the story, but you can
+        gametextz 2822 260 95 1011 0 0 0 0 0 xdim ydim HALFSIZE
+        qputs 1011 also increase it by finding equipment
+        gametextz 2822 260 100 1011 0 0 0 0 0 xdim ydim HALFSIZE
+        qputs 1011 or recruiting scientists in the field.
+        gametextz 2822 260 105 1011 0 0 0 0 0 xdim ydim HALFSIZE
+        qputs 1011 You can't research things above your
+        gametextz 2822 260 110 1011 0 0 0 0 0 xdim ydim HALFSIZE
+        qputs 1011 tech level.
+        gametextz 2822 260 115 1011 0 0 0 0 0 xdim ydim HALFSIZE
+        break
+    case 2
+        qputs 1011 Researching
+        gametextz 2822 260 80 1011 0 125 0 0 0 xdim ydim HALFSIZE
+        qputs 1011 Researching also costs money. The AMC
+        gametextz 2822 260 85 1011 0 0 0 0 0 xdim ydim HALFSIZE
+        qputs 1011 Squad has a set budget at the start of
+        gametextz 2822 260 90 1011 0 0 0 0 0 xdim ydim HALFSIZE
+        qputs 1011 every episode, but you can earn money
+        gametextz 2822 260 95 1011 0 0 0 0 0 xdim ydim HALFSIZE
+        qputs 1011 by finishing levels in the main story and
+        gametextz 2822 260 100 1011 0 0 0 0 0 xdim ydim HALFSIZE
+        qputs 1011 also any and all usermaps. Research is
+        gametextz 2822 260 105 1011 0 0 0 0 0 xdim ydim HALFSIZE
+        qputs 1011 permanent across all episodes!
+        gametextz 2822 260 110 1011 0 0 0 0 0 xdim ydim HALFSIZE
+        break
+    case 3
+        qputs 1011 Results
+        gametextz 2822 260 80 1011 0 125 0 0 0 xdim ydim HALFSIZE
+        qputs 1011 Projects that you've researched will carry
+        gametextz 2822 260 85 1011 0 0 0 0 0 xdim ydim HALFSIZE
+        qputs 1011 over across all episodes of the game. For
+        gametextz 2822 260 90 1011 0 0 0 0 0 xdim ydim HALFSIZE
+        qputs 1011 example, finishing a tough project in
+        gametextz 2822 260 95 1011 0 0 0 0 0 xdim ydim HALFSIZE
+        qputs 1011 Episode 3 will also finish it in Episode 1.
+        gametextz 2822 260 100 1011 0 0 0 0 0 xdim ydim HALFSIZE
+        qputs 1011 It pays to research what you can.
+        gametextz 2822 260 105 1011 0 0 0 0 0 xdim ydim HALFSIZE
+        break
+    endswitch
+}
+else ife INFO_SEL 1 // Weapon Research
+{
+    minitext 9 114 1030 disp_pulse 2
+    switch INFO_SEL_2
+    case 0
+        qputs 1011 --- No projects found in this category ---
+        gametextz 2822 265 100 1011 0 125 0 0 0 xdim ydim HALFSIZE
+        break
+    case 1 // GDF Plasma Gun
+        myospalx 180 105 JPLASMASPRITE 0 0 0
+        qputs 1380 GDF Plasma Gun
+        qputs 1381 A powerful Garmid Defence Force weapon.
+        qputs 1382 We can manufacture and use this weapon
+        qputs 1383 once researched.
+        qputs 1390 TECH LVL NEEDED: ONE
+        qputs 1391 RESEARCH cost: 2
+
+        // if already researched, stop here
+        ifn WEAPONS_RESEARCH[INFO_SEL_2] 1 orvar temp_rescolour 1 // indicates gray pal for all
+        else
+            {
+            // set flags on color bitmap (1 -> green, 0-> red)
+            ifg TECH_LEVEL 0 orvar temp_rescolour 2
+            ifg AMC_BUDGET 1 orvar temp_rescolour 4
+
+            set temp_resinput_cost 2 // budget cost
+
+            // Check if requirements fulfilled (AND)
+            ifg TECH_LEVEL 0 ifg AMC_BUDGET 1 set temp_resinput_cond 1
+            state onclick_research
+            }
+        break
+    case 2	// LIZMAN LASER CHAINGUN
+        myospalx 180 105 LIZMANFGUNSPRITE 0 0 0
+        qputs 1380 Enforcer Laser Chaingun
+        qputs 1381 A variation of the Cycloid Enforcer's
+        qputs 1382 chaingun; this version fires a stream
+        qputs 1383 of laser blasts.
+        qputs 1390 TECH LVL NEEDED: ONE
+        qputs 1391 RESEARCH cost: 2
+
+        ifn WEAPONS_RESEARCH[INFO_SEL_2] 1 orvar temp_rescolour 1
+        else
+            {
+            ifg TECH_LEVEL 0 orvar temp_rescolour 2
+            ifg AMC_BUDGET 1 orvar temp_rescolour 4
+
+            set temp_resinput_cost 2
+            ifg TECH_LEVEL 0 ifg AMC_BUDGET 1 set temp_resinput_cond 1
+            state onclick_research
+            }
+        break
+    case 3 // MIA Gun
+        myospalx 180 105 MIAGUNSPRITE 0 0 0
+        qputs 1380 'Missing in Action' Gun
+        qputs 1381 Temporarily displaces an enemy;
+        qputs 1382 this can be used to ^32gain research
+        qputs 1383 data on certain specimen.
+        qputs 1390 TECH LVL NEEDED: ONE
+        qputs 1391 RESEARCH cost: 1
+
+        // Unlock 40mm MIA gun shells (could probably be put in a better spot)
+        ife EQUIPMENT_RESEARCH[16] 0 // MIA shells topic not unlocked?
+        {
+            ife WEAPONS_RESEARCH[3] 2 // if MIA gun is researched
+            ife EQUIPMENT_RESEARCH[13] 2 // if 40mm cased shells is researched
+                {
+                setarray EQUIPMENT_RESEARCH[16] 1 // unlock the research
+                set array_save 1
+                }
+        }
+
+        ifn WEAPONS_RESEARCH[INFO_SEL_2] 1 { set fmv_id 1344 state replay_fmv orvar temp_rescolour 1 }
+        else
+            {
+            ifg TECH_LEVEL 0 orvar temp_rescolour 2
+            ifg AMC_BUDGET 0 orvar temp_rescolour 4
+
+            set temp_resinput_cost 1 // budget cost
+            ifg TECH_LEVEL 0 ifg AMC_BUDGET 0 set temp_resinput_cond 1
+            state onclick_research
+            }
+        break
+    case 4 // Battlelord Chaingun
+        myospalx 180 105 2687 0 0 0
+        qputs 1380 Battlelord Chaingun
+        qputs 1381 Although too large for human use, the
+        qputs 1382 technology used can help us in future
+        qputs 1383 research on true portable miniguns.
+        qputs 1390 TECH LVL NEEDED: ONE
+        qputs 1391 RESEARCH cost: 4
+
+         // Unlock Riotgun Minigun
+        ife WEAPONS_RESEARCH[6] 0 // Riotgun-minigun topic not unlocked?
+            {
+            ife WEAPONS_RESEARCH[4] 2 // if this is researched
+            ife WEAPONS_FOUND[12] 1 // if riotgun found
+                {
+                setarray WEAPONS_RESEARCH[6] 1 // unlock the research
+                set array_save 1
+                }
+        }
+
+        ifn WEAPONS_RESEARCH[INFO_SEL_2] 1 orvar temp_rescolour 1
+        else
+            {
+            ifg TECH_LEVEL 0 orvar temp_rescolour 2
+            ifg AMC_BUDGET 3 orvar temp_rescolour 4
+
+            set temp_resinput_cost 4 // budget cost
+            ifg TECH_LEVEL 0 ifg AMC_BUDGET 3 set temp_resinput_cond 1
+            state onclick_research
+            }
+        break
+    case 5 // Flamethrower
+        myospalx 180 105 FLAMETHROWERSPRITE 0 0 0
+        qputs 1380 Flamethrower
+        qputs 1381 A powerful weapon useful against large
+        qputs 1382 crowds of weaker enemies.
+        qputs 1390 TECH LVL NEEDED: ONE
+        qputs 1391 RESEARCH COST: 3
+
+        ifn WEAPONS_RESEARCH[INFO_SEL_2] 1 orvar temp_rescolour 1
+        else
+            {
+            ifg TECH_LEVEL 0 orvar temp_rescolour 2
+            ifg AMC_BUDGET 2 orvar temp_rescolour 4
+
+            set temp_resinput_cost 3 // budget cost
+            ifg TECH_LEVEL 0 ifg AMC_BUDGET 2 set temp_resinput_cond 1
+            state onclick_research
+            }
+        break
+    case 6 // Riotgun Minigun
+        myospalx 180 105 RIOTGUN_MINIGUN_SPRITE 0 0 0
+        qputs 1380 Riotgun-Minigun modification
+        qputs 1381 Using what we learned from the Battlelord's
+        qputs 1382 portable chaingun, we've designed a portable
+        qputs 1383 minigun based on the riotgun's frame.
+        qputs 1390 TECH LVL NEEDED: THREE
+        qputs 1391 RESEARCH COST: 10
+        qputs 1392 REQUIRES BATTLELORD CHAINGUN RESEARCH
+        qputs 1393 REQUIRES RIOTGUN IN ARMOURY
+
+        ifn WEAPONS_RESEARCH[INFO_SEL_2] 1 orvar temp_rescolour 1
+        else
+            {
+            ifg TECH_LEVEL 2 orvar temp_rescolour 2
+            ifg AMC_BUDGET 9 orvar temp_rescolour 4
+            ife WEAPONS_RESEARCH[4] 2 orvar temp_rescolour 8 // Battlelord chaingun researched
+            ife WEAPONS_FOUND[12] 1 orvar temp_rescolour 16 // Riotgun in armory
+
+            set temp_resinput_cost 10 // budget cost
+            ifg TECH_LEVEL 2 ifg AMC_BUDGET 9
+                ife WEAPONS_RESEARCH[6] 1 ife WEAPONS_RESEARCH[4] 2 ife WEAPONS_FOUND[12] 1
+                    set temp_resinput_cond 1
+            state onclick_research
+            }
+        break
+    case 7 // Devastator Framework
+        myospalx 180 105 15912 0 0 0
+        qputs 1380 Devastator Framework
+        qputs 1381 By researching the Devastator's chassis,
+        qputs 1382 we can use it in our designs for better and
+        qputs 1383 more powerful weapons.
+        qputs 1390 TECH LVL NEEDED: TEN
+        qputs 1391 RESEARCH COST: 30
+
+        ife WEAPONS_RESEARCH[8] 0 // Riotgun-minigun mk2 topic not unlocked?
+        {
+            ife WEAPONS_RESEARCH[6] 2 // if RG minigun is researched
+            ife WEAPONS_RESEARCH[7] 2 // if this is researched
+                {
+                setarray WEAPONS_RESEARCH[8] 1 // unlock the research
+                set array_save 1
+                }
+        }
+
+        ifn WEAPONS_RESEARCH[INFO_SEL_2] 1 orvar temp_rescolour 1
+        else
+            {
+            ifg TECH_LEVEL 9 orvar temp_rescolour 2
+            ifg AMC_BUDGET 29 orvar temp_rescolour 4
+
+            set temp_resinput_cost 30 // budget cost
+            ifg TECH_LEVEL 9 ifg AMC_BUDGET 29 set temp_resinput_cond 1
+            state onclick_research
+            }
+        break
+    case 8 // Riotgun-Minigun Mk2
+        myospalx 180 105 16087 0 0 0
+        qputs 1380 Riotgun-Minigun Mk2
+        qputs 1381 We can use the research gained from the
+        qputs 1382 Devastator framework to revise the Minigun's
+        qputs 1383 chassis for improved performance all around.
+        qputs 1390 TECH LVL NEEDED: SEVEN
+        qputs 1391 RESEARCH COST: 40
+        qputs 1392 REQUIRES DEVASTATOR FRAMEWORK
+        qputs 1393 REQUIRES RIOTGUN MINIGUN
+
+        ifn WEAPONS_RESEARCH[INFO_SEL_2] 1 orvar temp_rescolour 1
+        else
+            {
+            ifg TECH_LEVEL 6 orvar temp_rescolour 2
+            ifg AMC_BUDGET 39 orvar temp_rescolour 4
+            ife WEAPONS_RESEARCH[7] 2 orvar temp_rescolour 8
+            ife WEAPONS_RESEARCH[6] 2 orvar temp_rescolour 16
+
+            set temp_resinput_cost 40 // budget cost
+            ifg TECH_LEVEL 6 ifg AMC_BUDGET 39 ife WEAPONS_RESEARCH[7] 2 ife WEAPONS_RESEARCH[6] 2 set temp_resinput_cond 1
+            state onclick_research
+            }
+        break
+    case 9 // Cycloid Plasma
+        myospalx 180 95 13547 0 0 0
+        qputs 1380 Cycloid Plasma Tech
+        qputs 1381 We were able to extract and preserve some
+        qputs 1382 components of the Cycloid's plasma arsenal.
+        qputs 1383 Research this and we can create our
+        qputs 1384 own variations of this powerful technology.
+        qputs 1390 TECH LVL NEEDED: EIGHT
+        qputs 1391 RESEARCH COST: 10
+
+        ife EQUIPMENT_RESEARCH[18] 0 // Plasma shells topic not unlocked?
+        {
+            ife WEAPONS_RESEARCH[9] 2 // if this is researched
+            ife EQUIPMENT_RESEARCH[13] 2 // if 40mm cased shells is researched
+                {
+                setarray EQUIPMENT_RESEARCH[18] 1 // unlock the research
+                set array_save 1
+                }
+        }
+
+        ifn WEAPONS_RESEARCH[INFO_SEL_2] 1 orvar temp_rescolour 1
+        else
+            {
+            ifg TECH_LEVEL 7 orvar temp_rescolour 2
+            ifg AMC_BUDGET 9 orvar temp_rescolour 4
+
+            set temp_resinput_cost 10 // budget cost
+            ifg TECH_LEVEL 7 ifg AMC_BUDGET 9 set temp_resinput_cond 1
+            state onclick_research
+            }
+        break
+    case 10 // Beam Sabre
+        myospalx 180 95 20101 0 0 0
+        qputs 1380 Beam Sabre
+        qputs 1381 A potent Energy blade that can cut through
+        qputs 1382 even the strongest of enemies.
+        qputs 1383 Expensive, but a potent weapon.
+        qputs 1390 TECH LVL NEEDED: TEN
+        qputs 1391 RESEARCH COST: 30
+
+        ifn WEAPONS_RESEARCH[INFO_SEL_2] 1 orvar temp_rescolour 1
+        else
+            {
+            ifg TECH_LEVEL 9 orvar temp_rescolour 2
+            ifg AMC_BUDGET 29 orvar temp_rescolour 4
+
+            set temp_resinput_cost 30 // budget cost
+            ifg TECH_LEVEL 9 ifg AMC_BUDGET 29 set temp_resinput_cond 1
+            state onclick_research
+            }
+        break
+    case 11 // Enforcer Chaingun Rapid Fire Modification
+        myospalx 180 95 LIZMANGUNSPRITE 0 0 0
+        qputs 1380 Rapid Fire Modification
+        qputs 1381 The Enforcer chaingun has an experimental
+        qputs 1382 rapid-fire mode; disabled by default as
+        qputs 1383 prolonged use would cause overheating
+        qputs 1384 and sear the enforcer's arm clean off.
+        qputs 1385 We can re-activate and improve it for our
+        qputs 1386 own purposes as an alternate firing mode.
+        qputs 1390 TECH LVL NEEDED: TWO
+        qputs 1391 RESEARCH cost: 4
+
+        ifn WEAPONS_RESEARCH[INFO_SEL_2] 1 orvar temp_rescolour 1
+        else
+            {
+            ifg TECH_LEVEL 1 orvar temp_rescolour 2
+            ifg AMC_BUDGET 3 orvar temp_rescolour 4
+
+            set temp_resinput_cost 4 // budget cost
+            ifg TECH_LEVEL 1 ifg AMC_BUDGET 3 set temp_resinput_cond 1
+            state onclick_research
+            }
+        break
+    case 12 // Engineer SMG
+        myospalx 180 105 ENG_SMG_SPRITE 0 0 0
+        qputs 1380 Engineer SMG
+        qputs 1381 An extremely advanced piece of weapons
+        qputs 1382 technology; researching it will not only
+        qputs 1383 allow us to build and use them, but also
+        qputs 1384 learn more of the Engineer's advancements
+        qputs 1385 and use them for our own development in
+        qputs 1386 state-of-the-art firearms.
+        qputs 1390 TECH LVL NEEDED: THIRTY
+        qputs 1391 RESEARCH COST: 40
+		qputs 1392 REQUIRES ENGINEER TECH
+        ifn WEAPONS_RESEARCH[INFO_SEL_2] 1 orvar temp_rescolour 1
+        else
+            {
+            ifg TECH_LEVEL 29 orvar temp_rescolour 2
+            ifg AMC_BUDGET 39 orvar temp_rescolour 4
+			ife BASE_RESEARCH[9] 2 orvar temp_rescolour 8
+
+            set temp_resinput_cost 40 // budget cost
+            ifg TECH_LEVEL 29 ifg AMC_BUDGET 39 ife BASE_RESEARCH[9] 2 set temp_resinput_cond 1
+            state onclick_research
+            }
+        break
+    default
+        qputs 1011 ERROR: INVALID PROJECT INDEX!
+        gametextz 2822 265 100 1011 0 124 0 0 0 xdim ydim HALFSIZE
+        break
+    endswitch
+
+}
+else ife INFO_SEL 2 // Equipment
+{
+    minitext 9 125 1031 disp_pulse 8
+    switch INFO_SEL_2
+    case 0
+        qputs 1011 --- No projects found in this category ---
+        gametextz 2822 265 100 1011 0 125 0 0 0 xdim ydim HALFSIZE
+        break
+    case 1 // EAF Explosive Shells
+        myospalx 180 105 EXPL_SHELLS 0 0 0
+        qputs 1380 EAF Explosive shells
+        qputs 1381 By researching these shells, we can
+        qputs 1382 produce and make them available to
+        qputs 1383 AMC field agents.
+        qputs 1390 TECH LVL NEEDED: ONE
+        qputs 1391 RESEARCH COST: 3
+
+        ifn EQUIPMENT_RESEARCH[INFO_SEL_2] 1 orvar temp_rescolour 1
+        else
+            {
+            ifg TECH_LEVEL 0 orvar temp_rescolour 2
+            ifg AMC_BUDGET 2 orvar temp_rescolour 4
+
+            set temp_resinput_cost 3 // budget cost
+            ifg TECH_LEVEL 0 ifg AMC_BUDGET 2 set temp_resinput_cond 1
+            state onclick_research
+            }
+        break
+    case 2 // EDF Flechette Shells
+        myospalx 180 105 FLECHETE_SHELLS 0 0 0
+        qputs 1380 EDF Flechette Shells
+        qputs 1381 By researching these shells, we can
+        qputs 1382 produce and make them available to
+        qputs 1383 AMC field agents.
+        qputs 1385 ^1+ Extra damage against bodyarmor and mechs.
+        qputs 1390 TECH LVL NEEDED: ONE
+        qputs 1391 RESEARCH COST: 3
+
+        ifn EQUIPMENT_RESEARCH[INFO_SEL_2] 1 orvar temp_rescolour 1
+        else
+            {
+            ifg TECH_LEVEL 0 orvar temp_rescolour 2
+            ifg AMC_BUDGET 2 orvar temp_rescolour 4
+
+            set temp_resinput_cost 3 // budget cost
+            ifg TECH_LEVEL 0 ifg AMC_BUDGET 2 set temp_resinput_cond 1
+            state onclick_research
+            }
+        break
+    case 3 // Silver .45 Auto-Calibre Bullets
+        myospalx 180 105 SILVERAMMO_DRUM 0 0 0
+        qputs 1380 Silver .45 Auto-Calibre Bullets
+        qputs 1381 By researching these bullets, we can
+        qputs 1382 produce and make them available to
+        qputs 1383 AMC field agents.
+        qputs 1385 ^1+ Extra damage against supernatural targets.
+        qputs 1390 TECH LVL NEEDED: ONE
+        qputs 1391 RESEARCH COST: 3
+
+        // Unlock Silver Knife once researched
+        ife EQUIPMENT_RESEARCH[7] 0
+        {
+            ife EQUIPMENT_RESEARCH[3] 2 // if this is researched
+                {
+                setarray EQUIPMENT_RESEARCH[7] 1 // unlock the research
+                set array_save 1
+                }
+        }
+
+        ifn EQUIPMENT_RESEARCH[INFO_SEL_2] 1 orvar temp_rescolour 1
+        else
+            {
+            ifg TECH_LEVEL 0 orvar temp_rescolour 2
+            ifg AMC_BUDGET 2 orvar temp_rescolour 4
+
+            set temp_resinput_cost 3 // budget cost
+            ifg TECH_LEVEL 0 ifg AMC_BUDGET 2 set temp_resinput_cond 1
+            state onclick_research
+            }
+        break
+    case 4 // Tesla Ammunition
+        myospalx 180 105 TESLA_AMMO_SPRITE 0 0 0
+        qputs 1380 Tesla Ammunition
+        qputs 1381 By researching this ammo type, we can
+        qputs 1382 produce and make it available to
+        qputs 1383 AMC field agents.
+        qputs 1385 ^1+ Bonus Electric Damage
+        qputs 1390 TECH LVL NEEDED: ONE
+        qputs 1391 RESEARCH COST: 3
+
+        ifn EQUIPMENT_RESEARCH[INFO_SEL_2] 1 orvar temp_rescolour 1
+        else
+            {
+            ifg TECH_LEVEL 0 orvar temp_rescolour 2
+            ifg AMC_BUDGET 2 orvar temp_rescolour 4
+
+            set temp_resinput_cost 3 // budget cost
+            ifg TECH_LEVEL 0 ifg AMC_BUDGET 2 set temp_resinput_cond 1
+            state onclick_research
+            }
+        break
+    case 5 // Spirit Vest
+        myospalx 180 105 117 0 0 0
+        qputs 1380 Spirit Vest
+        qputs 1381 Not as effective as a magically made
+        qputs 1382 Spirit Shield, but this device will still
+        qputs 1383 provide valuable protection.
+        qputs 1390 TECH LVL NEEDED: TWO
+        qputs 1391 RESEARCH COST: 5
+
+        ifn EQUIPMENT_RESEARCH[INFO_SEL_2] 1 orvar temp_rescolour 1
+        else
+            {
+            ifg TECH_LEVEL 0 orvar temp_rescolour 2
+            ifg AMC_BUDGET 4 orvar temp_rescolour 4
+
+            set temp_resinput_cost 5 // budget cost
+            ifg TECH_LEVEL 0 ifg AMC_BUDGET 4 set temp_resinput_cond 1
+            state onclick_research
+            }
+        break
+    case 6 // Silver Bolts
+        myospalx 180 105 SILVER_CROSSBOW_BOLTS 0 0 0
+        qputs 1380 Silver bolts for Crossbow
+        qputs 1381 By researching this ammo type, we can
+        qputs 1382 produce and make it available to
+        qputs 1383 AMC field agents.
+        qputs 1385 ^1+ Extra damage against supernatural targets.
+        qputs 1390 TECH LVL NEEDED: ONE
+        qputs 1391 RESEARCH COST: 3
+
+        // Unlock Silver Knife once researched
+        ife EQUIPMENT_RESEARCH[7] 0
+        {
+            ife EQUIPMENT_RESEARCH[6] 2 // if this is researched
+                {
+                setarray EQUIPMENT_RESEARCH[7] 1 // unlock the research
+                set array_save 1
+                }
+        }
+
+        ifn EQUIPMENT_RESEARCH[INFO_SEL_2] 1 orvar temp_rescolour 1
+        else
+            {
+            ifg TECH_LEVEL 0 orvar temp_rescolour 2
+            ifg AMC_BUDGET 2 orvar temp_rescolour 4
+
+            set temp_resinput_cost 3 // budget cost
+            ifg TECH_LEVEL 0 ifg AMC_BUDGET 2 set temp_resinput_cond 1
+            state onclick_research
+            }
+        break
+    case 7 // Silver Knife
+        myospalx 180 105 13556 0 0 0
+        qputs 1380 Silver Knife
+        qputs 1381 Although weaker than the standard knife,
+        qputs 1382 silver is much stronger against
+        qputs 1383 supernatural targets.
+        qputs 1390 TECH LVL NEEDED: ONE
+        qputs 1391 RESEARCH COST: 3
+
+        ifn EQUIPMENT_RESEARCH[INFO_SEL_2] 1 orvar temp_rescolour 1
+        else
+            {
+            ifg TECH_LEVEL 0 orvar temp_rescolour 2
+            ifg AMC_BUDGET 2 orvar temp_rescolour 4
+
+            set temp_resinput_cost 3 // budget cost
+            ifg TECH_LEVEL 0 ifg AMC_BUDGET 2 set temp_resinput_cond 1
+            state onclick_research
+            }
+        break
+    case 8 // Micro Torpedoes for Dart Gun
+        myospalx 180 105 MICRO_TORPEDO_PACK 0 0 0
+        qputs 1380 Micro Torpedoes for Dart Gun
+        qputs 1381 By researching this ammo type, we can
+        qputs 1382 produce and make it available to
+        qputs 1383 AMC field agents.
+        qputs 1390 TECH LVL NEEDED: TWO
+        qputs 1391 RESEARCH COST: 8
+
+        ifn EQUIPMENT_RESEARCH[INFO_SEL_2] 1 orvar temp_rescolour 1
+        else
+            {
+            ifg TECH_LEVEL 1 orvar temp_rescolour 2
+            ifg AMC_BUDGET 7 orvar temp_rescolour 4
+
+            set temp_resinput_cost 8 // budget cost
+            ifg TECH_LEVEL 1 ifg AMC_BUDGET 7 set temp_resinput_cond 1
+            state onclick_research
+            }
+        break
+    case 9 // Magnum Shells
+        myospalx 180 105 MAGNUM_SHELLS 0 0 0
+        qputs 1380 Magnum Shells
+        qputs 1381 By researching this ammo type, we can
+        qputs 1382 produce and make it available to
+        qputs 1383 AMC field agents.
+        qputs 1385 ^1+ Greatly increased damage.
+        qputs 1390 TECH LVL NEEDED: TWO
+        qputs 1391 RESEARCH COST: 8
+
+        ifn EQUIPMENT_RESEARCH[INFO_SEL_2] 1 orvar temp_rescolour 1
+        else
+            {
+            ifg TECH_LEVEL 1 orvar temp_rescolour 2
+            ifg AMC_BUDGET 7 orvar temp_rescolour 4
+
+            set temp_resinput_cost 8 // budget cost
+            ifg TECH_LEVEL 1 ifg AMC_BUDGET 7 set temp_resinput_cond 1
+            state onclick_research
+            }
+        break
+    case 10 // Heat-Seeker Card
+        myospalx 180 105 HEAT_SEEK_CARD_PICKUP 0 0 0
+        qputs 1380 Heat-Seeker Card
+        qputs 1381 By researching this ammo type, we can
+        qputs 1382 produce and make it available to
+        qputs 1383 AMC field agents.
+        qputs 1385 ^1Heat-seeking mode for Zilla Missiles.
+        qputs 1390 TECH LVL NEEDED: SIX
+        qputs 1391 RESEARCH COST: 10
+
+        ifn EQUIPMENT_RESEARCH[INFO_SEL_2] 1 orvar temp_rescolour 1
+        else
+            {
+            ifg TECH_LEVEL 5 orvar temp_rescolour 2
+            ifg AMC_BUDGET 9 orvar temp_rescolour 4
+
+            set temp_resinput_cost 10 // budget cost
+            ifg TECH_LEVEL 5 ifg AMC_BUDGET 9 set temp_resinput_cond 1
+            state onclick_research
+            }
+        break
+    case 11 // Atomic Bomb
+        myospalx 180 105 ATOMIC_BOMB_PICKUP 0 0 0
+        qputs 1380 Atomic Bomb
+        qputs 1381 By researching this ammo type, we can
+        qputs 1382 produce and make it available to
+        qputs 1383 AMC field agents.
+        qputs 1384 ^1For use with the Zilla Missile Launcher.
+        qputs 1390 TECH LVL NEEDED: EIGHT
+        qputs 1391 RESEARCH COST: 20
+
+        ifn EQUIPMENT_RESEARCH[INFO_SEL_2] 1 orvar temp_rescolour 1
+        else
+            {
+            ifg TECH_LEVEL 7 orvar temp_rescolour 2
+            ifg AMC_BUDGET 19 orvar temp_rescolour 4
+
+            set temp_resinput_cost 20 // budget cost
+            ifg TECH_LEVEL 7 ifg AMC_BUDGET 19 set temp_resinput_cond 1
+            state onclick_research
+            }
+        break
+    case 12 // DUP Missiles
+        myospalx 180 105 DUP_MISSILES_PICKUP 0 0 0
+        qputs 1380 Depleted Uranium Pellet (DUP) Missiles
+        qputs 1381 By researching this ammo type, we can
+        qputs 1382 produce and make it available to
+        qputs 1383 AMC field agents.
+        qputs 1385 ^1+Armor piercing rockets.
+        qputs 1386 ^1For use with the Zilla Missile Launcher.
+        qputs 1390 TECH LVL NEEDED: TEN
+        qputs 1391 RESEARCH COST: 15
+
+        ifn EQUIPMENT_RESEARCH[INFO_SEL_2] 1 orvar temp_rescolour 1
+        else
+            {
+            ifg TECH_LEVEL 9 orvar temp_rescolour 2
+            ifg AMC_BUDGET 14 orvar temp_rescolour 4
+
+            set temp_resinput_cost 15 // budget cost
+            ifg TECH_LEVEL 9 ifg AMC_BUDGET 14 set temp_resinput_cond 1
+            state onclick_research
+            }
+        break
+    case 13 // 40mm grenades
+        myospalx 180 105 FORTYMM_NADES 0 0 0
+        qputs 1380 40mm grenades
+        qputs 1381 By researching this ammo type, we can
+        qputs 1382 produce, make available, and pursue
+        qputs 1383 further ammo types.
+        qputs 1390 TECH LVL NEEDED: FOUR
+        qputs 1391 RESEARCH COST: 10
+
+        ife EQUIPMENT_RESEARCH[16] 0 // MIA shells topic not unlocked?
+        {
+            ife WEAPONS_RESEARCH[3] 2 // if MIA gun is researched
+            ife EQUIPMENT_RESEARCH[13] 2 // if 40mm cased shells is researched
+                {
+                setarray EQUIPMENT_RESEARCH[16] 1 // unlock the research
+                set array_save 1
+                }
+        }
+        ife EQUIPMENT_RESEARCH[18] 0 // Plasma shells topic not unlocked?
+        {
+            ife WEAPONS_RESEARCH[9] 2 // if Cycloid Plasma Tech is researched
+            ife EQUIPMENT_RESEARCH[13] 2 // if 40mm cased shells is researched
+                {
+                setarray EQUIPMENT_RESEARCH[18] 1 // unlock the research
+                set array_save 1
+                }
+        }
+
+        ifn EQUIPMENT_RESEARCH[INFO_SEL_2] 1 orvar temp_rescolour 1
+        else
+            {
+            ifg TECH_LEVEL 3 orvar temp_rescolour 2
+            ifg AMC_BUDGET 9 orvar temp_rescolour 4
+
+            set temp_resinput_cost 10 // budget cost
+            ifg TECH_LEVEL 3 ifg AMC_BUDGET 9 set temp_resinput_cond 1
+            state onclick_research
+            }
+        break
+    case 14 // Caseless 40mm grenades
+        myospalx 180 105 FORTYMM_CASELESS 0 0 0
+        qputs 1380 Caseless 40mm grenades
+        qputs 1381 By researching this ammo type, we can
+        qputs 1382 produce, make available, and pursue
+        qputs 1383 further ammo types.
+        qputs 1390 TECH LVL NEEDED: FOUR
+        qputs 1391 RESEARCH COST: 10
+
+        ifn EQUIPMENT_RESEARCH[INFO_SEL_2] 1 orvar temp_rescolour 1
+        else
+            {
+            ifg TECH_LEVEL 3 orvar temp_rescolour 2
+            ifg AMC_BUDGET 9 orvar temp_rescolour 4
+
+            set temp_resinput_cost 10 // budget cost
+            ifg TECH_LEVEL 3 ifg AMC_BUDGET 9 set temp_resinput_cond 1
+            state onclick_research
+            }
+        break
+    case 15 // 40mm HE grenades
+        myospalx 180 105 FORTYMM_SHELLS 0 0 0
+        qputs 1380 40mm HE grenades
+        qputs 1381 By researching this ammo type, we can
+        qputs 1382 produce, make available, and pursue
+        qputs 1383 further ammo types.
+        qputs 1385 ^1High Explosive, increased damage.
+        qputs 1390 TECH LVL NEEDED: FIVE
+        qputs 1391 RESEARCH COST: 20
+
+        ifn EQUIPMENT_RESEARCH[INFO_SEL_2] 1 orvar temp_rescolour 1
+        else
+            {
+            ifg TECH_LEVEL 4 orvar temp_rescolour 2
+            ifg AMC_BUDGET 19 orvar temp_rescolour 4
+
+            set temp_resinput_cost 20 // budget cost
+            ifg TECH_LEVEL 4 ifg AMC_BUDGET 19 set temp_resinput_cond 1
+            state onclick_research
+            }
+        break
+    case 16 // 40mm MIA grenades
+        myospalx 180 105 5463 0 0 0
+        qputs 1380 40mm MIA grenades
+        qputs 1381 This ammo fires the same kind of blast
+        qputs 1382 as the M.I.A. gun, for delaying enemies
+        qputs 1383 or saving civilians.
+        qputs 1390 TECH LVL NEEDED: FOUR
+        qputs 1391 RESEARCH cost: 4
+        qputs 1392 REQUIRES MIA GUN RESEARCH
+        qputs 1393 REQUIRES 40MM SHELL RESEARCH
+
+        ifn EQUIPMENT_RESEARCH[INFO_SEL_2] 1 orvar temp_rescolour 1
+        else
+            {
+            ifg TECH_LEVEL 3 orvar temp_rescolour 2
+            ifg AMC_BUDGET 3 orvar temp_rescolour 4
+            ife WEAPONS_RESEARCH[3] 2 orvar temp_rescolour 8
+            ife EQUIPMENT_RESEARCH[13] 2 orvar temp_rescolour 16
+
+            set temp_resinput_cost 4 // budget cost
+            ifg TECH_LEVEL 3 ifg AMC_BUDGET 3 ife WEAPONS_RESEARCH[3] 2 ife EQUIPMENT_RESEARCH[13] 2
+                set temp_resinput_cond 1
+            state onclick_research
+            }
+        break
+    case 17 // Caseless 40mm slugs
+        myospalx 180 105 FORTYMM_SLUGS 0 0 0
+        qputs 1380 Caseless 40mm slugs
+        qputs 1381 By researching this ammo type, we can
+        qputs 1382 produce, make available, and pursue
+        qputs 1383 further ammo types.
+        qputs 1385 ^1+ Armor piercing
+        qputs 1390 TECH LVL NEEDED: FOUR
+        qputs 1391 RESEARCH COST: 5
+        ifn EQUIPMENT_RESEARCH[INFO_SEL_2] 1 orvar temp_rescolour 1
+        else
+            {
+            ifg TECH_LEVEL 3 orvar temp_rescolour 2
+            ifg AMC_BUDGET 4 orvar temp_rescolour 4
+
+            set temp_resinput_cost 5 // budget cost
+            ifg TECH_LEVEL 3 ifg AMC_BUDGET 4 set temp_resinput_cond 1
+            state onclick_research
+            }
+        break
+    case 18 // 40mm Plasma Shells
+        myospalx 180 105 5476 0 0 0
+        qputs 1380 40mm Plasma Shells
+        qputs 1381 These fire powerful Cycloid Plasma;
+        qputs 1382 great at destroying armoured and
+        qputs 1383 supernatural enemies alike.
+        qputs 1390 TECH LVL NEEDED: TEN
+        qputs 1391 RESEARCH COST: 20
+        qputs 1392 REQUIRES PLASMA TECH RESEARCH
+        qputs 1393 REQUIRES 40MM SHELL RESEARCH
+
+        ifn EQUIPMENT_RESEARCH[INFO_SEL_2] 1 orvar temp_rescolour 1
+        else
+            {
+            ifg TECH_LEVEL 9 orvar temp_rescolour 2
+            ifg AMC_BUDGET 19 orvar temp_rescolour 4
+            ife WEAPONS_RESEARCH[9] 2 orvar temp_rescolour 8
+            ife EQUIPMENT_RESEARCH[13] 2 orvar temp_rescolour 16
+
+            set temp_resinput_cost 20 // budget cost
+            ifg TECH_LEVEL 9 ifg AMC_BUDGET 19 ife WEAPONS_RESEARCH[9] 2 ife EQUIPMENT_RESEARCH[13] 2
+                set temp_resinput_cond 1
+            state onclick_research
+            }
+        break
+    case 19 // Heat Sinks
+        myospalx 180 105 6542 0 0 0
+        qputs 1380 Heat Sinks
+        qputs 1381 High-tech overheating weapons can use
+        qputs 1382 these; hit the gun's reload function
+        qputs 1383 to cool down instantly for use again.
+        qputs 1390 TECH LVL NEEDED: TEN
+        qputs 1391 RESEARCH COST: 15
+
+        ifn EQUIPMENT_RESEARCH[INFO_SEL_2] 1 orvar temp_rescolour 1
+        else
+            {
+            ifg TECH_LEVEL 9 orvar temp_rescolour 2
+            ifg AMC_BUDGET 14 orvar temp_rescolour 4
+
+            set temp_resinput_cost 15 // budget cost
+            ifg TECH_LEVEL 9 ifg AMC_BUDGET 14 set temp_resinput_cond 1
+            state onclick_research
+            }
+        break
+    case 20 // Dragon's Breath Shells
+        myospalx 180 105 DRAGONS_SHELLS 0 0 0
+        qputs 1380 Dragon's Breath Shells
+        qputs 1381 By researching this ammo type, we can
+        qputs 1382 produce and make it available to
+        qputs 1383 AMC field agents.
+        qputs 1385 ^1+ Sets targets on fire
+        qputs 1390 TECH LVL NEEDED: TWO
+        qputs 1391 RESEARCH COST: 8
+        ifn EQUIPMENT_RESEARCH[INFO_SEL_2] 1 orvar temp_rescolour 1
+        else
+            {
+            ifg TECH_LEVEL 1 orvar temp_rescolour 2
+            ifg AMC_BUDGET 7 orvar temp_rescolour 4
+
+            set temp_resinput_cost 8 // budget cost
+            ifg TECH_LEVEL 1 ifg AMC_BUDGET 8 set temp_resinput_cond 1
+            state onclick_research
+            }
+        break
+    case 21 // Caseless Electro rounds
+        myospalx 180 105 FORTYMM_ELECTRO 0 0 0
+        qputs 1380 Caseless Electro rounds
+        qputs 1381 By researching this ammo type, we can
+        qputs 1382 produce and make it available to
+        qputs 1383 AMC field agents.
+        qputs 1385 ^1+ Electrocutes Targets
+        qputs 1390 TECH LVL NEEDED: FOUR
+        qputs 1391 RESEARCH COST: 12
+
+        ifn EQUIPMENT_RESEARCH[INFO_SEL_2] 1 orvar temp_rescolour 1
+        else
+            {
+            ifg TECH_LEVEL 3 orvar temp_rescolour 2
+            ifg AMC_BUDGET 11 orvar temp_rescolour 4
+
+            set temp_resinput_cost 12 // budget cost
+            ifg TECH_LEVEL 3 ifg AMC_BUDGET 11 set temp_resinput_cond 1
+            state onclick_research
+            }
+        break
+    case 22 // Caseless Cryo rounds
+        myospalx 180 105 FORTYMM_CRYO 0 0 0
+        qputs 1380 Caseless Cryo rounds
+        qputs 1381 By researching this ammo type, we can
+        qputs 1382 produce and make it available to
+        qputs 1383 AMC field agents.
+        qputs 1385 ^1+ Freezes Targets
+        qputs 1390 TECH LVL NEEDED: FOUR
+        qputs 1391 RESEARCH COST: 12
+
+        ifn EQUIPMENT_RESEARCH[INFO_SEL_2] 1 orvar temp_rescolour 1
+        else
+            {
+            ifg TECH_LEVEL 3 orvar temp_rescolour 2
+            ifg AMC_BUDGET 11 orvar temp_rescolour 4
+
+            set temp_resinput_cost 12 // budget cost
+            ifg TECH_LEVEL 3 ifg AMC_BUDGET 11 set temp_resinput_cond 1
+            state onclick_research
+            }
+        break
+    case 23 // Incendiary ammo
+        myospalx 180 105 INCEND_AMMO_DRUM 0 0 0
+        qputs 1380 Incendiary .45 rounds
+        qputs 1381 By researching this ammo type, we can
+        qputs 1382 produce and make it available to
+        qputs 1383 AMC field agents.
+        qputs 1385 ^1+ Sets targets on fire
+        qputs 1390 TECH LVL NEEDED: FOUR
+        qputs 1391 RESEARCH COST: 22
+
+        ifn EQUIPMENT_RESEARCH[INFO_SEL_2] 1 orvar temp_rescolour 1
+        else
+            {
+            ifg TECH_LEVEL 3 orvar temp_rescolour 2
+            ifg AMC_BUDGET 21 orvar temp_rescolour 4
+
+            set temp_resinput_cost 22 // budget cost
+            ifg TECH_LEVEL 3 ifg AMC_BUDGET 21 set temp_resinput_cond 1
+            state onclick_research
+            }
+        break
+    default
+        qputs 1011 ERROR:  You're not supposed to be here!
+        gametextz 2822 265 100 1011 0 124 0 0 0 xdim ydim HALFSIZE
+        break
+    endswitch
+}
+else ife INFO_SEL 3 // Personel
+{
+    minitext 9 136 1032 disp_pulse 1
+    switch INFO_SEL_2
+    case 0
+        qputs 1011 --- No projects found in this category ---
+        gametextz 2822 265 100 1011 0 125 0 0 0 xdim ydim HALFSIZE
+        break
+    case 1 // AMC Troop Laser gun
+        myospalx 180 105 12971 0 0 0
+        qputs 1380 AMC Troop Laser gun
+        qputs 1381 We can reverse-engineer technology
+        qputs 1382 from the Fascist's laser gun and make it
+        qputs 1383 available for all soldiers.
+        qputs 1390 TECH LVL NEEDED: ONE
+        qputs 1391 RESEARCH cost: 4
+
+        ifn PERSONNEL_RESEARCH[INFO_SEL_2] 1 orvar temp_rescolour 1
+        else
+            {
+            ifg TECH_LEVEL 0 orvar temp_rescolour 2
+            ifg AMC_BUDGET 3 orvar temp_rescolour 4
+
+            set temp_resinput_cost 4 // budget cost
+            ifg TECH_LEVEL 0 ifg AMC_BUDGET 3 set temp_resinput_cond 1
+            state onclick_research
+            }
+        break
+    case 2 // AMC Troop carapace armour
+        myospalx 180 105 12942 0 0 0
+        qputs 1380 AMC Troop carapace armour
+        qputs 1381 We can research the Merc's armour
+        qputs 1382 and produce a stronger form of protection
+        qputs 1383 for our own soldiers.
+        qputs 1390 TECH LVL NEEDED: ONE
+        qputs 1391 RESEARCH COST: 3
+
+        ifn PERSONNEL_RESEARCH[INFO_SEL_2] 1 orvar temp_rescolour 1
+        else
+            {
+            ifg TECH_LEVEL 0 orvar temp_rescolour 2
+            ifg AMC_BUDGET 2 orvar temp_rescolour 4
+
+            set temp_resinput_cost 3 // budget cost
+            ifg TECH_LEVEL 0 ifg AMC_BUDGET 2 set temp_resinput_cond 1
+            state onclick_research
+            }
+        break
+    case 3 // AMC Troop Extended Magazines
+        myospalx 180 105 13331 0 0 0
+        qputs 1380 AMC Troop Extended Magazines
+        qputs 1381 We can produce larger and more efficient
+        qputs 1382 Magazines for AMC Troops' weapons, enabling them
+        qputs 1383 to sustain fire for longer periods of time.
+        qputs 1390 TECH LVL NEEDED: ONE
+        qputs 1391 RESEARCH COST: 3
+
+        ifn PERSONNEL_RESEARCH[INFO_SEL_2] 1 orvar temp_rescolour 1
+        else
+            {
+            ifg TECH_LEVEL 0 orvar temp_rescolour 2
+            ifg AMC_BUDGET 2 orvar temp_rescolour 4
+
+            set temp_resinput_cost 3 // budget cost
+            ifg TECH_LEVEL 0 ifg AMC_BUDGET 2 set temp_resinput_cond 1
+            state onclick_research
+            }
+        break
+    case 4 // Armour Strength
+        myospalx 180 105 22739 0 0 0
+        qputs 1380 Armour Strength
+        qputs 1381 We can increase the effectiveness of AMC
+        qputs 1382 soldier's armour against soft projectiles
+        qputs 1383 such as pistols and SMGs.
+        qputs 1390 TECH LVL NEEDED: THREE
+        qputs 1391 RESEARCH COST: 15
+
+        ifn PERSONNEL_RESEARCH[INFO_SEL_2] 1 orvar temp_rescolour 1
+        else
+            {
+            ifg TECH_LEVEL 2 orvar temp_rescolour 2
+            ifg AMC_BUDGET 14 orvar temp_rescolour 4
+
+            set temp_resinput_cost 15 // budget cost
+            ifg TECH_LEVEL 2 ifg AMC_BUDGET 14 set temp_resinput_cond 1
+            state onclick_research
+            }
+        break
+    case 5 // Anti-Toxin
+        myospalx 180 105 22498 0 0 0
+        qputs 1380 Anti-Toxin
+        qputs 1381 We can develop an anti-toxin upgrade
+        qputs 1382 for our agents medical kits that when
+        qputs 1383 used, will remove all poison from
+        qputs 1384 their bodies.
+        qputs 1390 TECH LVL NEEDED: TWO
+        qputs 1391 RESEARCH COST: 8
+
+        ifn PERSONNEL_RESEARCH[INFO_SEL_2] 1 orvar temp_rescolour 1
+        else
+            {
+            ifg TECH_LEVEL 1 orvar temp_rescolour 2
+            ifg AMC_BUDGET 7 orvar temp_rescolour 4
+
+            set temp_resinput_cost 8 // budget cost
+            ifg TECH_LEVEL 1 ifg AMC_BUDGET 7 set temp_resinput_cond 1
+            state onclick_research
+            }
+        break
+    case 6 // Cybertour Sheathing
+        myospalx 180 105 13324 0 0 0
+        qputs 1380 Cybertour Sheathing
+        qputs 1381 By lacing this rare material through
+        qputs 1382 A Cybernetic agent's ribcage, we can
+        qputs 1383 increase their health levels.
+        qputs 1384 Increases ALL Cybernetic agents'
+        qputs 1385 maximum health by 20.
+        qputs 1390 TECH LVL NEEDED: TWO
+        qputs 1391 RESEARCH COST: 8
+        qputs 1392 REQUIRES UNIVERSAL CONSTRUCTOR
+
+        ifn PERSONNEL_RESEARCH[INFO_SEL_2] 1 orvar temp_rescolour 1
+        else
+            {
+            ifg TECH_LEVEL 1 orvar temp_rescolour 2
+            ifg AMC_BUDGET 7 orvar temp_rescolour 4
+            ife BASE_RESEARCH[3] 2 orvar temp_rescolour 8
+
+            set temp_resinput_cost 8 // budget cost
+            ifg TECH_LEVEL 1 ifg AMC_BUDGET 7 ife BASE_RESEARCH[3] 2 set temp_resinput_cond 1
+            state onclick_research
+            }
+        break
+
+    case 7 // Teleport Device
+        myospalx 180 105 13339 0 0 0
+        qputs 1380 Teleport Device
+        qputs 1381 We can recreate the Assault Major's
+        qputs 1382 personal phase-device for our AMC
+        qputs 1383 Agents. With this device, all AMC soldiers
+        qputs 1384 can teleport to the enemy or to you.
+        qputs 1390 TECH LVL NEEDED: FOUR
+        qputs 1391 RESEARCH COST: 20
+        qputs 1392 REQUIRES UNIVERSAL CONSTRUCTOR
+
+        ifn PERSONNEL_RESEARCH[INFO_SEL_2] 1 orvar temp_rescolour 1
+        else
+            {
+            ifg TECH_LEVEL 3 orvar temp_rescolour 2
+            ifg AMC_BUDGET 19 orvar temp_rescolour 4
+            ife BASE_RESEARCH[3] 2 orvar temp_rescolour 8
+
+            set temp_resinput_cost 20 // budget cost
+            ifg TECH_LEVEL 3 ifg AMC_BUDGET 19 ife BASE_RESEARCH[3] 2 set temp_resinput_cond 1
+            state onclick_research
+            }
+        break
+    case 8 // Thermal-Weaving
+        myospalx 180 105 13327 0 0 0
+        qputs 1380 Thermal-Weaving
+        qputs 1381 Using fibres derived from the satyr
+        qputs 1382 creature's hair, we can create materials
+        qputs 1383 that are stronger against fire.
+        qputs 1385 ^1Fire damage taken reduced by 20%
+        qputs 1390 TECH LVL NEEDED: FOUR
+        qputs 1391 RESEARCH COST: 15
+        qputs 1392 REQUIRES UNIVERSAL CONSTRUCTOR
+
+        ifn PERSONNEL_RESEARCH[INFO_SEL_2] 1 orvar temp_rescolour 1
+        else
+            {
+            ifg TECH_LEVEL 3 orvar temp_rescolour 2
+            ifg AMC_BUDGET 14 orvar temp_rescolour 4
+            ife BASE_RESEARCH[3] 2 orvar temp_rescolour 8
+
+            set temp_resinput_cost 15 // budget cost
+            ifg TECH_LEVEL 3 ifg AMC_BUDGET 14 ife BASE_RESEARCH[3] 2 set temp_resinput_cond 1
+            state onclick_research
+            }
+        break
+    case 9 // MS-Corp Multi-function Ceramics
+        myospalx 180 105 13326 0 0 0
+        qputs 1380 MS-Corp Multi-function Ceramics
+        qputs 1381 A relatively new technology that MS-Corp
+        qputs 1382 was developing; by finishing this we can
+        qputs 1383 increase the strength of Mikko's body.
+        qputs 1385 ^1Increases Mikko's max health by 30.
+        qputs 1390 TECH LVL NEEDED: TWO
+        qputs 1391 RESEARCH COST: 5
+
+        ifn PERSONNEL_RESEARCH[INFO_SEL_2] 1 orvar temp_rescolour 1
+        else
+            {
+            ifg TECH_LEVEL 1 orvar temp_rescolour 2
+            ifg AMC_BUDGET 4 orvar temp_rescolour 4
+
+            set temp_resinput_cost 5 // budget cost
+            ifg TECH_LEVEL 1 ifg AMC_BUDGET 4 set temp_resinput_cond 1
+            state onclick_research
+            }
+        break
+    case 10 // Nutrient Solution
+        myospalx 180 105 13329 0 0 0
+        qputs 1380 Nutrient Solution
+        ife ep3_new_char 0 {
+            qputs 1381 Sang's body was weakened by his split from LeSang;
+            qputs 1382 utilising this solution we can bring his body
+            qputs 1383 back to its full pre-warlock endurance levels.
+            qputs 1385 ^1Increases Sang's max health by 25.
+        }
+        else {
+            qputs 1381 With Sang having regained his previous strength,
+            qputs 1382 this solution can now instead benefit Snowfall,
+            qputs 1383 making him significantly more durable in battle.
+            qputs 1385 ^1Increases Snowfall's max health by 25.
+        }
+        qputs 1390 TECH LVL NEEDED: TWO
+        qputs 1391 RESEARCH COST: 5
+
+        ifn PERSONNEL_RESEARCH[INFO_SEL_2] 1 orvar temp_rescolour 1
+        else
+            {
+            ifg TECH_LEVEL 1 orvar temp_rescolour 2
+            ifg AMC_BUDGET 4 orvar temp_rescolour 4
+
+            set temp_resinput_cost 5 // budget cost
+            ifg TECH_LEVEL 1 ifg AMC_BUDGET 4 set temp_resinput_cond 1
+            state onclick_research
+            }
+        break
+    case 11 // Heat/Night recharging battery
+        myospalx 180 105 13340 0 0 0
+        qputs 1380 Heat/Night recharging battery
+        qputs 1381 When developed, this device will recharge an agent's
+        qputs 1382 heat- or night-vision equipment once its power has
+        qputs 1383 been depleted, up to about 1/5th of its full power.
+        qputs 1385 ^1NVG/Heat will recharge once empty.
+        qputs 1390 TECH LVL NEEDED: SIX
+        qputs 1391 RESEARCH COST: 10
+
+        ifn PERSONNEL_RESEARCH[INFO_SEL_2] 1 orvar temp_rescolour 1
+        else
+            {
+            ifg TECH_LEVEL 5 orvar temp_rescolour 2
+            ifg AMC_BUDGET 9 orvar temp_rescolour 4
+
+            set temp_resinput_cost 10 // budget cost
+            ifg TECH_LEVEL 5 ifg AMC_BUDGET 9 set temp_resinput_cond 1
+            state onclick_research
+            }
+        break
+    case 12 // Medical Converter Kit
+        myospalx 180 105 13330 0 0 0
+        qputs 1380 Medical Converter Kit
+        qputs 1381 When developed, this device can be used to convert
+        qputs 1382 any medical items discovered on the field into a form
+        qputs 1383 an agent can store in his personal first-aid kit. All
+        qputs 1384 unused health items are added to the first-aid kit.
+        qputs 1390 TECH LVL NEEDED: FOUR
+        qputs 1391 RESEARCH COST: 20
+
+        ifn PERSONNEL_RESEARCH[INFO_SEL_2] 1 orvar temp_rescolour 1
+        else
+            {
+            ifg TECH_LEVEL 3 orvar temp_rescolour 2
+            ifg AMC_BUDGET 19 orvar temp_rescolour 4
+
+            set temp_resinput_cost 20 // budget cost
+            ifg TECH_LEVEL 3 ifg AMC_BUDGET 19 set temp_resinput_cond 1
+            state onclick_research
+            }
+        break
+    case 13 // Medical Emergency Foam
+        myospalx 180 105 13548 0 0 0
+        qputs 1380 Medical Emergency Foam
+        qputs 1381 When developed, this device can be used to drain
+        qputs 1382 the charge from a wall-mounted medical charger
+        qputs 1383 into an agent's portable medical container.
+        qputs 1384 It also extinguishes an on-fire agent.
+        qputs 1390 TECH LVL NEEDED: SIX
+        qputs 1391 RESEARCH COST: 30
+
+        ifn PERSONNEL_RESEARCH[INFO_SEL_2] 1 orvar temp_rescolour 1
+        else
+            {
+            ifg TECH_LEVEL 5 orvar temp_rescolour 2
+            ifg AMC_BUDGET 29 orvar temp_rescolour 4
+
+            set temp_resinput_cost 30 // budget cost
+            ifg TECH_LEVEL 5 ifg AMC_BUDGET 29 set temp_resinput_cond 1
+            state onclick_research
+            }
+        break
+    case 14 // Blast padding
+        myospalx 180 105 13549 0 0 0
+        qputs 1380 Blast padding
+        qputs 1381 These changes to our agent's armour will
+        qputs 1382 reduce self-damage from their own attacks
+        qputs 1383 by half, meaning explosives can be used
+        qputs 1384 more liberally in emergencies.
+        qputs 1390 TECH LVL NEEDED: EIGHT
+        qputs 1391 RESEARCH COST: 75
+
+        ifn PERSONNEL_RESEARCH[INFO_SEL_2] 1 orvar temp_rescolour 1
+        else
+            {
+            ifg TECH_LEVEL 7 orvar temp_rescolour 2
+            ifg AMC_BUDGET 74 orvar temp_rescolour 4
+
+            set temp_resinput_cost 75 // budget cost
+            ifg TECH_LEVEL 7 ifg AMC_BUDGET 74 set temp_resinput_cond 1
+            state onclick_research
+            }
+        break
+    case 15 // Enhanced Heat-seeker card
+        myospalx 180 105 13342 0 0 0
+        qputs 1380 Enhanced Heat-seeker card
+        qputs 1381 This project will enhance the heat-
+        qputs 1382 seeker card and double its usage,
+        qputs 1383 allowing the launcher to fire 10
+        qputs 1384 heat-seeking rockets.
+        qputs 1390 TECH LVL NEEDED: SIX
+        qputs 1391 RESEARCH COST: 25
+        qputs 1392 REQUIRES HEAT-SEEKER CARD
+
+        ifn PERSONNEL_RESEARCH[INFO_SEL_2] 1 orvar temp_rescolour 1
+        else
+            {
+            ifg TECH_LEVEL 5 orvar temp_rescolour 2
+            ifg AMC_BUDGET 24 orvar temp_rescolour 4
+            ife EQUIPMENT_RESEARCH[10] 2 orvar temp_rescolour 8
+
+            set temp_resinput_cost 25 // budget cost
+            ifg TECH_LEVEL 5 ifg AMC_BUDGET 24 ife EQUIPMENT_RESEARCH[10] 2 set temp_resinput_cond 1
+            state onclick_research
+            }
+        break
+    case 16 // Ablative Armour plating
+        myospalx 180 105 22501 0 0 0
+        qputs 1380 Ablative Armour plating
+        qputs 1381 This project will allow us to
+        qputs 1382 upgrade AMC agents' armour so that
+        qputs 1383 any attack that destroys it will
+        qputs 1384 no longer bleed off into the agent's HP.
+        qputs 1390 TECH LVL NEEDED: SIX
+        qputs 1391 RESEARCH COST: 15
+
+        ifn PERSONNEL_RESEARCH[INFO_SEL_2] 1 orvar temp_rescolour 1
+        else
+            {
+            ifg TECH_LEVEL 5 orvar temp_rescolour 2
+            ifg AMC_BUDGET 14 orvar temp_rescolour 4
+
+            set temp_resinput_cost 15 // budget cost
+            ifg TECH_LEVEL 5 ifg AMC_BUDGET 14 set temp_resinput_cond 1
+            state onclick_research
+            }
+        break
+    case 17 // Scuba Diving Skills
+        myospalx 180 105 22500 0 0 0
+        qputs 1380 Scuba Diving Skills
+        qputs 1381 Agents will be trained to breathe
+        qputs 1382 manually, and then use their scuba gear
+        qputs 1383 after they have run out of oxygen
+        qputs 1384 first, prolonging the Air tank.
+        qputs 1390 TECH LVL NEEDED: SIX
+        qputs 1391 RESEARCH COST: 15
+
+        ifn PERSONNEL_RESEARCH[INFO_SEL_2] 1 orvar temp_rescolour 1
+        else
+            {
+            ifg TECH_LEVEL 5 orvar temp_rescolour 2
+            ifg AMC_BUDGET 14 orvar temp_rescolour 4
+
+            set temp_resinput_cost 15 // budget cost
+            ifg TECH_LEVEL 5 ifg AMC_BUDGET 14 set temp_resinput_cond 1
+            state onclick_research
+            }
+        break
+    case 18 // Cycloid Jetpack controls
+        myospalx 180 105 22499 0 0 0
+        qputs 1380 Cycloid Jetpack controls
+        qputs 1381 This device will allow agents
+        qputs 1382 to trigger their jetpacks by
+        qputs 1383 jumping in the air or whilst
+        qputs 1384 falling, allowing more fluid control.
+        qputs 1390 TECH LVL NEEDED: TWO
+        qputs 1391 RESEARCH COST: 3
+
+        ifn PERSONNEL_RESEARCH[INFO_SEL_2] 1 orvar temp_rescolour 1
+        else
+            {
+            ifg TECH_LEVEL 1 orvar temp_rescolour 2
+            ifg AMC_BUDGET 2 orvar temp_rescolour 4
+
+            set temp_resinput_cost 3 // budget cost
+            ifg TECH_LEVEL 1 ifg AMC_BUDGET 2 set temp_resinput_cond 1
+            state onclick_research
+            }
+        break
+    case 19 // Dethawing Kit
+        myospalx 180 105 13341 0 0 0
+        qputs 1380 Dethawing Kit
+        qputs 1381 This upgrade for the first-aid kit
+        qputs 1382 will instantly warm an agent up
+        qputs 1383 after being hit by a freezing
+        qputs 1384 attack.
+        qputs 1390 TECH LVL NEEDED: FOUR
+        qputs 1391 RESEARCH COST: 15
+
+        ifn PERSONNEL_RESEARCH[INFO_SEL_2] 1 orvar temp_rescolour 1
+        else
+            {
+            ifg TECH_LEVEL 3 orvar temp_rescolour 2
+            ifg AMC_BUDGET 14 orvar temp_rescolour 4
+
+            set temp_resinput_cost 15 // budget cost
+            ifg TECH_LEVEL 3 ifg AMC_BUDGET 14 set temp_resinput_cond 1
+            state onclick_research
+            }
+        break
+    case 20 // Drone Security Codes
+        myospalx 180 105 22738 0 0 0
+        qputs 1380 Drone Security Codes
+        qputs 1381 This will allow us to add basic IFF protocols
+        qputs 1382 to our PDUs; any kamikaze drones nearby will be
+        qputs 1383 briefly deterred, taking longer to self-detonate
+        qputs 1384 and harm the agent.
+        qputs 1390 TECH LVL NEEDED: FOUR
+        qputs 1391 RESEARCH COST: 20
+
+        ifn PERSONNEL_RESEARCH[INFO_SEL_2] 1 orvar temp_rescolour 1
+        else
+            {
+            ifg TECH_LEVEL 3 orvar temp_rescolour 2
+            ifg AMC_BUDGET 19 orvar temp_rescolour 4
+
+            set temp_resinput_cost 20 // budget cost
+            ifg TECH_LEVEL 3 ifg AMC_BUDGET 19 set temp_resinput_cond 1
+            state onclick_research
+            }
+        break
+    case 21 // Cultist Robe Technology
+        myospalx 180 105 22736 0 0 0
+        qputs 1380 Cultist Robe Technology
+        qputs 1381 Despite appearances, the Cultist's robes are
+        qputs 1382 very well manufactured; we could use this tech
+        qputs 1383 to improve Merlijn's cape and Sang's robe so
+        qputs 1384 they are more flexible. This will in turn
+        qputs 1385 increase Merlijn and Sang's max stamina.
+        qputs 1390 TECH LVL NEEDED: ONE
+        qputs 1391 RESEARCH cost: 4
+
+        ifn PERSONNEL_RESEARCH[INFO_SEL_2] 1 orvar temp_rescolour 1
+        else
+            {
+            ifg TECH_LEVEL 0 orvar temp_rescolour 2
+            ifg AMC_BUDGET 3 orvar temp_rescolour 4
+
+            set temp_resinput_cost 4 // budget cost
+            ifg TECH_LEVEL 0 ifg AMC_BUDGET 3 set temp_resinput_cond 1
+            state onclick_research
+            }
+        break
+    case 22 // Personal Energy Shield
+        myospalx 180 105 22734 0 0 0
+        qputs 1380 Personal Energy Shield
+        qputs 1381 The holy grail of personal protection; or at
+        qputs 1382 least the start of it. This topic will unlock
+        qputs 1383 and allow access to personal energy shields
+        qputs 1384 for our agents. The Tech will be extremely
+        qputs 1385 expensive to produce, but invaluable.
+        qputs 1390 TECH LVL NEEDED: TWENTY
+        qputs 1391 RESEARCH COST: 150
+        qputs 1392 REQUIRES UNIVERSAL CONSTRUCTOR
+
+        ifn PERSONNEL_RESEARCH[INFO_SEL_2] 1 { set fmv_id 1342 state replay_fmv orvar temp_rescolour 1 }
+        else
+            {
+            ifg TECH_LEVEL 19 orvar temp_rescolour 2
+            ifg AMC_BUDGET 149 orvar temp_rescolour 4
+            ife BASE_RESEARCH[3] 2 orvar temp_rescolour 8
+
+            set temp_resinput_cost 150 // budget cost
+            ifg TECH_LEVEL 19 ifg AMC_BUDGET 149 ife BASE_RESEARCH[3] 2 set temp_resinput_cond 1
+            state onclick_research
+            }
+        break
+    case 23 // Energy Shield Battery Mark 2
+        myospalx 180 105 22733 0 0 0
+        qputs 1380 Energy Shield Battery Mark 2
+        qputs 1381 This upgrade can increase the energy shield's
+        qputs 1382 capacitor by 25.
+        qputs 1390 TECH LVL NEEDED: TWENTY-TWO
+        qputs 1391 RESEARCH COST: 75
+        qputs 1392 REQUIRES UNIVERSAL CONSTRUCTOR
+        qputs 1393 REQUIRES PERSONAL ENERGY SHIELD
+
+        ifn PERSONNEL_RESEARCH[INFO_SEL_2] 1 orvar temp_rescolour 1
+        else
+            {
+            ifg TECH_LEVEL 21 orvar temp_rescolour 2
+            ifg AMC_BUDGET 74 orvar temp_rescolour 4
+            ife BASE_RESEARCH[3] 2 orvar temp_rescolour 8
+            ife PERSONNEL_RESEARCH[22] 2 orvar temp_rescolour 16
+
+            set temp_resinput_cost 75 // budget cost
+            ifg TECH_LEVEL 21
+              ifg AMC_BUDGET 74
+                ife BASE_RESEARCH[3] 2
+                  ife PERSONNEL_RESEARCH[22] 2
+                    set temp_resinput_cond 1
+            state onclick_research
+            }
+        break
+    case 24 //  PES Friction Generator
+        myospalx 180 105 22732 0 0 0
+        qputs 1380 PES Friction Generator
+        qputs 1381 Using recovered tech from the Charon facility,
+        qputs 1382 this tech will use motion produced by an agent
+        qputs 1383 to restore depleted shields. The faster
+        qputs 1384 you move, the quicker they'll kick back in
+        qputs 1385 and recharge.
+        qputs 1390 TECH LVL NEEDED: TWENTY-TWO
+        qputs 1391 RESEARCH COST: 75
+        qputs 1392 REQUIRES UNIVERSAL CONSTRUCTOR
+        qputs 1393 REQUIRES PERSONAL ENERGY SHIELD
+
+        ifn PERSONNEL_RESEARCH[INFO_SEL_2] 1 orvar temp_rescolour 1
+        else
+            {
+            ifg TECH_LEVEL 21 orvar temp_rescolour 2
+            ifg AMC_BUDGET 74 orvar temp_rescolour 4
+            ife BASE_RESEARCH[3] 2 orvar temp_rescolour 8
+            ife PERSONNEL_RESEARCH[22] 2 orvar temp_rescolour 16
+
+            set temp_resinput_cost 75 // budget cost
+            ifg TECH_LEVEL 21
+              ifg AMC_BUDGET 74
+                ife BASE_RESEARCH[3] 2
+                  ife PERSONNEL_RESEARCH[22] 2
+                    set temp_resinput_cond 1
+            state onclick_research
+            }
+        break
+    case 25 // Snakeskin Boots
+        myospalx 180 105 22731 0 0 0
+        qputs 1380 Snakeskin Boots
+        qputs 1381 These giant cobras have quite the luxurious
+        qputs 1382 skins; so luxurious in fact that we could make
+        qputs 1383 new shoes for Rusty that are much more
+        qputs 1384 flexible...and just as stylish (...I guess?)
+        qputs 1386 ^1Increases Rusty's max stamina
+        qputs 1390 TECH LVL NEEDED: TWO
+        qputs 1391 RESEARCH COST: 5
+
+        ifn PERSONNEL_RESEARCH[INFO_SEL_2] 1 orvar temp_rescolour 1
+        else
+            {
+            ifg TECH_LEVEL 1 orvar temp_rescolour 2
+            ifg AMC_BUDGET 4 orvar temp_rescolour 4
+
+            set temp_resinput_cost 5
+            ifg TECH_LEVEL 1 ifg AMC_BUDGET 4 set temp_resinput_cond 1
+            state onclick_research
+            }
+        break
+    case 26 // Acid Protection
+        myospalx 180 105 22737 0 0 0
+        qputs 1380 Acid Protection
+        qputs 1381 The Protector Drone's acidic blood is quite
+        qputs 1382 dangerous, but with this research we can
+        qputs 1383 treat our agent's foot protection gear
+        qputs 1384 to be more durable and last longer.
+        qputs 1386 ^1Increases Protection Boot duration by 50%.
+        qputs 1390 TECH LVL NEEDED: TWO
+        qputs 1391 RESEARCH COST: 5
+
+        ifn PERSONNEL_RESEARCH[INFO_SEL_2] 1 orvar temp_rescolour 1
+        else
+            {
+            ifg TECH_LEVEL 1 orvar temp_rescolour 2
+            ifg AMC_BUDGET 4 orvar temp_rescolour 4
+
+            set temp_resinput_cost 5
+            ifg TECH_LEVEL 1 ifg AMC_BUDGET 4 set temp_resinput_cond 1
+            state onclick_research
+            }
+        break
+    case 27 // Improved Oxygen Circulator
+        myospalx 180 105 22726 0 0 0
+        qputs 1380 Improved Oxygen Circulator
+        qputs 1381 Using Cycloid Tech, we can improve the oxygen
+        qputs 1382 capacity on our own space suits, enabling
+        qputs 1383 agents to store more and explore zero-g
+        qputs 1384 environments for longer.
+        qputs 1386 ^1Increases Space-suit 02 capacity
+        qputs 1390 TECH LVL NEEDED: TWELVE
+        qputs 1391 RESEARCH COST: 15
+
+        ifn PERSONNEL_RESEARCH[INFO_SEL_2] 1 orvar temp_rescolour 1
+        else
+            {
+            ifg TECH_LEVEL 11 orvar temp_rescolour 2
+            ifg AMC_BUDGET 14 orvar temp_rescolour 4
+
+            set temp_resinput_cost 15
+            ifg TECH_LEVEL 11 ifg AMC_BUDGET 14 set temp_resinput_cond 1
+            state onclick_research
+            }
+        break
+    case 28 // Jetpack Efficiency module
+        myospalx 180 105 22725 0 0 0
+        qputs 1380 Jetpack Efficiency module
+        qputs 1381 The mecha-lizard's jetpack is rather
+        qputs 1382 ingenious, allowing such a huge creature
+        qputs 1383 to move around so quickly. We can use this
+        qputs 1384 tech to improve our jetpack's efficiency.
+        qputs 1386 ^1Doubles jetpack capacity.
+        qputs 1390 TECH LVL NEEDED: FOURTEEN
+        qputs 1391 RESEARCH COST: 15
+
+        ifn PERSONNEL_RESEARCH[INFO_SEL_2] 1 orvar temp_rescolour 1
+        else
+            {
+            ifg TECH_LEVEL 13 orvar temp_rescolour 2
+            ifg AMC_BUDGET 14 orvar temp_rescolour 4
+
+            set temp_resinput_cost 15
+            ifg TECH_LEVEL 13 ifg AMC_BUDGET 14 set temp_resinput_cond 1
+            state onclick_research
+            }
+        break
+    case 29 // Improved Shield materials
+        myospalx 180 105 22724 0 0 0
+        qputs 1380 Improved Shield materials
+        qputs 1381 Surprisingly enough, the Ogre's armour
+        qputs 1382 is extremely well constructed; we can
+        qputs 1383 reverse engineer the smithing techniques
+        qputs 1384 on the shield to improve Merlijn's.
+        qputs 1386 ^1Increases Shield Durability
+        qputs 1390 TECH LVL NEEDED: FOURTEEN
+        qputs 1391 RESEARCH COST: 25
+
+        ifn PERSONNEL_RESEARCH[INFO_SEL_2] 1 orvar temp_rescolour 1
+        else
+            {
+            ifg TECH_LEVEL 13 orvar temp_rescolour 2
+            ifg AMC_BUDGET 24 orvar temp_rescolour 4
+
+            set temp_resinput_cost 25
+            ifg TECH_LEVEL 13 ifg AMC_BUDGET 24 set temp_resinput_cond 1
+            state onclick_research
+            }
+        break
+    case 30 // Muscle Skin
+        myospalx 180 105 22718 0 0 0
+        qputs 1380 Muscle Skin
+        qputs 1381 The MJ12 Assassin's suit is an incredibly
+        qputs 1382 complex woven mesh of carbon fibre and
+        qputs 1383 electrical circuits; we can drastically
+        qputs 1384 improve our agents mobility with this tech!
+        qputs 1386 ^1Adds side dodge and improves heavy weapon handling.
+        qputs 1390 TECH LVL NEEDED: TWENTY-TWO
+        qputs 1391 RESEARCH COST: 75
+
+        ifn PERSONNEL_RESEARCH[INFO_SEL_2] 1 orvar temp_rescolour 1
+        else
+            {
+            ifg TECH_LEVEL 21 orvar temp_rescolour 2
+            ifge AMC_BUDGET 75 orvar temp_rescolour 4
+
+            set temp_resinput_cost 75
+            ifg TECH_LEVEL 21 ifge AMC_BUDGET 75 set temp_resinput_cond 1
+            state onclick_research
+            }
+        break
+    case 31 // AMC-209
+        myospalx 180 105 22690 0 0 0
+        qputs 1380 AMC-209
+        qputs 1381 Utilising Engineer's advanced tech,
+        qputs 1382 we can build our own custom sentry bots.
+        qputs 1383 Heavily armoured and utilising engineer weaponry,
+        qputs 1384 they will provide invaluable offensive support.
+
+        qputs 1390 TECH LVL NEEDED: THIRTY
+        qputs 1391 RESEARCH COST: 75
+		qputs 1392 REQUIRES ENGINEER TECH
+		qputs 1393 REQUIRES ENGINEER SMG
+		qputs 1394 REQUIRES NEW TRANSPORT CRAFT
+
+        ifn PERSONNEL_RESEARCH[INFO_SEL_2] 1 { set fmv_id 1345 state replay_fmv orvar temp_rescolour 1 }
+        else
+		{
+            ifge TECH_LEVEL 30 orvar temp_rescolour 2
+            ifge AMC_BUDGET 75 orvar temp_rescolour 4
+			ife BASE_RESEARCH[9] 2 orvar temp_rescolour 8
+			ife WEAPONS_RESEARCH[12] 2 orvar temp_rescolour 16
+			ife BASE_RESEARCH[7] 2 orvar temp_rescolour 32
+
+            set temp_resinput_cost 75
+
+            ifge TECH_LEVEL 30
+			  ifge AMC_BUDGET 75
+			  ife BASE_RESEARCH[9] 2 // Engineer Tech
+			  ife WEAPONS_RESEARCH[12] 2 // Engineer SMG
+			  ife BASE_RESEARCH[7] 2 // AMC Advanced Ship (new transport craft)
+				set temp_resinput_cond 1
+            state onclick_research
+		}
+        break
+    case 32 // advanced AMC Soldiers
+        myospalx 180 105 22708 0 0 0
+        qputs 1380 Advanced AMC Soldiers
+        qputs 1381 Combining all of our research and our
+        qputs 1382 knowledge of the Engineers, we can upgrade
+        qputs 1383 our AMC soldiers with bleeding edge tech,
+        qputs 1384 turning each one into a veritable elite
+        qputs 1385 super soldier.
+        qputs 1390 TECH LVL NEEDED: THIRTY
+        qputs 1391 RESEARCH COST: 75
+		qputs 1392 REQUIRES ENGINEER TECH
+		qputs 1393 REQUIRES NEW TRANSPORT CRAFT
+
+        ifn PERSONNEL_RESEARCH[INFO_SEL_2] 1 { set fmv_id 1346 state replay_fmv orvar temp_rescolour 1 }
+        else
+            {
+            ifge TECH_LEVEL 30 orvar temp_rescolour 2
+            ifge AMC_BUDGET 75 orvar temp_rescolour 4
+			ife BASE_RESEARCH[9] 2 orvar temp_rescolour 8
+			ife BASE_RESEARCH[7] 2 orvar temp_rescolour 16
+
+            set temp_resinput_cost 75
+            ifge TECH_LEVEL 30 ifge AMC_BUDGET 75 ife BASE_RESEARCH[9] 2 ife BASE_RESEARCH[7] 2 set temp_resinput_cond 1
+            state onclick_research
+            }
+        break
+    case 33 // Emergency Shield Tech
+        myospalx 180 105 29338 0 0 0
+        qputs 1380 Emergency Shield Tech
+        qputs 1381 This tech upgrades medikits to have
+        qputs 1382 an emergency shield generator, that will
+        qputs 1383 immediately restart shield generation when
+        qputs 1384 using a medikit.
+        qputs 1386 ^1Shield will recharge when medikit used.
+        qputs 1390 TECH LVL NEEDED: THIRTY
+        qputs 1391 RESEARCH COST: 75
+
+        ifn PERSONNEL_RESEARCH[INFO_SEL_2] 1 orvar temp_rescolour 1
+        else
+            {
+            ifg TECH_LEVEL 29 orvar temp_rescolour 2
+            ifg AMC_BUDGET 74 orvar temp_rescolour 4
+
+            set temp_resinput_cost 75
+            ifg TECH_LEVEL 29 ifg AMC_BUDGET 74 set temp_resinput_cond 1
+            state onclick_research
+            }
+        break
+    case 34 // Orc Bandolier
+        myospalx 180 105 29368 0 0 0
+        qputs 1380 Explosive Bandolier
+        qputs 1381 The Orcs had a unique method for carrying
+        qputs 1382 their black powder bombs; we can emulate
+        qputs 1383 this and allow agents to carry more hand
+        qputs 1384 held explosives
+        qputs 1386 ^1Grenade capacity 50% increase
+        qputs 1390 TECH LVL NEEDED: FIVE
+        qputs 1391 RESEARCH COST: 15
+
+        ifn PERSONNEL_RESEARCH[INFO_SEL_2] 1 orvar temp_rescolour 1
+        else
+            {
+            ifge TECH_LEVEL 5 orvar temp_rescolour 2
+            ifge AMC_BUDGET 15 orvar temp_rescolour 4
+
+            set temp_resinput_cost 15
+            ifge TECH_LEVEL 5 ifge AMC_BUDGET 15 set temp_resinput_cond 1
+            state onclick_research
+            }
+        break
+    case 35 // Archer quiver
+        myospalx 180 105 29369 0 0 0
+        qputs 1380 Archer Quiver
+        qputs 1381 The Archers of Naaldir's forces have a
+        qputs 1382 very well made quiver; we can copy their
+        qputs 1383 techniques and improve our agent's arrow
+        qputs 1384 or bolt capacity
+        qputs 1386 ^1Arrow/Bolt capacity 50% increase
+        qputs 1390 TECH LVL NEEDED: FIVE
+        qputs 1391 RESEARCH COST: 15
+
+        ifn PERSONNEL_RESEARCH[INFO_SEL_2] 1 orvar temp_rescolour 1
+        else
+            {
+            ifge TECH_LEVEL 5 orvar temp_rescolour 2
+            ifge AMC_BUDGET 15 orvar temp_rescolour 4
+
+            set temp_resinput_cost 15
+            ifge TECH_LEVEL 5 ifge AMC_BUDGET 15 set temp_resinput_cond 1
+            state onclick_research
+            }
+        break
+    case 36 // Vision mode
+        myospalx 180 105 26161 0 0 0
+        qputs 1380 Heat/Night combi-goggles
+        qputs 1381 The Black Ops assassins have advanced
+        qputs 1382 goggles that can toggle between heat and
+        qputs 1383 night vision; we can replicate this in
+        qputs 1384 our own goggles now.
+        qputs 1386 ^1Hold use goggle/item key to toggle mode
+        qputs 1390 TECH LVL NEEDED: FIFTEEN
+        qputs 1391 RESEARCH COST: 45
+
+        ifn PERSONNEL_RESEARCH[INFO_SEL_2] 1 orvar temp_rescolour 1
+        else
+            {
+            ifge TECH_LEVEL 15 orvar temp_rescolour 2
+            ifge AMC_BUDGET 45 orvar temp_rescolour 4
+
+            set temp_resinput_cost 45
+            ifge TECH_LEVEL 15 ifge AMC_BUDGET 45 set temp_resinput_cond 1
+            state onclick_research
+            }
+        break
+    default
+        qputs 1011 ERROR:  You're not supposed to be here!
+        gametextz 2822 265 100 1011 0 124 0 0 0 xdim ydim HALFSIZE
+        break
+    endswitch
+}
+else ife INFO_SEL 4 // base
+{
+    minitext 9 155 1033 disp_pulse 15
+    switch INFO_SEL_2
+    case 0
+        qputs 1011 --- No projects found in this category ---
+        gametextz 2822 265 100 1011 0 125 0 0 0 xdim ydim HALFSIZE
+        break
+    case 1 // Paranormal Research Room
+        myospalx 180 105 12130 0 0 0
+        qputs 1380 Paranormal Research Room
+        qputs 1381 Using what we've learnt so far, we can
+        qputs 1382 build a library ideal for supernatural
+        qputs 1383 research and projects.
+        qputs 1390 TECH LVL NEEDED: ONE
+        qputs 1391 RESEARCH COST: 10
+
+        // Unlock Spirit Vest
+        ife BASE_RESEARCH[1] 2
+        {
+            ife EQUIPMENT_RESEARCH[5] 0
+            {
+                setarray EQUIPMENT_RESEARCH[5] 1
+                set array_save 1
+            }
+        }
+
+        ifn BASE_RESEARCH[INFO_SEL_2] 1 orvar temp_rescolour 1
+        else
+            {
+            ifg TECH_LEVEL 0 orvar temp_rescolour 2
+            ifg AMC_BUDGET 9 orvar temp_rescolour 4
+
+            set temp_resinput_cost 10
+            ifg TECH_LEVEL 0 ifg AMC_BUDGET 9 set temp_resinput_cond 1
+            state onclick_research
+            }
+        break
+    case 2 // AMC Base Recreational Area
+        myospalx 180 105 12131 0 0 0
+        qputs 1380 AMC Base recreational area
+        qputs 1381 We can create a recreational and
+        qputs 1382 relaxation area utilising data
+        qputs 1383 that has been recovered.
+        qputs 1390 TECH LVL NEEDED: ONE
+        qputs 1391 RESEARCH COST: 10
+
+        ifn BASE_RESEARCH[INFO_SEL_2] 1 orvar temp_rescolour 1
+        else
+            {
+            ifg TECH_LEVEL 0 orvar temp_rescolour 2
+            ifg AMC_BUDGET 9 orvar temp_rescolour 4
+
+            set temp_resinput_cost 10
+            ifg TECH_LEVEL 0 ifg AMC_BUDGET 9 set temp_resinput_cond 1
+            state onclick_research
+            }
+        break
+    case 3 // Universal Constructor
+        myospalx 180 105 12132 0 0 0
+        qputs 1380 Universal Constructor
+        qputs 1381 With this controversial technology we can build
+        qputs 1382 Universal Constructors for the AMC base, enabling
+        qputs 1383 us to produce rare materials for use in research.
+        qputs 1390 TECH LVL NEEDED: TWO
+        qputs 1391 RESEARCH COST: 10
+
+        ifn BASE_RESEARCH[INFO_SEL_2] 1 orvar temp_rescolour 1
+        else
+            {
+            ifg TECH_LEVEL 1 orvar temp_rescolour 2
+            ifg AMC_BUDGET 9 orvar temp_rescolour 4
+
+            set temp_resinput_cost 10
+            ifg TECH_LEVEL 1 ifg AMC_BUDGET 9 set temp_resinput_cond 1
+            state onclick_research
+            }
+        break
+    case 4 // Dojo
+        myospalx 180 105 12199 0 0 0
+        qputs 1380 Dojo
+        qputs 1381 By building this small training room, we
+        qputs 1382 can work on and research new martial arts
+        qputs 1383 techniques for agents.
+        qputs 1390 TECH LVL NEEDED: ONE
+        qputs 1391 RESEARCH COST: 10
+
+        ife BASE_RESEARCH[4] 2
+        {
+            ife PERSONNEL_RESEARCH[8] 0
+            {
+                setarray PERSONNEL_RESEARCH[8] 1
+                set array_save 1
+            }
+        }
+
+        ifn BASE_RESEARCH[INFO_SEL_2] 1 orvar temp_rescolour 1
+        else
+            {
+            ifg TECH_LEVEL 0 orvar temp_rescolour 2
+            ifg AMC_BUDGET 9 orvar temp_rescolour 4
+
+            set temp_resinput_cost 10
+            ifg TECH_LEVEL 0 ifg AMC_BUDGET 9 set temp_resinput_cond 1
+            state onclick_research
+            }
+        break
+    case 5 // Precog Brain
+        myospalx 180 105 22496 0 0 0
+        qputs 1380 Precog Brain
+        qputs 1381 We can create our own small-scale
+        qputs 1382 precog brain; this will give us
+        qputs 1383 information about enemy composition.
+        qputs 1390 TECH LVL NEEDED: THREE
+        qputs 1391 RESEARCH COST: 10
+
+		ifn BASE_RESEARCH[INFO_SEL_2] 1 { set fmv_id 1343 state replay_fmv orvar temp_rescolour 1 }
+        else
+            {
+            ifg TECH_LEVEL 2 orvar temp_rescolour 2
+            ifg AMC_BUDGET 9 orvar temp_rescolour 4
+
+            set temp_resinput_cost 10
+            ifg TECH_LEVEL 2 ifg AMC_BUDGET 9 set temp_resinput_cond 1
+            state onclick_research
+            }
+        break
+    case 7 // New Transport Craft
+        myospalx 180 105 22497 0 0 12
+        qputs 1380 New Transport Craft
+        qputs 1381 A new craft, with advanced AA defences
+        qputs 1382 and a larger carrying capacity for our
+        qputs 1383 AMC troops. Utilises many new technologies
+        qputs 1384 we've researched.
+        qputs 1390 TECH LVL NEEDED: TEN
+        qputs 1391 RESEARCH COST: 30
+        qputs 1392 REQUIRES CYCLOID PLASMA TECH
+        qputs 1393 REQUIRES ENHANCED HEAT-SEEKER CARD
+
+        ifn BASE_RESEARCH[INFO_SEL_2] 1 { set fmv_id 1340 state replay_fmv orvar temp_rescolour 1 }
+        else
+		{
+            ifg TECH_LEVEL 9 orvar temp_rescolour 2
+            ifg AMC_BUDGET 29 orvar temp_rescolour 4
+            ife WEAPONS_RESEARCH[9] 2 orvar temp_rescolour 8
+            ife PERSONNEL_RESEARCH[15] 2 orvar temp_rescolour 16
+
+            set temp_resinput_cost 30
+            ifg TECH_LEVEL 9
+			  ifg AMC_BUDGET 29
+			  ife WEAPONS_RESEARCH[9] 2 // Cycloid plasma tech
+			  ife PERSONNEL_RESEARCH[15] 2 // ENHANCED Heat-seeking card
+				set temp_resinput_cond 1
+            state onclick_research
+		}
+        break
+    case 9 // Engineer Tech
+        myospalx 180 105 12128 0 0 12
+        qputs 1380 Engineer Systems
+        qputs 1381 We can recreate the Engineer's technology
+        qputs 1382 to a certain degree, and utilise it to
+        qputs 1383 upgrade our systems dramatically.
+        qputs 1384 Will grant +10 tech levels.
+        qputs 1390 TECH LVL NEEDED: TWENTY
+        qputs 1391 RESEARCH COST: 50
+		qputs 1392 REQUIRES UNIVERSAL CONSTRUCTOR
+
+		// Personel energy shield tech
+        ife PERSONNEL_RESEARCH[33] 0 // Emergncy shield topic not unlocked?
+        {
+            ife BASE_RESEARCH[9] 2 // if this is researched
+            ife PERSONNEL_RESEARCH[22] 2 // if shield tech is researched?
+                {
+                setarray PERSONNEL_RESEARCH[33] 3 // unlock the research
+				ifand new_research 4 nullop else xorvar new_research 4
+                set array_save 1
+                }
+        }
+
+		// Advanced AMC soldier
+        ife PERSONNEL_RESEARCH[32] 0 // Advanced AMC soldier topic not unlocked?
+        {
+            ife BASE_RESEARCH[9] 2 // if this is researched
+                {
+                setarray PERSONNEL_RESEARCH[32] 3 // unlock the research
+				ifand new_research 4 nullop else xorvar new_research 4
+                set array_save 1
+                }
+        }
+
+		// AMC-209
+        ife PERSONNEL_RESEARCH[31] 0 // AMC-209 topic not unlocked?
+        {
+            ife BASE_RESEARCH[9] 2 // if this is researched
+                {
+                setarray PERSONNEL_RESEARCH[31] 3 // unlock the research
+				ifand new_research 4 nullop else xorvar new_research 4
+                set array_save 1
+                }
+        }
+
+
+        ifn BASE_RESEARCH[INFO_SEL_2] 1 orvar temp_rescolour 1
+        else
+            {
+            ifg TECH_LEVEL 19 orvar temp_rescolour 2
+            ifg AMC_BUDGET 49 orvar temp_rescolour 4
+			ife BASE_RESEARCH[3] 2 orvar temp_rescolour 8
+
+            set temp_resinput_cost 50
+            ifg TECH_LEVEL 19
+                ifg AMC_BUDGET 49
+				 ife BASE_RESEARCH[3] 2
+                            set temp_resinput_cond 1
+            state onclick_research
+            }
+        break
+    default
+        qputs 1011 ERROR:  You're not supposed to be here!
+        gametextz 2822 265 100 1011 0 124 0 0 0 xdim ydim HALFSIZE
+        break
+    endswitch
+}
+else ife INFO_SEL 5 // mystical
+{
+    minitext 9 166 1034 disp_pulse 18
+    switch INFO_SEL_2
+    case 0
+        qputs 1011 --- No projects found in this category ---
+        gametextz 2822 265 100 1011 0 125 0 0 0 xdim ydim HALFSIZE
+        break
+    case 1 // Mind Shield LVL 1
+        myospalx 180 105 13328 0 0 0
+        qputs 1380 Mind Shield LVL 1
+        qputs 1381 We can train agents with supernatural powers to
+        qputs 1382 focus mental energy and generate a weak spirit
+        qputs 1383 shield up to 10 whilst stationary.
+        qputs 1390 TECH LVL NEEDED: ONE
+        qputs 1391 RESEARCH COST: 5
+
+        ifn MYSTICAL_RESEARCH[INFO_SEL_2] 1 orvar temp_rescolour 1
+        else
+            {
+            ifg TECH_LEVEL 0 orvar temp_rescolour 2
+            ifg AMC_BUDGET 4 orvar temp_rescolour 4
+
+            set temp_resinput_cost 5
+            ifg TECH_LEVEL 0 ifg AMC_BUDGET 4 set temp_resinput_cond 1
+            state onclick_research
+            }
+        break
+    case 2 // Mind Shield LVL 2
+        myospalx 180 105 13334 0 0 0
+        qputs 1380 Mind Shield LVL 2
+        qputs 1381 We can train agents with supernatural powers to
+        qputs 1382 focus mental energy and generate a weak spirit
+        qputs 1383 shield up to 15 whilst stationary.
+        qputs 1390 TECH LVL NEEDED: FOUR
+        qputs 1391 RESEARCH COST: 10
+        qputs 1392 REQUIRES MIND SHIELD LVL 1
+
+        ifn MYSTICAL_RESEARCH[INFO_SEL_2] 1 orvar temp_rescolour 1
+        else
+            {
+            ifg TECH_LEVEL 3 orvar temp_rescolour 2
+            ifg AMC_BUDGET 9 orvar temp_rescolour 4
+            ife MYSTICAL_RESEARCH[1] 2 orvar temp_rescolour 8
+
+            set temp_resinput_cost 10
+            ifg TECH_LEVEL 3 ifg AMC_BUDGET 9 ife MYSTICAL_RESEARCH[1] 2 set temp_resinput_cond 1
+            state onclick_research
+            }
+        break
+    case 3 // Mind Shield LVL 3
+        myospalx 180 105 13335 0 0 0
+        qputs 1380 Mind Shield LVL 3
+        qputs 1381 We can train agents with supernatural powers to
+        qputs 1382 focus mental energy and generate a weak spirit
+        qputs 1383 shield up to 20 whilst stationary.
+        qputs 1390 TECH LVL NEEDED: SIX
+        qputs 1391 RESEARCH COST: 15
+        qputs 1392 REQUIRES MIND SHIELD LVL 2
+
+        ifn MYSTICAL_RESEARCH[INFO_SEL_2] 1 orvar temp_rescolour 1
+        else
+            {
+            ifg TECH_LEVEL 5 orvar temp_rescolour 2
+            ifg AMC_BUDGET 14 orvar temp_rescolour 4
+            ife MYSTICAL_RESEARCH[2] 2 orvar temp_rescolour 8
+
+            set temp_resinput_cost 15
+            ifg TECH_LEVEL 5 ifg AMC_BUDGET 14 ife MYSTICAL_RESEARCH[2] 2 set temp_resinput_cond 1
+            state onclick_research
+            }
+        break
+    case 4 // Siren's Curse Protection
+        myospalx 180 105 22735 0 0 0
+        qputs 1380 Siren's Curse Protection
+        qputs 1381 Sang can create a simple enchantment for
+        qputs 1382 agents that will reduce the duration of a
+        qputs 1383 Siren's curse effect by about a third.
+        qputs 1390 TECH LVL NEEDED: EIGHT
+        qputs 1391 RESEARCH COST: 25
+
+        ifn MYSTICAL_RESEARCH[INFO_SEL_2] 1 orvar temp_rescolour 1
+        else
+            {
+            ifg TECH_LEVEL 7 orvar temp_rescolour 2
+            ifg AMC_BUDGET 24 orvar temp_rescolour 4
+
+            set temp_resinput_cost 25
+            ifg TECH_LEVEL 7 ifg AMC_BUDGET 24 set temp_resinput_cond 1
+            state onclick_research
+            }
+        break
+    case 5 // Improved First-aid Speed
+        myospalx 180 105 22717 0 0 0
+        qputs 1380 Improved First-aid Speed
+        qputs 1381 The Anubis' delicate wrappings have unique
+        qputs 1382 enchantments that preserve the body; we can
+        qputs 1383 transfer this to our first-aid kits.
+        qputs 1385 ^1Doubles healing kit speed.
+        qputs 1390 TECH LVL NEEDED: EIGHT
+        qputs 1391 RESEARCH COST: 10
+
+        ifn MYSTICAL_RESEARCH[INFO_SEL_2] 1 orvar temp_rescolour 1
+        else
+            {
+            ifg TECH_LEVEL 7 orvar temp_rescolour 2
+            ifg AMC_BUDGET 9 orvar temp_rescolour 4
+
+            set temp_resinput_cost 10
+            ifg TECH_LEVEL 7 ifg AMC_BUDGET 9 set temp_resinput_cond 1
+            state onclick_research
+            }
+        break
+    case 6 // Eva Lockwood
+        myospalx 180 105 17628 0 0 0
+        qputs 1380 Magic Weaponry
+        qputs 1381 With Eva's help, we can now
+        qputs 1382 use her skills to add magical
+        qputs 1383 weaponry to the loadout list.
+
+        qputs 1390 TECH LVL NEEDED: FOUR
+        qputs 1391 RESEARCH COST: 5
+
+		ife MYSTICAL_RESEARCH[INFO_SEL_2] 2 // unlock Lilith
+		 ife SAVED_LILITH 1
+			{
+			ife MYSTICAL_RESEARCH[7] 0 setarray MYSTICAL_RESEARCH[7] 3
+			}
+
+        ifn MYSTICAL_RESEARCH[INFO_SEL_2] 1 orvar temp_rescolour 1
+        else
+            {
+            ifg TECH_LEVEL 3 orvar temp_rescolour 2
+            ifg AMC_BUDGET 4 orvar temp_rescolour 4
+
+            set temp_resinput_cost 10
+            ifg TECH_LEVEL 3 ifg AMC_BUDGET 4 set temp_resinput_cond 1
+            state onclick_research
+            }
+        break
+    case 7 // Lilith
+		ife SAVED_LILITH 1
+			{
+			myospalx 180 105 17629 0 0 0
+			qputs 1380 Lilith
+			qputs 1381 With Eva's help, we can convince
+			qputs 1382 the EDF to release Lilith into Eva's
+			qputs 1383 custody; her paranormal knowledge will
+			qputs 1384 allow us to use abyss weapons.
+
+			qputs 1390 TECH LVL NEEDED: SIX
+			qputs 1391 RESEARCH COST: 10
+
+			ifn MYSTICAL_RESEARCH[INFO_SEL_2] 1 orvar temp_rescolour 1
+			else
+				{
+				ifg TECH_LEVEL 5 orvar temp_rescolour 2
+				ifg AMC_BUDGET 9 orvar temp_rescolour 4
+
+				set temp_resinput_cost 10
+				ifg TECH_LEVEL 5 ifg AMC_BUDGET 4 set temp_resinput_cond 1
+				state onclick_research
+				}
+			}
+		else ife res_was_spooked 0
+			{
+
+            set disp_temp totalclock
+            sub disp_temp rs_prev_totalclock
+            ifge disp_temp 4
+            {
+                set rs_prev_totalclock totalclock
+			    add r_lilithcounter 1
+            }
+
+            // if menu was opened, this may diverge. reset it to the proper value
+            ifl totalclock rs_prev_totalclock
+                set rs_prev_totalclock totalclock
+
+            qputs 1380 WARNING PARACAUSAL ANOMALY
+			qputs 1381 i thought we saved her???? help us
+			qputs 1382 theyre killing everyone and nothing
+			qputs 1383 we use against them is workin
+
+            ifg r_lilithcounter 15
+				{
+				set INFO_SEL 7
+				set r_lilithcounter 0
+                set rs_prev_totalclock 0
+				}
+			}
+        else
+        {
+			qputs 1380 CORRUPTED DATA ENTRY
+            qputs 1381 Unable to recover research data.
+            qputs 1382 Error Code: 616
+			qputs 1383 Please contact your administrator.
+
+			qputs 1390 TECH LVL NEEDED: N/A
+			qputs 1391 RESEARCH COST: N/A
+        }
+
+        break
+    case 8 // Beholder
+        myospalx 180 105 29336 0 0 0
+        qputs 1380 Beholder gaze
+        qputs 1381 We can enchant our agents with
+        qputs 1382 protections to break the Beholder's
+        qputs 1383 curse instantly if they get far
+		qputs 1384 away enough.
+
+        qputs 1390 TECH LVL NEEDED: 15
+        qputs 1391 RESEARCH COST: 25
+
+        ifn MYSTICAL_RESEARCH[INFO_SEL_2] 1 orvar temp_rescolour 1
+        else
+            {
+            ifg TECH_LEVEL 14 orvar temp_rescolour 2
+            ifg AMC_BUDGET 24 orvar temp_rescolour 4
+
+            set temp_resinput_cost 25
+            ifg TECH_LEVEL 14 ifg AMC_BUDGET 25 set temp_resinput_cond 1
+            state onclick_research
+            }
+        break
+    case 9 // Troll
+        myospalx 180 105 29337 0 0 0
+        qputs 1380 Troll Ground Pound
+        qputs 1381 Merlijn will be able to unleash a
+        qputs 1382 huge blast of flame when falling
+        qputs 1383 and landing from height. Hit the
+		qputs 1384 melee key to trigger it.
+
+        qputs 1390 TECH LVL NEEDED: 15
+        qputs 1391 RESEARCH COST: 25
+
+        ifn MYSTICAL_RESEARCH[INFO_SEL_2] 1 orvar temp_rescolour 1
+        else
+            {
+            ifg TECH_LEVEL 14 orvar temp_rescolour 2
+            ifg AMC_BUDGET 24 orvar temp_rescolour 4
+
+            set temp_resinput_cost 25
+            ifg TECH_LEVEL 14 ifg AMC_BUDGET 25 set temp_resinput_cond 1
+            state onclick_research
+            }
+        break
+    default
+        qputs 1011 ERROR:  You're not supposed to be here!
+        gametextz 2822 265 100 1011 0 124 0 0 0 xdim ydim HALFSIZE
+        break
+    endswitch
+}
+else ife INFO_SEL 6 // Dojo
+{
+    minitext 9 176 900 disp_pulse 22
+    switch INFO_SEL_2
+    case 0
+        qputs 1011 --- No projects found in this category ---
+        gametextz 2822 265 100 1011 0 125 0 0 0 xdim ydim HALFSIZE
+        break
+    case 1 // Ko Shielding
+        myospalx 180 105 13333 0 0 0
+        qputs 1380 Ki shielding
+        qputs 1381 Using the newly constructed AMC Dojo,
+        qputs 1382 AMC agents can be trained to focus
+        qputs 1383 mental energy and protect themselves
+        qputs 1384 whilst using special melee attacks,
+        qputs 1385 taking only 50% damage.
+		ifge VOLUME 3
+			{
+        qputs 1386 Kagura already knew these techniques,
+        qputs 1387 but now gains protection whilst using
+        qputs 1388 melee weapons as well.
+			}
+        qputs 1390 TECH LVL NEEDED: SIX
+        qputs 1391 RESEARCH COST: 15
+
+        ifn MELEE_RESEARCH[INFO_SEL_2] 1 orvar temp_rescolour 1
+        else
+            {
+            ifg TECH_LEVEL 5 orvar temp_rescolour 2
+            ifg AMC_BUDGET 14 orvar temp_rescolour 4
+
+            set temp_resinput_cost 15
+            ifg TECH_LEVEL 5 ifg AMC_BUDGET 14 set temp_resinput_cond 1
+            state onclick_research
+            }
+        break
+    case 2 // Advanced Sword Techniques
+        myospalx 180 105 13343 0 0 0
+        qputs 1380 Advanced Sword Techniques
+        qputs 1381 With intense training and concentration,
+        qputs 1382 an Agent can actually deflect bullets
+        qputs 1383 whilst wielding a Katana; as long as
+        qputs 1384 they're facing the attack.
+        qputs 1386 ^1Deflects low calibre bullets
+        qputs 1390 TECH LVL NEEDED: EIGHT
+        qputs 1391 RESEARCH COST: 25
+
+        ifn MELEE_RESEARCH[INFO_SEL_2] 1 orvar temp_rescolour 1
+        else
+            {
+            ifg TECH_LEVEL 7 orvar temp_rescolour 2
+            ifg AMC_BUDGET 24 orvar temp_rescolour 4
+
+            set temp_resinput_cost 25
+            ifg TECH_LEVEL 7 ifg AMC_BUDGET 24 set temp_resinput_cond 1
+            state onclick_research
+            }
+        break
+    case 3 // Acupressure
+        myospalx 180 105 13344 0 0 0
+        qputs 1380 Acupressure
+        qputs 1381 A simple class can teach our agents
+        qputs 1382 the basics of Acupressure, opening
+        qputs 1383 the way for more advanced techniques.
+        qputs 1390 TECH LVL NEEDED: ONE
+        qputs 1391 RESEARCH cost: 4
+
+        ifn MELEE_RESEARCH[INFO_SEL_2] 1 orvar temp_rescolour 1
+        else
+            {
+            ifg TECH_LEVEL 0 orvar temp_rescolour 2
+            ifg AMC_BUDGET 3 orvar temp_rescolour 4
+
+            set temp_resinput_cost 4
+            ifg TECH_LEVEL 0 ifg AMC_BUDGET 3 set temp_resinput_cond 1
+            state onclick_research
+            }
+        break
+
+    case 4
+        myospalx 180 105 13346 0 0 0
+        qputs 1380 Ripper Heart
+        qputs 1381 Utilising Acupressure with detailed
+        qputs 1382 knowledge of this organ, Agents can
+        qputs 1383 create a supernatural clone of them
+        qputs 1384 -selves for a limited time.
+        qputs 1386 ^1Allows use of Ripper heart
+        qputs 1390 TECH LVL NEEDED: TEN
+        qputs 1391 RESEARCH COST: 15
+        qputs 1392 REQUIRES ACUPRESSURE RESEARCH
+
+        ifn MELEE_RESEARCH[INFO_SEL_2] 1 orvar temp_rescolour 1
+        else
+            {
+            ifg TECH_LEVEL 9 orvar temp_rescolour 2
+            ifg AMC_BUDGET 14 orvar temp_rescolour 4
+            ife MELEE_RESEARCH[3] 2 orvar temp_rescolour 8
+
+            set temp_resinput_cost 15
+            ifg TECH_LEVEL 9 ifg AMC_BUDGET 14 ife MELEE_RESEARCH[3] 2 set temp_resinput_cond 1
+            state onclick_research
+            }
+        break
+    case 5 // NOT IMPLEMENTED! ============================================================================================
+        myospalx 180 105 13346 0 0 0
+        qputs 1380 Mamano Heart
+        qputs 1381 Utilising Acupressure with detailed
+        qputs 1382 knowledge of this organ, Agents can
+        qputs 1383 summon a horde of Mamano's to rip
+        qputs 1384 the target to shreds.
+        qputs 1386 ^1Allows use of Mamano heart
+        qputs 1390 TECH LVL NEEDED: TEN
+        qputs 1391 RESEARCH COST: 15
+        qputs 1392 REQUIRES ACUPRESSURE RESEARCH
+
+        ifn MELEE_RESEARCH[INFO_SEL_2] 1 orvar temp_rescolour 1
+        else
+            {
+            ifg TECH_LEVEL 9 orvar temp_rescolour 2
+            ifg AMC_BUDGET 14 orvar temp_rescolour 4
+            ife MELEE_RESEARCH[3] 2 orvar temp_rescolour 8
+
+            set temp_resinput_cost 15
+            ifg TECH_LEVEL 9 ifg AMC_BUDGET 14 ife MELEE_RESEARCH[3] 2 set temp_resinput_cond 1
+            state onclick_research
+            }
+        break
+    case 6
+        myospalx 180 105 13345 0 0 0
+        qputs 1380 Guardian Head
+        qputs 1381 Utilising Acupressure with detailed
+        qputs 1382 knowledge of the Guardian's anatomy,
+        qputs 1383 Agents can utilise two more deadly
+        qputs 1384 fire attacks.
+        qputs 1386 ^1Allows 2 more modes of fire
+        qputs 1390 TECH LVL NEEDED: TEN
+        qputs 1391 RESEARCH COST: 15
+        qputs 1392 REQUIRES ACUPRESSURE RESEARCH
+
+        ifn MELEE_RESEARCH[INFO_SEL_2] 1 orvar temp_rescolour 1
+        else
+            {
+            ifg TECH_LEVEL 9 orvar temp_rescolour 2
+            ifg AMC_BUDGET 14 orvar temp_rescolour 4
+            ife MELEE_RESEARCH[3] 2 orvar temp_rescolour 8
+
+            set temp_resinput_cost 15
+            ifg TECH_LEVEL 9 ifg AMC_BUDGET 14 ife MELEE_RESEARCH[3] 2 set temp_resinput_cond 1
+            state onclick_research
+            }
+        break
+    case 7
+        myospalx 180 105 17402 0 0 0
+        qputs 1380 Ninja Roll
+        qputs 1381 By Crouching before impact, an Agent
+        qputs 1382 can soften the blow by performing
+        qputs 1383 an acrobatic roll. Don't do this near
+        qputs 1384 cliff edges though.
+        qputs 1386 ^1Allows falling Ninja Roll
+        qputs 1390 TECH LVL NEEDED: TWO
+        qputs 1391 RESEARCH COST: 10
+
+        ifn MELEE_RESEARCH[INFO_SEL_2] 1 { set fmv_id 1341 state replay_fmv orvar temp_rescolour 1 }
+        else
+            {
+            ifg TECH_LEVEL 1 orvar temp_rescolour 2
+            ifg AMC_BUDGET 9 orvar temp_rescolour 4
+
+            set temp_resinput_cost 10
+            ifg TECH_LEVEL 1 ifg AMC_BUDGET 9 set temp_resinput_cond 1
+            state onclick_research
+            }
+        break
+    case 8
+        myospalx 180 105 11172 0 0 0
+        qputs 1380 Berserker Attack
+		ifand CHAR_APP 4
+			{
+			qputs 1381 This research will now reduce
+			qputs 1382 the cooldown for when Merlijn
+			qputs 1383 can go berserk again by 10
+			qputs 1384 seconds.
+			}
+		else
+			{
+			qputs 1381 This research will strengthen
+			qputs 1382 Merlijn when he's badly injured.
+			qputs 1383 ^1When Merlijn drops below 75HP
+			qputs 1384 ^1He will gain unlimited sprint
+			qputs 1386 ^1and 66% damage resistance
+			qputs 1387 ^1for 15 seconds; cooldown is
+			qputs 1388 ^130 more seconds after
+			}
+        qputs 1390 TECH LVL NEEDED: SIX
+        qputs 1391 RESEARCH COST: 25
+
+        ifn MELEE_RESEARCH[INFO_SEL_2] 1 orvar temp_rescolour 1
+        else
+            {
+            ifg TECH_LEVEL 5 orvar temp_rescolour 2
+            ifg AMC_BUDGET 24 orvar temp_rescolour 4
+
+            set temp_resinput_cost 25
+            ifg TECH_LEVEL 5 ifg AMC_BUDGET 24 set temp_resinput_cond 1
+            state onclick_research
+            }
+        break
+    default
+        qputs 1011 ERROR:  You're not supposed to be here!
+        gametextz 2822 265 100 1011 0 124 0 0 0 xdim ydim HALFSIZE
+        break
+    endswitch
+}
+else {  // error handler
+    state researchSpook
+}
+
+ifge INFO_SEL 0
+    ifl INFO_SEL 7
+        set r_spookcounter 0
+
+// Header Space
+gametextz 2822 220 40 1380 0 125 0 0 0 xdim ydim HALFSIZE
+
+// Description Space
+gametextz 2822 220 45 1381 0 0 0 0 0 xdim ydim HALFSIZE
+gametextz 2822 220 50 1382 0 0 0 0 0 xdim ydim HALFSIZE
+gametextz 2822 220 55 1383 0 0 0 0 0 xdim ydim HALFSIZE
+gametextz 2822 220 60 1384 0 0 0 0 0 xdim ydim HALFSIZE
+gametextz 2822 220 65 1385 0 0 0 0 0 xdim ydim HALFSIZE
+gametextz 2822 220 70 1386 0 0 0 0 0 xdim ydim HALFSIZE
+gametextz 2822 220 75 1387 0 0 0 0 0 xdim ydim HALFSIZE
+gametextz 2822 220 80 1388 0 0 0 0 0 xdim ydim HALFSIZE
+gametextz 2822 220 85 1389 0 0 0 0 0 xdim ydim HALFSIZE
+
+// determine colors
+ifand temp_rescolour 1
+{
+    set disp_temp 0 set disp_temp2 0 set disp_temp3 0 set disp_temp4 0 set disp_temp5 0 // set disp_temp6 0
+}
+else
+{
+    ifand temp_rescolour 2 set disp_temp 125 else set disp_temp 124
+    ifand temp_rescolour 4 set disp_temp2 125 else set disp_temp2 124
+    ifand temp_rescolour 8 set disp_temp3 125 else set disp_temp3 124
+    ifand temp_rescolour 16 set disp_temp4 125 else set disp_temp4 124
+    ifand temp_rescolour 32 set disp_temp5 125 else set disp_temp5 124
+    // ifand temp_rescolour 64 set disp_temp6 125 else set disp_temp6 124
+}
+
+// Requirement Space
+gametextz 2822 220 135 1390 0 disp_temp 0 0 0 xdim ydim HALFSIZE
+gametextz 2822 220 140 1391 0 disp_temp2 0 0 0 xdim ydim HALFSIZE
+gametextz 2822 220 145 1392 0 disp_temp3 0 0 0 xdim ydim HALFSIZE
+gametextz 2822 220 150 1393 0 disp_temp4 0 0 0 xdim ydim HALFSIZE
+gametextz 2822 220 155 1394 0 disp_temp5 0 0 0 xdim ydim HALFSIZE
+
+// Get research status
+ifn INFO_SEL_2 0 {
+    switch INFO_SEL
+    case 1 set disp_temp WEAPONS_RESEARCH[INFO_SEL_2]
+        break
+    case 2 set disp_temp EQUIPMENT_RESEARCH[INFO_SEL_2]
+        break
+    case 3 set disp_temp PERSONNEL_RESEARCH[INFO_SEL_2]
+        break
+    case 4 set disp_temp BASE_RESEARCH[INFO_SEL_2]
+        break
+    case 5
+        set disp_temp MYSTICAL_RESEARCH[INFO_SEL_2]
+        break
+    case 6 set disp_temp MELEE_RESEARCH[INFO_SEL_2]
+        break
+    default set disp_temp 0
+        break
+    endswitch
+}
+
+ife INFO_SEL 5 ife INFO_SEL_2 7 ife SAVED_LILITH 0
+{
+    qputs 1011 STATUS: MURDERER
+    gametextz 2822 220 170 1011 0 124 0 0 0 xdim ydim HALFSIZE
+}
+else
+{
+    // Display research status
+    ife disp_temp 2
+        {
+        qputs 1011 STATUS: RESEARCHED
+        gametextz 2822 220 170 1011 0 125 0 0 0 xdim ydim HALFSIZE
+        }
+    else ife disp_temp 1
+        {
+        qputs 1011 STATUS: UNRESEARCHED
+        gametextz 2822 220 170 1011 0 1 0 0 0 xdim ydim HALFSIZE
+        }
+}
+
+ends

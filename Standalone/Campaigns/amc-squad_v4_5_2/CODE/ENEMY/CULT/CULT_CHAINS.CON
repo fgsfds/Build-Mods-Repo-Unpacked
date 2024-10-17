@@ -1,0 +1,329 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+
+--------------------------------------------------------------------------------
+*/
+
+// ===========================================
+// CULTSAW ACTOR FOR EASE OF ADDING IN ENEMIES
+// ============================================
+
+damageeventtile CULT_CHAINSAW
+
+action A_CULTSAW_PREP 0 1 5 1 12
+action A_CULTSAW_IDLE 0 1 5 1 12
+
+action A_CULTSAW_DYING 55 5 1 1 16
+action A_CULTSAW_DEAD 59
+
+action A_CULTSAW_DYING2 60 5 1 1 16
+action A_CULTSAW_DEAD2 64
+
+action A_CULTSAW_FREEZE 55 1 1 1 8
+action A_CULTSAW_GROW 55 1 1 1 8
+action A_CULTSAW_SHRUNK 5 4 5 1 12
+action A_CULTSAW_PAIN 55 1 1 1 8
+
+action A_CULTSAW_SEEK 5 4 5 1 16
+action A_CULTSAW_SPRINT 25 4 5 1 12
+action A_CULTSAW_ATTACK 45 2 5 1 8
+
+move M_CULTSAW_WALK 96
+move M_CULTSAW_SPRINT 360
+
+useractor enemy CULT_CHAINSAW 500 A_CULTSAW_PREP
+fall
+ifaction 0 action A_CULTSAW_PREP
+ifaction A_CULTSAW_PREP
+{
+	cstat 257
+	ifspritepal 3 strength 750
+	else ifspritepal 9 strength 1000
+	else
+	strength 500
+	sizeat 23 23
+	state monst_glow
+	spawn SHOOTME
+	globalsound CHAINS_REV
+	action A_CULTSAW_IDLE
+}
+
+state ENEMYKNOCKBACKS
+state enemyfloordamage
+state enemy_fire_damage
+state enemy_ice_damage
+state enemy_spirit_damage
+
+ifdead nullop
+else
+	{
+	ifactorsound THISACTOR CHAINSAW_IDLE nullop else
+	sound CHAINSAW_IDLE
+	ifcount 30
+		{
+		set gunsmoke_z 8192
+		set gunsmoke_angle 256
+		state spawn_gunsmoke_z
+		resetcount
+		}
+	}
+
+ifdead nullop else
+ifactornotstayput state detectledge
+
+ifaction A_CULTSAW_IDLE
+{
+	move STOP
+	// if smartpoints used, don't rely on whether or not the player can be seen
+	ifg smartpoint_index 0
+		action A_CULTSAW_SEEK
+	else
+	{
+	state checkfortarget
+	ifn my_target -1
+		{
+		action A_CULTSAW_SEEK
+		}
+	}
+}
+
+// Death & dying
+else ifaction A_CULTSAW_DEAD
+{
+	move STOP
+	ifhitweapon
+	{
+		ifwasweapon RADIUSEXPLOSION
+		{
+			state squish_sounds
+			state standard_jibs
+			killit
+		}
+	}
+}
+else ifaction A_CULTSAW_DEAD2
+{
+	move STOP
+	ifhitweapon
+	{
+		ifwasweapon RADIUSEXPLOSION
+		{
+			state squish_sounds
+			state standard_jibs
+			killit
+		}
+	}
+}
+else ifaction A_CULTSAW_DYING
+{
+	move STOP
+	strength 0
+	ifactioncount 5 { state BODY_FALL_NOISES action A_CULTSAW_DEAD }
+}
+else ifaction A_CULTSAW_DYING2
+{
+	move STOP
+	strength 0
+	ifactioncount 5 { state BODY_FALL_NOISES action A_CULTSAW_DEAD2 }
+}
+
+// Status effects
+else ifaction A_CULTSAW_FREEZE state frozen_code
+else ifaction A_CULTSAW_GROW
+{
+	move STOP
+	state genericgrowcode
+}
+else ifaction A_CULTSAW_SHRUNK
+{
+	ifmove M_CULTSAW_WALK { } // need to do this cause we're not using ai routines anymore
+	else
+		move M_CULTSAW_WALK geth fleeenemy
+
+	ifl SHRUNK_TIME SHRUNKCOUNT // keep shrunk
+		state new_shrunkcode
+	else ifl SHRUNK_TIME SHRUNKDONECOUNT // regrow
+	{
+		state unshrink
+		sizeto 23 23
+	}
+	else // after regrow, switch back to regular action
+	{
+		state endshrunkenstate
+		action A_CULTSAW_SEEK
+	}
+}
+
+else ifaction A_CULTSAW_PAIN
+{
+	sub PAIN_AMOUNT 1
+	move STOP
+	ife PAIN_AMOUNT 0
+	{
+		ifdead { ifrnd 128 action A_CULTSAW_DYING2 else action A_CULTSAW_DYING }
+		else action A_CULTSAW_SEEK
+	}
+}
+
+else ifaction A_CULTSAW_SEEK
+{
+	ifmove M_CULTSAW_WALK nullop else move M_CULTSAW_WALK geth
+
+	state smartpoint_angletoplayer
+
+	ifactioncount 4
+	{
+		randvar temp8 40
+		ifl temp8 10 sound SUIT_STEP1 else
+		ifl temp8 20 sound SUIT_STEP2 else
+		ifl temp8 30 sound SUIT_STEP3 else
+		sound SUIT_STEP4
+		resetactioncount
+	}
+
+	ifn my_target -1
+	{
+		ldist temp THISACTOR my_target
+		ifl temp 2048 action A_CULTSAW_ATTACK
+		else ifl temp 8192 ifrnd 48 { ife ally_mag 0 { sound CHAINS_SCRM set ally_mag 1 } action A_CULTSAW_SPRINT }
+	}
+}
+
+else ifaction A_CULTSAW_SPRINT
+{
+	ifmove M_CULTSAW_SPRINT nullop else move M_CULTSAW_SPRINT geth
+
+	state smartpoint_angletoplayer
+
+	ifactioncount 2
+	{
+		randvar temp8 40
+		ifl temp8 10 sound SUIT_STEP1 else
+		ifl temp8 20 sound SUIT_STEP2 else
+		ifl temp8 30 sound SUIT_STEP3 else
+		sound SUIT_STEP4
+		resetactioncount
+	}
+
+	ifn my_target -1
+	{
+		ldist temp THISACTOR my_target
+		ifl temp 768 action A_CULTSAW_ATTACK
+	}
+}
+
+else ifaction A_CULTSAW_ATTACK
+{
+	move STOP
+	state new_validatetarget
+
+	ife my_target -1
+		action A_CULTSAW_SEEK
+	else
+    {
+        ldist temp THISACTOR my_target
+	    ifg temp 1536 { ife ally_mag 0 { sound CHAINS_SCRM set ally_mag 1 } action A_CULTSAW_SPRINT }
+
+        state fronttowardstarget
+
+        ifactioncount 2
+        {
+        ifpdistl 1536 ifphealthl 75 ife chainsaw_struggle -1 { set chainsaw_struggle 120 killit } // death sentence
+            // IF PROJECTILE
+            set PROJECTILE_TO_SHOOT CHAINSAW_PROJ
+            set PROJECTILE_FIRING_SOUND CHAINSAW_FIRE
+            state sang_enemyShootProjectile
+            seta[RETURN].extra 30
+            resetactioncount
+        }
+	}
+}
+
+ifhitweapon
+{
+	state NEWGUNEFFECTS
+	sound BERSERK_PAIN
+	//spawn BLOOD
+	guts JIBS6 1
+	state random_wall_jibs
+	ifdead
+	{
+		addkills 1
+
+		ifwasweapon GROWSPARK { cstat 0 sound ACTOR_GROWING action A_CULTSAW_GROW break }
+		else ifg ice_damage 0 { spritepal 1 strength 0 sound SOMETHINGFROZE action A_CULTSAW_FREEZE }
+		else ifg fire_damage 0
+		{
+			shoot SPARK2 shoot SPARK2 shoot SPARK2
+			ifrnd 128 sound ZSOLD_DIE1
+			else sound ZSOLD_DIE2
+			spawn ONFIREGUY
+			killit
+		}
+		else ifg spirit_damage 0
+		{
+			shoot SPARK2 shoot SPARK2 shoot SPARK2
+			spritepal 1
+			guts JIBS3 6
+			spawn SPIRIT_DEATH_GUY
+			killit
+		}
+		else ifg energy_damage 0
+		{
+			shoot SPARK2 shoot SPARK2 shoot SPARK2
+			spritepal 4
+			guts JIBS3 6
+			spawn DISINTIGRATE_GUY
+			killit
+		}
+		else
+		{
+			cstat 0
+			randvar temp 30
+			ifl temp 10 sound CULTIST_DIE1 else
+			ifl temp 20 sound CULTIST_DIE2 else
+			sound CULTIST_DIE3
+			stopsound CHAINSAW_IDLE
+			ifrnd 128 action A_CULTSAW_DYING2 else
+			action A_CULTSAW_DYING
+		}
+		ifrnd 96 spawn CHAINSAWSPRITE
+	}
+
+	else // not dead
+	{
+		ifwasweapon SHRINKSPARK { sound ACTOR_SHRINKING action A_CULTSAW_SHRUNK }
+
+		ifg PAIN_AMOUNT 0 action A_CULTSAW_PAIN
+		else ifrnd 8 { ifaction A_CULTSAW_SPRINT nullop else { state PAIN_SKILL_LEVELADJUST action A_CULTSAW_PAIN } }
+		// if they were idle, getting hit ALWAYS wakes them up
+		else ifaction A_CULTSAW_IDLE { state PAIN_SKILL_LEVELADJUST action A_CULTSAW_PAIN }
+	}
+}
+
+state checksquished
+
+enda

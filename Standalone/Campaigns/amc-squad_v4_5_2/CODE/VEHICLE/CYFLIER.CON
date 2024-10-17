@@ -1,0 +1,444 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+This file defines behavior for the driveable Cycloid Space Fighter vehicle.
+--------------------------------------------------------------------------------
+*/
+
+// *************************************************
+// CYCLOID FIGHTER
+// *************************************************
+
+action CYCLOID_FIGHTER_IDLE 0 1 1 1 10
+
+action CYCLOID_FIGHTER_INACTION 1 1 1 1 10
+
+move FIGHTER_MOVE 1 1
+
+defstate cyflier_setspeeds
+	state vehicle_getbasespeed
+
+	// increase speeds based on forward_accelerate value
+	// increase in blocks of 50 to be somewhat smooth
+	set temp3 forward_accelerate
+	abs temp3
+	ifge temp3 30
+	{
+		whilevarn temp3 0
+		{
+			state vehicle_speedup
+			sub temp3 30
+
+			// can get below 0, then go 0..
+			ifle temp3 0
+				set temp3 0
+		}
+	}
+ends
+
+defstate cyflier_strafeleft
+	geta[].ang movesprite_angvar
+	sub movesprite_angvar 512
+	set movesprite_customvels 1
+	state cyflier_setspeeds
+	set movesprite_clipmask CLIPMASK0
+	state movesprite_state
+ends
+
+defstate cyflier_straferight
+	geta[].ang movesprite_angvar
+	add movesprite_angvar 512
+	set movesprite_customvels 1
+	state cyflier_setspeeds
+	set movesprite_clipmask CLIPMASK0
+	state movesprite_state
+ends
+
+defstate cyflier_forward
+	set temp2 forward_accelerate
+	divvar temp2 2
+	setactorsoundpitch THISACTOR CY_FIGHTER_FLOAT temp2
+
+	geta[].ang movesprite_angvar
+	set movesprite_customvels 1
+	state cyflier_setspeeds
+
+	set movesprite_clipmask CLIPMASK0
+	state movesprite_state
+
+	// if return is between 16384 and 32767 then we've hit a ceiling or floor, but we need to discard that information if it is a non-blocking TROR layer
+	ifge RETURN 16384
+		ifl RETURN 32768
+	{
+		set temp RETURN
+		sub temp 16384
+		gets[temp].ceilingstat temp2
+		gets[temp].floorstat temp3
+
+		ifand temp2 1024
+		{
+			ifand temp2 512
+				nullop
+			else
+				set RETURN 0
+		}
+		else ifand temp3 1024
+		{
+			ifand temp3 512
+				nullop
+			else
+				set RETURN 0
+		}
+	}
+
+	// There are many false positives with hitting walls, turn off for those
+	ifge RETURN 32768
+		ifl RETURN 49152
+	{
+		set RETURN 0
+	}
+
+	ifg RETURN 0 // hit something
+		ifg forward_accelerate 128
+	{
+		set CUS_WACK 3
+		ifg forward_accelerate 800
+			soundonce CARSMASH
+		else
+			soundonce CAR_HIT
+		set forward_accelerate 0
+	}
+ends
+
+defstate cyflier_reverse
+	soundonce CY_FIGHTER_FLOAT
+
+	geta[].ang movesprite_angvar
+	set movesprite_customvels 1
+	state cyflier_setspeeds
+
+	// we're reversing so we need to invert the velocities
+	inv movesprite_xvel
+	inv movesprite_yvel
+
+	set movesprite_clipmask CLIPMASK0
+	state movesprite_state
+
+	// if return is between 16384 and 32767 then we've hit a ceiling or floor, but we need to discard that information if it is a non-blocking TROR layer
+	ifge RETURN 16384
+		ifl RETURN 32767
+	{
+		set temp RETURN
+		sub temp 16384
+		gets[temp].ceilingstat temp2
+		gets[temp].floorstat temp3
+
+		ifand temp2 1024
+		{
+			ifand temp2 512
+				nullop
+			else
+				set RETURN 0
+		}
+		else ifand temp3 1024
+		{
+			ifand temp3 512
+				nullop
+			else
+				set RETURN 0
+		}
+	}
+
+	ifg RETURN 0 // hit something
+		ifl forward_accelerate -128
+	{
+		set CUS_WACK 3
+		soundonce CAR_HIT
+		set forward_accelerate 0
+	}
+ends
+
+damageeventtile CYFLIER
+
+useractor notenemy CYFLIER
+	ifaction 0
+    {
+		set actor_type TYPE_VEHICLE
+		spawn 9302
+		cstat 257
+		strength 5000
+		clipdist 220
+		sizeat 80 80
+		ife HITAGSAVED 0 action CYCLOID_FIGHTER_IDLE
+		else action ZERO
+    }
+
+	ifstrength 1000
+    {
+		espawn BIG_SMOKE
+		setactorvar[RETURN].YVELSAVED 1
+		seta[RETURN].pal 17
+    }
+
+	ifaction ZERO
+    {
+		fall
+		checkactivatormotion HITAGSAVED
+		ife RETURN 1 action CYCLOID_FIGHTER_IDLE
+    }
+
+	else ifaction CYCLOID_FIGHTER_IDLE
+	{
+		seta[].pal sector[].floorpal
+		fall
+		ifpdistl 3072
+	      ifp palive
+		  ifp pfacing
+		  ife player_in_vehicle 0
+		{
+			ifg scope 0 break
+			ifand gun_firemode 16384 break
+
+			set player_use 0
+			ife use_action_allowed 1
+			{
+				// Disable the player being blocking
+				getp[].i temp
+				geta[temp].cstat player_cstat_backup
+				seta[temp].cstat 0
+
+				set hit_key 30
+				state fade_out_black
+				soundonce CY_FIGHTER_STARTUP
+				set player_in_vehicle 1
+				set hc_gear 2
+				set control_display 150
+				set player_using_fighter THISACTOR
+				action CYCLOID_FIGHTER_INACTION
+				set PLAYER_VOICEOVER 32
+				state setIgnoreUse
+			}
+		}
+
+		ifstrength 4999
+		{
+			soundonce VEH_REP
+			ife CHAR 13 addstrength 5 else
+			addstrength 2
+		}
+	}
+
+	ifaction CYCLOID_FIGHTER_INACTION
+	{
+		// Bind player to vehicle coordinates
+		geta[].x temp
+		setp[].posx temp
+		geta[].y temp2
+		setp[].posy temp2
+		setp[].falling_counter 0
+
+		geta[].z temp3
+		sub temp3 16394
+		setp[].posz temp3
+
+		geta[].sectnum upd_sect
+		updatesectorz temp temp2 temp3 upd_sect
+		ifn upd_sect -1 // Make sure it's a a valid sector
+		{
+			changespritesect APLAYER upd_sect
+			setp[].cursectnum upd_sect
+		}
+		
+		ife CHAR 18
+		 ifstrength 4999
+			{
+				soundonce VEH_REP
+				addstrength 1
+			}
+
+		geta[].ang vehicle_ang
+		setp[].ang vehicle_ang
+
+		// Handle turning via mouse movement or turn left/right key
+		getinput[].avel temp3
+		ifn temp3 0
+			state vehicle_turn
+		else ifand EXTBITS_PRESS 16 // turn left input
+			state vehicle_turn
+		else ifand EXTBITS_PRESS 32 // turn right input
+			state vehicle_turn
+
+		ifand EXTBITS_PRESS 4 // strafe left
+		{
+			soundonce CY_FIGHTER_RISE
+			state cyflier_strafeleft
+		}
+		else ifand EXTBITS_PRESS 8 // strafe right
+		{
+			soundonce CY_FIGHTER_RISE
+			state cyflier_straferight
+		}
+
+		ifand BITS_PRESS 1 // go up
+		{
+			state thisactor_getzrange
+			soundonce CY_FIGHTER_RISE
+			gets[].ceilingz temp3
+			geta[].z temp2
+			sub temp2 4096
+			ifg temp2 temp3
+			seta[].z temp2
+			// seta[].zvel -8096
+		}
+		else ifand BITS_PRESS 2 // go down
+		{
+			state thisactor_getzrange
+			soundonce CY_FIGHTER_RISE
+			gets[].floorz temp3
+			geta[].z temp2
+			add temp2 4096
+			ifl temp2 temp3
+			seta[].z temp2
+			// seta[].zvel -8096
+		}
+
+		ifg forward_accelerate 300
+		{
+			state thisactor_getzrange
+			getp[].horiz temp
+			sub temp 100 // 100 horiz equals straight ahead, so take away 100 and make 0 'straight ahead' for this
+			mulvar temp -60
+			geta[].z temp2
+			add temp2 temp
+			seta[].z temp2
+		}
+
+		ifand EXTBITS_PRESS 1
+		{
+			set temp4 hc_gear
+			mulvar temp4 200
+			ifl forward_accelerate temp4 add forward_accelerate 4
+			ifg forward_accelerate temp4 sub forward_accelerate 8
+		}
+		else ifg forward_accelerate 0 sub forward_accelerate 8
+
+		ifand EXTBITS_PRESS 2
+		{
+			ifg forward_accelerate -400 sub forward_accelerate 4
+		}
+		else ifl forward_accelerate 0 add forward_accelerate 4
+
+		soundonce CY_FIGHTER_FLOAT
+		ifg forward_accelerate 0
+			state cyflier_forward
+		else ifl forward_accelerate -1
+			state cyflier_reverse
+
+		// exit
+		ifle forward_accelerate 100
+		  ifge forward_accelerate -100
+	      ife use_action_allowed 1
+		{
+			state fade_out_black
+			move 0
+			set player_in_vehicle 0
+			set player_using_fighter -1
+			soundonce CY_FIGHTER_SHUTDOWN
+			stopactorsound THISACTOR CY_FIGHTER_FLOAT
+			stopactorsound THISACTOR CY_FIGHTER_RISE
+			setp[].jetpack_on 0
+			setp[].over_shoulder_on 0
+			setp[].movement_lock 0
+			set just_changed 1
+			action CYCLOID_FIGHTER_IDLE
+			cstat 257
+			state setIgnoreUse
+
+			getp[].i temp
+			seta[temp].cstat player_cstat_backup
+		}
+
+		ifvarvarn player_using_fighter THISACTOR // if player has been removed from vehicle by force
+		{
+			move 0
+			set player_in_vehicle 0
+			set player_using_fighter -1
+			setp[].jetpack_on 0
+			set just_changed 1
+			stopactorsound THISACTOR CY_FIGHTER_FLOAT
+			stopactorsound THISACTOR CY_FIGHTER_RISE
+			action CYCLOID_FIGHTER_IDLE
+			getp[].i temp
+			seta[temp].cstat player_cstat_backup
+		}
+
+		ifp pdead
+		{
+			move 0
+			set player_in_vehicle 0
+			set player_using_fighter -1
+			setp[].jetpack_on 0
+			setp[].over_shoulder_on 0
+			setp[].movement_lock 0
+			set just_changed 1
+			stopactorsound THISACTOR CY_FIGHTER_FLOAT
+			stopactorsound THISACTOR CY_FIGHTER_RISE
+			action CYCLOID_FIGHTER_IDLE
+			getp[].i temp
+			seta[temp].cstat player_cstat_backup
+		}
+
+		ifdead
+		{
+			move 0
+			set player_in_vehicle 0
+			set player_using_fighter -1
+			setp[].jetpack_on 0
+			setp[].over_shoulder_on 0
+			setp[].movement_lock 0
+			set just_changed 1
+			stopactorsound THISACTOR CY_FIGHTER_FLOAT
+			stopactorsound THISACTOR CY_FIGHTER_RISE
+			addphealth -1000
+			spawn EXPLOSION2
+			quake 26
+			globalsound BLOWUP
+			shoot SPARK shoot SPARK shoot SPARK shoot SPARK shoot SPARK shoot SPARK
+			shoot LAVABALL shoot LAVABALL shoot LAVABALL shoot LAVABALL shoot LAVABALL
+			strength 1
+			action CYCLOID_FIGHTER_IDLE
+			getp[].i temp
+			seta[temp].cstat player_cstat_backup
+		}
+
+		ifhitweapon
+		{
+			sound ALARM
+			set gun_recoil 4
+			palfrom 10 10 0 0
+		}
+	}
+
+enda

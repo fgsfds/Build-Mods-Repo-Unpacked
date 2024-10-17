@@ -1,0 +1,209 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+
+--------------------------------------------------------------------------------
+*/
+
+damageeventtile DOCTORJ
+
+action AJEKYL_IDLE 9216 1 5 1 10
+action AJEKYL_MOVE 9216 4 5 1 20
+action AJEKYL_SHOOT 9236 2 5 1 4
+action AJEKYL_PAIN 9246 1 5 1 10
+action AJEKYL_DIE 9251 5 1 1 24
+action AJEKYL_DEAD 9255
+action AJEKYL_RELOAD 9256 1 1 1 4
+
+move JEK_MOVE 120
+
+ai AIJEKYL_IDLE AJEKYL_IDLE STOP
+ai AIJEKYL_MOVE AJEKYL_MOVE JEK_MOVE seekplayer
+ai AIJEKYL_SHOOT AJEKYL_SHOOT STOP faceplayer
+ai AIJEKYL_RELOAD AJEKYL_RELOAD STOP faceplayer
+ai AIJEKYL_PAIN AJEKYL_PAIN STOP faceplayer
+ai AIJEKYL_DIE AJEKYL_DIE STOP
+
+useractor enemy DOCTORJ
+fall
+
+sleeptime 0
+
+ifaction 0
+{
+	state monst_glow
+	sizeat 22 22
+	spawn SHOOTME
+	spriteflags NORMAL_ENEMY
+	cstat 257
+	strength 500
+	ai AIJEKYL_IDLE
+	set temp7 0
+}
+
+ifg npc_talking 0 sub npc_talking 1
+
+ifdead nullop else
+ifrnd 16
+ifrnd 16
+	{
+	ifand ALLY_VOICE 1 nullop else ife npc_talking 0
+		{
+		globalsound JEK_TAUNT1
+		xorvar ALLY_VOICE 1
+		set npc_talking 120
+		}
+	ifand ALLY_VOICE 2 nullop else ife npc_talking 0
+		{
+		globalsound JEK_TAUNT2
+		xorvar ALLY_VOICE 2
+		set npc_talking 120
+		}
+	ifand ALLY_VOICE 4 nullop else ife npc_talking 0
+		{
+		globalsound JEK_TAUNT3
+		xorvar ALLY_VOICE 4
+		set npc_talking 120
+		}
+	}
+
+ifaction AJEKYL_DEAD
+{
+	ifn HITAGSAVED 0
+		{
+		soundonce THUNDER
+		add INTERNALCOUNT 1
+		quake 130
+		ifrnd 8 { flash palfrom 20 64 64 64 globalsound LIGHTNING_SLAP }
+		ife INTERNALCOUNT 130
+			{
+			spawn 8433
+			spawn PENTAGRAM
+			spawn BURNING2
+			}
+		ife INTERNALCOUNT 140
+			{
+			state fade_out_white
+			globalsound USE_PORTAL
+			operateactivators HITAGSAVED THISACTOR
+			operatemasterswitches HITAGSAVED
+			operaterespawns HITAGSAVED
+			killit
+			}
+
+		}
+		else
+		break
+}
+else
+ifai AIJEKYL_DIE
+{
+ifactioncount 5
+	{
+	state rf
+	state BODY_FALL_NOISES
+	spawn BLOODPOOL
+	action AJEKYL_DEAD
+	globalsound INTIMIDATE_INTRO
+	}
+}
+else
+ifai AIJEKYL_IDLE
+{
+ifcansee
+ ifcanseetarget
+  ai AIJEKYL_MOVE
+}
+else
+ifai AIJEKYL_MOVE
+{
+	ifcanseetarget
+	 ifcanshoottarget
+	  ifrnd 16
+		{
+		set temp6 0
+		ifg temp7 5 ai AIJEKYL_RELOAD else
+		ai AIJEKYL_SHOOT
+		resetactioncount
+		}
+	ifrnd 2 ai AIJEKYL_IDLE
+}
+else
+ifai AIJEKYL_SHOOT
+{
+add temp6 1
+ife temp6 2
+	{
+	sound REVOLVER2FIRE
+	shoot ENEMY_BULLET
+	add temp7 1
+	}
+ife temp6 4
+	{
+	ifg temp7 5 { set INTERNALCOUNT 0 ai AIJEKYL_RELOAD } else
+	ai AIJEKYL_IDLE
+	set temp6 0
+	resetcount
+	}
+
+}
+else
+ifai AIJEKYL_RELOAD
+{
+ifdead ai AIJEKYL_DIE
+add INTERNALCOUNT 1
+ife INTERNALCOUNT 3 soundonce R_ROUT
+ife INTERNALCOUNT 6
+	{
+	shoot SRIFLESHELL shoot SRIFLESHELL shoot SRIFLESHELL shoot SRIFLESHELL shoot SRIFLESHELL shoot SRIFLESHELL
+	}
+ife INTERNALCOUNT 20 soundonce R_RIN
+ife INTERNALCOUNT 23 { set temp6 0 set temp7 0 }
+ife INTERNALCOUNT 26 ai AIJEKYL_MOVE
+}
+else
+ifai AIJEKYL_PAIN
+{
+sub PAIN_AMOUNT 1
+ife PAIN_AMOUNT 0 { ifdead ai AIJEKYL_DIE else ai AIJEKYL_MOVE }
+}
+
+ifhitweapon
+	{
+	state NEWGUNEFFECTS
+		//spawn BLOOD
+		//guts JIBS6 1
+		ifdead
+			{
+			guts JIBS6 5
+			addkills 1
+			set INTERNALCOUNT 0
+			ai AIJEKYL_DIE
+			}
+		else ifg PAIN_AMOUNT 0 ai AIJEKYL_PAIN
+		else ifrnd 32 { soundonce CULTIST_PAIN1 state PAIN_SKILL_LEVELADJUST ai AIJEKYL_PAIN }
+	}
+
+enda

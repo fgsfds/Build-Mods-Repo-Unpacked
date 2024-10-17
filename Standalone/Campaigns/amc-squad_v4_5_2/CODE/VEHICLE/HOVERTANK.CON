@@ -1,0 +1,428 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+This file defines behavior and controls for the Hovertank actor.
+(not to be confused with the Hovercraft)
+--------------------------------------------------------------------------------
+*/
+
+damageeventtile HOVERTANK // (Ally)
+
+action HOVERTANK_IDLE 0 1 1 1 10
+
+action HOVERTANK_INACTION 1 1 1 1 10
+
+spritenoshade HOVERTANK
+
+// Custom "fall" implementation as it was messing with Z coordinate too much
+
+// For Z coordinate, gently glide down to a little bit above the floor. Temp6 is the point we want to glide down to.
+// We should use updatedsectorz/getflorzofslope for sloped sectors
+// VULNERABLE HACK
+// EXCEPT CNC.MAP has some special TROR shit going on so we need to exempt floors with tile number 19508 from this rule
+// For those floors, simply use Floor Z
+// This is obtuse and liable to break if art is changed around. Plz don't drive to my house if you end up with a bug because of this.
+defstate hovertank_glide
+	gets[].floorpicnum temp4
+	ife temp4 19508
+	{
+		gets[].floorz temp6
+	}
+	else
+	{
+		geta[].sectnum upd_sect
+
+		ife player_using_hovertank THISACTOR
+		{
+			updatesectorz player[].posx player[].posy player[].posz upd_sect
+			ifn upd_sect -1 getflorzofslope upd_sect player[].posx player[].posy temp6
+		}
+		else
+		{
+			updatesectorz sprite[].x sprite[].y sprite[].z upd_sect
+			ifn upd_sect -1 getflorzofslope upd_sect sprite[].x sprite[].y temp6
+		}
+	}
+
+	geta[].z temp
+
+	// MINIMUM: if we're below the floor entirely, force to same coordinate as floor immediately
+	// if we don't do this and travel through steep slopes really fast we'll glitch into the floor
+	ifg temp temp6
+	{
+		seta[].z temp6
+	}
+	else
+	{
+		// Now run normal logic
+		ifonwater
+			sub temp6 2048
+		else
+			sub temp6 1024
+
+		// we're above the point, float down
+		ifl temp temp6
+		{
+			// Some tolerance or we keep going back and forth
+			set temp5 temp
+			sub temp5 temp6
+			abs temp5
+
+			ifg temp5 300
+			{
+				add temp 600
+				seta[].z temp
+			}
+		}
+		// We're below the point (eg travelling upwards on a slope, float up)
+		else ifg temp temp6
+		{
+			// Some tolerance
+			set temp5 temp
+			sub temp5 temp6
+			abs temp5
+
+			ifg temp5 300
+			{
+				sub temp 1600
+				seta[].z temp
+			}
+		}
+	}
+ends
+
+defstate hovertank_setspeeds
+	state vehicle_getbasespeed
+
+	// increase speeds based on forward_accelerate value
+	// increase in blocks of 50 to be somewhat smooth
+	set temp3 forward_accelerate
+	abs temp3
+	ifge temp3 50
+	{
+		whilevarn temp3 0
+		{
+			state vehicle_speedup
+			sub temp3 50
+
+			// can get below 0, then go 0..
+			ifle temp3 0
+				set temp3 0
+		}
+	}
+ends
+
+defstate hovertank_forward
+	set temp2 forward_accelerate
+	divvar temp2 2
+	setactorsoundpitch THISACTOR HOVERTANK_ACTIVE temp2
+
+	geta[].ang movesprite_angvar
+	set movesprite_customvels 1
+	state hovertank_setspeeds
+	state movesprite_state
+
+	ifg RETURN 0 // hit something
+		ifg forward_accelerate 128
+	{
+		set CUS_WACK 3
+		ifg forward_accelerate 800
+			soundonce CARSMASH
+		else
+			soundonce CAR_HIT
+		set forward_accelerate 0
+	}
+ends
+
+defstate hovertank_reverse
+	soundonce HOVERTANK_ACTIVE
+
+	geta[].ang movesprite_angvar
+	set movesprite_customvels 1
+	state hovertank_setspeeds
+
+	// we're reversing so we need to invert the velocities
+	inv movesprite_xvel
+	inv movesprite_yvel
+
+	state movesprite_state
+
+	ifg RETURN 0 // hit something
+		ifl forward_accelerate -128
+	{
+		set CUS_WACK 3
+		soundonce CAR_HIT
+		set forward_accelerate 0
+	}
+ends
+
+defstate hovertank_strafeleft
+	geta[].ang movesprite_angvar
+	sub movesprite_angvar 512
+	set movesprite_customvels 1
+	state hovertank_setspeeds
+	state movesprite_state
+ends
+
+state hovertank_straferight
+	geta[].ang movesprite_angvar
+	add movesprite_angvar 512
+	set movesprite_customvels 1
+	state hovertank_setspeeds
+	state movesprite_state
+ends
+
+useractor notenemy HOVERTANK
+
+	ifaction 0
+	{
+		set actor_type TYPE_VEHICLE
+		ifspritepal 9 break
+		spawn 9302
+		cstat 257
+		strength 10000
+		clipdist 220
+		sizeat 64 64
+		ifspritepal 3 // only show up if 'Eviction Notice' is completed
+		{
+			ifand BEAT_EPISODES[3] 2048 nullop else killit
+		}
+		ife HITAGSAVED 0 action HOVERTANK_IDLE
+		else action ZERO
+	}
+
+    seta[].shade sector[].floorshade
+
+	ifaction ZERO
+	{
+		state hovertank_glide
+		checkactivatormotion HITAGSAVED
+		ife RETURN 1 action HOVERTANK_IDLE
+	}
+
+	else ifaction HOVERTANK_IDLE
+	{
+		seta[].htextra -1
+		state hovertank_glide
+		ifpdistl 3096
+		  ifp palive
+		  ifp pfacing
+		  ife player_in_vehicle 0
+		{
+			ifg scope 0 break
+			ifand gun_firemode 16384 break
+
+			set player_use 0
+			ife use_action_allowed 1
+			{
+				state fade_out_black
+				soundonce HOVERTANK_START
+				set player_in_vehicle 1
+				set control_display 150
+				set hc_gear 2
+				set player_using_hovertank THISACTOR
+				action HOVERTANK_INACTION
+				state setIgnoreUse
+			}
+		}
+
+		ifstrength 9999
+		{
+			soundonce VEH_REP
+			ife CHAR 13 addstrength 5 else
+			addstrength 2
+		}
+	}
+
+	else ifaction HOVERTANK_INACTION
+	{
+		// Bind player's X and Y coordinates to the tank
+		geta[].x temp
+		setp[].posx temp
+		geta[].y temp2
+		setp[].posy temp2
+
+		state hovertank_glide
+
+		cstat 256
+
+		// Put the player above the "clipping detection" point for the Hovertank voxel.
+		// If this value is changed, it will break hovertank movement.
+		geta[].z temp6
+		sub temp6 23300
+		setp[].posz temp6
+		setp[].oposz temp6
+		setp[].falling_counter 0
+		geta[].sectnum upd_sect
+		updatesectorz temp temp2 temp3 upd_sect
+		ifn upd_sect -1 // Make sure it's a a valid sector
+		{
+			changespritesect APLAYER upd_sect
+			setp[].cursectnum upd_sect
+		}
+
+		geta[].ang vehicle_ang
+		setp[].ang vehicle_ang
+
+		// Handle turning via mouse movement or turn left/right key
+		getinput[].avel temp3
+		ifn temp3 0
+			state vehicle_turn
+		else ifand EXTBITS_PRESS 16 // turn left input
+			state vehicle_turn
+		else ifand EXTBITS_PRESS 32 // turn right input
+			state vehicle_turn
+
+		// Handle strafing
+		ifand EXTBITS_PRESS 4 // strafe left
+			state hovertank_strafeleft
+		else ifand EXTBITS_PRESS 8 // strafe right
+			state hovertank_straferight
+
+		ifg forward_accelerate 300
+		{
+			state thisactor_getzrange
+
+			set temp8 0
+			findnearsprite3d SHOOTME 2048 temp9
+			ifn temp9 -1
+			{
+				getav[temp9].myowner temp8
+				seta[temp8].htextra 250
+			}
+		}
+
+		ifand EXTBITS_PRESS 1
+		{
+			set temp4 hc_gear
+			mulvar temp4 200
+			ifl forward_accelerate temp4 add forward_accelerate 4
+			ifg forward_accelerate temp4 sub forward_accelerate 8
+		}
+		else ifg forward_accelerate 0 sub forward_accelerate 8
+
+		ifand EXTBITS_PRESS 2
+		{
+			ifg forward_accelerate -400 sub forward_accelerate 4
+		}
+		else ifl forward_accelerate 0 add forward_accelerate 4
+
+		soundonce HOVERTANK_ACTIVE
+
+		// Hovertank move forward
+		ifg forward_accelerate 0
+			state hovertank_forward
+
+		// Hovertank reverse
+		else ifl forward_accelerate -1
+			state hovertank_reverse
+
+		// Exit
+		ifle forward_accelerate 100
+		ifge forward_accelerate -100
+		  ife use_action_allowed 1
+		{
+			set forward_accelerate 0
+			state fade_out_black
+			move 0
+			set player_in_vehicle 0
+			set player_using_hovertank -1
+			soundonce HOVERTANK_STOP
+			stopactorsound THISACTOR HOVERTANK_ACTIVE
+			geta[].z temp
+			sub temp 48000
+			setp[].posz temp
+			setp[].jetpack_on 0
+			setp[].over_shoulder_on 0
+			setp[].movement_lock 0
+			set just_changed 1
+			action HOVERTANK_IDLE
+			cstat 257
+			state setIgnoreUse
+		}
+
+		ifn player_using_hovertank THISACTOR // if player has been removed from vehicle by force
+		{
+			move 0
+			set player_in_vehicle 0
+			set player_using_hovertank -1
+			setp[].jetpack_on 0
+			set just_changed 1
+			stopactorsound THISACTOR HOVERTANK_ACTIVE
+			action HOVERTANK_IDLE
+			resetcount
+		}
+
+		ifp pdead
+		{
+			move 0
+			set player_in_vehicle 0
+			set player_using_hovertank -1
+			setp[].jetpack_on 0
+			setp[].over_shoulder_on 0
+			setp[].movement_lock 0
+			set just_changed 1
+			stopactorsound THISACTOR HOVERTANK_ACTIVE
+			action HOVERTANK_IDLE
+			resetcount
+		}
+
+		ifhitweapon
+		{
+			sound ALARM
+			set gun_recoil 4
+			palfrom 10 10 0 0
+		}
+
+		ifdead
+		{
+			move 0
+			set player_in_vehicle 0
+			set player_using_hovertank -1
+			setp[].jetpack_on 0
+			setp[].over_shoulder_on 0
+			setp[].movement_lock 0
+			set just_changed 1
+			stopactorsound THISACTOR HOVERTANK_ACTIVE
+			addphealth -1000
+			spawn EXPLOSION2
+			quake 26
+			globalsound BLOWUP
+			shoot SPARK shoot SPARK shoot SPARK shoot SPARK shoot SPARK shoot SPARK
+			shoot LAVABALL shoot LAVABALL shoot LAVABALL shoot LAVABALL shoot LAVABALL
+			strength 1
+			action HOVERTANK_IDLE
+			resetcount
+		}
+	}
+
+	ifstrength 1000
+	{
+		espawn BIG_SMOKE
+		setactorvar[RETURN].YVELSAVED 1
+		seta[RETURN].pal 17
+	}
+
+enda

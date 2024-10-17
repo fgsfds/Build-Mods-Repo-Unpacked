@@ -1,0 +1,499 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+
+--------------------------------------------------------------------------------
+*/
+
+damageeventtile 28317 // Beholder weak spot
+
+useractor notenemy 28317
+ifaction 0
+	{
+	sizeat 60 60
+	seta[].blend 255
+	seta[].shade 50
+	strength 2000
+	cstat 339
+	action ZERO
+	}
+
+	 ife actorvar[myowner].PAIN_AMOUNT 0
+	 {
+	geta[].htextra EV_NEW_DAMAGE
+	ifg EV_NEW_DAMAGE 0
+		{
+		strength 2000
+		geta[EV_TARG_SPRITE].htpicnum EV_PROJ_TYPE
+		ife sprite[].htowner myowner break
+		ife EV_PROJ_TYPE RPG break
+		ife EV_PROJ_TYPE RADIUSEXPLOSION break
+		globalsound TERM_CRIT
+		screensound TERM_CRIT
+        set hit_indic_pal 125
+		mulvar EV_NEW_DAMAGE 2
+		setav[myowner].PAIN_AMOUNT 30
+		seta[myowner].htextra EV_NEW_DAMAGE
+		set EV_NEW_DAMAGE 0
+		seta[].htextra -1
+		}
+	}
+	else
+	set EV_NEW_DAMAGE -1
+
+ifaction ZERO
+	{
+	set temp3 sprite[myowner].x
+	add temp3 256
+
+	rotatepoint sprite[myowner].x sprite[myowner].y temp3 sprite[myowner].y sprite[myowner].ang temp5 temp6
+
+	seta[].ang sprite[myowner].ang
+
+	updatesector temp5 temp6 temp7
+
+	geta[myowner].z temp
+
+	sub temp 14200
+
+	setsprite THISACTOR temp5 temp6 temp
+
+	ifl sprite[myowner].extra 1 killit
+
+	}
+
+
+enda
+
+action A_BEHOLDER_IDLE 0 1 5 1 12
+action A_BEHOLDER_SEEK 5 3 5 1 12
+action A_BEHOLDER_SEEKREVERSE 15 3 5 -1 12
+action A_BEHOLDER_ATTACK 20 1 5 1 12
+action A_BEHOLDER_CURSE 20 1 5 1 12
+action A_BEHOLDER_PAIN 25
+action A_BEHOLDER_DYING 25 4 1 1 24
+
+move M_BEHOLDER_FLYUP 150 -36
+move M_BEHOLDER_FLYDOWN 150 8
+move M_BEHOLDER_FLYDOWNSLOW 0 4
+move M_BEHOLDER_FLYSTRAIGHT 150 -18 // the upwards velocity counteracts the fall velocity to give the appearance of flying straight
+
+defstate beholder_movement
+	state float_check
+	set FLOATING_CUR RETURN
+
+	ifrnd 4 sound BEH_AMB
+	ife RETURN -1
+	{
+		ifmove M_BEHOLDER_FLYDOWN nullop
+		else move M_BEHOLDER_FLYDOWN geth getv
+	}
+	else ife RETURN 0
+	{
+		ifmove M_BEHOLDER_FLYSTRAIGHT nullop
+		else move M_BEHOLDER_FLYSTRAIGHT geth getv
+	}
+	else ife RETURN 1
+	{
+		ifmove M_BEHOLDER_FLYUP nullop
+		else move M_BEHOLDER_FLYUP geth getv
+	}
+
+	state checkfortarget
+
+	ifl INTERNALCOUNT 60
+		add INTERNALCOUNT 1
+
+	ifge INTERNALCOUNT 60
+		ifrnd 32
+		ifn my_target -1
+	{
+		dist temp THISACTOR my_target
+
+		set INTERNALCOUNT 0
+		ifrnd 96
+		 ife CURSED 0 // not already cursed
+		  ife silence_damage 0 // not recently hit by a void bolt
+		  ifl temp 12000 // not too far away from the player
+		  ife player_in_vehicle 0 // doy
+			{
+				screensound BEH_CURSE
+				action A_BEHOLDER_CURSE
+			}
+		else
+			{
+				sound BEH_ATK
+				action A_BEHOLDER_ATTACK
+			}
+	}
+ends
+
+defstate beholder_shoot
+	geta[].z my_z
+	add my_z 3600
+	seta[].z my_z
+
+	set CALCZ_TARGET_OFFSET -3000
+	set PROJECTILE_TO_SHOOT 22828
+	set PROJECTILE_FIRING_SOUND SNAKE_FIRE
+	state sang_enemyShootProjectile
+
+	geta[].z my_z
+	sub my_z 3600
+	seta[].z my_z
+ends
+
+defstate beholder_pain
+	move STOP
+	sub PAIN_AMOUNT 1
+	ifoutside seta[].shade sector[].ceilingshade else seta[].shade sector[].floorshade
+	seta[].pal sector[].floorpal
+	ife PAIN_AMOUNT 0
+	{
+		ifdead
+			action A_BEHOLDER_DYING
+		else
+		{
+			set INTERNALCOUNT 40 // attack quickly after getting hit
+			action A_BEHOLDER_SEEK
+		}
+	}
+ends
+
+defstate beholder_dying
+	ifmove M_BEHOLDER_FLYDOWNSLOW nullop
+	else move M_BEHOLDER_FLYDOWNSLOW getv
+
+	ifactioncount 4
+	{
+		sound HUGE_GIB
+		spawn BIG_BLOOD_EXE
+		state standard_jibs
+		state monst_body_jibs
+		killit
+	}
+ends
+
+defstate beholder_prepdying
+	set temp8 CURSED
+	inv temp8
+	ife temp8 THISACTOR
+	{
+		set CURSED 30
+	}
+	sound BEH_DIE
+	addkills 1
+	state rf
+	action A_BEHOLDER_DYING
+ends
+
+defstate beholder_attack
+	ifmove M_BEHOLDER_FLYDOWNSLOW nullop
+	else move M_BEHOLDER_FLYDOWNSLOW getv
+
+	add INTERNALCOUNT 1
+
+	ife my_target -1
+	{
+		set INTERNALCOUNT 0
+		action A_BEHOLDER_SEEK
+	}
+	else
+	{
+		state fronttowardstarget
+
+		// shoot 7 times
+		ife INTERNALCOUNT 10
+			state beholder_shoot
+		else ife INTERNALCOUNT 20
+			state beholder_shoot
+		else ife INTERNALCOUNT 30
+			state beholder_shoot
+		else ife INTERNALCOUNT 40
+			state beholder_shoot
+		else ife INTERNALCOUNT 50
+			state beholder_shoot
+		else ife INTERNALCOUNT 60
+			state beholder_shoot
+		else ife INTERNALCOUNT 70
+			state beholder_shoot
+		else ife INTERNALCOUNT 90
+		{
+			set INTERNALCOUNT 0
+			action A_BEHOLDER_SEEK
+		}
+	}
+ends
+
+defstate beholder_curse
+	ifmove M_BEHOLDER_FLYDOWNSLOW nullop
+	else move M_BEHOLDER_FLYDOWNSLOW getv
+
+	add INTERNALCOUNT 1
+
+	ife my_target -1
+	{
+		ifoutside seta[].shade sector[].ceilingshade else seta[].shade sector[].floorshade
+		seta[].pal sector[].floorpal
+		set INTERNALCOUNT 0
+		action A_BEHOLDER_SEEK
+	}
+	else
+	{
+		seta[].shade -127
+		ifn CURSED 0 action A_BEHOLDER_ATTACK
+		state fronttowardstarget
+
+		// shoot 7 times
+		ife INTERNALCOUNT 5
+			spritepal 105
+		else ife INTERNALCOUNT 10
+			getlastpal
+		else ife INTERNALCOUNT 15
+			spritepal 105
+		else ife INTERNALCOUNT 20
+			getlastpal
+		else ife INTERNALCOUNT 25
+			spritepal 105
+		else ife INTERNALCOUNT 30
+			getlastpal
+		else ife INTERNALCOUNT 35
+			spritepal 119
+		else ife INTERNALCOUNT 40
+		{
+		ife ARTIFACTS_LOADOUT[CHAR] 3 // Minerva's amulet?
+		 ifrnd 16 // has a rare chance of nullifying the damage
+			{
+			getlastpal
+			set artifact_used 60
+			palfrom 20 0 0 40
+			soundonce SPARM_PROTECT
+			set INTERNALCOUNT 0
+			action A_BEHOLDER_SEEK
+			ifoutside seta[].shade sector[].ceilingshade else seta[].shade sector[].floorshade
+			seta[].pal sector[].floorpal
+			}
+		else
+		ife CHAR 14
+		 ifn player[].holoduke_on -1 // Snowfall's psi-shield?
+			{
+			getlastpal
+			palfrom 20 0 0 40
+			soundonce SPARM_PROTECT
+			set INTERNALCOUNT 0
+			action A_BEHOLDER_SEEK
+			ifoutside seta[].shade sector[].ceilingshade else seta[].shade sector[].floorshade
+			seta[].pal sector[].floorpal
+			}
+		else
+		 ifg P_SPIRIT_ARMOUR 0 // spirit armour?
+			{
+			getlastpal
+			sub P_SPIRIT_ARMOUR 25
+			clamp P_SPIRIT_ARMOUR 0 200
+			palfrom 20 0 0 40
+			soundonce SPARM_PROTECT
+			set INTERNALCOUNT 0
+			action A_BEHOLDER_SEEK
+			ifoutside seta[].shade sector[].ceilingshade else seta[].shade sector[].floorshade
+			seta[].pal sector[].floorpal
+			}
+		else
+			{
+			getlastpal
+			screensound P_CURSED
+			palfrom 20 40 0 40
+			// player should always say voice bark when cursed for the first time, otherwise it's random
+			ifand NOISE_SAID 512 ifrnd 96 set PLAYER_VOICEOVER 49
+			else { set voice_cooldown 0 set PLAYER_VOICEOVER 49 xorvar NOISE_SAID 512 }
+			set CURSED THISACTOR
+			inv CURSED // set curse to negative, will only be removed when this actor is killed
+			set INTERNALCOUNT 0
+			action A_BEHOLDER_SEEK
+			ifoutside seta[].shade sector[].ceilingshade else seta[].shade sector[].floorshade
+			seta[].pal sector[].floorpal
+			}
+		}
+	}
+ends
+
+spritenoshade BEHOLDER
+spritenopal BEHOLDER
+
+damageeventtile BEHOLDER
+
+useractor enemy BEHOLDER
+	fall
+
+	ifg silence_damage 0
+		{
+		sub silence_damage 1
+		state spawn_curse_particles
+		}
+	else
+	ifl CURSED 0
+		{
+		set temp8 CURSED
+		inv temp8
+		ife temp8 THISACTOR
+			{
+			seta[].shade -127
+			spritepal 63
+
+			ifge sprite[].httimetosleep 32767
+				{
+				set CURSED 0
+				ifoutside seta[].shade sector[].ceilingshade else seta[].shade sector[].floorshade
+				spritepal 0
+				}
+
+			ife MYSTICAL_RESEARCH[8] 2 // beholder's gaze researched?
+			ifpdistg 32767
+			 ifrnd 16 // still a tiny bit of uncertainty
+				{
+				set CURSED 0
+				ifoutside seta[].shade sector[].ceilingshade else seta[].shade sector[].floorshade
+				spritepal 0
+				}
+			}
+		}
+
+	ifaction 0
+	{
+		sizeat 48 48
+		spawn 28317
+		strength 450
+		cstat 256
+		action A_BEHOLDER_IDLE
+	}
+	else ifaction A_BEHOLDER_IDLE
+	{
+		state checkfortarget
+
+		ifn my_target -1
+			{
+			sound BEH_RECOG
+			action A_BEHOLDER_SEEK
+			}
+	}
+	else ifaction A_BEHOLDER_SEEK
+	{
+		state beholder_movement
+
+		ifactioncount 3
+			action A_BEHOLDER_SEEKREVERSE
+	}
+	else ifaction A_BEHOLDER_SEEKREVERSE
+	{
+		state beholder_movement
+
+		ifactioncount 3
+			action A_BEHOLDER_SEEK
+	}
+	else ifaction A_BEHOLDER_ATTACK
+	{
+		state beholder_attack
+	}
+	else ifaction A_BEHOLDER_CURSE
+	{
+		state beholder_curse
+	}
+	else ifaction A_BEHOLDER_PAIN
+	{
+		state beholder_pain
+	}
+	else ifaction A_BEHOLDER_DYING
+	{
+		state beholder_dying
+	}
+
+ifhitweapon
+{
+	espawn BLOOD
+	guts JIBS6 1
+	state random_wall_jibs
+	state NEWGUNEFFECTS
+
+	ifwasweapon VOID_PLAYER_BOLT
+		{
+		sound EN_CURSE
+		set temp8 CURSED
+		inv temp8
+		ife temp8 THISACTOR
+			{
+			set CURSED 0
+			}
+		set silence_damage 150
+		}
+
+	ifwasweapon VOID_BOLT
+		{
+		sound EN_CURSE
+		set temp8 CURSED
+		inv temp8
+		ife temp8 THISACTOR
+			{
+			set CURSED 0
+			}
+		set silence_damage 300
+		}
+
+	ifwasweapon VOID_BLAST
+		{
+		sound EN_CURSE
+		set temp8 CURSED
+		inv temp8
+		ife temp8 THISACTOR
+			{
+			set CURSED 0
+			}
+		set silence_damage 900
+		}
+
+	ifdead
+	{
+		state beholder_prepdying
+	}
+	else ifg PAIN_AMOUNT 0
+	{
+		sound BEH_PAIN
+		action A_BEHOLDER_PAIN
+	}
+	else ifrnd 4
+	{
+		sound BEH_PAIN
+		state PAIN_SKILL_LEVELADJUST
+		action A_BEHOLDER_PAIN
+	}
+	else ifaction A_BEHOLDER_IDLE
+	{
+		sound BEH_PAIN
+		state PAIN_SKILL_LEVELADJUST
+		action A_BEHOLDER_PAIN
+	}
+}
+enda
+
+useractor enemystayput BEHOLDER_STAYPUT cactor BEHOLDER enda

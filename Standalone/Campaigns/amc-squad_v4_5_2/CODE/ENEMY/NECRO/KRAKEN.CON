@@ -1,0 +1,807 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+
+--------------------------------------------------------------------------------
+*/
+
+damageeventtile KRAKEN
+
+array krakententacles 4
+var kraken_t_idx 0 0
+var kraken_t_nextidx -1 0
+var kraken_t_myidx -1 2
+var kraken_t_idx_iter -1 2
+
+// Tentacle spawn point
+appendevent EVENT_SPAWN
+	ifactor KRAKEN_TENTSPAWNPOINT
+		state enemyPointsAdd
+	else ifactor KRAKEN_TENT
+	{
+		// preselected index
+		ifg kraken_t_nextidx -1
+		{
+			setarray krakententacles[kraken_t_nextidx] THISACTOR
+			set kraken_t_myidx kraken_t_nextidx
+
+			ifg kraken_t_nextidx kraken_t_idx
+				set kraken_t_idx kraken_t_nextidx
+		}
+		else
+		{
+			setarray krakententacles[kraken_t_idx] THISACTOR
+			set kraken_t_myidx kraken_t_idx
+			add kraken_t_idx 1
+		}
+	}
+endevent
+
+defstate krakenTentHandlePoint
+	ife enemypoint_handled 0
+	{
+		state enemyInvalidateCurrentPoint
+		state enemyFindPoint
+		state enemySetPoint
+
+		// Rise up from below the floor
+		add z 143360
+		seta[].z z
+	}
+ends
+
+// Tentacles
+action A_KRAKEN_TENT_IDLE 0
+action A_KRAKEN_TENT_RAISE 0
+action A_KRAKEN_TENT_LOWER 0
+action A_KRAKEN_TENT_HIDDEN 0
+action A_KRAKEN_TENT_DYING 16 3 1 1 24
+action A_KRAKEN_TENT_STRIKEPREP 5
+action A_KRAKEN_TENT_STRIKE 5 4 1 1 24
+
+move M_KRAKEN_T_RAISE 0 -350
+move M_KRAKEN_T_LOWER 0 350
+
+useractor enemy KRAKEN_TENT
+	ifaction 0
+	{
+		sizeat 80 80
+		cstat 257
+		strength 500
+		clipdist 200
+		set blood_type 8
+
+		set kag_charge_inc 3
+
+		action A_KRAKEN_TENT_HIDDEN
+	}
+
+	ifaction A_KRAKEN_TENT_IDLE
+	{
+		// return to correct position after strike
+		geta[].z z
+		ifg z sector[].floorz
+		{
+			sub z 1024
+			seta[].z z
+		}
+		else
+		{
+			seta[].z sector[].floorz
+		}
+
+		set temp 0
+
+		ife boss_stage 1
+		  ifrnd 16
+		{
+			set temp 1
+		}
+		else ife boss_stage 2
+		  ifrnd 32
+		{
+			set temp 1
+		}
+		else ife boss_stage 3
+		  ifrnd 64
+		{
+			set temp 1
+		}
+
+		ife temp 1
+		{
+			state checkfortarget
+
+			ifn my_target -1
+			{
+				dist temp THISACTOR my_target
+
+				ifl temp 5600
+				{
+					sound KRAK_ATCK1
+					set INTERNALCOUNT 0
+					action A_KRAKEN_TENT_STRIKEPREP
+				}
+			}
+		}
+	}
+	else ifaction A_KRAKEN_TENT_RAISE
+	{
+		cstat 257
+
+		// come on up from below floor
+		geta[].z z
+		sub z 2048
+		seta[].z z
+
+		ife INTERNALCOUNT 0
+			globalsound VEG_ATCK
+
+		add INTERNALCOUNT 1
+
+		ife INTERNALCOUNT 70
+		{
+			set INTERNALCOUNT 0
+			action A_KRAKEN_TENT_IDLE
+		}
+	}
+	else ifaction A_KRAKEN_TENT_LOWER
+	{
+		// force below floor
+		geta[].z z
+		add z 2048
+		seta[].z z
+
+		ife INTERNALCOUNT 0
+		{
+			set enemypoint_handled 0 // mark point needs to be updated
+			globalsound VEG_LOWER
+		}
+
+		add INTERNALCOUNT 1
+
+		ife INTERNALCOUNT 70
+		{
+			set INTERNALCOUNT 0
+
+			geta[].z z
+
+			// make bubbles spawn on the surface
+			seta[].z sector[].floorz
+			sound SUBMERGE
+			spawn 18138
+			spawn WATERBUBBLE
+			spawn WATERBUBBLE
+			spawn WATERBUBBLE
+			spawn WATERBUBBLE
+
+			seta[].z z
+
+			action A_KRAKEN_TENT_HIDDEN
+		}
+	}
+	else ifaction A_KRAKEN_TENT_HIDDEN
+	{
+		move STOP
+		cstat 32768
+
+		ife INTERNALCOUNT 0
+			state krakenTentHandlePoint
+
+		add INTERNALCOUNT 1
+
+		ifge INTERNALCOUNT 48
+		{
+			set INTERNALCOUNT 0
+			action A_KRAKEN_TENT_RAISE
+		}
+	}
+	else ifaction A_KRAKEN_TENT_DYING
+	{
+		geta[].z z
+		add z 1024
+		seta[].z z
+
+		ifactioncount 3
+		{
+			sound SUBMERGE
+			spawn 18138
+			spawn WATERBUBBLE
+			spawn WATERBUBBLE
+			spawn WATERBUBBLE
+			spawn WATERBUBBLE
+
+			// Inform kraken actor of my death
+			setarray krakententacles[kraken_t_myidx] -1
+
+			killit
+		}
+	}
+	else ifaction A_KRAKEN_TENT_STRIKEPREP
+	{
+		state fronttowardstarget
+		geta[].z z
+		add z 1024
+		seta[].z z
+
+		ife INTERNALCOUNT 30
+		{
+			set INTERNALCOUNT 0
+			action A_KRAKEN_TENT_STRIKE
+		}
+		else
+			add INTERNALCOUNT 1
+	}
+	else ifaction A_KRAKEN_TENT_STRIKE
+	{
+		state fronttowardstarget
+
+		ifactioncount 4
+			ife INTERNALCOUNT 0
+		{
+			add INTERNALCOUNT 1
+
+			sound GUANDAO_SLASH2
+			sound MON_CHOP2
+
+			// TODO allow discarding damage by parrying
+			ldist temp THISACTOR my_target
+			ifle temp 5200
+			{
+				sound BIGST_03
+				set temp 30
+				rand temp2 25
+				add temp temp2
+				seta[my_target].htextra temp
+				seta[my_target].htpicnum 17663 // pretend it's ripper scratch, maybe needs to be a better projectile
+			}
+
+			action A_KRAKEN_TENT_IDLE
+		}
+	}
+
+	ifhitweapon
+	{
+		state random_wall_jibs
+		geta[].htpicnum PROJ_HIT_TYPE
+		state melee_hit_effects
+
+		// if the htpicnum is actually a projectile, get the damage type
+		ifand tiledata[PROJ_HIT_TYPE].gameflags 8
+			getprojectile[PROJ_HIT_TYPE].userdata PROJ_UDATA
+		else set PROJ_UDATA 0
+
+		ife PROJ_HIT_TYPE 27370 state WEP_MELEE_HIT
+
+		ifaction A_KRAKEN_TENT_RAISE nullop
+		else ifaction A_KRAKEN_TENT_LOWER nullop
+		else ifaction A_KRAKEN_TENT_HIDDEN nullop
+		else ifaction A_KRAKEN_TENT_STRIKE nullop
+		else ifrnd 32 action A_KRAKEN_TENT_LOWER
+
+		ifdead
+		{
+			state enemyInvalidateCurrentPoint
+			cstat 0
+			action A_KRAKEN_TENT_DYING
+		}
+	}
+enda
+
+// Kraken proper
+action A_KRAKEN_IDLE 0
+action A_KRAKEN_DIE 9 7 1 1 16
+action A_KRAKEN_DEAD 0
+action A_KRAKEN_ATTACK 0
+action A_KRAKEN_LOWER 0
+action A_KRAKEN_HIDDEN 0
+action A_KRAKEN_RAISE 0
+
+appendevent EVENT_ANIMATESPRITES
+	// offset damage boss stage tilenum to kraken
+	ifactor KRAKEN
+	{
+		geta[].extra temp
+
+		ifle temp 0
+		{
+			// display dead picnum this way because it is ahead of actor definition picnum
+			settspr[].tsprpicnum 28671
+		}
+		else
+		{
+			gettspr[].tsprpicnum temp
+			getav[].boss_stage temp2
+
+			ifg temp2 0
+			{
+				add temp2 2
+				add temp temp2
+				settspr[].tsprpicnum temp
+			}
+		}
+	}
+endevent
+
+appendevent EVENT_LOADACTOR
+	ifactor KRAKEN
+		geta[].extra EXTRASAVED
+endevent
+
+defstate spawnkrakententacle
+	geta[].shade temp
+	espawn KRAKEN_TENT
+	seta[RETURN].shade temp
+	setav[RETURN].boss_stage boss_stage // sets aggression level
+ends
+
+
+defstate respawnalltentacles
+	set kraken_t_nextidx -1
+	set kraken_t_idx 0
+	state spawnkrakententacle
+	state spawnkrakententacle
+	state spawnkrakententacle
+	state spawnkrakententacle
+ends
+
+defstate detectdeadtentacleidx
+	set kraken_t_nextidx -1
+
+	for kraken_t_idx_iter range 4
+	{
+		ife kraken_t_nextidx -1
+		{
+			set cur_point_enemy krakententacles[kraken_t_idx_iter]
+
+			ife cur_point_enemy -1
+				set kraken_t_nextidx kraken_t_idx_iter
+		}
+	}
+ends
+
+defstate killactivetentacles
+	for kraken_t_idx_iter range 4
+	{
+		set cur_point_enemy krakententacles[kraken_t_idx_iter]
+
+		ifn cur_point_enemy -1
+		{
+			seta[cur_point_enemy].htextra 5000
+			seta[cur_point_enemy].htpicnum RADIUSEXPLOSION
+		}
+	}
+ends
+
+// Kraken sets wave allowed to 1, the wave actor code should run after the kraken (ordering of processing matters and is I think based on sprite num so take care editing the map)
+// It'll detect the value is 1, spawn a wave
+// On next tic kraken sets it back to 0 so that waves aren't constantly spawned
+var kraken_wave_allowed 0 2
+
+// And same deal for the octas
+var kraken_octa_allowed 0 2
+
+defstate kraken_spawnwaves
+	quake 64
+	globalsound KRAK_ATCK2
+	set kraken_wave_allowed 1
+ends
+
+
+// count amount of octabrains active atm
+defstate getoctacount
+	set targets_iterator 0
+	set RETURN 0
+	whilel targets_iterator targets_range
+	{
+		set temp targets[targets_iterator]
+
+		ife temp -2
+		{
+			set targets_iterator targets_range
+			exit
+		}
+
+		ifn temp -1
+		{
+			ife sprite[temp].picnum OCTABRAIN
+			{
+				add RETURN 1
+
+				// kill octas
+				ifdead
+				{
+					seta[temp].htextra 5000
+					seta[temp].htpicnum RADIUSEXPLOSION
+				}
+			}
+		}
+
+		add targets_iterator 1
+	}
+ends
+
+defstate kraken_spawnoctas
+	state getoctacount // don't spawn too many
+
+	// allow more octas in stage 3
+	ife boss_stage 3
+		 sub RETURN 2
+
+	ifle RETURN 3
+	{
+		quake 64
+		globalsound KRAK_ATCK1
+		set kraken_octa_allowed 1
+	}
+ends
+
+defstate kraken_stage1atk
+	set kraken_octa_allowed 0
+
+	ife INTERNALCOUNT 0
+		quake 26
+	else ife INTERNALCOUNT 10
+		quake 26
+	else ife INTERNALCOUNT 40
+		quake 26
+	else ife INTERNALCOUNT 80
+		quake 26
+	else ife INTERNALCOUNT 120
+		state kraken_spawnoctas
+ends
+
+defstate kraken_stage2atk
+	set kraken_wave_allowed 0
+
+	ife INTERNALCOUNT 0
+		quake 26
+	else ife INTERNALCOUNT 10
+		quake 26
+	else ife INTERNALCOUNT 40
+		quake 26
+	else ife INTERNALCOUNT 80
+		quake 26
+	else ife INTERNALCOUNT 120
+		state kraken_spawnwaves
+ends
+
+// Stage 3 just does both, meh
+defstate kraken_stage3atk
+	set kraken_wave_allowed 0
+	set kraken_octa_allowed 0
+
+	ife INTERNALCOUNT 0
+		quake 26
+	else ife INTERNALCOUNT 10
+		quake 26
+	else ife INTERNALCOUNT 40
+		quake 26
+	else ife INTERNALCOUNT 80
+		quake 26
+	else ife INTERNALCOUNT 120
+	{
+		state kraken_spawnwaves
+		state kraken_spawnoctas
+	}
+ends
+
+useractor enemy KRAKEN
+
+	ifaction 0
+	{
+		cstat 257
+		set boss_stage 0
+		state monst_glow
+		set CURBOSS THISACTOR
+		strength 1350
+		seta[].mdflags 16
+		state respawnalltentacles
+		set INTERNALCOUNT 0
+		action A_KRAKEN_IDLE
+	}
+
+	ifaction A_KRAKEN_ATTACK
+	{
+		ife INTERNALCOUNT 0
+			globalsound DESPOT_SIGHT
+
+		// Respawn my tentacles
+		ife INTERNALCOUNT 40
+		{
+			globalsound DESPOT_ACTION
+			state respawnalltentacles
+			set INTERNALCOUNT 0
+			action A_KRAKEN_IDLE
+		}
+
+		add INTERNALCOUNT 1
+	}
+	else ifaction A_KRAKEN_IDLE
+	{
+		ifge boss_stage 1
+			add INTERNALCOUNT_2 1
+
+		// check every 150 tics
+		ife INTERNALCOUNT 150
+		{
+			state detectdeadtentacleidx
+
+			ifn kraken_t_nextidx -1
+			{
+				sound HYD_PAIN1
+				state spawnkrakententacle
+			}
+		}
+
+		add INTERNALCOUNT 1
+
+		ife INTERNALCOUNT 160
+			set INTERNALCOUNT 0
+
+		set kraken_wave_allowed 0
+		set kraken_octa_allowed 0
+
+		set temp 0
+
+		// at stage 3, increase frequency and do both attacks
+		ife boss_stage 3
+			ifge INTERNALCOUNT_2 260
+		{
+			set temp 1
+		}
+		else ifn boss_stage 3
+			ifge INTERNALCOUNT_2 300
+		{
+			set temp 1
+		}
+
+		ife temp 1
+		{
+			ife boss_stage 1
+				state kraken_spawnoctas
+			else ife boss_stage 2
+			{
+				ifrnd 128
+					state kraken_spawnwaves
+				else
+					state kraken_spawnoctas
+			}
+			else ife boss_stage 3
+			{
+				state kraken_spawnwaves
+				state kraken_spawnoctas
+			}
+
+			set INTERNALCOUNT_2 0
+		}
+	}
+	// TODO action A_KRAKEN_DIE
+	else ifaction A_KRAKEN_DEAD
+	{
+		add INTERNALCOUNT_3 1
+
+		ife INTERNALCOUNT_3 10
+			quake 26
+		else ife INTERNALCOUNT_3 40
+			quake 26
+		else ife INTERNALCOUNT_3 80
+			quake 26
+		else ife INTERNALCOUNT_3 120
+		{
+			operateactivators EXTRASAVED THISACTOR
+		}
+	}
+	else ifaction A_KRAKEN_LOWER
+	{
+		geta[].z z
+		add z 1536
+		seta[].z z
+
+		add INTERNALCOUNT 1
+
+		espawn 18138
+		setav[RETURN].temp 1
+		randvar temp 2048
+		seta[RETURN].ang temp
+
+		ife INTERNALCOUNT 100
+		{
+			set INTERNALCOUNT 0
+
+			sound WAVECRASH
+
+			seta[].z sector[].floorz
+			state SPLASH_RING
+			spawn WATERBUBBLE
+			spawn WATERBUBBLE
+			spawn WATERBUBBLE
+			spawn WATERBUBBLE
+			seta[].z z
+
+			action A_KRAKEN_HIDDEN
+		}
+	}
+	else ifaction A_KRAKEN_HIDDEN
+	{
+		add INTERNALCOUNT 1
+
+		ife INTERNALCOUNT 1
+			globalsound KRAK_AMB3
+
+		ife boss_stage 1
+			state kraken_stage1atk
+		else ife boss_stage 2
+			state kraken_stage2atk
+		else ife boss_stage 3
+			state kraken_stage3atk
+
+		ife INTERNALCOUNT 240
+		{
+			set INTERNALCOUNT 0
+			globalsound KRAK_RISE
+			state SPLASH_RING
+			action A_KRAKEN_RAISE
+		}
+	}
+	else ifaction A_KRAKEN_RAISE
+	{
+		geta[].z z
+		sub z 1536
+		seta[].z z
+
+		add INTERNALCOUNT 1
+
+		espawn 18138
+		setav[RETURN].temp 1
+		randvar temp 2048
+		seta[RETURN].ang temp
+
+		ife INTERNALCOUNT 100
+		{
+			set INTERNALCOUNT 0
+			action A_KRAKEN_ATTACK
+		}
+	}
+
+	ifhitweapon
+	{
+		ifaction A_KRAKEN_ATTACK nullop
+		else
+		{
+			ifdead
+				globalsound KRAK_DIE
+			else
+				globalsound KRAK_PAIN
+
+			ifl boss_stage 3
+				add boss_stage 1
+
+			ifdead
+			{
+				state killactivetentacles
+				state getoctacount // abusing this state to just blow em up ifdead
+				state clearAllEnemyPoints
+				set INTERNALCOUNT_3 0
+				ife CHAR 17
+					{
+					ife gp_subt 0
+						{
+						set subt_id 13011
+						set gp_subt 74
+						}
+					screensound YO_KRAKE2
+					}
+				action A_KRAKEN_DEAD
+			}
+			else
+			{
+				state killactivetentacles
+				set INTERNALCOUNT 0
+				action A_KRAKEN_LOWER
+			}
+		}
+	}
+enda
+
+defstate findkrakenactor
+	set targets_iterator 0
+	set RETURN -1
+	whilel targets_iterator targets_range
+	{
+		ifn RETURN -1
+		{
+			set targets_iterator targets_range
+			exit
+		}
+
+		set temp targets[targets_iterator]
+
+		ife sprite[temp].picnum KRAKEN
+			set RETURN temp
+
+		add targets_iterator 1
+	}
+ends
+
+// Kraken wave spawner
+useractor notenemy KRAKEN_WAVESPAWNER
+
+	ifaction 0
+	{
+		cstat 32768
+		state findkrakenactor
+
+		ifn RETURN -1
+		{
+			set temp RETURN
+			action ZERO
+		}
+	}
+	else ifaction ZERO
+	{
+		// Detect if kraken allows wave spawn, do it
+		getav[temp].kraken_wave_allowed temp2
+
+		ife temp2 1
+		{
+			espawn 17079
+			setav[RETURN].boss_stage 1 // to make clear it's a boss attack I guess
+		}
+	}
+enda
+
+useractor notenemy KRAKEN_OCTASPAWNER
+
+	ifaction 0
+	{
+		cstat 32768
+		state findkrakenactor
+
+		ifn RETURN -1
+		{
+			set temp RETURN
+			action ZERO
+		}
+	}
+	else ifaction ZERO
+	{
+		// Detect if kraken allows octa spawn, do it
+		getav[temp].kraken_octa_allowed temp2
+
+		ife temp2 1
+		{
+			spawn 18138
+			spawn WATERBUBBLE
+			spawn WATERBUBBLE
+			spawn WATERBUBBLE
+			spawn WATERBUBBLE
+
+			espawn OCTABRAIN
+			seta[RETURN].pal 41
+			setav[RETURN].my_target PLAYER_IDENTITY
+		}
+	}
+enda

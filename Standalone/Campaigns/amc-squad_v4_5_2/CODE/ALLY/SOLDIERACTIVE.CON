@@ -1,0 +1,583 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+
+--------------------------------------------------------------------------------
+*/
+
+// ========================================================AMC SOLDIER=====================================================
+
+damageeventtile AMCSOLDIER_ACTIVE // Ally
+
+action A_AMCSOLDIERIDLE 20 1 5 1 11
+action A_AMCSOLDIER_REST -5539 1 5 1 12
+action A_AMCSOLDIERMOVE 0 4 5 1 11
+action A_AMCSOLDIER_RELOAD 68 1 5
+action A_AMCSOLDIERFIRE 20 2 5 1 3
+
+action A_AMCSOLDIERPAIN 30 1 5 1 8
+action A_AMCSOLDIERDYING 35 5 1 1 11
+action A_AMCSOLDIERDEAD 40 1 1 1 1
+action A_AMCSOLDIERTELEPORT 63 1 5
+
+action A_AMCSOLDIER_SALUTE -5708 1 5
+action A_AMCSOLDIER_SALUTE2 41 2 1 1 20
+action A_AMCSOLDIER_JUMP 73 1 5
+action A_AMCSOLDIER_KNEEL 78 1 5
+
+ai AI_AMCSOLDIERIDLE A_AMCSOLDIERIDLE AMCSTILL 0
+ai AI_AMCSOLDIER_REST A_AMCSOLDIER_REST AMCSTILL 0
+
+ai AI_AMCSOLDIERMOVE A_AMCSOLDIERMOVE AMCMOVE faceplayer seekplayer
+ai AI_AMCSOLDIERRELOAD A_AMCSOLDIER_RELOAD STOP seekplayer
+
+ai AI_AMCSOLDIERFIRE A_AMCSOLDIERFIRE AMCSTILL 0
+ai AI_AMCSOLDIERDYING A_AMCSOLDIERDYING AMCSTILL 0
+
+ai AI_AMCSOLDIER_HURT A_AMCSOLDIER_KNEEL STOP
+
+ai AI_AMCSOLDIER_TELEPORT A_AMCSOLDIERTELEPORT AMCSTILL 0
+ai AI_AMCSOLDIER_TELEPORT_F A_AMCSOLDIERTELEPORT AMCSTILL 0
+
+spriteshadow AMCSOLDIER_ACTIVE
+spritenvg AMCSOLDIER_ACTIVE
+
+useractor notenemy AMCSOLDIER_ACTIVE
+fall
+
+ife PERSONNEL_RESEARCH[32] 2 { spawn AMC_ASOLDIER_ACTIVE killit }
+
+ifpdistl 1024 cstat 256 else cstat 257
+
+ifai 0
+	{
+	seta[].htwaterzoffset 8
+	ifspritepal 5 ife base_tutorial 0 killit
+	ifrnd 128 { sizeat 20 21 set GENDER FEMALE } else { sizeat 22 22 set GENDER MALE }
+	randvar LAST_NAME 66
+	add LAST_NAME 7120
+	readarrayfromfile PERSONNEL_RESEARCH F_PERSONNEL_AMCTC
+	ife PERSONNEL_RESEARCH[1] 2 { ifand amc_soldier_upgrades 1 nullop else xorvar amc_soldier_upgrades 1 } // has the player researched laser guns for AMC soldiers?
+	ife PERSONNEL_RESEARCH[2] 2 { ifand amc_soldier_upgrades 2 nullop else xorvar amc_soldier_upgrades 2 } // has the player researched better armour for AMC soldiers?
+	ife PERSONNEL_RESEARCH[3] 2 { ifand amc_soldier_upgrades 4 nullop else xorvar amc_soldier_upgrades 4 } // has the player researched bigger magazines for AMC soldiers?
+
+	ife PERSONNEL_RESEARCH[10] 2
+		{
+		set max_health 200
+		strength 200
+		ifand amc_soldier_upgrades 16 nullop else
+		xorvar amc_soldier_upgrades 16 // has the player researched nutrient solution?
+		}
+	else
+		{
+		set max_health 100
+		strength 100
+		}
+	ife PERSONNEL_RESEARCH[13] 2 set HEAL_COUNT 100 // medical foam?
+	ife PERSONNEL_RESEARCH[7] 2  { ifand amc_soldier_upgrades 8 nullop else xorvar amc_soldier_upgrades 8 } // has the player researched teleporter devices for AMC Soldiers?
+	ifn EXTRASAVED 0 // does the player have the advanced ship research?
+		{
+		ifn BASE_RESEARCH[7] 2 killit
+		}
+
+	// TODO remove shootme refs
+	spawn SHOOTME2
+
+	ifand amc_soldier_upgrades 4 set ally_mag 50 else set ally_mag 25
+	ai AI_AMCSOLDIERIDLE
+	ifspawnedby RESPAWN spawn TRANSPORTERBEAM
+	ifspawnedby APLAYER
+		{
+		spawn TRANSPORTERBEAM
+		state startfollowplayer
+		ife BASE_RESEARCH[7] 2 set INTERNALCOUNT_3 1920 else
+		set INTERNALCOUNT_3 960
+		}
+	else set INTERNALCOUNT_3 -1
+	}
+
+
+state AMCSOLDIER_MOVE_VOICE
+
+state spawn_cold_breathe
+
+state ENEMYKNOCKBACKS
+state enemyfloordamage
+
+	ife PERSONNEL_RESEARCH[8] 2 // player has thermal weaving research? make fire die down quicker
+		{
+		ifg fire_damage 5 sub fire_damage 1
+		}
+
+state enemy_fire_damage
+state enemy_ice_damage
+state enemy_spirit_damage
+
+ifn INTERNALCOUNT_3 -1
+	{
+	ifg INTERNALCOUNT_3 0 sub INTERNALCOUNT_3 1
+	else ife INTERNALCOUNT_3 0
+		{
+		spawn TRANSPORTERBEAM
+		state removefollower
+		killit
+		}
+	}
+
+ifaction A_AMCSOLDIERDEAD
+	{
+	state clear_ally_death
+	strength 0
+	break
+	}
+else
+ifai AI_AMCSOLDIERDYING
+	{
+	ifactioncount 5 { spawn 2284 action A_AMCSOLDIERDEAD }
+	}
+else
+ifaction A_AMCSOLDIER_SALUTE
+	{
+	seta[].xvel 0
+	move STOP faceplayer
+	ifactioncount 8 ai AI_AMCSOLDIERIDLE
+	}
+else
+ifaction A_AMCSOLDIER_SALUTE2
+	{
+	seta[].xvel 0
+	move STOP faceplayer
+	ifactioncount 2 ai AI_AMCSOLDIERIDLE
+	}
+else
+ifai AI_AMCSOLDIER_HURT
+	{
+	ifg HEAL_COUNT 0
+		{
+		addstrength 2
+		ifg fire_damage 0 set fire_damage 0
+		sub HEAL_COUNT 1
+		soundonce JAMES_FIRSTAID
+		set temp3 sprite[].x
+		randvarvar temp4 256
+		add temp3 temp4
+		randvar temp4 2048
+
+		rotatepoint sprite[].x sprite[].y temp3 sprite[].y temp4 temp5 temp6
+
+		espawn 18574
+
+		seta[RETURN].x temp5
+		seta[RETURN].y temp6
+		geta[RETURN].z temp7
+		sub temp7 4096
+		seta[RETURN].z temp7
+
+		seta[RETURN].pal 8
+		}
+	ifge sprite[].extra max_health ai AI_AMCSOLDIERIDLE
+	else ife HEAL_COUNT 0 ai AI_AMCSOLDIERIDLE
+	}
+else
+ifaction A_AMCSOLDIER_KNEEL
+	{
+	ifp palive ai AI_AMCSOLDIERIDLE
+	}
+else
+ifai AI_AMCSOLDIERFIRE
+{
+	state checkfortarget
+
+	ifspritepal 5 ifn PCINTER 0 ai AI_AMCSOLDIERIDLE // don't fire if training range soldier
+	ifactioncount 3
+	ifn my_target -1
+	{
+			state fronttowardstarget
+
+			ifand amc_soldier_upgrades 1 // is the soldier using a lasergun?
+			{
+				set PROJECTILE_FIRING_SOUND LASERGUN_FIRE
+				set PROJECTILE_TO_SHOOT ENEMY_BULLET
+				set PROJECTILE_PAL 8
+				set PROJECTILE_STRENGTH 12
+				state sang_enemyShootProjectile
+
+				ife PERFMODE 1
+				 ifcansee
+				{
+					set gunsmoke_z 6244
+					set gunsmoke_angle 220
+					state spawn_gunsmoke_z
+					set gunsmoke_z 6144
+					espawn 16113
+					state spawn_muzzleflash
+				}
+			}
+			else
+			{			
+				set PROJECTILE_FIRING_SOUND SUP_TMP
+				set PROJECTILE_TO_SHOOT ENEMY_BULLET
+				set PROJECTILE_PAL 8
+				state sang_enemyShootProjectile
+
+				ife PERFMODE 1
+				 ifcansee
+				{
+					set gunsmoke_z 6244
+					set gunsmoke_angle 220
+					state spawn_gunsmoke_z
+					set gunsmoke_z 6144
+					espawn 16115
+					state spawn_muzzleflash
+				}
+
+			}
+			ifspritepal 3 nullop else state npc_pistolshell
+			sub ally_mag 1
+			ife ally_mag 0
+				{
+				state smg_mag_out_sounds
+				shoot SMGMAGAZINE
+				ife GENDER MALE ifn amc_base 1 state AMCSOLD_RELOADING
+				ai AI_AMCSOLDIERRELOAD
+				}
+			resetactioncount
+	}
+	else ife my_target -1
+		ai AI_AMCSOLDIERIDLE
+}
+else
+ifai AI_AMCSOLDIERMOVE
+{
+		geta[PLAYER_IDENTITY].xvel temp
+		ifg temp 10
+			{
+			mul temp 2
+			seta[].xvel temp
+			}
+	ife FOLLOW_PLAYER 0 ai AI_AMCSOLDIERIDLE
+	ifactioncount 3
+		{
+		state npc_footsteps
+		resetactioncount
+		}
+	ifpdistl 1536
+		{
+		ifphealthl 25
+		ifrnd 2 state AMCSOLD_YOUR_HURT
+		ai AI_AMCSOLDIERIDLE
+		}
+	ifnotmoving operate
+
+	ifpdistg 8098
+	ife my_target -1
+	 ifrnd 16
+	 ifand amc_soldier_upgrades 8
+	{
+		getp[].posx temp
+		getp[].posy temp2
+		set temp3 temp
+		add temp3 1024
+		randvar temp4 2048
+		rotatepoint temp temp2 temp3 temp2 temp4 temp5 temp6
+		getp[].cursectnum upd_sect
+		updatesectorz temp5 temp6 player[].posz upd_sect
+		ifn upd_sect -1
+			{
+			orvar ALLY_ORDER 2
+			set INTERNALCOUNT 0
+			ai AI_AMCSOLDIER_TELEPORT_F
+			resetcount
+			}
+			else ai AI_AMCSOLDIERMOVE
+	}
+
+}
+else
+ifai AI_AMCSOLDIERRELOAD
+{
+	ifspritepal 3 move 0
+	ifand amc_soldier_upgrades 4
+	{
+		add ally_mag 2
+		ife ally_mag 40 state bgar_mag_in_sounds
+		ife ally_mag 50 { ife FOLLOW_PLAYER 1 ai AI_AMCSOLDIERMOVE else ai AI_AMCSOLDIERIDLE }
+	}
+	else
+	{
+		add ally_mag 1
+		ife ally_mag 20 state smg_mag_in_sounds
+		ife ally_mag 25 { ife FOLLOW_PLAYER 1 ai AI_AMCSOLDIERMOVE else ai AI_AMCSOLDIERIDLE }
+	}
+}
+else
+ifai AI_AMCSOLDIERIDLE
+{
+	sleeptime 0
+	ife FOLLOW_PLAYER 1 { ifpdistg 1535 ifcansee ifcanseetarget ai AI_AMCSOLDIERMOVE }
+	ifle sprite[].extra max_health ifcount 6 { addstrength 1 resetcount }
+	state rand_lookaround
+
+	ife ALLY_VOICE 1 action A_AMCSOLDIER_SALUTE
+	ife ALLY_VOICE -1 action A_AMCSOLDIER_SALUTE2
+	ifrnd 1 { sound JMOVE6 ai AI_AMCSOLDIER_REST }
+	set temp9 max_health
+	div temp9 2
+	ifl sprite[].extra temp9 ifg HEAL_COUNT 0 ai AI_AMCSOLDIER_HURT
+}
+else
+ifai AI_AMCSOLDIER_REST
+{
+	sleeptime 0
+	ife FOLLOW_PLAYER 1
+		{ ifpdistg 1535 ifcansee ifcanseetarget ai AI_AMCSOLDIERMOVE }
+		ifle sprite[].extra max_health ifcount 6 { addstrength 1 resetcount }
+	state rand_lookaround
+
+	ife ALLY_VOICE 1 action A_AMCSOLDIER_SALUTE
+	ife ALLY_VOICE -1 action A_AMCSOLDIER_SALUTE2
+	set temp9 max_health
+	div temp9 2
+	ifl sprite[].extra temp9 ifg HEAL_COUNT 0 ai AI_AMCSOLDIER_HURT
+}
+
+	ifdead nullop
+	else
+	{
+		ifp pdead ifpdistl 1536 action A_AMCSOLDIER_KNEEL
+	}
+
+state player_follow_commands
+
+ifai AI_AMCSOLDIER_TELEPORT_F
+{
+add INTERNALCOUNT 1
+	spawn FRAMEEFFECT1
+	ife INTERNALCOUNT 4 { sound SOMETHINGHITFORCE cstat 2 }
+	ife INTERNALCOUNT 26
+	{
+		cstat 32768
+		getp[].posx temp
+		getp[].posy temp2
+		set temp3 temp
+		add temp3 1024
+		randvar temp4 2048
+		rotatepoint temp temp2 temp3 temp2 temp4 temp5 temp6
+		getp[].posz temp8
+		getp[].cursectnum upd_sect
+		updatesectorz temp5 temp6 temp8 upd_sect
+		ifn upd_sect -1
+		{
+			spawn TRANSPORTERSTAR
+			sub temp8 256
+			setsprite THISACTOR temp5 temp6 temp8
+			changespritesect THISACTOR upd_sect
+		}
+		else { ifand ALLY_ORDER 2 xorvar ALLY_ORDER 2 cstat 257 ai AI_AMCSOLDIERIDLE }
+	}
+	ife INTERNALCOUNT 27 { sound SOMETHINGHITFORCE cstat 2 spawn TRANSPORTERSTAR }
+	ife INTERNALCOUNT 40 { ifand ALLY_ORDER 2 xorvar ALLY_ORDER 2 cstat 257 ai AI_AMCSOLDIERIDLE }
+}
+else
+ifai AI_AMCSOLDIER_TELEPORT
+{
+	ife my_target -1 { cstat 257 ife FOLLOW_PLAYER 0 ai AI_AMCSOLDIERIDLE else ai AI_AMCSOLDIER_TELEPORT_F }
+	ifn my_target -1 geta[my_target].statnum temp8
+	ife temp8 1024 { cstat 257 ife FOLLOW_PLAYER 0 ai AI_AMCSOLDIERIDLE else ai AI_AMCSOLDIER_TELEPORT_F }
+
+	add INTERNALCOUNT 1
+	spawn FRAMEEFFECT1
+	ife INTERNALCOUNT 4 { sound SOMETHINGHITFORCE cstat 2 }
+	ife INTERNALCOUNT 26
+		{
+			cstat 32768
+			geta[my_target].x temp
+			geta[my_target].y temp2
+			set temp3 temp
+			add temp3 1024
+			randvar temp4 2048
+			rotatepoint temp temp2 temp3 temp2 temp4 temp5 temp6
+			geta[my_target].z temp8
+			geta[my_target].sectnum upd_sect
+			updatesectorz temp5 temp6 temp8 upd_sect
+			ifn upd_sect -1
+			{
+				// Don't teleport if the target sector has a purple lava floor
+				// TODO check for other damage floor types?
+				ife sector[upd_sect].floorpicnum PURPLELAVA
+				{
+					ifand ALLY_ORDER 2
+						xorvar ALLY_ORDER 2
+
+					cstat 257
+					ai AI_AMCSOLDIERFIRE
+				}
+				else
+				{
+					spawn TRANSPORTERSTAR
+					sub temp8 128
+					setsprite THISACTOR temp5 temp6 temp8
+					changespritesect THISACTOR upd_sect
+				}
+			}
+			else { ifand ALLY_ORDER 2 xorvar ALLY_ORDER 2 cstat 257 ai AI_AMCSOLDIERIDLE }
+		}
+	ife INTERNALCOUNT 27 { sound SOMETHINGHITFORCE cstat 2 spawn TRANSPORTERSTAR }
+	ife INTERNALCOUNT 40 { ifand ALLY_ORDER 2 xorvar ALLY_ORDER 2 cstat 257 ai AI_AMCSOLDIERFIRE  }
+}
+else
+ifaction A_AMCSOLDIERPAIN
+{
+	ifrnd 16 state AMCSOLD_PAIN
+	ifactioncount 4 { ife FOLLOW_PLAYER 1 ai AI_AMCSOLDIERMOVE else ai AI_AMCSOLDIERIDLE }
+}
+
+	ifg SEEK_ENEMY_COUNT 0 sub SEEK_ENEMY_COUNT 1
+
+	ife SEEK_ENEMY_COUNT 0
+	{
+		ifdead break
+		ifai AI_AMCSOLDIERRELOAD break
+
+		ifspritepal 5
+		  ife camerasprite -1
+		{
+			state checkfortarget
+			ifn my_target -1
+			{
+				ai AI_AMCSOLDIERFIRE
+			}
+		}
+		else
+		{
+			state checkfortarget
+
+			ifai AI_AMCSOLDIER_TELEPORT break
+			ifai AI_AMCSOLDIER_TELEPORT_F break
+			ifn my_target -1
+			{
+				state fronttowardstarget
+				state AMCSOLDIER_TARGET_VOICE
+
+				ifrnd 64
+				ifand amc_soldier_upgrades 8
+				{
+					ldist xydist THISACTOR my_target
+					ifrnd 64
+					ifg xydist 2048 // 192 512
+					{
+						geta[my_target].x temp
+						geta[my_target].y temp2
+						set temp3 temp
+						add temp3 1024
+						randvar temp4 2048
+						rotatepoint temp temp2 temp3 temp2 temp4 temp5 temp6
+						updatesectorz temp5 temp6 sprite[].z upd_sect
+						ifn upd_sect -1
+						{
+							set INTERNALCOUNT 0
+							orvar ALLY_ORDER 2
+							ife GENDER MALE state AMCSOLD_PHASING
+							ai AI_AMCSOLDIER_TELEPORT
+							resetcount
+						}
+					}
+				}
+				else
+					ai AI_AMCSOLDIERFIRE
+			}
+		}
+		set SEEK_ENEMY_COUNT 13
+	}
+
+ifhitweapon
+{
+	// respond quicker
+	set SEEK_ENEMY_COUNT 0
+	
+	ifai AI_AMCSOLDIER_HURT seta[].htextra -1
+
+	spawn BLOOD
+	ifrnd 96 action A_AMCSOLDIERPAIN
+	state random_wall_jibs
+	state NEWGUNEFFECTS
+	ifdead
+	{
+		state clear_ally_death
+		state rf
+
+		ifg energy_damage 0
+			{
+			shoot SPARK2 shoot SPARK2 shoot SPARK2
+			spritepal 4
+			guts JIBS3 6
+			spawn DISINTIGRATE_GUY
+			killit
+			}
+		else
+		ifg spirit_damage 0
+			{
+			shoot SPARK2 shoot SPARK2 shoot SPARK2
+			spritepal 1
+			guts JIBS3 6
+			spawn SPIRIT_DEATH_GUY
+			killit
+			}
+		else
+		ifg fire_damage 0
+		{
+			ifrnd 64 sound MALE_ONFIRE1
+			else ifrnd 64 sound MALE_ONFIRE2
+			else ifrnd 64 sound MALE_ONFIRE3
+			else sound MALE_ONFIRE4
+			spawn ONFIREGUY
+			killit
+		}
+		else
+		{
+			ifpdistl 8192 set PLAYER_VOICEOVER 1
+			randvar temp 30
+			ife GENDER MALE // male
+				{
+				ifl temp 10 sound EDFSOLD_DIE1 else
+				ifl temp 20 sound EDFSOLD_DIE2 else
+				sound EDFSOLD_DIE3
+				}
+			else
+			ife GENDER FEMALE // female
+				{
+				ifl temp 10 sound AMCSOLDF_DIE1 else
+				ifl temp 20 sound AMCSOLDF_DIE2 else
+				sound AMCSOLDF_DIE3
+				}
+			ifrnd 76 { espawn P90_SPRITE add ally_mag 50 setactorvar[RETURN].YVELSAVED ally_mag }
+			ai AI_AMCSOLDIERDYING
+			state clear_ally_death
+			ifrnd 76 spawn BLOODPOOL
+		}
+	}
+}
+
+enda

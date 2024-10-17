@@ -1,0 +1,834 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+
+--------------------------------------------------------------------------------
+*/
+
+
+// ========================================================MINERVA=====================================================
+
+action A_MINERVA_IDLE 0 1 5 1 11
+action A_MINERVA_VEHICLE 0 1 5 1 11
+action A_MINERVA_COMBAT 112 1 5 1 11
+action A_MINERVA_MOVE 5 4 5 1 11
+action A_MINERVA_CAST 25 3 5 1 20
+action A_MINERVA_TELEPORT 25 3 5 1 20
+action A_MINERVA_PAIN 50 1 1 1 8
+action A_MINERVA_DYING 50 6 1 1 11
+action A_MINERVA_SWIM 45 1 5
+action A_MINERVA_SWIM_IDLE 45 1 5
+action A_MINERVA_DEAD 55 1 1 1 1
+
+defstate minerva_getbehindplayer
+	ifrnd 64 // don't do it constantly, as forcing the angle to always update will result in bumping into the player a lot
+	{
+		state getxycoords_behind_player
+
+		ife RETURN 1
+		{
+			ifg BEHIND_PLAYER_DIST 900
+			{
+				cstat 2
+
+				ifaction A_MINERVA_IDLE
+					action A_MINERVA_MOVE
+				else ifaction A_MINERVA_COMBAT
+					action A_MINERVA_MOVE
+				else ifaction A_MINERVA_MOVE
+				{
+					// angle towards point, with some randomization as to not run straight at the player
+					ifnotmoving
+					{
+						ifrnd 64
+							add BEHIND_PLAYER_ANG 768
+						else ifrnd 64
+							sub BEHIND_PLAYER_ANG 768
+						else ifrnd 64
+							add BEHIND_PLAYER_ANG 512
+						else ifrnd 64
+							sub BEHIND_PLAYER_ANG 512
+					}
+
+					seta[].ang BEHIND_PLAYER_ANG
+				}
+			}
+			else
+			{
+				move STOP faceplayer
+
+				ifaction A_MINERVA_MOVE
+				{
+					state detectcombat
+
+					ife RETURN 0
+						action A_MINERVA_IDLE
+					else
+						action A_MINERVA_COMBAT
+				}
+			}
+		}
+		// can't get behind player, all stop
+		else ifaction A_MINERVA_MOVE
+		{
+			state detectcombat
+
+			ife RETURN 0
+				action A_MINERVA_IDLE
+			else
+				action A_MINERVA_COMBAT
+		}
+	}
+ends
+
+defstate minerv_telep
+	ifpdistg 8098
+	 ifrnd 16
+	{
+		state getxycoords_behind_player
+		ife RETURN 1
+		{
+			set INTERNALCOUNT_2 0
+			action A_MINERVA_TELEPORT
+			resetcount
+		}
+	}
+ends
+
+defstate james_mini_follow
+	ife CHAR 0
+	{
+		ifrnd 128
+		{
+			ife gp_subt 0
+				{
+				qstrcpy 7500 5133
+				// 7500 ^8James: ^0Come on Mini, let's go.
+				set gp_subt 42
+				}
+			sound J_MIN_FOL1
+			set ALLY_VOICE 42
+		}
+		else
+		{
+			ife gp_subt 0
+				{
+				qstrcpy 7500 5134
+				// 7500 ^8James: ^0Let's mosey, Mini.
+				set gp_subt 40
+				}
+			sound J_MIN_FOL2
+			set ALLY_VOICE 40
+		}
+	}
+ends
+
+defstate james_mini_stay
+	ife CHAR 0
+	{
+		ifrnd 128
+		{
+			ife gp_subt 0
+				{
+				qstrcpy 7500 5135
+				// 7500 ^8James: ^0Can you just wait here for me?
+				set gp_subt 43
+				}
+			sound J_MIN_STY1
+		}
+		else
+		{
+			ife gp_subt 0
+				{
+				qstrcpy 7500 5136
+				// 7500 ^8James: ^0Hold tight just one second.
+				set gp_subt 43
+				}
+			sound J_MIN_STY2
+		}
+		set ALLY_VOICE -43
+	}
+ends
+
+defstate minerva_follow
+	// Handle following/unfollowing
+	ifpdistl 1024
+	ifp pfacing
+	{
+		set player_use 0
+		ife use_action_allowed 1
+		{
+			set hit_key 30
+			ife FOLLOW_PLAYER 0 { ife CHAR 0 state james_mini_follow state startfollowplayer }
+			else ife FOLLOW_PLAYER 1 { ife CHAR 0 state james_mini_stay state stopfollowplayer }
+			
+			set INTERNALCOUNT 26
+			
+			state setIgnoreUse
+		}
+	}
+ends
+
+defstate minerva_castlightspell
+	ifrnd 88
+		{
+		ife ally_subt 0
+			{
+			qstrcpy 7501 5137
+			// 7501 ^1Minerva: ^0I'll cast a light spell.
+			set ally_subt 39
+			}
+		sound MA_LIGHT1
+		}
+	else
+	ifrnd 176
+		{
+		ife ally_subt 0
+			{
+			qstrcpy 7501 5138
+			// 7501 ^1Minerva: ^0Here, have some light.
+			set ally_subt 40
+			}
+		sound MA_LIGHT2
+		}
+	else
+		{
+		ife ally_subt 0
+			{
+			qstrcpy 7501 5139
+			// 7501 ^1Minerva: ^30"Little Soul Light"
+			set ally_subt 52
+			}
+		sound MA_LIGHT3
+		}
+	ifand spells_cast 2 nullop else xor spells_cast 2
+	spawn 10828
+	xorvar spells_cast 1
+ends
+
+defstate minerva_casthealingspell
+	ife CHAR 4 ifrnd 32
+		{
+		ife ally_subt 0
+			{
+			qstrcpy 7501 5140
+			// 7501 ^1Minerva: ^0I can heal you, but I can't cure ugly.
+			set ally_subt 83
+			}
+		sound MA_HEAL5
+		}
+	else ifrnd 96
+		{
+		ife ally_subt 0
+			{
+			qstrcpy 7501 5141
+			// 7501 ^1Minerva: ^0Hold on, let me heal you!
+			set ally_subt 64
+			}
+		sound MA_HEAL1
+		}
+	else ifrnd 96
+		{
+		ife ally_subt 0
+			{
+			qstrcpy 7501 5142
+			// 7501 ^1Minerva: ^0Let me heal you.
+			set ally_subt 33
+			}
+		sound MA_HEAL2
+		}
+	else ifrnd 96
+		{
+		ife ally_subt 0
+			{
+			qstrcpy 7501 5143
+			// 7501 ^1Minerva: ^30"Healing Touch!"
+			set ally_subt 24
+			}
+		sound MA_HEAL3
+		}
+	else
+		{
+		ife ally_subt 0
+			{
+			qstrcpy 7501 5144
+			// 7501 ^1Minerva: ^0One heal, coming right up!
+			set ally_subt 49
+			}
+		sound MA_HEAL4
+		}
+	addphealth 200
+	palfrom 10 0 32 0
+ends
+
+defstate minerva_castarmourspell
+	ifrnd 96
+		{
+		ife ally_subt 0
+			{
+			qstrcpy 7501 5145
+			// 7501 ^1Minerva: ^0Have a shield!
+			set ally_subt 27
+			}
+		sound MA_SHLD1
+		}
+	else ifrnd 96
+		{
+		ife ally_subt 0
+			{
+			qstrcpy 7501 5146
+			// 7501 ^1Minerva: ^0I'll shield you!
+			set ally_subt 34
+			}
+		sound MA_SHLD2
+		}
+	else
+		{
+		ife ally_subt 0
+			{
+			qstrcpy 7501 5147
+			// 7501 ^1Minerva: ^30"Barrier of Life!"
+			set ally_subt 55
+			}
+		sound MA_SHLD3
+		}
+	palfrom 10 0 0 32
+	setp[].shield_amount 100
+ends
+
+spritenvg MINERVA
+spriteshadow MINERVA
+
+useractor notenemy MINERVA
+	ifinwater nullop
+	else fall
+
+	ifpdistl 1024 cstat 0
+	else cstat 1
+
+	ifaction 0
+	{
+		seta[].htwaterzoffset 8
+		strength 15000
+		sizeat 11 11
+		action A_MINERVA_IDLE
+
+		ifn EXTRASAVED -1
+		{
+			ife ALLYSLOT1 -1 set ALLYSLOT1 THISACTOR else
+			ife ALLYSLOT2 -1 set ALLYSLOT2 THISACTOR else
+			ife ALLYSLOT3 -1 set ALLYSLOT3 THISACTOR else
+			ife CHAR 3 ife ALLYSLOT4 -1 set ALLYSLOT4 THISACTOR
+			set FOLLOW_PLAYER 1
+		}
+	}
+
+	// TODO if in combat and inside the player's view, go translucent?
+
+// state spawn_cold_breathe - this is intentionally disabled for Minerva since she has supernatural powers
+
+	seta[].htextra -1
+
+	state enemy_fire_damage
+	state enemy_ice_damage
+
+	ifg targetlock 0 sub targetlock 1
+	ifg ally_mag 0 sub ally_mag 1
+
+	ifg ALLY_VOICE 0
+	{
+		sub ALLY_VOICE 1
+		ife ALLY_VOICE 1
+		{
+			ife CHAR 3
+			 ifrnd 96
+				{
+				ife ally_subt 0
+					{
+					qstrcpy 7501 5148
+					// 7501 ^1Minerva: ^0Yes sir!
+					set ally_subt 44
+					}
+				sound MA_OK3
+				}
+			else
+			ifrnd 96
+				{
+				ife ally_subt 0
+					{
+					qstrcpy 7501 5149
+					// 7501 ^1Minerva: ^0Okay, I'll follow you.
+					set ally_subt 44
+					}
+				sound MA_FOLL1
+				}
+			else
+			ifrnd 96
+				{
+				ife ally_subt 0
+					{
+					qstrcpy 7501 5150
+					// 7501 ^1Minerva: ^0I'm right behind you.
+					set ally_subt 35
+					}
+				sound MA_FOLL2
+				}
+			else
+				{
+				ife ally_subt 0
+					{
+					qstrcpy 7501 5151
+					// 7501 ^1Minerva: ^0Right behind you.
+					set ally_subt 29
+					}
+				sound MA_FOLL3
+				}
+		}
+	}
+	else ifl ALLY_VOICE 0
+	{
+		add ALLY_VOICE 1
+		ife ALLY_VOICE -1
+		{
+			ifrnd 96
+			{
+				ife ally_subt 0
+					{
+					qstrcpy 7501 5152
+					// 7501 ^1Minerva: ^0I'll wait here.
+					set ally_subt 26
+					}
+				sound MA_WAIT1
+				}
+				else ifrnd 96
+				{
+				ife ally_subt 0
+					{
+					qstrcpy 7501 5153
+					// 7501 ^1Minerva: ^0I'll be here if you need me.
+					set ally_subt 35
+					}
+				sound MA_WAIT2
+				}
+				else
+				{
+				ife CHAR 3
+					{
+					ife ally_subt 0
+						{
+						qstrcpy 7501 5154
+						// 7501 ^1Minerva: ^Yes sir!
+						set ally_subt 44
+						}
+					sound MA_OK3
+					}
+				else
+					{
+					ifrnd 128
+						{
+						ife ally_subt 0
+							{
+							qstrcpy 7501 5155
+							// 7501 ^1Minerva: ^0Sure.
+							set ally_subt 18
+							}
+						sound MA_OK1
+						}
+					else
+						{
+						ife ally_subt 0
+							{
+							qstrcpy 7501 5156
+							// 7501 ^1Minerva: ^0Sure thing!
+							set ally_subt 22
+							}
+						sound MA_OK2
+						}
+					}
+			}
+		}
+	}
+
+	ifaction A_MINERVA_DEAD
+	{
+		move STOP
+		strength 0
+	}
+	else ifaction A_MINERVA_DYING
+	{
+		move STOP
+		strength 0
+		ifactioncount 5 action A_MINERVA_DEAD
+	}
+	else ifaction A_MINERVA_VEHICLE
+	{
+		move STOP
+		cstat 32768
+		seta[].x player[].posx
+		seta[].y player[].posy
+		seta[].z player[].posz
+		ife player_in_vehicle 0
+			action A_MINERVA_MOVE
+	}
+	else ifaction A_MINERVA_MOVE
+	{
+		ifn player_in_vehicle 0
+			action A_MINERVA_VEHICLE
+
+		// Catch up with player if they're going too fast?
+		geta[PLAYER_IDENTITY].xvel temp
+		ifg temp 10
+		{
+			mul temp 2
+			seta[].xvel temp
+		}
+
+		ifand spells_cast 1 ife gp_subt 0
+			action A_MINERVA_CAST
+		else ife ally_mag 0
+		{
+			ifphealthl 50 ife CURSED 0 action A_MINERVA_CAST
+			else ifl PARMOUR 50 action A_MINERVA_CAST
+		}
+
+		ifactioncount 3
+		{
+			ifonwater
+			{
+				ifrnd 128 sound WADE1
+				else sound WADE2
+			}
+			else
+				state npc_footsteps
+
+			resetactioncount
+		}
+
+		// don't move straight to player, try to get behind them
+		state detectcombat
+
+		ife RETURN 0
+		{
+			move M_EDF_WALK faceplayer seekplayer
+			ifpdistl 1536
+				action A_MINERVA_IDLE
+		}
+		else
+		{
+			move M_EDF_WALK geth
+			state minerva_getbehindplayer
+		}
+
+		ife FOLLOW_PLAYER 1
+			state minerv_telep
+
+		ifinwater ifg sprite[].z sector[].ceilingz action A_MINERVA_SWIM
+		ifnotmoving operate
+	}
+	else ifaction A_MINERVA_SWIM
+	{
+		move M_EDF_WALK faceplayer
+
+		geta[].sectnum upd_sect
+		updatesectorz sprite[].x sprite[].y sprite[].z upd_sect
+		ifn upd_sect -1 changespritesect THISACTOR upd_sect
+
+		gets[].lotag temp
+
+		ife temp 1
+			seta[].z sector[].floorz
+		else ife temp 2
+		{
+			// stick to player if they're also underwater
+			getp[].cursectnum temp
+			gets[temp].lotag temp
+
+			ife temp 2
+				seta[].z player[].posz
+			else
+				seta[].z sector[].ceilingz
+		}
+
+		geta[PLAYER_IDENTITY].xvel temp
+		ifg temp 10
+		{
+			mul temp 2
+			seta[].xvel temp
+		}
+
+		ifactioncount 3
+		{
+			sound PLAYER_SWIM
+			resetactioncount
+		}
+
+		ifpdistl 1536
+			action A_MINERVA_SWIM_IDLE
+		state minerv_telep
+
+		ifinwater
+			nullop
+		else ife sector[].lotag 1
+			nullop
+		else
+			action A_MINERVA_MOVE
+	}
+	else ifaction A_MINERVA_CAST
+	{
+		move STOP faceplayer
+
+		ifactioncount 3
+		{
+			spawn 13950
+
+			// cast light spell
+			ifand spells_cast 1
+				state minerva_castlightspell
+
+			// healing spell
+			ifphealthl 50
+				state minerva_casthealingspell
+
+			// armour spell
+			else ifl PARMOUR 50
+				state minerva_castarmourspell
+
+			sound CSPELL
+			ife SKILL_LEVEL 1 set ally_mag 300
+			else ife SKILL_LEVEL 2 set ally_mag 450
+			else ife SKILL_LEVEL 3 set ally_mag 600
+			else ife SKILL_LEVEL 4 set ally_mag 750
+			else ife SKILL_LEVEL 5 set ally_mag 900
+			ifinwater
+			  ifg sprite[].z sector[].ceilingz
+				action A_MINERVA_SWIM
+			else
+				action A_MINERVA_MOVE
+		}
+	}
+	else ifaction A_MINERVA_TELEPORT
+	{
+		move STOP
+
+		add INTERNALCOUNT_2 1
+		spawn FRAMEEFFECT1
+		ife INTERNALCOUNT_2 4 { cstat 2 sizeto 2 11 }
+		ife INTERNALCOUNT_2 26
+		{
+			cstat 32768
+			state getxycoords_behind_player
+
+			ife RETURN 1
+			{
+				spawn 8433
+				seta[].x BEHIND_PLAYER_X
+				seta[].y BEHIND_PLAYER_Y
+				getp[].posz temp8
+				sub temp8 256
+				seta[].z temp8
+			}
+			else { cstat 257 sizeat 11 11 action A_MINERVA_MOVE }
+		}
+		ife INTERNALCOUNT_2 27 { soundonce CSPELL cstat 2 sizeto 11 11 spawn 8433 }
+		ife INTERNALCOUNT_2 40 { cstat 257 sizeat 11 11 action A_MINERVA_MOVE }
+	}
+	else ifaction A_MINERVA_IDLE
+	{
+		move STOP
+
+		ifn player_in_vehicle 0 action A_MINERVA_VEHICLE
+
+		ifrnd 64
+		{
+			state detectcombat
+			ife RETURN 1
+				action A_MINERVA_COMBAT
+		}
+		sleeptime 0
+		ife FOLLOW_PLAYER 1
+		{
+			ife RETURN 1
+			{
+				ifcansee ifcanseetarget
+					state minerva_getbehindplayer
+			}
+			else ifpdistg 1535 ifcansee ifcanseetarget action A_MINERVA_MOVE
+
+			// Maybe cast spells
+			ifand spells_cast 1 ife gp_subt 0 action A_MINERVA_CAST
+			else ife ally_mag 0
+			{
+				ifphealthl 50 ife CURSED 0 action A_MINERVA_CAST
+				else ifl PARMOUR 50 action A_MINERVA_CAST
+			}
+		}
+
+		ifspritepal 3 nullop else state rand_lookaround
+		ifinwater ifg sprite[].z sector[].ceilingz action A_MINERVA_SWIM
+		ife FOLLOW_PLAYER 1
+			state minerv_telep
+		state minerva_follow
+	}
+
+	// Essentially the same as idle, except Minerva has some combat pose.
+	// She might be moving around too much for this difference to matter now, so might remove this difference.
+	else ifaction A_MINERVA_COMBAT
+	{
+		move STOP
+
+		ifrnd 64
+		{
+			state detectcombat
+			ife RETURN 0 action A_MINERVA_IDLE
+		}
+
+		sleeptime 0
+		ife FOLLOW_PLAYER 1
+		{
+			ifcansee ifcanseetarget
+				state minerva_getbehindplayer
+
+			ife ally_mag 0
+			{
+				ifphealthl 50 ife CURSED 0 action A_MINERVA_CAST
+				else ifl PARMOUR 50 action A_MINERVA_CAST
+			}
+		}
+		ifspritepal 3 nullop else state rand_lookaround
+		ifinwater ifg sprite[].z sector[].ceilingz action A_MINERVA_SWIM
+
+		ife FOLLOW_PLAYER 1
+			state minerv_telep
+
+		state minerva_follow
+
+	}
+	else ifaction A_MINERVA_SWIM_IDLE
+	{
+		move STOP
+
+		gets[].lotag temp
+
+		ife sector[].lotag 1
+			seta[].z sector[].floorz
+
+		geta[].sectnum upd_sect
+		updatesectorz sprite[].x sprite[].y sprite[].z upd_sect
+		ifn upd_sect -1 changespritesect THISACTOR upd_sect
+
+		sleeptime 0
+		ife FOLLOW_PLAYER 1
+		{
+			ifpdistg 1535
+				action A_MINERVA_SWIM
+		}
+
+		ifinwater
+			nullop
+		else ifpdistl 1536 // don't overrule setting swim above
+			ife sector[].lotag 1
+			action A_MINERVA_SWIM_IDLE
+		else ifn sector[].lotag 1
+			ifn sector[].lotag 2
+			action A_MINERVA_IDLE
+
+		state minerv_telep
+		state minerva_follow
+	}
+	else ifaction A_MINERVA_PAIN
+	{
+		move STOP
+
+		ifactioncount 4 { ife FOLLOW_PLAYER 1 action A_MINERVA_MOVE else action A_MINERVA_IDLE }
+	}
+
+
+	clamp INTERNALCOUNT 0 60
+	ifg INTERNALCOUNT 0 sub INTERNALCOUNT 1
+	ifg SEEK_ENEMY_COUNT 0 sub SEEK_ENEMY_COUNT 1
+	ifg ally_v_coold 0 sub ally_v_coold 1
+
+	ife SEEK_ENEMY_COUNT 0
+	{
+		ifdead break
+		state checkfortarget
+		ifn my_target -1
+		{
+			ife ally_subt 0
+			 ife ally_v_coold 0
+				{
+				ifrnd 1
+					{
+					qstrcpy 7501 5157
+					// 7501 ^1Minerva: ^0Uh oh, trouble!
+					set ally_subt 41
+					sound MA_TARG1
+					}
+				else
+				ifrnd 1
+					{
+					qstrcpy 7501 5158
+					// 7501 ^1Minerva: ^0Tangos at twelve o'clock! Heh heh.
+					set ally_subt 59
+					sound MA_TARG2
+					}
+				else
+				ifrnd 1
+					{
+					qstrcpy 7501 5159
+					// 7501 ^1Minerva: ^0Bad guys!
+					set ally_subt 36
+					sound MA_TARG3
+					}
+				set ally_v_coold 1200
+				}
+		}
+		set SEEK_ENEMY_COUNT 13
+	}
+
+	ifhitweapon
+	{
+		spawn BLOOD
+		ifrnd 76 action A_MINERVA_PAIN
+		state ENEMYKNOCKBACKS
+		state random_wall_jibs
+		state NEWGUNEFFECTS
+
+		ifdead
+		{
+			state clear_ally_death
+			state rf
+			action A_MINERVA_DYING
+			ifrnd 76 spawn BLOODPOOL
+			ifmultiplayer nullop
+			else
+			{
+				palfrom 63 63 63 63
+				set SLO_MO_SHOWOFF 70
+				set FISSION_MAILED 1
+			}
+		}
+	}
+enda

@@ -1,0 +1,263 @@
+// Separate file for putting all player burning related code in one place for starters.
+// Might just make this a file for centralizing all player status effect code, maybe.
+
+
+defstate char_burn_sound
+	ife CHAR 0
+	{
+		ifrnd 16 soundonce J_HOTHOT
+		else ifrnd 16 soundonce J_HOT2
+		else ifrnd 16 soundonce J_HOT3
+	}
+	ife CHAR 3 ifrnd 4 soundonce HW_GUNOVERH2
+	ife CHAR 1 sound Z_LONGTERM_PAIN
+ends
+
+// This draws the fire sprites around the player's view
+defstate drawfirehudring
+	set x 10
+    whilevarn x 340
+    {
+        getticks disp_temp
+        divvar disp_temp 50
+        add disp_temp x
+        modvar disp_temp 13
+        set tilenum 2270
+        add tilenum disp_temp
+        set y 240
+        sub y fire_damage
+        sub y 10
+        ifl y 200 set y 200
+        guniqhudid 70
+        rotatesprite x y HALFSIZE 0 tilenum -128 0 5120 0 0 xdim ydim
+        guniqhudid 0
+        add x 30
+    }
+ends
+
+// This draws a bar to indicate how much longer the fire status effect will last
+defstate drawfirehudbar
+	// Center the bar
+	set digx 158
+	set disp_temp5 MAX_FIRE_DAMAGE
+	divvar disp_temp5 2
+	sub digx disp_temp5
+
+	// Store the position so we don't have to recompute it
+	set disp_temp6 digx
+
+	set disp_temp3 digx
+	add disp_temp3 fire_damage
+
+	set digy 165
+
+	// Draw a series of bar sprites from digx start position until digx + current fire damage
+	whilevarn disp_temp 1
+	{
+		// If x coordinate is higher than current fire damage, stop drawing
+		ifg digx disp_temp3
+			set disp_temp 1
+
+		// Digy = y coordinate
+		// QUARTERSIZE = zoom
+		// 0 = angle
+		// 4732 = tilenum
+		// 0 = shade
+		// 2 = pal
+		// 0 = orientation bitfield
+		// -255 = translucency
+		// xdim, ydim = constant boundaries based on screen resolution
+		rotatespritea digx digy QUARTERSIZE 0 4732 0 2 0 -255 0 0 xdim ydim
+		add digx 1
+	}
+
+	set digx disp_temp6
+	sub digx 20
+	set digy 175
+
+	// Display the fire sprite
+	rotatespritea digx digy HALFSIZE 0 2270 0 0 0 100 0 0 xdim ydim
+ends
+
+// This state is called from player code when the fire_damage initial value has been corrected with various buffs/nerfs to it
+defstate handlefiredamage
+	ife start_fire_damage -1
+		set start_fire_damage fire_damage
+
+	palfrom 20 20 0 0
+
+	ifrnd 16
+	{
+		espawn 14040
+		setactorvar[RETURN].myowner THISACTOR
+	}
+
+	soundonce FLESH_BURNING
+	state char_burn_sound
+
+	ifrnd 212 // randomize taking damage, first attempt at fire nerf
+	{
+		switch CHAR
+			case 1
+				 ifrnd 4 addphealth -1 // Zaxtor is covered in fur and more vulnerable
+				 addphealth -1
+				break
+			case 7
+				getp[].boot_amount temp2
+				ifg temp2 0
+				{
+					sub fire_damage 1
+					sub temp2 3
+					setp[].boot_amount temp2
+				}
+				else
+					addphealth -1
+				break
+			case 12
+			case 13
+			case 14
+				ifg PARMOUR 0 { getp[].shield_amount temp sub temp 1 setp[].shield_amount temp } // Drain from armour first
+				else addphealth -1
+				break
+			default
+				addphealth -1
+				break
+		endswitch
+	}
+
+	sub fire_damage 1
+	ifn CHAR -1 ife MEAL_BUFF[CHAR] 3 sub fire_damage 1
+	ife ARTIFACTS_LOADOUT[CHAR] 13 { set artifact_used 15 sub fire_damage 1 }
+
+	ifphealthl 1 set fire_damage 0
+	ifonwater { set fire_damage 0 soundonce STEAM_HISSING spawn BIG_SMOKE }
+	ifinwater { set fire_damage 0 soundonce STEAM_HISSING spawn BIG_SMOKE }
+
+	ife fire_damage 0
+		set start_fire_damage -1
+ends
+
+// Check if fire damage must be adjusted based on some parameters
+// Expected input: fire_damage > 0
+defstate checkadjustfiredamage
+	ifg fire_damage 0
+	  ife FIRE_SUIT 1
+	{
+		set fire_damage 0
+	}
+
+	ifg fire_damage 0
+	{
+		// Store the adjusted fire damage in temp8 temporarily
+		set temp8 fire_damage
+
+		// player has fire armour, subtract damage
+		ifg P_FIRE_ARMOUR 0
+		{
+			divvar temp8 3
+			sub P_FIRE_ARMOUR temp8
+			set fire_protect 5
+
+			palfrom 20 20 0 0
+			sound FIRE_ARM_PROT
+
+			ifl P_FIRE_ARMOUR 0
+				set P_FIRE_ARMOUR 0
+		}
+		// different pal if no fire armour
+		else
+			palfrom 40 40 0 0
+
+		// player has thermal weaving? reduce damage by 20%
+		ife PERSONNEL_RESEARCH[8] 2
+		{
+			set temp7 temp8
+			mulvar temp7 10
+			divvar temp7 12
+			set temp8 temp7
+		}
+
+		// Snowfall has 20% extra fire resistance on top of that
+		ife CHAR 14
+		{
+			set temp7 temp8
+			mulvar temp7 10
+			divvar temp7 12
+			set temp8 temp7
+		}
+
+		ife CHAR 2 // Berserk suit Merlijn has 20% extra fire resistence as well
+		  ifand CHAR_APP 4
+		{
+			set temp7 temp8
+			mulvar temp7 10
+			divvar temp7 12
+			set temp8 temp7
+		}
+
+		// Zaxtor's regular armor reduces fire damage
+		ife CHAR 1
+		  ifg PARMOUR 0
+		    div temp8 2
+
+		seta[].htextra -1
+
+		set fire_damage temp8
+	}
+ends
+
+defstate fire_armour_hitstuff
+	ifvarvare sprite[].htowner THISACTOR
+	{
+		ife sprite[].htpicnum 7163 { seta[].htextra -1 set fire_damage 0 }
+	}
+	else ife player_in_vehicle 0
+	{
+		geta[].htextra fire_damage
+		state checkadjustfiredamage
+	}
+ends
+
+// Expected input: fire_damage => will be added to total fire_damage on the player, and resets the variable to 0 for the calling actor
+defstate playerincurfiredamage
+	state checkadjustfiredamage // adjust the added fire damage based on buffs/nerfs etc
+
+	// Add this adjusted damage to player
+	getp[].i temp4
+	getav[temp4].fire_damage temp5
+	add temp5 fire_damage
+
+	// Limit the TOTAL fire damage to max 75% of HP at any time
+	// Maybe this could be tweaked to not happen on higher difficulties
+	set temp7 pmax_health
+	div temp7 100
+
+	// if max hp < 100, just force to max 60 (not 75 as that's an instakill on sang)
+	ife temp7 0
+		set temp7 60
+	else
+		mul temp7 75
+
+	clamp temp5 0 temp7
+	setav[temp4].fire_damage temp5
+
+	// make sure our variable is clean cause it shouldn't be set
+	set fire_damage 0
+ends
+
+defstate playernearfire
+	ifrnd 32
+	{
+		ifspritepal 9
+		  ifpdistl 423
+		{
+			set fire_damage 5
+			state playerincurfiredamage
+		}
+		else ifpdistl 846
+		{
+			set fire_damage 5
+			state playerincurfiredamage
+		}
+	}
+ends

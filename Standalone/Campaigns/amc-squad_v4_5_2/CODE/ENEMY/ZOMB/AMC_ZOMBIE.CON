@@ -1,0 +1,453 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+
+--------------------------------------------------------------------------------
+*/
+
+damageeventtile ZOMBIE
+
+// ZOMBIE DIRT PILE
+
+action AZOMBIE_BURST 0 6 1 1 12
+
+defstate zombie_flyback
+	setprojectile[ZOMBIE_CORPSE_FLY].pal sprite[].pal
+	eshoot ZOMBIE_CORPSE_FLY
+	setprojectile[ZOMBIE_CORPSE_FLY].pal 0
+	geta[].htang temp4
+	seta[RETURN].ang temp4
+	killit
+ends
+
+defstate zombie_burst
+	sound EMERGE
+	action AZOMBIE_BURST
+ends
+
+useractor notenemy ZOMBIE_GROUND
+ifaction 0
+	{
+	sizeat 26 26
+	ifn HITAGSAVED 0
+		{
+		checkactivatormotion HITAGSAVED
+		ife RETURN 1
+			{
+			ifspritepal 3 set HITAGSAVED 0 else
+			state zombie_burst
+			}
+		}
+	else
+	ifpdistl 4096
+		{
+		ifn LOTAGSAVED 0
+			{
+			ife SKILL_LEVEL LOTAGSAVED state zombie_burst
+			else ifg SKILL_LEVEL LOTAGSAVED state zombie_burst
+			else action ZERO
+			}
+		else
+		state zombie_burst
+		}
+	}
+ifaction AZOMBIE_BURST
+	{
+	ifactioncount 6
+		{
+		ai 0
+		cactor ZOMBIE
+		}
+	}
+enda
+
+// ******************************************************************************
+// ZOMBIE
+// ******************************************************************************
+
+action AZOMBIE_FROZE 0 1 5 1 10
+action AZOMBIEIDLE 16375 4 5 1 60
+action AZOMBIEWALK 0 4 5 1 20
+action ASZOMBIERUN 0 4 5 1 4
+action AZOMBIEBITE 16380 2 5 1 24
+
+action AZOMBIEDIE 27 6 1 1 10
+action AZOMBIEDEAD 32 1 1 1 10
+
+action AZOMBIEHEADSHOT 1114 6 1 1 6
+action AZOMBIEHSDEAD 1119
+
+action AZOMBIESLASH 1052 6 1 1 10
+action AZOMBIESDEAD 1057
+
+action A_ZOMB_BIDIE 20588 2 1 1 16
+action A_ZOMB_BIDEAD 20589
+
+move SUPERZOMRUN 280
+move ZOMWALK 60
+move ZOMSTOP 0
+
+ai AIZOMBIEWALK AZOMBIEWALK ZOMWALK faceplayerslow
+ai AISZOMBIERUN ASZOMBIERUN SUPERZOMRUN faceplayer
+ai AIZOMBIEBITE AZOMBIEBITE ZOMSTOP faceplayer
+ai AIZOMBIE_SHRUNK AZOMBIEWALK ZOMWALK faceplayer
+ai AIZOMBIE_GROW AZOMBIEWALK ZOMSTOP faceplayer
+
+ai AIZOMBIEDIE AZOMBIEDIE ZOMSTOP
+ai AIZOMBIESLASH_DIE_01 AZOMBIESLASH ZOMSTOP
+ai AIZOMBIEHEADDIE AZOMBIEHEADSHOT ZOMSTOP
+
+defstate zombie_torsofly
+	cstat 0
+	state random_trigger_showoff
+	sound TORS_BISEC
+	setprojectile[ZOMBIE_TORSO_FLY].pal sprite[].pal
+	ezshoot -4096 ZOMBIE_TORSO_FLY
+	setprojectile[ZOMBIE_TORSO_FLY].pal 0
+	geta[].htang temp4
+	seta[RETURN].ang temp4
+	espawn BIG_BLOOD_EXE
+	action A_ZOMB_BIDIE
+ends
+
+useractor enemy ZOMBIE 75 AZOMBIEIDLE
+fall
+
+state checksquished
+
+ifg sprite[].htextra 0
+{
+  ife sprite[].htpicnum ZOMBIE
+    seta[].htextra -1
+}
+
+
+state ENEMYKNOCKBACKS
+state enemyfloordamage
+state enemy_fire_damage
+state enemy_ice_damage
+
+
+ifai 0
+	{
+	state monst_glow
+	set both_present 1
+	spawn SHOOTME
+	spriteflags NORMAL_ENEMY
+	cstat 257
+	ifspawnedby APLAYER
+		{
+		strength 500
+		spritepal 25
+		sizeat 30 30
+		}
+	else
+		{
+		ifspritepal 25 strength 250 else strength 75
+		sizeat 26 26
+		}
+	ifspritepal 25 ai AISZOMBIERUN else ai AIZOMBIEWALK
+	}
+else
+ifaction AZOMBIE_FROZE state frozen_code
+else
+ifaction AZOMBIEDEAD
+	{
+	strength 0
+	move 0
+      ifhitweapon
+        ifwasweapon RADIUSEXPLOSION state zombie_jibs
+	  else
+	  ifpdistg 8000
+	   {
+	   ifcansee nullop else killit
+	   }
+	}
+else
+ifaction AZOMBIESDEAD
+	{
+	strength 0
+	move 0
+      ifhitweapon
+        ifwasweapon RADIUSEXPLOSION
+      {
+        state squish_sounds
+        state standard_jibs
+        killit
+      }
+	}
+else
+ifaction A_ZOMB_BIDEAD
+	{
+	strength 0
+	move 0
+      ifhitweapon
+        ifwasweapon RADIUSEXPLOSION
+      {
+        state squish_sounds
+        state standard_jibs
+        killit
+      }
+	}
+else
+ifaction AZOMBIEHSDEAD
+	{
+	strength 0
+	move 0
+      ifhitweapon
+        ifwasweapon RADIUSEXPLOSION state zombie_jibs
+	}
+else ifaction A_ZOMB_BIDIE
+	{
+	strength 0
+	ifactioncount 2 { state rf state BODY_FALL_NOISES action A_ZOMB_BIDEAD espawn BLOODPOOL }
+	}
+else
+ifai AIZOMBIEDIE
+	{
+		ifactioncount 6
+			{
+			ifrnd 8 spawn ROACH ifrnd 8 spawn ROACH ifrnd 8 spawn ROACH
+			state BODY_FALL_NOISES
+			action AZOMBIEDEAD
+			}
+	}
+else
+ifai AIZOMBIE_GROW
+state genericgrowcode
+else
+ifai AIZOMBIE_SHRUNK
+{
+    ifcount SHRUNKDONECOUNT
+      ai AIZOMBIEWALK
+    else ifcount SHRUNKCOUNT
+      {
+	  sound ACTOR_UNSHRINK
+	ifspritepal 24 sizeto 52 52 else sizeto 46 46
+	}
+    else
+      state genericshrunkcode
+    break
+}
+else
+ifai AIZOMBIEHEADDIE
+	{
+		ifactioncount 6
+			{
+			ifrnd 8 spawn ROACH ifrnd 8 spawn ROACH ifrnd 8 spawn ROACH
+			state BODY_FALL_NOISES
+			action AZOMBIEHSDEAD
+			}
+	}
+else
+ifai AIZOMBIESLASH_DIE_01
+	{
+		ifactioncount 6
+			{
+			state rf
+			state SQUISH_FALL_NOISES
+			action AZOMBIESDEAD
+			}
+	}
+else
+ifai AIZOMBIEWALK
+	{
+		ifspritepal 3
+		 ifpdistl 2048
+			{
+				ifrnd 32 sound ZOMBIE_ROAM1 else
+				ifrnd 32 sound ZOMBIE_ROAM2 else
+				ifrnd 32 sound ZOMBIE_ROAM3
+			}
+		else
+		ifrnd 1 sound ZOMBIE_ROAM1 else
+		ifrnd 1 sound ZOMBIE_ROAM2 else
+		ifrnd 1 sound ZOMBIE_ROAM3
+
+	ifpdistl 1324
+	ifp phigher
+	ifrnd 32
+		{
+		wackplayer
+		geta[].ang temp
+		getp[].ang temp
+		set knockbackheight 2048
+		set knockback2 2
+		}
+
+	ifpdistl 1024
+	 ifcansee
+	  ifcanseetarget
+		{
+		ai AIZOMBIEBITE
+		}
+
+	ifnotmoving
+	 ifrnd 4 shoot 9902
+
+	}
+else
+ifai AISZOMBIERUN
+	{
+
+	ifpdistl 8192
+	 ifcansee
+	  ifcanseetarget
+		{
+		ifrnd 2 sound SUPER_ZOMBIE1 else
+		ifrnd 2 sound SUPER_ZOMBIE2
+		}
+		else
+		{
+		ifrnd 1 sound ZOMBIE_ROAM1 else
+		ifrnd 1 sound ZOMBIE_ROAM2 else
+		ifrnd 1 sound ZOMBIE_ROAM3
+		}
+
+
+	ifpdistl 1024
+	 ifcansee
+	  ifcanseetarget
+		{
+		ai AIZOMBIEBITE
+		}
+	}
+else
+ifai AIZOMBIEBITE
+	{
+	ifpdistg 1024 { ifspritepal 25 ai AISZOMBIERUN else ai AIZOMBIEWALK }
+	else
+	ifactioncount 2
+		{
+		ife CHAR 2
+		 ifg merlijn_shield 0
+		 ifg merl_shieldup 0
+		  ifp pfacing
+			{
+			sub merlijn_shield 30
+			ifrnd 128 sound SHIELDHIT2 else sound SHIELDHIT
+			}
+		else
+		ife CHAR 4
+		{
+			getp[].holoduke_on temp
+			ifn temp -1
+			{
+			sound ZOMBIE_BITE
+			seta[].htextra 20
+			soundonce WHOOSH
+			}
+			else
+			{
+			sound ZOMBIE_BITE
+			palfrom 30 30 0 0
+			shoot 17663
+			}
+		}
+		else
+			{
+			sound ZOMBIE_BITE
+			palfrom 30 30 0 0
+			shoot 17663
+			}
+		resetactioncount
+		}
+	}
+
+ifhitweapon
+	{
+	state NEWGUNEFFECTS
+    ifrnd 128 guts JIBS6 1
+    ifrnd 4 guts JIBS5 1
+    ifrnd 4 guts JIBS4 1
+    ifrnd 4 guts JIBS3 1
+    ifrnd 4 guts JIBS2 1
+    ifrnd 4 guts JIBS1 1
+	ifwasweapon SHRINKSPARK { sound ACTOR_SHRINKING ai AIZOMBIE_SHRUNK }
+	ifdead
+		{
+		addkills 1
+
+
+		geta[].htpicnum PROJ_HIT_TYPE
+		ifand tiledata[PROJ_HIT_TYPE].gameflags 8 getprojectile[PROJ_HIT_TYPE].userdata temp4 else set temp4 0
+			ifwasweapon RADIUSEXPLOSION state zombie_jibs
+			ifwasweapon RPG state zombie_jibs
+			ifand PROJ_UDATA PROJ_GIB state zombie_jibs
+			ifand PROJ_UDATA 8192
+			 {
+			 shoot SPARK2 shoot SPARK2 shoot SPARK2
+			 spawn ELECTROCUTE_GUY
+			 killit
+			 }
+			ifwasweapon SAWBLADE state zombie_torsofly
+			else ifwasweapon SAWBLADE_BOUNCE state zombie_torsofly
+			else ifwasweapon SNOWFALL_DISC state zombie_torsofly
+			else ifwasweapon 6875 ife CHAR 2 state zombie_torsofly
+			else
+		ifg ice_damage 0 { spritepal 1 strength 1 sound SOMETHINGFROZE action AZOMBIE_FROZE }
+		else ifg fire_damage 0 { spawn ONFIREGUY set PLAYER_VOICEOVER 21 killit }
+		else ifg energy_damage 0
+			{
+			shoot SPARK2 shoot SPARK2 shoot SPARK2
+			spritepal 4
+			guts JIBS3 2
+			spawn DISINTIGRATE_GUY
+			killit
+			}
+		else ifand temp4 8
+			{
+			ife SWORD_ANIM 1 cstat 4 else cstat 0
+			state sword_kill_sounds
+			ai AIZOMBIESLASH_DIE_01
+			state slashed_sounds
+			spawn BLOODPOOL
+			}
+		else ifwasweapon GROWSPARK { cstat 0 sound ACTOR_GROWING ai AIZOMBIE_GROW break }
+		else
+			{
+			ifrnd 128 sound ZOMBIE_DIE1 else sound ZOMBIE_DIE2
+			spawn BLOODPOOL
+			geta[].extra temp
+			ifl temp -100
+				state zombie_torsofly
+			else ifl temp -50 state zombie_flyback
+			else
+				{
+				ife HEADSHOT 2
+					{
+					state rf
+					ai AIZOMBIEHEADDIE
+					state random_trigger_showoff
+					state decap_sounds shoot NJIB shoot NJIB guts JIBS6 3 guts JIBS2 2
+					}
+				else { state rf ai AIZOMBIEDIE }
+				}
+			}
+		}
+	}
+
+
+enda

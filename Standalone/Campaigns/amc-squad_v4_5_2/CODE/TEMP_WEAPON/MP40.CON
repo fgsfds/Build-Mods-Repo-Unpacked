@@ -1,0 +1,60 @@
+
+
+defstate tw_mp40_code
+     setarray WEAPON_TILE[0] MP40SPRITE
+    set GUN_VOLUME 6
+    set GUN_ACCURACY 8
+    set GUN_MAX_SPREAD 24
+    set GUN_AMMO_TYPES 0
+    set GUN_SIZE 1
+    set GUN_HANDS 1 // player could use it 1-handed
+    set WEAPON0_FIREDELAY 2
+    set WEAPON0_TOTALTIME 4
+    set WEAPON0_HOLDDELAY 1
+    set WEAPON0_FIRESOUND 4
+    set WEAPON0_FLAGS 8276
+    set WEAPON0_SPAWN 0
+    set WEAPON0_RELOAD 34
+    set WEAPON0_SHOOTS CHAINGUN
+    set WEAPON0_INITIALSOUND 4
+    set WEAPON0_SHOTSPERBURST 1
+    set WEAPON0_CLIP 0
+    set WEAPON0_RELOADSOUND1 4
+    set WEAPON0_RELOADSOUND2 4
+    set WEAPON0_SELECTSOUND SELECT_SMG
+    setarray weap_special[0] 0
+
+    ife cur_weap 0
+        {
+        set weapon_type 2
+        set gun_mag temp_wep_mag
+        set max_temp_wep_mag 32
+        ife kickbackpic 2 
+		{ 
+			espawn SOUND_SPRITE state SPAWN_IN_PLAYER_FRONT setactorvar[RETURN].temp MP40_FIRE 
+			set gun_recoil 4 
+			randvar temp2 1024 zshoot temp2 NINEMM_SHELL
+		}
+        ife kickbackpic 2 { set gunsmoke_angle 32 state spawn_gunsmoke }
+        ife kickbackpic 3 add gun_spread 8
+
+        ife kickbackpic 11 { state smg_mag_out_sounds ife temp_wep_mag 0 shoot SMGMAGAZINE }
+
+        ife kickbackpic 29
+            {
+            state smg_mag_in_sounds
+            ifvarvarl cur_ammo max_temp_wep_mag set temp_wep_mag cur_ammo else set temp_wep_mag max_temp_wep_mag
+            }
+
+      ifl temp_wep_mag 1
+       ife player[].weapon_pos 0
+        ife kickbackpic 0
+            {
+            ifn cur_ammo 0
+                {
+                setp[].reloading 1
+                setp[].kickback_pic 6
+                }
+            }
+        }
+ends

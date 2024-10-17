@@ -1,0 +1,1592 @@
+// NOTE RESEARCH ARRAY VALUES
+// 0 = research not found yet
+// 1 = found, not new
+// 2 = researched
+// 3 = new & researchable in ui
+// 4 = unacquired research that requires MIA on an enemy
+
+define NU_RESEARCH_INTERFACE 12118
+
+var rs_fmv_counter 0 0
+var rs_show_mode 0 1 // 0 = all, 1 = new, 2 = unresearched
+var rs_popup 0 1
+var rs_item_curmiaidx 1 1
+
+defstate disp_rs_header
+	set ui_help_tab RS_TAB_HELP
+	state disp_interface_header
+
+	qputs 1380 RESEARCH & DEVELOPMENT TERMINAL
+	screentext STARTALPHANUM 100 9 30000 0 0 1380 0 2 16 0 2 0 1 1 0 0 0 xdim ydim
+
+	// Display tech level
+	readgamevar TECH_LEVEL
+    qsprintf 1036 1037 TECH_LEVEL
+	screentext STARTALPHANUM 10 18 HALFSIZE 0 0 1036 0 1 16 0 5 8 1 1 0 0 0 xdim ydim
+
+	// Display budget
+	readgamevar AMC_BUDGET
+    qsprintf 1041 1042 AMC_BUDGET
+	screentext STARTALPHANUM 75 18 HALFSIZE 0 0 1041 0 1 16 0 5 8 1 1 0 0 0 xdim ydim
+ends
+
+defstate rs_new_weapons
+	set temp2 0
+	for temp range MAX_WEAPONS_RESEARCH
+	{
+		ife WEAPONS_RESEARCH[temp] 3
+			set temp2 1
+	}
+ends
+
+defstate rs_new_equipment
+	set temp2 0
+	for temp range MAX_EQUIPMENT_RESEARCH
+	{
+		ife EQUIPMENT_RESEARCH[temp] 3
+			set temp2 1
+	}
+ends
+
+defstate rs_new_personnel
+	set temp2 0
+	for temp range MAX_PERSONNEL_RESEARCH
+	{
+		ife PERSONNEL_RESEARCH[temp] 3
+			set temp2 1
+	}
+ends
+
+defstate rs_new_base
+	set temp2 0
+	for temp range MAX_BASE_RESEARCH
+	{
+		ife BASE_RESEARCH[temp] 3
+			set temp2 1
+	}
+ends
+
+defstate rs_new_mystic
+	set temp2 0
+	for temp range MAX_MYSTICAL_RESEARCH
+	{
+		ife MYSTICAL_RESEARCH[temp] 3
+			set temp2 1
+	}
+ends
+
+defstate rs_new_dojo
+	set temp2 0
+	for temp range MAX_MELEE_RESEARCH
+	{
+		ife MELEE_RESEARCH[temp] 3
+			set temp2 1
+	}
+ends
+
+defstate disp_rs_tabbuttons
+	// TAB BUTTONS
+	// Weapons tab
+	set gui_pos_x 30
+	set gui_pos_y 35
+	qputs 7505 WEAPONS
+	set ui_btn_mousehint 7506
+	qputs 7506 Switch to Weapons research tab
+	set ui_btn_size 15000
+	ife ui_tab RS_TAB_WEAPONS
+		set ui_btn_active 1
+	state putgenericbutton
+	ife ui_btn_return 2
+	{
+		set g_scroll_pos 0
+		set ui_tab RS_TAB_WEAPONS
+		set ui_item -1
+		state rs_init_weapon_list
+	}
+
+	ifand new_research 1 // new weapons
+		rotatespritea 25 38 32768 0 14606 0 0 8 -255 0 0 xdim ydim
+
+	// Equipment tab
+	set gui_pos_x 80
+	set gui_pos_y 35
+	qputs 7505 EQUIPMENT
+	set ui_btn_mousehint 7506
+	qputs 7506 Switch to Equipment research tab
+	set ui_btn_size 15000
+	ife ui_tab RS_TAB_EQUIPMENT
+		set ui_btn_active 1
+	state putgenericbutton
+	ife ui_btn_return 2
+	{
+		set g_scroll_pos 0
+		set ui_tab RS_TAB_EQUIPMENT
+		set ui_item -1
+		state rs_init_equipment_list
+	}
+
+	ifand new_research 2 // new equipment
+		rotatespritea 75 38 32768 0 14606 0 0 8 -255 0 0 xdim ydim
+
+	// Personnel tab
+	set gui_pos_x 130
+	set gui_pos_y 35
+	qputs 7505 PERSONNEL
+	set ui_btn_mousehint 7506
+	qputs 7506 Switch to Personnel research tab
+	set ui_btn_size 15000
+	ife ui_tab RS_TAB_PERSONNEL
+		set ui_btn_active 1
+	state putgenericbutton
+	ife ui_btn_return 2
+	{
+		set g_scroll_pos 0
+		set ui_tab RS_TAB_PERSONNEL
+		set ui_item -1
+		state rs_init_personnel_list
+	}
+
+	ifand new_research 4 // new personnel
+		rotatespritea 125 38 32768 0 14606 0 0 8 -255 0 0 xdim ydim
+
+	// Base tab
+	set gui_pos_x 180
+	set gui_pos_y 35
+	qputs 7505 Base
+	set ui_btn_mousehint 7506
+	qputs 7506 Switch to Base research tab
+	set ui_btn_size 15000
+	ife ui_tab RS_TAB_BASE
+		set ui_btn_active 1
+	state putgenericbutton
+	ife ui_btn_return 2
+	{
+		set g_scroll_pos 0
+		set ui_tab RS_TAB_BASE
+		set ui_item -1
+		state rs_init_base_list
+	}
+
+	ifand new_research 8 // new base
+		rotatespritea 175 38 32768 0 14606 0 0 8 -255 0 0 xdim ydim
+
+	// Mystical tab
+	ife BASE_RESEARCH[RS_B_PARANORMAL] 2 // Paranormal lab researched?
+	{
+		set gui_pos_x 230
+		set gui_pos_y 35
+		qputs 7505 MYSTICAL
+		set ui_btn_mousehint 7506
+		qputs 7506 Switch to Mystical research tab
+		set ui_btn_size 15000
+		ife ui_tab RS_TAB_MYSTIC
+			set ui_btn_active 1
+		state putgenericbutton
+		ife ui_btn_return 2
+		{
+			set g_scroll_pos 0
+			set ui_tab RS_TAB_MYSTIC
+			set ui_item -1
+			state rs_init_mystical_list
+		}
+
+		ifand new_research 16 // new mystic
+			rotatespritea 225 38 32768 0 14606 0 0 8 -255 0 0 xdim ydim
+	}
+
+	// Dojo tab
+	ife BASE_RESEARCH[RS_B_DOJO] 2 // Dojo researched?
+	{
+		set gui_pos_x 280
+		set gui_pos_y 35
+		qputs 7505 DOJO
+		set ui_btn_mousehint 7506
+		qputs 7506 Switch to Dojo research tab
+		set ui_btn_size 15000
+		ife ui_tab RS_TAB_DOJO
+			set ui_btn_active 1
+		state putgenericbutton
+		ife ui_btn_return 2
+		{
+			set g_scroll_pos 0
+			set ui_tab RS_TAB_DOJO
+			set ui_item -1
+			state rs_init_dojo_list
+		}
+
+		ifand new_research 32 // new dojo
+			rotatespritea 275 38 32768 0 14606 0 0 8 -255 0 0 xdim ydim
+	}
+ends
+
+// expected input:
+// gui pos x and y
+// rs_item_picnum = tile icon
+// qputs 7803 = contains text for the line. Keep it short! (below 30 chars)
+defstate disp_rs_listiteminner
+	set disp_temp 0
+	set clicked 0
+
+	// Only if the item is at least found is it clickable
+	ifge rs_item_researched 1
+	  ife g_scroll_hold 0
+	  ifn ui_popup_shown 1
+	{
+		state CURSOR_OVER_ITEM
+		// bounds of the list
+		ifl gui_pos_x_temp 20
+		 ifg gui_pos_x_temp -75
+		  ifl gui_pos_y_temp 7
+		   ifg gui_pos_y_temp -7
+		{
+			set disp_temp 1
+
+			state handle_click
+
+			ife clicked 1
+			{
+				screensound RES_INT1
+				set ui_item ui_query_id
+				set rs_item_curmiaidx 1
+			}
+		}
+	}
+
+	// Icon
+	ife disp_temp 0
+		rotatesprite gui_pos_x gui_pos_y 7168 0 rs_item_picnum 0 0 0 0 0 xdim ydim
+	else
+		rotatesprite gui_pos_x gui_pos_y 7168 0 rs_item_picnum disp_pulse 0 0 0 0 xdim ydim
+
+	// Text
+	set gui_pos_x_temp gui_pos_x
+	add gui_pos_x_temp 10
+
+	ife ui_item ui_query_id
+		screentext STARTALPHANUM gui_pos_x_temp gui_pos_y 17000 0 0 1380 0 2 16 0 2 0 1 1 8192 0 0 xdim ydim
+	else ife rs_item_researched 0 // can happen in dependencies list
+	{
+		// Append NOT FOUND YET
+		qstrcat 1380 1379
+		screentext STARTALPHANUM gui_pos_x_temp gui_pos_y 16000 0 0 1380 0 12 16 0 2 0 1 1 8192 0 0 xdim ydim
+	}
+	else ife rs_item_researched 2
+	{
+		ife disp_temp 0
+			screentext STARTALPHANUM gui_pos_x_temp gui_pos_y 16000 0 0 1380 0 90 16 0 2 0 1 1 8192 0 0 xdim ydim
+		else
+			screentext STARTALPHANUM gui_pos_x_temp gui_pos_y 17000 0 0 1380 disp_pulse 90 16 0 2 0 1 1 8192 0 0 xdim ydim
+	}
+	else ife disp_temp 0
+		screentext STARTALPHANUM gui_pos_x_temp gui_pos_y 16000 0 0 1380 0 12 16 0 2 0 1 1 8192 0 0 xdim ydim
+	else
+		screentext STARTALPHANUM gui_pos_x_temp gui_pos_y 17000 0 0 1380 disp_pulse 7 16 0 2 0 1 1 8192 0 0 xdim ydim
+
+	// If new, display the glowing "new" thing
+	ife rs_item_researched 3
+	{
+		add gui_pos_x_temp 1
+		set gui_pos_y_temp gui_pos_y
+		sub gui_pos_y_temp 2
+
+		rotatespritea gui_pos_x_temp gui_pos_y_temp 16384 0 14606 0 0 8 -255 0 0 xdim ydim
+	}
+ends
+
+var rs_list_amount 0 0
+
+defstate disp_rs_listitem
+	set temp4 0
+
+	ife rs_show_mode 0  // show all
+		set temp4 1
+	else ife rs_show_mode 1 ife rs_item_researched 3 // only show new
+		set temp4 1
+	else ife rs_show_mode 2 ifn rs_item_researched 2 // only show unresearched
+		set temp4 1
+
+	ife temp4 1
+	{
+		add rs_list_amount 1
+		// if in visible list
+		ifge gui_pos_y 52 ifle gui_pos_y 185
+			state disp_rs_listiteminner
+
+		add gui_pos_y 15
+	}
+ends
+
+defstate disp_rs_commontab
+	// Get total amount of items on tab
+	switch ui_tab
+		case RS_TAB_WEAPONS
+			set temp3 RS_W_CURMAX
+			break
+		case RS_TAB_EQUIPMENT
+			set temp3 RS_E_CURMAX
+			break
+		case RS_TAB_PERSONNEL
+			set temp3 RS_P_CURMAX
+			break
+		case RS_TAB_BASE
+			set temp3 RS_B_CURMAX
+			break
+		case RS_TAB_MYSTIC
+			set temp3 RS_M_CURMAX
+			break
+		case RS_TAB_DOJO
+			set temp3 RS_D_CURMAX
+			break
+	endswitch
+
+	add temp3 1
+
+	for temp range temp3
+	{
+		set temp2 rs_curlist[temp]
+		ifg temp2 0
+		{
+			set ui_query_id temp2
+
+			// call appropriate defs state
+			switch ui_tab
+				case RS_TAB_WEAPONS
+					state rs_weapon_defs
+					break
+				case RS_TAB_EQUIPMENT
+					state rs_equipment_defs
+					break
+				case RS_TAB_PERSONNEL
+					state rs_personnel_defs
+					break
+				case RS_TAB_BASE
+					state rs_base_defs
+					break
+				case RS_TAB_MYSTIC
+					state rs_mystical_defs
+					break
+				case RS_TAB_DOJO
+					state rs_dojo_defs
+					break
+			endswitch
+
+			state disp_rs_listitem
+		}
+	}
+ends
+
+defstate disp_rs_list
+	// Scroll bar
+	ifg rs_list_amount 9 // testing shows we can display 9 items without scrolling
+	{
+		// The scrollbar starts at 60 and ends at 180, and should increment in some velocity that the difference is divisible by
+		// This velocity must be based on the list length as well...
+		set gui_pos_x 100
+		set gui_pos_y 60
+		set g_scroll_y_pos_end 180
+		set g_scroll_baryvel 4
+		state putscrollbar
+	}
+
+	// list start coordinates
+	set gui_pos_x 15
+	set gui_pos_y 60
+
+	// Determine the y offset to apply to the list per scroll
+	ifn g_scroll_pos 0
+	{
+		// temp2 = Total amount of scrolls
+		set temp2 120
+		div temp2 g_scroll_baryvel
+
+		// temp3 = the total y distance that has to be scrolled
+		set temp3 60
+		sub temp3 180
+		set temp4 rs_list_amount
+		sub temp4 1
+		mul temp4 15
+		add temp3 temp4
+
+		// temp4 = the amount that needs to be subbed from y pos for the end of the list to match with the end of the scrollbar
+		set temp4 temp3
+		div temp4 temp2
+		add temp4 1 // compensate for incomplete divisions
+
+		set disp_temp g_scroll_pos
+		mul disp_temp temp4
+		sub gui_pos_y disp_temp
+	}
+
+	set rs_list_amount 0
+
+	ifn ui_tab RS_TAB_HELP
+		state disp_rs_commontab
+
+	ife rs_list_amount 0
+	{
+		qputs 1380 No research projects found in this category
+		screentext STARTALPHANUM gui_pos_x gui_pos_y 23000 0 0 1380 disp_pulse 2 16 0 2 0 1 1 8192 0 0 xdim ydim
+	}
+ends
+
+var rs_dep 0 1
+var rs_dep_type 0 1
+
+defstate get_rs_dependency
+	ife rs_dep_type RS_TAB_WEAPONS
+		state rs_weapon_defs
+	else ife rs_dep_type RS_TAB_EQUIPMENT
+		state rs_equipment_defs
+	else ife rs_dep_type RS_TAB_PERSONNEL
+		state rs_personnel_defs
+	else ife rs_dep_type RS_TAB_BASE
+		state rs_base_defs
+	else ife rs_dep_type RS_TAB_MYSTIC
+		state rs_mystical_defs
+	else ife rs_dep_type RS_TAB_DOJO
+		state rs_dojo_defs
+ends
+
+defstate disp_rs_dependency
+	set temp ui_query_id // make a backup, take care temp is not overwritten in the defs.
+	set ui_query_id rs_dep
+
+	state get_rs_dependency
+
+	ifn rs_dep_type 6
+		state disp_rs_listiteminner
+	else ife rs_dep 12
+	{
+		// Only used once atm, id 12 is the riotgun in armoury
+		qputs 1380 Riotgun in armoury
+
+		ife WEAPONS_FOUND[12] 1
+			screentext STARTALPHANUM gui_pos_x gui_pos_y 23000 0 0 1380 0 90 16 0 2 0 1 1 8192 0 0 xdim ydim
+		else
+			screentext STARTALPHANUM gui_pos_x gui_pos_y 22000 0 0 1380 0 2 16 0 2 0 1 1 8192 0 0 xdim ydim
+	}
+
+	// Swap to the other tab based on type
+    ife clicked 1
+	  ifn rs_dep_type 6
+	{
+		ifn ui_tab RS_TAB_WEAPONS ife rs_dep_type RS_TAB_WEAPONS
+			state rs_init_weapon_list
+		ifn ui_tab RS_TAB_EQUIPMENT ife rs_dep_type RS_TAB_EQUIPMENT
+			state rs_init_equipment_list
+		ifn ui_tab RS_TAB_PERSONNEL ife rs_dep_type RS_TAB_PERSONNEL
+			state rs_init_personnel_list
+		ifn ui_tab RS_TAB_BASE ife rs_dep_type RS_TAB_BASE
+			state rs_init_base_list
+		ifn ui_tab RS_TAB_MYSTIC ife rs_dep_type RS_TAB_MYSTIC
+			state rs_init_mystical_list
+		ifn ui_tab RS_TAB_DOJO ife rs_dep_type RS_TAB_DOJO
+			state rs_init_dojo_list
+
+		set ui_tab rs_dep_type
+		set g_scroll_pos 0
+	}
+
+	// restore backup
+	ife clicked 0
+		set ui_query_id temp
+ends
+
+var rs_dep1_backup 0 1
+var rs_dep2_backup 0 1
+var rs_dep3_backup 0 1
+var rs_dep4_backup 0 1
+var rs_dep1type_backup 0 1
+var rs_dep2type_backup 0 1
+var rs_dep3type_backup 0 1
+var rs_dep4type_backup 0 1
+var rs_dep_fulfilled 0 1
+
+defstate get_rs_depsresearched // get if all dependencies are researched
+	set rs_dep1_backup rs_item_dep1
+	set rs_dep2_backup rs_item_dep2
+	set rs_dep3_backup rs_item_dep3
+	set rs_dep4_backup rs_item_dep4
+	set rs_dep1type_backup rs_item_dep1type
+	set rs_dep2type_backup rs_item_dep2type
+	set rs_dep3type_backup rs_item_dep3type
+	set rs_dep4type_backup rs_item_dep4type
+
+	set temp ui_query_id // make a backup, take care temp is not overwritten in the defs.
+	set ui_query_id rs_dep
+
+	set rs_dep_fulfilled 1
+
+	ifn rs_dep1_backup 0
+	{
+		set rs_dep rs_dep1_backup
+		set rs_dep_type rs_dep1type_backup
+		set ui_query_id rs_dep
+		state get_rs_dependency
+
+		ifn rs_item_researched 2
+			set rs_dep_fulfilled 0
+	}
+
+	ifn rs_dep2_backup 0
+	  ife rs_dep_fulfilled 1
+	{
+		set rs_dep rs_dep2_backup
+		set rs_dep_type rs_dep2type_backup
+		set ui_query_id rs_dep
+		state get_rs_dependency
+
+		ifn rs_item_researched 2
+			set rs_dep_fulfilled 0
+	}
+
+	ifn rs_dep3_backup 0
+	  ife rs_dep_fulfilled 1
+	{
+		set rs_dep rs_dep3_backup
+		set rs_dep_type rs_dep3type_backup
+		set ui_query_id rs_dep
+		state get_rs_dependency
+
+		ifn rs_item_researched 2
+			set rs_dep_fulfilled 0
+	}
+
+	ifn rs_dep4_backup 0
+	  ife rs_dep_fulfilled 1
+	{
+		set rs_dep rs_dep4_backup
+		set rs_dep_type rs_dep4type_backup
+		set ui_query_id rs_dep
+		state get_rs_dependency
+
+		ifn rs_item_researched 2
+			set rs_dep_fulfilled 0
+	}
+
+	set ui_query_id temp
+
+	// Restore data
+	set rs_item_dep1 rs_dep1_backup
+	set rs_item_dep2 rs_dep2_backup
+	set rs_item_dep3 rs_dep3_backup
+	set rs_item_dep4 rs_dep4_backup
+	set rs_item_dep1type rs_dep1type_backup
+	set rs_item_dep2type rs_dep2type_backup
+	set rs_item_dep3type rs_dep3type_backup
+	set rs_item_dep4type rs_dep4type_backup
+ends
+
+defstate disp_rs_dependencies
+	set gui_pos_x 120
+
+	set rs_dep1_backup rs_item_dep1
+	set rs_dep2_backup rs_item_dep2
+	set rs_dep3_backup rs_item_dep3
+	set rs_dep4_backup rs_item_dep4
+	set rs_dep1type_backup rs_item_dep1type
+	set rs_dep2type_backup rs_item_dep2type
+	set rs_dep3type_backup rs_item_dep3type
+	set rs_dep4type_backup rs_item_dep4type
+
+	ifn rs_dep1_backup 0
+	{
+		set gui_pos_y 140
+		set rs_dep rs_dep1_backup
+		set rs_dep_type rs_dep1type_backup
+		state disp_rs_dependency
+	}
+
+	ifn rs_dep2_backup 0
+	{
+		set gui_pos_y 155
+		set rs_dep rs_dep2_backup
+		set rs_dep_type rs_dep2type_backup
+		state disp_rs_dependency
+	}
+
+	ifn rs_dep3_backup 0
+	{
+		set gui_pos_y 170
+		set rs_dep rs_dep3_backup
+		set rs_dep_type rs_dep3type_backup
+		state disp_rs_dependency
+	}
+
+	ifn rs_dep4_backup 0
+	{
+		set gui_pos_y 185
+		set rs_dep rs_dep4_backup
+		set rs_dep_type rs_dep4type_backup
+		state disp_rs_dependency
+	}
+
+	// Need to do qputs clearing here so we don't display parts of the text description (as we're reusing string ids, why not)
+	qputs 1381
+	qputs 1382
+	qputs 1383
+	qputs 1384
+ends
+
+defstate rs_getunlockdef
+	ife temp2 RS_TAB_WEAPONS
+		state rs_weapon_defs
+	else ife temp2 RS_TAB_EQUIPMENT
+		state rs_equipment_defs
+	else ife temp2 RS_TAB_PERSONNEL
+		state rs_personnel_defs
+	else ife temp2 RS_TAB_BASE
+		state rs_base_defs
+	else ife temp2 RS_TAB_MYSTIC
+		state rs_mystical_defs
+	else ife temp2 RS_TAB_DOJO
+		state rs_dojo_defs
+ends
+
+defstate rs_getunlockstexts
+	set temp ui_query_id
+
+	ifn rs_unlock1 0
+	{
+		set ui_query_id rs_unlock1
+		set temp2 rs_unlock1type
+		state rs_getunlockdef
+		qstrcpy 7508 1380
+	}
+
+	ifn rs_unlock2 0
+	{
+		set ui_query_id rs_unlock2
+		set temp2 rs_unlock2type
+		state rs_getunlockdef
+		qstrcpy 7509 1380
+	}
+
+	ifn rs_unlock3 0
+	{
+		set ui_query_id rs_unlock3
+		set temp2 rs_unlock3type
+		state rs_getunlockdef
+		qstrcpy 7510 1380
+	}
+
+	ifn rs_unlock4 0
+	{
+		set ui_query_id rs_unlock4
+		set temp2 rs_unlock4type
+		state rs_getunlockdef
+		qstrcpy 7511 1380
+	}
+
+	set ui_query_id temp
+ends
+
+defstate rs_markread
+	switch ui_tab
+		case RS_TAB_WEAPONS
+			ife WEAPONS_RESEARCH[ui_item] 3
+			{
+				setarray WEAPONS_RESEARCH[ui_item] 1
+
+				state rs_new_weapons
+				ife temp2 0
+				  ifand new_research 1
+					xorvar new_research 1
+			}
+			break
+		case RS_TAB_EQUIPMENT
+			ife EQUIPMENT_RESEARCH[ui_item] 3
+			{
+				setarray EQUIPMENT_RESEARCH[ui_item] 1
+
+				state rs_new_equipment
+				ife temp2 0
+				  ifand new_research 2
+					xorvar new_research 2
+			}
+			break
+		case RS_TAB_PERSONNEL
+			ife PERSONNEL_RESEARCH[ui_item] 3
+			{
+				setarray PERSONNEL_RESEARCH[ui_item] 1
+
+				state rs_new_personnel
+				ife temp2 0
+				  ifand new_research 4
+					xorvar new_research 4
+			}
+			break
+		case RS_TAB_BASE
+			ife BASE_RESEARCH[ui_item] 3
+			{
+				setarray BASE_RESEARCH[ui_item] 1
+
+				state rs_new_base
+				ife temp2 0
+				  ifand new_research 8
+					xorvar new_research 8
+			}
+			break
+		case RS_TAB_MYSTIC
+			ife MYSTICAL_RESEARCH[ui_item] 3
+			{
+				setarray MYSTICAL_RESEARCH[ui_item] 1
+
+				state rs_new_mystic
+				ife temp2 0
+				  ifand new_research 16
+					xorvar new_research 16
+			}
+			break
+		case RS_TAB_DOJO
+			ife MELEE_RESEARCH[ui_item] 3
+			{
+				setarray MELEE_RESEARCH[ui_item] 1
+
+				state rs_new_dojo
+				ife temp2 0
+				  ifand new_research 32
+					xorvar new_research 32
+			}
+			break
+	endswitch
+ends
+
+defstate rs_reload_data_files
+	readarrayfromfile TECH_LEVEL_A F_TECH_LEVEL_AMCTC
+	set temp 0
+	set TECH_LEVEL 1
+	ife BASE_RESEARCH[9] 2 set TECH_LEVEL 11
+	whilevarn temp MAX_TECH_UPGRADES
+	{
+		ife TECH_LEVEL_A[temp] 1 add TECH_LEVEL 1
+		add temp 1
+	}
+	savegamevar TECH_LEVEL
+	state read_everything_arrays
+ends
+
+
+// Calculate the budget cost
+// base cost = rs_item_budgetcost
+// "minimum" tech level = rs_item_techcost
+// current tech level = TECH_LEVEL
+// per tech level that the player is below the "minimum" the price increases by... 10%? Until it's 80% extra or something
+// conversely per tech level that the player is above the price decreases by 5% and capped at 50% off.
+var rs_item_calcbudgetcost 0 1
+defstate rs_calc_budget_cost
+	set rs_item_calcbudgetcost rs_item_budgetcost
+	// increase price path
+	ifl TECH_LEVEL rs_item_techcost
+	{
+		set temp2 rs_item_techcost
+		// max = og budget + 80% of og budget
+		set PERCENTAGE_IN rs_item_calcbudgetcost set PERCENTAGE_PERCENT 80 state getpercentage
+		set temp4 PERCENTAGE_OUT
+		add temp4 rs_item_calcbudgetcost
+
+		// increment 10% of budget, stored in PERCENTAGE_OUT
+		set PERCENTAGE_IN rs_item_budgetcost set PERCENTAGE_PERCENT 10 state getpercentage
+
+		whilen temp2 TECH_LEVEL
+		{
+			sub temp2 1
+			add rs_item_calcbudgetcost PERCENTAGE_OUT
+			clamp rs_item_calcbudgetcost rs_item_budgetcost temp4
+		}
+	}
+	// decrease price path
+	else ifg TECH_LEVEL rs_item_techcost
+	{
+		set temp2 rs_item_techcost
+		// min = half og budget
+		set PERCENTAGE_IN rs_item_calcbudgetcost set PERCENTAGE_PERCENT 50 state getpercentage
+		set temp4 rs_item_calcbudgetcost
+		sub temp4 PERCENTAGE_OUT
+
+		// decrement 5% of budget, stored in PERCENTAGE_OUT
+		set PERCENTAGE_IN rs_item_budgetcost set PERCENTAGE_PERCENT 5 state getpercentage
+
+		whilen temp2 TECH_LEVEL
+		{
+			add temp2 1
+			sub rs_item_calcbudgetcost PERCENTAGE_OUT
+			clamp rs_item_calcbudgetcost temp4 rs_item_budgetcost
+		}
+	}
+
+	// output = rs_item_calcbudgetcost
+ends
+
+defstate do_research
+	switch ui_tab
+		case RS_TAB_WEAPONS
+			setarray WEAPONS_RESEARCH[ui_item] 2
+			break
+		case RS_TAB_EQUIPMENT
+			setarray EQUIPMENT_RESEARCH[ui_item] 2
+			break
+		case RS_TAB_PERSONNEL
+			setarray PERSONNEL_RESEARCH[ui_item] 2
+			break
+		case RS_TAB_BASE
+			setarray BASE_RESEARCH[ui_item] 2
+			break
+		case RS_TAB_MYSTIC
+			setarray MYSTICAL_RESEARCH[ui_item] 2
+			break
+		case RS_TAB_DOJO
+			setarray MELEE_RESEARCH[ui_item] 2
+			break
+	endswitch
+
+	sub AMC_BUDGET rs_item_calcbudgetcost
+	savegamevar AMC_BUDGET
+	screensound RESEARCHED
+
+	ifn rs_item_fmvid -1
+	  ifn rendmode 0
+	  ife rs_fmv_counter 0
+	{
+		startcutscene rs_item_fmvid
+		set rs_fmv_counter 30
+	}
+	palfrom 20 63 63 63
+
+	// Handle items to unlock
+	state rs_postresearch_unlock
+
+	ife RETURN 1
+	{
+		qputs 7507 %s unlocks:
+		qsprintf 7507 7507 1380
+		qputs 7508
+		qputs 7509
+		qputs 7510
+		qputs 7511
+
+		state rs_getunlockstexts
+		set rs_popup 1 // showing the popup is done elsewhere, it will be shown as long as this value is 1
+	}
+
+	set array_save 1 // this signals that arrays must be saved
+	state save_arrays
+	state rs_reload_data_files
+	set ui_item -1
+ends
+
+defstate replay_fmv_button
+	ifn rendmode 0
+	{
+		set gui_pos_x 290
+		set gui_pos_y 100
+		qputs 7505 Replay FMV
+		set ui_btn_mousehint 7506
+		qputs 7506 Click to replay FMV
+		state putgenericbutton
+
+		ife ui_btn_return 2
+		{
+			ife rs_fmv_counter 0
+			{
+				startcutscene rs_item_fmvid
+				set rs_fmv_counter 30
+			}
+		}
+	}
+ends
+
+defstate disp_rs_item
+	set ui_query_id ui_item
+
+	ifg ui_query_id 0 ifl ui_query_id 63
+	{
+		// This is not ideal, but with the limitations of CON code, currently the sanest way to keep this code clean.
+
+		// 1) Get def to read dependencies
+		ife ui_tab RS_TAB_WEAPONS
+			state rs_weapon_defs
+		else ife ui_tab RS_TAB_EQUIPMENT
+			state rs_equipment_defs
+		else ife ui_tab RS_TAB_PERSONNEL
+			state rs_personnel_defs
+		else ife ui_tab RS_TAB_BASE
+			state rs_base_defs
+		else ife ui_tab RS_TAB_MYSTIC
+			state rs_mystical_defs
+		else ife ui_tab RS_TAB_DOJO
+			state rs_dojo_defs
+
+		// 2) Store whether or not dependencies are met
+		// This value isn't used in all cases but the code can be kept much cleaner by putting this call here.
+		state get_rs_depsresearched
+
+		// 3) Read the def again as the values will have been overwritten
+		ife ui_tab RS_TAB_WEAPONS
+			state rs_weapon_defs
+		else ife ui_tab RS_TAB_EQUIPMENT
+			state rs_equipment_defs
+		else ife ui_tab RS_TAB_PERSONNEL
+			state rs_personnel_defs
+		else ife ui_tab RS_TAB_BASE
+			state rs_base_defs
+		else ife ui_tab RS_TAB_MYSTIC
+			state rs_mystical_defs
+		else ife ui_tab RS_TAB_DOJO
+			state rs_dojo_defs
+
+		state rs_markread
+	}
+
+	// Costs, only display if not a MIA enemy project
+	state rs_calc_budget_cost
+	ifn rs_item_researched 4
+	{
+		qputs 7512 Research item tech level: %ld
+		qsprintf 7512 7512 rs_item_techcost
+
+		set disp_temp4 8
+		ifl TECH_LEVEL rs_item_techcost
+			set disp_temp4 2
+
+		screentext STARTALPHANUM 110 50 28672 0 0 7512 0 disp_temp4 16 0 5 8 1 1 0 0 0 xdim ydim
+
+		// If item is researched already, only show the base cost
+		ife rs_item_researched 2
+			set disp_temp4 0
+		else ifl AMC_BUDGET rs_item_calcbudgetcost
+			set disp_temp4 2
+		else
+			set disp_temp4 8
+
+		qputs 7512 Base cost: %ld
+		qsprintf 7512 7512 rs_item_budgetcost
+		screentext STARTALPHANUM 250 50 28672 0 0 7512 0 disp_temp4 16 0 5 8 1 1 0 0 0 xdim ydim
+
+		ifn rs_item_researched 2
+		{
+			qputs 7512 Actual cost: %ld
+			qsprintf 7512 7512 rs_item_calcbudgetcost
+			screentext STARTALPHANUM 250 55 28672 0 0 7512 0 disp_temp4 16 0 5 8 1 1 0 0 0 xdim ydim
+		}
+	}
+
+	// Header Space
+	screentext STARTALPHANUM 110 70 28672 0 0 1380 0 125 16 0 5 8 1 1 0 0 0 xdim ydim
+
+	// Description Space
+	ifn rs_item_researched 4
+	{
+		screentext STARTALPHANUM 110 75 28672 0 0 1381 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+		screentext STARTALPHANUM 110 80 28672 0 0 1382 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+		screentext STARTALPHANUM 110 85 28672 0 0 1383 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+		screentext STARTALPHANUM 110 90 28672 0 0 1384 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+		screentext STARTALPHANUM 110 95 28672 0 0 1385 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+		screentext STARTALPHANUM 110 100 28672 0 0 1386 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+		screentext STARTALPHANUM 110 105 28672 0 0 1387 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+		screentext STARTALPHANUM 110 110 28672 0 0 1388 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+		screentext STARTALPHANUM 110 115 28672 0 0 1389 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+	}
+	else
+	{
+		qputs 1381 Details of this project can be unlocked via
+		qputs 1382 a MIA attack on the following enemy type(s):
+		screentext STARTALPHANUM 110 75 28672 0 0 1381 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+		screentext STARTALPHANUM 110 80 28672 0 0 1382 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+	}
+
+	// Display "researched" text
+	ife rs_item_researched 2
+	{
+		set gui_pos_x 250
+		set gui_pos_y 110
+		qputs 7505 Researched
+		screentext STARTALPHANUM gui_pos_x gui_pos_y 28000 0 0 7505 0 90 16 0 2 0 1 1 8192 0 0 xdim ydim
+	}
+	// Display "Insufficient budget" text
+	else ifn rs_item_researched 4 ifl AMC_BUDGET rs_item_calcbudgetcost
+	{
+		set gui_pos_x 220
+		set gui_pos_y 110
+		qputs 7505 Insufficient budget
+		screentext STARTALPHANUM gui_pos_x gui_pos_y 28000 0 0 7505 0 2 16 0 2 0 1 1 8192 0 0 xdim ydim
+	}
+	else ifn rs_item_researched 4
+	{
+		// If no, display "Missing dependencies" (or something)
+		ife rs_dep_fulfilled 0
+		{
+			set gui_pos_x 200
+			set gui_pos_y 110
+			qputs 7505 Missing dependencies
+			screentext STARTALPHANUM gui_pos_x gui_pos_y 28000 0 0 7505 0 2 16 0 2 0 1 1 8192 0 0 xdim ydim
+		}
+		// If yes, display Research
+		else
+		{
+			set gui_pos_x 290
+			set gui_pos_y 110
+			qputs 7505 Research
+			set ui_btn_mousehint 7506
+			qputs 7506 Research this item
+			state putgenericbutton
+
+			ife ui_btn_return 2
+				state do_research
+		}
+	}
+	else
+	{
+		// MIA research project, show the responsible enemies
+		ifn rs_item_miaenemy1 -1
+		{
+			ife rs_item_curmiaidx 1
+				set ui_query_id rs_item_miaenemy1
+			else ife rs_item_curmiaidx 2
+				set ui_query_id rs_item_miaenemy2
+			else ife rs_item_curmiaidx 3
+				set ui_query_id rs_item_miaenemy3
+
+			state bst_get_def_anytab
+
+			ife bst_hasdef 1
+			{
+				set gui_pos_x 200
+				set gui_pos_y 120
+				rotatesprite gui_pos_x gui_pos_y INVENSIZE 0 bst_item_picnum 0 bst_item_pal 0 0 0 xdim ydim
+			}
+		}
+
+		// If more than one, add arrow buttons
+		ifn rs_item_miaenemy2 -1
+		{
+			set gui_pos_x 150
+			set gui_pos_y 120
+
+			state putpreviousbutton
+
+			ife ui_btn_return 2
+			{
+				sub rs_item_curmiaidx 1
+
+				ifl rs_item_curmiaidx 1
+				{
+					ifn rs_item_miaenemy3 -1
+						set rs_item_curmiaidx 3
+					else
+						set rs_item_curmiaidx 2
+				}
+			}
+
+			set gui_pos_x 250
+
+			state putnextbutton
+
+			ife ui_btn_return 2
+			{
+				add rs_item_curmiaidx 1
+
+				ifn rs_item_miaenemy3 -1
+				{
+					ifg rs_item_curmiaidx 3
+					  set rs_item_curmiaidx 1
+				}
+				else ifg rs_item_curmiaidx 2
+				{
+					set rs_item_curmiaidx 2
+				}
+			}
+		}
+
+		// Display button "view bestiary"
+		set gui_pos_x 270
+		set gui_pos_y 160
+		qputs 7505 VIEW BESTIARY
+		set ui_btn_mousehint 7506
+		qputs 7506 Switch to bestiary
+		set ui_btn_mousehint 7506
+		set ui_btn_size 20000
+		set ui_btn_fontsize 20000
+		state putgenericbutton
+
+		// Swap to research terminal
+		ife ui_btn_return 2
+		{
+			set show_rs_ui 0
+
+			set ui_help_id 0
+
+			ife rs_item_curmiaidx 1
+			{
+				set ui_tab rs_item_miaenemy1_cat
+				set ui_tab_query rs_item_miaenemy1_cat
+			}
+			else ife rs_item_curmiaidx 2
+			{
+				set ui_tab rs_item_miaenemy2_cat
+				set ui_tab_query rs_item_miaenemy2_cat
+			}
+			else ife rs_item_curmiaidx 3
+			{
+				set ui_tab rs_item_miaenemy3_cat
+				set ui_tab_query rs_item_miaenemy3_cat
+			}
+
+			state bst_init_list
+
+			ife rs_item_curmiaidx 1
+				set ui_item rs_item_miaenemy1
+			else ife rs_item_curmiaidx 2
+				set ui_item rs_item_miaenemy2
+			else ife rs_item_curmiaidx 3
+				set ui_item rs_item_miaenemy3
+
+			set show_bst_ui 1
+			sound INTERFACE_1
+		}
+	}
+
+
+	// Bigger version of the icon
+	set gui_pos_x 300
+	set gui_pos_y 75
+	rotatesprite gui_pos_x gui_pos_y 16384 0 rs_item_picnum 0 0 0 0 0 xdim ydim
+
+	// Replay fmv button
+	ife rs_item_researched 2
+	  ifn rs_item_fmvid -1
+		state replay_fmv_button
+
+	// Dependencies
+	ifn rs_item_dep1 0 ifn rs_item_researched 4 // has any dependencies
+	{
+		qputs 1380 Dependencies
+		screentext STARTALPHANUM 110 125 28672 0 0 1380 0 1 16 0 5 8 1 1 0 0 0 xdim ydim
+		state disp_rs_dependencies
+	}
+ends
+
+defstate disp_rs_helplistitem
+	set disp_temp 0
+
+	ife g_scroll_hold 0
+	  ifn ui_popup_shown 1
+	{
+		state CURSOR_OVER_ITEM
+		// bounds of the list
+		ifl gui_pos_x_temp 20
+		 ifg gui_pos_x_temp -75
+		  ifl gui_pos_y_temp 7
+		   ifg gui_pos_y_temp -7
+		{
+			set disp_temp 1
+			state handle_click
+
+			ife clicked 1
+			{
+				screensound RES_INT1
+				set ui_help_id ui_help_query_id
+			}
+		}
+	}
+
+	// Text
+	set gui_pos_x_temp gui_pos_x
+	add gui_pos_x_temp 10
+
+	ife ui_help_id ui_help_query_id
+		screentext STARTALPHANUM gui_pos_x_temp gui_pos_y 23000 0 0 1380 0 2 16 0 2 0 1 1 8192 0 0 xdim ydim
+	else ife disp_temp 1
+		screentext STARTALPHANUM gui_pos_x_temp gui_pos_y 23000 0 0 1380 disp_pulse 7 16 0 2 0 1 1 8192 0 0 xdim ydim
+	else
+		screentext STARTALPHANUM gui_pos_x_temp gui_pos_y 22000 0 0 1380 0 12 16 0 2 0 1 1 8192 0 0 xdim ydim
+ends
+
+defstate disp_rs_help
+	set clicked 0
+
+	// Display help list
+	set gui_pos_x 15
+	set gui_pos_y 60
+
+	set ui_help_query_id 0
+	qputs 1380 Overview
+	state disp_rs_helplistitem
+
+	add gui_pos_y 15
+	set ui_help_query_id 1
+	qputs 1380 Tech level
+	state disp_rs_helplistitem
+
+	add gui_pos_y 15
+	set ui_help_query_id 2
+	qputs 1380 Researching
+	state disp_rs_helplistitem
+
+	add gui_pos_y 15
+	set ui_help_query_id 3
+	qputs 1380 Results
+	state disp_rs_helplistitem
+
+	ife ui_help_id 0
+	{
+		qputs 1011 Overview
+		screentext STARTALPHANUM 65 55 30720 0 0 1011 0 125 16 0 5 8 1 1 0 0 0 xdim ydim
+		qputs 1011 The research terminal is used to research
+		screentext STARTALPHANUM 65 60 30720 0 0 1011 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+		qputs 1011 new weapons, artifacts, equipment, and
+		screentext STARTALPHANUM 65 65 30720 0 0 1011 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+		qputs 1011 things useful to the AMC Squad. As you
+		screentext STARTALPHANUM 65 70 30720 0 0 1011 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+		qputs 1011 progress in the game the AMC Squad will
+		screentext STARTALPHANUM 65 75 30720 0 0 1011 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+		qputs 1011 acquire more scientists and better
+		screentext STARTALPHANUM 65 80 30720 0 0 1011 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+		qputs 1011 laboratory equipment, allowing you to
+		screentext STARTALPHANUM 65 85 30720 0 0 1011 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+		qputs 1011 research better and more powerful things.
+		screentext STARTALPHANUM 65 90 30720 0 0 1011 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+
+		myospalx 120 105 12116 0 0 0
+		myospalx 170 105 12117 0 0 0
+
+		qputs 1011 These are research modules. They contain
+		screentext STARTALPHANUM 65 125 30720 0 0 1011 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+		qputs 1011 projects for you to research; you can
+		screentext STARTALPHANUM 65 130 30720 0 0 1011 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+		qputs 1011 also find projects via enemies and
+		screentext STARTALPHANUM 65 135 30720 0 0 1011 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+		qputs 1011 documents on the field of battle.
+		screentext STARTALPHANUM 65 140 30720 0 0 1011 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+	}
+	else ife ui_help_id 1
+	{
+		qputs 1011 Tech level
+		screentext STARTALPHANUM 65 55 30720 0 0 1011 0 125 16 0 5 8 1 1 0 0 0 xdim ydim
+		qputs 1011 Each research project has a tech level and base cost.
+		screentext STARTALPHANUM 65 60 30720 0 0 1011 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+		qputs 1011 Your own tech level determines the actual cost.
+		screentext STARTALPHANUM 65 65 30720 0 0 1011 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+		qputs 1011 If a research project has a higher tech level
+		screentext STARTALPHANUM 65 70 30720 0 0 1011 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+		qputs 1011 than you, it will be more expensive to research.
+		screentext STARTALPHANUM 65 75 30720 0 0 1011 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+		qputs 1011 If your tech level is higher, it will be cheaper.
+		screentext STARTALPHANUM 65 80 30720 0 0 1011 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+        qputs 1011 Your tech level increases as you progress in
+		screentext STARTALPHANUM 65 85 30720 0 0 1011 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+        qputs 1011 in the story, but you can also increase it by
+		screentext STARTALPHANUM 65 90 30720 0 0 1011 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+        qputs 1011 by finding equipment or recruiting scientists
+		screentext STARTALPHANUM 65 95 30720 0 0 1011 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+        qputs 1011 in the field.
+		screentext STARTALPHANUM 65 100 30720 0 0 1011 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+	}
+	else ife ui_help_id 2
+	{
+		qputs 1011 Researching
+		screentext STARTALPHANUM 65 55 30720 0 0 1011 0 125 16 0 5 8 1 1 0 0 0 xdim ydim
+        qputs 1011 Researching also costs money. The AMC
+		screentext STARTALPHANUM 65 60 30720 0 0 1011 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+        qputs 1011 Squad has a set budget at the start of
+		screentext STARTALPHANUM 65 65 30720 0 0 1011 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+        qputs 1011 every episode, but you can earn money
+		screentext STARTALPHANUM 65 70 30720 0 0 1011 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+        qputs 1011 by finishing levels in the main story and
+		screentext STARTALPHANUM 65 75 30720 0 0 1011 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+        qputs 1011 also any and all usermaps. Research is
+		screentext STARTALPHANUM 65 80 30720 0 0 1011 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+        qputs 1011 permanent across all episodes!
+		screentext STARTALPHANUM 65 85 30720 0 0 1011 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+	}
+	else ife ui_help_id 3
+	{
+		qputs 1011 Results
+		screentext STARTALPHANUM 65 55 30720 0 0 1011 0 125 16 0 5 8 1 1 0 0 0 xdim ydim
+        qputs 1011 Projects that you've researched will carry
+		screentext STARTALPHANUM 65 60 30720 0 0 1011 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+        qputs 1011 over across all episodes of the game. For
+		screentext STARTALPHANUM 65 65 30720 0 0 1011 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+        qputs 1011 example, finishing a tough project in
+		screentext STARTALPHANUM 65 70 30720 0 0 1011 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+        qputs 1011 Episode 3 will also finish it in Episode 1.
+		screentext STARTALPHANUM 65 75 30720 0 0 1011 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+        qputs 1011 It pays to research what you can.
+		screentext STARTALPHANUM 65 80 30720 0 0 1011 0 0 16 0 5 8 1 1 0 0 0 xdim ydim
+	}
+ends
+
+defstate prep_rs_terminal
+	set temp 0 // set to 1 if allowed to use
+
+	// Episode 4 has one of these set to pal 27. It can't be used until Snowfall's quest is done.
+	ifspritepal 27
+	{
+		ifand ELYSION_QUEST 2048
+			set temp 1
+		else
+			quote 901
+	}
+	else
+		set temp 1
+
+	ife temp 1
+	{
+		state rs_reload_data_files
+
+		// New research notifications
+		ifsound FSCI_NEWR nullop
+		else ifsound MSCI_NEWR nullop
+		else ifsound MSCI_TERM1 nullop
+		else ifsound FSCI_TERM1 nullop
+		else ifsound MSCI_TERM2 nullop
+		else ifsound MSCI_TERM3 nullop
+		else ifn new_research 0
+		{
+			ifand new_research 6 ifrnd 16 screensound FSCI_NEWR
+			else screensound MSCI_NEWR
+		}
+		else
+		{
+			ifrnd 24 screensound MSCI_TERM1
+			else ifrnd 24 screensound FSCI_TERM1
+			else ifrnd 24 screensound MSCI_TERM2
+			else ifrnd 24 screensound MSCI_TERM3
+		}
+	}
+
+	// Reset just in case
+	set rs_item_curmiaidx 1
+ends
+
+appendevent EVENT_DISPLAYREST
+	// Draw stuff while UI is active
+	ife char_sel_anim 0 // wait for character animation to finish as this freezes, I don't understand why
+	ife show_rs_ui 1
+	{
+		rotatesprite 160 100 31734 0 12119 0 0 0 0 0 xdim ydim
+
+		getinput[THISACTOR].bits disp_temp
+		shiftvarr disp_temp 8
+		andvar disp_temp 0xF
+		switch disp_temp
+			case 1
+				ifn ui_tab RS_TAB_WEAPONS
+					{
+					soundonce COMP_SELECT
+					set ui_tab RS_TAB_WEAPONS
+					}
+				break
+			case 2
+				ifn ui_tab RS_TAB_EQUIPMENT
+					{
+					soundonce COMP_SELECT
+					set ui_tab RS_TAB_EQUIPMENT
+					}
+				break
+			case 3
+				ifn ui_tab RS_TAB_PERSONNEL
+					{
+					soundonce COMP_SELECT
+					set ui_tab RS_TAB_PERSONNEL
+					}
+				break
+			case 4
+				ifn ui_tab RS_TAB_BASE
+					{
+					soundonce COMP_SELECT
+					set ui_tab RS_TAB_BASE
+					}
+				break
+			case 5
+				ife BASE_RESEARCH[RS_B_PARANORMAL] 2
+				 ifn ui_tab RS_TAB_MYSTIC
+					{
+					soundonce COMP_SELECT
+					set ui_tab RS_TAB_MYSTIC
+					}
+				break
+			case 6
+				ife BASE_RESEARCH[RS_B_DOJO] 2
+				 ifn ui_tab RS_TAB_DOJO
+					{
+					soundonce COMP_SELECT
+					set ui_tab RS_TAB_DOJO
+					}
+				break
+			case 10
+				 ifn ui_tab RS_TAB_HELP
+					{
+					soundonce COMP_SELECT
+					set ui_tab RS_TAB_HELP
+					}
+				break
+		endswitch
+
+		state disp_rs_header
+		state disp_rs_tabbuttons
+
+		ife ui_tab RS_TAB_HELP
+		{
+			state disp_rs_help
+		}
+		else
+		{
+			// Display Show: All / New / Unresearched
+			set disp_temp 0
+			ife rs_show_mode 0
+				qputs 7505 Show: All
+			else ife rs_show_mode 1
+				qputs 7505 Show: New
+			else ife rs_show_mode 2
+				qputs 7505 Show: Unresearched
+
+			set gui_pos_x 10
+			set gui_pos_y 45
+
+			ife g_scroll_hold 0
+			  ifn ui_popup_shown 1
+			{
+				state CURSOR_OVER_ITEM
+				// bounds show button
+				ifl gui_pos_x_temp 20
+				 ifg gui_pos_x_temp -75
+				  ifl gui_pos_y_temp 1
+				   ifg gui_pos_y_temp -5
+				{
+					set disp_temp 1
+
+					state handle_click
+
+					ife clicked 1
+					{
+						screensound RES_INT3
+						add rs_show_mode 1
+						set g_scroll_pos 0
+						set ui_item -1
+						ifg rs_show_mode 2
+							set rs_show_mode 0
+					}
+				}
+			}
+
+			ife disp_temp 0
+				screentext STARTALPHANUM gui_pos_x gui_pos_y 28000 0 0 7505 0 2 16 0 2 0 1 1 8192 0 0 xdim ydim
+			else ife disp_temp 1
+				screentext STARTALPHANUM gui_pos_x gui_pos_y 33000 0 0 7505 disp_pulse 7 16 0 2 0 1 1 8192 0 0 xdim ydim
+
+			state disp_rs_list
+
+			ifn ui_item -1
+				state disp_rs_item
+		}
+
+		ife rs_popup 1
+		{
+			state showokpopup
+
+			ife ui_popup_return 1
+				set rs_popup 0
+		}
+	}
+endevent
+
+spritenopal NU_RESEARCH_INTERFACE
+spritenoshade NU_RESEARCH_INTERFACE
+
+useractor notenemy NU_RESEARCH_INTERFACE
+	// unlock some stuff based on the unlocked researches
+	ifspritepal 25 break // terminal is used in CNC as map decoration, quick fix
+	ife player[].player_par 1
+	 ifspritepal 0
+		{
+		ifn VOLUME 0 operateactivators 9500 THISACTOR
+		else ife ep2_new_char 1 operateactivators 9500 THISACTOR
+
+		ifg VOLUME 3 operateactivators 9501 THISACTOR
+		else ife ep4_new_char 1 operateactivators 9501 THISACTOR
+
+		ife BASE_RESEARCH[RS_B_PARANORMAL] 2 operateactivators 8501 THISACTOR // Paranormal research lab
+		ife BASE_RESEARCH[RS_B_RECREATIONAL] 2 operateactivators 8502 THISACTOR // bar and stuff
+		ife BASE_RESEARCH[RS_B_UNIVERSALCONSTR] 2 operateactivators 8503 THISACTOR // small Universal constructors
+		ife BASE_RESEARCH[RS_B_DOJO] 2 operateactivators 8504 THISACTOR // Dojo
+		ife BASE_RESEARCH[RS_B_PRECOG] 2 operateactivators 8505 THISACTOR // Precog brain
+		// this one doesn't actuallly have a research definition -> ife BASE_RESEARCH[6] 2 operateactivators 8506 THISACTOR // workshop
+		ife BASE_RESEARCH[RS_B_NEWTRANSPORT] 2 operateactivators 8507 THISACTOR // AMC Ship 2
+		ife BASE_RESEARCH[RS_B_ENGITECH] 2 operateactivators 8509 THISACTOR // Engineer Tech
+		}
+
+		ifspritepal 27
+		{
+		 ife player[].newowner -1 // prevent viewscreen bugs
+		  ifp pfacing
+		   ifpdistl 1024
+			ifp palive
+			 ifcansee
+			 {
+			 set player_use 0
+			 ifhitspace
+			 ifcount 13
+				{
+				quote 901
+				resetcount
+				}
+			}
+		ifand ELYSION_QUEST 2048
+			{
+			spritepal 1
+			seta[].shade -127
+			action ZERO
+			}
+		}
+		else action ZERO
+
+	// Handle use prompts
+	// If UI is being shown, pressing E closes it
+	ife show_rs_ui 1
+	{
+		ife use_action_allowed 1
+		{
+			set show_rs_ui 0
+			set show_bst_ui 0
+			set MOUSEUP 0 // Go from "cursor" mode back to regular gameplay mode
+			state setIgnoreUse
+		}
+	}
+	else ife show_bst_ui 1
+	{
+		ife use_action_allowed 1
+		{
+			set show_rs_ui 0
+			set show_bst_ui 0
+			set MOUSEUP 0 // Go from "cursor" mode back to regular gameplay mode
+			state setIgnoreUse
+		}
+	}													  
+	// Otherwise set it to show if player is close enough etc etc
+	else ife player[].newowner -1 // prevent viewscreen bugs
+	  ifp pfacing
+	  ifpdistl 1024
+	  ifp palive
+	  ifcansee
+	   ifaction ZERO
+	{
+		set player_use 0
+
+		ife use_action_allowed 1
+		{
+			state prep_rs_terminal
+
+			set ui_help_id 0
+			set ui_tab RS_TAB_WEAPONS
+			state rs_init_weapon_list
+			set ui_item -1
+			set show_rs_ui 1
+			set MOUSEUP 1 // This enters into "cursor" mode.. Lock the player, display pointer etc
+			set hit_key 30
+			sound INTERFACE_1
+
+			state setIgnoreUse
+		}
+	}
+enda

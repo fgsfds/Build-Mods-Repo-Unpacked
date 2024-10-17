@@ -1,0 +1,265 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+This file defines the behavior for the options in the "New Game" menu.
+The actual structure of the menu is defined in the correspond "menu.def" file.
+--------------------------------------------------------------------------------
+*/
+
+define MENU_NEWGAMECUSTOM 102
+define MENU_NEWGAMECUSTOMSUB 103
+define MENU_NEWGAMECUSTOML3 104
+
+define MEF_Enabled        0
+define MEF_Disabled       1
+define MEF_LookDisabled   2
+define MEF_Hidden         4
+
+string 7854 We recommend completing Episode %d before starting this chapter!
+
+// Variable set in changemenu, used in displaymenurest, to prevent accessing the filesystem at framerate
+// 0x1 - Episode 1 | 0x2 - Episode 2 | 0x4 - Episode 3 | 0x8 - Episode 4
+var menu_beat_eps 0 0x20400
+
+
+// just empty the newgamechoices episode text
+defstate clear_ngc_text_info
+    qputs 831
+    qputs 832
+    qputs 833
+    qputs 834
+ends
+
+// display menu option hints
+appendevent EVENT_DISPLAYMENUREST
+    // layer 1
+    ife current_menu MENU_NEWGAMECUSTOM
+    {
+        getu .m_newgamecustom disp_temp
+
+        switch disp_temp
+        case 0
+            qputs 831 Start a new chapter of the AMC campaign.
+            break
+        case 1
+            qputs 831 Returns to AMC Base at the most recent point in the story.
+            break
+        case 2
+            qputs 831 Play custom maps using your favorite AMC characters.
+            break
+        default
+            qputs 831 This entry could have your tooltip description!
+            break
+        endswitch
+        screentext STARTALPHANUM 160 162 28672 0 0 831 0 0 16 0 5 8 1 1 2 0 0 xdim ydim
+    }
+    // layer 2
+    else ife current_menu MENU_NEWGAMECUSTOMSUB
+    {
+        ife userdef.m_newgamecustom 0
+        {
+            state clear_ngc_text_info
+
+            // this temp variable stores the episode number for the hint display
+            set disp_temp6 0
+
+            switch userdef[].m_newgamecustomsub
+            case 0
+                qputs 831 An attack on an EAF base precedes a sinister plot to unleash
+                qputs 832 chaos on the world. Can the AMC squad stop this dark force from
+                qputs 833 changing the face of the planet as we know it?
+                break
+            case 1
+                qputs 831 The Triad have suddenly increased their hold on Asia, and have
+                qputs 832 overthrown all law and order in China. Where did they get this new
+                qputs 833 power from, and can the AMC Team stop it?
+                ifand menu_beat_eps 0x1 nullop
+                else set disp_temp6 1
+                break
+            case 2
+                qputs 831 The Warlock Sang's evil doppelganger, Le Sang, has surfaced deep in
+                qputs 832 Egypt with an army of evil beings from beyond. Can Sangluss and the rest
+                qputs 833 of the squad stop Le Sang from enslaving the planet?
+                ifand menu_beat_eps 0x2 nullop
+                else set disp_temp6 2
+                break
+            case 3
+                qputs 831 Stranded far, far away from Earth, the AMC Squad must
+                qputs 832 traverse this vast location and not only find the evil
+                qputs 833 responsible, but also a way home too.
+                ifand menu_beat_eps 0x4 nullop
+                else set disp_temp6 3
+                break
+            default
+                qputs 832 Missing Description
+                break
+            endswitch
+
+            screentext STARTALPHANUM 160 157 28672 0 0 831 0 0 16 0 5 8 1 1 2 0 0 xdim ydim
+            screentext STARTALPHANUM 160 162 28672 0 0 832 0 0 16 0 5 8 1 1 2 0 0 xdim ydim
+            screentext STARTALPHANUM 160 167 28672 0 0 833 0 0 16 0 5 8 1 1 2 0 0 xdim ydim
+
+            // display "did not complete episode N-1" warning
+            ifg disp_temp6 0
+            {
+                qsprintf 834 7854 disp_temp6
+                screentext STARTALPHANUM 160 177 28672 0 0 834 0 124 16 0 5 8 1 1 2 0 0 xdim ydim
+            }
+        }
+    }
+endevent
+
+// display the episode images in the background
+appendevent EVENT_DISPLAYMENU
+    ife current_menu MENU_NEWGAMECUSTOMSUB
+        ife userdef.m_newgamecustom 0
+        {
+            switch userdef[].m_newgamecustomsub
+            case 0 rotatespritea 255 170 16384 0 3252 0 0 512 -255 0 0 xdim ydim ; break
+            case 1 rotatespritea 255 170 16384 0 3253 0 0 512 -255 0 0 xdim ydim ; break
+            case 2 rotatespritea 255 170 16384 0 3254 0 0 512 -255 0 0 xdim ydim ; break
+            case 3 rotatespritea 255 170 16384 0 3255 0 0 512 -255 0 0 xdim ydim ; break
+            endswitch
+        }
+endevent
+
+// conditionally unlock menu entries and check if episodes beaten
+appendevent EVENT_CHANGEMENU
+    ife RETURN MENU_NEWGAMECUSTOM
+    {
+        readarrayfromfile BEAT_EPISODES_TEMP F_BEAT_EPISODES_AMCTC
+        readgamevar base_tutorial
+
+        // "Return to AMC Base" option unlocked if beat any level, or saw tutorial
+        ifeither BEAT_EPISODES_TEMP[1] BEAT_EPISODES_TEMP[2]
+            setngcflags MEF_Enabled 1
+        else ifeither BEAT_EPISODES_TEMP[3] BEAT_EPISODES_TEMP[4]
+            setngcflags MEF_Enabled 1
+        else ife base_tutorial 1
+            setngcflags MEF_Enabled 1
+        else
+            setngcflags MEF_Disabled 1
+    }
+    else ife RETURN MENU_NEWGAMECUSTOMSUB
+    {
+        ife userdef.m_newgamecustom 0
+        {
+            // only occurs when changing menu to newgamecustomsub, needed to display hint
+            readarrayfromfile BEAT_EPISODES_TEMP F_BEAT_EPISODES_AMCTC
+            set menu_beat_eps 0
+            ifand BEAT_EPISODES_TEMP[1] 128
+            {
+                or menu_beat_eps 0x1
+                setngcflags MEF_Enabled 0 1
+            }
+            ifand BEAT_EPISODES_TEMP[2] 1024
+            {
+                or menu_beat_eps 0x2
+                setngcflags MEF_Enabled 0 2
+            }
+            ifand BEAT_EPISODES_TEMP[3] 65536
+            {
+                or menu_beat_eps 0x4
+                setngcflags MEF_Enabled 0 3
+            }
+            ifand BEAT_EPISODES_TEMP[4] 1
+            {
+                or menu_beat_eps 0x8
+                setngcflags MEF_Enabled 0 4
+            }
+        }
+    }
+endevent
+
+
+/*
+// either get the furthest amcbase level index, or retrieve the stored one
+// unused
+string 7850 <destination>
+string 7851 Restored AMC Base from saved level pointers.
+string 7852 Loaded AMC Base based on current game progress.
+string 7853 AMC Base: (Volume: %d) (Level: %d)
+defstate restore_amcbase_position
+    ifg amcbase_volume -1
+        ifg amcbase_level -1
+    {
+        echo 7851
+        set returnvar_amcb_volume amcbase_volume
+        set returnvar_amcb_level amcbase_level
+    }
+    else
+    {
+        echo 7852
+        state get_furthest_amcbase_position
+    }
+    qsprintf 7850 7853 returnvar_amcb_volume returnvar_amcb_level
+    echo 7850
+ends
+*/
+
+// defines which level to start
+appendevent EVENT_NEWGAMECUSTOM
+    switch userdef.return 0
+        case 0
+            switch userdef .return 1
+                case 0  // Episode 1: The Men who were AMC
+                    setu[].m_volume_number 0
+                    setu[].m_level_number 0
+                    break
+                case 1  // Episode 2: Showdown in Hong Kong
+                    setu[].m_volume_number 1
+                    setu[].m_level_number 0
+                    break
+                case 2  // Episode 3: Quest for the Golden Sang
+                    setu[].m_volume_number 2
+                    setu[].m_level_number 0
+                    break
+                case 3  // Episode 4: Law of the Knights
+                    setu[].m_volume_number 3
+                    setu[].m_level_number 0
+                    break
+                case 4  // Episode 5: Top Secret
+                    setu[].m_volume_number 4
+                    setu[].m_level_number 0
+                    break
+                case 5  // Episode 6: Topest Secret
+                    setu[].m_volume_number 5
+                    setu[].m_level_number 0
+                    break
+            endswitch
+            state save_arrays
+            break
+        case 1
+            state get_furthest_amcbase_position
+            setu[].m_volume_number returnvar_amcb_volume
+            setu[].m_level_number returnvar_amcb_level
+            state save_arrays
+            break
+        default // error handling, goto nonexistent map to stay at title screen
+            setu[].m_volume_number 0
+            setu[].m_level_number 63
+            break
+    endswitch
+endevent

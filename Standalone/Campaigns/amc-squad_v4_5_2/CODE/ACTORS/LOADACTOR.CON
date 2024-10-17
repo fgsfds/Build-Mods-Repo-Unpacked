@@ -1,0 +1,925 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+This CON file contains event load actor code.
+--------------------------------------------------------------------------------
+*/
+
+defstate GETITEMSETTINGS
+geta[].cstat CSTATSAVED
+ifand CSTATSAVED 1 { xor CSTATSAVED 1 seta[].cstat CSTATSAVED }
+geta[].extra ITEMBITFIELD
+ife ITEMBITFIELD -1 set ITEMBITFIELD 0
+geta[].yvel YVELSAVED seta[].yvel 0
+geta[].xvel XVELSAVED seta[].xvel 0
+geta[].zvel ZVELSAVED seta[].zvel 0
+ends
+
+onevent EVENT_LOADACTOR
+ife DONE NO
+{
+     readgamevar seed_initializer
+     add seed_initializer 1
+     andvar seed_initializer 65535
+     set temp seed_initializer
+     xorvar temp 43690
+     whilevarn temp 0
+     {
+     ifrnd 1 { }
+     sub temp 1
+     }
+     savegamevar seed_initializer
+	 set temp 0
+     set DONE YES
+}
+switch sprite[].picnum
+	case 2298 seta[].picnum 14300 break
+	case STRIPEBALL
+	case QUEBALL
+		sizeat 4 4
+		break
+	case 556
+	case 557
+		ifspritepal 3 nullop else
+		sizeat 40 40
+		break
+	case 716
+	case 1012
+	case 1013
+	case BOTTLE2
+	case BOTTLE3
+	case 1159
+	case 1160
+	case BOTTLE14
+	case 1162
+	case 1163
+	case 1164
+	case 1165
+	case 1166
+	case 916
+		ifand sprite[].cstat 16 nullop else
+		sizeat 16 16
+		break
+	case 5
+		ifg sprite[].lotag 1150 seta[].lotag 1150
+		break
+	case 10054
+	case 3910
+	case 3911
+	case 3912
+	case 3913
+	case 3914
+	case 4069
+	case EMGLASS
+	case MGLASS
+		state GETHITAGLOTAG
+		set temp 0
+		whilevarn temp 16384
+			{
+			  ifn sprite[temp].statnum 1024
+			  {
+				getav[temp].HITAGSAVED temp6
+				ife HITAGSAVED temp6
+				ife sprite[temp].picnum sprite[].picnum
+				ifvarvarn temp THISACTOR
+				{
+				set THISSHADOW temp
+				set temp 16383
+				}
+			  }
+			  add temp 1
+			}
+		set temp 0
+		break
+	case NAKED1
+		sleeptime 0
+		ife ally_mag 0
+			{
+			state rf
+			cstator 257
+			randvar temp 60
+			ifvarl temp 20 setactor[THISACTOR].picnum NAKED3 else
+			ifvarl temp 40 setactor[THISACTOR].picnum NAKED2
+			setvar ally_mag 1
+			}
+		break
+	case FEM6
+		sleeptime 0
+		ife ally_mag 0
+			{
+			state rf
+			cstator 257
+			}
+		break
+	case PODFEM1
+		sleeptime 0
+		ife ally_mag 0
+			{
+			sizeat 25 25
+			state rf
+			cstator 257
+			randvar temp 60
+			ifvarl temp 20 cactor PODFEM3 else
+			ifvarl temp 40 cactor PODFEM2
+			setvar ally_mag 1
+			}
+		break
+	case REACTORSPARK
+		seta[].blend 255
+		geta[].cstat temp
+		ifand temp 2 nullop else
+			{
+			xorvar temp 2
+			seta[].cstat temp
+			}
+		break
+	case VIEWSCREEN
+	case VIEWSCREEN2
+		geta[].xrepeat temp4
+		geta[].yrepeat temp5
+		geta[].extra EXTRASAVED
+		seta[].extra -1
+		break
+	case CAMERA1
+		geta[].cstat CSTATSAVED
+		geta[].extra EXTRASAVED
+		seta[].extra -1
+		seta[].mdflags 16
+		break
+	case CRACK1
+	case CRACK2
+	case CRACK3
+	case CRACK4
+		ifn sprite[].hitag 0
+			{
+				espawn 10344
+				set temp3 sprite[].x
+				add temp3 256
+				rotatepoint sprite[].x sprite[].y temp3 sprite[].y sprite[].ang temp5 temp6
+				geta[].sectnum upd_sect
+				updatesectorz temp5 temp6 sprite[].z upd_sect
+				ife upd_sect -1 nullop else
+					{
+					seta[RETURN].x temp5
+					seta[RETURN].y temp6
+					changespritesect RETURN upd_sect
+					}
+				geta[].z temp
+				sub temp 2048
+				seta[RETURN].z temp
+			}
+		geta[].hitag HITAGSAVED
+		break
+	case 18349
+	case 16311
+	case 29696
+	case PAL_SWAP
+		state GETLOTAG
+		break
+	case DIPSWITCH
+	case DIPSWITCH2
+	case DIPSWITCH3
+	case 169
+	case TECHSWITCH
+	case FRANKENSTINESWITCH
+	case ALIENSWITCH
+	case HANDSWITCH
+	case 1143
+		state SWITCH_INFO_CODE
+		break
+	case SPACEDOORSWITCH state SWITCH_INFO_CODE geta[].extra EXTRASAVED seta[].extra 0 break
+	case 12031 state GETALLTAGS geta[].ang temp7 break
+	case ACCESSSWITCH
+		espawn 5408
+		seta[RETURN].pal sprite[].pal
+		break
+	case ACCESSSWITCH2
+		espawn 5408
+		seta[RETURN].pal sprite[].pal
+		break
+	case MUSIC_CHANGE_PLUS state GETHITAGLOTAG geta[].extra EXTRASAVED break
+	case MUSIC_CHANGE state GETHITAGLOTAG geta[].extra EXTRASAVED break
+	case 3728
+		state GETALLTAGS
+		ifn HITAGSAVED 0 orvar temp2 1
+		ifn EXTRASAVED 0 orvar temp2 2
+		ifn XVELSAVED 0 orvar temp2 4
+		ifn YVELSAVED 0 orvar temp2 8
+		ifn ZVELSAVED 0 orvar temp2 16
+		geta[].owner OWNERSAVED
+		seta[].owner 0
+		break
+	case 8088
+		state GETHITAGLOTAG
+		geta[].x initx
+		geta[].y inity
+		geta[].z initz
+		geta[].cstat CSTATSAVED
+		break
+	case 22520
+	case CAR_SPAWNER
+	case AMCSCIENTIST
+	case AMCSCIENTIST_2
+	case AMCSCIENTIST_3
+	case AMCSCIENTIST_4
+	case AMCSCIENTIST_5
+	case PARTICLE_SPAWNER
+	case RAINSNOWSTARTER
+	case 3624
+	case CUSTOMNUKESWITCH
+	case IWNUKESWITCH
+	case 22446
+	case 3806
+	case 7924
+	case 9695
+	case 3744
+	case PRELOAD_MUSIC
+	case 11772
+	case 27112
+	case 3347
+	case 3592
+	case MAKE_SWITCH
+	case 17016
+	case 17015
+	case 17012
+	case 17346
+	case 15615
+	case 18132
+	case 17636
+	case AMCSHIP
+	case AMCSHIP2
+	case 19181
+	case 26111
+	case MISSION_OBJECTIVES
+	case 11249
+	case 11250
+	case 5664
+	case 5665
+	case 25575
+	case 25576
+	case 25577
+	case ENEMY_TARGET
+	case INSTANT_RESPAWN
+	case CUSTOM_ACTOR
+	case CUSTOM_OBJECT
+	case 30438
+	case 30442
+	case 3810
+	case ENGINEER
+	case AMCSCIENTIST_ACTIVE
+	case AMCSCIENTIST_ACTIVE2
+	case AMCSCIENTIST_ACTIVE3
+	case GREYSCIENTIST_ACTIVE
+	case SECURITY_GUARD
+	case 11198
+		state GETALLTAGS // GET ALL TAGS =================================================================================================================================
+		break
+	case 3602
+	case 3586
+	case 15614
+	case 19568
+	case 19569
+	case RESPAWN_SKILL3
+	case RESPAWN_SKILL4
+	case RESPAWN_SKILL5
+	case 22956
+	case 22963
+	case FMV_PLAYER
+	case 17400
+		state GETALLTAGS
+		break
+	case 27106
+	case AMCSOLDIER
+	case AMC_ASOLDIER
+	case 2538
+	case 2512
+	case 2365
+	case 27536
+	case 27506
+	case 25830
+	case TECHLIGHT4
+	case 21599
+		state GETEXTRA
+		break
+	case 8924
+	case 8922
+	case 9388
+	case 15329
+	case HOVERCARSPAWNER
+	case 7668
+	case JETPACKCIVSPAWNER
+	case ACTIVESPAWN
+	case DOORTRANSPORTEXIT
+	case TREESPAWNER
+	case ALARM_SYSTEM
+	case 553
+	case 552
+	case 3610
+	case 9602
+	case 9603
+	case 9606
+	case 9682
+	case 12514
+	case 9412
+	case 3821
+	case 5460
+	case 10352
+	case DOOR_LIFT
+	case 9433
+	case 10546
+	case 3507
+	case 12430
+	case 4483
+	case 4954
+	case 12358
+	case 17100
+	case 19707
+	case 12533
+	case 13214
+	case 6582
+	case 6581
+	case 22771
+	case 1091
+	case 1095
+	case 13949
+	case 13950
+	case 13951
+	case 13952
+	case 14289
+	case 16152
+	case 3589
+	case 3598
+	case 5368
+	case 16343
+	case 18161
+	case 14307
+	case 3832
+	case 17128
+	case 17131
+	case 17132
+	case 17032
+	case 17033
+	case 17404
+	case 18391
+	case 18381
+	case 8515
+	case 15331
+	case 3609
+	case 18134
+	case 16388
+	case REAPER_CONTROLBOX
+	case ASTRIKE_PLACE_HERE
+	case 21232
+	case 15
+	case 21613
+	case SPRITE_DETECT
+	case 17920
+	case 12252
+	case 22957
+	case 19024
+	case 26035
+	case DUMMY_FACE
+	case 14233 // Magnus
+	case CURRENT
+	case 29240
+	case 29241
+	case 17672
+	case 17673
+	case 17674
+	case 17675
+	case SOUND_SCAPER
+	case 8946
+	case 26098
+	case 3246
+		state GETHITAGLOTAG // GET HITAG LOTAG ========================================================================================================================================
+		break
+	case 21612 // snowfallship landing
+		state GETALLTAGS
+		break
+	case 16864
+	case 16866
+	case 16868
+	case 16870
+	case 16862
+	case 19575
+	case 19574
+	case 15455
+	case 19621
+	case 19622
+	case 8167
+	case 8541
+	case 8544
+	case 17332
+	case 15574
+	case 15579
+	case 15584
+	case 15589
+	case 15594
+	case 15599
+	case 15604
+	case 15609
+	case 22559
+	case 22564
+	case 22578
+	case 22583
+	case 22598
+	case 22639
+	case 5862
+	case WALLLIGHT4
+	case WALLLIGHT3
+	case 3887
+	case 8536
+	case 8537
+	case 18266
+	case 18267
+	case 18268
+	case 18269
+	case 11050
+	case 22342
+	case 18201
+	case FIREWALL_SLOT
+	case 11775
+	case 8055
+	case 1632
+	case 1633
+	case 1634
+	case 10082
+	case MSSOLDIER
+	case 11966
+	case 22447
+	case ROOM_TYPE_SPRITE
+	case 3555
+	case 23761
+	case 26023
+	case 17924
+	case LESANG_DUMMY
+	case 26281
+	case CAMERALIGHT
+	case HANGLIGHT
+		state GETHITAG // GET HITAG ===================================================================================================================================================
+		break
+	case 23731
+	case 23449
+	case 13262
+	case 10672
+	case 12401
+	case 14034
+	case 14038
+	case 22332
+	case 10742
+	case 10570
+	case 19623
+	case 19624
+	case 3745
+	case 22455
+	case PENTAGRAM
+	case TRANSLATOR
+		state GETLOTAG // GET LOTAG ===================================================================================================================================================
+		break
+	case GLOBAL_FACTION
+		state GETLOTAG
+		ifg LOTAGSAVED 0 set global_faction LOTAGSAVED
+		break
+	case ACCESSSWITCH3
+	case ACCESSSWITCH4
+	case ACCESSSWITCH5 state GETHITAGLOTAG
+		espawn 5408
+		seta[RETURN].pal sprite[].pal
+		break
+	case SW_TECHLOCK state GETHITAGLOTAG espawn 5408 seta[RETURN].pal sprite[].pal break
+	case SW_OLDLOCK state GETHITAGLOTAG espawn 3716 seta[RETURN].pal sprite[].pal break
+	case NEWSWITCH1
+	case NEWSWITCH2
+	case NEWSWITCH3
+	case NEWSWITCH4
+	case NEWSWITCH5
+	case NEWSWITCH6
+	case NEWSWITCH7
+	case NEWSWITCH8
+	case NEWSWITCH9
+	case NEWSWITCH10
+	case NEWSWITCH11
+	case NEWSWITCH12
+	case NEWSWITCH13
+	case NEWSWITCH14
+	case NEWSWITCH15
+	case NEWSWITCH16
+	case NEWSWITCH17
+	case NEWSWITCH18
+	case NEWSWITCH19
+	case NEWSWITCH20
+	case NEWSWITCH21
+	case NEWSWITCH22
+	case NEWSWITCH23
+	case NEWSWITCH24
+	case NEWSWITCH25
+	case NEWSWITCH26
+	case NEWSWITCH27
+	case NEWSWITCH28
+	case NEWSWITCH29
+	case NEWSWITCH30
+	case NEWSWITCH31
+	case NEWSWITCH32
+	case NEWSWITCH33
+	case NEWSWITCH34
+	case NEWSWITCH35
+	case NEWSWITCH36
+	case NEWSWITCH37
+	case 18648
+	case ENVIRO_SUIT_SWITCH
+	case VR_REALITY_SWITCH
+	case 9457
+		state GETHITAGLOTAG state SWITCH_INFO_CODE
+		break
+	case 7672 state GETALLTAGS seta[].blend 255 break
+	case 7674 state GETHITAGLOTAG seta[].blend 255 break
+	case 7679
+	case 10151
+		state GETHITAG
+		cstat 32768
+		break
+	case 10150 state GETHITAGLOTAG cstat 32768 break
+
+	case BLUEPSOCKET spawn 8948 state GETHITAGLOTAG break
+	case REDPSOCKET espawn 8948 seta[RETURN].pal 21 state GETHITAGLOTAG break
+	case YELLOWPSOCKET espawn 8948 seta[RETURN].pal 23 state GETHITAGLOTAG break
+	case 3828 changespritestat THISACTOR 5 state GETHITAGLOTAG state GETEXTRA break
+	case 12030 state GETHITAGLOTAG cstat 32768 break
+	case 3829 state GETALLTAGS geta[].sectnum SECT_NUM cstat 32768 break
+
+	case 660 ife sprite[].sectnum -1 killit seta[].picnum 5480 break
+	case 3670
+	case 3666
+	case 17057
+	case 22722 geta[].cstat CSTATSAVED break
+	case DOORTRANSPORT
+	case MONS_SPAWNER
+	case FORCE_CHARACTER
+	case 29505
+		state GETALLTAGS geta[].owner OWNERSAVED seta[].owner 0 break
+	case OLDLOCK
+	case 8038
+		state GETHITAGLOTAG
+		ife HITAGSAVED 0 spawn 8950
+		ifand HITAGSAVED 1 spawn 8955
+		ifand HITAGSAVED 2 spawn 8956
+		ifand HITAGSAVED 4 spawn 8957
+		ifand HITAGSAVED 8 spawn 8958
+		ifand HITAGSAVED 16 spawn 8959
+		ifand HITAGSAVED 32 spawn 8945
+		ifand HITAGSAVED 64 spawn 7879
+		ifand HITAGSAVED 128 spawn 7880
+		ifand HITAGSAVED 256 spawn 7881
+		ifand HITAGSAVED 512 spawn 7882
+		ifand HITAGSAVED 1024 spawn 7883
+		break
+	case SWIPE_LOCK state GETHITAGLOTAG espawn 3809 geta[].pal temp seta[RETURN].pal temp break
+	case RUNESWITCH state GETHITAGLOTAG espawn 8954 geta[].pal temp seta[RETURN].pal temp break
+	case SCARABSWITCH state GETHITAGLOTAG espawn 8949 geta[].pal temp seta[RETURN].pal temp break
+	case ABYSS_LOCK state GETHITAGLOTAG geta[].pal temp seta[RETURN].pal temp break
+	case 3803 seta[].cstat 32768 state GETALLTAGS break
+	case 18481 state GETHITAG geta[].cstat CSTATSAVED break
+	case MOUNTED_MINIGUN ifn sprite[].extra -1 set stationary_gun_ammo sprite[].extra break
+	case 22437 ifn sprite[].extra -1 set stationary_gun_ammo sprite[].extra state GETHITAG break
+	case 19518
+	case 19519
+	case 19571
+	case 23693
+	case 5515
+		ifn sprite[].extra -1
+		{
+		geta[].shade SHADESAVED
+		seta[].extra -1
+		}
+		break
+	case COG_MACHINERY spawn 8947 state GETLOTAG break
+	case C4_PLACE_HERE spawn 8953 state GETHITAGLOTAG state GETEXTRA break
+	case 8940 geta[].x temp7 geta[].y temp8 geta[].z temp9 break
+	case 19615
+	case 25534
+	case 25487
+	case 25488
+	case 23632
+	case 23633
+	state GETHITAGLOTAG geta[].cstat CSTATSAVED break
+	case 8444 geta[].cstat temp4 geta[].ang temp8 state GETHITAGLOTAG break
+	case VEST_CHARGER geta[].lotag INTERNALCOUNT seta[].lotag 0 break
+	case MEDCHARGER geta[].lotag INTERNALCOUNT seta[].lotag 0 break
+	case MEDCHARGER2 geta[].lotag INTERNALCOUNT seta[].lotag 0 break
+	case SPRITE_LIFT
+		state GETALLTAGS
+		ife HITAGSAVED 0
+		{
+		ife XVELSAVED 0 set XVELSAVED 512
+		set temp 0
+		set temp3 0
+		whilevarn temp 16384
+			{
+			  ifn sprite[temp].statnum 1024
+			  {
+			   ife sprite[temp].picnum 10511
+				ifvarvarn temp THISACTOR
+				{
+				getav[temp].HITAGSAVED temp2
+				ife temp2 LOTAGSAVED
+					{
+					geta[].z SPRITE_LIFT_BOTTOM
+					geta[temp].z SPRITE_LIFT_TOP
+					getav[temp].XVELSAVED SPRITE_LIFT_SIDE
+					}
+				}
+				else
+				ife sprite[temp].yvel LOTAGSAVED
+					{
+					add temp3 1
+					setarray TRAIN[temp3] temp
+					}
+			  }
+			  add temp 1
+			}
+		}
+	break
+	case 10547 state GETHITAGLOTAG geta[].ang temp7 break
+	case 10615 state GETHITAGLOTAG geta[].cstat CSTATSAVED break
+	case 12432
+	case 25489
+	case 25497 state GETALLTAGS geta[].cstat CSTATSAVED break
+	case 12437 state GETHITAGLOTAG set temp2 0 geta[].cstat temp5 break
+	case VR_BOOTH spawn 7055 state GETALLTAGS break
+	case VR_SWITCH state GETHITAGLOTAG geta[].cstat CSTATSAVED break
+	case 13867 state GETLOTAG geta[].cstat CSTATSAVED break
+	case 13243 state GETHITAG ifn HITAGSAVED 0 geta[].cstat CSTATSAVED break
+	case 14296
+	case 3665
+	case 25509
+	case 3582
+		state GETHITAGLOTAG geta[].cstat CSTATSAVED
+	break
+	case 10610
+		seta[].blend 255
+		break
+	case 8623
+	case 18225
+	case 18224
+		state GETHITAG
+		seta[].blend 255
+		break
+	case SPOTLITE seta[].blend 255 cstator 2 break
+	case 15967 state GETHITAGLOTAG geta[].cstat CSTATSAVED break
+	case 3375 state GETHITAGLOTAG geta[].ang temp8 break
+	case 18463 state GETHITAGLOTAG geta[].cstat CSTATSAVED break
+	case 16212
+	case 4805
+	case 19704
+	case 18919
+		state GETHITAG
+		geta[].cstat CSTATSAVED
+		break
+	// AMCSCENE cases =====================================================================================================================================
+	case CUTSCENECAM
+		state GETALLTAGS
+		geta[].pal PALSAVED
+		geta[].shade SHADESAVED
+		geta[].owner OWNERSAVED seta[].owner 0
+		set cameratime XVELSAVED
+		set XVELSAVED 0
+		break
+	case CUTSCENECAM_CHANGE
+		state GETALLTAGS
+		geta[].pal PALSAVED
+		geta[].owner OWNERSAVED seta[].owner 0
+		set cameratime XVELSAVED
+		set XVELSAVED 0
+		break
+	case 23032 state GETHITAGLOTAG geta[].extra EXTRASAVED break
+	case CUTSCENETEXT
+		geta[].pal PALSAVED
+		state GETALLTAGS
+		set INTERNALCOUNT 0
+		set playsound 0
+		geta[].owner OWNERSAVED seta[].owner 0
+		 ife HITAGSAVED 0
+		  ife LOTAGSAVED 0
+		   ifg EXTRASAVED 0 // time saving, if all 3 tags are intended to be the same than just set the extra on the sprite and it'll give the lotag/hitag the same value
+			{
+			set HITAGSAVED EXTRASAVED
+			set LOTAGSAVED EXTRASAVED
+			}
+	break
+	case 5611
+	case 6456
+	case 6425
+	case 6073
+	case 20074
+	case 24011
+	case 26447
+	case 27498
+	case 27136
+	case 27141
+	case 27146
+	case 27124
+	case 27864
+	case 6019
+	case 6676
+	case 16560
+	case 19589
+	case 19590
+	case 3613
+	case 1708
+	case 2753
+	case 15626
+	case 13204
+	case 16414
+	case 11174
+	case 7404
+	case 2695
+	case 30121
+	case 30116
+	case 30129
+	case 30134
+	case 33699
+		state GETHITAGLOTAG // AMC SCENE GETHITAGLOTAG
+		break
+	case SKIP_CUTSCENE
+	case ACTIVATELEVEL
+	case 18532
+	case 16580
+	case 16585
+	case 20888
+	case 26807
+	case 17258
+	case 17263
+	case 17268
+	case 10324
+	case 21233
+		state GETALLTAGS // AMC SCENE GETALLTAGS
+		break
+	case 18527
+	case 7401
+	case 7402
+	case 19194
+	case 23745
+	case 19163
+	case 19155
+		state GETHITAG // AMC SCENE GET HITAG
+		break
+	case 17300
+	case 13147
+		state GETLOTAG // AMC SCENE GET LOTAG
+		break
+	// Pstats.con
+	case 3831 state GETHITAGLOTAG ife HITAGSAVED 0 set LOCATION LOTAGSAVED break
+	case TRIGGERONLYIFCHAR
+		state GETALLTAGS
+		break
+	case 1404
+		state GETALLTAGS
+		geta[].owner OWNERSAVED
+		seta[].owner 0
+		ifand ZVELSAVED 1 geta[].z ZPOS_SAVED
+		break
+	case MOVEPLAYER state GETHITAGLOTAG geta[].pal PALSAVED break
+	// ally stuff
+	case AMC_ASOLDIER_ACTIVE
+	case AMCSOLDIER_ACTIVE
+	case EDFSOLDIER_ACTIVE
+		state GETEXTRA
+		set allies_present 1
+		break
+	case MSSOLDIER_ACTIVE set allies_present 1 geta[].zvel ZVELSAVED seta[].zvel 0 break
+	case JANE
+	case SHELLY
+	case VLADMIR
+	case RUSSIAN
+	case MINERVA
+		set allies_present 1
+		state GETALLTAGS
+		break
+	case AUTO_TURRET
+	case SNOWFALL_TURRET
+	case HIGHWIRE_TURRET
+	case FLAMER_TURRET
+	case 23206
+	case 28631
+	case 33709
+	case 20418
+		state GETHITAGLOTAG
+		break
+	case CYFLIER
+	case HOVERTANK
+	case VRTANK
+	case 8573
+	case 8575
+	case 10673
+		state GETHITAG
+		break
+	case COFFEEMUG
+	case JOLLYMEAL
+	case 4546
+	case 4547
+	case 4548
+		state GETEXTRA ifand EXTRASAVED 1 geta[].z ZPOS_SAVED break
+	case MS_CORP_MECH state GETHITAGLOTAG break
+	// cloud shit
+	case 18165
+	case 18166
+	case 18167
+		state GETHITAG
+		state GETEXTRA
+		break
+	case SHADEOFFSET
+		state GETALLTAGS
+		break
+	case HEADSPRITESECTCHECK
+	case CHANGETEXTURE
+		state GETHITAGLOTAG
+		state GETEXTRA
+		break
+endswitch
+ifl HITAGSAVED -1
+	{
+	add HITAGSAVED 65536
+	}
+endevent
+
+appendevent EVENT_LOADACTOR // can't have nested switch statements
+ifactor RAINSNOWEFFECT
+	{
+		ifmultiplayer killit
+		ife opt_disable_rainsnow YES killit
+		seta[].cstat 32768
+
+			geta[].extra EXTRASAVED
+			seta[].extra -1
+			ifn EXTRASAVED 0 ifn EXTRASAVED -1
+			{
+				set rainstart EXTRASAVED
+				geta[].cstat raincstat
+				geta[].pal rainpal
+				geta[].xvel rainradius
+				add rainradius 16384
+				ife rainradius 0 set rainradius 12288
+				ifl rainradius 2048 set rainradius 2048
+				geta[].zvel snowceiling
+				mulvar snowceiling 8
+				ife snowceiling 0 set snowceiling 32768
+				ifl snowceiling 16384 set snowceiling 16384
+			}
+
+		geta[].lotag RAINREPLACE
+		seta[].lotag 0
+		geta[].hitag HITAGSAVED
+		seta[].hitag 0
+		ife HITAGSAVED 0 set ceiltext -1 else gets[].ceilingpicnum ceiltext
+
+		ifn RAINREPLACE 0
+		{
+			set temp 0
+			whilevarvarn temp NUMSECTORS
+				{
+				ifand sector[temp].ceilingstat 1
+					{
+						switch sector[temp].floorpicnum
+						case 755 sets[temp].floorpicnum 4846 break
+						case 772 sets[temp].floorpicnum 5068 break
+						case 780 sets[temp].floorpicnum 4849 break
+						case 782 sets[temp].floorpicnum 5065 break
+						case 790 sets[temp].floorpicnum 5823 break
+						case 805 sets[temp].floorpicnum 9142 break
+						case 814 sets[temp].floorpicnum 4858 break
+						case 815 sets[temp].floorpicnum 4861 break
+						case 823 sets[temp].floorpicnum 4840 break
+						case 4151 sets[temp].floorpicnum 4855 break
+						case 4276 sets[temp].floorpicnum 4843 break
+						case 442 sets[temp].floorpicnum 4852 break
+						case 9578 sets[temp].floorpicnum 10990 break
+						endswitch
+					}
+				add temp 1
+				}
+
+		}
+	}
+endevent

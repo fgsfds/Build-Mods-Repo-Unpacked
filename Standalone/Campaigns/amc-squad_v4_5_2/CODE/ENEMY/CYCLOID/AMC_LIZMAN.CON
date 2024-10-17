@@ -1,0 +1,1210 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Based on the Duke3D CON files by 3DRealms, released under the GPL2 at:
+https://github.com/videogamepreservation/dukenukem3d/blob/ef609159bd352985a0c63734a11241d86c873fe5/testdata/GAME.CON
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+Contains both Lizman and Elite Lizman
+--------------------------------------------------------------------------------
+*/
+
+damageeventtile LIZMAN
+damageeventtile ELITE_LIZMAN
+
+action ALIZSTAND     0
+action ALIZWALKING     0   4  5  1  15
+action ALIZRUNNING     0   4  5  1  11
+action ALIZ_DODGE     -690   5  5  1  11
+action ALIZTHINK     20  2  5  1  40
+action ALIZSCREAM    25  1  5  1  2
+action ALIZ_WHIP 40 5 1 1 4
+action ALIZJUMP      45  3  5  1  20
+action ALIZFALL      55  1  5
+action ALIZSHOOTING    70  2  5  1  7
+
+
+action ALIZDYING     60  6  1  1  15
+action ALIZLYINGDEAD   65  1
+action ALIZLYINGDEAD2 66 1
+
+action ALIZ_CHOPDY 14701 6 1 1 12
+action ALIZ_CHOPDEAD 14706
+
+action ALIZFROZEN     60  1  1
+
+action ALIZHEADDIE   7324 6  1  1  15
+action ALIZHEADDEAD  7329 1  1  1  1
+
+move LIZWALKVEL 72
+move LIZROLL 320
+move LIZRUNVEL 192
+move LIZJUMPVEL 184
+
+ai AILIZGETENEMY ALIZWALKING LIZWALKVEL seekplayer
+
+ai AILIZDODGE ALIZ_DODGE LIZROLL randomangle
+
+ai AILIZCHARGEENEMY ALIZRUNNING LIZRUNVEL seekplayer
+
+ai AILIZFLEENEMY ALIZWALKING LIZWALKVEL fleeenemy
+
+ai AILIZ_WHIP ALIZ_WHIP STOP faceplayer
+
+ai AILIZSHOOTENEMY ALIZSHOOTING STOP faceplayer
+ai AILIZJUMPENEMY ALIZJUMP LIZJUMPVEL jumptoplayer
+ai AILIZTHINK ALIZTHINK STOP faceplayerslow
+
+ai AILIZSHRUNK ALIZWALKING SHRUNKVELS fleeenemy
+ai AILIZGROW ALIZSTAND  STOP faceplayerslow
+ai AILIZSPIT ALIZSCREAM STOP faceplayersmart
+
+ai AILIZ_CHOPDY ALIZ_CHOPDY STOP faceplayer
+ai AILIZDYING ALIZDYING STOP faceplayer
+ai AILIZHDYING ALIZHEADDIE STOP faceplayer
+
+defstate lizman_whipstate
+sizeat 28 28
+ifcount 10
+{
+state setknockback
+wackplayer
+sound PIGBUTT
+palfrom 20 30 0 0
+addphealth -15
+resetcount
+}
+ifrnd 32 { sound CAPT_ROAM }
+ifpdistg 1024 { ai AILIZSHOOTENEMY } else
+ifp pdead { ifp palive { ai AILIZCHARGEENEMY } }
+ends
+
+defstate lizseekstate
+
+state checkfortarget
+
+      ifpdistl 1024
+        ifp palive
+		  {
+		  state check_actor_hitscan
+			ife hitsprite PLAYER_IDENTITY
+	      ai AILIZ_WHIP
+		  }
+
+  ifactornotstayput
+  {
+	ifn my_target -1
+		{
+			// Target acquired, skill setting can still affect decision to shoot.
+			state SKILL_SHOOT_LEVELADJUST
+			
+			ifl RANDOM_CHANCE SKILLCHANCE 
+				ai AILIZSHOOTENEMY
+		}
+    ifai AILIZCHARGEENEMY
+    {
+      ifcount 72
+        ifcanshoottarget
+      {
+        ai AILIZSHOOTENEMY
+        break
+      }
+		geta[].htmovflag move_flag
+		ifn move_flag 0 // this is the same as ifnotmoving, but now we have info about what is hit in the temp var
+		{
+				 andvar move_flag 49152
+				 ife move_flag 32768 // the actor is pushing on a wall
+				 {
+				   geta[].htmovflag move_flag2 // need to get the info again
+				   andvar move_flag2 16383 // temp now stores the wall number
+						   getwall[move_flag2].nextsector sect
+						   ifn sect -1
+						   {
+						   ifand wall[move_flag2].cstat 1 break
+						   ife sector[sect].lotag 20 operate
+						   ife sector[sect].lotag 21 operate
+						   ife sector[sect].lotag 22 operate
+						   ife sector[sect].lotag 23 operate
+							  ifl sector[sect].floorz sector[].floorz // assumes floors are not sloped!
+								{
+								ai AILIZJUMPENEMY
+								break
+								}
+							}
+				  }
+		}
+    }
+    else
+      ifpdistg 4096
+    {
+      ifrnd 92
+      {
+        ifcount 48
+          ifcanshoottarget
+            ai AILIZSHOOTENEMY
+      }
+      else
+        ifcount 24
+      {
+        ai AILIZCHARGEENEMY
+        break
+      }
+    }
+
+    iffloordistl 16
+    {
+      ifcount 48
+        ifnotmoving
+          ifcansee
+      {
+        ai AILIZJUMPENEMY
+        break
+      }
+    }
+    else
+    {
+      ifpdistg 1280
+        ai AILIZJUMPENEMY
+      break
+    }
+
+    ifrnd 4
+      ifnotmoving
+        operate
+    else
+      ifrnd 32
+        ifbulletnear
+    {
+      ifgapzl 128
+        ai AILIZDODGE
+      else
+        ifactornotstayput
+      {
+        ifrnd 32
+          ai AILIZJUMPENEMY
+        else
+          ai AILIZDODGE
+      }
+    }
+  }
+  else
+  {
+    ifactioncount 16
+    {
+      ifp palive
+        ifrnd 32
+          ifcansee
+            ifcanshoottarget
+              ai AILIZSHOOTENEMY
+    }
+    ifcount 16
+      ifrnd 32
+        move LIZWALKVEL randomangle geth
+  }
+
+ends
+
+defstate lizshrunkstate
+  ifcount SHRUNKDONECOUNT
+    ai AILIZGETENEMY
+  else
+    ifcount SHRUNKCOUNT
+	  {
+	  sound ACTOR_UNSHRINK
+      sizeto 28 28
+	  }
+  else
+    state genericshrunkcode
+ends
+
+defstate lizfleestate
+
+      ifpdistl 1024
+        ifp palive
+		  {
+		  state check_actor_hitscan
+			ife hitsprite PLAYER_IDENTITY
+	      ai AILIZ_WHIP
+		  }
+
+  ifcount 16
+  {
+    ifrnd 48
+      ifp palive
+        ifcansee
+          ai AILIZSPIT
+  }
+  else
+  {
+    iffloordistl 16 nullop
+    else
+      ai AILIZGETENEMY
+    break
+  }
+ends
+
+defstate lizthinkstate
+sizeat 28 28
+  ifrnd 8
+    soundonce CAPT_ROAM
+
+
+      ifpdistl 1024
+        ifp palive
+		  {
+		  state check_actor_hitscan
+			ife hitsprite PLAYER_IDENTITY
+	      ai AILIZ_WHIP
+		  }
+
+  ifactioncount 3
+  {
+    ifpdistl 4096
+      ifp palive
+        ifcansee
+		 ifrnd 96
+		  {
+		    sizeat 28 28
+          ai AILIZSPIT
+		  }
+        else
+          ifrnd 96
+		    {
+			sizeat 28 28
+            ai AILIZGETENEMY
+			}
+  }
+  else
+    ifactioncount 2
+      ifrnd 1
+        spawn FECES
+  ifrnd 64
+    ifbulletnear
+  {
+  sizeat 28 28
+    ifgapzl 96
+      ai AILIZDODGE
+    else
+    {
+      ifrnd 128
+        ai AILIZJUMPENEMY
+      else
+        ai AILIZDODGE
+    }
+  }
+ends
+
+defstate lizshootstate
+  ifcount 20
+    ifrnd 8
+  {
+  state correctcansee
+    ife sightvar YES
+      ifpdistl 2048
+    {
+      ifrnd 128
+        { sound MINIGUN3_STOP ai AILIZFLEENEMY }
+      break
+    }
+    ifrnd 80
+      { sound MINIGUN3_STOP ai AILIZTHINK }
+    else
+      { sound MINIGUN3_STOP ai AILIZGETENEMY }
+  }
+  ifactioncount 2
+  {
+  state fronttowardstarget
+    ifn my_target -1
+    {
+	ifspritepal 20 { sound SPELL1FIRE shoot SPELL1 } else
+	ifspritepal 24 { sound PRED_ATTACK shoot FIRELASER } else
+		{ 
+		state SKILL_ENEMY_ACCURACY 
+		set PROJECTILE_TO_SHOOT ENEMY_BULLET
+		set PROJECTILE_FIRING_SOUND CAPT_ATTACK
+		state sang_enemyShootProjectile
+		}
+
+		ife PERFMODE 1
+
+			{
+			set gunsmoke_z 7844
+			set gunsmoke_angle 256
+			state spawn_gunsmoke_z
+			set gunsmoke_z 5044
+			espawn 16115
+			state spawn_muzzleflash
+			state npc_rifleshell
+			}
+      resetactioncount
+    }
+    else
+      { sound MINIGUN3_STOP ai AILIZGETENEMY }
+  }
+
+ifp pfacing
+ ifg player[].kickback_pic 0
+   ifrnd 64
+    ai AILIZDODGE
+
+ends
+
+defstate checklizhit
+state NEWGUNEFFECTS
+
+  //spawn BLOOD
+  ifrnd 192 guts JIBS6 2
+  ifai AILIZSHRUNK
+  {
+    addkills 1
+
+    state squish_sounds
+    state standard_jibs
+    killit
+  }
+  ifdead
+  {
+    ifg ice_damage 0
+    {
+      sound SOMETHINGFROZE
+      spritepal 1
+      move 0
+      action ALIZFROZEN
+      strength 0
+      break
+    }
+
+    ifwasweapon GROWSPARK
+    {
+      cstat 0
+      sound ACTOR_GROWING
+      ai AILIZGROW
+      break
+    }
+
+    addkills 1
+
+
+    ifwasweapon RPG
+		{
+		  state squish_sounds
+		  state liz_body_jibs
+		  state standard_jibs
+		  killit
+		}
+      ifwasweapon RADIUSEXPLOSION
+		{
+		  state squish_sounds
+		  state liz_body_jibs
+		  state standard_jibs
+		  killit
+		}
+      ifand PROJ_UDATA PROJ_GIB
+			{
+			  state squish_sounds
+			  state liz_body_jibs
+			  state standard_jibs
+			  killit
+			}
+		ifand PROJ_UDATA 8192
+			 {
+			 spawn ELECTROCUTE_LIZMAN
+			 shoot SPARK2 shoot SPARK2 shoot SPARK2
+			 killit
+			 }
+		ifand PROJ_UDATA 8
+		{
+		state sword_kill_sounds
+        state random_trigger_showoff
+		ife SWORD_ANIM 1 cstat 4 else cstat 0 state slashed_sounds ai AILIZ_CHOPDY
+		}
+	else
+     ife HEADSHOT 2
+	  ife fire_damage 0
+    {
+	 ifai AILIZHDYING break else ai AILIZHDYING
+      state decap_sounds
+      state jib_sounds
+      guts LIZMANHEAD1 1
+      state rf
+      ifrnd 64
+        spawn BLOODPOOL
+    }
+    else
+	ifg energy_damage 0
+		{
+		shoot SPARK2 shoot SPARK2 shoot SPARK2
+		spritepal 4
+		guts JIBS3 6
+		spawn DISINTIGRATE_LIZMAN
+		killit
+		}
+	 else
+	ifg fire_damage 0
+		{
+		shoot SPARK2 shoot SPARK2 shoot SPARK2
+		sound ENGULF_FIRE
+		sound CAPT_DYING
+		spawn ONFIREGUY
+		killit
+		}
+	else
+    {
+	ifai AILIZDYING break else ai AILIZDYING
+      state rf
+      ifrnd 64
+        spawn BLOODPOOL
+	    sound CAPT_DYING
+    }
+  }
+  else
+  {
+    sound CAPT_PAIN
+    ifwasweapon SHRINKSPARK
+    {
+      sound ACTOR_SHRINKING
+      ai AILIZSHRUNK
+      break
+    }
+    ifwasweapon GROWSPARK
+      sound EXPANDERHIT
+
+    state random_wall_jibs
+	state correctcansee
+    ifp palive
+	ife sightvar YES
+        ifcanshoottarget
+    {
+	ifaction ALIZTHINK sizeat 28 28
+	ifaction ALIZSCREAM  sizeat 28 28
+      ai AILIZSHOOTENEMY
+      break
+    }
+  }
+ends
+
+defstate lizjumpstate
+  ifaction ALIZFALL
+  {
+    iffloordistl 16
+      ai AILIZGETENEMY
+  }
+  else
+    ifactioncount 3
+      action ALIZFALL
+ends
+
+defstate lizdyingstate
+  ifaction ALIZLYINGDEAD
+  {
+    strength 0
+    ifhitweapon
+      ifwasweapon RADIUSEXPLOSION
+    {
+      state squish_sounds
+      state standard_jibs
+      killit
+    }
+  }
+  else
+  ifaction ALIZ_CHOPDEAD
+  {
+    strength 0
+    ifhitweapon
+      ifwasweapon RADIUSEXPLOSION
+    {
+      state squish_sounds
+      state standard_jibs
+      killit
+    }
+  }
+  else
+  ifaction ALIZHEADDEAD
+  {
+    strength 0
+    ifhitweapon
+      ifwasweapon RADIUSEXPLOSION
+    {
+      state squish_sounds
+      state standard_jibs
+      killit
+    }
+  }
+  else
+  ifaction ALIZLYINGDEAD2
+  {
+    strength 0
+    ifhitweapon
+      ifwasweapon RADIUSEXPLOSION
+    {
+      state squish_sounds
+      state standard_jibs
+      killit
+    }
+  }
+  else
+     ifai AILIZHDYING
+      ifactioncount 6
+  {
+    iffloordistl 8
+      state BODY_FALL_NOISES
+    move STOP
+    action ALIZHEADDEAD
+  }
+  else
+    ifai AILIZDYING
+      ifactioncount 6
+  {
+    iffloordistl 8
+      state BODY_FALL_NOISES
+    move STOP
+    ifrnd 96
+	 ifn CHAR 15
+			{
+			ifspritepal 24 spawn LIZMANFGUNSPRITE else
+			spawn LIZMANGUNSPRITE
+			action ALIZLYINGDEAD2
+			}
+			else action ALIZLYINGDEAD
+
+  }
+  else
+    ifai AILIZ_CHOPDY
+	{
+	ifg SLO_MO_SHOWOFF 0 ai AILIZ_CHOPDY
+	ifactioncount 5
+	  {
+		iffloordistl 8
+		  state SQUISH_FALL_NOISES
+		move STOP
+	   action ALIZ_CHOPDEAD
+	  }
+   }
+ends
+
+defstate lizdodgestate
+ifactioncount 1 soundonce P_ROLL
+  ifactioncount 5
+    { ifrnd 128 ai AILIZSHOOTENEMY else ai AILIZGETENEMY }
+ends
+
+useractor enemystayput LIZMANSTAYPUT LIZSTRENGTH state monst_glow ai AILIZGETENEMY spawn SHOOTME cactor LIZMAN enda
+useractor enemy LIZMANSPITTING LIZSTRENGTH state monst_glow ai AILIZSPIT spawn SHOOTME cactor LIZMAN enda
+useractor enemy LIZMANJUMP LIZSTRENGTH state monst_glow ai AILIZJUMPENEMY spawn SHOOTME cactor LIZMAN enda
+
+defstate lizcode
+  state checksquished
+  ifai 0
+    { sizeat 28 28 spawn SHOOTME ai AILIZGETENEMY }
+  else
+    ifaction ALIZ_CHOPDEAD
+	  {
+		fall
+		state lizdyingstate
+		break
+	  }
+  else
+    ifaction ALIZLYINGDEAD
+	  {
+		fall
+		state lizdyingstate
+		break
+	  }
+  else
+    ifaction ALIZLYINGDEAD2
+	  {
+		fall
+		state lizdyingstate
+		break
+	  }
+  else
+    ifaction ALIZHEADDEAD
+  {
+    fall
+    state lizdyingstate
+    break
+  }
+  else
+    ifaction ALIZFROZEN
+  {
+   state frozen_code
+    break
+  }
+  else
+    ifai AILIZJUMPENEMY
+      state lizjumpstate
+  else
+  {
+    fall
+    ifai AILIZGETENEMY
+      state lizseekstate
+	else
+	ifai AILIZ_WHIP
+	  state lizman_whipstate
+    else
+      ifai AILIZCHARGEENEMY
+        state lizseekstate
+    else
+      ifai AILIZDODGE
+        state lizdodgestate
+    else
+      ifai AILIZSHOOTENEMY
+        state lizshootstate
+    else
+      ifai AILIZFLEENEMY
+        state lizfleestate
+    else
+      ifai AILIZTHINK
+        state lizthinkstate
+    else
+      ifai AILIZSHRUNK
+        state lizshrunkstate
+    else
+      ifai AILIZGROW
+        state genericgrowcode
+    else
+      ifai AILIZDYING
+        state lizdyingstate
+    else
+      ifai AILIZ_CHOPDY
+        state lizdyingstate
+    else
+      ifai AILIZHDYING
+        state lizdyingstate
+    else
+      ifai AILIZSPIT
+    {
+	sizeat 28 28
+      ifcount 26
+	    {
+		sizeat 28 28
+        ai AILIZGETENEMY
+		}
+      else
+        ifcount 18
+          ifrnd 96
+      {
+        shoot SPIT
+        sound LIZARD_SPIT
+      }
+    }
+  }
+
+  ifai AILIZSHRUNK
+    break
+  ifhitweapon
+    state checklizhit
+ends
+
+useractor enemy LIZMAN LIZSTRENGTH
+  fall
+
+ifaction 0
+{
+sizeat 28 28
+state monst_glow
+ifspritepal 24 strength 250
+else ifspritepal 25 strength 200
+}
+
+state ENEMYKNOCKBACKS
+state enemyfloordamage
+state enemy_fire_damage
+state enemy_ice_damage
+state enemy_spirit_damage
+
+  state lizcode
+enda
+
+
+// ************************************************************************************
+// Elite LIZMAN
+// ************************************************************************************
+
+
+action A_ELIZSTAND     0
+action A_ELIZWALKING     0   4  5  1  15
+action A_ELIZRUNNING     0   4  5  1  11
+action A_ELIZJUMP      20  3  5  1  20
+action A_ELIZFALL      30  1  5
+action A_ELIZSHOOTING    41  2  5  1  7
+action A_ELIZDYING     35  6  1  1  15
+action A_ELIZLYINGDEAD   40  1
+action A_ELIZFROZEN     0  1  5
+
+ai AI_ELITELIZGETENEMY A_ELIZWALKING LIZWALKVEL seekplayer
+ai AI_ELITELIZDODGE A_ELIZRUNNING LIZRUNVEL dodgebullet
+ai AI_ELITELIZCHARGEENEMY A_ELIZRUNNING LIZRUNVEL seekplayer
+ai AI_ELITELIZFLEENEMY A_ELIZWALKING LIZWALKVEL fleeenemy
+ai AI_ELITELIZSHOOTENEMY A_ELIZSHOOTING STOP faceplayersmart
+ai AI_ELITELIZJUMPENEMY A_ELIZJUMP LIZJUMPVEL jumptoplayer
+ai AI_ELITELIZSHRUNK A_ELIZWALKING SHRUNKVELS fleeenemy
+ai AI_ELITELIZGROW A_ELIZSTAND STOP faceplayerslow
+ai AI_ELITELIZDYING A_ELIZDYING STOP faceplayer
+
+defstate elite_lizseekstate
+
+  ifactornotstayput
+  {
+  state correctcansee
+    ife sightvar YES
+      ifp palive
+        ifpdistl 2048
+          ifcount 16
+    {
+      ai AI_ELITELIZSHOOTENEMY
+      break
+    }
+    ifai AI_ELITELIZCHARGEENEMY
+    {
+      ifcount 72
+        ifcanshoottarget
+      {
+        ai AI_ELITELIZSHOOTENEMY
+        break
+      }
+		geta[].htmovflag temp
+		ifn temp 0 // this is the same as ifnotmoving, but now we have info about what is hit in the temp var
+		{
+				 andvar temp 49152
+				 ife temp 32768 // the actor is pushing on a wall
+				 {
+				   geta[].htmovflag temp2 // need to get the info again
+				   andvar temp2 16383 // temp now stores the wall number
+						   getwall[temp2].nextsector sect
+						   ifn sect -1
+						   {
+						   ifand wall[temp2].cstat 1 break
+						   ife sector[sect].lotag 20 operate
+						   ife sector[sect].lotag 21 operate
+						   ife sector[sect].lotag 22 operate
+						   ife sector[sect].lotag 23 operate
+							  ifl sector[sect].floorz sector[].floorz // assumes floors are not sloped!
+								{
+								ai AI_ELITELIZJUMPENEMY
+								break
+								}
+							}
+				  }
+		}
+    }
+    else
+      ifpdistg 4096
+    {
+      ifrnd 92
+      {
+        ifcount 48
+          ifcanshoottarget
+            ai AI_ELITELIZSHOOTENEMY
+      }
+      else
+        ifcount 24
+      {
+        ai AI_ELITELIZCHARGEENEMY
+        break
+      }
+    }
+
+    iffloordistl 16
+    {
+      ifcount 48
+        ifnotmoving
+          ifcansee
+      {
+        ai AI_ELITELIZJUMPENEMY
+        break
+      }
+    }
+    else
+    {
+      ifpdistg 1280
+        ai AI_ELITELIZJUMPENEMY
+      break
+    }
+
+    ifrnd 4
+      ifnotmoving
+        operate
+    else
+      ifrnd 1
+        ifbulletnear
+    {
+      ifgapzl 128
+        ai AI_ELITELIZDODGE
+      else
+        ifactornotstayput
+      {
+        ifrnd 32
+          ai AI_ELITELIZJUMPENEMY
+        else
+          ai AI_ELITELIZDODGE
+      }
+    }
+  }
+  else
+  {
+    ifactioncount 16
+    {
+      ifp palive
+        ifrnd 32
+          ifcansee
+            ifcanshoottarget
+              ai AI_ELITELIZSHOOTENEMY
+    }
+    ifcount 16
+      ifrnd 32
+        move LIZWALKVEL randomangle geth
+  }
+
+ends
+
+defstate elite_lizshrunkstate
+  ifcount SHRUNKDONECOUNT
+    ai AI_ELITELIZGETENEMY
+  else
+    ifcount SHRUNKCOUNT
+	  {
+	  sound ACTOR_UNSHRINK
+      sizeto 30 30
+	  }
+  else
+    state genericshrunkcode
+ends
+
+defstate elite_lizfleestate
+
+    iffloordistl 16 nullop
+    else
+      ai AI_ELITELIZGETENEMY
+    break
+
+ends
+
+defstate elite_lizshootstate
+  ifcount 20
+    ifrnd 8
+  {
+  state correctcansee
+    ife sightvar YES
+      ifpdistl 2048
+    {
+      ifrnd 128
+        { sound MINIGUN3_STOP ai AI_ELITELIZFLEENEMY }
+      break
+    }
+    else
+      { sound MINIGUN3_STOP ai AI_ELITELIZGETENEMY }
+  }
+  ifactioncount 2
+  {
+  state correctcansee
+    ife sightvar YES
+    {
+       state SKILL_ENEMY_ACCURACY sound TURR_ATTACK shoot 5394
+
+		ife PERFMODE 1
+		 ifcansee
+			{
+			set gunsmoke_z 7844
+			set gunsmoke_angle 256
+			state spawn_gunsmoke_z
+			set gunsmoke_z 4544
+			espawn 16113
+			state spawn_muzzleflash
+			}
+      resetactioncount
+    }
+    else
+      { sound MINIGUN3_STOP ai AI_ELITELIZGETENEMY }
+  }
+ends
+
+defstate checkelitelizhit
+
+state NEWGUNEFFECTS
+  ifrnd 128 guts JIBS6 1
+  //spawn BLOOD
+  ifai AI_ELITELIZSHRUNK
+  {
+    addkills 1
+
+    state squish_sounds
+    state standard_jibs
+    killit
+  }
+  ifdead
+  {
+    ifg ice_damage 0
+    {
+      sound SOMETHINGFROZE
+      spritepal 1
+      move 0
+      action A_ELIZFROZEN
+      strength 0
+      break
+    }
+
+    ifwasweapon GROWSPARK
+    {
+      cstat 0
+      sound ACTOR_GROWING
+      ai AI_ELITELIZGROW
+      break
+    }
+
+    addkills 1
+
+
+    ifwasweapon RPG
+    {
+      state squish_sounds
+      state liz_body_jibs
+      state standard_jibs
+      killit
+    }
+      ifwasweapon RADIUSEXPLOSION
+    {
+      state squish_sounds
+      state liz_body_jibs
+      state standard_jibs
+      killit
+    }
+      ifand PROJ_UDATA PROJ_GIB
+    {
+      state squish_sounds
+      state liz_body_jibs
+      state standard_jibs
+      killit
+    }
+		ifand PROJ_UDATA 8192
+			 {
+			 spawn ELECTROCUTE_LIZMAN
+			 shoot SPARK2 shoot SPARK2 shoot SPARK2
+			 killit
+			 }
+	ifg energy_damage 0
+		{
+		shoot SPARK2 shoot SPARK2 shoot SPARK2
+		spritepal 4
+		guts JIBS3 6
+		spawn DISINTIGRATE_LIZMAN
+		killit
+		}
+	 else
+	ifg fire_damage 0
+		{
+		shoot SPARK2 shoot SPARK2 shoot SPARK2
+		sound ENGULF_FIRE
+		sound CAPT_DYING
+		spawn ONFIREGUY
+		killit
+		}
+    else
+    {
+	ifai AI_ELITELIZDYING break else ai AI_ELITELIZDYING
+      state rf
+      ifrnd 64
+        spawn BLOODPOOL
+	    sound CAPT_DYING
+    }
+  }
+  else
+  {
+    sound CAPT_PAIN
+    ifwasweapon SHRINKSPARK
+    {
+      sound ACTOR_SHRINKING
+      ai AI_ELITELIZSHRUNK
+      break
+    }
+    ifwasweapon GROWSPARK
+      sound EXPANDERHIT
+
+    state random_wall_jibs
+	state correctcansee
+    ifp palive
+	ife sightvar YES
+        ifcanshoottarget
+    {
+      ai AI_ELITELIZSHOOTENEMY
+      break
+    }
+  }
+ends
+
+defstate elite_lizjumpstate
+  ifaction A_ELIZFALL
+  {
+    iffloordistl 16
+      ai AI_ELITELIZGETENEMY
+  }
+  else
+    ifactioncount 3
+      action A_ELIZFALL
+ends
+
+defstate elite_lizdyingstate
+  ifaction A_ELIZLYINGDEAD
+  {
+    strength 0
+    ifhitweapon
+      ifwasweapon RADIUSEXPLOSION
+    {
+      state squish_sounds
+      state standard_jibs
+      killit
+    }
+  }
+  else
+    ifai AI_ELITELIZDYING
+      ifactioncount 6
+  {
+    iffloordistl 8
+      state BODY_FALL_NOISES
+    move STOP
+	action A_ELIZLYINGDEAD
+
+  }
+ends
+
+defstate elite_lizdodgestate
+  ifcount 13
+    ai AI_ELITELIZGETENEMY
+ends
+
+useractor enemystayput ELITE_LIZMAN_STAYPUT 400 sizeat 30 30 cstator 257 state monst_glow ai AI_ELITELIZGETENEMY spawn SHOOTME cactor ELITE_LIZMAN enda
+useractor enemy ELITE_LIZMAN_JUMP 400 sizeat 30 30 cstator 257 state monst_glow ai AI_ELITELIZJUMPENEMY spawn SHOOTME cactor ELITE_LIZMAN enda
+
+defstate elite_lizcode
+  state checksquished
+  ifai 0
+    { sizeat 30 30 cstator 257 spawn SHOOTME ai AI_ELITELIZGETENEMY set NPC_SHIELD 200 }
+  else
+    ifaction A_ELIZLYINGDEAD
+  {
+    fall
+    state elite_lizdyingstate
+    break
+  }
+  else
+    ifaction A_ELIZFROZEN
+  {
+    ifcount THAWTIME
+    {
+      ai AI_ELITELIZGETENEMY
+      getlastpal
+    }
+    else
+      ifcount FROZENDRIPTIME
+    {
+      ifactioncount 26
+      {
+        spawn WATERDRIP
+        resetactioncount
+      }
+    }
+
+    ifhitweapon
+    {
+	state NEWGUNEFFECTS
+      ifwasweapon FREEZEBLAST
+      {
+        strength 0
+        break
+      }
+      addkills 1
+
+
+      ifrnd 84
+        spawn BLOODPOOL
+      lotsofglass 20
+	  shoot ICE_DEBRIS shoot ICE_DEBRIS shoot ICE_DEBRIS shoot ICE_DEBRIS shoot ICE_DEBRIS
+	  shoot ICE_DEBRIS shoot ICE_DEBRIS shoot ICE_DEBRIS shoot ICE_DEBRIS shoot ICE_DEBRIS
+      sound ICE_SMASH
+      killit
+    }
+    ifp pfacing
+      ifpdistl FROZENQUICKKICKDIST
+	  ife MELEE_WEAPON_LOADOUT[CHAR] 0
+        pkick
+    break
+  }
+  else
+    ifai AI_ELITELIZJUMPENEMY
+      state elite_lizjumpstate
+  else
+  {
+    fall
+    ifai AI_ELITELIZGETENEMY
+      state elite_lizseekstate
+    else
+      ifai AI_ELITELIZCHARGEENEMY
+        state elite_lizseekstate
+    else
+      ifai AI_ELITELIZDODGE
+        state elite_lizdodgestate
+    else
+      ifai AI_ELITELIZSHOOTENEMY
+        state elite_lizshootstate
+    else
+      ifai AI_ELITELIZFLEENEMY
+        state elite_lizfleestate
+    else
+      ifai AI_ELITELIZSHRUNK
+        state elite_lizshrunkstate
+    else
+      ifai AI_ELITELIZGROW
+        state genericgrowcode
+    else
+      ifai AI_ELITELIZDYING
+        state elite_lizdyingstate
+  }
+
+  ifai AI_ELITELIZSHRUNK
+    break
+
+	state ENEMY_SHIELD_STUFF
+
+  ifhitweapon
+    state checkelitelizhit
+ends
+
+useractor enemy ELITE_LIZMAN 200 A_ELIZSTAND
+  fall
+
+ifaction 0
+	{
+	spritepal 21
+	set actor_pal 21
+	sizeat 30 30
+	state monst_glow
+	}
+
+state enemyfloordamage
+state enemy_fire_damage
+state enemy_ice_damage
+state enemy_spirit_damage
+
+  state elite_lizcode
+enda

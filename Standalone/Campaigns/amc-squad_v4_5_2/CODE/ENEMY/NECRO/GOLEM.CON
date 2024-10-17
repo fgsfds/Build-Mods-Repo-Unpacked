@@ -1,0 +1,207 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+
+--------------------------------------------------------------------------------
+*/
+
+damageeventtile GOLEM
+
+action A_GOLEM_START 0 1 5 1 12 // Starting frame, different from the idle frame
+action A_GOLEM_IDLE 0 1 5 1 12
+
+action A_GOLEM_FREEZE 20 1 1 1 8
+action A_GOLEM_GROW 20 1 1 1 8
+action A_GOLEM_SHRUNK 0 4 5 1 12
+action A_GOLEM_PAIN 20 1 5 1 8
+action A_GOLEM_SEEK 0 4 5 1 12
+action A_GOLEM_ATTACK 25 2 5 1 16
+
+move M_GOLEM_WALK 126
+
+// Insert stayput thing here
+useractor enemystayput GOLEM_STAYPUT 150 A_GOLEM_START
+	cactor GOLEM
+enda
+
+useractor enemy GOLEM 400 A_GOLEM_START
+fall
+ifaction A_GOLEM_START
+{
+	cstat 257
+	strength 400
+	sizeat 34 34
+	state monst_glow
+	set actor_type TYPE_CASE_SPECIFIC
+	set blood_type 27
+	espawn SHOOTME // Controls stuff like fire damage, targetting, .etc .etc - still used as a backup for the ally fighting stuff in-case an actor isn't set up with it yet
+	seta[RETURN].pal 1 // basically done just to make it clear that this actor is onboarded to the new targetting stuff, and is using SHOOTME for other purposes
+	action A_GOLEM_IDLE
+}
+	
+state ENEMYKNOCKBACKS
+state enemyfloordamage
+state enemy_fire_damage
+
+ifg fire_damage 0 ifg sprite[].extra 15 addstrength -15
+
+state enemy_spirit_damage
+
+ifaction A_GOLEM_IDLE
+{
+	move STOP
+	state checkfortarget
+	ifn my_target -1 
+	{
+		sound GOL_SIGHT
+		set INTERNALCOUNT 0
+		action A_GOLEM_SEEK
+	}
+}
+
+
+// Status effects
+ifaction A_GOLEM_FREEZE state frozen_code
+else ifaction A_GOLEM_GROW
+{
+	move STOP
+	state genericgrowcode
+}
+else ifaction A_GOLEM_SHRUNK
+{
+	ifmove M_GOLEM_WALK { } // need to do this cause we're not using ai routines anymore
+	else
+		move M_GOLEM_WALK geth fleeenemy
+		
+	ifl SHRUNK_TIME SHRUNKCOUNT // keep shrunk
+		state new_shrunkcode
+	else ifl SHRUNK_TIME SHRUNKDONECOUNT // regrow
+	{
+		state unshrink
+		sizeto 34 34
+	}
+	else // after regrow, switch back to regular action
+	{
+		state endshrunkenstate
+		action A_GOLEM_SEEK
+	}	
+}
+
+else ifaction A_GOLEM_PAIN
+{
+	sub PAIN_AMOUNT 1
+	move STOP
+	ife PAIN_AMOUNT 0
+	{
+		action A_GOLEM_SEEK
+	}
+}
+
+else ifaction A_GOLEM_SEEK
+{
+	ifmove M_GOLEM_WALK nullop 
+	else move M_GOLEM_WALK geth
+	set INTERNALCOUNT 0
+	state checkfortarget
+	
+	ifn my_target -1
+	{
+		// Target acquired, skill setting can still affect decision to shoot.
+		state SKILL_SHOOT_LEVELADJUST
+		
+		ifl RANDOM_CHANCE SKILLCHANCE 
+		{
+			ldist temp THISACTOR my_target
+			ifl temp 16384 
+				{
+				ifrnd 128 sound GOL_ATCK1 else sound GOL_ATCK2
+				action A_GOLEM_ATTACK
+				}
+		}
+	}
+}
+
+else ifaction A_GOLEM_ATTACK
+{
+	move STOP
+	state new_validatetarget
+	
+	ife my_target -1
+		action A_GOLEM_SEEK
+	
+	state fronttowardstarget
+	
+	ifactioncount 2
+	{
+	add INTERNALCOUNT 1
+			// IF PROJECTILE
+			set PROJECTILE_TO_SHOOT FREEZEBLAST
+			set PROJECTILE_FIRING_SOUND FREEZER
+			ife INTERNALCOUNT 10 state sang_enemyShootProjectile
+			else ife INTERNALCOUNT 20 state sang_enemyShootProjectile
+			else ife INTERNALCOUNT 30 state sang_enemyShootProjectile
+			else ife INTERNALCOUNT 40 state sang_enemyShootProjectile
+			
+	ifge INTERNALCOUNT 40 action A_GOLEM_SEEK
+	}
+}
+	
+ifhitweapon
+{
+	state NEWGUNEFFECTS
+	lotsofglass 2
+	ifdead
+	{
+		addkills 1
+		state rf
+		
+		ifwasweapon GROWSPARK { cstat 0 sound ACTOR_GROWING action A_GOLEM_GROW break }
+		else ifspritepal 21 ifg ice_damage 0 { spritepal 1 strength 0 sound SOMETHINGFROZE action A_GOLEM_FREEZE } 
+		else
+		{
+			sound BERSERK_DIE
+			lotsofglass 10
+			spawn ENERGY_EXPLOSION
+			shoot ICE_DEBRIS shoot ICE_DEBRIS shoot ICE_DEBRIS shoot ICE_DEBRIS shoot ICE_DEBRIS
+			shoot ICE_DEBRIS shoot ICE_DEBRIS shoot ICE_DEBRIS shoot ICE_DEBRIS shoot ICE_DEBRIS
+			sound ICE_SMASH
+			killit
+		}
+	}
+		
+	else // not dead
+	{
+		ifwasweapon SHRINKSPARK { sound ACTOR_SHRINKING action A_GOLEM_SHRUNK }
+		
+		ifg PAIN_AMOUNT 0 { sound GOL_PAIN action A_GOLEM_PAIN }
+		else ifrnd 32 { state PAIN_SKILL_LEVELADJUST sound GOL_PAIN action A_GOLEM_PAIN }
+		// if they were idle, getting hit ALWAYS wakes them up
+		else ifaction A_GOLEM_IDLE { state PAIN_SKILL_LEVELADJUST sound GOL_PAIN action A_GOLEM_PAIN }
+	}
+}
+
+state checksquished
+
+enda

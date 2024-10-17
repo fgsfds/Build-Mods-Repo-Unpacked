@@ -1,0 +1,45 @@
+// Overgrowth is something that blocks the player but can be cleared using any fire attack
+define OVERGROWTH 30152
+
+appendevent EVENT_LOADACTOR
+	ifactor OVERGROWTH
+		state GETALLTAGS
+endevent
+
+useractor notenemy OVERGROWTH
+	ifn EXTRASAVED -1
+	{
+		ifaction 0
+		{
+			cstat 257
+
+			espawn TARGETFX
+			setav[RETURN].is_flammable 1
+			al RETURN
+			action ZERO
+		}
+
+		// Can only be hurt by fire
+		ifg sprite[].htextra -1
+			seta[].htextra -1
+
+		ifg fire_damage 0
+		{
+			add INTERNALCOUNT 1
+
+			// Add random flame sprites on it
+			set COSMETIC_FLAME 30
+			state handle_cosmetic_flame
+
+			ifg INTERNALCOUNT 60
+			{
+				spritepal 4
+				// Shrink down to nothing
+				sizeto 0 0
+			}
+		}
+
+		ifhitweapon
+			nullop
+	}
+enda

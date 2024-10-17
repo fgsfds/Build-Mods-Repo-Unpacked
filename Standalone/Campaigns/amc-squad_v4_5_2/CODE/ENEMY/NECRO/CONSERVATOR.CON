@@ -1,0 +1,388 @@
+/*
+-------------------------------------------------------------------------------
+===============================================================================
+
+         -ooo:             +oo-            `+oo.       ./+oooooooooo+/:
+        /NMMMN+            NMMNo`         -dMMM/      .mMMNmmmmmmmmmMMNo
+       /NMd:mMMo           NMMNMd:      `oNMNMM/      :MMM/.........mMMh
+      oNMd. -mMMy`         NMN:mMNs`   -hMm/mMM/      :MMM:         ::-.
+    `sMMh`   .dMMh`        NMN .sNMd:`oNMh. mMM/      :MMM:
+   `yMMMdhhhhhmMMMd.       NMN   /mMNdMm+`  mMM/      :MMM:         ss+:
+  `hMMdhhhhhhhhhmMMm-      NMN    .yMMh.    mMM/      :MMM/.........mMMh
+ .dMMs`         .hMMm:     NMN      :/`     mMM/      .mMMNmmmmmmmmmMMNo
+ :oo+            `+oo+     +o+              +oo.       ./++ooooooooo+/:
+
+###############################################################################
++ The AMC Squad
++ CON code by James Stanfield, Cedric "Sangman" Haegeman, Dino Bollinger,
++              Mikko Sandt, Cedric "Zaxtor" Lutes and Dan "Danarama" Gaskill
+-------------------------------------------------------------------------------
+* See AMC_MAIN.CON for a full list of script authors.
+
+Feel free to use any code in the game for your own uses; just make
+sure to mention the authors and/or "The AMC Squad" in your credits.
+--------------------------------------------------------------------------------
+NOTES:
+
+--------------------------------------------------------------------------------
+*/
+
+damageeventtile CONSERVATOR
+
+action A_CONSERVATOR_IDLE 0 1 5 1 12
+action A_CONSERVATOR_DYING 0 1 5 1 12
+action A_CONSERVATOR_SEEK 0 1 5 1 12
+action A_CONSERVATOR_STRAFE 0 1 5 1 12
+action A_CONSERVATOR_ATTACK_MAG_PREP 0 1 5 1 12
+action A_CONSERVATOR_ATTACK_MAG 0 2 5 1 6
+action A_CONSERVATOR_ATTACK_LASER 10 1 5 1 12
+
+move M_CONSERVATOR_FLYHORIZ 100
+move M_CONSERVATOR_FLYDOWN 100 50
+move M_CONSERVATOR_FLYUP 100 -50
+
+eventloadactor CONSERVATOR
+	geta[].xvel XVELSAVED // wait for cam trigger before activating
+	geta[].extra EXTRASAVED // activate this tag upon death
+enda
+
+defstate conservator_asplode
+	// TODO slightly randomize position of explosion?
+	spawn EXPLOSION2
+	spawn BIG_EXPLOSION
+	globalsound RPG_EXPLODE
+	rand angvar 2047
+	seta[].ang angvar
+	shoot SPARK shoot SPARK shoot SPARK shoot SPARK shoot SPARK
+	// TODO metal impact sounds or something
+ends
+
+defstate conservator_seek_movement
+	state float_check
+	set FLOATING_CUR RETURN
+
+	ife RETURN -1
+	{
+		ifmove M_CONSERVATOR_FLYDOWN nullop
+		else move M_CONSERVATOR_FLYDOWN geth getv
+	}
+	else ife RETURN 0
+	{
+		ifmove M_CONSERVATOR_FLYHORIZ nullop
+		else move M_CONSERVATOR_FLYHORIZ geth getv
+	}
+	else ife RETURN 1
+	{
+		ifmove M_CONSERVATOR_FLYUP nullop
+		else move M_CONSERVATOR_FLYUP geth getv
+	}
+ends
+
+defstate conservator_point_search
+	// only allowed to search for next point if we haven't already reached current point
+	set temp 0
+
+	ife next_point -1
+		set temp 1
+	else
+	{
+		ldist temp2 THISACTOR next_point
+
+		ifl temp2 1024
+			set temp 1
+	}
+
+	ife temp 1
+	{
+		state anglePathToPlayer
+
+		ifn next_point -1
+			seta[].ang angvar
+	}
+	else ifn next_point -1
+	{
+		set ANGLE_TO_ACTOR next_point
+		state angleTo
+		seta[].ang angvar
+	}
+ends
+
+defstate conservator_hitscan_atk
+	move STOP
+
+	state fronttowardstarget
+
+	ifactioncount 2
+	{
+		add INTERNALCOUNT 1
+
+		set CALCZ_TARGET_OFFSET -8000
+		set PROJECTILE_FIRING_SOUND ENGY_SMG_FIRE
+		set PROJECTILE_TO_SHOOT CRYSTAL_SPIKE
+		state sang_enemyShootProjectile
+		
+		geta[].ang angvar
+		ezshoot temp3 CRYSTAL_SPIKE
+		seta[RETURN].ang angvar
+		zshoot temp3 CRYSTAL_SPIKE
+		seta[RETURN].ang angvar
+		
+		resetactioncount
+	}
+ends
+
+useractor enemy CONSERVATOR 4000
+
+ifaction 0
+{
+	cstat 257
+	strength 4000
+	sizeat 40 40
+	geta[].pal actor_pal
+	set NPC_SHIELD 200
+	set actor_type TYPE_ROBOTIC
+	spriteflags ROBOT_ENEMY
+	state monst_glow
+	set CURBOSS THISACTOR
+	set temp9 0
+	action A_CONSERVATOR_IDLE
+}
+
+state check_metal_squished
+
+// strafe cooldown
+ifg INTERNALCOUNT_2 0
+	sub INTERNALCOUNT_2 1
+
+// play hover craft sound on a loop
+ifaction 0 nullop
+else ifsound CONS_HUM nullop
+else sound CONS_HUM
+
+ifaction A_CONSERVATOR_IDLE
+{
+	ifn XVELSAVED 0
+	  ife temp9 0
+	{
+		checkactivatormotion XVELSAVED
+		ife RETURN 1
+			set temp9 1
+	}
+	else ife XVELSAVED 0
+		set temp9 2
+	
+	ife temp9 1
+	{
+		add INTERNALCOUNT 1
+		
+		ifge INTERNALCOUNT 30
+			set temp9 2
+	}
+	
+	ife temp9 2
+	{
+		set INTERNALCOUNT 0
+		move STOP
+		sound CONS_RECOG
+		action A_CONSERVATOR_SEEK
+	}
+}
+else ifaction A_CONSERVATOR_DYING
+{
+	add INTERNALCOUNT 1
+
+	move STOP
+	strength 0
+
+	ifsound BEEP2 nullop
+	else
+	{
+		sound BEEP2
+		globalsound BEEP2
+	}
+
+	ife INTERNALCOUNT 1
+	{
+		ifsound BOMB_CHARGEUP nullop
+		else
+		{
+			sound BOMB_CHARGEUP
+			globalsound BOMB_CHARGEUP
+		}
+	}
+
+	// asplosions
+	else ife INTERNALCOUNT 58 { state conservator_asplode }
+	else ife INTERNALCOUNT 68 { state conservator_asplode }
+	else ife INTERNALCOUNT 78 { state conservator_asplode }
+	else ife INTERNALCOUNT 88 { state conservator_asplode }
+	else ife INTERNALCOUNT 98 { state conservator_asplode }
+	else ife INTERNALCOUNT 108 { state conservator_asplode }
+	else ife INTERNALCOUNT 118 { state conservator_asplode }
+	else ife INTERNALCOUNT 128 { state conservator_asplode }
+	else ife INTERNALCOUNT 138
+	{
+		state conservator_asplode
+		shoot TERMLEGPART1
+		shoot TERMLEGPART2
+		shoot TERMLEGPART1
+		shoot TERMLEGPART2
+		shoot TERMLEGPART1
+		shoot TERMLEGPART2
+		shoot TERMLEGPART1
+		shoot TERMLEGPART2
+		debris SCRAP1 40
+		debris SCRAP2 32
+		debris SCRAP3 32
+		debris SCRAP4 32
+		debris SCRAP5 32
+		stopsound CONS_HUM
+		soundonce CONS_HUMDOWN
+		operateactivators EXTRASAVED THISACTOR
+		operatemasterswitches EXTRASAVED
+		operaterespawns EXTRASAVED
+		killit
+	}
+
+}
+else ifaction A_CONSERVATOR_SEEK
+{
+	state conservator_seek_movement
+
+	ifcansee
+	{
+		state checkfortarget
+
+		ifrnd 32
+		  ifle INTERNALCOUNT_2 0
+			action A_CONSERVATOR_STRAFE
+
+		ifrnd 8 ifn my_target -1
+		{
+			set INTERNALCOUNT 0
+
+			set temp2 0
+			geta[].extra temp
+			ifl temp 2000
+			{
+				ifrnd 64
+					set temp2 1
+			}
+
+			ife temp2 1
+			{
+				soundonce CONS_CHARGE
+				action A_CONSERVATOR_ATTACK_LASER
+			}
+			else
+			{
+				sound ENGY_MI
+				action A_CONSERVATOR_ATTACK_MAG_PREP
+			}
+		}
+	}
+	else
+		state conservator_point_search
+}
+else ifaction A_CONSERVATOR_STRAFE
+{
+	// TODO should we do the hitscan attack while strafing as well? Or should this purely be a random dodge?
+	set INTERNALCOUNT_2 60
+	state checkfortarget
+
+	ife my_target -1
+	{
+		set ACTOR_STRAFING 0
+		action A_CONSERVATOR_SEEK
+	}
+	else
+	{
+		// force angvar to my_target
+		set ANGLE_TO_ACTOR my_target
+		state angleTo
+		seta[].ang angvar
+
+		state actor_strafe
+
+		ifn RETURN 0 // hit something, abort strafe
+			set ACTOR_STRAFING 0
+
+		ife ACTOR_STRAFING 0
+			action A_CONSERVATOR_SEEK
+	}
+}
+else ifaction A_CONSERVATOR_ATTACK_MAG_PREP
+{
+	ifactioncount 6
+		action A_CONSERVATOR_ATTACK_MAG
+}
+else ifaction A_CONSERVATOR_ATTACK_MAG
+{
+	state conservator_hitscan_atk
+
+	state fronttowardstarget
+
+	ifg INTERNALCOUNT 9
+		action A_CONSERVATOR_SEEK
+}
+else ifaction A_CONSERVATOR_ATTACK_LASER
+{
+	move STOP
+	state fronttowardstarget
+
+	ifactioncount 24
+	{
+		stopsound CONS_CHARGE
+		globalsound CONS_BLAST
+		set HITSCAN_FIRING_SOUND -1
+		set HITSCAN_TO_SHOOT MAEPH_BEAM
+		state sang_enemyShootHitscanNoTargetSeek
+		palfrom 40 40 40 40
+		shoot SPARK shoot SPARK shoot SPARK shoot SPARK shoot SPARK
+
+		action A_CONSERVATOR_SEEK
+	}
+	else
+	{
+		// charging
+		ifrnd 32
+		{
+			eshoot SPARK
+			geta[].ang temp8
+			randvar temp6 256
+			ifrnd 128 add temp8 temp6 else sub temp8 temp6
+			seta[RETURN].ang temp8
+		}
+	}
+}
+
+	state ENEMY_SHIELD_STUFF
+
+ifhitweapon
+{
+	state NEWGUNEFFECTS
+	getlastpal
+
+	ifdead
+	{
+		ifaction A_CONSERVATOR_DYING nullop
+		else
+		{
+			add TREASURE_FOUND 5
+			addkills 1
+
+			sound PES_DEAD
+			set INTERNALCOUNT 0
+			action A_CONSERVATOR_DYING
+		}
+	}
+	else ifaction A_CONSERVATOR_IDLE 
+	{ 
+		state PAIN_SKILL_LEVELADJUST
+		move STOP
+		sound CONS_RECOG
+		action A_CONSERVATOR_SEEK
+	}
+}
+
+enda
